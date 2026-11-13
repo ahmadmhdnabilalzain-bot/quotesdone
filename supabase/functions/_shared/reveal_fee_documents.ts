@@ -46,6 +46,8 @@ export type RevealSale = {
   card: { brand: string; last4: string } | null;
   /** Money returned to the customer, from paymentState(); null when nothing was refunded. */
   refund: { amount: number; date: string } | null;
+  /** Money charged ABOVE the fee and returned (refunds reason overcharge_return, 13 Nov 2026), from paymentState(). */
+  overcharge_returned?: { amount: number; date: string } | null;
 };
 
 // WHAT THE PAYMENT IS NOW (21 Sep 2026, review of PR #775). A PAID document is issued only for a
@@ -57,16 +59,22 @@ export type RevealSale = {
 // transaction's own refund columns cover a refund recorded without a row. A requested or approved
 // refund has moved no money and changes nothing on the document.
 export type PaymentTx = { fee_status: string | null; revealed_at: string | null; refund_status: string | null; refund_amount_aed: number | string | null; refund_confirmed_at: string | null; refund_resolved_at: string | null };
-export type RefundRow = { status: string | null; amount_fils: number | string | null; settled_at: string | null; updated_at?: string | null };
-export type PaymentState = { state: 'not_paid' } | { state: 'paid'; refund: RevealSale['refund'] };
+export type RefundRow = { status: string | null; amount_fils: number | string | null; settled_at: string | null; updated_at?: string | null; reason_code?: string | null };
+export type PaymentState = { state: 'not_paid' } | { state: 'paid'; refund: RevealSale['refund']; overcharge_returned?: RevealSale['overcharge_returned'] };
 export function paymentState(tx: PaymentTx, refunds: RefundRow[]): PaymentState {
   if (String(tx.fee_status || '') !== 'paid' || !tx.revealed_at) return { state: 'not_paid' };
-  const done = refunds.filter((x) => x.status === 'succeeded' && Number(x.amount_fils) > 0);
+  // An OVERCHARGE RETURN (money charged above the fee, 13 Nov 2026) is not a refund of the fee: the fee stays paid and its
+  // own refund window keeps running; the document says what was returned and when, once Stripe confirmed it.
+  const sum = (xs: RefundRow[]) => ({ amount: Math.round(xs.reduce((a, x) => a + Number(x.amount_fils), 0)) / 100,
+    date: xs.map((x) => String(x.settled_at || x.updated_at || '')).filter(Boolean).sort().at(-1) || '' });
+  const over = refunds.filter((x) => x.reason_code === 'overcharge_return' && x.status === 'succeeded' && Number(x.amount_fils) > 0);
+  const overcharge_returned = over.length ? sum(over) : null;
+  const done = refunds.filter((x) => x.reason_code !== 'overcharge_return' && x.status === 'succeeded' && Number(x.amount_fils) > 0);
   if (done.length) {
-    const amount = Math.round(done.reduce((a, x) => a + Number(x.amount_fils), 0)) / 100;
-    const date = done.map((x) => String(x.settled_at || x.updated_at || '')).filter(Boolean).sort().at(-1) || String(tx.refund_confirmed_at || tx.refund_resolved_at || '');
-    return { state: 'paid', refund: { amount, date } };
+    const r = sum(done);
+    return { state: 'paid', refund: { amount: r.amount, date: r.date || String(tx.refund_confirmed_at || tx.refund_resolved_at || '') }, ...(overcharge_returned ? { overcharge_returned } : {}) };
   }
+  if (overcharge_returned) return { state: 'paid', refund: null, overcharge_returned };
   if (['refunded', 'succeeded'].includes(String(tx.refund_status || '')) && Number(tx.refund_amount_aed) > 0) {
     return { state: 'paid', refund: { amount: Number(tx.refund_amount_aed), date: String(tx.refund_confirmed_at || tx.refund_resolved_at || '') } };
   }
@@ -132,13 +140,21 @@ function charges(s: RevealSale, lang: Lang): Block {
   const ar = lang === 'ar';
   const cents = (n: number) => Math.round(n * 100);
   // The lines must add up to what the card was charged, or the document is not issued at all.
-  if (cents(s.reveal_fee) + cents(s.processing_fee) !== cents(s.total_charged)) {
+  // money charged ABOVE the fee (an overcharge) is its own line, so the lines still add up to what the card was charged
+  const above = Math.max(0, cents(s.total_charged) - cents(s.reveal_fee) - cents(s.processing_fee)) / 100;
+  if (cents(s.reveal_fee) + cents(s.processing_fee) + cents(above) !== cents(s.total_charged)) {
     throw new Error(`lines do not add up: ${s.reveal_fee} + ${s.processing_fee} != ${s.total_charged}`);
   }
   const what = s.request.summary || s.request.category || (ar ? 'طلب خدمة' : 'service request');
   const base = s.quote_amount ? (ar ? ` — 3% من عرض السعر البالغ ${money(s.quote_amount, 'ar')}` : ` — 3% of the ${money(s.quote_amount)} quotation`) : '';
   const rows = [['1', (ar ? `رسوم الكشف: ${what} (المرجع ${s.request.ref})` : `Reveal fee: ${what} (ref. ${s.request.ref})`) + base, money(s.reveal_fee, lang)]];
   if (s.processing_fee > 0) rows.push(['2', ar ? 'رسوم معالجة البطاقة (Stripe)، تُمرَّر بالتكلفة' : 'Card processing (Stripe), passed on at cost', money(s.processing_fee, lang)]);
+  if (above > 0) {
+    const o = s.overcharge_returned;
+    rows.push([String(rows.length + 1), ar
+      ? (o ? `مبلغ زائد على الرسوم، رُدّ إليكم بتاريخ ${fmtDate(o.date, 'ar')}` : 'مبلغ زائد على الرسوم، يُردّ إليكم')
+      : (o ? `Charged above our fee, returned to you on ${fmtDate(o.date, 'en')}` : 'Charged above our fee, being returned to you'), money(above, lang)]);
+  }
   return { t: 'table', head: ar ? ['#', 'البيان', 'المبلغ'] : ['#', 'Description', 'Amount'], rows, widths: [0.06, 0.7, 0.24] };
 }
 function parties(s: RevealSale, lang: Lang, toLabel: string): Block {

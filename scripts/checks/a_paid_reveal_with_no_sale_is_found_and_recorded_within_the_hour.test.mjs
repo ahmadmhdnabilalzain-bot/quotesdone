@@ -65,7 +65,9 @@ test('the runtime records through recordRevealSale only, with a bounded sweep, a
   // Review of 13 Nov 2026 (item 1, item 4): the figures are written where THEY are empty (not where paid_at is), the paid
   // time in its own write-once update, and the hourly re-read of Stripe for a check still waiting writes the same three.
   assert.deepEqual(updates, ['{ stripe_fee_fils: feeFils, stripe_fee_details: details }', 'facts',
-    '{ stripe_fee_fils: bt.fee, stripe_fee_details: bt.fee_details || null }', 'facts', "{ paid_at: paidAt, paid_at_source: 'stripe' }"]);
+    '{ livemode: j.livemode }', '{ stripe_fee_fils: bt.fee, stripe_fee_details: bt.fee_details || null }', 'facts', "{ paid_at: paidAt, paid_at_source: 'stripe' }"]);
+  // review 2 (coordinator (b)): Stripe's mode, when the row does not know it, is written once, from Stripe's own answer
+  assert.match(a, /update\(\{ livemode: j\.livemode \}\)\.eq\('id', d\.transaction_id\)\.is\('livemode', null\)/, 'an unknown mode is not learned write-once from Stripe');
   assert.match(a, /\.eq\('id', txId\)\.is\('stripe_fee_fils', null\)/, 'the fee is not write-once');
   assert.match(a, /update\(facts\)\.eq\('id', txId\)\.is\('stripe_amount_received_fils', null\)/, 'the charge facts are not write-once on the figures');
   assert.doesNotMatch(a, /update\(facts\)[^;]*\.is\('paid_at', null\)/, 'the figures are gated on paid_at, so a sale that has paid_at never gets them');

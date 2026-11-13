@@ -26,7 +26,7 @@ declare
   v_bad text[] := '{}'; v_t0 timestamptz := now(); v_rev timestamptz; v_paid timestamptz; n int; m int; v_dl timestamptz;
   v_steps text[]; j record; v_dr numeric; v_cr numeric; v_memo text; v_ev jsonb; v_inv text; v_inv2 text; v_sweep jsonb;
   v_seq0 bigint; v_seq1 bigint; v_brief text; v_tx2 uuid; v_cust uuid; v_fee bigint; v_ret jsonb; v_owner boolean; v_k record;
-  v_settle text := 'not tried'; v_gl text := 'not run'; v_ctid tid; v_ctid2 tid;
+  v_settle text := 'not tried'; v_gl text := 'not run'; v_ctid tid; v_ctid2 tid; v_tx3 uuid; v_p jsonb; v_task bigint;
 begin
   select revealed_at into v_rev from public.transactions where id = c_tx;
   if v_rev is null then raise exception 'CHK<<%>>', jsonb_build_object('verdict', 'PROBE FAILED: transaction 29ac49f5 is not in production'); end if;
@@ -34,6 +34,14 @@ begin
   perform set_config('qd.probe_invoice_number', 'probe', true);   -- a live probe sale takes no number from the company's series
   select last_value + case when is_called then 0 else -1 end into v_seq0 from public.reveal_invoice_no_seq;
   v_owner := position('fn_payload_names_a_live_payment' in pg_get_functiondef('public.fn_seat_handoff(text,text,text,text,text,jsonb)'::regprocedure)) > 0;
+
+  -- ── 0. EXISTING ROWS (coordinator (a)): the backfill read Stripe's evidence, and no old test payment is real revenue ──
+  if (select livemode from public.transactions where id = c_tx) is distinct from false then
+    v_bad := v_bad || 'existing: 29ac49f5 (its Stripe links carry /test_) is not test mode after the backfill'::text;
+  end if;
+  select count(*) into n from public.gl_journal g join public.transactions t on g.source_ref = t.id::text
+   where g.source = 'reveal_fee' and t.livemode is distinct from true;
+  if n <> 0 then v_bad := v_bad || ('existing: ' || n || ' reveal_fee journal(s) for a payment not known to be live')::text; end if;
 
   -- ── A. TEST MODE ────────────────────────────────────────────────────────────────────────────────
   update public.transactions set livemode = false, paid_at = v_paid, paid_at_source = null, refund_deadline = null, refund_status = null,
@@ -177,6 +185,61 @@ begin
     if v_settle = 'closed on settle' and coalesce(v_gl, '') !~ 'refund_paid 2300 38\.77' then v_bad := v_bad || ('B: the return was not booked out of 2300: ' || coalesce(v_gl, 'nothing'))::text; end if;
   exception when others then v_gl := 'fn_gl_sync_business raised: ' || left(sqlerrm, 200); v_bad := v_bad || v_gl;
   end;
+  -- review 2, item 2: the overcharge return left the sale itself untouched; its fee's ladder still runs; no stale CEO task
+  select count(*) into n from public.transactions where id = v_tx2 and refund_status = 'window_open' and refund_requested_at is null and refund_amount_aed is null;
+  if n <> 1 then v_bad := v_bad || 'B: the overcharge return wrote the sale''s own refund status'::text; end if;
+  if public.fn_refund_state(v_tx2)->>'state' in ('refunded', 'refund_rejected') then
+    v_bad := v_bad || ('B: after an overcharge return the fee is no longer refundable: ' || (public.fn_refund_state(v_tx2)->>'state'))::text;
+  end if;
+  v_task := nullif(v_ret->'refund'->>'ceo_task_id', '')::bigint;
+  if v_task is not null and exists (select 1 from public.ceo_task where task_id = v_task and state in ('open', 'working')) then
+    v_bad := v_bad || 'B: the "Decide refund" task was left open'::text;
+  end if;
+  -- review 2, item 7: a second return of the same overcharge is refused; the return is booked at 38.77, not the whole charge
+  begin
+    perform public.fn_refund_request(3877, 'overcharge_return', 'ceo', null, null, null, c_q2, 'pi_zz_probe_w1_overcharge', null, 'probe: a second return', v_tx2);
+    v_bad := v_bad || 'B: a second overcharge return on one payment was accepted'::text;
+  exception when others then null;
+  end;
+  if v_settle = 'closed on settle' and coalesce(v_gl, '') !~ 'refund_paid 1050 0\.00/38\.77' then v_bad := v_bad || ('B: the return was not credited to 1050 at 38.77: ' || coalesce(v_gl, ''))::text; end if;
+  -- one reader of the window counts from the payment (fn_refund_state's chase day), not from when the row was written
+  if (public.fn_refund_state(v_tx2)->>'chase_due_at')::timestamptz is distinct from public.fn_add_working_days(now() - interval '7 days', 3) then
+    v_bad := v_bad || ('B: fn_refund_state does not count from paid_at: ' || coalesce(public.fn_refund_state(v_tx2)->>'chase_due_at', 'null'))::text;
+  end if;
+
+  -- ── D. MODE UNKNOWN, A NOTICE THAT FAILS, A MONTH ENDING IN .00 (review 2, items 1, 5, 6; coordinator (b)) ──────────
+  perform set_config('qd.probe_files_demo_handoff', 'on', true);
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, app_fee, total_charged, processing_fee,
+         customer_price, paid_by, payment_ref, fee_status, livemode, paid_at, stripe_fee_fils, stripe_amount_received_fils, stripe_bt_amount_fils, stripe_bt_currency)
+  select q.id, q.inquiry_id, q.supplier_id, i.customer_id, q.quote_amount, round(q.price_ex_vat * 0.03, 2), round(q.price_ex_vat * 0.03, 2), round(q.price_ex_vat * 0.03, 2), 0,
+         q.quote_amount, 'customer', 'pi_zz_probe_w1_unknown', 'paid', null, now() - interval '1 hour', 2000, round(q.price_ex_vat * 3)::bigint, round(q.price_ex_vat * 3)::bigint, 'aed'
+    from public.quotes q join public.inquiries i on i.id = q.inquiry_id where q.id = '3f0e7209-ad36-44fd-8418-1b07da8d1417'
+  returning id into v_tx3;
+  select count(*) into n from public.gl_journal where source = 'reveal_fee' and source_ref = v_tx3::text;
+  if n <> 0 then v_bad := v_bad || 'D: a payment whose Stripe mode is unknown was booked'::text; end if;
+  if exists (select 1 from public.reveal_invoices where transaction_id = v_tx3 and invoice_no is not null) then v_bad := v_bad || 'D: a payment of unknown mode took an invoice number'::text; end if;
+  if public.fn_founder_brief_sale_lines(now() - interval '1 day', now() + interval '1 day') !~ 'Stripe mode not known' then v_bad := v_bad || 'D: the brief does not list the payment of unknown mode'::text; end if;
+  update public.accountant_reveal_payment_check set resolved_at = now(), resolution = 'probe: the CEO says the money is correct' where transaction_id = v_tx3;
+  if (select resolved_at from public.accountant_reveal_payment_check where transaction_id = v_tx3) is not null then
+    v_bad := v_bad || 'D: a paid sale with no journal was resolved'::text;
+  end if;
+  if not public.fn_payload_names_a_live_payment('{"livemode": true, "payment_ref": "pi_x"}'::jsonb) then v_bad := v_bad || 'D: a payload Stripe says is live is not filed'::text; end if;
+  -- the CEO notice fails: the books are still written, a finding is raised, the sweep retries
+  execute $redef$create or replace function public.fn_accountant_tells_ceo_of_sale(p_tx uuid) returns jsonb language plpgsql as $f$ begin raise exception 'probe: sale.made refused'; end $f$$redef$;
+  update public.transactions set livemode = true where id = v_tx3;
+  perform public.fn_accountant_reconciles_reveal(v_tx3);
+  select * into v_k from public.accountant_reveal_payment_check where transaction_id = v_tx3;
+  if v_k.verdict is distinct from 'matched' or v_k.sale_notice_at is not null
+     or not exists (select 1 from public.gl_journal where source = 'reveal_fee' and source_ref = v_tx3::text)
+     or not exists (select 1 from public.it_engineer_finding where issue_key = 'reveal:sale_notice_failed:' || v_tx3 and closed_at is null) then
+    v_bad := v_bad || ('D: a failing CEO notice undid or hid the books: ' || coalesce(v_k.verdict, 'no check'))::text;
+  end if;
+  -- no number in a hand-over carries more than two decimals (fn_handoff_redact turned 135.000... into "[phone]")
+  if (select revenue_aed::text from public.fn_reveal_month_revenue(now())) ~ '\.[0-9]{3,}' then v_bad := v_bad || 'D: the month total carries more than two decimals'::text; end if;
+  v_p := jsonb_build_object('month_total_aed', (select revenue_aed from public.fn_reveal_month_revenue(now())), 'fee_aed', round(13500 / 100.0, 2));
+  begin perform public.fn_handoff_redact(v_p); exception when others then v_bad := v_bad || ('D: a sale.made payload breaks fn_handoff_redact: ' || sqlerrm)::text; end;
+  perform set_config('qd.probe_files_demo_handoff', '', true);
+
   select last_value + case when is_called then 0 else -1 end into v_seq1 from public.reveal_invoice_no_seq;
   if v_seq1 is distinct from v_seq0 then v_bad := v_bad || ('the probe took a real invoice number: ' || v_seq0 || ' -> ' || v_seq1)::text; end if;
 

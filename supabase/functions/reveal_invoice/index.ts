@@ -58,7 +58,7 @@ type Log = ReturnType<typeof mkLog>;
 // button and the receipt's attachment), so the attached invoice is the one the portal serves.
 async function saleOf(tx: Tx): Promise<{ sale: RevealSale } | { notPaid: true } | { error: string }> {
   // A PAID document only for a payment that settled; a refund is printed from the refund record.
-  const { data: refundRows, error: refundErr } = await admin.from('refunds').select('status,amount_fils,settled_at,updated_at').eq('transaction_id', tx.id);
+  const { data: refundRows, error: refundErr } = await admin.from('refunds').select('status,amount_fils,settled_at,updated_at,reason_code').eq('transaction_id', tx.id);
   if (refundErr) return { error: 'refunds unreadable: ' + refundErr.message };
   const pay = paymentState(tx as any, refundRows || []);
   if (pay.state !== 'paid') return { notPaid: true };
@@ -78,7 +78,7 @@ async function saleOf(tx: Tx): Promise<{ sale: RevealSale } | { notPaid: true } 
     quote_amount: tx.quote_amount != null ? Number(tx.quote_amount) : null, payment_ref: String(tx.payment_ref || ''),
     customer: { name: cust.full_name || null, email: cust.email, phone: cust.phone || null },
     request: { summary: inq?.summary || null, category: inq?.category || null, ref: 'QD-' + jobNoOf({ id: String(tx.inquiry_id || ''), rfq_no: inq?.rfq_no }) },
-    card: null, refund: pay.refund,
+    card: null, refund: pay.refund, overcharge_returned: pay.overcharge_returned ?? null,
   } };
 }
 

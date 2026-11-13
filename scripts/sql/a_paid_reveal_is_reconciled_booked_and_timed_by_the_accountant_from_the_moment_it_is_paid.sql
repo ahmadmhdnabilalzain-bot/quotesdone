@@ -65,6 +65,13 @@
 -- Pending: scripts/sql/pending/a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.txt.
 -- Probe: scripts/sql/a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid_probe.sql.
 
+-- ══ 0. THE APPLY MUST NOT FREEZE THE SITE (coordinator, 13 Nov 2026: rehearsals holding table locks timed out live
+-- readers). Every lock this file takes is short: ADD COLUMN without a default (catalogue only, no rewrite), constraints
+-- added NOT VALID then validated (VALIDATE takes SHARE UPDATE EXCLUSIVE, which blocks neither reads nor writes), indexes
+-- on small tables (reveal_invoices 0 rows, gl_journal ~4k), triggers created in place. lock_timeout makes the apply FAIL
+-- after 3 seconds instead of queueing behind a long query and making every live reader queue behind it; re-run it then.
+set local lock_timeout = '3s';
+
 -- ══ 1. COLUMNS, INDEXES, SEQUENCE ═════════════════════════════════════════════════════════════════════
 alter table public.transactions add column if not exists paid_at timestamptz;
 alter table public.transactions add column if not exists paid_at_source text;
@@ -76,9 +83,21 @@ comment on column public.transactions.paid_at is
   'Stripe''s own time the charge succeeded, never later than now. The refund window counts from it (fn_reveal_refund_window_ends). paid_at_source says where it came from.';
 comment on column public.transactions.livemode is
   'Stripe''s livemode for this payment. false = Stripe test mode: never booked, numbered or counted (its chain is in demo_shadow_trace). true = a real payment, always booked.';
--- the rows written before this file: production holds one (29ac49f5, a ZZ DEMO payment in Stripe test mode; every
--- demo payment is test mode, scripts/checks/every_demo_payment_is_stripe_test_mode.test.mjs), so the old reading is exact
-update public.transactions set livemode = not public.fn_transaction_is_demo(id) where livemode is null;
+-- THE ROWS WRITTEN BEFORE THIS FILE, FROM STRIPE'S OWN EVIDENCE (never from a flag on the customer). Stripe's hosted and
+-- PDF invoice links name the mode in their path: https://invoice.stripe.com/i/acct_.../test_... for test mode, .../live_...
+-- for live. Else the accountant's reconcile item for the same invoice or PaymentIntent records livemode as Stripe listed
+-- it. A row neither says stays NULL = UNKNOWN: never booked, numbered or counted until the accountant's hourly reconcile
+-- reads the PaymentIntent from Stripe (it tries both keys), and listed for the founder in the brief meanwhile.
+-- Measured 13 Nov 2026: one paid reveal (29ac49f5), its links carry /test_ -> false.
+update public.transactions t
+   set livemode = case
+         when coalesce(t.stripe_invoice_hosted_url, '') ~ '/test_' or coalesce(t.stripe_invoice_pdf_url, '') ~ '/test_' then false
+         when coalesce(t.stripe_invoice_hosted_url, '') ~ '/live_' or coalesce(t.stripe_invoice_pdf_url, '') ~ '/live_' then true
+         else (select i.livemode from public.accountant_reveal_reconcile_item i
+                where (t.stripe_invoice_id is not null and i.invoice_id = t.stripe_invoice_id)
+                   or (t.payment_ref is not null and i.payment_intent = t.payment_ref)
+                order by i.last_seen_at desc limit 1) end
+ where t.livemode is null;
 
 alter table public.stripe_dispute add column if not exists fee_fils bigint;
 alter table public.stripe_dispute add column if not exists fee_returned_fils bigint;
@@ -154,6 +173,7 @@ create table if not exists public.accountant_reveal_payment_check (
   held_question_id bigint,
   exception_count integer not null default 0,           -- each new exception on this payment is a new occurrence
   investigate_requested_at timestamptz,
+  sale_notice_at timestamptz,                           -- sale.made reached the CEO (the sweep retries until it has)
   final_question boolean not null default false,
   stripe_snapshot jsonb,
   stripe_read_at timestamptz,
@@ -241,8 +261,15 @@ end $function$;
 revoke execute on function public.trg_reveal_window() from public, anon, authenticated;
 
 -- ══ 5. TEST MODE, IDENTITY, RUN TAG, SHADOW, OUR INVOICE NUMBER ═══════════════════════════════════════
--- R2: for money, "demo" is Stripe TEST mode and nothing else. A row with no livemode (none after the backfill above;
--- every writer sets it) counts as live: it is booked and visible rather than silently left out.
+-- R2: for money, "demo" is Stripe TEST mode and nothing else. A row with no livemode is UNKNOWN (an old deploy wrote it,
+-- or evidence was missing): it is neither booked nor shadowed as test; it waits for Stripe's answer (fn_reveal_is_live).
+-- A sale whose mode is known LIVE: the only kind the books, the invoice series and the totals ever take.
+create or replace function public.fn_reveal_is_live(p_tx uuid)
+returns boolean language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select coalesce((select t.livemode from public.transactions t where t.id = p_tx), false)
+$fn$;
+revoke execute on function public.fn_reveal_is_live(uuid) from public, anon, authenticated;
+
 create or replace function public.fn_reveal_is_test_mode(p_tx uuid)
 returns boolean language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   select coalesce((select t.livemode = false from public.transactions t where t.id = p_tx), false)
@@ -261,8 +288,11 @@ revoke execute on function public.fn_reveal_on_test_identity(uuid) from public, 
 -- fn_seat_handoff (owner file) asks this before shadowing demo work: a handoff about a LIVE payment is always filed.
 create or replace function public.fn_payload_names_a_live_payment(p_payload jsonb)
 returns boolean language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  select coalesce(p_payload->>'transaction_id' ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
-           and exists (select 1 from public.transactions t where t.id = (p_payload->>'transaction_id')::uuid and t.livemode), false)
+  -- Stripe's livemode decides, nothing else: the payload's own (a payment not recorded as a sale has no transaction yet,
+  -- stripe_webhook puts the event's mode in it), else the transaction's
+  select case when p_payload->>'livemode' in ('true', 'false') then (p_payload->>'livemode')::boolean
+              else coalesce(p_payload->>'transaction_id' ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+                     and exists (select 1 from public.transactions t where t.id = (p_payload->>'transaction_id')::uuid and t.livemode), false) end
 $fn$;
 revoke execute on function public.fn_payload_names_a_live_payment(jsonb) from public, anon, authenticated;
 
@@ -313,6 +343,8 @@ begin
   select invoice_no into v_no from public.reveal_invoices where transaction_id = p_tx and invoice_no ~ '^(QD-INV-|ZZ-TEST-INV-|ZZ-PROBE-INV-)';
   if v_no is not null then return v_no; end if;
   if not exists (select 1 from public.transactions where id = p_tx) then return null; end if;
+  -- a sale whose Stripe mode is not known yet takes no number: it is numbered once Stripe says (the hourly reconcile)
+  if (select livemode from public.transactions where id = p_tx) is null then return null; end if;
   -- a sequence number is never rolled back, so a rolled-back probe of a LIVE sale (it sets qd.probe_invoice_number) is
   -- numbered ZZ-PROBE-INV-<tx> and takes nothing from the company's series
   v_no := case when public.fn_reveal_is_test_mode(p_tx) then 'ZZ-TEST-INV-' || upper(left(p_tx::text, 8))
@@ -382,6 +414,7 @@ begin
   if v_jid is not null then return v_jid; end if;
   j := public.fn_reveal_fee_journal(p_tx);
   if j is null or not coalesce((j->>'ready')::boolean, false) then return null; end if;
+  if not public.fn_reveal_is_test_mode(p_tx) and not public.fn_reveal_is_live(p_tx) then return null; end if;   -- mode unknown: waits
   if public.fn_reveal_is_test_mode(p_tx) then
     if not exists (select 1 from public.demo_shadow_trace s where s.transaction_id = p_tx and s.step = 'journal') then
       perform public.fn_demo_shadow_record('journal', 'reveal_fee', 'accountant', null, j || jsonb_build_object('transaction_id', p_tx,
@@ -444,6 +477,8 @@ begin
 
   if t.stripe_fee_fils is null or t.stripe_amount_received_fils is null then
     v_waiting := 'Stripe''s charge and balance transaction are not read yet';
+  elsif t.livemode is null then
+    v_waiting := 'Stripe''s mode (live or test) is not known yet';
   end if;
 
   if q.id is null then f := f || jsonb_build_array(jsonb_build_object('code', 'no_quote', 'fact', 'the quote this payment names no longer exists'));
@@ -504,8 +539,12 @@ begin
   else v_verdict := 'matched';
   end if;
 
+  -- the books hold whatever happened once Stripe's figures are in (an overcharge sits in 2300 until it is returned);
+  -- posted BEFORE the check is marked, so a matched live check is never resolved without its journal
+  if v_waiting is null then v_jid := public.fn_gl_post_reveal_fee(p_tx); end if;
+
   update public.accountant_reveal_payment_check set
-    is_test_mode = v_test, on_test_identity = v_ident, our_invoice_no = v_inv, stripe_invoice_id = t.stripe_invoice_id,
+    journal_id = coalesce(v_jid, journal_id), is_test_mode = v_test, on_test_identity = v_ident, our_invoice_no = v_inv, stripe_invoice_id = t.stripe_invoice_id,
     stripe_invoice_number = t.stripe_invoice_number, payment_ref = t.payment_ref, price_ex_vat = q.price_ex_vat,
     quote_amount = q.quote_amount, rate = v_rate, expected_fee_fils = v_expected, recorded_fee_fils = v_recorded,
     charged_fils = v_charged, invoice_total_fils = t.stripe_invoice_total_fils, amount_received_fils = t.stripe_amount_received_fils,
@@ -519,13 +558,11 @@ begin
    where transaction_id = p_tx
   returning * into c;
 
-  -- the books hold whatever happened once Stripe's figures are in (an overcharge sits in 2300 until it is returned)
-  if v_waiting is null then v_jid := public.fn_gl_post_reveal_fee(p_tx); end if;
 
   v_ev := jsonb_build_object('reconciled_by', 'accountant (code)', 'transaction_id', p_tx, 'verdict', v_verdict,
     'test_mode', v_test, 'our_invoice_no', v_inv, 'stripe_invoice_number', t.stripe_invoice_number, 'payment_ref', t.payment_ref,
     'expected_fee_fils', v_expected, 'charged_fils', v_charged, 'card_fee_fils', t.stripe_fee_fils,
-    'price_ex_vat', q.price_ex_vat, 'rate', v_rate, 'currency', c.currency, 'paid_at', t.paid_at, 'paid_at_source', t.paid_at_source,
+    'price_ex_vat', round(q.price_ex_vat, 2), 'rate', v_rate::text, 'currency', c.currency, 'paid_at', t.paid_at, 'paid_at_source', t.paid_at_source,
     'refund_window_ends_at', c.refund_window_ends_at, 'findings', f, 'journal_id', v_jid);
 
   if v_test then
@@ -538,7 +575,18 @@ begin
   end if;
 
   if v_verdict = 'matched' then
-    v_sale := public.fn_accountant_tells_ceo_of_sale(p_tx);
+    -- THE BOOKS FIRST (review 2, item 1): the check and the journal are written above; a notice that fails is a finding
+    -- and is retried by the sweep (sale_notice_at stays empty), never a reason to undo the books.
+    begin
+      v_sale := public.fn_accountant_tells_ceo_of_sale(p_tx);
+      update public.accountant_reveal_payment_check set sale_notice_at = now() where transaction_id = p_tx;
+    exception when others then
+      v_sale := jsonb_build_object('failed', left(sqlerrm, 300));
+      perform public.fn_it_engineer_finding_upsert(p_issue_key => 'reveal:sale_notice_failed:' || p_tx,
+        p_title => 'The CEO could not be told of a sale (sale.made refused): ' || left(sqlerrm, 150), p_where => 'public.fn_accountant_tells_ceo_of_sale',
+        p_blast => 'internal', p_affected => 1, p_evidence => jsonb_build_object('transaction_id', p_tx, 'error', left(sqlerrm, 500), 'owner_seat', 'accountant'),
+        p_raised_by => 'accountant');
+    end;
     v_ev := v_ev || jsonb_build_object('sale_made', v_sale);
     -- an exception Stripe's late figures answered: its open handoffs are closed with that answer
     if v_was = 'exception' and not v_test then
@@ -552,6 +600,7 @@ begin
     -- JUDGED, NOT CODED: the accountant's model path decides what to do about it. A NEW OCCURRENCE each time (review
     -- item 5): the dedupe keys carry the count, so a second exception on one payment is asked and handed again.
     v_n := c.exception_count + 1;
+    begin
     v_held := public.fn_seat_duty_reason('accountant', 'accountant.payment_exception',
       'A reveal payment did not reconcile. Decide what the accountant does. The fee is 3% of the quotation excluding VAT, '
       || 'the customer is charged the fee and nothing else, one payment is one reveal. Every refund, an overcharge included, '
@@ -562,6 +611,8 @@ begin
       || '{"id":"recheck_within_the_hour","meaning":"Stripe has not yet given the facts (the charge or the invoice is not final); read them again within the hour. Unresolved, it goes to the CEO anyway at 45 minutes"}]')::jsonb,
       v_ev || jsonb_build_object('occurrence', v_n), jsonb_build_object('transaction_id', p_tx, 'check', 'accountant_reveal_payment_check',
                                'occurrence', v_n, 'test_mode', v_test, 'fixture', v_test), 'payment_exception:' || p_tx || ':' || v_n);
+    exception when others then v_held := null;   -- the sweep escalates an unjudged exception at 45 minutes anyway
+    end;
     update public.accountant_reveal_payment_check set held_question_id = coalesce(v_held, -1), exception_count = v_n,
            opened_at = case when v_n > 1 then now() else opened_at end
      where transaction_id = p_tx;
@@ -587,6 +638,25 @@ end $fn$;
 revoke execute on function public.fn_accountant_reconciles_reveal(uuid, boolean) from public, anon, authenticated;
 grant execute on function public.fn_accountant_reconciles_reveal(uuid, boolean) to service_role;
 
+-- A LIVE CHECK CANNOT RESOLVE WHILE THE SALE IS NOT BOOKED (review 2, item 5; coordinator's ruling): whatever the CEO
+-- answered, it stays open, is read from Stripe again every hour and is listed in the founder's brief every day as
+-- "paid, not yet booked: waiting for Stripe's figures since <date>". No invented figure enters the books.
+create or replace function public.trg_payment_check_stays_open_until_booked()
+returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+begin
+  if NEW.resolved_at is not null and not NEW.is_test_mode
+     and exists (select 1 from public.transactions t where t.id = NEW.transaction_id and t.fee_status = 'paid' and coalesce(t.livemode, true))
+     and not exists (select 1 from public.gl_journal g where g.source = 'reveal_fee' and g.source_ref = NEW.transaction_id::text and g.status <> 'void') then
+    NEW.resolution := left(coalesce(NEW.resolution, '') || ' | stays open: the sale is not booked yet (waiting for Stripe''s figures)', 1000);
+    NEW.resolved_at := null;
+  end if;
+  return NEW;
+end $fn$;
+revoke execute on function public.trg_payment_check_stays_open_until_booked() from public, anon, authenticated;
+drop trigger if exists a10_payment_check_stays_open_until_booked on public.accountant_reveal_payment_check;
+create trigger a10_payment_check_stays_open_until_booked before insert or update of resolved_at on public.accountant_reveal_payment_check
+  for each row execute function public.trg_payment_check_stays_open_until_booked();
+
 -- The handler of reveal.reconcile (sales_engineer -> accountant).
 create or replace function public.fn_accountant_reconciles_reveal_handoff(p_id bigint)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -611,15 +681,22 @@ revoke execute on function public.fn_accountant_reconciles_reveal_handoff(bigint
 create or replace function public.fn_accountant_payment_checks_to_read(p_limit integer default 25)
 returns table(transaction_id uuid, payment_ref text, stripe_invoice_id text, livemode boolean, reason text)
 language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  select k.transaction_id, t.payment_ref, t.stripe_invoice_id, coalesce(t.livemode, true),
-         case when k.investigate_requested_at is not null and (k.stripe_read_at is null or k.stripe_read_at < k.investigate_requested_at) then 'investigate'
+  -- livemode NULL = unknown: the runtime tries the live key, then the test key, and writes what Stripe says.
+  -- A LIVE sale with no reveal_fee journal is read again every hour whatever its check says (review 2, item 5).
+  select k.transaction_id, t.payment_ref, t.stripe_invoice_id, t.livemode,
+         case when t.livemode is null then 'mode_unknown'
+              when k.investigate_requested_at is not null and (k.stripe_read_at is null or k.stripe_read_at < k.investigate_requested_at) then 'investigate'
               when k.verdict = 'waiting_for_facts' then 'waiting'
+              when t.livemode and not exists (select 1 from public.gl_journal g where g.source = 'reveal_fee' and g.source_ref = t.id::text and g.status <> 'void') then 'live_not_booked'
               else 'facts_unreadable' end
     from public.accountant_reveal_payment_check k join public.transactions t on t.id = k.transaction_id
-   where k.resolved_at is null
-     and (k.verdict = 'waiting_for_facts'
-          or k.findings @> '[{"code":"facts_unreadable"}]'::jsonb
-          or (k.investigate_requested_at is not null and (k.stripe_read_at is null or k.stripe_read_at < k.investigate_requested_at)))
+   where t.livemode is null
+      or (k.resolved_at is null
+          and (k.verdict = 'waiting_for_facts'
+               or k.findings @> '[{"code":"facts_unreadable"}]'::jsonb
+               or (k.investigate_requested_at is not null and (k.stripe_read_at is null or k.stripe_read_at < k.investigate_requested_at))))
+      or (t.livemode and t.fee_status = 'paid'
+          and not exists (select 1 from public.gl_journal g where g.source = 'reveal_fee' and g.source_ref = t.id::text and g.status <> 'void'))
    order by k.opened_at
    limit greatest(1, least(coalesce(p_limit, 25), 100))
 $fn$;
@@ -641,12 +718,14 @@ grant execute on function public.fn_accountant_payment_check_snapshot(uuid, json
 -- The month's revenue, live sales only: the fee, less what was refunded of the fee (an overcharge returned is not revenue).
 create or replace function public.fn_reveal_month_revenue(p_at timestamptz default now())
 returns table(revenue_aed numeric, sales integer) language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  select coalesce(sum(greatest(x.reveal_fee - greatest(coalesce(x.refunded, 0) - x.over_aed, 0), 0)), 0), count(*)::int
+  -- ROUNDED TO THE FILS (review 2, item 1): fils/100.0 has scale 20, and 135.00000000000000000000 in a handoff payload was
+  -- turned into "[phone]" by fn_handoff_redact's phone pattern, which broke the JSON and rolled the whole reconcile back
+  select round(coalesce(sum(greatest(x.reveal_fee - greatest(coalesce(x.refunded, 0) - x.over_aed, 0), 0)), 0), 2), count(*)::int
     from (select t.reveal_fee,
-                 greatest(coalesce(t.stripe_amount_received_fils / 100.0, t.total_charged, t.reveal_fee) - t.reveal_fee, 0) as over_aed,
-                 case when coalesce(t.refund_status, '') in ('refunded', 'succeeded', 'refund_approved') then coalesce(t.refund_amount_aed, t.total_charged) end as refunded
+                 round(greatest(coalesce(t.stripe_amount_received_fils / 100.0, t.total_charged, t.reveal_fee) - t.reveal_fee, 0), 2) as over_aed,
+                 case when coalesce(t.refund_status, '') in ('refunded', 'succeeded', 'refund_approved') then round(coalesce(t.refund_amount_aed, t.total_charged), 2) end as refunded
             from public.transactions t
-           where t.fee_status = 'paid' and coalesce(t.livemode, true)
+           where t.fee_status = 'paid' and t.livemode
              and least(coalesce(t.paid_at, t.revealed_at), now()) >= (date_trunc('month', p_at at time zone 'Asia/Dubai')) at time zone 'Asia/Dubai'
              and least(coalesce(t.paid_at, t.revealed_at), now()) < ((date_trunc('month', p_at at time zone 'Asia/Dubai') + interval '1 month') at time zone 'Asia/Dubai')) x
 $fn$;
@@ -664,7 +743,7 @@ begin
   select * into m from public.fn_reveal_month_revenue(now());
   v_p := jsonb_build_object('transaction_id', p_tx, 'quote_id', t.quote_id, 'inquiry_id', t.inquiry_id, 'customer_id', t.customer_id,
     'what_was_sold', 'the reveal of the chosen supplier''s contact for: ' || coalesce(i.summary_masked, i.summary, i.category, 'a request'),
-    'fee_aed', t.reveal_fee, 'quotation_ex_vat_aed', t.quote_amount, 'trade', coalesce(i.category, array_to_string(i.trades, ', ')),
+    'fee_aed', round(t.reveal_fee, 2), 'quotation_ex_vat_aed', round(t.quote_amount, 2), 'trade', coalesce(i.category, array_to_string(i.trades, ', ')),
     'emirate', i.emirate, 'customer_type', coalesce(cu.industry, i.scope_type, 'not recorded'),
     'our_invoice_no', (select invoice_no from public.reveal_invoices where transaction_id = p_tx),
     'paid_at', t.paid_at, 'refund_window_ends_at', t.refund_deadline,
@@ -776,6 +855,13 @@ begin
     update public.refunds set refund_decision_id = v_dec, decided_by = 'ceo', decided_at = now(),
            decision_note = 'overcharge return, decided on payment check ' || p_tx where id = v_id;
     v_fin := public.fn_refund_decide(v_id, true, 'ceo', 'overcharge return decided on payment check ' || p_tx);
+    -- the "Decide refund N" task fn_refund_request opened is answered by this decision: closed, not left stale
+    update public.ceo_task set state = 'done', closed_at = now(),
+           evidence = 'Decided on the accountant''s payment check ' || p_tx || ' by ' || p_by || ': overcharge return approved (ceo_approval ' || coalesce(v_dec::text, '?') || ')'
+     where task_id = nullif(v_r->>'ceo_task_id', '')::bigint and state in ('open', 'working');
+    -- ceo_approval.decided_by is a CEO identity (FK ceo_identity): under the accountant's standing grant the record still
+    -- names the CEO, whose grant it is; the refunds row names who acted (p_by)
+    update public.refunds set decided_by = p_by where id = v_id and p_by <> 'ceo';
   end if;
   update public.accountant_reveal_payment_check
      set refund_id = v_id,
@@ -947,7 +1033,8 @@ create trigger z60_payment_check_closes_when_the_return_settles after update of 
 -- in both routines is the live body, unchanged (read from production 13 Nov 2026).
 alter table public.refunds drop constraint if exists refunds_reason_code_check;
 alter table public.refunds add constraint refunds_reason_code_check check (reason_code = any (array['supplier_unresponsive', 'supplier_withdrew',
-  'duplicate_charge', 'customer_cancelled_in_window', 'service_not_delivered', 'fraud_or_dispute', 'goodwill', 'other', 'overcharge_return']));
+  'duplicate_charge', 'customer_cancelled_in_window', 'service_not_delivered', 'fraud_or_dispute', 'goodwill', 'other', 'overcharge_return'])) not valid;
+alter table public.refunds validate constraint refunds_reason_code_check;
 
 create or replace function public.fn_refund_amount_is_the_fee_paid()
  RETURNS trigger
@@ -974,6 +1061,11 @@ begin
     end if;
     if coalesce(btrim(NEW.stripe_payment_intent), '') = '' then
       raise exception 'refunds: an overcharge return names no Stripe payment. (overcharge_return_names_no_stripe_reference)' using errcode = '23514';
+    end if;
+    if exists (select 1 from public.refunds f where f.transaction_id = NEW.transaction_id and f.reason_code = 'overcharge_return'
+                  and f.id is distinct from NEW.id and f.status not in ('rejected', 'failed', 'cancelled')) then
+      raise exception 'refunds: payment % already has an overcharge return; a second one would return the same money twice. (overcharge_return_once)',
+        NEW.stripe_payment_intent using errcode = '23514';
     end if;
     select o.amount_fils into v_expected from public.fn_payment_check_owed_back(NEW.transaction_id) o
      where o.payment_intent = btrim(NEW.stripe_payment_intent);
@@ -1121,7 +1213,9 @@ begin
     update public.refunds set status = 'rejected', decided_by = p_decided_by, decided_at = now(), decision_note = p_note where id = p_refund_id;
     v_new := 'rejected';
   end if;
-  if r.transaction_id is not null then
+  -- an overcharge return is tracked on the refunds row and the payment check, never on the sale (review 2, item 2): the
+  -- fee's own non-response window and ladder keep running
+  if r.transaction_id is not null and r.reason_code is distinct from 'overcharge_return' then
     update public.transactions set refund_status = v_new, refund_resolved_at = now(), refund_note = coalesce(p_note, refund_note)
      where id = r.transaction_id;
   end if;
@@ -1129,6 +1223,210 @@ begin
                             'second_seat', v_gate);
 end $function$;
 revoke execute on function public.fn_refund_decide(bigint, boolean, text, text) from public, anon, authenticated;
+
+-- fn_refund_request and fn_refund_settle: an overcharge return never writes transactions.refund_* (review 2, item 2).
+-- Bodies otherwise the live ones (read from production 13 Nov 2026).
+create or replace function public.fn_refund_request(p_amount_fils bigint, p_reason_code text, p_requested_by text, p_inquiry_id uuid DEFAULT NULL::uuid, p_customer_id uuid DEFAULT NULL::uuid, p_supplier_lead_id bigint DEFAULT NULL::bigint, p_quote_id uuid DEFAULT NULL::uuid, p_payment_intent text DEFAULT NULL::text, p_charge_id text DEFAULT NULL::text, p_note text DEFAULT NULL::text, p_transaction_id uuid DEFAULT NULL::uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare v_id bigint; v_task bigint; v_in_window boolean := false; t public.transactions;
+begin
+  if p_amount_fils is null or p_amount_fils <= 0 then
+    return jsonb_build_object('ok', false, 'error', 'amount_required');
+  end if;
+
+  select * into t from public.transactions
+   where (p_transaction_id is not null and id = p_transaction_id)
+      or (p_transaction_id is null and p_quote_id is not null and quote_id = p_quote_id)
+      or (p_transaction_id is null and p_quote_id is null and p_payment_intent is not null and payment_ref = p_payment_intent)
+   order by revealed_at desc nulls last limit 1;
+
+  -- Recorded, never acted on. Whether the request arrived inside the window promised at reveal is
+  -- exactly the kind of thing the decider wants in front of them, and exactly the kind of thing that
+  -- must not decide for them.
+  if t.id is not null and t.refund_deadline is not null and t.refund_deadline >= now() then
+    v_in_window := true;
+  end if;
+
+  insert into public.refunds (transaction_id, inquiry_id, customer_id, supplier_lead_id, quote_id,
+                              stripe_payment_intent, stripe_charge_id,
+                              amount_fils, reason_code, reason_note, requested_by,
+                              within_auto_window, status, reconciliation_note)
+  values (t.id, coalesce(p_inquiry_id, t.inquiry_id), coalesce(p_customer_id, t.customer_id),
+          coalesce(p_supplier_lead_id, t.supplier_id), coalesce(p_quote_id, t.quote_id),
+          coalesce(p_payment_intent, t.payment_ref), p_charge_id,
+          p_amount_fils, p_reason_code, p_note, p_requested_by,
+          v_in_window, 'requested',
+          'ROUTED TO THE CEO. Every refund waits for the CEO seat''s decision, whatever the amount '
+       || 'and whether or not it is inside the promised window — founder ruling, 8 Sep 2026, '
+       || 'replacing his 17 Aug rule that every refund needed him personally. This one is '
+       || round(p_amount_fils / 100.0, 2) || ' AED and is '
+       || case when v_in_window then 'inside' else 'outside' end || ' the window promised at reveal.')
+  returning id into v_id;
+
+  -- an overcharge return (13 Nov 2026) is tracked on this row and the payment check only: the sale keeps its own status,
+  -- so the fee's non-response window and ladder keep running
+  if t.id is not null and p_reason_code is distinct from 'overcharge_return' then
+    update public.transactions
+       set refund_status = 'requested',
+           refund_reason = coalesce(refund_reason, p_reason_code),
+           refund_requested_at = coalesce(refund_requested_at, now()),
+           refund_note = coalesce(p_note, refund_note)
+     where id = t.id;
+  end if;
+
+  -- THE ROUTE. Without this the request is recorded and nothing is asked of anyone.
+  insert into public.ceo_task (title, detail)
+  values (
+    'Decide refund ' || v_id || ' — AED ' || round(p_amount_fils / 100.0, 2),
+    'Refund ' || v_id || ' requested by ' || coalesce(nullif(btrim(p_requested_by), ''), '(unknown)')
+      || ' for ' || round(p_amount_fils / 100.0, 2) || ' AED, reason ' || coalesce(p_reason_code, '(none)')
+      || '. Transaction ' || coalesce(t.id::text, '(none matched)')
+      || '. The request arrived ' || case when v_in_window then 'INSIDE' else 'OUTSIDE' end
+      || ' the refund window promised at reveal — a fact, not a decision.'
+      || coalesce(chr(10) || 'Customer note: ' || nullif(btrim(p_note), ''), '')
+      || chr(10) || chr(10)
+      || 'To approve: write a row in public.ceo_approval (subject_kind = ''refund'') and set '
+      || 'refunds.refund_decision_id to it. The guards on public.refunds will refuse the money moving '
+      || 'any other way.')
+  returning task_id into v_task;
+
+  return jsonb_build_object('ok', true, 'refund_id', v_id, 'transaction_id', t.id,
+                            'status', 'requested',
+                            'within_auto_window', v_in_window,
+                            'auto_approved', false,
+                            'ceo_task_id', v_task,
+                            'awaiting', 'ceo');
+end
+$function$;
+revoke execute on function public.fn_refund_request(bigint, text, text, uuid, uuid, bigint, uuid, text, text, text, uuid) from public, anon, authenticated;
+
+create or replace function public.fn_refund_settle(p_stripe_refund_id text, p_status text, p_amount_fils bigint DEFAULT NULL::bigint, p_payment_intent text DEFAULT NULL::text, p_charge_id text DEFAULT NULL::text, p_failure_reason text DEFAULT NULL::text, p_amount_source text DEFAULT 'webhook_event'::text, p_stripe_event_id text DEFAULT NULL::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r public.refunds; v_status text; v_amount bigint; v_src text; v_q bigint;
+begin
+  if coalesce(btrim(p_stripe_refund_id),'') = '' then
+    v_q := public.fn_refund_quarantine(null, 'refund', 'event carried no refund id',
+             jsonb_build_object('status', p_status, 'payment_intent', p_payment_intent), p_stripe_event_id);
+    return jsonb_build_object('ok', false, 'error', 'stripe_refund_id_required', 'quarantined', v_q);
+  end if;
+
+  v_status := case lower(coalesce(p_status,''))
+                when 'succeeded' then 'succeeded' when 'failed' then 'failed'
+                when 'canceled' then 'cancelled'  when 'cancelled' then 'cancelled'
+                else 'processing' end;
+  v_amount := nullif(coalesce(p_amount_fils, 0), 0);
+  v_src    := case when v_amount is null then null else coalesce(p_amount_source, 'webhook_event') end;
+
+  select * into r from public.refunds where stripe_refund_id = p_stripe_refund_id for update;
+
+  if not found then
+    select * into r from public.refunds
+     where stripe_refund_id is null and p_payment_intent is not null
+       and stripe_payment_intent = p_payment_intent and status in ('approved','processing')
+     order by created_at limit 1 for update;
+
+    if found then
+      update public.refunds set stripe_refund_id = p_stripe_refund_id,
+             stripe_charge_id = coalesce(p_charge_id, stripe_charge_id) where id = r.id;
+    else
+      -- Issued outside the platform. Recorded with whatever is actually known, and NOTHING invented:
+      -- if the amount is unknown it stays NULL and the row is marked unreconciled.
+      insert into public.refunds (stripe_refund_id, stripe_payment_intent, stripe_charge_id,
+                                  amount_fils, amount_source, reason_code, reason_note, requested_by, status,
+                                  decided_by, decided_at, decision_note, reconciliation_note)
+      values (p_stripe_refund_id, p_payment_intent, p_charge_id, v_amount,
+              coalesce(v_src, 'unknown'), 'other',
+              'Issued outside QuotesDone (Stripe dashboard or API). Recorded by the webhook.',
+              'stripe_webhook', coalesce(v_status, 'processing'), 'stripe_dashboard', now(),
+              'No in-platform request existed for this refund.',
+              case when v_amount is null
+                   then 'AMOUNT UNKNOWN - the event carried none and Stripe could not be read. Excluded from all financial totals until resolved.'
+                   else null end)
+      returning * into r;
+
+      if v_amount is null then
+        perform public.fn_refund_quarantine(p_stripe_refund_id, 'refund',
+          'amount unknown: absent from the event and not retrievable from Stripe',
+          jsonb_build_object('status', v_status, 'payment_intent', p_payment_intent, 'refund_row', r.id),
+          p_stripe_event_id);
+      end if;
+
+      return jsonb_build_object('ok', true, 'refund_id', r.id, 'status', r.status, 'applied', true,
+                                'created', true, 'amount_known', v_amount is not null);
+    end if;
+  end if;
+
+  -- Duplicate delivery: same state twice. Cheap, silent, correct - but still take the chance to fill
+  -- in an amount we did not have before.
+  if r.status = v_status then
+    if r.amount_fils is null and v_amount is not null then
+      update public.refunds
+         set amount_fils = v_amount, amount_source = v_src,
+             reconciliation_note = 'amount resolved from a later ' || coalesce(p_amount_source,'event'),
+             updated_at = now()
+       where id = r.id;
+      return jsonb_build_object('ok', true, 'refund_id', r.id, 'status', r.status,
+                                'idempotent', true, 'applied', false, 'amount_resolved', true);
+    end if;
+    return jsonb_build_object('ok', true, 'refund_id', r.id, 'status', r.status,
+                              'idempotent', true, 'applied', false);
+  end if;
+
+  -- The matrix decides. Not a rank, not an ordering heuristic - a declared policy with a reason
+  -- attached to every refusal.
+  if not public.fn_refund_transition_allowed(r.status, v_status) then
+    v_q := public.fn_refund_quarantine(p_stripe_refund_id, 'refund',
+      'transition not permitted: ' || r.status || ' -> ' || v_status || '. '
+      || coalesce((select note from public.refund_status_transition
+                    where from_status = r.status and to_status = v_status), 'no rule declared for this pair'),
+      jsonb_build_object('refund_row', r.id, 'from', r.status, 'to', v_status,
+                         'amount_fils', p_amount_fils, 'payment_intent', p_payment_intent),
+      p_stripe_event_id);
+    update public.refunds
+       set reconciliation_note = left(coalesce(reconciliation_note || ' | ', '')
+           || 'refused ' || r.status || '->' || v_status || ' at ' || to_char(now(),'YYYY-MM-DD HH24:MI'), 500),
+           updated_at = now()
+     where id = r.id;
+    return jsonb_build_object('ok', true, 'refund_id', r.id, 'status', r.status, 'applied', false,
+                              'refused_transition', r.status || '->' || v_status, 'quarantined', v_q);
+  end if;
+
+  update public.refunds
+     set status = v_status,
+         amount_fils   = coalesce(v_amount, amount_fils),
+         amount_source = case when v_amount is not null then v_src else amount_source end,
+         stripe_charge_id = coalesce(p_charge_id, stripe_charge_id),
+         stripe_payment_intent = coalesce(p_payment_intent, stripe_payment_intent),
+         settled_at = case when v_status = 'succeeded' then coalesce(settled_at, now()) else settled_at end,
+         failure_reason = case when v_status = 'failed' then p_failure_reason else failure_reason end,
+         reconciliation_note = case
+             when v_status = 'succeeded' and coalesce(v_amount, amount_fils) is null
+             then 'AMOUNT UNKNOWN on a settled refund - excluded from all financial totals until resolved.'
+             else reconciliation_note end,
+         updated_at = now()
+   where id = r.id;
+
+  if r.transaction_id is not null and r.reason_code is distinct from 'overcharge_return' then   -- see fn_refund_request
+    update public.transactions
+       set refund_status = v_status, refund_stripe_id = p_stripe_refund_id,
+           refund_amount_aed = case when v_amount is not null then round(v_amount/100.0, 2) else refund_amount_aed end,
+           refund_confirmed_at = case when v_status = 'succeeded' then coalesce(refund_confirmed_at, now())
+                                      else refund_confirmed_at end
+     where id = r.transaction_id;
+  end if;
+
+  return jsonb_build_object('ok', true, 'refund_id', r.id, 'status', v_status, 'applied', true,
+                            'amount_known', coalesce(v_amount, r.amount_fils) is not null);
+end $function$;
+revoke execute on function public.fn_refund_settle(text, text, bigint, text, text, text, text, text) from public, anon, authenticated;
 
 -- The CEO approval trigger (a05 on ceo_approval, z20 on refund_case): an overcharge return is checked by its own list.
 create or replace function public.fn_ceo_refund_approval_checks_the_process()
@@ -1194,7 +1492,9 @@ begin
   v_p := jsonb_build_object('payment_ref', p_payment_ref, 'quote_id', case when p_quote_id ~ v_uuid then p_quote_id end,
     'inquiry_id', v_inq, 'customer_id', v_cust, 'amount_fils', p_amount_fils, 'reason', left(coalesce(p_reason, ''), 500),
     'seen_at', now())
-    || case when p_demo then jsonb_build_object('rehearsal', 'Stripe test-mode payment') else '{}'::jsonb end;
+    || case when p_demo then jsonb_build_object('rehearsal', 'Stripe test-mode payment') else '{}'::jsonb end
+    -- Stripe's own mode of the event (review 2, item 6): a live payment's handoff is filed whoever it names
+    || jsonb_build_object('livemode', not p_demo);
   -- p_demo = the payment arrived in Stripe TEST mode (stripe_webhook's sigMode): the shadow only, whoever paid (R2)
   if p_demo then
     perform public.fn_demo_shadow_record('handoff', 'payment.unrecorded', 'accountant', 'it_engineer', v_p);
@@ -1377,6 +1677,28 @@ begin
     exception when others then n_failed := n_failed + 1;
     end;
   end loop;
+  -- A LIVE CHECK WHOSE SALE IS MATCHED BUT WHOSE CEO NOTICE FAILED: tell the CEO again (the books are already written)
+  for r in select k.transaction_id from public.accountant_reveal_payment_check k
+            where k.verdict = 'matched' and not k.is_test_mode and k.sale_notice_at is null and k.checked_at <= now() - interval '10 minutes' loop
+    begin
+      perform public.fn_accountant_tells_ceo_of_sale(r.transaction_id);
+      update public.accountant_reveal_payment_check set sale_notice_at = now() where transaction_id = r.transaction_id;
+    exception when others then n_failed := n_failed + 1;
+    end;
+  end loop;
+  -- THE CALENDAR THE WINDOW COUNTS ON (review 2): public_holidays must reach a year ahead, or a holiday after its last
+  -- date counts as a working day and every window ends a day early.
+  begin
+    if coalesce((select max(holiday_date) from public.public_holidays), current_date) < current_date + 365 then
+      perform public.fn_it_engineer_finding_upsert(p_issue_key => 'calendar:public_holidays_running_out',
+        p_title => 'public_holidays lists UAE holidays only to ' || coalesce((select max(holiday_date) from public.public_holidays)::text, 'nothing')
+                   || ': add the next year''s, or refund windows will count a holiday as a working day',
+        p_where => 'public.public_holidays (read by fn_is_working_day)', p_blast => 'customer_facing', p_affected => 0,
+        p_evidence => jsonb_build_object('last_listed', (select max(holiday_date) from public.public_holidays), 'owner_seat', 'accountant'),
+        p_raised_by => 'accountant');
+    end if;
+  exception when others then n_failed := n_failed + 1;
+  end;
   -- test-mode evidence only: a live payment's check is never purged
   delete from public.demo_shadow_trace where keep_until < now();
   get diagnostics n_purged = row_count;
@@ -1446,7 +1768,7 @@ begin
   for r in
     select t.id, t.stripe_invoice_number
     from public.transactions t
-    where t.fee_status='paid' and coalesce(t.reveal_fee,0) > 0 and t.stripe_fee_fils is not null and coalesce(t.livemode, true)
+    where t.fee_status='paid' and coalesce(t.reveal_fee,0) > 0 and t.stripe_fee_fils is not null and t.livemode
       and coalesce(t.refund_status,'') not in ('refunded','refund_approved','succeeded')
       and not exists (select 1 from public.gl_journal g where g.source='reveal_fee' and g.source_ref=t.id::text and g.status <> 'void')
       and coalesce(public.fn_gl_fixture_or_orphan(t.id, null, null), '') not like 'orphan:%'
@@ -1469,7 +1791,7 @@ begin
            greatest(coalesce(t.stripe_amount_received_fils / 100.0, t.total_charged, t.reveal_fee) - t.reveal_fee, 0) as over_aed,
            coalesce(round(t.stripe_fee_fils / 100.0, 2), nullif(t.processing_fee, 0), round(coalesce(t.total_charged, t.reveal_fee, 0)*fee_pct/100 + fee_fixed, 2)) as fee_absorbed
       from public.refunds f join public.transactions t on t.id = f.transaction_id
-     where f.status = 'succeeded' and coalesce(f.amount_fils, 0) > 0 and coalesce(t.livemode, true)
+     where f.status = 'succeeded' and coalesce(f.amount_fils, 0) > 0 and t.livemode
        and not exists (select 1 from public.gl_journal g where g.source='refund_paid' and g.source_ref in ('refund:' || f.id, t.id::text) and g.status <> 'void')
        and coalesce(public.fn_gl_fixture_or_orphan(t.id, null, null), '') not like 'orphan:%'
     union all
@@ -1480,7 +1802,7 @@ begin
            greatest(coalesce(t.stripe_amount_received_fils / 100.0, t.total_charged, t.reveal_fee) - t.reveal_fee, 0),
            coalesce(round(t.stripe_fee_fils / 100.0, 2), nullif(t.processing_fee, 0), round(coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0)*fee_pct/100 + fee_fixed, 2))
       from public.transactions t
-     where coalesce(t.refund_status,'') in ('refunded','refund_approved','succeeded') and coalesce(t.livemode, true)
+     where coalesce(t.refund_status,'') in ('refunded','refund_approved','succeeded') and t.livemode
        and coalesce(t.total_charged, t.reveal_fee, t.app_fee, 0) > 0
        and not exists (select 1 from public.refunds f where f.transaction_id = t.id and f.status = 'succeeded')
        and not exists (select 1 from public.gl_journal g where g.source='refund_paid' and g.source_ref=t.id::text and g.status <> 'void')
@@ -1852,7 +2174,7 @@ revoke execute on function public.fn_sales_engineer_answers_reveal_invoice(bigin
 -- ══ 16. THE FOUNDER'S BRIEF LISTS EACH SALE OF THE DAY ════════════════════════════════════════════════
 create or replace function public.fn_founder_brief_sale_lines(p_from timestamptz, p_to timestamptz)
 returns text language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-declare r record; v text := ''; i int := 0; v_open int; v_wait int;
+declare r record; v text := ''; i int := 0; v_open int; v_wait int; v_unbooked text; v_unknown int;
 begin
   for r in
     select t.reveal_fee, t.quote_amount, coalesce(t.paid_at, t.revealed_at) as at, ii.category, ii.emirate,
@@ -1862,7 +2184,7 @@ begin
       left join public.reveal_invoices ri on ri.transaction_id = t.id
       left join public.accountant_reveal_payment_check k on k.transaction_id = t.id
      where t.fee_status = 'paid' and coalesce(t.paid_at, t.revealed_at) >= p_from and coalesce(t.paid_at, t.revealed_at) < p_to
-       and coalesce(t.livemode, true)          -- R2: a Stripe test-mode payment never reaches the brief, whoever made it
+       and t.livemode          -- R2: only a payment Stripe says is live reaches the brief's sales (unknown ones are listed below)
      order by coalesce(t.paid_at, t.revealed_at)
   loop
     i := i + 1;
@@ -1872,9 +2194,16 @@ begin
          || case coalesce(r.verdict, 'waiting_for_facts') when 'matched' then ', reconciled and booked' when 'exception' then ', NOT reconciled: with the CEO' else ', paid, awaiting Stripe''s figures (not booked yet)' end;
   end loop;
   select count(*) into v_open from public.accountant_reveal_payment_check where verdict = 'exception' and resolved_at is null and not is_test_mode;
-  select count(*) into v_wait from public.accountant_reveal_payment_check where verdict = 'waiting_for_facts' and resolved_at is null and not is_test_mode;
+  -- every LIVE paid sale with no journal, every day, whatever its check says; and every sale whose mode is unknown
+  select count(*), coalesce(string_agg('since ' || to_char(least(coalesce(t.paid_at, t.revealed_at), now()) at time zone 'Asia/Dubai', 'DD Mon') || ' (' || left(t.id::text, 8) || ')', ', '), '')
+    into v_wait, v_unbooked
+    from public.transactions t
+   where t.fee_status = 'paid' and t.livemode
+     and not exists (select 1 from public.gl_journal g where g.source = 'reveal_fee' and g.source_ref = t.id::text and g.status <> 'void');
+  select count(*) into v_unknown from public.transactions t where t.fee_status = 'paid' and t.livemode is null;
   return case when i = 0 then E'\n\nSales today: none.' else E'\n\nSales today (' || i || '):' || v end
-      || case when v_wait > 0 then E'\nPaid, awaiting Stripe''s figures (not booked yet): ' || v_wait || '.' else '' end
+      || case when v_wait > 0 then E'\nPaid, not yet booked: waiting for Stripe''s figures (' || v_wait || '): ' || v_unbooked || '.' else '' end
+      || case when v_unknown > 0 then E'\nPaid, Stripe mode not known yet, not booked or counted: ' || v_unknown || '.' else '' end
       || case when v_open > 0 then E'\nPayment exceptions open with the CEO: ' || v_open || '.' else '' end;
 end $fn$;
 revoke execute on function public.fn_founder_brief_sale_lines(timestamptz, timestamptz) from public, anon, authenticated;
@@ -2050,7 +2379,8 @@ revoke execute on function public.fn_originator_checks_delivery(bigint) from pub
 alter table public.accountant_reveal_reconcile_item drop constraint if exists accountant_reveal_reconcile_item_outcome_check;
 alter table public.accountant_reveal_reconcile_item add constraint accountant_reveal_reconcile_item_outcome_check
   check (outcome = any (array['recovered', 'second_payment', 'refunded', 'refunded_unrecorded', 'failed', 'deferred',
-                              'recorded_elsewhere', 'test_mode_not_demo', 'rehearsal_torn_down']));
+                              'recorded_elsewhere', 'test_mode_not_demo', 'rehearsal_torn_down'])) not valid;
+alter table public.accountant_reveal_reconcile_item validate constraint accountant_reveal_reconcile_item_outcome_check;
 
 create or replace function public.fn_accountant_reveal_reconcile_record(p_run_id bigint, p_r jsonb)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $function$

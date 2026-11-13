@@ -1,17 +1,16 @@
-Committed, not applied. Assigned: accountant, 13 Nov 2026 (company-workflow fix round, ledger 1685, 1687, 1688; review FIX of 13 Nov, rulings R1-R6).
+Committed, not applied. Assigned: accountant, 13 Nov 2026 (workflow fix round; reviews 1 and 2 of 13 Nov; rulings R1-R6).
 
-Why it waits: the fix round may not apply, deploy or merge; the main session does, after review.
-
-What moves it, in this order:
-  1. node scripts/apply_sql.mjs scripts/sql/a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql --apply --ddl
-     (adds transactions.livemode / paid_at and the Stripe-figure columns: it MUST be live before the functions deploy,
-     because reveal_sale.ts writes them at the sale)
-  2. the it_engineer's fn_seat_handoff change in scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql (it calls
-     fn_demo_shadow_record and fn_payload_names_a_live_payment from step 1). WARNING: that file is the canonical owner of
-     fn_seat_handoff but NOT of four of its other routines (fn_it_ceo_silence_watch, fn_it_daily_line, fn_it_loop_reverify,
-     fn_it_loop_tick are redefined by later files), so re-applying it whole reverts those four in production. Apply only
-     the fn_seat_handoff statement, or re-apply the four owning files after it (see the it_engineer commit).
+Why it waits: the fix round may not apply, deploy or merge; the main session does, in ONE sitting, in this order:
+  1. node scripts/apply_sql.mjs scripts/sql/a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql --apply --ddl --seat accountant
+     then append it as the LAST line of scripts/sql/MANIFEST.txt and delete this note (same commit).
+     Safe before the deploy: a row the old code writes has livemode NULL = unknown, which is never booked, numbered
+     or counted until the new runtime reads Stripe's answer (the apply and the deploy may be minutes apart).
+  2. node scripts/apply_sql.mjs scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql --apply --ddl --seat it_engineer
+     (its fn_seat_handoff calls fn_demo_shadow_record and fn_payload_names_a_live_payment from step 1; the file now
+     holds only routines it owns and its section-14 probe closes through fn_seat_handoff_complete; rehearsed whole after
+     step 1 on production, rolled back: clean).
   3. deploy stripe_webhook, stripe_checkout, stripe_confirm, accountant, reveal_invoice, messages_api, supplier_api.
-  4. delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit; regenerate the mirror.
-Rehearsed 13 Nov 2026 on production, rolled back, with its probe: PROBE OK alone, with the owner's fn_seat_handoff,
-and in either order with the 1150 file; five mutants caught.
+  4. the sales engineer's a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql (its probe needs steps 1-2).
+  5. the 1150 file and the standing grant: only on the founder's yes.
+Rehearsed 13 Nov 2026 on production, rolled back: PROBE OK alone; with the whole owner file; with the owner file, the
+1150 file and the sibling at 5acacfaf2 (all three probes OK); nine mutants caught.

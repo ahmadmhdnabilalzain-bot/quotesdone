@@ -109,3 +109,16 @@ Deno.test('our invoice number is the document number, Stripe\'s a reference, and
   // a sale with no window recorded prints no invented date
   assertEquals(JSON.stringify(revealInvoiceDocument({ ...SALE }, 'en')).includes('Refund window ends'), false);
 });
+
+// AN OVERCHARGE RETURN IS NOT A REFUND OF THE FEE (13 Nov 2026, review 2 item 2): the invoice stays PAID, the money charged
+// above the fee is its own line, and it says "returned on <date>" only once Stripe confirmed it.
+Deno.test('an overcharge return leaves the fee paid and is printed as its own returned line', () => {
+  const pay = paymentState(TX, [{ status: 'succeeded', amount_fils: 3877, settled_at: '2026-09-23T10:00:00Z', reason_code: 'overcharge_return' }]);
+  assertEquals(pay.state === 'paid' && pay.refund, null);
+  const s: RevealSale = { ...SALE, processing_fee: 0, overcharge_returned: pay.state === 'paid' ? pay.overcharge_returned : null };
+  const text = JSON.stringify(revealInvoiceDocument(s, 'en'));
+  assertEquals(text.includes('Charged above our fee, returned to you on 23 September 2026'), true);
+  assertEquals(text.includes('REFUNDED'), false);
+  const pending = JSON.stringify(revealInvoiceDocument({ ...SALE, processing_fee: 0, overcharge_returned: null }, 'en'));
+  assertEquals(pending.includes('being returned to you') && !pending.includes('returned to you on'), true);
+});

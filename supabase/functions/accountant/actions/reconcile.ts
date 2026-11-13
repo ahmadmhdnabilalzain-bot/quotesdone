@@ -96,12 +96,22 @@ export async function reconcileActions(c: ActionCtx): Promise<Response | undefin
       const reread: Record<string, number> = { read: 0, unreadable: 0 };
       try {
         const { data: due } = await admin.rpc('fn_accountant_payment_checks_to_read', { p_limit: 25 });
-        for (const d of (due || []) as { transaction_id: string; payment_ref: string | null; stripe_invoice_id: string | null; livemode: boolean; reason: string }[]) {
-          const mode: Mode = d.livemode ? 'live' : 'test';
-          if (!keys[mode] || !/^pi_/.test(String(d.payment_ref || ''))) { reread.unreadable++; continue; }
-          const j = await S(mode, 'payment_intents/' + encodeURIComponent(String(d.payment_ref)) + '?expand[]=latest_charge.balance_transaction');
+        for (const d of (due || []) as { transaction_id: string; payment_ref: string | null; stripe_invoice_id: string | null; livemode: boolean | null; reason: string }[]) {
+          if (!/^pi_/.test(String(d.payment_ref || ''))) { reread.unreadable++; continue; }
+          // MODE UNKNOWN (a row an older deploy wrote, or no evidence at the backfill): asked of the live key first, then the
+          // test key; a PaymentIntent exists in one mode only, and Stripe's own livemode is then written once.
+          const modes: Mode[] = d.livemode === null ? ['live', 'test'] : [d.livemode ? 'live' : 'test'];
+          let mode: Mode = modes[0];
+          // deno-lint-ignore no-explicit-any
+          let j: any = null;
+          for (const m of modes) {
+            if (!keys[m]) continue;
+            j = await S(m, 'payment_intents/' + encodeURIComponent(String(d.payment_ref)) + '?expand[]=latest_charge.balance_transaction');
+            if (j?.id) { mode = m; break; }
+          }
           const bt = j?.latest_charge?.balance_transaction;
           if (!j?.id) { reread.unreadable++; continue; }
+          if (d.livemode === null && typeof j.livemode === 'boolean') await admin.from('transactions').update({ livemode: j.livemode }).eq('id', d.transaction_id).is('livemode', null);
           if (typeof bt?.fee === 'number') await admin.from('transactions').update({ stripe_fee_fils: bt.fee, stripe_fee_details: bt.fee_details || null }).eq('id', d.transaction_id).is('stripe_fee_fils', null);
           const facts = chargeFacts(j, bt);
           if (Object.keys(facts).length) await admin.from('transactions').update(facts).eq('id', d.transaction_id).is('stripe_amount_received_fils', null);
