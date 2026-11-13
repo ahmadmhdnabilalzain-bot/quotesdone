@@ -163,6 +163,9 @@ export async function renderPdf(input: any, deps: RenderDeps): Promise<RenderRes
   // deno-lint-ignore no-explicit-any
   function safeDeep(v: any, key = ''): any {
     if (typeof v === 'string') return key === 'link' ? v : safeText(v);
+    // an embedded picture's bytes pass untouched (13 Nov 2026, customer_support: copying a Uint8Array key by key made it a plain
+    // object, embedPng refused it, and every image block (the marketing calendar's key frames included) was drawn as nothing)
+    if (v instanceof Uint8Array) return v;
     if (Array.isArray(v)) return v.map((x) => safeDeep(x));
     // deno-lint-ignore no-explicit-any
     if (v && typeof v === 'object') { const o: any = {}; for (const k of Object.keys(v)) o[k] = safeDeep(v[k], k); return o; }

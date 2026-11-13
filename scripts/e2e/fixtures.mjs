@@ -310,13 +310,15 @@ export async function makeDemoCustomer(run, opts = {}) {
  * A supplier with the mandatory six (founder's list): name, mobile, email, trade licence document,
  * profile, and the CURRENT Supplier Agreement accepted and signed - approved, capability confirmed.
  */
-export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', locale = 'en', activity = 'Aluminium and Glass Works' } = {}) {
+// coverage (13 Nov 2026, journey_proof): the emirates the supplier serves. Default every emirate, as before; a journey that
+// proves the matcher asked the RIGHT suppliers makes some of the trade in another emirate only, which it must not ask.
+export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', locale = 'en', activity = 'Aluminium and Glass Works', coverage = EMIRATES } = {}) {
   const email = demoEmail(run, 'sup');
   const phone = demoMobile();
   const company = `ZZ DEMO ${label} ${trade} ${run.tag}`;
   // Inserted 'pending', not approved: since #698 the database refuses an approval while any of the six
   // is missing, and approves by itself (fn_sales_engineer_verifies_supplier) once the last one lands.
-  const s = await makeSupplier(run, { trade, email, company_name: company, locale, approval: 'pending', coverage_emirates: EMIRATES });
+  const s = await makeSupplier(run, { trade, email, company_name: company, locale, approval: 'pending', coverage_emirates: coverage });
   run.ids.leads.add(String(s.leadId));
   // 1-3: name, mobile, email.   4: the trade licence and 5: the company profile, real PDFs in the real
   // bucket - fn_supplier_mandatory_six counts a document only if its path exists in supplier-docs.
