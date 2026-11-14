@@ -372,6 +372,10 @@ export const REGISTER = {
   // 3 Nov 2026 (customer_support, #1844 review). Both record what another routine already decided; a healthy day has neither.
   fn_customer_support_closes_status_chases: { relay: 'records a status-chase follow-up that fn_customer_support_takes_delivery failed to deliver (or had no channel for) on three ticks; the failure is the delivery door\'s, and a healthy day delivers every follow-up' },
   fn_wa_customer_request_answer: { relay: 'records a status chase whose handler fn_sales_engineer_chases_for_status failed (fn_seat_handoff marked it failed); the failure is the handler\'s, and a healthy day starts every chase' },
+  // 14 Nov 2026 (it_engineer, daily jobs): its canonical body (a_notice_is_a_duplicate_only_of_the_same_event.sql) raised without an entry,
+  // which turned this static half red. A BEFORE INSERT trigger on notifications fires on a row, not on a clock, so there is no
+  // instant to replay it at; what it raises is its own refusal of that row.
+  fn_notifications_the_same_message_is_sent_once: { relay: 'records a notification the a00 insert trigger cancelled because the same message to the same person (same channel, type, text and event) was queued or sent inside the window; the refusal is the trigger\'s own per-row decision, and a healthy day queues no repeat' },
   fn_it_engineer_ingest_watch_findings: { relay: 'copies fn_it_detect\'s open it_watch_finding rows into the finding ledger' },
   fn_invite_placement_finding: { relay: 'records the verdict fn_invite_placement_judge reached from the latest recorded GlockApps result (public.deliverability_test against public.invite_placement_bar, 28 Oct 2026; the morning seed is retired); it files only on an open sending day, so a held campaign files nothing, and a healthy open day has a passing verdict' },
   fn_wa_supplier_invite_brake: { relay: 'records the brake a caller pulled on the supplier WhatsApp invitations (the quality or opt-in gate, with its reason); it cancels the queued sends and files deliverability:supplier_invite_wa only when called, and a healthy day never calls it' },

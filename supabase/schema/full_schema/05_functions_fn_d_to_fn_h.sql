@@ -38,6 +38,69 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_dbx_customer_quotation_files()
+ RETURNS TABLE(inquiry_id uuid, quote_id uuid, dropbox_path text, dedupe_key text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with q as (
+    select qq.id, qq.inquiry_id, qq.stale_at, qq.created_at, i.created_at as inq_created, i.status as inq_status, c.id as cid, c.full_name,
+           coalesce(nullif(btrim(i.rfq_no::text), ''), upper(left(i.id::text, 8))) as job,
+           row_number() over (partition by qq.inquiry_id order by qq.quote_amount nulls last, qq.created_at) as n
+      from public.quotes qq join public.inquiries i on i.id = qq.inquiry_id join public.customers c on c.id = i.customer_id
+     where coalesce(qq.status, '') not in ('draft', 'withdrawn')
+       and (not coalesce(c.is_demo, false) or coalesce(current_setting('qd.backup_sandbox', true), '') <> ''))
+  select q.inquiry_id, q.id,
+         public.fn_dbx_path('/QuotesDone Backup/Customers/' || public.fn_dbx_safe(coalesce(q.full_name, 'Customer')) || ' (' || left(q.cid::text, 8) || ')/Inquiries/'
+           || to_char(q.inq_created, 'YYYY-MM-DD') || ' ' || left(q.inquiry_id::text, 8) || ' - ' || public.fn_dbx_safe(coalesce(q.inq_status, 'inquiry'))
+           || '/Quotes/' || case when q.stale_at is not null then 'Earlier versions/' else '' end
+           || 'Quotation QD-' || public.fn_dbx_safe(q.job) || '-' || case when q.n <= 26 then chr(64 + q.n::int) else q.n::text end
+           || case when q.stale_at is not null then ' - ' || to_char(q.created_at at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24MI') else '' end || '.pdf'),
+         'CQ:' || q.id || ':' || public.fn_dbx_quote_revision(q.id)
+    from q
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dbx_main_category(p_lead_id bigint)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with c as (
+    -- the trades he confirmed; before he confirms, the trades the model proposed from his documents
+    select case when cardinality(sc.trades) > 0 then sc.trades else sc.proposed_trades end as cand,
+           case when jsonb_typeof(sc.source_docs -> 'reading' -> 'evidence') = 'array' then sc.source_docs -> 'reading' -> 'evidence'
+                else '[]'::jsonb end as ev
+      from public.supplier_capabilities sc where sc.supplier_id = p_lead_id),
+  t as (
+    select u.code, u.ord, tt.label, tt.group_code
+      from c cross join lateral unnest(c.cand) with ordinality u(code, ord)
+      join public.taxonomy_trade tt on tt.code = u.code and tt.active),
+  s as (
+    select t.label, t.ord,
+           (select count(*) from c, jsonb_array_elements(c.ev) e where e ->> 'trade' = t.code and e ->> 'licence' = 'covered') as covered,
+           (select count(*) from c, jsonb_array_elements(c.ev) e where e ->> 'trade' = t.code) as items,
+           (select count(*) from t t2 where t2.group_code = t.group_code) as in_group
+      from t)
+  select public.fn_dbx_safe(s.label) from s order by s.covered desc, s.items desc, s.in_group desc, s.ord limit 1
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dbx_original_name(p_path text)
+ RETURNS text
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_catalog'
+AS $function$
+  -- supplier_api stores '<ms since 1970>_<name as uploaded>' (e.g. 1794504328051_SecureCertificate201803.aspx.pdf): the 13 digits
+  -- are storage bookkeeping, the rest is what the supplier called his file
+  select public.fn_dbx_safe(coalesce(nullif(regexp_replace(regexp_replace(coalesce(p_path, ''), '^.*/', ''), '^\d{10,}_', ''), ''),
+                                     regexp_replace(coalesce(p_path, ''), '^.*/', '')))
+$function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_dbx_path(p text, p_strict boolean DEFAULT false)
  RETURNS text
  LANGUAGE sql
@@ -47,6 +110,22 @@ AS $function$
   select '/' || string_agg(public.fn_dbx_component(u.c, case when p_strict then 80 else 200 end), '/' order by u.n)
     from unnest(string_to_array(p, '/')) with ordinality u(c, n)
    where btrim(u.c) <> ''
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dbx_quote_revision(p_quote_id uuid)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select left(md5(concat_ws('|', q.quote_amount, q.price_ex_vat, q.vat_amount, q.gross_amount, q.discount_amount, q.discount_label,
+                             q.vat_treatment, q.lead_time, q.validity, q.payment_terms, q.warranty, q.scope, q.conditions, q.exclusions,
+                             q.committed_hash,
+                             (select string_agg(concat_ws('~', qi.line_no, qi.description, qi.qty, qi.unit, qi.unit_price, qi.amount,
+                                                          qi.brand, qi.model, qi.specification), '|' order by qi.line_no)
+                                from public.quote_items qi where qi.quote_id = q.id::text))), 12)
+    from public.quotes q where q.id = p_quote_id
 $function$
 
 
@@ -61,6 +140,176 @@ AS $function$
              btrim(regexp_replace(regexp_replace(coalesce(x, ''), '[\\/:*?"<>|[:cntrl:]]+', ' ', 'g'), '\s+', ' ', 'g')),
              '[. ]+$', ''),
            ''), '_')
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dbx_supplier_files()
+ RETURNS TABLE(lead_id bigint, is_demo boolean, legacy boolean, doc_type text, bucket text, path text, file_name text, gen_kind text, gen_ref text, dropbox_path text, dedupe_key text, row_id bigint)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with f as (select * from public.fn_dbx_supplier_folders() x where x.folder is not null),
+  l as (select l.*, f.folder, f.legacy, f.is_demo as demo from public.leads l join f on f.lead_id = l.id),
+  docs as (
+    select l.id, l.demo, l.legacy, l.folder, v.doc_type, v.bucket, v.path, v.sub, v.label
+      from l cross join lateral (values
+        -- a licence file is not filed in the first 15 minutes our reader is on it (a_licence_file_is_filed_in_the_backup_only_once_it_is_read.sql)
+        ('Trade licence', 'supplier-docs', case when coalesce(l.licence_read_state, '') = 'ours_failed' and l.licence_read_at > now() - interval '15 minutes'
+                                                then null else l.license_doc_path end, '', 'Trade licence'),
+        ('Company profile', 'supplier-docs', l.company_profile_doc_path, '', 'Company profile'),
+        ('Signed Terms & Conditions', 'signed-terms', l.signed_terms_path, '', 'Signed Supplier Agreement'),
+        ('Establishment card', 'supplier-docs', l.egr_doc_path, 'Certificates/', 'Establishment card'),
+        ('Insurance', 'supplier-docs', l.insurance_doc_path, 'Certificates/', 'Insurance'),
+        ('VAT certificate', 'supplier-docs', l.vat_doc_path, 'Certificates/', 'VAT certificate'),
+        ('ISO certificate', 'supplier-docs', l.iso_doc_path, 'Certificates/', 'ISO certificate'),
+        ('Manufacturer authorization', 'supplier-docs', l.manufacturer_auth_doc_path, 'Certificates/', 'Manufacturer authorisation')
+      ) v(doc_type, bucket, path, sub, label)
+     where length(coalesce(v.path, '')) > 0
+    union all
+    select l.id, l.demo, l.legacy, l.folder, 'Catalogue', 'supplier-docs', cat, 'Catalogues/', null
+      from l cross join lateral unnest(l.catalog_doc_paths) cat where length(coalesce(cat, '')) > 0),
+  q as (
+    -- the jobs he QUOTED: a live quote (not a draft, not withdrawn) on a request of a real customer (a demo request only in a sandbox run)
+    select l.id, l.demo, l.folder, qq.id as quote_id, qq.original_file_path, qq.original_file_name, qq.created_at, qq.stale_at,
+           'Job ' || public.fn_dbx_safe(coalesce(nullif(btrim(i.rfq_no::text), ''), upper(left(i.id::text, 8)))) as job,
+           count(*) filter (where qq.stale_at is null) over (partition by l.id, i.id) as live_n,
+           row_number() over (partition by l.id, i.id, (qq.stale_at is null) order by qq.option_no nulls last, qq.created_at) as opt
+      from l join public.quotes qq on qq.supplier_id = l.id
+      join public.inquiries i on i.id = qq.inquiry_id
+      left join public.customers c on c.id = i.customer_id
+     where coalesce(qq.status, '') not in ('draft', 'withdrawn')
+       and (not coalesce(c.is_demo, false) or coalesce(current_setting('qd.backup_sandbox', true), '') <> ''))
+  -- the documents on his row now
+  select d.id, d.demo, d.legacy, d.doc_type, d.bucket, d.path, regexp_replace(d.path, '^.*/', ''), null::text, null::text,
+         public.fn_dbx_path(d.folder || case
+           when d.legacy and d.doc_type = 'Catalogue' then 'Catalogue - ' || regexp_replace(d.path, '^.*/', '')
+           when d.legacy then d.doc_type || ' - ' || regexp_replace(d.path, '^.*/', '')
+           when d.doc_type = 'Signed Terms & Conditions' then 'Signed Supplier Agreement.pdf'
+           when d.doc_type = 'Catalogue' then d.sub || public.fn_dbx_original_name(d.path)
+           else d.sub || d.label || ' - ' || public.fn_dbx_original_name(d.path) end),
+         'S:' || d.id || ':' || case when d.doc_type = 'Catalogue' then 'cat' else d.doc_type end || ':' || d.path, null::bigint
+    from docs d
+  union all
+  -- Company Details.pdf, ours, on the template
+  select l.id, l.demo, l.legacy, 'Company Details', null, null, null, 'supplier_details', l.id::text,
+         public.fn_dbx_path(l.folder || 'Company Details.pdf'), 'S:' || l.id || ':details', null::bigint
+    from l
+  union all
+  -- one folder per job he quoted: our template quotation, as the customer is shown it
+  select q.id, q.demo, false, 'Quotation', null, null, null, 'quotation', q.quote_id::text,
+         public.fn_dbx_path(q.folder || q.job || '/' || case
+           when q.stale_at is not null then 'Earlier versions/Quotation ' || substr(q.job, 5) || ' - '
+                || to_char(q.created_at at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24MI') || '.pdf'
+           when q.live_n > 1 then 'Quotation ' || substr(q.job, 5) || ' - option ' || q.opt || '.pdf'
+           else 'Quotation ' || substr(q.job, 5) || '.pdf' end),
+         'SQ:' || q.id || ':' || q.quote_id || ':' || public.fn_dbx_quote_revision(q.quote_id), null::bigint
+    from q
+  union all
+  -- and his own file, when he uploaded one
+  select q.id, q.demo, false, 'Supplier quotation (original)', 'quote-files', q.original_file_path, regexp_replace(q.original_file_path, '^.*/', ''),
+         null, null,
+         public.fn_dbx_path(q.folder || q.job || '/' || case when q.stale_at is not null then 'Earlier versions/' else '' end
+           || 'Original as sent - ' || coalesce(public.fn_dbx_safe(nullif(btrim(q.original_file_name), '')), public.fn_dbx_original_name(q.original_file_path))),
+         'SQO:' || q.id || ':' || q.quote_id, null::bigint
+    from q where length(coalesce(q.original_file_path, '')) > 0
+  union all
+  -- EARLIER VERSIONS: a file of his already queued that is no longer on his row (a replaced licence, profile, agreement, catalogue,
+  -- certificate). It is named by its own doc_type, so a row whose doc_type was corrected keeps the correction.
+  select l.id, l.demo, false, d.doc_type, d.bucket, d.path, d.file_name, null, null,
+         public.fn_dbx_path(l.folder || 'Earlier versions/'
+           || case d.doc_type when 'Signed Terms & Conditions' then 'Signed Supplier Agreement' when 'Manufacturer authorization' then 'Manufacturer authorisation'
+                              else d.doc_type end
+           || ' - ' || to_char(coalesce(o.created_at, d.created_at) at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24MI')
+           || case when d.doc_type = 'Signed Terms & Conditions' then '.pdf' else ' - ' || public.fn_dbx_original_name(d.path) end),
+         regexp_replace(d.dedupe_key, '^SBX:[A-Za-z0-9-]+:', ''), d.id
+    from public.doc_backups d
+    join l on l.id::text = case when d.entity = 'zz_demo' then substr(d.entity_id, 10) else d.entity_id end
+    left join storage.objects o on o.bucket_id = d.bucket and o.name = d.path
+   where d.entity in ('supplier', 'zz_demo') and (d.entity = 'supplier' or d.entity_id like 'supplier:%')
+     and not l.legacy and d.source = 'storage' and d.bucket in ('supplier-docs', 'signed-terms')
+     and d.dedupe_key ~ ('^(SBX:[A-Za-z0-9-]+:)?S:' || l.id || ':')
+     and not exists (select 1 from docs x where x.id = l.id and x.bucket = d.bucket and x.path = d.path)
+     -- while the licence slot is being read (the 15 minutes above) the licence on file stays where it is: if the new upload is not a
+     -- licence, the row is put back to it and nothing has moved
+     and not (d.doc_type = 'Trade licence' and coalesce(l.licence_read_state, '') = 'ours_failed' and l.licence_read_at > now() - interval '15 minutes')
+     and not exists (select 1 from public.agent_actions a where a.kind = 'licence_wrong_document' and a.target_id = l.id::text
+                        and a.detail ->> 'path' = d.path)
+  union all
+  -- A FILE THE MODEL SAID IS NOT A LICENCE (agent_actions licence_wrong_document, #1985/#1992): never "Trade licence"; it is filed
+  -- with the earlier versions under what the model read it as. Until today it reached Dropbox only in the raw Storage/ mirror.
+  select l.id, l.demo, false, w.label || ' (sent as trade licence)', 'supplier-docs', w.path, regexp_replace(w.path, '^.*/', ''), null, null,
+         public.fn_dbx_path(l.folder || 'Earlier versions/' || w.label || ' (sent as trade licence) - '
+           || to_char(coalesce(o.created_at, w.at) at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24MI') || ' - ' || public.fn_dbx_original_name(w.path)),
+         'S:' || l.id || ':wrong:' || w.path, null::bigint
+    from l
+    join lateral (select distinct on (a.detail ->> 'path') a.detail ->> 'path' as path, a.created_at as at,
+                         case a.detail ->> 'kind' when 'company_profile' then 'Company profile' when 'catalogue' then 'Catalogue'
+                              when 'quotation_or_invoice' then 'Quotation or invoice' when 'identity_document' then 'Identity document'
+                              when 'certificate' then 'Certificate' else 'Not a trade licence' end as label
+                    from public.agent_actions a
+                   where a.kind = 'licence_wrong_document' and a.target_id = l.id::text and length(coalesce(a.detail ->> 'path', '')) > 0
+                   order by a.detail ->> 'path', a.created_at) w on true
+    left join storage.objects o on o.bucket_id = 'supplier-docs' and o.name = w.path
+   where not l.legacy
+     and w.path is distinct from l.license_doc_path
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dbx_supplier_folder(p_lead_id bigint)
+ RETURNS text
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  select f.folder from public.fn_dbx_supplier_folders(p_lead_id) f
+$function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_dbx_supplier_folders(p_lead_id bigint DEFAULT NULL::bigint)
+ RETURNS TABLE(lead_id bigint, folder text, legacy boolean, is_demo boolean)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with me as (
+    select lower(left(public.fn_dbx_safe(coalesce(nullif(btrim(l.licence_legal_name), ''), btrim(l.company_name))), 169)) as key
+      from public.leads l where l.id = p_lead_id),
+  r0 as (
+    select l.id, coalesce(l.is_demo, false) as is_demo, l.trade_license_no,
+           public.fn_dbx_safe(coalesce(nullif(btrim(l.licence_legal_name), ''), btrim(l.company_name))) as name0
+      from public.leads l
+     where (l.approved_at is not null or l.registration_submitted_at is not null
+         or l.signed_terms_path is not null or l.company_profile_doc_path is not null
+         or l.license_doc_path is not null or coalesce(l.claimed, false))
+       and coalesce(btrim(l.company_name), '') <> ''),
+  r as (
+    select r0.id, r0.is_demo, r0.trade_license_no,
+           case when char_length(r0.name0) > 170 then left(r0.name0, 169) || '…' else r0.name0 end as name,
+           public.fn_dbx_main_category(r0.id) as cat,
+           (select substring(d.dropbox_path from '^(/QuotesDone Backup/Suppliers/[^/]+/[^/]* \(' || r0.id || '\)/)')
+              from public.doc_backups d where d.dedupe_key = 'S:' || r0.id || ':details') as old_folder,
+           (select min(d.created_at) from public.doc_backups d
+             where d.dedupe_key = 'S:' || r0.id || ':details'
+                or d.dedupe_key = 'SBX:' || coalesce(nullif(current_setting('qd.backup_sandbox', true), ''), '-') || ':S:' || r0.id || ':details') as opened_at
+      from r0
+     where p_lead_id is null or r0.id = p_lead_id or lower(left(r0.name0, 169)) = (select key from me)),
+  k as (
+    select r.*, row_number() over (partition by lower(r.cat), lower(r.name) order by r.opened_at nulls last, r.id) as n
+      from r where r.cat is not null and r.old_folder is null),
+  k1 as (
+    select k.*, case when k.n = 1 then k.name
+                     else k.name || ' - ' || coalesce('licence ' || public.fn_dbx_safe(nullif(btrim(k.trade_license_no), '')), k.n::text) end as cand
+      from k),
+  k2 as (
+    select k1.*, row_number() over (partition by lower(k1.cat), lower(k1.cand) order by k1.n, k1.opened_at nulls last, k1.id) as n2 from k1)
+  select r.id,
+         coalesce(r.old_folder,
+                  case when k2.id is not null then '/QuotesDone Backup/Suppliers/' || k2.cat || '/' || k2.cand
+                    || case when k2.n2 > 1 then ' - ' || k2.n2 else '' end || '/' end),
+         r.old_folder is not null, r.is_demo
+    from r left join k2 on k2.id = r.id
+   where p_lead_id is null or r.id = p_lead_id
 $function$
 
 
@@ -1437,6 +1686,11 @@ begin
     with c as (
       select d.id from public.doc_backups d
        where d.status in ('pending', 'error') and d.attempts < 5
+         -- a row the old worker cannot do (a quotation to render, a file to MOVE) is claimed only by a worker that says it can
+         -- ('moves1' in its run id, dropbox_backup since 13 Nov 2026): between this file and that deploy the old worker would fail
+         -- a quotation five times and upload a second copy instead of moving (review of #1997, D1)
+         and ((d.gen_kind is distinct from 'quotation' and d.gen_kind is distinct from 'quotation_customer' and d.moved_from is null)
+              or position('moves1' in p_run) > 0)
          and (d.entity = 'zz_demo') = coalesce(p_demo, false)
          and (d.status = 'pending' or d.last_attempt_at is null
               or d.last_attempt_at < now() - interval '1 minute' * power(2, least(d.attempts, 8)))
@@ -1542,6 +1796,11 @@ begin
       select d.id from public.doc_backups d
        where d.entity = 'zz_demo' and d.dedupe_key like 'SBX:' || p_tag || ':%'
          and d.status in ('pending', 'error') and d.attempts < 5
+         -- a row the old worker cannot do (a quotation to render, a file to MOVE) is claimed only by a worker that says it can
+         -- ('moves1' in its run id, dropbox_backup since 13 Nov 2026): between this file and that deploy the old worker would fail
+         -- a quotation five times and upload a second copy instead of moving (review of #1997, D1)
+         and ((d.gen_kind is distinct from 'quotation' and d.gen_kind is distinct from 'quotation_customer' and d.moved_from is null)
+              or position('moves1' in p_run) > 0)
          and (d.status = 'pending' or d.last_attempt_at is null
               or d.last_attempt_at < now() - interval '1 minute' * power(2, least(d.attempts, 8)))
        order by (d.upload_state is not null) desc, d.id
@@ -2720,68 +2979,104 @@ CREATE OR REPLACE FUNCTION public.fn_enqueue_doc_backups()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 declare n integer := 0; m integer;
+  -- the dedupe-key prefix of a tagged sandbox run (trg_doc_backups_admit adds it on insert; the re-file below matches with it)
+  v_kp text := case when coalesce(current_setting('qd.backup_sandbox', true), '') ~ '^[A-Za-z0-9-]{6,40}$'
+                    then 'SBX:' || current_setting('qd.backup_sandbox', true) || ':' else '' end;
 begin
-  -- ============ SUPPLIERS ============
-  with s as (
-    select l.*,
-      '/QuotesDone Backup/Suppliers/' || public.fn_dbx_category(l.id)
-        || '/' || public.fn_dbx_safe(coalesce(l.company_name,'Supplier')) || ' (' || l.id || ')/' as base
-    from public.leads l
-    where l.approved_at is not null or l.registration_submitted_at is not null
-       or l.signed_terms_path is not null or l.company_profile_doc_path is not null
-       or l.license_doc_path is not null or coalesce(l.claimed,false)
-  ),
-  sd as (
-    select s.id, s.base, v.doc_type, v.bucket, v.path
-    from s cross join lateral (values
-      ('Trade licence','supplier-docs', s.license_doc_path),
-      ('Establishment card','supplier-docs', s.egr_doc_path),
-      ('Insurance','supplier-docs', s.insurance_doc_path),
-      ('VAT certificate','supplier-docs', s.vat_doc_path),
-      ('ISO certificate','supplier-docs', s.iso_doc_path),
-      ('Manufacturer authorization','supplier-docs', s.manufacturer_auth_doc_path),
-      ('Company profile','supplier-docs', s.company_profile_doc_path),
-      ('Signed Terms & Conditions','signed-terms', s.signed_terms_path)
-    ) v(doc_type,bucket,path)
-    where v.path is not null and length(v.path)>0
-  )
-  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
-  select 'supplier', sd.id::text, sd.doc_type, sd.bucket, sd.path,
-         regexp_replace(sd.path,'^.*/',''),
-         sd.base || sd.doc_type || ' - ' || regexp_replace(sd.path,'^.*/',''),
-         'storage', 'S:'||sd.id||':'||sd.doc_type||':'||sd.path
-  from sd on conflict do nothing;
+  -- ============ SUPPLIERS (13 Nov 2026, ruling 1680: Suppliers/<main category>/<company as on the trade licence>/) ============
+  -- The rule is fn_dbx_supplier_files (one pass): every file of every registered supplier who has a name and a main category, and
+  -- where it goes. Two steps, in this order:
+  -- (0) A FOLDER THAT CHANGED (the model changed his main category, or the name on his licence changed): every row of his that sits
+  --     in a supplier folder other than his ruled one - his correspondence and case summaries too - is pointed at the ruled folder
+  --     (same relative path) and MOVED (moved_from), never copied; step (1) then names each document. A row being uploaded while the
+  --     folder changed finishes in the old folder and is moved by the next run (review of #1997, D7: it used to stay behind for good).
+  --     Not for a legacy folder (that is the founder's migration).
+  update public.doc_backups d
+     set moved_from = case when d.status = 'done' then coalesce(d.moved_from, d.dropbox_path) else d.moved_from end,
+         dropbox_path = case when d.entity = 'zz_demo' then x.sbx_folder else x.folder end
+                        || substring(d.dropbox_path from '^/QuotesDone Backup(?:/_sandbox/[^/]+)?/Suppliers/[^/]+/[^/]+/(.*)$'),
+         status = 'pending', error = null, attempts = 0, upload_state = null, backed_up_at = null, verified_at = null, requeued_at = now()
+    from (select f.lead_id, f.is_demo, f.folder,
+                 case when v_kp <> '' then '/QuotesDone Backup/_sandbox/' || split_part(v_kp, ':', 2) || substr(f.folder, 19) end as sbx_folder
+            from public.fn_dbx_supplier_folders() f where f.folder is not null and not f.legacy) x
+   where ((d.entity = 'supplier' and d.entity_id = x.lead_id::text and not x.is_demo)
+       or (v_kp <> '' and d.entity = 'zz_demo' and d.entity_id = 'supplier:' || x.lead_id and d.dedupe_key like v_kp || '%'))
+     and d.dropbox_path ~ '^/QuotesDone Backup(/_sandbox/[^/]+)?/Suppliers/[^/]+/[^/]+/.'
+     and case when d.entity = 'zz_demo' then x.sbx_folder else x.folder end is not null
+     and not starts_with(d.dropbox_path, case when d.entity = 'zz_demo' then x.sbx_folder else x.folder end)
+     and d.status in ('done', 'error', 'pending', 'waiting_source');
   get diagnostics m = row_count; n := n + m;
 
-  insert into public.doc_backups(entity,entity_id,doc_type,bucket,path,file_name,dropbox_path,source,dedupe_key)
-  select 'supplier', s.id::text, 'Catalogue', 'supplier-docs', cat,
-         regexp_replace(cat,'^.*/',''), s.base || 'Catalogue - ' || regexp_replace(cat,'^.*/',''),
-         'storage', 'S:'||s.id||':cat:'||cat
-  from ( select l.id,
-      '/QuotesDone Backup/Suppliers/' || public.fn_dbx_category(l.id)
-        || '/' || public.fn_dbx_safe(coalesce(l.company_name,'Supplier')) || ' (' || l.id || ')/' as base,
-      l.catalog_doc_paths
-    from public.leads l
-    where (l.approved_at is not null or l.registration_submitted_at is not null
-       or l.signed_terms_path is not null or l.company_profile_doc_path is not null
-       or l.license_doc_path is not null or coalesce(l.claimed,false)) and l.catalog_doc_paths is not null ) s,
-    unnest(s.catalog_doc_paths) cat
-  where cat is not null and length(cat)>0 on conflict do nothing;
+  -- (Q) A QUOTATION THAT WAS REVISED (review of #1997, D4): the row of the earlier revision - in his Job folder or in the customer's
+  --     Quotes/ - moves to Earlier versions/ beside it, "<name> - <Dubai date time it was filed>.pdf", and step (2) files the current
+  --     revision under the plain name. A revision never filed yet (still queued) is abandoned: it would render the new figures.
+  update public.doc_backups d
+     set moved_from = case when d.status = 'done' then coalesce(d.moved_from, d.dropbox_path) else d.moved_from end,
+         dropbox_path = regexp_replace(d.dropbox_path, '/([^/]+)\.pdf$',
+                          '/Earlier versions/\1 - ' || to_char(coalesce(d.backed_up_at, d.created_at) at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24MI') || '.pdf'),
+         dedupe_key = d.dedupe_key || ':earlier',
+         status = case when d.status = 'done' then 'pending' else 'abandoned' end,
+         error = case when d.status = 'done' then null else 'superseded by a later revision of the quotation before it was filed' end,
+         attempts = 0, upload_state = null, backed_up_at = null, verified_at = null, requeued_at = now()
+    from (select f.gen_ref, f.dedupe_key, 'SQ' as side from public.fn_dbx_supplier_files() f where f.gen_kind = 'quotation'
+          union all
+          select c.quote_id::text, c.dedupe_key, 'CQ' from public.fn_dbx_customer_quotation_files() c) cur
+   where d.gen_kind in ('quotation', 'quotation_customer') and d.gen_ref = cur.gen_ref
+     and substring(d.dedupe_key from '(?:^|:)(SQ|CQ):') = cur.side
+     and regexp_replace(d.dedupe_key, '^SBX:[A-Za-z0-9-]+:', '') <> cur.dedupe_key
+     and d.dedupe_key !~ ':earlier$' and d.dropbox_path !~ '/Earlier versions/'
+     and (d.dedupe_key not like 'SBX:%' or (v_kp <> '' and d.dedupe_key like v_kp || '%'))
+     and d.status in ('done', 'error', 'pending', 'waiting_source');
   get diagnostics m = row_count; n := n + m;
 
-  insert into public.doc_backups(entity,entity_id,doc_type,source,gen_kind,gen_ref,dropbox_path,dedupe_key)
-  select 'supplier', s.id::text, 'Company Details','generated','supplier_details', s.id::text,
-         s.base || 'Company Details.pdf', 'S:'||s.id||':details'
-  from ( select l.id,
-      '/QuotesDone Backup/Suppliers/' || public.fn_dbx_category(l.id)
-        || '/' || public.fn_dbx_safe(coalesce(l.company_name,'Supplier')) || ' (' || l.id || ')/' as base
-    from public.leads l
-    where l.approved_at is not null or l.registration_submitted_at is not null
-       or l.signed_terms_path is not null or l.company_profile_doc_path is not null
-       or l.license_doc_path is not null or coalesce(l.claimed,false) ) s
+  -- (1) A FILE ALREADY QUEUED THAT THE RULE PUTS SOMEWHERE ELSE IS RE-FILED, NOT COPIED: the same row, pointed at the ruled path and
+  --     queued again; when it was already in Dropbox, moved_from keeps where it is and the worker MOVES it (files/move_v2). This covers
+  --     a category or licensed name that changed, a replaced upload going to Earlier versions/, and a file the hourly Storage/ sweep
+  --     claimed first (doc_backups is unique on (bucket, path), so an insert could never file it: before today only a supplier named
+  --     from no name had his sweep rows re-filed, and they were copied, leaving a second copy in Storage/). Inside a LEGACY folder
+  --     (opened under the old rule) nothing of his is renamed: only a file the sweep claimed is brought in, under the old naming.
+  --     Never a demo file into the real tree (a tagged sandbox run re-files only its own rows, under _sandbox/<tag>/), never a row
+  --     being uploaded, pruned or abandoned, never onto a key another row holds.
+  update public.doc_backups d
+     set moved_from = case when d.status = 'done' then coalesce(d.moved_from, d.dropbox_path) else d.moved_from end,
+         dropbox_path = x.to_path,
+         entity = case when d.entity = 'zz_demo' then 'zz_demo' else 'supplier' end,
+         entity_id = case when d.entity = 'zz_demo' then 'supplier:' || x.lead_id else x.lead_id::text end,
+         doc_type = x.doc_type, dedupe_key = x.to_key,
+         status = 'pending', error = null, attempts = 0, upload_state = null, backed_up_at = null, verified_at = null, requeued_at = now()
+    from (select d0.id, f.lead_id, f.doc_type,
+                 case when d0.dedupe_key like 'SBX:%' then '/QuotesDone Backup/_sandbox/' || split_part(d0.dedupe_key, ':', 2) || substr(f.dropbox_path, 19)
+                      else f.dropbox_path end as to_path,
+                 case when d0.dedupe_key like 'SBX:%' then 'SBX:' || split_part(d0.dedupe_key, ':', 2) || ':' || f.dedupe_key else f.dedupe_key end as to_key
+            from public.fn_dbx_supplier_files() f
+            join public.doc_backups d0
+              on d0.id = f.row_id
+              or (f.row_id is null and (d0.dedupe_key = f.dedupe_key or (v_kp <> '' and d0.dedupe_key = v_kp || f.dedupe_key)))
+              or (f.row_id is null and f.bucket is not null and d0.bucket = f.bucket and d0.path = f.path)
+           where d0.status in ('done', 'error', 'pending', 'waiting_source')
+             and (not f.is_demo or d0.dedupe_key like 'SBX:%')
+             and (d0.dedupe_key not like 'SBX:%' or (v_kp <> '' and d0.dedupe_key like v_kp || '%'))
+             and (not f.legacy or d0.dedupe_key !~ '^(SBX:[A-Za-z0-9-]+:)?S:')) x
+   where d.id = x.id
+     and d.dropbox_path is distinct from x.to_path
+     and not exists (select 1 from public.doc_backups o where o.dedupe_key = x.to_key and o.id <> d.id);
+  get diagnostics m = row_count; n := n + m;
+
+  -- (2) every file the rule wants that is not queued yet
+  insert into public.doc_backups(entity, entity_id, doc_type, bucket, path, file_name, dropbox_path, source, gen_kind, gen_ref, dedupe_key)
+  select 'supplier', f.lead_id::text, f.doc_type, f.bucket, f.path, f.file_name, f.dropbox_path,
+         case when f.gen_kind is null then 'storage' else 'generated' end, f.gen_kind, f.gen_ref, f.dedupe_key
+    from public.fn_dbx_supplier_files() f
+   where f.row_id is null
   on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 
+  -- (3) THE CUSTOMER'S COPY of every quotation (review of #1997, D6), in his request's Quotes/ folder, as he was shown it
+  insert into public.doc_backups(entity, entity_id, doc_type, source, gen_kind, gen_ref, dropbox_path, dedupe_key)
+  select 'inquiry', c.inquiry_id::text, 'Quotation (as shown to the customer)', 'generated', 'quotation_customer', c.quote_id::text, c.dropbox_path, c.dedupe_key
+    from public.fn_dbx_customer_quotation_files() c
+  on conflict do nothing;
+  get diagnostics m = row_count; n := n + m;
   -- ============ CUSTOMERS ============
   -- This is the row that carries a signed T&C certificate into Dropbox. compliance_archive writes
   -- customers.signed_terms_path and stops; the file is placed here, in one folder, once.
@@ -2869,21 +3164,19 @@ begin
                        where v0.source_table = a.source_table and v0.source_id = a.source_id offset 0) v
   left join public.customers c on v.party_kind = 'customer' and c.id::text = v.party_id
   left join public.inquiries i on c.id is not null and i.id::text = v.inquiry_id
-  left join public.leads l on v.party_kind = 'supplier' and l.id::text = v.party_id
-       and (l.approved_at is not null or l.registration_submitted_at is not null
-         or l.signed_terms_path is not null or l.company_profile_doc_path is not null
-         or l.license_doc_path is not null or coalesce(l.claimed,false))
+  -- 13 Nov 2026 (ruling 1680): a registered supplier's correspondence goes in his ruled folder (fn_dbx_supplier_folders); the
+  -- function runs only for a supplier's message (the one-time filter on v.party_kind), and for that supplier only (review D8)
+  left join lateral (select f.lead_id as id, f.folder from public.fn_dbx_supplier_folders(case when v.party_id ~ '^[0-9]{1,18}$' then v.party_id::bigint else -1 end) f
+                      where v.party_kind = 'supplier' and v.party_id ~ '^[0-9]{1,18}$') l on true
   cross join lateral (select
-      case when c.id is not null then 'customer' when l.id is not null then 'supplier' else 'company' end as entity,
-      coalesce(c.id::text, l.id::text, v.source_table || ':' || v.source_id) as entity_id,
+      case when c.id is not null then 'customer' when l.folder is not null then 'supplier' else 'company' end as entity,
+      coalesce(c.id::text, case when l.folder is not null then l.id::text end, v.source_table || ':' || v.source_id) as entity_id,
       case when c.id is not null then
              '/QuotesDone Backup/Customers/' || public.fn_dbx_safe(coalesce(c.full_name,'Customer')) || ' (' || left(c.id::text,8) || ')/'
              || case when i.id is not null then 'Inquiries/' || to_char(i.created_at,'YYYY-MM-DD') || ' ' || left(i.id::text,8)
                        || ' - ' || public.fn_dbx_safe(coalesce(i.status,'inquiry')) || '/' else '' end
              || 'Correspondence/'
-           when l.id is not null then
-             '/QuotesDone Backup/Suppliers/' || public.fn_dbx_category(l.id) || '/'
-             || public.fn_dbx_safe(coalesce(l.company_name,'Supplier')) || ' (' || l.id || ')/Correspondence/'
+           when l.folder is not null then l.folder || 'Correspondence/'
            else '/QuotesDone Backup/Company/Correspondence/' || to_char(v.occurred_at at time zone 'Asia/Dubai','YYYY-MM') || '/'
       end as base,
       to_char(v.occurred_at at time zone 'Asia/Dubai','YYYY-MM-DD HH24MI') || ' ' || v.direction || ' ' || v.channel || ' - '
@@ -2891,6 +3184,10 @@ begin
   -- a tagged sandbox run (fn_backup_sandbox_enqueue) lets its own demo messages through; trg_doc_backups_admit
   -- files them under _sandbox/<tag>/ and drops every other demo row exactly as before
   where (not v.is_demo or coalesce(current_setting('qd.backup_sandbox', true), '') <> '')
+    -- a supplier not yet named by his licence waits: queued by the sweep after the name lands, under the name (ruling 1672);
+    -- 13 Nov 2026: so does a registered supplier the model has not yet given a trade (no main category, no folder: ruling 1680)
+    and not (v.party_kind = 'supplier' and exists (select 1 from public.leads b where b.id::text = v.party_id and coalesce(btrim(b.company_name), '') = ''))
+    and not (v.party_kind = 'supplier' and l.id is not null and l.folder is null)
   on conflict do nothing;
   get diagnostics m = row_count; n := n + m;
 

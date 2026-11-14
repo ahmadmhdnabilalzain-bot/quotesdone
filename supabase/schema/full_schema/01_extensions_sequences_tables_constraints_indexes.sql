@@ -1,6 +1,6 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
--- Captured 2026-11-12T11:19:41.554Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- Captured 2026-11-14T22:28:17.331Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and
@@ -3402,7 +3402,8 @@ CREATE TABLE IF NOT EXISTS public.doc_backups (
   claimed_at timestamp with time zone,
   claimed_by text,
   prune_attempts integer DEFAULT 0 NOT NULL,
-  status_before_prune text
+  status_before_prune text,
+  moved_from text
 );
 
 CREATE TABLE IF NOT EXISTS public.doc_reviews (
@@ -5820,7 +5821,8 @@ CREATE TABLE IF NOT EXISTS public.leads (
   licence_read_state text,
   licence_read_at timestamp with time zone,
   licence_read_failed_since timestamp with time zone,
-  licence_read_tries integer DEFAULT 0 NOT NULL
+  licence_read_tries integer DEFAULT 0 NOT NULL,
+  trading_name text
 );
 
 CREATE TABLE IF NOT EXISTS public.legal_checklist (
@@ -12617,6 +12619,7 @@ ALTER TABLE public.leads ADD CONSTRAINT leads_locale_chk CHECK ((locale = ANY (A
 ALTER TABLE public.leads ADD CONSTRAINT leads_registration_amount_aed_check CHECK (((registration_amount_aed IS NULL) OR (registration_amount_aed >= (0)::numeric)));
 ALTER TABLE public.leads ADD CONSTRAINT leads_registration_fee_due_money_ck CHECK (((registration_fee_due >= (0)::numeric) AND (registration_fee_due = round(registration_fee_due, 2))));
 ALTER TABLE public.leads ADD CONSTRAINT leads_registration_status_check CHECK (((registration_status IS NULL) OR (registration_status = ANY (ARRAY['exempt'::text, 'paid'::text, 'not_due'::text, 'due'::text]))));
+ALTER TABLE public.leads ADD CONSTRAINT leads_trading_name_len CHECK (((trading_name IS NULL) OR (char_length(trading_name) <= 160)));
 ALTER TABLE public.leads ADD CONSTRAINT leads_whatsapp_opt_known CHECK (((whatsapp_opt IS NULL) OR (whatsapp_opt = ANY (ARRAY['same'::text, 'other'::text, 'none'::text]))));
 ALTER TABLE public.leads ADD CONSTRAINT leads_whatsapp_phone_is_verified CHECK (((whatsapp_phone IS NULL) OR (whatsapp_verified_at IS NOT NULL)));
 ALTER TABLE public.licence_renewal_ask ADD CONSTRAINT licence_renewal_ask_band_check CHECK ((band = ANY (ARRAY['t_minus_30'::text, 't_minus_14'::text, 't_minus_7'::text, 'expired'::text])));

@@ -13228,9 +13228,15 @@ declare n text := ' ' || public.fn_licence_authority_norm(p_authority) || ' ';
   v_foreign text[] := array['saudi','saudi arabia','ksa','qatar','qatari','oman','omani','kuwait','bahrain','egypt','jordan','iraq','lebanon','india','pakistan','bangladesh','china','turkey','iran',
     'united kingdom','england','companies house','united states','usa','germany','france','italy','singapore',
     'السعوديه','قطر','سلطنه عمان','الكويت','البحرين','مصر','الاردن','العراق','لبنان'];
+  -- Bodies that are not licensing authorities but print an emirate in their name (second review of #1985, W1; see the header): a
+  -- document they issue is not a trade licence, so its authority is never 'uae' by the emirate in its name. A person looks ('unknown').
+  v_not_licensing text[] := array['chamber','chambers','chamber of commerce','غرفه','غرفه تجاره','dubai municipality','بلديه دبي',
+    'gdrfa','general directorate of residency','residency and foreigners affairs','foreigners affairs','الاقامه وشوون الاجانب','الاقامه وشؤون الاجانب',
+    'federal tax authority','الهيئه الاتحاديه للضرائب'];
   v_s boolean; v_w boolean; v_f boolean;
 begin
   if btrim(n) = '' then return 'unread'; end if;
+  if exists (select 1 from unnest(v_not_licensing) x where position(' ' || x || ' ' in n) > 0) then return 'unknown'; end if;
   v_s := exists (select 1 from unnest(v_strong) x where position(' ' || x || ' ' in n) > 0);
   v_w := exists (select 1 from unnest(v_weak) x where position(' ' || x || ' ' in n) > 0);
   v_f := exists (select 1 from unnest(v_foreign) x where position(' ' || x || ' ' in n) > 0);

@@ -1272,7 +1272,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_decides_held_registrations(p
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r record; v jsonb; v_to text; v_first timestamptz; v_asks int; v_days numeric; v_key text; v_what text; v_replied boolean; v_ever_approved boolean; v_why text; v_asked int := 0; v_closed int := 0; v_out jsonb; v_waiting int := 0; v_to_ceo int := 0;
+declare r record; v jsonb; v_to text; v_first timestamptz; v_asks int; v_days numeric; v_key text; v_what text; v_replied boolean; v_ever_approved boolean; v_why text; v_asked int := 0; v_closed int := 0; v_out jsonb; v_waiting int := 0; v_to_ceo int := 0; v_approved_to_ceo int := 0;
 begin
   for r in select l.id, l.company_name, l.claimed_by, l.email, l.license_doc_path, l.licence_gate_reason reason, l.approved_at, l.phone, l.licence_read_failed_since from public.leads l
             where l.approval_status = 'pending' and not coalesce(l.banned, false)
@@ -1350,7 +1350,10 @@ begin
       v_asked := v_asked + 1;
     end if;
   end loop;
-  v_out := jsonb_build_object('asked', v_asked, 'closed', v_closed, 'being_read', v_waiting, 'being_read_to_ceo', v_to_ceo);
+  -- An APPROVED supplier whose new licence our reader has failed on for three days (12 Nov 2026): see the header of this file.
+  v_approved_to_ceo := public.fn_sales_engineer_hands_unread_approved_licences_to_ceo(p_at);
+  v_out := jsonb_build_object('asked', v_asked, 'closed', v_closed, 'being_read', v_waiting, 'being_read_to_ceo', v_to_ceo,
+                              'approved_unread_to_ceo', v_approved_to_ceo);
   perform public.fn_it_duty_ran('held_registrations', v_out);
   return v_out;
 end $function$
@@ -1604,6 +1607,49 @@ begin
   end loop;
   return jsonb_build_object('drafted', n_drafted,
     'by_status', (select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (select status, count(*) n from public.sales_engineer_framework_proposal group by status) x));
+end $function$
+
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_hands_unread_approved_licences_to_ceo(p_at timestamp with time zone DEFAULT now(), p_lead_id bigint DEFAULT NULL::bigint)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare r record; v_key text; v_n int := 0;
+begin
+  for r in select l.id, l.company_name, l.license_doc_path, l.licence_read_failed_since, l.trade_license_no, l.license_expiry
+             from public.leads l
+            where l.approval_status = 'approved' and not coalesce(l.banned, false)
+              and l.licence_read_state = 'ours_failed' and l.license_doc_path is not null
+              and l.licence_read_failed_since <= p_at - interval '3 days'
+              and (p_lead_id is null or l.id = p_lead_id)
+              -- our own fixtures are read again only by a fixture run (fn_supplier_licence_reread_claim), so outside one their files only
+              -- ever "fail": a demo supplier is handed over only in a fixture run, a real one only outside it (review of #1982, LICENCE 4 a)
+              and (coalesce(l.is_demo, false) or public.fn_is_demo_email(l.claimed_by) or coalesce(l.company_name, '') ~* '^\s*zz\s*demo')
+                  = (coalesce(current_setting('qd.duty_fixtures', true), '') = 'on')
+              -- once per licence file, decided in the WHERE so the 200 a run takes are all still to do (LICENCE 4 b)
+              and not exists (select 1 from public.agent_actions a
+                                where a.kind = 'held_registration_for_ceo' and a.target_id = l.id::text
+                                  and a.detail ->> 'clock' = 'approved_licence_unread:' || l.license_doc_path)
+            order by l.id limit 200 loop
+    v_key := 'approved_licence_unread:' || r.license_doc_path;
+    perform public.fn_ceo_task_open('Read the new trade licence of an approved supplier: ' || left(coalesce(r.company_name, '#' || r.id), 120),
+      'Supplier ' || r.id || ' is APPROVED and attached a new trade licence file that our document reader has failed on since '
+      || to_char(r.licence_read_failed_since at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' Dubai. He stays approved, matched and badged on '
+      || 'the PREVIOUSLY ACCEPTED reading (licence ' || coalesce(r.trade_license_no, 'unread') || ', expiry ' || coalesce(r.license_expiry::text, 'unread')
+      || '), which is not the new file''s. Read the new file by hand: if it is his renewed licence, record its fields; if it names another company, '
+      || 'looks forged or has expired, hold him. He was not asked for anything.');
+    insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+    values ('sales_engineer', 'held_registration_for_ceo', 'auto_done', 'low',
+            'Approved supplier''s new licence put to the ceo seat — ' || left(coalesce(r.company_name, 'supplier #' || r.id), 120),
+            'No action required here. The ceo task decides it.',
+            jsonb_build_object('supplier_id', r.id, 'clock', v_key, 'approved', true,
+                               'why', 'an approved supplier''s new licence file was not read for 3 days; the fields on file are the previously accepted reading'),
+            'leads', r.id::text);
+    v_n := v_n + 1;
+  end loop;
+  return v_n;
 end $function$
 
 
@@ -3777,7 +3823,7 @@ CREATE OR REPLACE FUNCTION public.fn_sales_engineer_verifies_supplier(p_lead_id 
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_name_unread boolean; v_name_taken boolean := false; v_old_name text; v_expiry_unread boolean; v_number_unread boolean; v_auto boolean; v_reason text; v_decision text; v_changed int; v_doc_reading boolean; v_authority_unread boolean; v_authority_foreign boolean; v_authority_unknown boolean; v_services_open boolean; v_ours_failed boolean;
+declare l public.leads; v_missing text[]; v_expired boolean; v_name_mismatch boolean; v_name_unread boolean; v_name_taken boolean := false; v_old_name text; v_expiry_unread boolean; v_number_unread boolean; v_auto boolean; v_reason text; v_decision text; v_changed int; v_doc_reading boolean; v_authority_unread boolean; v_authority_foreign boolean; v_authority_unknown boolean; v_services_open boolean; v_ours_failed boolean; v_listings jsonb;
 begin
   select * into l from public.leads where id = p_lead_id for update;
   if not found then return jsonb_build_object('ok', false, 'error', 'lead_not_found'); end if;
@@ -3817,7 +3863,10 @@ begin
               jsonb_build_object('supplier_id', l.id, 'previous_name', v_old_name, 'new_name', l.company_name,
                                  'licence_legal_name', l.licence_legal_name, 'license_doc_path', l.license_doc_path, 'source', p_source),
               'leads', l.id::text);
-      if coalesce(nullif(btrim(l.claimed_by), ''), l.email, '') like '%@%' then
+      -- A NAME NOBODY TYPED IS NOT "CORRECTED" (12 Nov 2026, sales_engineer; founder ruling 1672): a supplier who registered on the
+      -- website since that ruling types no name; his row is created with company_name '' and is named HERE, by the licence. He is
+      -- not told "your company name was updated" from a name he never gave.
+      if coalesce(btrim(v_old_name), '') <> '' and coalesce(nullif(btrim(l.claimed_by), ''), l.email, '') like '%@%' then
         perform public.fn_sales_engineer_writes('company_name_from_licence', 'supplier', coalesce(nullif(btrim(l.claimed_by), ''), l.email), l.id, null, null, null,
           'Your company name was updated to match your trade licence',
           'Your registered company name was "' || coalesce(v_old_name, '') || '". Your trade licence prints "' || l.company_name
@@ -3825,8 +3874,35 @@ begin
             || 'If this is not right, reply to this email or upload the correct trade licence.',
           null, null, '{}'::text[], 'company_name_from_licence:' || l.id || ':' || md5(l.company_name));
       end if;
+      -- THE LISTING CHECK MOVES TO THE MOMENT THE NAME IS KNOWN (12 Nov 2026, sales_engineer; ruling 1672). create_company flagged an
+      -- unclaimed directory listing with the typed name for a person to merge (supplier_api/create_company.ts, H10); with no name typed
+      -- there was nothing to compare until now. The same flag, in the same it_engineer queue, from the licensed name: the open listings
+      -- whose name is this name (fn_company_name_norm: case, punctuation and the legal form folded), a fixture never meeting a real
+      -- company. Nothing is merged and nothing waits: the registration stands as its own row.
+      if coalesce(btrim(v_old_name), '') = '' then
+        select jsonb_agg(jsonb_build_object('id', o.id, 'company_name', o.company_name, 'emirate', o.emirate, 'trade_license_no', o.trade_license_no) order by o.id)
+          into v_listings
+          from (select o.* from public.leads o
+                 where o.id <> l.id and o.claimed_by is null and not coalesce(o.claimed, false)
+                   and not coalesce(o.permanently_closed, false) and not coalesce(o.banned, false)
+                   and public.fn_company_name_norm(o.company_name) = public.fn_company_name_norm(l.company_name)
+                   and public.fn_seat_clock_lead_is_fixture(o) = public.fn_seat_clock_lead_is_fixture(l)
+                 order by o.id limit 10) o;
+        if v_listings is not null then
+          insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+          values ('it_engineer', 'possible_duplicate_listing', 'pending', 'medium',
+                  'Possible duplicate of a directory listing — ' || left(l.company_name, 120),
+                  'A registration''s trade licence names a company that is also an unclaimed directory listing (' || jsonb_array_length(v_listings)
+                    || ' listing' || case when jsonb_array_length(v_listings) = 1 then '' else 's' end || ' with this name). The company was registered as a new row and the listing was not touched. Compare the two rows (detail.new_lead_id and detail.listings): if they are the same company, merge the listing into the registered row by hand and mark this done; if not, mark it dismissed with the reason. Nothing waits on this: the supplier is already registered.',
+                  jsonb_build_object('new_lead_id', l.id, 'account', l.claimed_by, 'licence_legal_name', l.company_name, 'trade_license_no', l.trade_license_no,
+                                     'emirate', l.emirate, 'why', 'the trade licence names the listing''s company (name read from the licence, not typed)', 'listings', v_listings),
+                  'leads', l.id::text);
+        end if;
+      end if;
     end if;
   end if;
+  -- After a rename the six are read again: the name is no longer missing (it was read above, before the rename).
+  v_missing := public.fn_supplier_mandatory_six(l);
   -- ...and an unread name is not a match: no name match, no automatic approval.
   v_name_unread := public.fn_company_name_norm(coalesce(l.licence_legal_name, '')) = '';
   -- 7 Oct 2026 (#1285): a licence on file whose expiry or number nobody could read is not a licence that was checked.
@@ -3852,7 +3928,9 @@ begin
                      and not exists (select 1 from public.supplier_capabilities c
                                       where c.supplier_id = l.id and c.confirmed_at is not null
                                         and coalesce(c.confirmed_version, 0) >= coalesce((select max(k.version) from public.supplier_capability_confirmation k where k.supplier_id = l.id), 0));
-  v_reason := case when cardinality(v_missing) > 0 then v_missing[1]
+  -- A name still missing is explained by the licence reasons below (unread, being read, or another company's name): the supplier
+  -- is never asked to type it (ruling 1672). It still blocks approval: the approved branches need cardinality(v_missing) = 0.
+  v_reason := case when cardinality(array_remove(v_missing, 'reg_name')) > 0 then (array_remove(v_missing, 'reg_name'))[1]
                    when v_name_mismatch then 'licence_name_mismatch'
                    when v_expired then 'licence_expired' end;
 
@@ -7273,6 +7351,33 @@ begin
 end $function$
 
 
+CREATE OR REPLACE FUNCTION public.fn_sign_supplier_again_when_his_licence_is_read()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_secret text; v_ref text;
+begin
+  select value into v_secret from public.app_secrets where key = 'cred_db_internal';
+  -- resolved defensively, as qd_sign_supplier does: a trigger on the licence path must never refuse the licence
+  begin v_ref := public.qd_project_ref(); exception when others then v_ref := null; end;
+  if v_ref is null or coalesce(v_secret, '') = '' then return null; end if;
+  perform net.http_post(
+    'https://' || v_ref || '.supabase.co/functions/v1/compliance_archive',
+    jsonb_build_object('__secret', v_secret, 'action', 'sign', 'kind', 'supplier', 'email', new.claimed_by, 'force', true),
+    '{}'::jsonb, '{"Content-Type":"application/json"}'::jsonb, 60000);
+  insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
+  values ('sales_engineer', 'supplier_agreement_reissued', 'auto_done', 'low',
+          'Supplier Agreement certificate issued again from the trade licence — ' || left(coalesce(nullif(btrim(new.licence_legal_name), ''), nullif(btrim(new.company_name), ''), 'supplier #' || new.id), 120),
+          'No action required. The supplier accepted the Supplier Agreement before attaching the trade licence (founder ruling 1672); now that the licence is read, the certificate of that same acceptance (same time, IP, device, version and text hash) is issued again naming the company as the licence names it and its licence number.',
+          jsonb_build_object('supplier_id', new.id, 'accepted_terms_at', new.accepted_terms_at, 'previous_certificate', old.signed_terms_path,
+                             'licence_legal_name', new.licence_legal_name, 'trade_license_no', new.trade_license_no),
+          'leads', new.id::text);
+  return null;
+end $function$
+
+
 CREATE OR REPLACE FUNCTION public.fn_signup_customer_held(p_id uuid)
  RETURNS boolean
  LANGUAGE sql
@@ -9848,7 +9953,10 @@ CREATE OR REPLACE FUNCTION public.fn_supplier_mandatory_six(p leads)
  SET search_path TO 'public', 'pg_temp'
 AS $function$
   select array_remove(array[
-    case when coalesce(btrim(p.company_name), '') = '' then 'reg_name' end,
+    -- ruling 1672: the name is read from the trade licence, so with no licence on file the licence is what is missing
+    case when coalesce(btrim(p.company_name), '') = ''
+              and exists (select 1 from storage.objects o where o.bucket_id = 'supplier-docs' and o.name = p.license_doc_path)
+         then 'reg_name' end,
     case when not (coalesce(p.owner_phone_verified, false)
                    and regexp_replace(coalesce(nullif(btrim(p.phone), ''), p.phone_e164, ''), '[^0-9]', '', 'g') ~ '^9715[0-9]{8}$')
          then 'reg_mobile' end,
@@ -13090,9 +13198,8 @@ begin
       into v_base from public.customers cu where cu.id = p.customer_id;
     v_entity := 'customer'; v_id := p.customer_id::text;
   elsif p.lead_id is not null then
-    select '/QuotesDone Backup/Suppliers/' || public.fn_dbx_category(l.id) || '/' || public.fn_dbx_safe(coalesce(l.company_name, 'Supplier'))
-           || ' (' || l.id || ')/'
-      into v_base from public.leads l where l.id = p.lead_id;
+    -- 13 Nov 2026 (ruling 1680): his ruled folder; none yet (no name or no main category) and the summary waits for its next version
+    v_base := public.fn_dbx_supplier_folder(p.lead_id);
     v_entity := 'supplier'; v_id := p.lead_id::text;
   end if;
   if v_base is null then return false; end if;

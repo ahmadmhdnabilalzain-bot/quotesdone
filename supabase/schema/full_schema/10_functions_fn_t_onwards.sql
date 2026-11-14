@@ -8408,6 +8408,14 @@ begin
   if p_kind = 'delete' then
     return public.fn_pdpl_open(v_em, 'delete', 'self_service') || jsonb_build_object('next', 'pdpl_confirm_me(request_id, code)');
   end if;
+  -- 12 Nov 2026 (review of #1986): at most 3 copies in 10 minutes. The PDF, the data file and one retry fit; a loop
+  -- of signed-in calls does not write unbounded request and log rows or renders. The lock (second review): one
+  -- person's requests are counted one at a time, so a parallel burst cannot all pass the count before any inserts.
+  perform pg_advisory_xact_lock(hashtext('pdpl_export:' || v_em));
+  if (select count(*) from public.pdpl_requests q where q.email = v_em and q.kind = 'export'
+       and q.created_at > now() - interval '10 minutes') >= 3 then
+    return jsonb_build_object('ok', false, 'code', 'too_many_exports');
+  end if;
   insert into public.pdpl_requests (kind, email, role, details, status, verified_via, verified_at, handled_by)
   values (p_kind, v_em, 'self_service', 'signed-in, email verified by code', 'received', 'session+email_verified', now(), 'self_service')
   returning id into v_id;
@@ -9370,7 +9378,9 @@ begin
   -- never re-queued); every later file is filed beside it, whatever the name, category or status reads
   -- now. Each anchor is one lookup on the unique dedupe key.
   v_id := substring(new.dropbox_path from '^' || v_root || '/Suppliers/[^/]+/[^/]* \((\d+)\)/');
-  if v_id is not null then
+  -- 13 Nov 2026 (ruling 1680): a folder named by the new rule carries no id; a company whose licensed name itself ends in
+  -- "(<digits>)" must never be anchored to another supplier's folder, so the anchor applies only to that supplier's own rows
+  if v_id is not null and new.entity = 'supplier' and new.entity_id = v_id then
     select substring(d.dropbox_path from '^(' || v_root || '/Suppliers/[^/]+/[^/]* \(' || v_id || '\)/)') into v_anchor
       from public.doc_backups d where d.dedupe_key = v_kp || 'S:' || v_id || ':details';
     -- 12 Oct 2026 (review): a first folder opened before the name was known reads 'Supplier (<id>)'
