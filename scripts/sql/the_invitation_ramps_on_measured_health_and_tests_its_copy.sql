@@ -191,7 +191,7 @@ insert into public.table_export_registry (table_name, exported, category, reason
 on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason, added_by = excluded.added_by;
 
 -- ── 4. THE RAMP, THE BATCH AND THE NUDGES (the live definitions of 15 Nov 2026, changed only where marked 15 Nov) ───
-create or replace function public.fn_invite_ramp()
+CREATE OR REPLACE FUNCTION public.fn_invite_ramp()
  RETURNS integer
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -361,7 +361,7 @@ $function$
 ;
 revoke execute on function public.fn_invite_ramp() from public, anon, authenticated;
 
-create or replace function public.enqueue_supplier_invites(p_cap integer DEFAULT NULL::integer)
+CREATE OR REPLACE FUNCTION public.enqueue_supplier_invites(p_cap integer DEFAULT NULL::integer)
  RETURNS integer
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -500,7 +500,10 @@ begin
   -- the warm classes first, then at most new_class_cap from the classes not yet warmed up (both through the verdict gate);
   -- each candidate call is made only for a non-empty class list (a null list would mean every class)
   v_pick := '[]'::jsonb;
-  if cardinality(v_warm) > 0 then
+  if cardinality(v_cold) = 0 then
+    -- every open class is warm (the usual day): one pick over all of them, exactly as before
+    select coalesce(jsonb_agg(to_jsonb(c)), '[]'::jsonb) into v_pick from public.fn_supplier_invite_candidates(v_remaining, v_open) c;
+  elsif cardinality(v_warm) > 0 then
     select coalesce(jsonb_agg(to_jsonb(c)), '[]'::jsonb) into v_pick from public.fn_supplier_invite_candidates(v_remaining, v_warm) c;
   end if;
   v_rest := v_remaining - jsonb_array_length(v_pick);
@@ -543,7 +546,7 @@ $function$
 ;
 revoke execute on function public.enqueue_supplier_invites(integer) from public, anon, authenticated;
 
-create or replace function public.fn_sales_engineer_nudges_invited_suppliers(p_now timestamp with time zone DEFAULT now(), p_cap integer DEFAULT NULL::integer, p_include_fixtures boolean DEFAULT false)
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_nudges_invited_suppliers(p_now timestamp with time zone DEFAULT now(), p_cap integer DEFAULT NULL::integer, p_include_fixtures boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER

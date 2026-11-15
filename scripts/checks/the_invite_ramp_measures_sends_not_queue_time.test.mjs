@@ -7,7 +7,7 @@
 // scripts/sql/the_ramp_measures_an_invitation_by_when_it_left_not_when_it_was_queued.sql
 //
 // This reads the CANONICAL fn_invite_ramp (the last MANIFEST or pending file that defines it) and fails if any of its
-// "issued" reads goes back to leads.invited_at, or if growth can run on a 48 h window with too few sends to judge.
+// "issued" reads goes back to leads.invited_at, or if growth can run on an empty window or an unused send day.
 //   node --test scripts/checks/the_invite_ramp_measures_sends_not_queue_time.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -41,10 +41,16 @@ test('the canonical fn_invite_ramp reads issued invitations from the outbox by s
   assert.match(body, /n\.status\s*=\s*'sent'/i, `${file}: only rows the outbox actually sent count as issued`);
 });
 
-test('the canonical fn_invite_ramp never grows the cap on a 48 h window with too few sends to judge', () => {
+// 15 Nov 2026 (sales_engineer; the_invitation_ramps_on_measured_health_and_tests_its_copy.sql): the 48 h minimum of
+// backoff_min_sends (20) could never be met at a cap of 3 (two days carry 6), so the cap could only fall: measured, it sat at 3.
+// The rule this guards is unchanged in kind and moved in window: no growth on an EMPTY window ("0 bounces of 0 is not health"),
+// judged now on the 14-day bounce judgement, and growth still needs the last send day to have used the cap.
+test('the canonical fn_invite_ramp never grows the cap on an empty window or an unused send day', () => {
   const { file, body } = canonicalRamp();
-  const guard = body.search(/elsif\s+v_s48\s*<\s*v_back_n\s+then/i);
+  const guard = body.search(/elsif\s+v_wsent\s*=\s*0\s+then/i);
   const grow = body.search(/a\.finished_at\s*>\s*v_last_sent/i);   // the growth branch's "already grew" read
-  assert.ok(guard > 0, `${file}: no hold for a 48 h window with fewer than backoff_min_sends sends`);
+  assert.ok(guard > 0, `${file}: no hold for an empty 14-day judgement window`);
   assert.ok(grow > guard, `${file}: the empty-window hold must come before the growth branch`);
+  assert.match(body, /v_last_day_sent\s*<\s*ceil\(v_cur \* v_used_pct\)/i, `${file}: growth no longer needs the last send day to use the cap`);
+  assert.match(body, /fn_invite_bounce_judgement\(now\(\)\)/i, `${file}: health is not read from the bounce judgement`);
 });

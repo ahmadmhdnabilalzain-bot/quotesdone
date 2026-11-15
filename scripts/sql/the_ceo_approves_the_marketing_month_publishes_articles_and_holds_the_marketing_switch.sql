@@ -191,7 +191,7 @@ insert into public.table_export_registry (table_name, exported, category, reason
 on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason, added_by = excluded.added_by;
 
 -- ── THE TWO PIPES, NOW RECORDING THE CEO'S DECISION (the live definitions of 15 Nov 2026, changed only where marked) ───
-create or replace function public.fn_marketing_month_plan_tick(p_today date DEFAULT NULL::date, p_include_demo boolean DEFAULT false)
+CREATE OR REPLACE FUNCTION public.fn_marketing_month_plan_tick(p_today date DEFAULT NULL::date, p_include_demo boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -287,7 +287,7 @@ end $function$
 ;
 revoke execute on function public.fn_marketing_month_plan_tick(date, boolean) from public, anon, authenticated;
 
-create or replace function public.fn_marketing_article_release_due()
+CREATE OR REPLACE FUNCTION public.fn_marketing_article_release_due()
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
