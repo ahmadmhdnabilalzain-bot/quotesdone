@@ -15,7 +15,7 @@
 // nobody was waiting for the mail. resend_send.test.ts proves no request leaves for one.
 import { isDemoEmail } from './demo_identity.ts';
 
-export type ResendMail = { from: string; to: string; subject: string; html: string; reply_to?: string };
+export type ResendMail = { from: string; to: string; subject: string; html: string; text?: string; reply_to?: string };
 type Fetch = (url: string, init: RequestInit) => Promise<Response>;
 
 export async function resendWithRetry(key: string, mail: ResendMail, fetchFn: Fetch = fetch, sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))): Promise<boolean> {
