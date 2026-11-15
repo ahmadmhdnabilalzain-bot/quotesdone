@@ -42,3 +42,6 @@ SELECT-only reads.
     and the old month revenue each fail them. This file now also replaces fn_refund_open_from_customer (canonical once
     appended to MANIFEST after a_refund_request_after_a_partial_stripe_refund_is_answered_not_a_500.sql) and the index
     refunds_one_live_platform_refund_per_payment, and adds refunds_one_live_overcharge_return_per_payment.
+  - Round 8 (15 Nov 2026), LOCAL /tmp/pg-paid8, on main 66b228aa2 merged in: every file applied twice in the runbook
+    order; the four probes PROBE OK. Probe O+ (a declined overcharge return, then the customer's fee request) and O's
+    wording check fail when either change is reverted.

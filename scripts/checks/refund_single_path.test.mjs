@@ -70,8 +70,10 @@ test('only the accountant reaches Stripe refunds, through the one door, keyed on
   }
   assert.deepEqual(callers, ['accountant'], 'Stripe refunds must have exactly one caller, the accountant; found: ' + callers.join(', '));
   const acc = read('accountant');
-  assert.match(acc, /idem:\s*refundIdempotencyKey\(String\(r\.transaction_id\)\)/,
-    'execute_refunds must key a case refund on its transaction (refundIdempotencyKey), never on the refunds row id');
+  // An overcharge return (15 Nov 2026) is its own request, still rooted in the transaction: over<refund row>. The fee
+  // case keeps the bare transaction key.
+  assert.match(acc, /idem:\s*over \? refundIdempotencyKey\(String\(r\.transaction_id\), 'over' \+ r\.id\) : refundIdempotencyKey\(String\(r\.transaction_id\)\)/,
+    'execute_refunds must key a case refund on its transaction (refundIdempotencyKey), never on the refunds row id, and an overcharge return on its transaction and over<row>');
   assert.doesNotMatch(read('refunds_api'), /from '\.\.\/_shared\/stripe_refund\.ts'/, 'refunds_api must not import the Stripe refund door');
   // The playbook's top-up and retry are keyed on the transaction too, and reserved on public.refunds
   // before Stripe (re-review of #640): no key may be minted from an incident handoff id.
