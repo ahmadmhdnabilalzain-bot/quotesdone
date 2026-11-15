@@ -260,7 +260,7 @@ export function warrantyParts(text: unknown): { install: number | null; compress
 // One quote against the requirements.
 // ---------------------------------------------------------------------------------------------
 const BRAND_AS_ASKED = bi('As you asked; the brand is shown after the reveal', 'كما طلبت؛ تظهر العلامة بعد الكشف');
-const YES = bi('Yes', 'نعم'), NO = bi('No', 'لا'), NOT_STATED = bi('Not stated', 'غير مذكور'), NOT_IN = bi('Not in this quote', 'غير مشمول في هذا العرض');
+const YES = bi('Yes', 'نعم'), NOT_STATED = bi('Not stated', 'غير مذكور'), NOT_IN = bi('Not in this quote', 'غير مشمول في هذا العرض');
 const SUBJECT_TO_VISIT = /subject\s+to\s+(?:a\s+|the\s+)?site\s+(?:visit|survey|inspection)|after\s+(?:a\s+)?site\s+(?:visit|survey)|حسب\s+المعاينة|بعد\s+المعاينة/i;
 const FIRM_PRICE = /\b(?:fixed|firm|final)\s+(?:lump[- ]sum\s+)?price\b|\bno\s+site\s+visit\s+(?:needed|required)\b|site\s+visit\s+(?:done|completed|carried\s+out)/i;
 
@@ -578,7 +578,7 @@ type Ranked = { rank?: number; label: string; why?: string; tradeoff?: string };
  * tier and gives a pulled-in quote its row; `prices` gives the recommendation its price difference.
  */
 // deno-lint-ignore no-explicit-any
-export function enforceFit(a: any, fits: Record<string, QuoteFit>, lang: 'en' | 'ar', opts: { rules?: { top3?: Ranked[]; quotes?: { label: string }[] } | null; prices?: Record<string, number | null> } = {}): void {
+export function enforceFit(a: any, fits: Record<string, QuoteFit>, lang: 'en' | 'ar', opts: { rules?: { top3?: Ranked[]; quotes?: { label: string }[] } | null; prices?: Record<string, number | null>; expired?: Record<string, boolean> } = {}): void {
   if (!a || !Array.isArray(a.top3) || !a.top3.length || !Object.keys(fits).length) return;
   const ar = lang === 'ar';
   const byKey = new Map(Object.keys(fits).map((l) => [labelKey(l), l]));
@@ -591,32 +591,39 @@ export function enforceFit(a: any, fits: Record<string, QuoteFit>, lang: 'en' | 
     if (!String(t.tradeoff || '').includes(s)) t.tradeoff = [s, String(t.tradeoff || '').trim()].filter(Boolean).join(' ');
   }
   const first: Ranked = a.top3[0];
-  const tierOf = (l: string) => fitTier(fits[l]);
-  // Best within a tier: the rules ranking's order (price and fit), then the model's own order, then the label.
+  // WHERE A QUOTE STANDS, in the rules ranking's own order of keys: priced before unpriced, live before expired, then fitTier.
+  // A label we did not measure (a held quote, a label the model invented) stands as "not stated".
+  const unpriced = (l: string) => (opts.prices && !(Number(opts.prices[l]) > 0) ? 1 : 0);
+  const expired = (l: string) => (opts.expired?.[l] ? 1 : 0);
+  const tierAt = (l: string) => (fits[l] ? fitTier(fits[l]) : 1);
+  const standing = (l: string) => [unpriced(l), expired(l), tierAt(l)];
+  const cmp = (x: string, y: string) => { const p = standing(x), q = standing(y); return p[0] - q[0] || p[1] - q[1] || p[2] - q[2]; };
+  // Best within the same standing: the rules ranking's order (price and fit), then the model's own order, then the label.
   const rulesOrder = [...(opts.rules?.top3 || []).map((t) => t.label), ...(opts.rules?.quotes || []).map((q) => q.label)];
   const modelOrder = (a.top3 as Ranked[]).map((t) => t.label);
   const place = (l: string) => { const r = rulesOrder.indexOf(l); const m = modelOrder.indexOf(l); return [r < 0 ? 1e6 : r, m < 0 ? 1e6 : m]; };
-  const candidates = Object.keys(fits).sort((x, y) => tierOf(x) - tierOf(y) || place(x)[0] - place(y)[0] || place(x)[1] - place(y)[1] || x.localeCompare(y));
+  const candidates = Object.keys(fits).sort((x, y) => cmp(x, y) || place(x)[0] - place(y)[0] || place(x)[1] - place(y)[1] || x.localeCompare(y));
   const best = candidates[0];
-  // A label we did not measure (a held quote, a label the model invented) stands as "not stated".
-  const tierAt = (l: string) => (fits[l] ? tierOf(l) : 1);
-  if (!best || tierOf(best) >= tierAt(String(first?.label))) {
-    // The first place stands; within the shortlist a better-tier quote still goes above a worse one (a stable sort).
-    a.top3 = [...(a.top3 as Ranked[])].sort((x, y) => tierAt(x.label) - tierAt(y.label)).map((t, i) => ({ ...t, rank: i + 1 }));
+  if (!best || cmp(best, String(first?.label)) >= 0) {
+    // The first place stands; within the shortlist a better-standing quote still goes above a worse one (a stable sort).
+    a.top3 = [...(a.top3 as Ranked[])].sort((x, y) => cmp(x.label, y.label)).map((t, i) => ({ ...t, rank: i + 1 }));
     return;
   }
   // The new order: the best quote first (its own row, or the rules ranking's row for it), then the rest by tier, keeping three.
   const rulesRow = (l: string) => (opts.rules?.top3 || []).find((t) => t.label === l);
   const head: Ranked = (a.top3 as Ranked[]).find((t) => t.label === best) ?? { ...(rulesRow(best) ?? { label: best, why: '', tradeoff: '' }) };
-  const rest = (a.top3 as Ranked[]).filter((t) => t.label !== best).sort((x, y) => tierAt(x.label) - tierAt(y.label));
+  const rest = (a.top3 as Ranked[]).filter((t) => t.label !== best).sort((x, y) => cmp(x.label, y.label));
   a.top3 = [head, ...rest].slice(0, 3).map((t, i) => ({ ...t, rank: i + 1 }));
   a.best_value_label = best;
   // THE PROSE FOLLOWS THE ORDER. The recommendation is written from the fits and prices; the old first is named by what it fails.
   const price = (l: string) => (opts.prices && opts.prices[l] != null ? Number(opts.prices[l]) : null);
   const rec = recommendation({ label: best, price: price(best), fit: fits[best] }, Object.keys(fits).filter((l) => l !== best).map((l) => ({ label: l, price: price(l), fit: fits[l] })), lang);
   const old = fits[String(first?.label)];
+  const fl = String(first?.label ?? '');
   const why = old && old.hard_fails.length
     ? (ar ? `نضع ${best} أولًا: ${first.label} لا يستوفي ${failText(old, 'ar')}.` : `We place ${best} first: ${first.label} fails ${failText(old, 'en')}.`)
+    : unpriced(fl) ? (ar ? `نضع ${best} أولًا: لا يذكر ${fl} سعرًا.` : `We place ${best} first: ${fl} states no price.`)
+    : expired(fl) ? (ar ? `نضع ${best} أولًا: انتهت صلاحية عرض ${fl}.` : `We place ${best} first: ${fl}'s quote has expired.`)
     : (ar ? `نضع ${best} أولًا: يذكر كل ما طلبته بوضوح، و${first?.label} لا يذكر ${old ? old.hard_open.map((x) => x.label.ar).join('، ') : 'كل ما طلبته'}.` : `We place ${best} first: it states everything you asked for, and ${first?.label} does not state ${old ? old.hard_open.map((x) => x.label.en.toLowerCase()).join(', ') : 'all of it'}.`);
   a.bottom_line = `${why} ${rec.bottom}`.trim();
   a.top3[0] = { ...a.top3[0], why: rec.why, tradeoff: [rec.trade, ...(fits[best]?.hard_fails.length ? [ar ? `لا يستوفي طلبك: ${failText(fits[best], 'ar')}.` : `Fails ${failText(fits[best], 'en')}.`] : [])].filter(Boolean).join(' ') };

@@ -135,6 +135,24 @@ Deno.test('5. enforceFit: a passing quote outside the model\'s top 3 is put firs
   assertEquals([m3.top3[0].label, m3.top3[0].why, m3.bottom_line], ['Supplier C', 'Mine.', 'C is best.']);
 });
 
+Deno.test('5c. enforceFit keeps the rules ranking\'s first keys: a passing quote with no price, or expired, is not pulled first', () => {
+  const { fits } = journeyA('en');
+  const model = () => ({ top3: [{ rank: 1, label: 'Supplier A', why: 'Cheapest.', tradeoff: '' }, { rank: 2, label: 'Supplier C', why: 'x', tradeoff: '' }], bottom_line: 'A.' });
+  // B (passing) states no price: C (passing, priced) is put first, not B
+  const m1 = model();
+  enforceFit(m1, fits, 'en', { prices: { 'Supplier A': 12279, 'Supplier B': null, 'Supplier C': 17957 } });
+  assertEquals(m1.top3.map((t) => t.label), ['Supplier C', 'Supplier A']);
+  // B and C passing, B expired: C first
+  const m2 = model();
+  enforceFit(m2, fits, 'en', { prices: { 'Supplier A': 12279, 'Supplier B': 15750, 'Supplier C': 17957 }, expired: { 'Supplier B': true } });
+  assertEquals(m2.top3[0].label, 'Supplier C');
+  // every passing quote unpriced: the priced failing quote keeps its place, labelled as failing
+  const m3 = model();
+  enforceFit(m3, fits, 'en', { prices: { 'Supplier A': 12279, 'Supplier B': null, 'Supplier C': null } });
+  assertEquals(m3.top3[0].label, 'Supplier A');
+  assert(m3.top3[0].tradeoff.startsWith('Fails your installation warranty'));
+});
+
 // ---------------------------------------------------------------------------------------------------------------------------
 Deno.test('5b. a hard requirement the quote does not state never outranks a quote that states it meets it', () => {
   const reqs = requestRequirements(INQUIRY_A);

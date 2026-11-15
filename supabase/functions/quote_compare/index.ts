@@ -340,10 +340,11 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     // pulls into the model's shortlist (review item 5). Code only, no model.
     const rulesForFit = requirements.length ? deterministicCompare(labelled as never, lang as 'en' | 'ar') : null;
     const priceByLabel: Record<string, number | null> = Object.fromEntries(labelled.map((l: any) => [String(l.label), l.price ?? null]));
+    const expiredByLabel: Record<string, boolean> = Object.fromEntries(labelled.map((l: any) => [String(l.label), !!l.expired]));
     const hiddenPhrases = qs.map((q: any) => hiddenBrandPhrases(fitById[String(q.id)], (itemsByQuote[String(q.id)] || []), tradeOfCategory(inq.category)));
     const withRoster = (a: any) => { if (a && typeof a === 'object') { a.price_benchmarks = priceBenchmarks; a.technical = technical ? annotateTechnical(rendererView(technical, lang as 'en' | 'ar'), requirements, fitByLabel, technical.trade, lang as 'en' | 'ar') : null;
       a.request_fit = requirements.length ? fitView(requirements, qs.filter((q: any) => fitById[String(q.id)]).map((q: any) => ({ label: labels.get(String(q.id))?.en ?? '', quote_id: String(q.id), fit: fitById[String(q.id)] }))) : null;
-      enforceFit(a, fitByLabel, lang as 'en' | 'ar', { rules: rulesForFit, prices: priceByLabel }); a.technical_detail = technical; a.spec_mismatches = specMismatches; a.on_hold = onHold; a.quality_check = qualityCheck; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : [], heldIds); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; }
+      enforceFit(a, fitByLabel, lang as 'en' | 'ar', { rules: rulesForFit, prices: priceByLabel, expired: expiredByLabel }); a.technical_detail = technical; a.spec_mismatches = specMismatches; a.on_hold = onHold; a.quality_check = qualityCheck; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : [], heldIds); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; }
       if (!a || typeof a !== 'object') return a;
       // Ledger 1588: a listed brand whose tier and origin would name it is said nowhere in the analysis (request_fit.ts).
       const g = hideBrandPhrases(generaliseDeep(a, allCtx), hiddenPhrases);
