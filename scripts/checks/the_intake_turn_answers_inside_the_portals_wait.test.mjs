@@ -8,7 +8,9 @@
 // (inquiry_intake/turn_clock.test.ts, _shared/think_deadline.test.ts); this reads the source so the wiring cannot
 // quietly come undone, and so no safeguard is dropped to win the time back:
 //   - exact specs or held: a required spec left blank sends the request back to needs_info, never ready;
-//   - the held-spec questions: the answer to a held spec is read by code (readHeldAnswer), and a deferral fills nothing;
+//   - the held-spec questions: the hold still asks the open spec; with a model reading only a TAPPED option of it is read by
+//     code (tappedHeldAnswer, 15 Nov 2026: a reply about something else was stored as the held spec's answer), and the code
+//     reader for a turn with no model reading still lets no deferral fill it;
 //   - the reply guards (licence number, "AI"), now on the interview's own reply as well as the held reply;
 //   - think()'s cross-family check: the verify step still goes to a model of another family (counterpartModel).
 import { test } from 'node:test';
@@ -51,7 +53,7 @@ test('every model step of the turn runs on the one clock', () => {
   const started = INDEX.indexOf('const specRead = category && toRead.length && allText.trim() && clock.canStart()');
   assert.ok(started > 0 && started < INDEX.indexOf('const raw = await llm('), 'the exact-spec reading is not started alongside the interview call');
   assert.match(INDEX, /: clock\.canStart\(\) \? startReading\(category, blank\) : null/, 'a reading after the interview call starts without checking the clock');
-  assert.match(INDEX, /await heldReply\([^\n]*clock\.replyDeadline\(\)\)/, 'the held reply has its own clock instead of the turn\'s reply deadline');
+  assert.match(INDEX, /await heldReply\([^;]*?clock\.replyDeadline\(\)[,)]/, 'the held reply has its own clock instead of the turn\'s reply deadline');
   assert.doesNotMatch(INDEX, /Date\.now\(\) \+ \d{2}_?\d{3}\)/, 'a model step was given its own fixed allowance again');
 });
 
@@ -99,8 +101,10 @@ test('exact specs or held: a required spec left blank sends the request back to 
   assert.match(THINK, /export function keepProvenFields\(/, 'a reader no longer drops an unproven field');
 });
 
-test('the held-spec questions stay: the answer is read by code and a deferral fills nothing', () => {
-  assert.match(INDEX, /readHeldAnswer\(checklist, heldKey, text\)/, 'the held spec\'s answer is not read by code');
+test('the held-spec questions stay: a tapped answer is read by code, the model reads the rest, and a deferral fills nothing', () => {
+  // 15 Nov 2026 (journey A; rulings 1663/1664/1666): with the model's reading on the turn, code reads only a tap of the held spec
+  assert.match(INDEX, /tappedHeldAnswer\(checklist, heldKey, text\)/, 'the held spec\'s tapped answer is not read');
+  assert.doesNotMatch(INDEX, /readHeldAnswer\(checklist, heldKey, text\)/, 'code reads the customer\'s words for the held spec over the model again');
   // since 10 Nov 2026 (ledger 1572) the open specs asked again are the exhausted ones the customer did not say they do not
   // know: a "does not know" is never asked again, not even by the hold
   assert.match(INDEX, /const askAgain = slotExhausted\.filter\(\(k\) => !slotUnknown\.has\(k\)\);\s+heldNext = heldAsk\(checklist, askAgain, slotLang\)/, 'a held turn no longer asks the open spec');

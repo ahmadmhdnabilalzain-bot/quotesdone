@@ -6899,6 +6899,7 @@
   "2e103c07eeb9",
   "30a9d8dd30c8",
   "319347fbb41a",
+  "33957e610349",
   "353402a247bf",
   "376511df285c",
   "378a7370ff4c",
@@ -6964,7 +6965,6 @@
   "adf74aa587b9",
   "ae97f0f1db9e",
   "b2ee44d94d14",
-  "b8ebdf62374a",
   "c000365f46e8",
   "c02e704dc9c8",
   "c2caee8ced77",
@@ -6983,6 +6983,7 @@
   "ec98c5324fa1",
   "ef946a1bd07d",
   "f1307c0cbf40",
+  "f335a8e1124e",
   "f6166ea9cec9",
   "f6951c9228ee",
   "f72b8be5cec9",
@@ -7655,7 +7656,8 @@
   "490772e6319e",
   "70bc680c72a0",
   "75a8affc4076",
-  "c31b542ceaec"
+  "c31b542ceaec",
+  "e97a73caf6ff"
  ],
  "supabase/functions/marketing_channels/index.ts": [
   "b2a80e50ec94"
