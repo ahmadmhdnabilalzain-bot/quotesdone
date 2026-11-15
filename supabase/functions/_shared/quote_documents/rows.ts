@@ -71,7 +71,8 @@ export type Item = {
 // its scope line: each quote's stated value per attribute, per scope line, with a flag against the
 // request, plus the three commercial completeness checks with an `applicable` flag. Values are keyed
 // by the anonymous label ("Supplier A"). A held quote is never a column: the roster decides.
-export type SpecFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na';
+// 'stated': a value with nothing in the request to compare it with; printed as written, with no mark (15 Nov 2026).
+export type SpecFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na' | 'stated';
 export type SpecCell = { value?: string | null; flag: SpecFlag; note?: string | null };
 export type TechAttribute = { key: string; label?: string | null; unit?: string | null; requested?: string | null; values: Record<string, SpecCell> };
 export type TechLine = { line_no?: number | null; item: string; qty?: string | number | null; unit?: string | null; attributes: TechAttribute[] };

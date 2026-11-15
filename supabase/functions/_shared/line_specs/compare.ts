@@ -220,10 +220,12 @@ export function technicalComparison(input: { category: string | null; request_li
 // values keyed by label, flags match | differs | missing | na, and the three terms under lead_time /
 // installation / warranty. This produces exactly that from the full dataset, so the renderer needs
 // no change; the full dataset is served beside it as `analysis.technical_detail`.
-//   stated (a value, no baseline) → 'match': the value is stated and the quote passed the gate.
+//   stated (a value, no baseline) → 'stated': shown as written, with no mark. It was 'match' until 15 Nov 2026, and the
+//   report counted every such value as matching: journey A's "All 30 match" where the customer's request stated none of
+//   the 30 (_shared/request_fit.ts fills the request where it is recorded; a value with nothing to match is not a match).
 //   not_applicable → 'na'.
 // ---------------------------------------------------------------------------------------------
-export type RenderFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na';
+export type RenderFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na' | 'stated';
 export type RenderCell = { value?: string | null; flag: RenderFlag; note?: string | null };
 export type RendererTechnical = {
   suppliers: string[];
@@ -232,7 +234,7 @@ export type RendererTechnical = {
   terms?: { lead_time?: RenderTerm | null; installation?: RenderTerm | null; warranty?: RenderTerm | null } | null;
 };
 type RenderTerm = { applicable?: boolean | null; requested?: string | null; values: Record<string, RenderCell> };
-const rflag = (f: Flag): RenderFlag => (f === 'not_applicable' ? 'na' : f === 'stated' ? 'match' : f === 'optional_not_stated' ? 'optional' : f);
+const rflag = (f: Flag): RenderFlag => (f === 'not_applicable' ? 'na' : f === 'optional_not_stated' ? 'optional' : f);
 
 export function rendererView(t: TechnicalComparison, lang: 'en' | 'ar'): RendererTechnical {
   const ar = lang === 'ar';

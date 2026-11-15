@@ -22,6 +22,7 @@
 // one.
 
 import { notesAsLists, reviewPenalty, type ReviewNote } from '../_shared/quote_review_notes.ts';
+import { failText, metText, recommendation, type QuoteFit } from '../_shared/request_fit.ts';
 
 export type Labelled = {
   label: string; price: number | null; lead_time?: string | null; validity?: string | null;
@@ -33,6 +34,8 @@ export type Labelled = {
   gross_amount?: number | null; discount_amount?: number | null; vat_treatment?: string | null; vat_amount?: number | null;
   /** The sales engineer's notes against the request (_shared/quote_review_notes.ts, founder ledger 1588). */
   review_notes?: ReviewNote[];
+  /** This quote against what the customer asked for (_shared/request_fit.ts fitQuote), measured on its RAW lines. */
+  fit?: QuoteFit | null;
 };
 
 export const RULES_DISCLAIMER_EN = "This is QuotesDone's impartial recommendation, prepared to make your decision easier. From all the quotes you received, we have shortlisted three, ranked on the price, completeness, lead time, warranty and payment terms each supplier stated, and compared those in detail. You remain completely free to reveal and choose any supplier from your full list of quotes.";
@@ -43,6 +46,11 @@ export const RULES_DISCLAIMER_AR = 'هذه توصية محايدة أعدّته�
 // it twice (quote_documents.ts compareDocument).
 export const METHOD_NOTE_EN = 'Quotes are ranked on the figures each supplier stated: price, completeness, lead time, warranty and payment terms. Specifications are not assessed; check them before you pay.';
 export const METHOD_NOTE_AR = 'رُتّبت العروض وفق الأرقام التي ذكرها كل مورّد: السعر، واكتمال العرض، ومدة التنفيذ، والضمان، وشروط الدفع. لم تُقيَّم المواصفات؛ يُرجى التحقق منها قبل الدفع.';
+// WITH THE CUSTOMER'S REQUIREMENTS (15 Nov 2026, journey A): the method when each quote was measured against what he asked.
+export const FIT_METHOD_EN = 'Price counts for half, scored in proportion to the lowest price; how many of your requirements each quote meets counts for the other half. A quote that fails a requirement you stated is never placed above one that meets them all.';
+export const FIT_METHOD_AR = 'يُحتسب السعر بنصف الوزن، بدرجة تتناسب مع أدنى سعر؛ ويُحتسب النصف الآخر بعدد متطلباتك التي يستوفيها كل عرض. ولا يتقدّم عرض لا يستوفي متطلبًا ذكرته على عرض يستوفيها جميعًا.';
+export const FIT_DISCLAIMER_EN = "This is QuotesDone's impartial recommendation, prepared to make your decision easier. Every quote you received was measured against the requirements you stated and ranked on its price and on how well it meets them. You remain completely free to reveal and choose any supplier from your full list of quotes.";
+export const FIT_DISCLAIMER_AR = 'هذه توصية محايدة أعدّتها QuotesDone لتيسير قرارك: قيس كل عرض تلقيته بالمتطلبات التي ذكرتها، ورُتّب وفق سعره ومدى استيفائه لها. ولك مطلق الحرية في الكشف عن أي مورّد من قائمة عروضك الكاملة واختياره.';
 
 const clamp15 =(n: number) => Math.max(1, Math.min(5, Math.round(n)));
 
@@ -52,10 +60,20 @@ const clamp15 =(n: number) => Math.max(1, Math.min(5, Math.round(n)));
 // ranking silently collapsed onto lead time alone. Spanning the range makes the cheapest 5, the
 // dearest 1 and the middle land in between, which is what "relative to the other quotes on THIS
 // job" has to mean. A genuine tie scores 3 for everyone — never 5 for everyone.
-function spanScore(v: number | null, min: number | null, max: number | null): number {
-  if (v === null || min === null || max === null) return 1;   // unstated is a risk, not an average
-  if (max === min) return 3;
-  return clamp15(5 - 4 * ((v - min) / (max - min)));
+// PROPORTIONAL, NOT RANK-RELATIVE (15 Nov 2026, journey A). The span made the cheapest 5, the dearest 1 and the middle 3
+// whatever the gaps: AED 12,279 / 15,750 / 18,855 printed as 5 / 3 / 1, as though the dearest were five times worse. A price
+// now scores 5 x (lowest / this price), to one decimal: 5.0 / 3.9 / 3.3. Unstated is still a risk, not an average (1).
+// (The span above was measured on four staging quotes all within 22% of each other, where ratio scoring gave every quote 5;
+// to one decimal they now read 5.0 / 4.7 / 4.3 / 3.9, which still separates them.)
+const round1 = (n: number) => Math.round(n * 10) / 10;
+function propScore(v: number | null, min: number | null): number {
+  if (v === null || min === null || v <= 0) return 1;
+  return Math.max(1, round1(5 * min / v));
+}
+/** Days: 5 x (fastest + 1) / (this + 1), so "ex-stock" (0 days) is 5 and an unstated lead time 1. */
+function daysScore(v: number | null, min: number | null): number {
+  if (v === null || min === null) return 1;
+  return Math.max(1, round1(5 * (min + 1) / (v + 1)));
 }
 const stated = (v: unknown) => typeof v === 'string' && v.trim() !== '';
 
@@ -146,13 +164,23 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
   const minDays = validDays.length ? Math.min(...validDays) : null;
   const maxDays = validDays.length ? Math.max(...validDays) : null;
 
+  // THE CUSTOMER'S REQUIREMENTS (request_fit.ts). With them, delivery is "meets your date: yes / no" (a requirement like
+  // any other) and is not scored again; without a date it is still scored, in proportion to the fastest.
+  const withFit = labelled.some((q) => q.fit && q.fit.total > 0);
+  const dateAsked = labelled.some((q) => q.fit?.cells?.date);
+  void maxPrice; void maxDays;
   const scored = labelled.map((q, i) => {
     const p = prices[i];
     // Both are relative to the other quotes on THIS job, not to an absolute market.
-    const price_score = spanScore(p, minPrice, maxPrice);
+    const price_score = propScore(p, minPrice);
     const d = days[i];
-    const delivery_score = spanScore(d, minDays, maxDays);
-    const { score: quality_score, why, whyAr } = qualityScore(q);
+    const delivery_score: number | null = dateAsked ? null : daysScore(d, minDays);
+    const qs = qualityScore(q);
+    const fit = q.fit && q.fit.total > 0 ? q.fit : null;
+    // A quote that fails a requirement he stated is never called complete: with a fit, the third score IS the fit.
+    const quality_score = fit ? Math.max(1, fit.score ?? 1) : qs.score;
+    const why = fit ? `meets ${fit.met} of ${fit.total} of your requirements` : qs.why;
+    const whyAr = fit ? `يستوفي ${fit.met} من ${fit.total} من متطلباتك` : qs.whyAr;
 
     const flags: string[] = [];
     // Facts only. Before the reveal the customer cannot reach a supplier (founder, 14 Sep 2026), so
@@ -170,9 +198,16 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
     // put first a quote that is cheapest BECAUSE it leaves requested scope out, quotes Chinese against an Italian
     // request, or gives half the warranty asked for. The sales engineer's notes are facts read against the request
     // (quote_review_notes.ts), so they fill the two lists and their penalties come off the composite score.
-    const lists = notesAsLists(q.review_notes, lang);
-    const penalty = reviewPenalty(q.review_notes);
-    const firstHigh = (q.review_notes || []).find((n) => n.severity === 'high');
+    // A note the fit already measures (warranty against his minimum, lead time against his date) is not deducted or said twice.
+    const covered = new Set<string>([...(fit?.cells?.warranty_installation ? ['warranty_short'] : []), ...(fit?.cells?.date ? ['lead_time_late'] : [])]);
+    const notes = (q.review_notes || []).filter((n) => !covered.has(n.code));
+    const lists = notesAsLists(notes, lang);
+    const penalty = reviewPenalty(notes);
+    const firstHigh = notes.find((n) => n.severity === 'high');
+    // FAILS A HARD REQUIREMENT: a requirement he stated that the quote does not meet, or a high note (scope left out, a
+    // lower grade, another origin). Ranked after every quote that fails none.
+    const fails_request = !!(fit?.hard_fails.length) || !!firstHigh;
+    if (fit?.hard_fails.length) flags.unshift(ar ? `لا يستوفي طلبك: ${failText(fit, 'ar')}.` : `Fails ${failText(fit, 'en')}.`);
 
     return {
       label: q.label,
@@ -186,14 +221,23 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
       missing_from_request: lists.missing_from_request, spec_deviation: lists.spec_deviation,
       track_record_note: '',
       price_score, delivery_score, quality_score,
-      score_reason: ar
+      meets_date: fit ? fit.meets_date : null,
+      fails_request,
+      score_reason: fit ? (ar
+        ? `السعر ${price_score}/5 (بالتناسب مع أدنى سعر)؛ ${metText(fit, 'ar')} (${quality_score}/5)${fit.meets_date === true ? '؛ يُنجز بحلول موعدك' : fit.meets_date === false ? '؛ لا يُنجز بحلول موعدك' : ''}.`
+        : `Price ${price_score}/5 (in proportion to the lowest price); ${metText(fit, 'en')} (${quality_score}/5)${fit.meets_date === true ? '; done by your date' : fit.meets_date === false ? '; not done by your date' : ''}.`)
+      : ar
         ? `احتُسبت النقاط من الأرقام المذكورة وحدها (${whyAr})${penalty ? `، مع خصم لمتطلبات طلبك غير المستوفاة (${lists.missing_from_request.length + lists.spec_deviation.length})` : ''}.`
         : `Scored from the stated figures only (${why})${penalty ? `, less ${penalty.toFixed(1)} for ${lists.missing_from_request.length + lists.spec_deviation.length} unmet requirement(s) of your request` : ''}.`,
       flags,
       requirement_penalty: penalty,
-      _tradeoff: firstHigh ? (ar ? firstHigh.ar : firstHigh.en) : '',
-      _composite: price_score * 0.4 + quality_score * 0.4 + delivery_score * 0.2 - penalty,
-      _price: p,
+      _tradeoff: fit?.hard_fails.length ? (ar ? `لا يستوفي طلبك: ${failText(fit, 'ar')}.` : `Fails ${failText(fit, 'en')}.`)
+        : firstHigh ? (ar ? firstHigh.ar : firstHigh.en)
+        : fit?.hard_open.length ? (ar ? `غير مذكور في العرض: ${fit.hard_open.map((x) => x.label.ar).join('، ')}.` : `Not stated in the quote: ${fit.hard_open.map((x) => x.label.en.toLowerCase()).join(', ')}.`) : '',
+      _composite: (fit
+        ? (delivery_score === null ? price_score * 0.5 + quality_score * 0.5 : price_score * 0.4 + quality_score * 0.4 + delivery_score * 0.2)
+        : price_score * 0.4 + quality_score * 0.4 + (delivery_score ?? 1) * 0.2) - penalty,
+      _price: p, _fit: fit, _fails: fails_request,
     };
   });
 
@@ -207,6 +251,9 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
   const ranked = [...scored].sort((a, b) =>
     Number(a._price === null) - Number(b._price === null) ||
     Number(expiredOf.get(a.label)) - Number(expiredOf.get(b.label)) ||
+    // A QUOTE THAT FAILS WHAT HE ASKED FOR IS NEVER RECOMMENDED OVER ONE THAT MEETS IT (15 Nov 2026, journey A: Supplier A
+    // first with "Completeness 5" while it gave 1 year of warranty against his 2). It stays listed, labelled and open to reveal.
+    Number(a._fails) - Number(b._fails) ||
     b._composite - a._composite ||
     (a._price ?? Number.POSITIVE_INFINITY) - (b._price ?? Number.POSITIVE_INFINITY) ||
     a.label.localeCompare(b.label));
@@ -220,7 +267,20 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
   // and a tie was settled on price or label without a word. Each rank now names its place, and a tie says how it broke.
   const PLACE_EN = ['Highest', 'Second-highest', 'Third-highest'];
   const PLACE_AR = ['أعلى', 'ثاني أعلى', 'ثالث أعلى'];
+  const rec = withFit && short.length && short[0]._fit
+    ? recommendation({ label: short[0].label, price: short[0]._price, fit: short[0]._fit },
+      scored.filter((s) => s.label !== short[0].label && s._fit).map((s) => ({ label: s.label, price: s._price, fit: s._fit! })), lang)
+    : null;
+  const aedD = (n: number) => (ar ? `${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 2 })} درهم` : `AED ${Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 2 })}`);
   const top3 = short.map((s, i) => {
+    if (rec && s._fit) {
+      const first = short[0];
+      const diff = s._price !== null && first._price !== null ? Math.round((s._price - first._price) * 100) / 100 : null;
+      const vs = diff === null || i === 0 ? '' : diff === 0 ? (ar ? `، بالسعر نفسه مثل ${first.label}` : `; the same price as ${first.label}`)
+        : ar ? `؛ ${diff < 0 ? 'أقل' : 'أعلى'} بمبلغ ${aedD(diff)} من ${first.label}` : `; ${aedD(diff)} ${diff < 0 ? 'less' : 'more'} than ${first.label}`;
+      const m = metText(s._fit, lang);
+      return { rank: i + 1, label: s.label, why: i === 0 ? rec.why : (ar ? `${m}${vs}.` : `${m.charAt(0).toUpperCase() + m.slice(1)}${vs}.`), tradeoff: (i === 0 && rec.trade) || s._tradeoff || (s.flags.length ? s.flags[0] : '') };
+    }
     const prev = i > 0 ? short[i - 1] : null;
     const tied = !!prev && Math.abs(prev._composite - s._composite) < 1e-9 && expiredOf.get(prev.label) === expiredOf.get(s.label);
     const byPrice = tied && prev!._price !== s._price;
@@ -248,14 +308,14 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
     // CLI does not catch, because it bundles without typechecking, but CI does.
     // The rules ranking carries its own closing paragraph. The model's one says the shortlist
     // matches "on specification, value and terms", which is untrue here: specs are not assessed.
-    disclaimer: ar ? RULES_DISCLAIMER_AR : RULES_DISCLAIMER_EN,
+    disclaimer: withFit ? (ar ? FIT_DISCLAIMER_AR : FIT_DISCLAIMER_EN) : (ar ? RULES_DISCLAIMER_AR : RULES_DISCLAIMER_EN),
     trade: '',
     considered: labelled.length,
     shortlist_reason: ar
       // Founder's standing rule: never imply only the shortlist is shown. Every quote is listed.
       ? `أُدرجت العروض جميعها (${labelled.length}) في هذا التقرير، وتُقارن أفضل ${short.length} منها بالتفصيل.`
       : `All ${labelled.length} quotes are listed in this report; the top ${short.length} are compared in detail.`,
-    bottom_line: best
+    bottom_line: rec ? rec.bottom : best
       ? (ar ? `حصل ${best} على أعلى مجموع نقاط. ${note}` : `${best} scores highest overall. ${note}`)
       : note,
     overview: [
@@ -263,12 +323,12 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
         : (ar ? `أدنى سعر معروض ${minPrice.toLocaleString('en-US')} درهم.` : `Cheapest quote is AED ${minPrice.toLocaleString('en-US')}.`),
       spread !== null ? (ar ? `الفارق بين أعلى سعر وأدناه ${spread.toLocaleString('en-US')} درهم.` : `Spread between highest and lowest is AED ${spread.toLocaleString('en-US')}.`) : '',
     ].filter(Boolean).join(' '),
-    quotes: short.map(({ _composite, _price, _tradeoff, ...rest }) => rest),
+    quotes: short.map(({ _composite, _price, _tradeoff, _fit, _fails, ...rest }) => rest),
     line_findings: [] as Array<{ item: string; finding: string }>,
     top3,
     cheapest_label: cheapest,
     best_value_label: best,
-    best_value_reason: ar
+    best_value_reason: withFit ? (ar ? FIT_METHOD_AR : FIT_METHOD_EN) : ar
       ? 'أعلى مجموع نقاط في السعر والاكتمال ومدة التسليم، استنادًا إلى الأرقام المذكورة.'
       : 'Highest combined score on price, completeness and delivery, from the stated figures.',
     watch_outs: [

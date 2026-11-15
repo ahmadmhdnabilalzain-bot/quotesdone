@@ -100,7 +100,7 @@ function commercialRowsOf(a: any, k: Kit, every = false): { head: Cell[]; rows: 
   // e2e journey c). Labels are system-made ("Supplier X – Option N"), so their length is bounded.
   return { head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => k.label(q.label))], rows, labels: qs.map((q: any) => String(q.label)) };
 }
-const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', optional: '○', na: '' };
+const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', optional: '○', na: '', stated: '' };
 /** The commercial comparison as text rows: what compare_csv exports. Same rows as the report. */
 // deno-lint-ignore no-explicit-any
 // 13 Nov 2026 (anonymity audit, REPORT_C L7): the CSV was the comparison's rows WITHOUT the supplier names the PDF masks
