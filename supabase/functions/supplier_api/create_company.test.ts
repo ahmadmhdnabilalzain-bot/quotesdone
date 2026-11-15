@@ -334,6 +334,40 @@ Deno.test('the look-ups before the write are one wave, not four round trips in s
   assert(beforeWrite >= 4, `only ${beforeWrite} look-up(s) were in flight together before the write: they are read one after another`);
 });
 
+// AFTER THE WRITE, ONE WAVE (15 Nov 2026, customer_support; the code e-mail to the registration form measured 3,026 and 3,078 ms
+// against 3,000). The new-company path waited on the insert, then a touch UPDATE (portal_updated_at only), then the registration
+// state, then the first touch beside the supplier read: four calls in series. The insert writes portal_updated_at itself, so the
+// state is read without a touch, beside the first touch and the supplier read. The claim's own update touches the row the same way.
+Deno.test('after the write, one wave: the registration state, the first touch and the supplier read leave together, and no touch UPDATE', async () => {
+  for (const which of ['insert', 'claim'] as const) {
+    const { t, admin } = table([INVITED]);
+    let now = 0, most = 0; const touches: (boolean | undefined)[] = [];
+    const slow = async <T>(f: () => T): Promise<T> => { now++; most = Math.max(most, now); await new Promise((r) => setTimeout(r, 5)); try { return f(); } finally { now--; } };
+    const email = which === 'claim' ? INVITED.email : 'qd-aub990b4a-new13@example.invalid';
+    const before = Date.now();
+    const r = await createCompany(admin, email, which === 'claim' ? FORM : { ...FORM, company_name: 'ZZ DEMO S7 Wave After' }, {
+      ...deps(),
+      setRegistration: (_id: number, touch?: boolean) => { touches.push(touch); return slow(() => ({ status: 'not_due' })); },
+      recordFirstTouch: () => slow(() => undefined),
+      readSupplier: () => slow(() => t.rows.find((x) => x.claimed_by === email) ?? null),
+    });
+    assertEquals(r.status, 200, JSON.stringify(r.body));
+    assertEquals(r.body.registration, { status: 'not_due' }, which + ': the answer carries the registration state as before');
+    assert(r.body.supplier, which + ': the answer carries the supplier');
+    assertEquals(most, 3, `${which}: only ${most} of the three reads after the write were in flight together`);
+    assertEquals(touches, [false], which + ': the state is read without a second UPDATE of the row');
+    const row = t.rows.find((x) => x.claimed_by === email)!;
+    assert(typeof row.portal_updated_at === 'string' && Date.parse(String(row.portal_updated_at)) >= before - 1000, which + ': portal_updated_at is written with the row, as the touch wrote it');
+    assertEquals([t.inserts, t.updates], which === 'claim' ? [0, 1] : [1, 0], which + ': one write, and only one');
+  }
+});
+
+// lib/registration.ts setRegistration as create_company now calls it: touch=false sends no UPDATE and reads the state only.
+Deno.test('setRegistration(id, false) issues no UPDATE: the state rpc alone', async () => {
+  const src = await Deno.readTextFile(new URL('./lib/registration.ts', import.meta.url));
+  assert(/if \(touch\) await admin\.from\('leads'\)\.update\(\{ portal_updated_at: /.test(src), 'setRegistration no longer skips its UPDATE when touch is false');
+});
+
 // H10 (12 Nov 2026, customer_support; founder ruling 1645, browser perfection walk of supplier registration). MEASURED on
 // production: an unclaimed directory listing (lead 158191) existed; a public sign-up with another address typed the same name;
 // a second lead was created (158192, self_registered) and the listing stayed invitable. These replay it and its edges.

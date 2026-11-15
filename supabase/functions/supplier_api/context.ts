@@ -6,7 +6,10 @@ import { createClient, type User } from 'jsr:@supabase/supabase-js@2';
 import type { SafeInquiry } from './quote_review.ts';
 import { annotate, maskContact } from '../_shared/observe.ts';
 
-export const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
+// Access-Control-Max-Age (15 Nov 2026, customer_support): a browser remembers this function's preflight for two hours (Chromium's
+// ceiling) instead of the Fetch standard's 5 seconds, so a supplier's calls stop paying an OPTIONS round trip to ap-southeast-1
+// before each POST that comes more than 5 s after the last (src/components/portal/supplier/api.ts preflightNow says why it matters).
+export const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Max-Age': '7200', 'Content-Type': 'application/json' };
 export const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: cors });
 // NO DATABASE SENTENCE REACHES A RESPONSE (28 Oct 2026, review of #1712; ledger 1401 audit S7). Six actions answered a
 // refused write with the Postgres message itself, eight put a database, storage or exception message in `detail`, and

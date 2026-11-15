@@ -92,5 +92,14 @@ It registers eight ZZ DEMO companies, one at a time, from the fixtures in `scrip
   text/plain (the `.read.txt` / `.ocr.txt` sidecars had never been saved). pg_cron `supplier_doc_reread_5min` (:04/:09) re-reads a
   dead read 10-15 min after its mark (was 10-40).
 
+- **Speed fix (15 Nov, branch `customer_support-the-registration-form-opens-in-time`)**: "code verifies -> registration form"
+  measured 3,026 / 3,078 ms vs 3,000 (verify 875 ms server / 1,194 browser; create_company 797 / 1,430). create_company's new-company
+  path was 7 calls in series, now 4: the door reads sanctions_ban beside auth.getUser (supplier_api/lib/door.ts, used only for the
+  address getUser verified), and after the insert the state rpc (no touch: the insert writes portal_updated_at, the BEFORE INSERT trigger
+  derives the state), the first touch and the `me` read are one wave. login_otp verify stays 6 calls (7 for a new account) by design
+  (two limiters in turn; nothing read before the code). Preflights: login_otp and supplier_api send Access-Control-Max-Age 7200 and the
+  Login pays supplier_api's preflight beside verify (api.ts preflightNow -> warm door 204). Estimated ~0.6 s off from the US; not
+  measured live until deployed.
+
 Related: [[a-journey-step-is-proved-by-its-outcome]], [[the-registration-walk-reads-the-real-code-through-a-resend-sink]],
 [[supplier-verification-mandatory-six]], [[chromium-in-the-cloud-container-cuts-requests-at-30-seconds]].

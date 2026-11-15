@@ -3,7 +3,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useFailover } from '@/lib/otpFailover';
 import { signupEmailProblem } from '@/lib/signupEmail';
-import { call } from '../api';
+import { call, preflightNow } from '../api';
 import { srvMsg } from '../serverCopy';
 import { readLoginDraft, saveLoginDraft, clearLoginDraft } from '../registrationDraft';
 import { Button } from '@/components/ui/button';
@@ -133,7 +133,7 @@ function Login({ onAuth, lang, startMode, modeRequest = 0 }) {
   const send = async (again = false) => { const v = again ? ident : id.trim(); if (!v) { setMsg(t(lang, isSignup ? 'err_need_email' : 'err_need_id')); return; } if (isSignup && !again) { const p = signupEmailProblem(v); if (p) { setMsg(t(lang, p)); return; } } setBusy(again ? 'again' : 'send'); setMsg(''); setNote('');
     let j; try { j = await call('login_otp', { action: 'send', user_kind: 'supplier', identifier: v, allow_signup: isSignup, lang }); } catch (_e) { setBusy(''); setMsg(t(lang, 'err_code_send')); return; } setBusy(''); if (j && j.ok) { const who = j.identifier || v; setIdent(who); setStep('code'); setCode(''); if (again) setNote(t(lang, 'code_resent')); saveLoginDraft(tabStore(), { mode, step: 'code', ident: who }); if (!v.includes('@')) failover(() => call('login_otp', { action: 'failover', user_kind: 'supplier', identifier: who, lang })); } else setMsg(j && (j.code === 'network' || j.code === 'timeout') ? srvMsg(lang, j, t(lang, 'err_code_send')) : loginErr(lang, j, 'err_code_send')); };
   // An empty Verify says what to do (M5: it did nothing).
-  const verify = async () => { if (!code.trim()) { setMsg(t(lang, 'le_enter_code')); return; } setBusy('verify'); setMsg(''); setNote(''); let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(''); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(''); setMsg(j && (j.code === 'network' || j.code === 'timeout') ? srvMsg(lang, j, t(lang, 'err_incorrect')) : loginErr(lang, j, 'err_incorrect')); return; } setBusy(''); clearLoginDraft(tabStore()); onAuth(j.access_token, j.refresh_token, j.locale, typeof j.has_company === 'boolean' ? j.has_company : undefined); };
+  const verify = async () => { if (!code.trim()) { setMsg(t(lang, 'le_enter_code')); return; } setBusy('verify'); setMsg(''); setNote(''); preflightNow('supplier_api'); /* the first call after sign-in (create_company or me) finds its preflight paid: api.ts */ let j; try { j = await call('login_otp', { action: 'verify', user_kind: 'supplier', identifier: ident, code: code.trim() }); } catch (_e) { setBusy(''); setMsg(t(lang, 'err_incorrect')); return; } if (!j || !j.ok || !j.access_token) { setBusy(''); setMsg(j && (j.code === 'network' || j.code === 'timeout') ? srvMsg(lang, j, t(lang, 'err_incorrect')) : loginErr(lang, j, 'err_incorrect')); return; } setBusy(''); clearLoginDraft(tabStore()); onAuth(j.access_token, j.refresh_token, j.locale, typeof j.has_company === 'boolean' ? j.has_company : undefined); };
   const swap = (m) => { swapped.current = true; setMode(m); setStep('id'); setMsg(''); setNote(''); setCode(''); clearLoginDraft(tabStore()); };
   return (
     <div className={S.center}><Card className="qd-login qd-panel w-full max-w-[410px] p-6 sm:p-7">
