@@ -165,7 +165,7 @@ export function journeyA(lang: 'en' | 'ar' = 'en'): { analysis: any; fits: Recor
   enforceFit(a, fits, lang, { rules: deterministicCompare(labelled as never, lang), prices: Object.fromEntries(labelled.map((l) => [l.label, l.price])), expired: Object.fromEntries(labelled.map((l) => [l.label, l.expired])) });
   a.all_quotes = rosterOf(labelled as never, a.top3, new Set());
   a.total_quotes = qs.length;
-  const g = hideBrandPhrases(generaliseDeep(a, allCtx), qs.map((q) => hiddenBrandPhrases(fitById[q.id], q.items, trade)));
+  const g = generaliseDeep(a, allCtx);
   g.review_notes = qs.map((q) => ({ quote_id: q.id, label: labels.get(q.id)!.en, notes: notesBy[q.id].map((n) => ({ code: n.code, severity: n.severity, text: lang === 'ar' ? n.ar : n.en })) }));
-  return { analysis: g, fits };
+  return { analysis: hideBrandPhrases(g, qs.map((q) => hiddenBrandPhrases(fitById[q.id], q.items, trade))), fits };
 }

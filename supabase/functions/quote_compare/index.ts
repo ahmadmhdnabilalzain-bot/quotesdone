@@ -347,10 +347,12 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
       enforceFit(a, fitByLabel, lang as 'en' | 'ar', { rules: rulesForFit, prices: priceByLabel, expired: expiredByLabel }); a.technical_detail = technical; a.spec_mismatches = specMismatches; a.on_hold = onHold; a.quality_check = qualityCheck; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : [], heldIds); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; }
       if (!a || typeof a !== 'object') return a;
       // Ledger 1588: a listed brand whose tier and origin would name it is said nowhere in the analysis (request_fit.ts).
-      const g = hideBrandPhrases(generaliseDeep(a, allCtx), hiddenPhrases);
+      const g = generaliseDeep(a, allCtx);
       g.review_notes = qs.map((q: any) => ({ quote_id: String(q.id), label: labels.get(String(q.id))?.en ?? null, label_ar: labels.get(String(q.id))?.ar ?? null,
         notes: (notesByQuote[String(q.id)] || []).map((n) => ({ code: n.code, severity: n.severity, line_no: n.line_no, text: lang === 'ar' ? n.ar : n.en, en: n.en, ar: n.ar })) }));
-      return g; };
+      // Ledger 1588, last: a listed brand whose tier and origin would name it is said nowhere in what is returned, the review
+      // notes included (request_fit.ts hideBrandPhrases).
+      return hideBrandPhrases(g, hiddenPhrases); };
     const qhash = await sha256hex(JSON.stringify(labelled));
     // A LARGE JOB'S TOP THREE IS A HIGH-STAKES SUPPLIER CHOICE (29 Sep 2026, founder_instruction 1009 upgrade 10): the CEO
     // reviews it on another model family before the customer sees it. While the model hold is on it is shown and the
