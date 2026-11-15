@@ -19,7 +19,7 @@ import { S } from './styles';
 // What each version changed, in the supplier's language. A supplier is shown every change after the version it
 // accepted (a v10 supplier re-accepting v12 sees v11's and v12's). v12, 14 Sep 2026, founder: "whatsapp number
 // supplier confirmed." Archived versions are the ones with a /supplier-agreement/vN page.
-export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16'];
+export const ARCHIVED_AGREEMENTS = ['v10', 'v11', 'v12', 'v13', 'v14', 'v15', 'v16', 'v17'];
 const AGREEMENT_CHANGES = {
   11: {
     en: [
@@ -107,6 +107,13 @@ const AGREEMENT_CHANGES = {
   17: {
     en: ['The contact line (clause 35) now gives +971 56 791 8605 for calls and +1 218 316 6814 for WhatsApp. No clause, fee or charge changes.'],
     ar: ['يذكر سطر التواصل (البند 35) الآن الرقم +971 56 791 8605 للاتصال والرقم +1 218 316 6814 لواتساب. لا تغيير في أي بند أو رسم أو مبلغ.'],
+  },
+  // v18, 15 Nov 2026 (sales_engineer; founder ruling 1697, the CEO's decision under ruling 1696): clause 12 only, and it only widens the
+  // supplier's freedom, so v18 carries v17 (app_secrets supplier_terms_carries_from = 'v17'): a v17 supplier is not asked. Shown to a
+  // supplier asked to accept v18 who last accepted v16 or earlier.
+  18: {
+    en: ['A quotation is valid for the period you state in it, no longer 30 days from submission; if it states none, we ask you to state one before the quotation is shown (clause 12). No other clause, fee or charge changes.'],
+    ar: ['يكون عرض السعر ساريًا للمدة التي تذكرونها فيه، ولم يعد ساريًا لمدة 30 يومًا من تاريخ تقديمه؛ وإذا لم يذكر مدة، نطلب منكم ذكرها قبل أن يُعرض عرض السعر (البند 12). لا تغيير في أي بند آخر أو رسم أو مبلغ.'],
   },
 };
 export function agreementChanges(accepted, current, ar) {

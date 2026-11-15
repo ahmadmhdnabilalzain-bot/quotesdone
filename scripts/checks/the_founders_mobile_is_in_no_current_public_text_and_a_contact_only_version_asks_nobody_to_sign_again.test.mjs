@@ -51,16 +51,14 @@ test('no current legal text prints the mobile in either language, and each conta
 
 test('the new versions are labelled in both languages and the one source of company facts names them', () => {
   // privacy 1.9 (3 Nov 2026) superseded 1.8; an_invitation_open_is_measured_on_a_tracked_share.test.mjs pins that step
-  assert.deepEqual([facts.documents.privacy.version, facts.documents['cookie-policy'].version, facts.documents['supplier-agreement'].version], ['1.9', '1.5', 'v17']);
-  assert.deepEqual(facts.documents['supplier-agreement'].carries_acceptance_from, ['v16']);
-  assert.ok(facts.surfaces.archived_documents.includes('supplier-agreement-v16'));
-  for (const [k, en, ar] of [['privacy', 'Version 1.8 · Last updated 2 November 2026', 'الإصدار 1.8 · آخر تحديث 2 نوفمبر 2026'], ['cookie-policy', 'Version 1.5 · Last updated 2 November 2026', 'الإصدار 1.5 · آخر تحديث 2 نوفمبر 2026'], ['supplier-agreement', 'Version v17 · Last updated 2 November 2026', 'الإصدار v17 · آخر تحديث 2 نوفمبر 2026']]) {
+  assert.deepEqual([facts.documents.privacy.version, facts.documents['cookie-policy'].version], ['1.9', '1.5']);
+  // 15 Nov 2026: Supplier Agreement v18 (clause 12, quotation validity, ledger 1697) replaced v17 and carries it; v17 is archived
+  // byte-exact. the_supplier_agreement_v18_..._asks_nobody_to_sign_again.test.mjs pins v18, the module and its hash.
+  assert.ok(facts.surfaces.archived_documents.includes('supplier-agreement-v16') && facts.surfaces.archived_documents.includes('supplier-agreement-v17'));
+  for (const [k, en, ar] of [['privacy', 'Version 1.8 · Last updated 2 November 2026', 'الإصدار 1.8 · آخر تحديث 2 نوفمبر 2026'], ['cookie-policy', 'Version 1.5 · Last updated 2 November 2026', 'الإصدار 1.5 · آخر تحديث 2 نوفمبر 2026'], ['supplier-agreement-v17', 'Version v17 · Last updated 2 November 2026', 'الإصدار v17 · آخر تحديث 2 نوفمبر 2026']]) {
     assert.ok(legal[k].en.html.includes(en), `${k} EN label`);
     assert.ok(legal[k].ar.html.includes(ar), `${k} AR label`);
   }
-  const mod = read('supabase/functions/_shared/supplier_agreement.ts');
-  assert.match(mod, /SUPPLIER_AGREEMENT_VERSION = "v17"/);
-  assert.ok(mod.includes(sha(legal['supplier-agreement'].en.html + '\n' + legal['supplier-agreement'].ar.html)), 'the exported hash is not the text');
 });
 
 test('the superseded Supplier Agreements are byte-exact: the hashes recorded on live acceptances still match', () => {
@@ -87,7 +85,7 @@ test('Privacy 1.8, Cookie Policy 1.5 and Supplier Agreement v17 differ from what
   assert.equal(sha(back(legal['cookie-policy'].ar.html, [['الإصدار 1.5 · آخر تحديث 2 نوفمبر 2026', 'الإصدار 1.4 · آخر تحديث 23 سبتمبر 2026'], [LI_NEW_AR, LI_PRIV_AR]])),
     'b6380d629e19f630af104f403b7089d948f4ba2989173b36cf129dd305adedb8', 'cookie AR differs from 1.4 beyond the contact line');
   // the agreement: undoing the edits must give the archived v16, character for character
-  const sa = legal['supplier-agreement'], v16 = legal['supplier-agreement-v16'];
+  const sa = legal['supplier-agreement-v17'], v16 = legal['supplier-agreement-v16'];   // v17 archived byte-exact on 15 Nov 2026 (v18)
   assert.equal(back(sa.en.html, [['Version v17 · Last updated 2 November 2026', 'Version v16 · Last updated 19 October 2026'],
     [' · +971 56 791 8605 · WhatsApp +1 218 316 6814</p>', ' · +971 50 931 9355</p>'], ['<a href="/supplier-agreement/v16/">v16 (19 October 2026)</a>, ', '']]), v16.en.html);
   assert.equal(back(sa.ar.html, [['الإصدار v17 · آخر تحديث 2 نوفمبر 2026', 'الإصدار v16 · آخر تحديث 19 أكتوبر 2026'],
@@ -111,7 +109,7 @@ test('a supplier who accepted v16 is not asked to accept v17; a v15 supplier is,
   assert.equal(needs({ accepted_terms_at: 'x', accepted_terms_version: 'v16', terms_current: 'v17', terms_stands: true }), false, 'v16 stands under v17');
   assert.equal(needs({ accepted_terms_at: 'x', accepted_terms_version: 'v15', terms_current: 'v17', terms_stands: false }), true);
   assert.equal(needs({ accepted_terms_at: 'x', accepted_terms_version: 'v16', terms_current: 'v17' }), true, 'an older server without the answer falls back to the strict compare');
-  assert.match(portal, /ARCHIVED_AGREEMENTS = \[[^\]]*'v16'\]/);
+  assert.match(portal, /ARCHIVED_AGREEMENTS = \[[^\]]*'v16'[^\]]*\]/);
   // `me` (supplier_api/lib/me_row.ts since 11 Nov 2026) reads the two keys beside the row and applies the same rule,
   // acceptanceStands over currentSupplierTermsVersion and supplierTermsCarriedFrom; me_row.test.ts proves it answers as
   // supplierAcceptanceStands did, case by case.

@@ -17,9 +17,16 @@ No specific period".
   knowledge, not in the FAQ.
 - The reveal period after a paid reveal keeps its own 30-day cap (decision B, 13 Nov): a rule about the request, not a
   quotation's validity.
-- OPEN with the founder (15 Nov): the signed Supplier Agreement v17 clause 12 still says 30 days. Its words change only as
-  a new version; a new version with an empty `supplier_terms_carries_from` asks every registered supplier to accept again.
-  Which way is his decision (see the validity hand-back of 15 Nov).
+- The agreement (15 Nov, the CEO's decision under founder ruling 1696): Supplier Agreement **v18** clause 12, EN and AR: "valid
+  for the period the Supplier states in it ... If a quotation states no period, QuotesDone asks the Supplier to state one
+  before the quotation is shown". It only widens the supplier's freedom, so v18 CARRIES v17 (`supplier_terms_carries_from` =
+  'v17'): nobody re-signs. v17 stays byte-exact as `supplier-agreement-v17` (SHA-256 54f23ad7..., on every v17 acceptance).
+  Registry SQL (pending): scripts/sql/the_supplier_agreement_v18_lets_a_quotation_be_valid_for_the_period_the_supplier_states.sql;
+  guard: scripts/checks/the_supplier_agreement_v18_..._asks_nobody_to_sign_again.test.mjs. "Asks him to state one" is the
+  quotation review rule 7 and the hold desk (they ask; they impose no period).
+- A period counted from an event we cannot know ("from LPO / PO / delivery", «من تاريخ أمر الشراء») is no expiry; a date
+  without a year moves forward only when within ~6 months; "1/2 month" is no expiry; the period beside "valid / validity"
+  wins over a delivery or payment period (review of 15 Nov, items 2-5).
 
 **Why:** the agreement said 30 days and the database defaulted to 14; the customer was shown a date nobody stated.
 **How to apply:** any code, text or seat answer about how long a quotation holds reads the supplier's own validity; if he
