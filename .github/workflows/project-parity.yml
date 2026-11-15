@@ -126,6 +126,7 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          QD_REPLAY_ON_PRODUCTION: '1'   # explicit: every replay is cut at 5 s (scripts/lib/replay_guard.mjs)
         run: node scripts/ci/rehearse_this_prs_manifest_lines.mjs "$BASE_SHA" "$RUNNER_TEMP/applies_at_merge.json"
       - name: One canonical file per routine, and it is what is deployed
         env:

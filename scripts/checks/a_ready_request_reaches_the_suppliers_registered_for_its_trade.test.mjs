@@ -33,6 +33,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
@@ -44,7 +45,7 @@ const q = (s) => `'${String(s).replace(/'/g, "''")}'`;
  *  was the supplier invited? */
 async function probe(label, capTrades, requested) {
   try {
-    await sql(`do $probe$
+    await replaySql(`do $probe$
       declare v_id bigint; v_n int; v_demo boolean; v_code text; v_lic text; v_prof text; v_six text[];
       begin
         -- THE SIX ARE MANDATORY (the founder's rule; trg_leads_e0_mandatory_six_gate since 15 Sep 2026,

@@ -236,3 +236,20 @@ Deno.test('the VAT basis, asked by the release, is a choice of three; the answer
   assert(out.ok && out.complete);
   assertEquals(repo.quotes.get('qpvc')!.vat_treatment, 'not_registered');
 });
+
+// 13 Nov 2026 (sales_engineer, workflow audit build item 10): a quotation held for its VAT basis stores no fee base
+// (quote_amount NULL, the supplier's total in amount_as_stated); his one answer "including 5% VAT" settles the ex-VAT price
+// and writes the fee base, so the quote is released without a person and without a second question.
+Deno.test('the answer "including 5% VAT" settles the ex-VAT price from the stated total and writes the fee base', async () => {
+  const vat = issueAsMissing({ code: 'vat_basis', kind: 'adjustment', line_no: null, boq_line: null, attr: 'vat', en: 'Is AED 54,476.10 including 5% VAT, or before VAT, or are you not VAT-registered?', ar: '-' });
+  const repo = new Fake(); pvcQuote(repo);
+  const q = repo.quotes.get('qpvc')! as Record<string, unknown>;
+  Object.assign(q, { amount_as_stated: 54476.1, quote_amount: null, price_ex_vat: null, vat_treatment: 'not_stated' });
+  const ctx = { category: 'fitout', requirements: null, ref: 'ZZ0001', now: NOW, read: reads({ qpvc: PVC_READ }) };
+  await gate(repo, 'qpvc', SUP, ctx);
+  repo.holds[0].missing = [...repo.holds[0].missing, vat];
+  const out = await fillIn(repo, 'qpvc', SUP, { lines: { '2': { brand: 'ZZ Demo Panels' }, '3': { brand: 'ZZ Demo Panels' } }, terms: { vat: 'inclusive' } }, ctx);
+  assert(out.ok);
+  const after = repo.quotes.get('qpvc')! as Record<string, unknown>;
+  assertEquals([after.vat_treatment, after.price_ex_vat, after.quote_amount], ['inclusive', 51882, 51882]);
+});

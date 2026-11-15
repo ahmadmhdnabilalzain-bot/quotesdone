@@ -50,11 +50,17 @@ const query = dry
   ? `do $d$ declare r jsonb; begin r := ${expr}; raise exception 'DRY<<%>>', r; end $d$;`
   : `select ${expr} r`;
 
-const mgmt = supabaseAccessToken();
-const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
-  method: 'POST', headers: { Authorization: 'Bearer ' + mgmt, 'Content-Type': 'application/json' }, body: JSON.stringify({ query }),
-});
-const out = await res.text();
+// A dry run is a rolled-back write: it goes through the replay guard (13 Nov 2026; local by default, production only with
+// QD_REPLAY_ON_PRODUCTION=1, cut at 5 s). The real run commits, as it always did.
+let out;
+if (dry) { const { replaySql } = await import('../lib/safe_replay.mjs'); try { await replaySql(query, { label: 'the chat-leads dry run' }); out = 'returned without raising'; } catch (e) { out = String(e?.body ?? e?.message ?? e); } }
+else {
+  const mgmt = supabaseAccessToken();
+  const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
+    method: 'POST', headers: { Authorization: 'Bearer ' + mgmt, 'Content-Type': 'application/json' }, body: JSON.stringify({ query }),
+  });
+  out = await res.text();
+}
 const m = out.match(/DRY<<(.*)>>/s);
 console.log(m ? 'DRY RUN (rolled back): ' + m[1].replace(/\\"/g, '"') : out);
 console.log('mx:', prospects.map((p) => `${p.domain}=${p.email_status}`).join(' '));

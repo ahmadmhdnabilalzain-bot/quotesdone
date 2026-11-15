@@ -5,6 +5,7 @@
 // `if (action === …)` reads exactly as it did and the checks that locate a handler by that line still find it.
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,116-line index.ts split into modules, a pure move).
+import { forSource, forSuppliers, readOwner } from '../what_a_supplier_receives.ts';
 import { clearerCopyAsk } from '../../_shared/clearer_copy.ts';
 import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { supabaseReviewRepo } from '../quote_review_flow.ts';
@@ -26,10 +27,13 @@ import { carryHeldAnswers, heldAnswersOf, issueAsMissing, optionOfEach, releaseR
 import { scrubDeep, scrubIdentity, scrubLine } from '../identity_scrub.ts';
 import { cleanTemplate } from '../quote_template.ts';
 import { newOptionRefusal } from '../new_option.ts';
-import { type ActionCtx, J, SUPA_URL, admin, failed, logged, secretVal } from '../context.ts';
+import { type ActionCtx, J, SUPA_URL, admin, failed, logged, secretVal, tellItSeat } from '../context.ts';
+import { maskContact } from '../../_shared/observe.ts';
+import type { Recorded } from '../../_shared/recorded_write.ts';
 import { CONCLUDED, UUID_RE, clip, numOrNull } from '../lib/fields.ts';
+import { isRequestRevealed, REQUEST_REVEALED } from '../lib/request_revealed.ts';
 import { NOT_MY_FILE, matchedInquiry, ownQuoteFile, sameVerdict, specChecklist } from '../lib/quote_gate.ts';
-import { acceptLive, acceptRule, kickDelivery, notifyNewQuote, storeReviewNotes, supersedeQualityHold, supplierOf } from '../lib/quote_acceptance.ts';
+import { QUOTE_NOT_SAVED, QUOTE_NOT_SENT, QUOTE_NOT_SENT_APPROVE, type QuoteSnapshot, acceptForRelease, acceptLive, acceptRule, kickDelivery, notifyNewQuote, restoreQuote, snapshotQuote, storeReviewNotes, supersedeQualityHold, supplierOf, writeQuoteLines } from '../lib/quote_acceptance.ts';
 import { regenRender } from '../lib/arabic_quotation.ts';
 
 export async function quoteActions(c: ActionCtx): Promise<Response | undefined> {
@@ -91,7 +95,11 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         const up = await admin.storage.from('quote-files').upload(original_file_path, s.bytes, { contentType: s.mime, upsert: true });
         if (up.error) return J({ error: 'upload_failed', code: 'upload_failed', message: 'We could not store your quotation file. Please try again.' }, 502);
       }
-      const { data: inq } = await admin.from('inquiries').select('category,summary').eq('id', inquiry_id).maybeSingle();
+      // The customer's summary reaches the quotation reader as context, and what that model writes is shown to THIS supplier
+      // before any reveal: the supplier copy goes, never the raw column (13 Nov 2026, review of F2; what_a_supplier_receives.ts).
+      const { data: inq0 } = await admin.from('inquiries').select('category,summary').eq('id', inquiry_id).maybeSingle();
+      const owner = inq0?.summary ? await readOwner(admin, inquiry_id) : null;
+      const inq = inq0 ? { category: inq0.category, summary: owner ? forSuppliers(String(forSource(String(inq0.summary), owner.resolved ? owner.briefSource : null)), owner) : null } : null;
       const secret = await secretVal('cred_fn_supplier_api');
       let jd: any = {};
       try { const r = await fetch(`${SUPA_URL}/functions/v1/quote_extract`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, subject: { supplier_id: (sup as any).id, email }, images, inquiry: inq || {}, ...(orig.b64 ? { file_b64: String(orig.b64), mime: String(orig.mime || ''), filename: String(orig.filename || 'quotation') } : {}), supplier_terms: [String((sup as any).company_name || '')].filter(Boolean) }) }); jd = await r.json(); } catch (e) { logged('quote_extract call', e); return J({ error: 'Reading failed, please try again or fill the form.', code: 'quote_read_failed' }, 502); }
@@ -181,9 +189,12 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       // #854). approve() marks the hold released before it calls accept, and liveHold() reads only 'open' and
       // 'awaiting_approval', so a refusal from inside accept left the quote unsent AND the hold desk shut. As a
       // precheck the hold goes back to 'open' carrying the review's own issues, which spec_hold now shows (finding a).
+      // the write that sends it did not land (acceptLive, item A): approve() puts the hold back awaiting his approval and sends no
+      // notice (third review, item 1), and he reads that it was not sent; pressing "Approve and send" again sends it
       const out = await approve(repo, qid, supplierOf(sup, email), email, body.confirm, ctx,
-        async (row) => (await acceptLive(String(row.id), String(row.inquiry_id), true)).accepted,
+        acceptForRelease,
         releaseCheck);
+      if (!out.ok && out.code === 'quote_not_sent') return J({ ok: false, error: 'quote_not_sent', ...QUOTE_NOT_SENT_APPROVE }, 503);
       if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 409);
       return J(out);
     }
@@ -204,6 +215,12 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       return done?.length ? J({ ok: true, status: 'withdrawn' }) : J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
     }
     if (action === 'submit_quote') {
+      // THE TYPED FORM NAMES ITS CURRENCY (sales_engineer, 13 Nov 2026, workflow audit build item 10): AED or nothing. The estate
+      // has no FX source, so a non-AED total is refused with one plain sentence rather than converted or stored as if it were AED.
+      // A caller that sends no currency (the upload chat, older pages) is unchanged: its file's currency is checked as before.
+      if (body.currency != null && String(body.currency).trim().toUpperCase() !== 'AED') {
+        return J({ error: 'QuotesDone compares and charges in UAE dirhams and does not convert currencies: please type your total in AED.', code: 'currency_not_aed' }, 400);
+      }
       const { data: sup } = await admin.from('leads').select('id,company_name,locale,whatsapp,phone,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       // FIRST, AND BEFORE ANYTHING ELSE IS SAID ABOUT THIS ACCOUNT: is this enquiry one we sent them?
@@ -233,6 +250,17 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         if (reg.may_quote === false) return J({ error: 'Your ' + String(reg.currency || 'AED') + ' ' + Number(reg.fee_due || 0) + ' annual Subscription Fee is due. Please pay it in Billing to send quotes.', code: 'registration_due', params: { fee: Number(reg.fee_due || 0), currency: String(reg.currency || 'AED') }, registration: { status: reg.status, fee_due: reg.fee_due, currency: reg.currency, reason: reg.reason } }, 402);
       }
       const { data: inqStat } = await admin.from('inquiries').select('status').eq('id', inquiryId).maybeSingle();
+      // FROM THE FIRST PAID REVEAL THE REQUEST TAKES NO NEW QUOTATIONS (sales_engineer, 13 Nov 2026): a supplier who already
+      // quoted may revise or add an option; a new one is told plainly. The database holds every other door (trigger a05 on
+      // quotes, a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql).
+      {
+        const { data: paid } = await admin.from('transactions').select('id,refund_status').eq('inquiry_id', inquiryId).eq('fee_status', 'paid');
+        const standing = ((paid || []) as { refund_status: string | null }[]).some((t) => !['refunded', 'succeeded'].includes(String(t.refund_status ?? '')));
+        if (standing) {
+          const { count: mine } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiryId).eq('supplier_id', sup.id);
+          if (!mine) return J(REQUEST_REVEALED, 409);
+        }
+      }
       if (inqStat && CONCLUDED.includes(String(inqStat.status))) return J({ error: 'This request has been concluded — the customer has already selected a supplier. Thank you for your interest, and best of luck on the next one.', code: 'inquiry_concluded' }, 409);
       const amt = Number(body.amount); if (!(amt > 0)) return J({ error: 'invalid amount', code: 'invalid_amount' }, 400);
       const isUpload = body.source === 'upload';
@@ -393,21 +421,19 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         // and put back below, and a snapshot we could not take refuses the check rather than risking it.
         const dryRun = body.dry_run === true;
         const snapCols = [...Object.keys(det), 'status', 'submittable'].join(',');
-        let snapRow: Record<string, unknown> | null = null;
-        let snapLines: Record<string, unknown>[] = [];
-        if (dryRun && prior) {
-          const [{ data: sr, error: se }, { data: sl, error: sle }] = await Promise.all([
-            admin.from('quotes').select(snapCols).eq('id', prior.id).maybeSingle(),
-            admin.from('quote_items').select('*').eq('quote_id', prior.id),
-          ]);
-          if (se || sle || !sr) return J({ error: 'preflight_unavailable', code: 'preflight_unavailable', message: 'We could not run the check just now. Please try again in a moment.' }, 503);
-          snapRow = sr as unknown as Record<string, unknown>; snapLines = (sl || []) as unknown as Record<string, unknown>[];
+        // EVERY prior quotation is snapshotted, not only a check's (third review, item 4): a re-sent quotation whose new lines cannot be
+        // written is put back as it stood, so the customer never sees its new header over no lines.
+        let snap: QuoteSnapshot | null = null;
+        if (prior) {
+          snap = await snapshotQuote(String(prior.id), snapCols);
+          if (!snap && dryRun) return J({ error: 'preflight_unavailable', code: 'preflight_unavailable', message: 'We could not run the check just now. Please try again in a moment.' }, 503);
+          if (!snap) return J({ ok: false, error: 'quote_not_saved', ...QUOTE_NOT_SAVED }, 503);   // nothing written yet
         }
         let qid: string;
         if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return failed(String(action), error); qid = String(prior.id); }
-        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
+        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error && isRequestRevealed(error)) return J(REQUEST_REVEALED, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
+        let linesW: Recorded;
         try {
-          await admin.from('quote_items').delete().eq('quote_id', qid);
           // A line's own words fill brand / model / specification where the caller sent none; a scope
           // that says installation is included, with no line carrying a labour or install figure, marks
           // the first line install = 0 — "included in the rate" — so the scorer's labour-or-installation
@@ -417,8 +443,35 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
           // A line item with no description is dropped, not stored blank - a quote line the buyer
           // cannot read is worse than one that is absent.
           const clean = rows.filter((r: { description: string | null }) => r.description);
-          if (clean.length) await admin.from('quote_items').insert(clean);
-        } catch (_e) { /* */ }
+          // THE LINES ARE SAVED, OR HE IS TOLD THEY WERE NOT (15 Nov 2026, review 2 of the certificate branch, item B). This delete and
+          // insert sat in a try/catch that supabase-js never enters, so a lock or a timeout left the quotation with its old lines or none
+          // and the submission answered ok. writeQuoteLines checks both, and tries the pair again on a blip (delete then insert, so a
+          // retry after an insert whose answer was lost never doubles a line).
+          linesW = await writeQuoteLines(qid, clean);
+        } catch (e) { linesW = { ok: false, attempts: 1, reason: String((e as Error)?.message ?? e).slice(0, 300), blip: false }; }
+        // Put the row back exactly as it was (restoreQuote: the snapshotted columns and lines, with their own ids, so anything that
+        // references a line still does). A row a check CREATED is removed.
+        const restore = async (): Promise<boolean> => {
+          if (snap) return await restoreQuote(qid, snap);
+          try {
+            const d = await admin.from('quote_items').delete().eq('quote_id', qid);
+            const dq = await admin.from('quotes').delete().eq('id', qid);
+            return !d.error && !dq.error;
+          } catch (_e) { return false; }
+        };
+        if (!linesW.ok) {
+          // a check is always undone; a submission over a prior quotation puts it back as it stood (its first submission stays a draft)
+          const restored = dryRun || snap ? await restore() : null;
+          tellItSeat('quote_lines_not_saved', "supplier_api could not save a supplier's quotation lines, so the submission was refused",
+            'edge function supplier_api, action submit_quote', { quote_id: qid, inquiry_id: inquiryId, option_no: p.option_no, prior_status: prior?.status ?? null,
+              dry_run: dryRun, restored, attempts: linesW.attempts, reason: maskContact(linesW.reason).slice(0, 300),
+              told: dryRun ? 'the check was refused (preflight_unavailable)' : 'the supplier was told his quotation was not sent (quote_not_saved); nothing was let through'
+                + (snap && !dryRun ? (restored ? '; the prior quotation was put back as it stood' : '; the prior quotation could NOT be put back: restore it from snapshot by hand') : '') });
+          if (dryRun && !restored) return J({ error: 'preflight_restore_failed', code: 'preflight_restore_failed', quote_id: qid, message: 'The check could not be undone cleanly and we have raised it. Please do not resend until we confirm.' }, 500);
+          if (dryRun) return J({ error: 'preflight_unavailable', code: 'preflight_unavailable', message: 'We could not run the check just now. Please try again in a moment.' }, 503);
+          if (anyAccepted) await notifyNewQuote(String(inquiryId), anyAccepted);   // an earlier option of this submission did go live
+          return J({ ok: false, error: 'quote_not_saved', ...QUOTE_NOT_SAVED, quote_id: qid, options: results.length ? results : undefined }, 503);
+        }
         // Preflight (dry_run). Runs the real scorer, the real accept rule and the real hold gate's
         // assessment, then stops: the status is put back as it was, nothing is notified, no hold opens.
         // The gate's own context: the same checklist, the same settled readings, the same assessment (workflow.ts
@@ -431,21 +484,8 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
           const acc = await acceptRule(qid);
           const { a, settled } = await readAndAssess(repo, qid, gctx);
           await sameVerdict(gkey, a, settled, qid, 'preflight');
-          // Put it back exactly as it was: the snapshotted columns and the snapshotted lines (with their
-          // own ids, so anything that references a line still does). A row this check CREATED is removed.
-          let restored = true;
-          try {
-            if (prior && snapRow) {
-              const u = await admin.from('quotes').update(snapRow).eq('id', qid);
-              const d = await admin.from('quote_items').delete().eq('quote_id', qid);
-              const i2 = snapLines.length ? await admin.from('quote_items').insert(snapLines) : { error: null };
-              restored = !u.error && !d.error && !i2.error;
-            } else {
-              const d = await admin.from('quote_items').delete().eq('quote_id', qid);
-              const dq = await admin.from('quotes').delete().eq('id', qid);
-              restored = !d.error && !dq.error;
-            }
-          } catch (_e) { restored = false; }
+          // Put it back exactly as it was (restore, above).
+          const restored = await restore();
           // A FAILED RESTORE IS AN INCIDENT, NOT A FIELD ON A 200 (review of #854). Until this line it
           // answered ok:true with restored:false and a console line nobody reads, so a SENT quotation
           // could be left with its lines deleted and its terms overwritten and nothing would page. It
@@ -454,7 +494,7 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
             console.error('submit_quote dry_run: could not restore quote', qid);
             try {
               await admin.from('agent_runs').insert({ agent: 'supplier_api', status: 'error', started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
-                counts: { signal: 'dry_run_restore_failed', quote_id: qid, supplier_id: sup.id, inquiry_id: inquiryId, had_prior: !!prior, lines: snapLines.length },
+                counts: { signal: 'dry_run_restore_failed', quote_id: qid, supplier_id: sup.id, inquiry_id: inquiryId, had_prior: !!prior, lines: snap?.lines.length ?? 0 },
                 note: ('submit_quote dry_run could not restore quote ' + qid + ' after the preflight. The row may hold the checked figures instead of the ones the supplier sent. Restore it from this row.').slice(0, 500) });
             } catch (_e) { /* the page must not be what breaks the response */ }
             return J({ error: 'preflight_restore_failed', code: 'preflight_restore_failed', quote_id: qid, message: 'The check could not be undone cleanly and we have raised it. Please do not resend until we confirm.' }, 500);
@@ -494,6 +534,8 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         results.push({ quote_id: qid, option_no: p.option_no, held: false, ...live });
       }
       if (anyAccepted) await notifyNewQuote(String(inquiryId), anyAccepted);   // one notice per submission, named by its first live quote
+      // an option whose sending write did not land (acceptLive, item A) is said, never answered ok
+      if (body.dry_run !== true && results.some((r) => r.not_sent)) return J({ ok: false, error: 'quote_not_sent', ...QUOTE_NOT_SENT, options: multi ? results : undefined, quote_id: multi ? undefined : results[0]?.quote_id }, 503);
       if (multi) return J({ ok: true, options: results, submission_id, accepted: results.some((r) => r.accepted), held: results.some((r) => r.held), dry_run: body.dry_run === true, code: 'options_split', params: { count: results.length } });
       const r0 = results[0];
       const q = { id: r0.quote_id, option_no: r0.option_no, status: r0.accepted ? 'submitted' : 'draft' };

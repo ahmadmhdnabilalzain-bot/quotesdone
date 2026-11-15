@@ -31,7 +31,7 @@ export function productionSkip() {
 
 export async function rehearseChain(files, probe) {
   const { replaySql } = await import('./safe_replay.mjs');
-  const text = "set local lock_timeout = '5s';\nset local statement_timeout = '120s';\n" + [...files, probe].map(read).join('\n;\n');
+  const text = "set local lock_timeout = '1s';\nset local statement_timeout = '120s';\n" + [...files, probe].map(read).join('\n;\n');
   try { await replaySql(text, { retry: false }); } catch (e) {
     const msg = String(e?.body ?? e?.message ?? e);
     const m = msg.match(/(PROBE (?:OK|FAILED)[^\n]*)/);

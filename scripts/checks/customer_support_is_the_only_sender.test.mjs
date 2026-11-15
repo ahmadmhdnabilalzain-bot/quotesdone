@@ -22,6 +22,7 @@ import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FNS = join(REPO, 'supabase', 'functions');
@@ -75,7 +76,7 @@ test('production: the guard refuses another seat, every row names its requester,
   const { sql } = await import('../lib/db.mjs');
   let msg = '';
   try {
-    await sql(`do $p$
+    await replaySql(`do $p$
       declare v_blocked boolean := false; v jsonb; r text; s text;
       begin
         begin

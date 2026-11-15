@@ -22,6 +22,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ddl = readFileSync(join(REPO, 'scripts/sql/a_provider_key_the_estate_can_rotate_by_api_is_rotated_and_recorded.sql'), 'utf8')
@@ -65,7 +66,7 @@ test('baseline -> on schedule -> record -> 24 h overlap -> retire, recorded, sec
       raise exception 'CHK<<%>>', o;
     end $p$;`;
   let r;
-  try { await sql('begin;\n' + ddl + '\n' + body); } catch (e) {
+  try { await replaySql('begin;\n' + ddl + '\n' + body, { label: 'the provider-key rotation probe' }); } catch (e) {
     const msg = String(e.message);
     const m = msg.match(/CHK<<(.*?)>>/s);
     if (!m) throw e;

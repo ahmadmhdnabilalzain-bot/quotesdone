@@ -62,6 +62,17 @@ export const VERIFY_EMAIL_FIRST = {
   error: 'Please verify your work e-mail with the 6-digit code we send you, then register your company.',
   code: 'verify_email_first',
 } as const;
+// A TEMPORARY INBOX IS SAID AS SUCH (15 Nov 2026, customer_support; Monday checklist, founder ledger 1692). The trigger
+// trg_block_disposable_leads (public.block_disposable_signup, BEFORE INSERT on leads) refuses an address whose domain is in
+// app_blocked_domains with SQLSTATE 23514. login_otp does not look at that list, so the code is sent and verified first; the
+// refusal then fell to REGISTER_FAILED, "Please try again", and every "Try again" met the same trigger: a loop with no way out.
+// He is told what is wrong and what to do instead. Prevented by: create_company.test.ts "a temporary inbox is told so".
+export const DISPOSABLE_EMAIL = {
+  error: 'This e-mail address is a temporary inbox, and a supplier account needs a permanent one. Please sign out and create your account with your company e-mail, or write to management@quotesdone.com.',
+  code: 'disposable_email',
+} as const;
+/** True when the database refused the write because the address is a temporary inbox (block_disposable_signup). */
+export const isDisposableRefusal = (e: PgError) => !!e && String(e.code ?? '') === '23514' && /temporary inboxes/i.test(`${e.message ?? ''} ${e.details ?? ''}`);
 export const REGISTER_FAILED = {
   error: 'We could not register your company. Please try again, or write to management@quotesdone.com.',
   code: 'register_failed',
@@ -291,6 +302,7 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
     if (clashOn(error, EMAIL_INDEX) || clashOn(error, CLAIMED_BY_INDEX)) return { status: 409, body: { ...EMAIL_ALREADY_REGISTERED } };
     if (isDuplicateCompany(error)) return { status: 409, body: { ...COMPANY_ALREADY_REGISTERED } };
     if (String(error?.message || '').includes('SANCTIONED_PARTY_BLOCKED')) return { status: 403, body: { ...SANCTIONED_REGISTRATION_REFUSAL } };
+    if (isDisposableRefusal(error)) return { status: 422, body: { ...DISPOSABLE_EMAIL } };
     return { status: 500, body: { ...REGISTER_FAILED } };
   };
   if (plan.kind === 'claim_invited') {

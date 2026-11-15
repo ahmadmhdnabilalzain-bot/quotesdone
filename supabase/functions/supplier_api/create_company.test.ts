@@ -7,7 +7,7 @@
 // "duplicate key value violates unique constraint "uq_leads_email_lower"". The first test replays it.
 //   deno test --no-lock supabase/functions/supplier_api/create_company.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { companyNameKey, createCompany, EMAIL_ALREADY_REGISTERED, emirateOf, listingProbes, planCreateCompany, planListingMatch, REGISTER_FAILED, sessionOpenedByCode, VERIFY_EMAIL_FIRST } from './create_company.ts';
+import { companyNameKey, createCompany, DISPOSABLE_EMAIL, EMAIL_ALREADY_REGISTERED, emirateOf, listingProbes, planCreateCompany, planListingMatch, REGISTER_FAILED, sessionOpenedByCode, VERIFY_EMAIL_FIRST } from './create_company.ts';
 
 type Row = Record<string, unknown>;
 const low = (v: unknown) => String(v ?? '').trim().toLowerCase();
@@ -149,6 +149,17 @@ Deno.test('the typed name of another claimed company is refused before any write
   const { t, admin } = table([INVITED, { id: 5, company_name: 'ZZ DEMO S7 Aluminium', email: 'qd-x-y@example.invalid', claimed: true, claimed_by: 'qd-x-y@example.invalid' }]);
   const r = await createCompany(admin, 'qd-aub990b4a-lead7@example.invalid', FORM, deps());
   assertEquals([r.status, r.body.code, t.inserts, t.updates], [409, 'company_already_registered', 0, 0]);
+});
+
+Deno.test('a temporary inbox is told so, not "please try again" into the same refusal (15 Nov 2026, Monday checklist)', async () => {
+  // public.block_disposable_signup raises this, word for word, with SQLSTATE 23514
+  const { admin } = table([], { failInsert: { code: '23514', message: 'Please use a permanent email address; temporary inboxes are not allowed.' } });
+  const r = await createCompany(admin, 'qd-aub990b4a-tmp1@example.invalid', FORM, deps());
+  assertEquals([r.status, r.body.code, r.body.error], [422, DISPOSABLE_EMAIL.code, DISPOSABLE_EMAIL.error]);
+  // another check constraint on leads (23514 too) is not called a temporary inbox
+  const other = table([], { failInsert: { code: '23514', message: 'new row for relation "leads" violates check constraint "leads_emirate_check"' } });
+  const r2 = await createCompany(other.admin, 'qd-aub990b4a-tmp2@example.invalid', FORM, deps());
+  assertEquals([r2.status, r2.body.code], [500, REGISTER_FAILED.code]);
 });
 
 Deno.test('any other refusal answers a stable code: never the database\'s own sentence', async () => {

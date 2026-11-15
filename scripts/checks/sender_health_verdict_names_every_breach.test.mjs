@@ -12,6 +12,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
@@ -37,7 +38,7 @@ test('0.5% complaints flags, 0.2% does not; every other breach is named', { skip
     `'${k}', to_jsonb(pg_temp.v(${a.slice(0, 3).join(', ')}, ${lit(a[3])}::text, ${a[4]}))`).join(', ');
   let got;
   try {
-    await sql(`do $p$ declare r jsonb; begin
+    await replaySql(`do $p$ declare r jsonb; begin
       execute ${'$d$' + def.replace(/;$/, '') + '$d$'};
       select jsonb_build_object(${sel}) into r;
       raise exception 'CHK<<%>>', r; end $p$;`);

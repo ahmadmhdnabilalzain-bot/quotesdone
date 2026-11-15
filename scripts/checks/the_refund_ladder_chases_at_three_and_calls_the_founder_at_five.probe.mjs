@@ -11,6 +11,7 @@
 //
 //   node scripts/checks/the_refund_ladder_chases_at_three_and_calls_the_founder_at_five.probe.mjs
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const probe = `
 do $probe$
@@ -74,7 +75,7 @@ begin
 end $probe$;`;
 
 try {
-  await sql(probe);
+  await replaySql(probe, { label: 'the refund ladder probe' });
   console.log('UNEXPECTED: the probe committed (no RAISE reached)');
   process.exit(2);
 } catch (e) {

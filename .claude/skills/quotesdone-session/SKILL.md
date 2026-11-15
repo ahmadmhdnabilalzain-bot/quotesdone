@@ -134,7 +134,10 @@ both Supabase projects" until 15 Aug 2026; see §5 — there is one.)
   `quote_compare` returned `{ok:false}` at HTTP 200 for weeks.
 - **The aborted-transaction probe** is the tool for verifying a write without leaving one: do the
   write, count the effect, `raise exception` with the counts so it rolls back and the numbers still
-  come out.
+  come out. **It runs on the LOCAL database** (`node scripts/db/local_pg16.mjs start`); on production
+  only a light SELECT. A rolled-back transaction on production still takes and holds the real
+  change's locks (13 Nov 2026: 103 live requests cancelled;
+  `.claude/memory/a-rehearsal-on-production-holds-the-locks-of-a-real-change.md`).
 - **Never fabricate, back-date or mass-close data to turn a gate green.** If a fix makes a check
   HARDER because the old pass was false, that is correct — say so in the commit.
 - **Never weaken a check.** A check that passes when the thing it checks is broken is worse than no

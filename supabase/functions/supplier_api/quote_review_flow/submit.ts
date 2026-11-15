@@ -13,7 +13,7 @@ export async function submit(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqui
 
 /** What submit_quote receives: the approved quotation, with every detail the chat confirmed. */
 export function submitPayload(inq: SafeInquiry, r: Pick<ReviewRow, 'original_file_path' | 'original_file_name'>, w: Working, rv: Review): Record<string, unknown> {
-  const vt = ['exclusive', 'inclusive', 'not_registered'].includes(String(w.vat_treatment)) ? w.vat_treatment : undefined;
+  const vt = ['exclusive', 'inclusive', 'not_registered', 'zero_rated', 'exempt'].includes(String(w.vat_treatment)) ? w.vat_treatment : undefined;
   return {
     action: 'submit_quote', inquiry_id: inq.id, source: 'upload', amount: rv.price_ex_vat ?? w.amount,
     items: w.lines.map((l) => ({ description: l.description, specification: l.specification ?? undefined, qty: parseQty(l.qty).n, unit: l.unit || null, unit_price: l.unit_price, amount: l.amount, spec: l.spec ?? undefined, country_of_origin: l.country_of_origin ?? undefined })),
@@ -100,10 +100,16 @@ async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: 
     return again();
   }
   // Refused before anything was written (terms, verification, registration due, a concluded job).
-  const msg = String(j.error || 'The quotation could not be submitted.');
-  await say(repo, deps, r.id, 'notice', { en: `I could not submit the quotation yet: ${msg}`, ar: `تعذّر تقديم العرض حتى الآن: ${msg}` });
+  // HE READS A SENTENCE, NEVER A CODE (15 Nov 2026, third review of the certificate branch, item 2): submit_quote's 503 carries
+  // error 'quote_not_sent' / 'quote_not_saved' and the sentence in `message`; the thread and the banner printed the code. The
+  // message first, then an error that is itself a sentence (the older refusals), then the general one.
+  const msg = String(j.message || (typeof j.error === 'string' && /\s/.test(j.error) ? j.error : '') || 'The quotation could not be submitted.');
+  // the two writes that did not land (quote_not_sent / quote_not_saved) are said with THIS page's button (third review, item 6)
+  const lost = j.code === 'quote_not_sent' || j.code === 'quote_not_saved';
+  const said = lost ? `Your quotation was NOT sent to the customer: our system could not complete the last step just now. Nothing is lost. Please press "Submit to Job ${inq.job_no}" again in a moment.` : msg;
+  await say(repo, deps, r.id, 'notice', { en: lost ? said : `I could not submit the quotation yet: ${msg}`, ar: lost ? said : `تعذّر تقديم العرض حتى الآن: ${msg}` });
   await repo.updateReview(r.id, { status: prior, reviewing_since: null });
-  return again({ code: String(j.code || 'submit_refused'), message: msg });
+  return again({ code: lost ? 'submit_not_sent' : String(j.code || 'submit_refused'), message: said });
 }
 
 // Names the sibling modules of this folder import (the declarations above are unchanged).

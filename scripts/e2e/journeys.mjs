@@ -682,7 +682,7 @@ export async function journeyPayment(ctx) {
         from public.notifications n where n.quote_id = t.quote_id and n.type in ('reveal_receipt', 'quote_accepted') and n.created_at >= now();
       raise exception 'CHK<<%>>', v::text;
     end $probe$;`;
-    try { await write(sql, 'reveal notifies both parties probe (always rolls back)'); probe = { error: 'the probe did not raise' }; }
+    try { const { replaySql } = await import('../lib/safe_replay.mjs'); await replaySql(sql, { label: 'the reveal-notifies-both-parties probe (always rolls back)' }); probe = { error: 'the probe did not raise' }; }
     catch (e) {
       let msg = String(e.message || e); try { msg = JSON.parse(e.body).message; } catch { /* not JSON */ }
       const m = /CHK<<([\s\S]*)>>/.exec(msg);

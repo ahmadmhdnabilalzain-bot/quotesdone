@@ -43,7 +43,8 @@ export const safeInquiry = (i: Json): SafeInquiry => ({
  */
 export function boqCsv(rows: BoqRow[]): string {
   const esc = (v: unknown) => { let s = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-  return '﻿' + [['No', 'Section', 'Description', 'Qty', 'Unit', 'Qty basis'].join(','), ...rows.map((r, k) => [k + 1, r.section, r.description, r.qty, r.unit, qtyBasis(r)?.en ?? ''].map(esc).join(','))].join('\r\n') + '\r\n';
+  // the specified make (13 Nov 2026): the PDF prints it, so the spreadsheet beside it does too
+  return '﻿' + [['No', 'Section', 'Description', 'Specified make', 'Qty', 'Unit', 'Qty basis'].join(','), ...rows.map((r, k) => [k + 1, r.section, r.description, (r as { specification?: unknown }).specification ?? '', r.qty, r.unit, qtyBasis(r)?.en ?? ''].map(esc).join(','))].join('\r\n') + '\r\n';
 }
 const extOf = (url: string) => { const m = String(url).split('?')[0].match(/\.([a-z0-9]{2,4})$/i); return m ? '.' + m[1].toLowerCase() : ''; };
 /**
@@ -91,7 +92,7 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
         // pages" cannot be told from one that has three and lost one on the way out.
         drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length),
         drawing_pages_failed: Number(i.drawing_pages_failed || 0),
-        quotes: qs.map((q) => ({ id: q.id, option_no: q.option_no || 1, status: q.status, quote_amount: q.quote_amount, on_hold: !!q.spec_hold, loss_feedback: Array.isArray(q.loss_feedback) ? q.loss_feedback : null })),
+        quotes: qs.map((q) => ({ id: q.id, option_no: q.option_no || 1, status: q.status, quote_amount: q.quote_amount, amount_as_stated: q.amount_as_stated ?? null, on_hold: !!q.spec_hold, loss_feedback: Array.isArray(q.loss_feedback) ? q.loss_feedback : null })),
         review: stateOf(reviews, i.id),
       };
     });

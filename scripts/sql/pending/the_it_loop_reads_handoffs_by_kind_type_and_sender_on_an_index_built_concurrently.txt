@@ -1,0 +1,8 @@
+Committed, not applied. Assigned: it_engineer, 13 Nov 2026 (coordinator's review 3, item 2).
+
+Why it waits: the fix round may not apply. Production already has agent_actions_kind_type_from_idx (read 13 Nov 2026),
+so the apply is a no-op there; it is applied after the owner file, which no longer builds the index itself.
+
+What moves it: node scripts/apply_sql.mjs scripts/sql/the_it_loop_reads_handoffs_by_kind_type_and_sender_on_an_index_built_concurrently.sql --apply --ddl --seat it_engineer
+then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.
+Order and checks: docs/runbooks/a_paid_reveal_release_13_nov_2026.md.

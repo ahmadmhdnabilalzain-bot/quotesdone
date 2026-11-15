@@ -4,7 +4,6 @@
 // `if (action === …)` reads exactly as it did and the checks that locate a handler by that line still find it.
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,116-line index.ts split into modules, a pure move).
-import { seedTerms } from '../../_shared/anonymise.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 import { boqWithArabic } from '../../_shared/boq_arabic.ts';
 import { boqReadings, liveReadingStore } from '../../_shared/reasoned_documents.ts';
@@ -14,7 +13,7 @@ import { arabicOf } from '../../_shared/reasoned_governance.ts';
 import { drawingWithheld, signRedactedDrawings } from '../../_shared/drawing_pages.ts';
 import { jobNo } from '../quote_review.ts';
 // The identity scrubbers (scrubIdentity, inboxField, inboxBoq) live in ./identity_scrub.ts.
-import { inboxBoq, inboxField } from '../identity_scrub.ts';
+import { supplierCopy } from '../what_a_supplier_receives.ts';
 import { lossFeedback } from '../loss_feedback.ts';
 import { type ActionCtx, J, admin, failed } from '../context.ts';
 import { CONCLUDED, UUID_RE } from '../lib/fields.ts';
@@ -93,7 +92,10 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
       // further filter), and this function's own `projects` action already treats a supplier's
       // transactions rows as its paid-for jobs. Reusing that exact definition rather than
       // inventing a new one is what keeps post-reveal behaviour identical.
-      const { data: txs } = await admin.from('transactions').select('inquiry_id').eq('supplier_id', sup.id).in('inquiry_id', ids);
+      // 13 Nov 2026 (anonymity audit A, L6): only a row with revealed_at set is a reveal, as every other door reads it
+      // (the `projects` action below, customer_api). Every insert sets revealed_at today, so this changed nothing that was
+      // measured; it closes the door a pending or refunded row without one would have opened.
+      const { data: txs } = await admin.from('transactions').select('inquiry_id').eq('supplier_id', sup.id).in('inquiry_id', ids).not('revealed_at', 'is', null);
       const revealedInq = new Set((txs || []).map((t) => String(t.inquiry_id)));
       // customer_id is selected ONLY to look up the buyer's own name for scrubIdentity. It is
       // never placed on the response - it is a stable id that would let a supplier correlate a
@@ -182,45 +184,24 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
         // own text is withheld rather than emitted unscrubbed. Category, emirate, status, quote
         // and the redacted drawings still go out — enough to log in and quote.
         const owner = custRow[ownerOf[String(i.id)] || ''] || {};
-        const seeds = seedTerms({ name: buyerName || '', email: owner.email || '', phone: owner.phone || '', project: projName[projectOf[String(i.id)] || ''] || '' });
-        // THE SAME GATE FOR THE SUMMARY (re-review of #854). It had redactText and nothing after it, so
-        // it kept the glued forms the residual scan exists to catch: measured, "Fit-out for MarsaHeights
-        // Villa 7" came out as "Fit-out for MarsaHeights █" and "re:MarsaHeights enquiry" came out
-        // unchanged. Of the four customer-authored fields this is the one that is always populated and
-        // always on the card, so it was the widest of the three leaks, not the narrowest.
-        const summaryGate = revealed || !ownerResolved ? null : inboxField<string>(i.summary ?? null, buyerName, seeds, hits);
-        const sSummary = revealed ? i.summary : (summaryGate ? summaryGate.boq : null);
-        const summaryWithheld = summaryGate ? summaryGate.withheld : false;
-        // THE BOQ'S OWN GATE, APPLIED TO THE STRUCTURED BRIEF (audit 22 Sep 2026, finding SP-F-04).
-        // spec ran scrubDeep alone, so the customer's PROJECT NAME — which no pattern recognises — left
-        // the estate inside the brief. inboxField is redactBoq: seed redaction, then the residual scan
-        // that catches the glued forms word-boundary redaction cannot, and it WITHHOLDS rather than
-        // serving a field it cannot prove clean.
-        const specGate = revealed || !ownerResolved ? null : inboxField(i.spec, buyerName, seeds, hits);
-        const sSpec = revealed ? i.spec : (specGate ? specGate.boq : null);
-        const specWithheld = specGate ? specGate.withheld : false;
-        // THE LAST GATE before a supplier sees a BOQ. redactBoq removes the buyer's seed terms and the
-        // generic identifiers, then residual-scans; anything still identifying HOLDS the BOQ (null,
-        // boq_withheld:true). It never fails open: a BOQ we cannot prove clean is not shown.
-        // One function (identity_scrub.ts inboxBoq) so drawing_boq/drawing_chain.test.ts runs this gate.
-        const gated = revealed || !ownerResolved ? null : inboxBoq(i.boq, buyerName, seeds, hits);
-        const boqWithheld = gated ? gated.withheld : false;
-        const sBoq = revealed ? i.boq : (gated ? gated.boq : null);
-        const sBoqAr = sBoq || null;   // its Arabic headings are added after the loop
-        if (gated?.boq) gatedBoqs.push(gated.boq);   // only a gated BOQ's headings may be reasoned over
+        // The customer's stated site is a seed too (what_a_supplier_receives.ts, 13 Nov 2026): "Al Barsha 2" in spec.location
+        // is removed from the summary, the brief and the BOQ, so an older row whose summary names the area is safe on read.
+        const buyer = { name: buyerName, email: owner.email || '', phone: owner.phone || '', project: projName[projectOf[String(i.id)] || ''] || '' };
+        // ONE ROW AS A SUPPLIER RECEIVES IT (13 Nov 2026, supplier_api/what_a_supplier_receives.ts supplierCopy). Before a reveal
+        // the summary, the brief, the budget and the BOQ pass the one gate every supplier door shares: the buyer's name, e-mail,
+        // phone and project, the stated site and the old supplier's terms are seeds, the brief loses its customer-only keys and
+        // its address answers are reduced to what names nobody, a quotation's BOQ is rebuilt as our inquiry, and a field the
+        // residual scan cannot prove clean is WITHHELD (the history of each field's gate: SP-F-04 22 Sep, #854, 29 Jul). After the
+        // reveal the customer is released (his words and his site) and the old supplier never is (rulings 1683/1686).
+        const c = supplierCopy(i, { revealed, ownerResolved, buyer }, hits);
+        const sSummary = c.summary, summaryWithheld = c.summary_withheld, sSpec = c.spec, specWithheld = c.spec_withheld;
+        const sBudget = c.budget, budgetWithheld = c.budget_withheld, boqWithheld = c.boq_withheld;
+        const sBoqAr = c.boq || null;   // its Arabic headings are added after the loop
+        if (!revealed && c.boq) gatedBoqs.push(c.boq);   // only a gated BOQ's headings may be reasoned over
         // The scope in Arabic is the REASONED translation of the (already scrubbed) summary, filled in after the
         // loop in one batch (decision point trade_glossary_ar); until it exists — under the model hold — it stays
         // null and the portal shows the customer's own words, never a partial or word-by-word reading.
         const sSummaryAr: string | null = null;
-        // ANONYMITY FIX 29 Jul 2026. budget is an 80-char FREE-TEXT box, not a number ("around
-        // 250k, call Ahmad on 050 123 4567"), and it was the one customer-authored field on this
-        // response still emitted verbatim while summary / spec / boq were scrubbed. It now goes
-        // through the same scrubIdentity as summary, behind the same reveal gate.
-        // 22 Sep 2026 (finding SP-F-04): and through the same gate, for the same reason. "around 250k for
-        // the Marsa Heights villa" named the project in the one box a customer types freely.
-        const budgetGate = revealed || !ownerResolved ? null : inboxField<string>(i.budget ?? null, buyerName, seeds, hits);
-        const sBudget = revealed ? i.budget : (budgetGate ? budgetGate.boq : null);
-        const budgetWithheld = budgetGate ? budgetGate.withheld : false;
         out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_withheld: summaryWithheld, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       // The BOQ read in Arabic (audit 21 Sep 2026, findings 26/27). Which Arabic heading a section means is
@@ -249,13 +230,15 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
       // 11 and 33) then obliges the supplier to respond within 5 working days, chased at 3. The tab
       // listed category, amount and date only: no customer name or number, no deadline, and no way to
       // say "done". The contact is served HERE and only here, keyed on the supplier's own transactions
-      // rows, so it cannot reach a supplier before a reveal. Deadlines come from fn_add_working_days,
-      // the one working-day calendar refund_flow and the nudges use.
-      const { data: projs } = await admin.from('transactions').select('id,inquiry_id,customer_id,revealed_at,quote_amount,refund_deadline,supplier_ack_at,refund_status,inquiries(category,emirate,summary)').eq('supplier_id', sup.id).not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(50);
+      // rows, so it cannot reach a supplier before a reveal. Deadlines come from fn_reveal_window (13 Nov 2026), the one
+      // source of the window: from the payment, on the working-day calendar refund_flow and the nudges use.
+      const { data: projs } = await admin.from('transactions').select('id,inquiry_id,customer_id,revealed_at,quote_amount,refund_deadline,supplier_ack_at,refund_status,inquiries(category,emirate,summary,spec)').eq('supplier_id', sup.id).not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(50);
       const custIds = Array.from(new Set((projs || []).map((p: any) => p.customer_id).filter(Boolean)));
       const cust: Record<string, any> = {};
       if (custIds.length) { const { data: cs } = await admin.from('customers').select('id,full_name,email,phone').in('id', custIds); for (const c of (cs || [])) cust[String(c.id)] = c; }
-      const wd = async (from: string, n: number) => { try { const { data } = await admin.rpc('fn_add_working_days', { p_from: from, p_days: n }); return (data as string) || null; } catch (_e) { return null; } };
+      // The window of one sale, from the one source (public.fn_reveal_window, 13 Nov 2026): counted from the payment.
+      const winCache: Record<string, any> = {};
+      const win = async (tx: string) => { if (tx in winCache) return winCache[tx]; try { const { data } = await admin.rpc('fn_reveal_window', { p_tx: tx }); return (winCache[tx] = data || null); } catch (_e) { return (winCache[tx] = null); } };
       // The customer's post-job review (T2): stars, words and photos, on the supplier's own revealed
       // jobs only. Photos come from the private review-photos bucket as 1-hour signed URLs.
       const rvBy: Record<string, any> = {};
@@ -267,8 +250,10 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
         const c = cust[String(p.customer_id)] || {};
         out.push({ id: p.id, inquiry_id: p.inquiry_id, category: p.inquiries?.category || null, emirate: p.inquiries?.emirate || null, summary: p.inquiries?.summary || null,
           revealed_at: p.revealed_at, amount: p.quote_amount, acknowledged_at: p.supplier_ack_at || null, refund_status: p.refund_status || null,
-          chase_at: await wd(p.revealed_at, 3), respond_by: p.refund_deadline || await wd(p.revealed_at, 5),
-          customer: { name: c.full_name || null, email: c.email || null, phone: c.phone || null },
+          chase_at: (await win(p.id))?.chase_at ?? null, respond_by: p.refund_deadline || ((await win(p.id))?.ends_at ?? null),
+          // The exact site is released by the reveal (13 Nov 2026, founder ruling 1683): the customer-only key the request
+          // stored it under (_shared/site_location.ts), else the address answer of an older row. Shown with the contact card.
+          customer: { name: c.full_name || null, email: c.email || null, phone: c.phone || null, site: String(p.inquiries?.spec?.site_location || p.inquiries?.spec?.location || '').trim() || null },
           review: rvBy[String(p.id)] ? { rating: rvBy[String(p.id)].rating, comment: rvBy[String(p.id)].comment || null, created_at: rvBy[String(p.id)].created_at,
             photo_urls: (await Promise.all(((rvBy[String(p.id)].photo_paths || []) as string[]).map(photoUrl))).filter(Boolean) } : null });
       }

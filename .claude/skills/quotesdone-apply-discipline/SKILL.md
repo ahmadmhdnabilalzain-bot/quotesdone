@@ -105,8 +105,9 @@ service-role only* in the schema rather than in someone's memory.
 
 ## 4. A probe that `raise exception`s rolls back the DDL in the same file
 
-The estate's aborted-transaction probe is the right tool for testing a write without leaving one —
-**and it is wrong in a file that also defines something.** `apply_sql.mjs` runs the file as one
+The estate's aborted-transaction probe is the right tool for testing a write without leaving one, **on the
+local database** (`node scripts/db/local_pg16.mjs start`; on production only a light SELECT: a rolled-back
+transaction there holds the real change's locks, 13 Nov 2026) — **and it is wrong in a file that also defines something.** `apply_sql.mjs` runs the file as one
 transaction, so the raise takes the `create function` with it. This happened twice: a chain was
 proved and simultaneously un-built, and the apply reported success.
 
