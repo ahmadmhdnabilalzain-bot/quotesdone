@@ -188,7 +188,7 @@ Deno.test('a checker box one line off its identity is painted and asked again, n
   assertEquals(vet([{ ...honest, h: 0.017 }]).keep.length, 1, 'the same honest box touching +6512 at all: painted');
   assert(whatIsUnder('SHALOW END', ['SHALLOW END WL +0.00']), 'one misread letter in a long word is the same word');
   assert(!whatIsUnder('+6513', ['+6512']), 'a number must match exactly');
-  assert(whatIsUnder('SPLIT AC UNIT 25 TR', ['SPLIT AC UNIT 2.5 TR']) && whatIsUnder('MENT SCHEDU', ['EQUIPMENT SCHEDULE']), 'a reader\'s 2.5 as 25, a word cut at a tile edge');
+  assert(!whatIsUnder('SPLIT AC UNIT 25 TR', ['SPLIT AC UNIT 2.5 TR']) && !whatIsUnder('MENT SCHEDU', ['EQUIPMENT SCHEDULE']), 'round 6: "25" is not "2.5", and a cut word is not a word');
   assert(!whatIsUnder('I.', ['CIRCULATION PUMP']) && !whatIsUnder('——', ['SSL -0.05']), 'a stray letter or a rule vouches for nothing');
   assert(!whatIsUnder('MARINA PEARL TOWER', ['CIRCULATION PUMP 1.5 HP 230V']) && !whatIsUnder('+6512', ['SHALLOW END WL +0.00 FFL -1.20']));
   // Through the gate: a checker that keeps naming "+6512" one line high is painted twice, asked three times, and HELD.
@@ -200,4 +200,67 @@ Deno.test('a checker box one line off its identity is painted and asked again, n
     assert(!g.ok && g.held === 'pixels_not_clean', `${box.what}: held, never published`);
     assertEquals([count.asked, count.painted], [3, 2], `${box.what}: painted and asked again (round 3's behaviour)`);
   }
+});
+
+// Round 6 (fifth review; SP/f3rev5/vet_attack.ts): round 5's substring fallback let 9 of 26 attack boxes be ignored though
+// the text the checker named is not under them. Now every named token is a whole token of one run under the box, in order;
+// numbers keep their sign and decimal point; one 4+ letter word may be one edit off beside an exact one; a bare number is
+// never vouched for. The reviewer's page and boxes, verbatim.
+import { tokensOf } from '../_shared/drawing_code_floor.ts';
+import type { Box } from '../_shared/anonymise.ts';
+Deno.test('the fifth review\'s 26 boxes: every attack is painted, the honest boxes are ignored', () => {
+  const runs = [
+    { text: 'SHALLOW END WL +0.00 FFL -1.20', x: 0.118, y: 0.373, w: 0.121, h: 0.0114 },
+    { text: '+6512', x: 0.118, y: 0.387, w: 0.020, h: 0.0114 },
+    { text: 'CIRCULATION PUMP 1.5 HP 230V', x: 0.556, y: 0.173, w: 0.099, h: 0.0100 },
+    { text: 'MARINA PEARL TOWER', x: 0.556, y: 0.185, w: 0.070, h: 0.0100 },
+    { text: 'BALANCE TANK 12 M3', x: 0.556, y: 0.161, w: 0.080, h: 0.0100 },
+    { text: 'FFL +3.50 +6512', x: 0.30, y: 0.50, w: 0.07, h: 0.0100 },
+    { text: '\u063a\u0631\u0641\u0629 \u0627\u0644\u0645\u0636\u062e\u0627\u062a', x: 0.70, y: 0.60, w: 0.06, h: 0.0100 },
+    { text: '\u0645\u062d\u0645\u062f \u0627\u0644\u0634\u0627\u0645\u0633\u064a', x: 0.70, y: 0.612, w: 0.06, h: 0.0100 },
+    { text: 'FILTER VALVE DN50', x: 0.10, y: 0.70, w: 0.07, h: 0.0100 },
+    { text: 'GRID 4 SECTION A-A', x: 0.10, y: 0.712, w: 0.07, h: 0.0100 },
+    { text: 'SKIMMER 2 NOS', x: 0.40, y: 0.80, w: 0.05, h: 0.0100 },
+    { text: 'LEVEL +65.12', x: 0.40, y: 0.812, w: 0.05, h: 0.0100 },
+  ];
+  const vet = vocabularyVet({ width: 2384, height: 1684, rotate: 0, runs, glyphRows: [], images: [] }, [])!;
+  const R = (i: number, pad = 0.001) => ({ x: runs[i].x - pad, y: runs[i].y - pad, w: runs[i].w + 2 * pad, h: runs[i].h + 2 * pad });
+  const span = (i: number, j: number) => { const a = R(i), b = R(j); return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.max(a.x + a.w, b.x + b.w) - Math.min(a.x, b.x), h: Math.max(a.y + a.h, b.y + b.h) - Math.min(a.y, b.y) }; };
+  const owner = runs[7].text, room = runs[6].text;
+  const cases: [string, Box & { what?: string }, 'painted' | 'ignored'][] = [
+    ['A1 +6512, box one line up on the FFL note', { ...R(0), what: '+6512' }, 'painted'],
+    ['A2 MARINA PEARL TOWER, box on the BALANCE TANK row', { ...R(4), what: 'MARINA PEARL TOWER' }, 'painted'],
+    ['A2b +6512, box on the GRID row', { ...R(9), what: '+6512' }, 'painted'],
+    ['A3 over two lines, no words', { x: 0.116, y: 0.372, w: 0.124, h: 0.0175 }, 'painted'],
+    ['A3b pump row + BALANCE TANK, MARINA', { ...span(4, 2), what: 'MARINA' }, 'painted'],
+    ['A4 a level and a plot in one run, +6512', { ...R(5), what: '+6512' }, 'painted'],
+    ['A4b the same run, PLOT 6512', { ...R(5), what: 'PLOT 6512' }, 'painted'],
+    ['A5 an Arabic owner boxed on an Arabic room label', { ...R(6), what: owner }, 'painted'],
+    ['A5b Arabic name and digits on BALANCE TANK 12 M3', { ...R(4), what: '\u0641\u064a\u0644\u0627 \u0645\u062d\u0645\u062f 12' }, 'painted'],
+    ['A6 PUMA for PUMP', { ...R(2), what: 'PUMA' }, 'painted'],
+    ['A6b TANA for TANK', { ...R(4), what: 'TANA' }, 'painted'],
+    ['A6c FILTEK for FILTER', { ...R(8), what: 'FILTEK' }, 'painted'],
+    ['A7 OWEN inside SHALLOW END', { ...R(0), what: 'OWEN' }, 'painted'],
+    ['A7b HALL inside SHALLOW', { ...R(0), what: 'HALL' }, 'painted'],
+    ['A7c PLOT 120 against -1.20', { ...R(0), what: 'PLOT 120' }, 'painted'],
+    ['A7d 120 against -1.20', { ...R(0), what: '120' }, 'painted'],
+    ['A7e +6512 over LEVEL +65.12', { ...R(11), what: '+6512' }, 'painted'],
+    ['A7f LATI inside CIRCULATION', { ...R(2), what: 'LATI' }, 'painted'],
+    ['A8 a description', { ...R(0), what: 'owner name' }, 'painted'],
+    ['A8b no words', { ...R(0) }, 'painted'],
+    ['A8c MARINA with a pump word', { ...R(2), what: 'MARINA PUMP' }, 'painted'],
+    ['H1 the FFL note named exactly', { ...R(0), what: 'SHALLOW END WL +0.00 FFL -1.20' }, 'ignored'],
+    // H2 the reviewer listed as honest; under the round-6 rule a number keeps its decimal point, so "15" is not "1.5": painted.
+    ['H2 the pump row with 1.5 read as 15', { ...R(2), what: 'CIRCULATION PUMP 15 HP 230V' }, 'painted'],
+    ['H3 BALANCE read as BALANCF', { ...R(4), what: 'BALANCF TANK 12 M3' }, 'ignored'],
+    ['H4 part of the GRID row', { ...R(9), what: 'SECTION A-A' }, 'ignored'],
+    ['H5 FILTER VALVE DN50 exactly', { ...R(8), what: 'FILTER VALVE DN50' }, 'ignored'],
+  ];
+  assertEquals(cases.length, 26);
+  for (const [name, box, want] of cases) assertEquals(vet([box]).ignored.length ? 'ignored' : 'painted', want, name);
+  assertEquals(vet([{ ...R(6), what: room }]).keep.length, 1, 'Arabic is not drawing vocabulary yet: painted');
+  // The tokens: numbers keep their own punctuation, words keep their script.
+  assertEquals(tokensOf('FFL -1.20 +6512 1:50 230V 2xRJ45 A-A'), ['FFL', '-1.20', '+6512', '1:50', '230V', '2XRJ45', 'A', 'A']);
+  assertEquals(tokensOf(owner).length, 2);
+  assert(!tokensOf('LEVEL +65.12').includes('+6512') && !tokensOf('FFL -1.20').includes('120'));
 });

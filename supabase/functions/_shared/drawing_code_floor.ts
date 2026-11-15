@@ -66,7 +66,7 @@ export function unreadTextHold(page: PdfPage | undefined, seeds: string[], paint
  * safe part). MEASURED by the reviewer: an OVER-EAGER checker (it boxes every line it reads) published 22 of 23 ordinary
  * previews with 0 of 28 quoting strings left, and nothing noticed. On a page with a text layer, code reads what lies under
  * each box the checker names; a box is IGNORED (not painted, logged in the gate's detail) only when ALL of this holds:
- *   - (round 5) what the checker SAID it saw (its `what`) is the text under the box (whatIsUnder below);
+ *   - (rounds 5-6) what the checker SAID it saw (its `what`) is whole tokens of one run under the box (whatIsUnder below);
  *   - it covers at least one run (its centre inside the box) and every run it touches at all is DRAWING
  *     VOCABULARY: the strict closed-list gate (drawing_text_policy.isVocabularyContent: every token a number, a size or
  *     device code, or a trade word; no company, licence, contact, label, place, Arabic, letter-spaced text), at least
@@ -78,12 +78,17 @@ export function unreadTextHold(page: PdfPage | undefined, seeds: string[], paint
  * rows are exactly such runs.
  */
 export type Vet = (regions: (Box & { what?: string })[]) => { keep: Box[]; ignored: { box: Box; text: string }[] };
-/** Letters and digits of a text, upper case, split into tokens. */
-const tokensOf = (t: string) => String(t || '').toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
-/** One edit apart (a misread letter, one dropped or added), for a word of 4+ letters; digits must match exactly. */
-function nearWord(a: string, b: string): boolean {
-  if (a === b) return true;
-  if (/\d/.test(a) || /\d/.test(b) || Math.min(a.length, b.length) < 4 || Math.abs(a.length - b.length) > 1) return false;
+/**
+ * The words and numbers of a text, upper case (round 6, fifth review): a word is letters and digits in any script (Arabic
+ * kept); a NUMBER keeps its own sign, decimal point and separators, so "+6512" is never "+65.12" and "120" never "1.20"
+ * ("-1.20", "1:50", "2.5", "230V", "2xRJ45" are each one token); digits are never joined across a decimal point.
+ */
+export function tokensOf(t: string): string[] {
+  return (String(t || '').toUpperCase().match(/[+\-\u2212]?\p{N}[\p{L}\p{N}]*(?:[.,:/\u00d7]\p{N}[\p{L}\p{N}]*)*|[\p{L}\p{N}]+/gu) ?? []);
+}
+/** One edit apart (a misread letter, one dropped or added); the caller allows it only for a word of 4+ letters, no digit. */
+function oneEdit(a: string, b: string): boolean {
+  if (Math.abs(a.length - b.length) > 1) return false;
   let i = 0, j = 0, edits = 0;
   while (i < a.length && j < b.length) {
     if (a[i] === b[j]) { i++; j++; continue; }
@@ -92,18 +97,30 @@ function nearWord(a: string, b: string): boolean {
   }
   return edits + (a.length - i) + (b.length - j) <= 1;
 }
-/** What the checker SAID it saw is the text under the box: every token of `what` is a token of `runs` (a word of 4+
- *  letters may be one edit off, as OCR reads it; a number must be exact), or its letters and digits are a stretch of the
- *  runs'. An empty, descriptive or other text `what` is not. */
+const fuzzyOk = (t: string) => /^\p{L}{4,}$/u.test(t);
+/**
+ * What the checker SAID it saw is the text under the box (round 6, fifth review: 9 of 26 attack boxes passed round 5's
+ * substring fallback). Every token the checker named is a WHOLE token of ONE run under the box, in order and next to each
+ * other; one of them may be one edit off only when it has 4+ letters and no digit and another named token matches
+ * exactly; and what it named contains a word of the trade (a bare number such as "+6512" is never vouched for, even when
+ * it IS under the box). No substring, no joining. An empty or descriptive `what` is not under any box.
+ */
 export function whatIsUnder(what: string | undefined, runs: string[]): boolean {
-  const w = tokensOf(what ?? ''), under = runs.flatMap(tokensOf);
-  if (!w.length) return false;
-  if (w.every((t) => under.some((u) => nearWord(t, u)))) return true;
-  // Or its letters and digits, run together, are a stretch of the runs' (a reader's "2.5" read as "25", a word cut at a
-  // tile's edge): at least 3 of them, so a stray "1" or "I" vouches for nothing.
-  const flat = (x: string) => x.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const fw = flat(what ?? '');
-  return fw.length >= 3 && runs.some((r) => flat(r).includes(fw)) || (fw.length >= 3 && flat(runs.join('')).includes(fw));
+  const w = tokensOf(what ?? '');
+  if (!w.length || !w.some((t) => /^\p{L}{2,}$/u.test(t) && tradeWord(t))) return false;
+  for (const r of runs) {
+    const T = tokensOf(r);
+    for (let i = 0; i + w.length <= T.length; i++) {
+      let fuzzy = 0, ok = true;
+      for (let k = 0; k < w.length && ok; k++) {
+        if (w[k] === T[i + k]) continue;
+        if (fuzzyOk(w[k]) && fuzzyOk(T[i + k]) && oneEdit(w[k], T[i + k]) && ++fuzzy <= 1) continue;
+        ok = false;
+      }
+      if (ok && (fuzzy === 0 || w.length - fuzzy >= 1)) return true;
+    }
+  }
+  return false;
 }
 export function vocabularyVet(page: PdfPage | undefined, seeds: string[]): Vet | undefined {
   if (!page || !page.runs.length) return undefined;
