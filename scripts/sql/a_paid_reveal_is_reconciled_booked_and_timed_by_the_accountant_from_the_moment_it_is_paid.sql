@@ -762,20 +762,27 @@ returns table(transaction_id uuid, payment_ref text, stripe_invoice_id text, liv
 language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   -- livemode NULL = unknown: the runtime tries the live key, then the test key, and writes what Stripe says.
   -- A LIVE sale with no reveal_fee journal is read again every hour whatever its check says (review 2, item 5).
+  -- A SALE REFUNDED IN FULL BEFORE STRIPE'S CARD FEE WAS READ (review 5, item 2) closes nothing_to_book, but the fee
+  -- Stripe kept is still a cost: fn_gl_sync_business 1b books it (6100 / 1050) only from stripe_fee_fils and waits while
+  -- it is unknown. Such a check was never listed again, so the fee was never read and 1050 stayed overstated by it with no
+  -- finding. It is now read again while the sale is live, charged something and its fee is unknown; once the fee is
+  -- written it drops off the list and the next gl sync books it once.
   select k.transaction_id, t.payment_ref, t.stripe_invoice_id, t.livemode,
          case when t.livemode is null then 'mode_unknown'
+              when k.verdict = 'nothing_to_book' then 'refunded_fee_unread'
               when k.investigate_requested_at is not null and (k.stripe_read_at is null or k.stripe_read_at < k.investigate_requested_at) then 'investigate'
               when k.verdict = 'waiting_for_facts' then 'waiting'
               when t.livemode and not exists (select 1 from public.gl_journal g where g.source = 'reveal_fee' and g.source_ref = t.id::text and g.status <> 'void') then 'live_not_booked'
               else 'facts_unreadable' end
     from public.accountant_reveal_payment_check k join public.transactions t on t.id = k.transaction_id
-   where k.verdict <> 'nothing_to_book' and (t.livemode is null
+   where (k.verdict <> 'nothing_to_book' and (t.livemode is null
       or (k.resolved_at is null
           and (k.verdict = 'waiting_for_facts'
                or k.findings @> '[{"code":"facts_unreadable"}]'::jsonb
                or (k.investigate_requested_at is not null and (k.stripe_read_at is null or k.stripe_read_at < k.investigate_requested_at))))
       or (t.livemode and t.fee_status = 'paid'
-          and not exists (select 1 from public.gl_journal g where g.source = 'reveal_fee' and g.source_ref = t.id::text and g.status <> 'void')))
+          and not exists (select 1 from public.gl_journal g where g.source = 'reveal_fee' and g.source_ref = t.id::text and g.status <> 'void'))))
+      or (k.verdict = 'nothing_to_book' and t.livemode and t.stripe_fee_fils is null and coalesce(t.total_charged, 0) > 0)
    order by k.opened_at
    limit greatest(1, least(coalesce(p_limit, 25), 100))
 $fn$;
@@ -805,7 +812,9 @@ returns table(revenue_aed numeric, sales integer) language sql stable security d
   select round(coalesce(sum(greatest(x.reveal_fee - greatest(coalesce(x.refunded, 0) - x.over_aed, 0), 0)), 0), 2), count(*)::int
     from (select t.reveal_fee,
                  round(greatest(coalesce(t.stripe_amount_received_fils / 100.0, t.total_charged, t.reveal_fee) - t.reveal_fee, 0), 2) as over_aed,
-                 case when coalesce(t.refund_status, '') in ('refunded', 'succeeded', 'refund_approved') then round(coalesce(t.refund_amount_aed, t.total_charged), 2) end as refunded
+                 -- a partial refund is taken off too (review 5, item 1: the sale says 'partly_refunded' with the sum)
+                 case when coalesce(t.refund_status, '') in ('refunded', 'succeeded', 'refund_approved') then round(coalesce(t.refund_amount_aed, t.total_charged), 2)
+                      when t.refund_status = 'partly_refunded' then round(coalesce(t.refund_amount_aed, 0), 2) end as refunded
             from public.transactions t
            where t.fee_status = 'paid' and t.livemode
              and least(coalesce(t.paid_at, t.revealed_at), now()) >= (date_trunc('month', p_at at time zone 'Asia/Dubai')) at time zone 'Asia/Dubai'
@@ -1512,13 +1521,60 @@ end
 $function$;
 revoke execute on function public.fn_refund_request(bigint, text, text, uuid, uuid, bigint, uuid, text, text, text, uuid) from public, anon, authenticated;
 
+-- WHAT A SALE SAYS IS REFUNDED IS THE SUM OF ITS REFUNDS (review 5, item 1). fn_refund_settle wrote the settling refund's
+-- own status and amount onto the sale: a AED 100 dashboard refund of a AED 1,978.80 sale set refund_status 'succeeded'
+-- (fn_refund_state 'refunded', the customer's guarantee "Refund refunded", the fee ladder stopped) and a second of AED 50
+-- overwrote the amount to 50 (measured locally, SP/rev5/s6c.sql). Now the sale carries what its refunds add up to:
+--   * 'succeeded' (refunded in full) only when the settled refunds reach what was charged, less any overcharge returned;
+--     refund_amount_aed = that sum, refund_confirmed_at = when it got there;
+--   * 'processing' when what is settled plus what is in flight reaches it (a whole refund on its way, as before);
+--   * 'partly_refunded' while some, not all, has gone back; refund_amount_aed = the sum (100 then 50 = 150). The ladder,
+--     the CEO's reconcile and the books read the sale as still sold (the refunds rows book the money back, 1b);
+--   * otherwise the sale's status is left as it was, except a whole refund that failed or was cancelled, which is written
+--     as before. An amount the event did not carry counts for nothing until it is known.
+-- An overcharge return (reason overcharge_return) never writes the sale (see fn_refund_request): it is not a refund of
+-- the fee, so it is left out of the sum and taken off what was charged. Matched by the sale or its PaymentIntent, as
+-- fn_refunds_never_return_more_than_was_paid counts them. Called with the payment already locked by the refund's trigger.
+-- prevented by: scripts/sql/a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid_probe.sql (K)
+create or replace function public.fn_refund_rolls_up_to_its_sale(p_tx uuid, p_stripe_refund_id text, p_status text, p_amount_fils bigint)
+returns text language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare t public.transactions; v_due bigint; v_done bigint; v_flight bigint; v_over bigint; v_new text;
+begin
+  select * into t from public.transactions where id = p_tx;
+  if not found then return null; end if;
+  select coalesce(sum(f.amount_fils) filter (where f.status = 'succeeded' and f.reason_code is distinct from 'overcharge_return'), 0),
+         coalesce(sum(f.amount_fils) filter (where f.status in ('approved', 'processing') and f.reason_code is distinct from 'overcharge_return'), 0),
+         coalesce(sum(f.amount_fils) filter (where f.status = 'succeeded' and f.reason_code = 'overcharge_return'), 0)
+    into v_done, v_flight, v_over
+    from public.refunds f
+   where f.transaction_id = t.id or (f.transaction_id is null and coalesce(btrim(t.payment_ref), '') <> '' and f.stripe_payment_intent = t.payment_ref);
+  v_due := round(coalesce(t.total_charged, t.reveal_fee, 0) * 100)::bigint - v_over;
+  v_new := case
+    when v_due <= 0 then p_status                                           -- nothing charged on record: the old reading
+    when v_done >= v_due then 'succeeded'
+    when v_done + v_flight >= v_due then 'processing'
+    when v_done > 0 then 'partly_refunded'
+    when p_status in ('failed', 'cancelled') and coalesce(p_amount_fils, 0) >= v_due then p_status
+    end;
+  update public.transactions
+     set refund_status = coalesce(v_new, refund_status),
+         refund_stripe_id = p_stripe_refund_id,
+         refund_amount_aed = case when v_done > 0 then round(v_done / 100.0, 2)
+                                  when v_due <= 0 and p_amount_fils is not null then round(p_amount_fils / 100.0, 2)
+                                  else refund_amount_aed end,
+         refund_confirmed_at = case when v_new = 'succeeded' then coalesce(refund_confirmed_at, now()) else refund_confirmed_at end
+   where id = t.id;
+  return coalesce(v_new, t.refund_status);
+end $fn$;
+revoke execute on function public.fn_refund_rolls_up_to_its_sale(uuid, text, text, bigint) from public, anon, authenticated;
+
 create or replace function public.fn_refund_settle(p_stripe_refund_id text, p_status text, p_amount_fils bigint DEFAULT NULL::bigint, p_payment_intent text DEFAULT NULL::text, p_charge_id text DEFAULT NULL::text, p_failure_reason text DEFAULT NULL::text, p_amount_source text DEFAULT 'webhook_event'::text, p_stripe_event_id text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-declare r public.refunds; v_status text; v_amount bigint; v_src text; v_q bigint; v_tx public.transactions;
+declare r public.refunds; v_status text; v_amount bigint; v_src text; v_q bigint; v_tx public.transactions; v_matched boolean := false;
 begin
   if coalesce(btrim(p_stripe_refund_id),'') = '' then
     v_q := public.fn_refund_quarantine(null, 'refund', 'event carried no refund id',
@@ -1574,11 +1630,7 @@ begin
       returning * into r;
 
       if v_tx.id is not null then
-        update public.transactions
-           set refund_status = v_status, refund_stripe_id = p_stripe_refund_id,
-               refund_amount_aed = case when v_amount is not null then round(v_amount/100.0, 2) else refund_amount_aed end,
-               refund_confirmed_at = case when v_status = 'succeeded' then coalesce(refund_confirmed_at, now()) else refund_confirmed_at end
-         where id = v_tx.id;
+        perform public.fn_refund_rolls_up_to_its_sale(v_tx.id, p_stripe_refund_id, v_status, v_amount);   -- review 5, item 1
       else
         perform public.fn_it_engineer_finding_upsert(p_issue_key => 'refund:unbooked:' || p_stripe_refund_id,
           p_title => 'A refund made in Stripe (dashboard or API) matches no sale we hold, so it is not booked: '
@@ -1603,6 +1655,25 @@ begin
     end if;
   end if;
 
+  -- a dashboard refund recorded before its sale could be matched is matched now (review 4, item 6c), by ANY later event
+  -- that names its PaymentIntent, a repeat of the same status included (review 5, item 3: before, only a new status
+  -- reached this block, so a settled refund re-sent with its PaymentIntent stayed unmatched)
+  if r.transaction_id is null and r.reason_code is distinct from 'overcharge_return' then
+    select * into v_tx from public.transactions t
+     where coalesce(p_payment_intent, r.stripe_payment_intent) is not null and t.payment_ref = coalesce(p_payment_intent, r.stripe_payment_intent)
+     order by t.revealed_at desc nulls last limit 1;
+    if v_tx.id is not null then
+      update public.refunds set transaction_id = v_tx.id, customer_id = coalesce(customer_id, v_tx.customer_id),
+             stripe_payment_intent = coalesce(stripe_payment_intent, v_tx.payment_ref),
+             inquiry_id = coalesce(inquiry_id, v_tx.inquiry_id), quote_id = coalesce(quote_id, v_tx.quote_id) where id = r.id;
+      r.transaction_id := v_tx.id;
+      v_matched := true;
+      -- the accountant was handed it as unbooked when it arrived unmatched: that loop is closed here (review 5, item 3)
+      perform public.fn_it_engineer_finding_close('refund:unbooked:' || p_stripe_refund_id,
+        'matched to sale ' || v_tx.id || ' by a later Stripe event; booked by the next gl sync');
+    end if;
+  end if;
+
   -- Duplicate delivery: same state twice. Cheap, silent, correct - but still take the chance to fill
   -- in an amount we did not have before.
   if r.status = v_status then
@@ -1612,9 +1683,13 @@ begin
              reconciliation_note = 'amount resolved from a later ' || coalesce(p_amount_source,'event'),
              updated_at = now()
        where id = r.id;
+      if r.transaction_id is not null and r.reason_code is distinct from 'overcharge_return' then   -- the amount now counts (item 1)
+        perform public.fn_refund_rolls_up_to_its_sale(r.transaction_id, p_stripe_refund_id, v_status, v_amount);
+      end if;
       return jsonb_build_object('ok', true, 'refund_id', r.id, 'status', r.status,
                                 'idempotent', true, 'applied', false, 'amount_resolved', true);
     end if;
+    if v_matched then perform public.fn_refund_rolls_up_to_its_sale(r.transaction_id, p_stripe_refund_id, v_status, r.amount_fils); end if;
     return jsonb_build_object('ok', true, 'refund_id', r.id, 'status', r.status,
                               'idempotent', true, 'applied', false);
   end if;
@@ -1638,18 +1713,6 @@ begin
                               'refused_transition', r.status || '->' || v_status, 'quarantined', v_q);
   end if;
 
-  -- a dashboard refund recorded before its sale could be matched is matched now (review 4, item 6c)
-  if r.transaction_id is null and r.reason_code is distinct from 'overcharge_return' then
-    select * into v_tx from public.transactions t
-     where coalesce(p_payment_intent, r.stripe_payment_intent) is not null and t.payment_ref = coalesce(p_payment_intent, r.stripe_payment_intent)
-     order by t.revealed_at desc nulls last limit 1;
-    if v_tx.id is not null then
-      update public.refunds set transaction_id = v_tx.id, customer_id = coalesce(customer_id, v_tx.customer_id),
-             inquiry_id = coalesce(inquiry_id, v_tx.inquiry_id), quote_id = coalesce(quote_id, v_tx.quote_id) where id = r.id;
-      r.transaction_id := v_tx.id;
-    end if;
-  end if;
-
   update public.refunds
      set status = v_status,
          amount_fils   = coalesce(v_amount, amount_fils),
@@ -1666,12 +1729,8 @@ begin
    where id = r.id;
 
   if r.transaction_id is not null and r.reason_code is distinct from 'overcharge_return' then   -- see fn_refund_request
-    update public.transactions
-       set refund_status = v_status, refund_stripe_id = p_stripe_refund_id,
-           refund_amount_aed = case when v_amount is not null then round(v_amount/100.0, 2) else refund_amount_aed end,
-           refund_confirmed_at = case when v_status = 'succeeded' then coalesce(refund_confirmed_at, now())
-                                      else refund_confirmed_at end
-     where id = r.transaction_id;
+    -- the sale carries the SUM of its refunds, not this one's (review 5, item 1)
+    perform public.fn_refund_rolls_up_to_its_sale(r.transaction_id, p_stripe_refund_id, v_status, coalesce(v_amount, r.amount_fils));
   end if;
 
   return jsonb_build_object('ok', true, 'refund_id', r.id, 'status', v_status, 'applied', true,
@@ -2779,7 +2838,7 @@ on conflict (type, from_seat, to_seat) do update set meaning = excluded.meaning,
 -- fn_refund_state (the chase and the notice) and fn_refund_nonresponse_eligibility now count from the payment and end at
 -- fn_reveal_window's end; messages_api/mailbox.ts and supplier_api/actions/inbox.ts read fn_reveal_window (edge code).
 -- The sales engineer's sibling build hard-codes 5 in fn_sales_engineer_closes_on_reveal: its author reads fn_reveal_window.
--- Bodies otherwise unchanged from production (13 Nov 2026).
+-- Bodies otherwise unchanged from production (13 Nov 2026), except fn_refund_state's partly_refunded / refunded_aed (review 5).
 create or replace function public.fn_refund_state(p_transaction uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -2855,6 +2914,10 @@ begin
     'auto_nudged_at', t.nudged_24_at,
     'refund_approvable', v_state in ('final_call_due','final_call_sent'),
     'refund_status', t.refund_status,
+    -- review 5, item 1: some, not all, of the payment has gone back (fn_refund_rolls_up_to_its_sale). The ladder goes on:
+    -- the state above is the supplier's, and the rest of the fee is still the CEO's to decide.
+    'partly_refunded', coalesce(t.refund_status, '') = 'partly_refunded',
+    'refunded_aed', t.refund_amount_aed,
     'working_days_since_reveal', case when t.revealed_at is null then 0
                                       else public.fn_working_days_between(v_start, now()) end,
     'clock_starts_at', v_start,

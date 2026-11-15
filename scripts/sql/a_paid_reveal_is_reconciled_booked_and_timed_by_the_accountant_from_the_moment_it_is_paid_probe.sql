@@ -37,6 +37,13 @@
 --   I. A GUARD REFUSES THE RETURN (item 4): the CEO's decision through fn_reason_apply_ceo__payment_exception does not
 --      raise; the task is 'blocked' with the guard's reason and the check is back with the CEO.
 --   J. A DASHBOARD REFUND THAT MATCHES NO SALE (6c) is an accountant finding, never silent; one on a booked sale is booked.
+--   Review 5 (15 Nov 2026):
+--   K. PARTIAL DASHBOARD REFUNDS ADD UP (item 1): AED 100 then 50 on a booked sale read 'partly_refunded' 150.00 on the
+--      sale, fn_refund_state stays on the ladder and says partly refunded, the month's revenue drops by 150.00; the rest in
+--      flight reads 'processing', settled 'succeeded' at the whole charge.
+--   G+ (item 2): the sale refunded in full before Stripe's fee was read is listed to be read from Stripe again
+--      ('refunded_fee_unread') until the fee is written; then it drops off and its fee is booked once.
+--   L (item 3): an unmatched refund's finding is closed when a later event names its PaymentIntent, and it is booked.
 do $probe$
 declare
   c_tx constant uuid := '29ac49f5-1f4e-4dc5-989a-479143f7ac8c';
@@ -47,6 +54,7 @@ declare
   v_settle text := 'not tried'; v_gl text := 'not run'; v_ctid tid; v_ctid2 tid; v_tx3 uuid; v_p jsonb; v_task bigint;
   v_tx4 uuid; v_tx5 uuid; v_def text; v_ret2 jsonb; v_task2 bigint; v_rid bigint; v_e text := 'not run'; v_q4 uuid; v_q5 uuid; v_cols text; v_sel text;
   v_q6 uuid; v_q7 uuid; v_tx6 uuid; v_tx7 uuid; v_task1 bigint; v_round int; v_h bigint; v_held bigint; v_g text := 'not run'; v_i text := 'not run';
+  v_rev0 numeric; v_rev1 numeric; v_st jsonb; v_due bigint; v_k2 text := 'not run';
 begin
   select revealed_at into v_rev from public.transactions where id = c_tx;
   if v_rev is null then raise exception 'CHK<<%>>', jsonb_build_object('verdict', 'PROBE FAILED: transaction 29ac49f5 is not in production'); end if;
@@ -411,11 +419,30 @@ begin
   if exists (select 1 from public.gl_journal g where g.source_ref in (v_tx6::text, 'refund:' || (select id from public.refunds where stripe_refund_id = 're_zz_probe_w1_full'))) then
     v_bad := v_bad || 'G: something was booked before Stripe reported its fee (an estimate)'::text;
   end if;
-  -- Stripe's figures arrive: its card fee is booked at its own figure, and no revenue
+  -- review 5, item 1: a refund of the whole charge is 'succeeded' on the sale, at the whole charge
+  if (select refund_status from public.transactions where id = v_tx6) is distinct from 'succeeded'
+     or (select refund_amount_aed from public.transactions where id = v_tx6) is distinct from round(v_fee / 100.0, 2) then
+    v_bad := v_bad || ('G (item 1): a refund of the whole charge does not read refunded in full on the sale: '
+      || (select coalesce(refund_status, '-') || ' ' || coalesce(refund_amount_aed::text, '-') from public.transactions where id = v_tx6))::text;
+  end if;
+  -- review 5, item 2: closed as nothing to book, it is still read from Stripe again while its card fee is unknown
+  if not exists (select 1 from public.fn_accountant_payment_checks_to_read(100) x where x.transaction_id = v_tx6 and x.reason = 'refunded_fee_unread') then
+    v_bad := v_bad || 'G (item 2): a sale refunded in full before Stripe''s fee was read is not read from Stripe again, so its fee is never booked'::text;
+  end if;
+  -- Stripe's figures arrive (what accountant/actions/reconcile.ts writes, then the snapshot): its card fee is booked at
+  -- its own figure, once, and no revenue; the check is no longer listed
   update public.transactions set stripe_fee_fils = 3448, stripe_amount_received_fils = v_fee, stripe_bt_amount_fils = v_fee, stripe_bt_currency = 'aed' where id = v_tx6;
-  perform public.fn_accountant_reconciles_reveal(v_tx6);
+  perform public.fn_accountant_payment_check_snapshot(v_tx6, '{"probe": "review 5, item 2"}'::jsonb);
   perform public.fn_gl_post_reveal_fee(v_tx6);
   perform public.fn_gl_sync_business();
+  perform public.fn_gl_sync_business();
+  if exists (select 1 from public.fn_accountant_payment_checks_to_read(100) x where x.transaction_id = v_tx6) then
+    v_bad := v_bad || 'G (item 2): the check is still listed to be read after Stripe''s fee was written'::text;
+  end if;
+  select count(*) into n from public.gl_journal g join public.gl_journal_lines l on l.journal_id = g.id
+   where g.status <> 'void' and g.source = 'refund_paid' and l.account_code = '6100'
+     and g.source_ref in (select 'refund:' || f.id from public.refunds f where f.transaction_id = v_tx6);
+  if n <> 1 then v_bad := v_bad || ('G (item 2): the card fee of a sale refunded before it was booked was booked ' || n || ' times, not once')::text; end if;
   -- a card dispute on it afterwards: back to the CEO, and still no revenue
   insert into public.stripe_dispute (id, livemode, payment_intent, transaction_id, amount_fils, currency, reason, status, fee_fils)
   values ('dp_zz_probe_w1_full', true, 'pi_zz_probe_w1_full', v_tx6, v_fee, 'aed', 'fraudulent', 'needs_response', 5500);
@@ -514,6 +541,64 @@ begin
                   where f.stripe_refund_id = 're_zz_probe_w1_part' and f.transaction_id = v_tx3 and g.source = 'refund_paid' and l.account_code = '6900' and l.debit = 100.00) then
     v_bad := v_bad || 'J: a partial dashboard refund on a booked sale was not booked (6900 100.00)'::text;
   end if;
+  -- ── K. PARTIAL DASHBOARD REFUNDS ADD UP (review 5, item 1) ───────────────────────────────────────────────────────
+  v_st := public.fn_refund_state(v_tx3);
+  if (select refund_status from public.transactions where id = v_tx3) is distinct from 'partly_refunded'
+     or (select refund_amount_aed from public.transactions where id = v_tx3) is distinct from 100.00
+     or v_st->>'state' = 'refunded' or v_st->>'partly_refunded' is distinct from 'true' then
+    v_bad := v_bad || ('K: AED 100 refunded of a larger sale does not read partly refunded: '
+      || (select coalesce(refund_status, '-') || ' ' || coalesce(refund_amount_aed::text, '-') from public.transactions where id = v_tx3)
+      || ', fn_refund_state ' || coalesce(v_st->>'state', '-') || ' partly ' || coalesce(v_st->>'partly_refunded', '-'))::text;
+  end if;
+  select revenue_aed into v_rev0 from public.fn_reveal_month_revenue(now());
+  perform public.fn_refund_settle('re_zz_probe_w1_part2', 'succeeded', 5000, 'pi_zz_probe_w1_unknown', null, null, 'webhook_event', 'evt_zz_probe_w1_part2');
+  select revenue_aed into v_rev1 from public.fn_reveal_month_revenue(now());
+  v_st := public.fn_refund_state(v_tx3);
+  if (select refund_status from public.transactions where id = v_tx3) is distinct from 'partly_refunded'
+     or (select refund_amount_aed from public.transactions where id = v_tx3) is distinct from 150.00
+     or v_st->>'state' = 'refunded' or (v_st->>'refunded_aed')::numeric is distinct from 150.00 then
+    v_bad := v_bad || ('K: a second partial refund (50 after 100) does not add up to 150.00: '
+      || (select coalesce(refund_status, '-') || ' ' || coalesce(refund_amount_aed::text, '-') from public.transactions where id = v_tx3)
+      || ', fn_refund_state ' || coalesce(v_st->>'state', '-'))::text;
+  end if;
+  if v_rev0 - v_rev1 is distinct from 50.00 then
+    v_bad := v_bad || ('K: the month''s revenue did not drop by the second partial refund (50.00): ' || v_rev0 || ' -> ' || v_rev1)::text;
+  end if;
+  -- ── L. AN UNMATCHED REFUND IS MATCHED BY A LATER EVENT, BOOKED, AND ITS FINDING CLOSED (review 5, item 3) ──────────
+  perform public.fn_refund_settle('re_zz_probe_w1_late', 'processing', 2000, null, 'ch_zz_probe_w1_unknown', null, 'webhook_event', 'evt_zz_probe_w1_late1');
+  if not exists (select 1 from public.it_engineer_finding where issue_key = 'refund:unbooked:re_zz_probe_w1_late' and closed_at is null) then
+    v_bad := v_bad || 'L: a refund matching no sale raised no finding'::text;
+  end if;
+  perform public.fn_refund_settle('re_zz_probe_w1_late', 'succeeded', 2000, 'pi_zz_probe_w1_unknown', 'ch_zz_probe_w1_unknown', null, 'webhook_event', 'evt_zz_probe_w1_late2');
+  perform public.fn_gl_sync_business();
+  if exists (select 1 from public.it_engineer_finding where issue_key = 'refund:unbooked:re_zz_probe_w1_late' and closed_at is null) then
+    v_bad := v_bad || 'L (item 3): the unbooked-refund finding stayed open after a later event matched and booked the refund'::text;
+  end if;
+  if not exists (select 1 from public.gl_journal g join public.gl_journal_lines l on l.journal_id = g.id join public.refunds f on g.source_ref = 'refund:' || f.id
+                  where f.stripe_refund_id = 're_zz_probe_w1_late' and f.transaction_id = v_tx3 and g.source = 'refund_paid' and l.account_code = '6900' and l.debit = 20.00) then
+    v_bad := v_bad || 'L: the refund matched by a later event was not booked (6900 20.00)'::text;
+  end if;
+  -- the same, when the later event repeats the status: an unmatched settled refund re-sent with its PaymentIntent
+  perform public.fn_refund_settle('re_zz_probe_w1_late3', 'succeeded', 1000, null, 'ch_zz_probe_w1_unknown3', null, 'webhook_event', 'evt_zz_probe_w1_late3a');
+  perform public.fn_refund_settle('re_zz_probe_w1_late3', 'succeeded', 1000, 'pi_zz_probe_w1_unknown', null, null, 'webhook_event', 'evt_zz_probe_w1_late3b');
+  if exists (select 1 from public.it_engineer_finding where issue_key = 'refund:unbooked:re_zz_probe_w1_late3' and closed_at is null)
+     or not exists (select 1 from public.refunds where stripe_refund_id = 're_zz_probe_w1_late3' and transaction_id = v_tx3) then
+    v_bad := v_bad || 'L (item 3): a settled refund re-sent with its PaymentIntent was not matched, or its finding stayed open'::text;
+  end if;
+  if (select refund_amount_aed from public.transactions where id = v_tx3) is distinct from 180.00 then
+    v_bad := v_bad || ('K/L: the sale does not carry the sum of its refunds (100 + 50 + 20 + 10 = 180.00): '
+      || (select coalesce(refund_amount_aed::text, '-') from public.transactions where id = v_tx3))::text;
+  end if;
+  -- K: the rest of the charge in flight reads 'processing'; settled, the sale is refunded in full at the whole charge
+  v_due := round((select total_charged from public.transactions where id = v_tx3) * 100)::bigint - 18000;
+  perform public.fn_refund_settle('re_zz_probe_w1_rest', 'processing', v_due, 'pi_zz_probe_w1_unknown', null, null, 'webhook_event', 'evt_zz_probe_w1_rest1');
+  v_k2 := (select refund_status from public.transactions where id = v_tx3);
+  perform public.fn_refund_settle('re_zz_probe_w1_rest', 'succeeded', v_due, 'pi_zz_probe_w1_unknown', null, null, 'webhook_event', 'evt_zz_probe_w1_rest2');
+  v_k2 := v_k2 || ' -> ' || (select refund_status || ' ' || refund_amount_aed from public.transactions where id = v_tx3);
+  if v_k2 is distinct from 'processing -> succeeded ' || (select total_charged from public.transactions where id = v_tx3)
+     or public.fn_refund_state(v_tx3)->>'state' is distinct from 'refunded' then
+    v_bad := v_bad || ('K: the rest of the charge did not read processing then refunded in full: ' || coalesce(v_k2, '-'))::text;
+  end if;
   -- no number in a hand-over carries more than two decimals (fn_handoff_redact turned 135.000... into "[phone]")
   if (select revenue_aed::text from public.fn_reveal_month_revenue(now())) ~ '\.[0-9]{3,}' then v_bad := v_bad || 'D: the month total carries more than two decimals'::text; end if;
   v_p := jsonb_build_object('month_total_aed', (select revenue_aed from public.fn_reveal_month_revenue(now())), 'fee_aed', round(13500 / 100.0, 2));
@@ -526,5 +611,5 @@ begin
   raise exception 'CHK<<%>>', jsonb_build_object(
     'verdict', case when cardinality(v_bad) = 0 then 'PROBE OK' else 'PROBE FAILED: ' || array_to_string(v_bad, '; ') end,
     'owner_fn_seat_handoff', v_owner, 'shadow_steps', v_steps, 'journal_debits', v_dr, 'journal_credits', v_cr, 'memo', v_memo,
-    'settle', v_settle, 'gl_b', v_gl, 'return', v_ret, 'return_e', v_ret2, 'e', v_e, 'sweep', v_sweep, 'g', v_g, 'i', v_i);
+    'settle', v_settle, 'gl_b', v_gl, 'return', v_ret, 'return_e', v_ret2, 'e', v_e, 'sweep', v_sweep, 'g', v_g, 'i', v_i, 'k', v_k2);
 end $probe$;
