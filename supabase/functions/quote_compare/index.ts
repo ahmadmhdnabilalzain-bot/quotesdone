@@ -41,7 +41,7 @@ import { chunks, differingCells } from '../_shared/routine_judgements.ts';
 import { ctxOfQuote, generaliseDeep, generaliseLine, generaliseQuoteTerms, mergeCtx, type GeneraliseCtx } from '../_shared/quote_generalise.ts';
 import { requestOf, reviewNotes, type ReviewNote } from '../_shared/quote_review_notes.ts';
 // 15 Nov 2026 (journey A, sales_engineer): each quote measured against what the customer asked for, from its RAW lines.
-import { annotateTechnical, enforceFit, fitQuote, fitView, requestRequirements, siteVisitAsked, type QuoteFit } from '../_shared/request_fit.ts';
+import { annotateTechnical, enforceFit, fitQuote, fitView, requestRequirements, settleRequests, siteVisitAsked, type QuoteFit } from '../_shared/request_fit.ts';
 import { tradeOfCategory } from '../_shared/line_specs/model.ts';
 // THE ONE PRICE (15 Nov 2026): the stored ex-VAT figure the reveal fee is taken on; quote_amount only where it was never set.
 // Reading a VAT-inclusive total as ex-VAT is corrected where the figure is stored (accountant), never re-derived here.
@@ -265,12 +265,32 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     // brand's tier and origin leave. Recomputed on every answer, cached or not.
     const requirements = requestRequirements(inq);
     const fitById: Record<string, QuoteFit> = {};
+    let settleRaised = 0, settleSkipped = 0;
     if (requirements.length) {
       const trade = tradeOfCategory(inq.category); const siteVisit = siteVisitAsked(inq.spec);
       for (const q of qs) {
         const qid = String(q.id);
-        try { fitById[qid] = fitQuote(requirements, { quote: q, lines: (itemsByQuote[qid] || []).map((it: any) => ({ ...it, line_no: it.line })), now: new Date(nowTs), trade, site_visit: siteVisit }); } catch (_e) { /* the comparison is served without this quote's fit */ }
+        // The date cell shows the GENERALISED lead time (review item 8): the raw text can name a brand or a stock location.
+        const leadShown = generaliseQuoteTerms({ lead_time: q.lead_time }, ctxByQuote[qid]).lead_time ?? null;
+        try { fitById[qid] = fitQuote(requirements, { quote: { ...q, lead_time_shown: leadShown }, lines: (itemsByQuote[qid] || []).map((it: any) => ({ ...it, line_no: it.line })), now: new Date(nowTs), trade, site_visit: siteVisit }); } catch (_e) { /* the comparison is served without this quote's fit */ }
       }
+      // THE OPEN POINTS GO TO THE SUPPLIER THROUGH QUOTESDONE (review item 6; founder, 14 Sep 2026): each is raised once as a
+      // clarification in the sales engineer's quotation conversation with that supplier (request_fit.ts settleRequests). A
+      // supplier with no conversation on this request (a typed quote) is counted, and the point stays listed for the desk.
+      if (body.technical_only !== true) for (const q of qs) {
+        const f = fitById[String(q.id)]; if (!f?.asks.length || q.supplier_id == null) continue;
+        try {
+          const { data: rv } = await admin.from('quote_reviews').select('id,status').eq('inquiry_id', inquiry_id).eq('supplier_id', q.supplier_id).maybeSingle();
+          if (!rv || rv.status === 'closed') { settleSkipped++; continue; }
+          const { data: had } = await admin.from('quote_review_request').select('key').eq('review_id', rv.id);
+          const { rows, message } = settleRequests(f, String(rv.id), new Set((had || []).map((r: any) => String(r.key))));
+          if (!rows.length || !message) continue;
+          const { data: m } = await admin.from('quote_review_messages').insert({ review_id: rv.id, role: 'sales_engineer', kind: 'text', body: message, body_ar: null, attachments: [], issues: null }).select('id').single();
+          const { error: rqErr } = await admin.from('quote_review_request').insert(rows.map((r) => ({ ...r, asked_message_id: m?.id ?? null })));
+          if (!rqErr) settleRaised += rows.length;
+        } catch (_e) { /* the points stay listed on the report; the next view raises them */ }
+      }
+      if (settleRaised) await logRun('ok', { settle_raised: settleRaised, settle_no_conversation: settleSkipped }, settleRaised + ' open point(s) of the comparison were put to the suppliers in their quotation conversations with the sales engineer; ' + settleSkipped + ' quote(s) had no conversation to raise them in.');
     }
     const fitByLabel: Record<string, QuoteFit> = Object.fromEntries(qs.filter((q: any) => fitById[String(q.id)]).map((q: any) => [labels.get(String(q.id))?.en ?? '', fitById[String(q.id)]]));
     const labelled = qs.map((q: any, i: number) => {
@@ -319,9 +339,13 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     // the roster — is generalised against every quote's brand / model values and supplier names, so a brand the model
     // echoed or a model code in a cell never reaches the screen, the PDF or the CSV. The review notes are attached
     // after it: they are written generic, and they quote the customer's own request.
+    // The rules ranking of the same quotes: enforceFit takes from it which quote is best within a tier, and a row for a quote it
+    // pulls into the model's shortlist (review item 5). Code only, no model.
+    const rulesForFit = requirements.length ? deterministicCompare(labelled as never, lang as 'en' | 'ar') : null;
+    const priceByLabel: Record<string, number | null> = Object.fromEntries(labelled.map((l: any) => [String(l.label), l.price ?? null]));
     const withRoster = (a: any) => { if (a && typeof a === 'object') { a.price_benchmarks = priceBenchmarks; a.technical = technical ? annotateTechnical(rendererView(technical, lang as 'en' | 'ar'), requirements, fitByLabel, technical.trade, lang as 'en' | 'ar') : null;
       a.request_fit = requirements.length ? fitView(requirements, qs.filter((q: any) => fitById[String(q.id)]).map((q: any) => ({ label: labels.get(String(q.id))?.en ?? '', quote_id: String(q.id), fit: fitById[String(q.id)] }))) : null;
-      enforceFit(a, fitByLabel, lang as 'en' | 'ar'); a.technical_detail = technical; a.spec_mismatches = specMismatches; a.on_hold = onHold; a.quality_check = qualityCheck; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : [], heldIds); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; }
+      enforceFit(a, fitByLabel, lang as 'en' | 'ar', { rules: rulesForFit, prices: priceByLabel }); a.technical_detail = technical; a.spec_mismatches = specMismatches; a.on_hold = onHold; a.quality_check = qualityCheck; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : [], heldIds); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; }
       if (!a || typeof a !== 'object') return a;
       const g = generaliseDeep(a, allCtx);
       g.review_notes = qs.map((q: any) => ({ quote_id: String(q.id), label: labels.get(String(q.id))?.en ?? null, label_ar: labels.get(String(q.id))?.ar ?? null,

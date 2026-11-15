@@ -146,7 +146,7 @@ export function journeyA(lang: 'en' | 'ar' = 'en'): { analysis: any; fits: Recor
   const allCtx = mergeCtx(...Object.values(ctxBy));
   const requirements = requestRequirements(inq);
   const trade = tradeOfCategory(inq.category); const siteVisit = siteVisitAsked(inq.spec);
-  const fitById = Object.fromEntries(qs.map((q) => [q.id, fitQuote(requirements, { quote: q, lines: q.items, now: NOW, trade, site_visit: siteVisit })]));
+  const fitById = Object.fromEntries(qs.map((q) => [q.id, fitQuote(requirements, { quote: { ...q, lead_time_shown: generaliseQuoteTerms({ lead_time: q.lead_time }, ctxBy[q.id]).lead_time ?? null }, lines: q.items, now: NOW, trade, site_visit: siteVisit })]));
   const fits: Record<string, QuoteFit> = Object.fromEntries(qs.map((q) => [labels.get(q.id)!.en, fitById[q.id]]));
   const labelled = qs.map((q) => {
     const it = items(q).map((x) => generaliseLine(x, ctxBy[q.id]));
@@ -161,7 +161,7 @@ export function journeyA(lang: 'en' | 'ar' = 'en'): { analysis: any; fits: Recor
   a.technical = annotateTechnical(rendererView(technical, lang), requirements, fits, technical.trade, lang);
   a.technical_detail = technical; a.on_hold = 0;
   a.request_fit = fitView(requirements, qs.map((q) => ({ label: labels.get(q.id)!.en, quote_id: q.id, fit: fitById[q.id] })));
-  enforceFit(a, fits, lang);
+  enforceFit(a, fits, lang, { rules: deterministicCompare(labelled as never, lang), prices: Object.fromEntries(labelled.map((l) => [l.label, l.price])) });
   a.all_quotes = rosterOf(labelled as never, a.top3, new Set());
   a.total_quotes = qs.length;
   const g = generaliseDeep(a, allCtx);

@@ -1,5 +1,8 @@
 import { arAttr } from '../trade_glossary_ar.ts';
 import { FIT_METHOD_AR, FIT_METHOD_EN, METHOD_NOTE_AR, METHOD_NOTE_EN } from '../../quote_compare/deterministic.ts';
+// The model path's method (review item 4): the adviser weighs value for money; the fit rule is enforced on its ranking.
+const FIT_METHOD_MODEL_EN = 'Our adviser weighs what each price buys against your request; a quote that fails a requirement you stated is never placed above one that meets them all.';
+const FIT_METHOD_MODEL_AR = 'يوازن مستشارنا بين ما يشتريه كل سعر وما طلبته؛ ولا يتقدّم عرض لا يستوفي متطلبًا ذكرته على عرض يستوفيها جميعًا.';
 import { aedRange } from '../money.ts';
 import { NOT_RESPONSIBLE, priceStated } from '../stated_price.ts';
 import { type InquiryRow, type TechTerm, arrOf, clipCell, jobNoOf } from './rows.ts';
@@ -62,22 +65,40 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
     // deno-lint-ignore no-explicit-any
     // With his requirements the date is a yes / no and delivery carries no score (delivery_score null).
     const scored = top.map((t: any) => arrOf(a.quotes).find((q: any) => q.label === t.label)).filter((q: any) => q && [q.price_score, q.quality_score, ...(fit && q.delivery_score == null ? [] : [q.delivery_score])].every((x: unknown) => Number(x) > 0));
-    if (scored.length && fit) {
+    // deno-lint-ignore no-explicit-any
+    const fitRows = fit ? top.filter((t: any) => fitOf(t.label)) : [];
+    if (fit && fitRows.length) {
       // PROPORTIONAL SCORES AND THE DATE AS A YES / NO (15 Nov 2026, journey A: 5/3/1 for AED 12,279 / 15,750 / 18,855, and a
-      // delivery score although every quote met his date).
+      // delivery score although every quote met his date). ON BOTH PATHS the date answer and the "meets your request" score are
+      // read from request_fit, never from the model's integer scores (review item 4: the model path printed "Done by your date:
+      // Not stated" for three quotes that all met it, and "9 of 13 (5.0 / 5)"). The price score and the overall are the rules
+      // ranking's on the rules path; on the model path the price score is the adviser's value-for-money judgement and there is
+      // no computed overall, and the note under the table says which.
+      const rulesPath = a.engine === 'deterministic';
       const dateReq = arrOf(fit.requirements).find((r: { code: string }) => r.code === 'date');
-      blocks.push({ t: 'table', head: ['#', T('Supplier', 'المورّد'), T('Price score', 'درجة السعر'), T('Meets your request', 'استيفاء طلبك'), dateReq ? T('Done by your date', 'الإنجاز بحلول موعدك') : T('Delivery', 'التسليم'), T('Overall', 'الإجمالي')],
+      const head = ['#', T('Supplier', 'المورّد'), T('Price score', 'درجة السعر'), T('Meets your request', 'استيفاء طلبك'), dateReq ? T('Done by your date', 'الإنجاز بحلول موعدك') : T('Delivery', 'التسليم'), ...(rulesPath ? [T('Overall', 'الإجمالي')] : [])];
+      blocks.push({ t: 'table', head,
         // deno-lint-ignore no-explicit-any
-        rows: scored.map((q: any, i: number) => {
-          const f = fitOf(q.label);
-          const overall = Math.round((q.delivery_score == null ? q.price_score * 0.5 + q.quality_score * 0.5 : q.price_score * 0.4 + q.quality_score * 0.4 + q.delivery_score * 0.2) * 10) / 10;
-          const date: Cell = q.meets_date === true ? { text: T('Yes', 'نعم'), flag: 'match' } : q.meets_date === false ? { text: T('No', 'لا'), flag: 'differs' } : (dateReq ? { text: T('Not stated', 'غير مذكور'), flag: 'missing' } : String(q.delivery_score ?? '—'));
-          return [String(i + 1), linked(k.label(q.label), idOf.get(String(q.label)), { bold: true }), `${Number(q.price_score).toFixed(1)} / 5`,
-            f ? { text: T(`${f.met} of ${f.total} (${Number(q.quality_score).toFixed(1)} / 5)`, `${f.met} من ${f.total} (${Number(q.quality_score).toFixed(1)} / 5)`), ...(f.hard_fails.length ? { flag: 'differs' as const } : {}) } : `${q.quality_score} / 5`,
-            date, { text: `${overall.toFixed(1)} / 5`, bold: true }];
-        }), widths: [0.06, 0.2, 0.16, 0.24, 0.18, 0.16], align: ['c', 's', 'e', 's', 's', 'e'], zebra: true });
-      blocks.push({ t: 'note', text: T('Price scores 5 × the lowest price ÷ this price, so the scores keep the real gaps between prices. "Meets your request" scores 5 × the share of your requirements the quote meets; one it does not state counts half. Overall weighs price and your requirements equally. A quote that fails a requirement you stated is placed after every quote that meets them all.',
-        'درجة السعر = 5 × أدنى سعر ÷ هذا السعر، فتبقى الفروق الحقيقية بين الأسعار. ودرجة "استيفاء طلبك" = 5 × نسبة متطلباتك التي يستوفيها العرض، ويُحتسب ما لا يذكره بنصف درجة. والإجمالي يوازن بين السعر ومتطلباتك بالتساوي. ولا يتقدّم عرض لا يستوفي متطلبًا ذكرته على عرض يستوفيها جميعًا.') });
+        rows: fitRows.map((t: any, i: number) => {
+          const f = fitOf(t.label);
+          // deno-lint-ignore no-explicit-any
+          const q: any = arrOf(a.quotes).find((x: any) => x.label === t.label) ?? {};
+          const fitScore = f.score != null ? Number(f.score) : null;
+          const price = Number(q.price_score) > 0 ? Number(q.price_score) : null;
+          const del = Number(q.delivery_score) > 0 ? Number(q.delivery_score) : null;
+          const date: Cell = dateReq
+            ? (f.meets_date === true ? { text: T('Yes', 'نعم'), flag: 'match' } : f.meets_date === false ? { text: T('No', 'لا'), flag: 'differs' } : { text: T('Not stated', 'غير مذكور'), flag: 'missing' })
+            : (del != null ? `${rulesPath ? del.toFixed(1) : del} / 5` : '—');
+          const overall = rulesPath && price != null && fitScore != null ? Math.round((dateReq || del == null ? price * 0.5 + Math.max(1, fitScore) * 0.5 : price * 0.4 + Math.max(1, fitScore) * 0.4 + del * 0.2) * 10) / 10 : null;
+          return [String(i + 1), linked(k.label(t.label), idOf.get(String(t.label)), { bold: true }), price != null ? `${rulesPath ? price.toFixed(1) : price} / 5` : '—',
+            { text: T(`${f.met} of ${f.total}${fitScore != null ? ` (${fitScore.toFixed(1)} / 5)` : ''}`, `${f.met} من ${f.total}${fitScore != null ? ` (${fitScore.toFixed(1)} / 5)` : ''}`), ...(arrOf(f.hard_fails).length ? { flag: 'differs' as const } : {}) },
+            date, ...(rulesPath ? [{ text: overall != null ? `${overall.toFixed(1)} / 5` : '—', bold: true }] : [])];
+        }), widths: rulesPath ? [0.06, 0.2, 0.16, 0.24, 0.18, 0.16] : [0.06, 0.24, 0.2, 0.28, 0.22], align: rulesPath ? ['c', 's', 'e', 's', 's', 'e'] : ['c', 's', 'e', 's', 's'], zebra: true });
+      blocks.push({ t: 'note', text: rulesPath
+        ? T('Price scores 5 × the lowest price ÷ this price, so the scores keep the real gaps between prices. "Meets your request" scores 5 × the share of your requirements the quote meets; one it does not state counts half. Overall weighs price and your requirements equally. A quote that fails a requirement you stated is placed after every quote that meets them all, and one that leaves a requirement unstated after every quote that states it meets them.',
+          'درجة السعر = 5 × أدنى سعر ÷ هذا السعر، فتبقى الفروق الحقيقية بين الأسعار. ودرجة "استيفاء طلبك" = 5 × نسبة متطلباتك التي يستوفيها العرض، ويُحتسب ما لا يذكره بنصف درجة. والإجمالي يوازن بين السعر ومتطلباتك بالتساوي. ولا يتقدّم عرض لا يستوفي متطلبًا ذكرته على عرض يستوفيها جميعًا، ولا عرض يغفل ذكر متطلب على عرض يذكر أنه يستوفيها.')
+        : T('The price score is our adviser\'s judgement of value for money against the other shortlisted quotes, from 1 to 5 (5 is best): what the price buys, not only the lowest number. "Meets your request" counts the requirements you stated that each quote meets, and scores 5 × that share; one it does not state counts half. A quote that fails a requirement you stated is placed after every quote that meets them all, and one that leaves a requirement unstated after every quote that states it meets them.',
+          'درجة السعر تقدير مستشارنا للقيمة مقابل السعر مقارنةً ببقية العروض المختصرة، من 1 إلى 5 (5 الأفضل): ما يشتريه السعر لا أدنى رقم فحسب. و"استيفاء طلبك" يعدّ متطلباتك التي يستوفيها كل عرض، ودرجته = 5 × تلك النسبة، ويُحتسب ما لا يذكره بنصف درجة. ولا يتقدّم عرض لا يستوفي متطلبًا ذكرته على عرض يستوفيها جميعًا، ولا عرض يغفل ذكر متطلب على عرض يذكر أنه يستوفيها.') });
     } else if (scored.length) {
       blocks.push({ t: 'scores', head: [T('Price', 'السعر'), T('Completeness', 'الاكتمال'), T('Delivery', 'التسليم'), T('Overall', 'الإجمالي')],
         // deno-lint-ignore no-explicit-any
@@ -89,7 +110,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
   // 2 — Method and what is assessed
   section('Method and scope of assessment', 'المنهجية ونطاق التقييم');
   blocks.push({ t: 'p', text: fit
-    ? T(`${PREPARED_BY.en} from the ${received} quotes submitted on your request. Each quote is measured against the ${fit.requirements.length} requirements you stated. ${FIT_METHOD_EN}`, `${PREPARED_BY.ar} استنادًا إلى العروض الـ${received} المقدّمة على طلبك. قيس كل عرض بالمتطلبات الـ${fit.requirements.length} التي ذكرتها. ${FIT_METHOD_AR}`)
+    ? T(`${PREPARED_BY.en} from the ${received} quotes submitted on your request. Each quote is measured against the ${fit.requirements.length} requirements you stated. ${a.engine === 'deterministic' ? FIT_METHOD_EN : FIT_METHOD_MODEL_EN}`, `${PREPARED_BY.ar} استنادًا إلى العروض الـ${received} المقدّمة على طلبك. قيس كل عرض بالمتطلبات الـ${fit.requirements.length} التي ذكرتها. ${a.engine === 'deterministic' ? FIT_METHOD_AR : FIT_METHOD_MODEL_AR}`)
     : T(`${PREPARED_BY.en} from the ${received} quotes submitted on your request. Quotes are ranked on the figures each supplier stated: price, completeness, lead time, warranty and payment terms.`,
     `${PREPARED_BY.ar} استنادًا إلى العروض الـ${received} المقدّمة على طلبك. رُتّبت العروض وفق الأرقام التي ذكرها كل مورّد: السعر، واكتمال العرض، ومدة التنفيذ، والضمان، وشروط الدفع.`) });
   blocks.push({ t: 'p', text: tech
@@ -235,16 +256,19 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
     blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('What to know before you choose', 'ما يجب معرفته قبل الاختيار')], rows: risk, widths: [0.2, 0.8] });
   }
 
-  // 7 — What to clarify before the reveal (15 Nov 2026, journey A: nothing told him what to settle before paying the fee)
+  // 7 — POINTS QUOTESDONE SETTLES WITH THE SUPPLIER FOR YOU (founder, 14 Sep 2026: before the reveal the customer never puts a
+  // question to a supplier, and nothing tells him to; review item 6 of 15 Nov 2026). Each point is put to that supplier by our
+  // sales engineer in the quotation conversation he already has with them (supplier_api quote_review_flow, quote_review_request),
+  // with the customer's identity hidden; the answer joins this comparison. The customer is told what is open, never asked to act.
   if (fit) {
     const asks: Cell[][] = [];
     // deno-lint-ignore no-explicit-any
     for (const q of qs) { const f = fitOf(q.label); arrOf(f?.asks).forEach((x: any, i: number) => asks.push([i === 0 ? { text: k.label(q.label), bold: true } : '', bi(x)])); }
     if (asks.length) {
-      section('Ask before you reveal', 'ما تسأل عنه قبل الكشف');
-      blocks.push({ t: 'p', text: T('Each quotation leaves these points open. You can put them to the suppliers from your request in your QuotesDone portal before you reveal, with your identity hidden; once you reveal, have the supplier confirm them in writing before you sign.',
-        'يترك كل عرض هذه النقاط مفتوحة. يمكنك طرحها على المورّدين من طلبك في بوابة QuotesDone قبل الكشف، مع بقاء هويتك مخفية؛ وبعد الكشف، اطلب من المورّد تأكيدها كتابيًا قبل التوقيع.'), muted: true });
-      blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('Ask', 'اسأل')], rows: asks, widths: [0.2, 0.8] });
+      section('Points QuotesDone settles with the supplier for you', 'نقاط تتولاها QuotesDone مع المورّد نيابةً عنك');
+      blocks.push({ t: 'p', text: T('Each quotation leaves these points open. Our sales engineer puts each one to that supplier in writing, with your identity hidden, and the answer is added to this comparison. You do not need to contact anyone.',
+        'يترك كل عرض هذه النقاط مفتوحة. يطرح مهندس المبيعات لدينا كل نقطة على المورّد المعني كتابةً، مع بقاء هويتك مخفية، وتُضاف الإجابة إلى هذه المقارنة. لا يلزمك التواصل مع أحد.'), muted: true });
+      blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('Open point', 'النقطة المفتوحة')], rows: asks, widths: [0.2, 0.8] });
     }
   }
 

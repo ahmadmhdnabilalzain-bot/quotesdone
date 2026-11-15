@@ -33,6 +33,8 @@
 // Prevented by: _shared/request_fit.test.ts (journey A's three quotations, failing on main) and its PDF text snapshot.
 import { brandFact, genericBrand, TIER_RANK, tierOf, type Tier } from './quote_generalise.ts';
 import { deliveryOf, warrantyPeriod } from './line_specs/assess.ts';
+import { tradeOfCategory } from './line_specs/model.ts';
+import { arDuration } from './quote_documents/arabic.ts';
 
 export type Bi = { en: string; ar: string };
 export type FitStatus = 'meets' | 'differs' | 'not_stated';
@@ -40,17 +42,22 @@ export type Requirement = {
   code: string; hard: boolean; label: Bi; asked: Bi;
   brands?: string[]; tier?: Tier | null; refrigerants?: string[]; capacities?: { tr: number; qty: number }[];
   units?: number | null; tr?: number | null; subitems?: string[]; metres?: number | null; date?: string; months?: number; words?: string[];
+  /** "Schneider or ABB or equivalent": a brand he did not name passes when it is an equivalent (same tier or better). */
+  equivalent?: boolean;
 };
+/** A point the quote leaves open: what the customer reads (en / ar), and the same point put to the supplier, in English. */
+export type Ask = Bi & { supplier: string };
 export type FitCell = { status: FitStatus; shown: Bi };
 export type FitFail = { code: string; noun: Bi; detail: Bi };
 export type QuoteFit = {
   cells: Record<string, FitCell>; met: number; total: number; score: number | null;
-  hard_fails: FitFail[]; hard_open: { code: string; label: Bi }[]; asks: Bi[];
-  brand: { listed: boolean | null; generic: Bi | null }; meets_date: boolean | null;
+  hard_fails: FitFail[]; hard_open: { code: string; label: Bi }[]; asks: Ask[];
+  /** hidden: the brand is one he named and saying its tier and origin would name it (ledger 1588), so generic is null. */
+  brand: { listed: boolean | null; generic: Bi | null; hidden?: boolean }; meets_date: boolean | null;
 };
 export type RequestIn = { category?: string | null; summary?: string | null; raw_input?: unknown; spec?: unknown };
 export type FitLine = { line_no?: number | null; line?: number | null; description?: string | null; brand?: string | null; model?: string | null; specification?: string | null; qty?: number | string | null; unit?: string | null; notes?: string | null; spec?: Record<string, unknown> | null };
-export type FitQuote = { lead_time?: string | null; warranty?: string | null; scope?: string | null; exclusions?: string | null; conditions?: string | null; notes?: string | null;
+export type FitQuote = { lead_time?: string | null; /** the lead time as the customer may read it (generalised), for the date cell */ lead_time_shown?: string | null; warranty?: string | null; scope?: string | null; exclusions?: string | null; conditions?: string | null; notes?: string | null;
   // deno-lint-ignore no-explicit-any
   terms_spec?: any };
 
@@ -107,11 +114,20 @@ const refrigerantsIn = (text: unknown) => [...new Set([...S(text).matchAll(/\bR[
 // The request.
 // ---------------------------------------------------------------------------------------------
 const INTERNAL = new Set(['customer_requirements', 'boq_check', 'site_location', 'old_supplier_terms', 'site_keys', 'service_keys', 'trade_codes', 'checklist_topics', 'provenance', 'spec_evidence']);
+// WHAT IS NOT HIS REQUIREMENT FOR WHAT THE SUPPLIER SUPPLIES (independent review of 15 Nov 2026, item 3, against the live
+// trade_spec_checklist keys): "spec_existing_make: Otis" is the lift he has, "spec_vehicle_make_model_and_year: Toyota" the car
+// a part is for, "existing_warranty: ended 3 years ago" a fact about the old installation, and a survey key what a visit found.
+// None is read as a requirement. Nor is an answer that puts a thing out of scope ("Inverter not in scope", "No").
+const NOT_A_REQUEST_KEY = /(?:^|_)(?:existing|current|present|previous|vehicle|survey|surveyed)(?:_|$)/i;
+const NEGATED = /\b(?:not\s+(?:in\s+(?:the\s+)?scope|needed|required|included|wanted|applicable|part\s+of)|out\s+of\s+scope|excluded|by\s+others|n\/a)\b|^\s*(?:no|none|nil)\b|غير\s+مطلوب|خارج\s+النطاق|لا\s+يلزم/i;
 function specValues(spec: unknown): [string, string][] {
   if (!spec || typeof spec !== 'object') return [];
-  return Object.entries(spec as Record<string, unknown>).filter(([k, v]) => !INTERNAL.has(k) && (typeof v === 'string' || typeof v === 'number')).map(([k, v]) => [k, S(v)] as [string, string]).filter(([, v]) => v !== '');
+  return Object.entries(spec as Record<string, unknown>).filter(([k, v]) => !INTERNAL.has(k) && !NOT_A_REQUEST_KEY.test(k) && (typeof v === 'string' || typeof v === 'number')).map(([k, v]) => [k, S(v)] as [string, string]).filter(([, v]) => v !== '' && !NEGATED.test(v));
 }
 const keyed = (vals: [string, string][], re: RegExp) => vals.filter(([k]) => re.test(k)).map(([, v]) => v);
+// snake_case keys: a word is delimited by "_" or the ends, never matched inside another word ("makeup", "unmake").
+const BRAND_KEY = /(?:^|_)(?:brands?|makes?|manufacturers?)(?:_|$)/i;
+const OR_EQUIVALENT = /\bor\s+(?:an?\s+)?(?:approved\s+)?(?:equivalent|equal|similar)\b|\bor\s+equiv\b|أو\s+(?:ما\s+)?(?:يعادل|يعادلها|مكافئ)/i;
 const SUBITEMS: { key: string; re: RegExp; en: string; ar: string }[] = [
   { key: 'coil', re: /\bcoils?\b/i, en: 'coils', ar: 'الملفات' },
   { key: 'filter', re: /\bfilters?\b/i, en: 'filters', ar: 'الفلاتر' },
@@ -125,68 +141,83 @@ export function requestRequirements(inq: RequestIn): Requirement[] {
   // deno-lint-ignore no-explicit-any
   const cr: any = spec.customer_requirements && typeof spec.customer_requirements === 'object' ? spec.customer_requirements : {};
   const vals = specValues(spec);
+  // The HVAC readers (inverter, refrigerant, TR capacities, removal of the old units, the ducted service, copper, isolators)
+  // read HVAC checklist keys. In another trade the same words name something else ("waste removal" on a demolition, the pipe
+  // material of a fire-fighting job, "capacity: 200 Ah" of a battery), so they run on an HVAC request only.
+  const hvac = tradeOfCategory(inq?.category ?? null) === 'hvac';
   const out: Requirement[] = [];
 
   // BRANDS: every make the customer named (the trade checklist's brand answer, or a material answer in his own words).
-  const brandText = [...keyed(vals, /brand|make|manufacturer/i), ...((cr.materials || []) as { component?: string; choice?: string; note?: string }[])
-    .filter((m) => /brand/i.test(S(m?.component)) && m?.choice === 'other').map((m) => S(m.note))].join(' · ');
+  const brandVals = [...keyed(vals, BRAND_KEY), ...((cr.materials || []) as { component?: string; choice?: string; note?: string }[])
+    .filter((m) => /brand/i.test(S(m?.component)) && m?.choice === 'other' && !NEGATED.test(S(m.note))).map((m) => S(m.note))];
+  const brandText = brandVals.join(' · ');
   const brands = brandsIn(brandText);
+  // "Schneider or ABB or equivalent": a list he is open to beyond, so an equivalent brand passes and none fails hard.
+  const equivalent = OR_EQUIVALENT.test(brandText);
   // deno-lint-ignore no-explicit-any
   const tierAnswer: any = ((cr.materials || []) as any[]).find((m) => /brand/i.test(S(m?.component)) && ['premium', 'mid', 'economy'].includes(S(m?.choice)));
   if (brands.length) {
-    out.push({ code: 'brand_list', hard: true, label: bi('Brand', 'العلامة التجارية'), brands,
-      asked: brands.length === 1 ? bi('The brand you named', 'العلامة التي سمّيتها') : bi(`One of the ${brands.length} brands you named`, `إحدى العلامات الـ${brands.length} التي سمّيتها`) });
+    out.push({ code: 'brand_list', hard: !equivalent, equivalent, label: bi('Brand', 'العلامة التجارية'), brands,
+      asked: equivalent
+        ? (brands.length === 1 ? bi('The brand you named, or an equivalent', 'العلامة التي سمّيتها أو ما يعادلها') : bi(`One of the ${brands.length} brands you named, or an equivalent`, `إحدى العلامات الـ${brands.length} التي سمّيتها أو ما يعادلها`))
+        : (brands.length === 1 ? bi('The brand you named', 'العلامة التي سمّيتها') : bi(`One of the ${brands.length} brands you named`, `إحدى العلامات الـ${brands.length} التي سمّيتها`)) });
   } else if (tierAnswer) {
     const tier: Tier = tierAnswer.choice === 'mid' ? 'mid-range' : tierAnswer.choice;
     out.push({ code: 'brand_tier', hard: false, label: bi('Brand tier', 'فئة العلامة التجارية'), tier, asked: bi(S(tierAnswer.choice_en) || tier, S(tierAnswer.choice_ar) || tier) });
   }
 
-  // PRODUCT: inverter, refrigerant, units and capacity.
-  const inv = keyed(vals, /inverter/i).join(' ');
-  if (/inverter|إنفرتر|انفرتر/i.test(inv) && !/fixed|non[- ]?inverter|ثابت/i.test(inv)) out.push({ code: 'inverter', hard: true, label: bi('Inverter units', 'وحدات إنفرتر'), asked: bi('Inverter', 'إنفرتر') });
-  const refrigerants = refrigerantsIn(keyed(vals, /refrigerant/i).join(' '));
-  if (refrigerants.length) out.push({ code: 'refrigerant', hard: true, label: bi('Refrigerant', 'غاز التبريد'), refrigerants, asked: bi(refrigerants.join(' or '), refrigerants.join(' أو ')) });
-  const capText = keyed(vals, /capacity/i).join(' ; ');
+  // PRODUCT (HVAC): inverter, refrigerant, units and capacity.
   const capacities: { tr: number; qty: number }[] = []; let serviceTr: number | null = null;
-  for (const seg of capText.split(/[;\n]+/)) {
-    const service = /duct|servic|صيانة/i.test(seg);
-    for (const m of seg.matchAll(/(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(?:tr|tons?|طن)/gi)) {
-      if (service) { serviceTr = Number(m[2]); continue; }
-      const tr = Number(m[2]); const c = capacities.find((x) => x.tr === tr); if (c) c.qty += Number(m[1]); else capacities.push({ tr, qty: Number(m[1]) });
+  if (hvac) {
+    const inv = keyed(vals, /inverter/i).join(' ');
+    if (/inverter|إنفرتر|انفرتر/i.test(inv) && !/fixed|non[- ]?inverter|ثابت/i.test(inv)) out.push({ code: 'inverter', hard: true, label: bi('Inverter units', 'وحدات إنفرتر'), asked: bi('Inverter', 'إنفرتر') });
+    const refrigerants = refrigerantsIn(keyed(vals, /refrigerant/i).join(' '));
+    if (refrigerants.length) out.push({ code: 'refrigerant', hard: true, label: bi('Refrigerant', 'غاز التبريد'), refrigerants, asked: bi(refrigerants.join(' or '), refrigerants.join(' أو ')) });
+    const capText = keyed(vals, /capacity/i).join(' ; ');
+    for (const seg of capText.split(/[;\n]+/)) {
+      const service = /duct|servic|صيانة/i.test(seg);
+      for (const m of seg.matchAll(/(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(?:tr|tons?|طن)/gi)) {
+        if (service) { serviceTr = Number(m[2]); continue; }
+        const tr = Number(m[2]); const c = capacities.find((x) => x.tr === tr); if (c) c.qty += Number(m[1]); else capacities.push({ tr, qty: Number(m[1]) });
+      }
+    }
+    if (capacities.length) {
+      out.push({ code: 'capacity', hard: true, label: bi('Units and capacity', 'عدد الوحدات وقدرتها'), capacities,
+        asked: bi(capacities.map((c) => `${c.qty} × ${trFmt(c.tr)}`).join(' and '), capacities.map((c) => `${c.qty} × ${trFmt(c.tr, true)}`).join(' و')) });
     }
   }
-  const splitUnits = capacities.length ? capacities.reduce((s, c) => s + c.qty, 0) : num(keyed(vals, /split_unit_count/i)[0]);
-  if (capacities.length) {
-    out.push({ code: 'capacity', hard: true, label: bi('Units and capacity', 'عدد الوحدات وقدرتها'), capacities,
-      asked: bi(capacities.map((c) => `${c.qty} × ${trFmt(c.tr)}`).join(' and '), capacities.map((c) => `${c.qty} × ${trFmt(c.tr, true)}`).join(' و')) });
-  }
+  const splitUnits = capacities.length ? capacities.reduce((s, c) => s + c.qty, 0) : hvac ? num(keyed(vals, /split_unit_count/i)[0]) : null;
 
-  // SCOPE: supply and installation, removal of the old units, the service of existing units, copper, isolators.
+  // SCOPE: supply and installation (any trade, from the keyed answer); for HVAC the removal of the old units, the service
+  // of existing units, copper and isolators.
   if (S(cr.installation?.required) === 'yes' || cr.installation?.required === true) out.push({ code: 'installation', hard: true, label: bi('Supply and installation', 'التوريد والتركيب'), asked: bi('Supply and install', 'توريد وتركيب') });
-  const removal = keyed(vals, /removal|remove|dispos/i).join(' ');
-  if (removal && !/^(?:no|none|not needed|keep)\b/i.test(removal)) {
-    out.push({ code: 'removal', hard: true, label: bi('Remove and dispose of the old units', 'فك الوحدات القديمة والتخلص منها'), units: splitUnits ?? null,
-      asked: splitUnits ? bi(`All ${splitUnits} old units`, `جميع الوحدات القديمة (${splitUnits})`) : bi('Yes', 'نعم') });
+  if (hvac) {
+    // The old units he replaces, never "waste removal" or debris (a key about waste is not about his old units).
+    const removal = vals.filter(([k]) => /removal|remove|dispos/i.test(k) && !/waste|debris|rubble|garbage|trash/i.test(k)).map(([, v]) => v).join(' ');
+    if (removal) {
+      out.push({ code: 'removal', hard: true, label: bi('Remove and dispose of the old units', 'فك الوحدات القديمة والتخلص منها'), units: splitUnits ?? null,
+        asked: splitUnits ? bi(`All ${splitUnits} old units`, `جميع الوحدات القديمة (${splitUnits})`) : bi('Yes', 'نعم') });
+    }
+    const ductedCount = num(keyed(vals, /ducted_unit_count/i)[0]);
+    const serviceAsked = [inq?.summary, ...vals.map(([, v]) => v)].map(S).some((t) => /duct/i.test(t) && /servic/i.test(t));
+    if (serviceAsked) {
+      const own = [inq?.summary, typeof inq?.raw_input === 'string' ? inq.raw_input : '', ...vals.map(([, v]) => v)].map(S).join(' ');
+      const subitems = SUBITEMS.filter((s) => s.re.test(own)).map((s) => s.key);
+      const items = SUBITEMS.filter((s) => subitems.includes(s.key));
+      const head = (ar: boolean) => [ductedCount ? (ar ? `${ductedCount} وحدات` : `${ductedCount} units`) : '', serviceTr ? `(${trFmt(serviceTr, ar)})` : ''].filter(Boolean).join(' ');
+      out.push({ code: 'ducted_service', hard: true, label: bi('Service of the ducted units', 'صيانة وحدات الدكت'), units: ductedCount, tr: serviceTr, subitems,
+        asked: bi([head(false), items.map((s) => s.en).join(', ')].filter(Boolean).join(': ') || 'Yes', [head(true), items.map((s) => s.ar).join('، ')].filter(Boolean).join(': ') || 'نعم') });
+    }
+    const copper = keyed(vals, /copper/i).join(' ');
+    if (copper) {
+      const per = num(copper.match(/(\d+(?:\.\d+)?)\s*(?:m\b|metres?|meters?|م\b)/i)?.[1]);
+      const total = per && splitUnits ? per * splitUnits : null;
+      out.push({ code: 'copper', hard: false, label: bi('New copper pipe allowance', 'بدل أنابيب النحاس الجديدة'), metres: total,
+        asked: per ? bi(`Reuse the existing, or up to ${per} m new per unit${total ? ` (${total} m)` : ''}`, `إعادة استخدام الحالية، أو حتى ${per} م جديدة لكل وحدة${total ? ` (${total} م)` : ''}`) : bi('As stated in your request', 'كما ورد في طلبك') });
+    }
+    const iso = keyed(vals, /isolator/i).join(' ');
+    if (/isolator|power point|connect/i.test(iso)) out.push({ code: 'isolator', hard: false, label: bi('Connection to your existing isolators', 'التوصيل بمفاتيح العزل الموجودة'), asked: bi('Connect only; the isolators are in place', 'توصيل فقط؛ المفاتيح موجودة') });
   }
-  const ductedCount = num(keyed(vals, /ducted_unit_count/i)[0]);
-  const serviceAsked = [inq?.summary, ...vals.map(([, v]) => v)].map(S).some((t) => /duct/i.test(t) && /servic/i.test(t));
-  if (serviceAsked) {
-    const own = [inq?.summary, typeof inq?.raw_input === 'string' ? inq.raw_input : '', ...vals.map(([, v]) => v)].map(S).join(' ');
-    const subitems = SUBITEMS.filter((s) => s.re.test(own)).map((s) => s.key);
-    const items = SUBITEMS.filter((s) => subitems.includes(s.key));
-    const head = (ar: boolean) => [ductedCount ? (ar ? `${ductedCount} وحدات` : `${ductedCount} units`) : '', serviceTr ? `(${trFmt(serviceTr, ar)})` : ''].filter(Boolean).join(' ');
-    out.push({ code: 'ducted_service', hard: true, label: bi('Service of the ducted units', 'صيانة وحدات الدكت'), units: ductedCount, tr: serviceTr, subitems,
-      asked: bi([head(false), items.map((s) => s.en).join(', ')].filter(Boolean).join(': ') || 'Yes', [head(true), items.map((s) => s.ar).join('، ')].filter(Boolean).join(': ') || 'نعم') });
-  }
-  const copper = keyed(vals, /copper|pipe/i).join(' ');
-  if (copper) {
-    const per = num(copper.match(/(\d+(?:\.\d+)?)\s*(?:m\b|metres?|meters?|م\b)/i)?.[1]);
-    const total = per && splitUnits ? per * splitUnits : null;
-    out.push({ code: 'copper', hard: false, label: bi('New copper pipe allowance', 'بدل أنابيب النحاس الجديدة'), metres: total,
-      asked: per ? bi(`Reuse the existing, or up to ${per} m new per unit${total ? ` (${total} m)` : ''}`, `إعادة استخدام الحالية، أو حتى ${per} م جديدة لكل وحدة${total ? ` (${total} م)` : ''}`) : bi('As stated in your request', 'كما ورد في طلبك') });
-  }
-  const iso = keyed(vals, /isolator|electrical/i).join(' ');
-  if (/isolator|power point|connect/i.test(iso)) out.push({ code: 'isolator', hard: false, label: bi('Connection to your existing isolators', 'التوصيل بمفاتيح العزل الموجودة'), asked: bi('Connect only; the isolators are in place', 'توصيل فقط؛ المفاتيح موجودة') });
 
   // DATE and WARRANTY.
   const rb = cr.required_by;
@@ -226,6 +257,7 @@ export function warrantyParts(text: unknown): { install: number | null; compress
 // ---------------------------------------------------------------------------------------------
 // One quote against the requirements.
 // ---------------------------------------------------------------------------------------------
+const BRAND_AS_ASKED = bi('As you asked; the brand is shown after the reveal', 'كما طلبت؛ تظهر العلامة بعد الكشف');
 const YES = bi('Yes', 'نعم'), NO = bi('No', 'لا'), NOT_STATED = bi('Not stated', 'غير مذكور'), NOT_IN = bi('Not in this quote', 'غير مشمول في هذا العرض');
 const SUBJECT_TO_VISIT = /subject\s+to\s+(?:a\s+|the\s+)?site\s+(?:visit|survey|inspection)|after\s+(?:a\s+)?site\s+(?:visit|survey)|حسب\s+المعاينة|بعد\s+المعاينة/i;
 const FIRM_PRICE = /\b(?:fixed|firm|final)\s+(?:lump[- ]sum\s+)?price\b|\bno\s+site\s+visit\s+(?:needed|required)\b|site\s+visit\s+(?:done|completed|carried\s+out)/i;
@@ -240,7 +272,8 @@ export function fitQuote(reqs: Requirement[], input: { quote: FitQuote; lines: F
   const excl = S(q.exclusions);
   const all = [...lines.map(lineText), terms].join(' · ');
   const itemised = lines.length > 0;
-  const cells: Record<string, FitCell> = {}; const asks: Bi[] = []; const fails: FitFail[] = [];
+  const cells: Record<string, FitCell> = {}; const asks: Ask[] = []; const fails: FitFail[] = [];
+  const ask = (en: string, ar: string, supplier: string): Ask => ({ en, ar, supplier });
   let brand: QuoteFit['brand'] = { listed: null, generic: null }; let meetsDate: boolean | null = null;
   const set = (r: Requirement, status: FitStatus, shown: Bi, fail?: Bi) => { cells[r.code] = { status, shown }; if (status === 'differs' && r.hard) fails.push({ code: r.code, noun: lower(r.label), detail: fail ?? bi(`${shown.en}, against ${r.asked.en.toLowerCase()} you asked for`, `${shown.ar}، والمطلوب: ${r.asked.ar}`) }); };
 
@@ -254,9 +287,30 @@ export function fitQuote(reqs: Requirement[], input: { quote: FitQuote; lines: F
     switch (r.code) {
       case 'brand_list': {
         if (!quotedBrands.length) { set(r, 'not_stated', NOT_STATED); break; }
-        const listed = quotedBrands.every((b) => (r.brands || []).some((x) => x.toLowerCase() === b.toLowerCase()));
-        brand = { ...brand, listed };
-        set(r, listed ? 'meets' : 'differs', bi(`${listed ? 'Yes' : 'No'}: ${brand.generic!.en}`, `${listed ? 'نعم' : 'لا'}: ${brand.generic!.ar}`),
+        const named = (b: string) => (r.brands || []).some((x) => x.toLowerCase() === b.toLowerCase());
+        const listed = quotedBrands.every(named);
+        if (listed) {
+          // LEDGER 1588: NO BRAND REACHES THE CUSTOMER BEFORE THE REVEAL. "One of yours" plus the tier and origin names the make
+          // whenever his list has only one brand, or only one listed brand of that tier and origin (journey A: Gree is his only
+          // economy Chinese brand). Then the cell says only that the brand is as he asked, with no tier or origin.
+          const gen = (b: string) => genericBrand(b).en;
+          const identifies = (r.brands || []).length === 1 || quotedBrands.some((b) => (r.brands || []).filter((x) => gen(x) === gen(b)).length === 1);
+          if (identifies) brand.generic = null;
+          brand = { ...brand, listed: true, hidden: identifies };
+          set(r, 'meets', identifies ? BRAND_AS_ASKED : bi(`Yes: ${brand.generic!.en}`, `نعم: ${brand.generic!.ar}`));
+          break;
+        }
+        brand = { ...brand, listed: false };
+        if (r.equivalent) {
+          // "or equivalent": a brand of the same tier as the least of those he named (or better) is an equivalent and passes;
+          // one of a lower tier differs, softly (an "or equivalent" list is never a hard requirement).
+          const floor = (r.brands || []).map((b) => genericBrand(b).tier).filter(Boolean).map((t) => TIER_RANK[t as Tier]);
+          const tiers = quotedBrands.map((b) => genericBrand(b).tier);
+          const lower = floor.length && tiers.some((t) => t != null && TIER_RANK[t] < Math.min(...floor));
+          set(r, lower ? 'differs' : 'meets', bi(`${lower ? 'Lower tier' : 'An equivalent'}: ${brand.generic!.en}`, `${lower ? 'فئة أدنى' : 'ما يعادلها'}: ${brand.generic!.ar}`));
+          break;
+        }
+        set(r, 'differs', bi(`No: ${brand.generic!.en}`, `لا: ${brand.generic!.ar}`),
           bi(`its brand (${brand.generic!.en}) is not one of those you named`, `علامته (${brand.generic!.ar}) ليست من العلامات التي سمّيتها`));
         break;
       }
@@ -313,21 +367,25 @@ export function fitQuote(reqs: Requirement[], input: { quote: FitQuote; lines: F
         const missing = SUBITEMS.filter((s) => (r.subitems || []).includes(s.key) && !s.re.test(lineText(l)));
         if (missing.length) {
           set(r, 'not_stated', bi(`Priced; it does not mention the ${missing.map((s) => s.en).join(', ')}`, `مسعّرة؛ لا تذكر ${missing.map((s) => s.ar).join('، ')}`));
-          asks.push(bi(`Does the service of the ducted units include the ${missing.map((s) => s.en).join(' and ')}? You asked for them; the quote does not name them.`, `هل تشمل صيانة وحدات الدكت ${missing.map((s) => s.ar).join(' و')}؟ طلبتها ولا يذكرها العرض.`));
+          asks.push(ask(`Does the service of the ducted units include the ${missing.map((s) => s.en).join(' and ')}? You asked for them; the quote does not name them.`, `هل تشمل صيانة وحدات الدكت ${missing.map((s) => s.ar).join(' و')}؟ طلبتها ولا يذكرها العرض.`,
+            `The customer asked for the service of the ducted units to include the ${missing.map((s) => s.en).join(' and ')}. Please confirm whether your price includes them.`));
         } else set(r, 'meets', bi(`Yes${n != null ? `: ${n} units` : ''}${r.subitems?.length ? ', every item you listed' : ''}`, `نعم${n != null ? `: ${n} وحدات` : ''}${r.subitems?.length ? '، وكل ما ذكرته' : ''}`));
         break;
       }
       case 'copper': {
         const l = others.find((x) => /copper|pipe|piping|نحاس|أنابيب/i.test(lineText(x)));
         const m = l ? num(l.qty) : null;
-        if (!l) { set(r, 'not_stated', NOT_STATED); asks.push(bi(`Is new copper pipe included if the existing pipe cannot be reused? You allowed ${r.metres ? `up to ${r.metres} m` : 'for it'}.`, `هل تشمل الأسعار أنابيب نحاس جديدة إذا تعذّر استخدام الحالية؟ سمحت ${r.metres ? `بحتى ${r.metres} م` : 'بذلك'}.`)); }
-        else if (r.metres && m != null && m < r.metres) { set(r, 'differs', bi(`${m} m priced`, `${m} م مسعّرة`)); asks.push(bi(`It prices ${m} m of new copper pipe; you allowed up to ${r.metres} m. What does each further metre cost?`, `يسعّر ${m} م من أنابيب النحاس الجديدة، وسمحت بحتى ${r.metres} م. ما تكلفة كل متر إضافي؟`)); }
+        if (!l) { set(r, 'not_stated', NOT_STATED); asks.push(ask(`Is new copper pipe included if the existing pipe cannot be reused? You allowed ${r.metres ? `up to ${r.metres} m` : 'for it'}.`, `هل تشمل الأسعار أنابيب نحاس جديدة إذا تعذّر استخدام الحالية؟ سمحت ${r.metres ? `بحتى ${r.metres} م` : 'بذلك'}.`,
+          `The customer allows new copper pipe where the existing cannot be reused${r.metres ? ` (up to ${r.metres} m)` : ''}. Please confirm whether your price includes it, and the rate per further metre.`)); }
+        else if (r.metres && m != null && m < r.metres) { set(r, 'differs', bi(`${m} m priced`, `${m} م مسعّرة`)); asks.push(ask(`It prices ${m} m of new copper pipe; you allowed up to ${r.metres} m. What does each further metre cost?`, `يسعّر ${m} م من أنابيب النحاس الجديدة، وسمحت بحتى ${r.metres} م. ما تكلفة كل متر إضافي؟`,
+          `Your quotation prices ${m} m of new copper pipe; the customer allows up to ${r.metres} m. Please state the rate per further metre.`)); }
         else set(r, 'meets', bi(m != null ? `${m} m priced` : 'Priced', m != null ? `${m} م مسعّرة` : 'مسعّرة'));
         break;
       }
       case 'isolator': {
         if (/isolator|existing\s+power|connect\w*\s+to/i.test(all)) set(r, 'meets', YES);
-        else if (/electric/i.test(excl)) { set(r, 'not_stated', bi('Unclear: it excludes electrical works', 'غير واضح: يستثني الأعمال الكهربائية')); asks.push(bi('It excludes electrical works. Is connecting the new units to your existing isolators included?', 'يستثني العرض الأعمال الكهربائية. هل يشمل توصيل الوحدات الجديدة بمفاتيح العزل الموجودة؟')); }
+        else if (/electric/i.test(excl)) { set(r, 'not_stated', bi('Unclear: it excludes electrical works', 'غير واضح: يستثني الأعمال الكهربائية')); asks.push(ask('It excludes electrical works. Is connecting the new units to your existing isolators included?', 'يستثني العرض الأعمال الكهربائية. هل يشمل توصيل الوحدات الجديدة بمفاتيح العزل الموجودة؟',
+          'Your quotation excludes electrical works. The customer\'s isolators are in place; please confirm whether connecting the new units to them is included.')); }
         else set(r, 'not_stated', NOT_STATED);
         break;
       }
@@ -335,16 +393,23 @@ export function fitQuote(reqs: Requirement[], input: { quote: FitQuote; lines: F
         const lead = S(q.terms_spec?.delivery?.value) || S(q.lead_time);
         const d = lead ? deliveryOf(lead) : null;
         const at = d?.days != null ? new Date(input.now.getTime() + d.days * 864e5) : d?.date ? new Date(d.date) : null;
-        if (!at || isNaN(at.getTime())) { set(r, 'not_stated', NOT_STATED); meetsDate = null; asks.push(bi(`When will the work be done? You need it by ${dateEn(r.date!)}.`, `متى يُنجز العمل؟ تحتاجه بحلول ${dateAr(r.date!)}.`)); break; }
+        if (!at || isNaN(at.getTime())) { set(r, 'not_stated', NOT_STATED); meetsDate = null; asks.push(ask(`When will the work be done? You need it by ${dateEn(r.date!)}.`, `متى يُنجز العمل؟ تحتاجه بحلول ${dateAr(r.date!)}.`,
+          `The customer needs the work done by ${dateEn(r.date!)}. Please state your lead time.`)); break; }
         meetsDate = at.getTime() <= new Date(r.date! + 'T00:00:00Z').getTime() + 864e5;
-        set(r, meetsDate ? 'meets' : 'differs', bi(`${meetsDate ? 'Yes' : 'No'}: ${lead}`, `${meetsDate ? 'نعم' : 'لا'}: ${lead}`), bi(`it would finish around ${dateEn(at.toISOString())}, after your date of ${dateEn(r.date!)}`, `سينتهي نحو ${dateAr(at.toISOString())}، بعد موعدك ${dateAr(r.date!)}`));
+        // THE CELL CARRIES THE GENERALISED LEAD TIME (review item 8): the raw text can name a brand, a stock location or the
+        // supplier ("10 days, Daikin stock at ... warehouse"), and this cell reaches the model's payload. With no generalised
+        // text the cell says only the days; in Arabic it is Arabic ("5 أيام"), never the English words.
+        const shownEn = S(q.lead_time_shown) || (d?.days != null ? `${d.days} day${d.days === 1 ? '' : 's'}` : d?.date ? dateEn(d.date) : '');
+        const shownAr = arDuration(S(q.lead_time_shown)) ?? (d?.days != null ? arDuration(`${d.days} days`) : d?.date ? dateAr(d.date) : null) ?? '';
+        set(r, meetsDate ? 'meets' : 'differs', bi(`${meetsDate ? 'Yes' : 'No'}${shownEn ? `: ${shownEn}` : ''}`, `${meetsDate ? 'نعم' : 'لا'}${shownAr ? `: ${shownAr}` : ''}`), bi(`it would finish around ${dateEn(at.toISOString())}, after your date of ${dateEn(r.date!)}`, `سينتهي نحو ${dateAr(at.toISOString())}، بعد موعدك ${dateAr(r.date!)}`));
         break;
       }
       case 'warranty_installation':
       case 'warranty_compressor': {
         const w = warrantyParts([S(q.terms_spec?.warranty?.period), S(q.terms_spec?.warranty?.coverage), S(q.warranty)].filter(Boolean).join(' ; '));
         const got = r.code === 'warranty_compressor' ? w.compressor : w.install;
-        if (got == null) { set(r, 'not_stated', NOT_STATED); if (r.code === 'warranty_compressor') asks.push(bi(`What warranty does it give on the compressors? You asked for at least ${yearsEn(r.months!)}; the quote does not say.`, `ما مدة ضمان الضواغط؟ طلبت ${yearsAr(r.months!)} على الأقل، ولا يذكرها العرض.`)); break; }
+        if (got == null) { set(r, 'not_stated', NOT_STATED); if (r.code === 'warranty_compressor') asks.push(ask(`What warranty does it give on the compressors? You asked for at least ${yearsEn(r.months!)}; the quote does not say.`, `ما مدة ضمان الضواغط؟ طلبت ${yearsAr(r.months!)} على الأقل، ولا يذكرها العرض.`,
+          `The customer asked for at least ${yearsEn(r.months!)} of warranty on the compressors. Please state your compressor warranty.`)); break; }
         const ok = got >= r.months!;
         set(r, ok ? 'meets' : 'differs', bi(yearsEn(got), yearsAr(got)), bi(`${yearsEn(got)} against the ${yearsEn(r.months!)} you asked for`, `${yearsAr(got)}، والمطلوب ${yearsAr(r.months!)} على الأقل`));
         break;
@@ -355,8 +420,10 @@ export function fitQuote(reqs: Requirement[], input: { quote: FitQuote; lines: F
     }
   }
   // WHAT THE QUOTE LEAVES OPEN ON PRICE: a site visit the request names, or one the quote makes its price subject to.
-  if (SUBJECT_TO_VISIT.test([terms, excl].join(' '))) asks.unshift(bi('The price is subject to a site visit. What could change it after the visit?', 'السعر مشروط بمعاينة الموقع. ما الذي قد يغيّره بعد المعاينة؟'));
-  else if (input.site_visit && !FIRM_PRICE.test(terms)) asks.unshift(bi('Is this price final, or subject to the site visit your request mentions?', 'هل هذا السعر نهائي، أم مشروط بمعاينة الموقع التي ذكرها طلبك؟'));
+  if (SUBJECT_TO_VISIT.test([terms, excl].join(' '))) asks.unshift(ask('The price is subject to a site visit. What could change it after the visit?', 'السعر مشروط بمعاينة الموقع. ما الذي قد يغيّره بعد المعاينة؟',
+    'Your price is subject to a site visit. Please state what could change it after the visit.'));
+  else if (input.site_visit && !FIRM_PRICE.test(terms)) asks.unshift(ask('Is this price final, or subject to the site visit your request mentions?', 'هل هذا السعر نهائي، أم مشروط بمعاينة الموقع التي ذكرها طلبك؟',
+    'The request names a site visit before a final price. Please confirm whether your price is final or subject to that visit.'));
 
   const total = Object.keys(cells).length;
   const met = Object.values(cells).filter((c) => c.status === 'meets').length;
@@ -367,7 +434,8 @@ export function fitQuote(reqs: Requirement[], input: { quote: FitQuote; lines: F
 const lower = (b: Bi): Bi => ({ en: b.en.charAt(0).toLowerCase() + b.en.slice(1), ar: b.ar });
 /** Whether the request names a site visit before a final price (the trade checklist's site-visit answer). */
 export function siteVisitAsked(spec: unknown): boolean {
-  return specValues(spec).some(([k, v]) => /site_visit|survey/i.test(k) && !/^(?:no|not needed|none)\b/i.test(v));
+  // The checklist's site-visit answer only, and only when it says a visit is needed (a survey key is what a visit found).
+  return specValues(spec).some(([k, v]) => /(?:^|_)site_visits?(?:_|$)/i.test(k) && /need|requir|\byes\b|before|must|مطلوب|يلزم|نعم/i.test(v));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -418,71 +486,154 @@ export function recommendation(best: { label: string; price: number | null; fit:
 type RCell = { value?: string | null; flag: string; note?: string | null };
 type RTech = { suppliers: string[]; lines: { line_no?: number | null; item: string; qty?: unknown; unit?: unknown; attributes: { key: string; label?: string | null; unit?: string | null; requested?: string | null; values: Record<string, RCell> }[] }[];
   terms?: Record<string, { applicable?: boolean | null; requested?: string | null; values: Record<string, RCell> } | null> | null; scope_lines_dropped?: number };
+// Product attributes (brand, model, capacity, refrigerant, efficiency, origin) say what a PRODUCT is. On a service, removal,
+// piping or testing line they do not apply; every other attribute of such a line (a cleaning method, the products used, the
+// crew, a disposal route) is that line's specification and stays (review item 2: a cleaning job lost its whole table).
+const PRODUCT_ATTR = /^(?:brand|make|model|capacity(?:_\w+)?|\w*_capacity|refrigerant|efficiency|esma\w*|origin|country(?:_of_origin)?|inverter)$/i;
 export function annotateTechnical<T extends RTech>(t: T, reqs: Requirement[], fits: Record<string, QuoteFit>, trade: string | null, lang: 'en' | 'ar'): T {
   const ar = lang === 'ar';
+  const hvac = trade === 'hvac';
   const by = new Map(reqs.map((r) => [r.code, r]));
   const brandReq = by.get('brand_list') ?? by.get('brand_tier'); const cap = by.get('capacity'); const ref = by.get('refrigerant');
-  const kept = t.lines.filter((l) => isProductLine(l.item, trade));
-  const lines = kept.map((l) => {
-    const lineTr = trOf(l.item);
+  let dropped = 0;
+  const lines = t.lines.map((l) => {
+    const product = isProductLine(l.item, trade);
+    // A capacity in tons of refrigeration is an HVAC reading only (review item 1: "20 litres" and "48 V, 200 Ah" printed as TR).
+    const lineTr = hvac ? trOf(l.item) : null;
     // With no BOQ the row's title is the first quote's own line ("…; economy Chinese brand, made in China"), which reads as
     // what was asked. Where the request names this capacity, the row is titled by the request instead.
-    const asked = cap && lineTr != null && l.line_no == null ? (cap.capacities || []).find((c) => c.tr === lineTr) : null;
+    const asked = product && cap && lineTr != null && l.line_no == null ? (cap.capacities || []).find((c) => c.tr === lineTr) : null;
     const item = asked ? (ar ? `وحدات ${trFmt(asked.tr, true)}: طلبت ${asked.qty}` : `${trFmt(asked.tr)} units: you asked for ${asked.qty}`) : l.item;
-    const attributes = l.attributes.map((at) => {
-      const values: Record<string, RCell> = { ...at.values }; let requested = at.requested ?? null;
-      if (at.key === 'brand' && brandReq) {
-        requested = brandReq.asked[lang];
-        for (const s of Object.keys(values)) { const c = values[s]; const ok = fits[s]?.cells[brandReq.code]?.status; if (c.flag === 'na' || !c.value) continue; values[s] = { ...c, flag: ok === 'meets' ? 'match' : ok === 'differs' ? 'differs' : c.flag, note: brandReq.code === 'brand_list' && ok ? (ok === 'meets' ? (ar ? 'من علاماتك' : 'one you named') : (ar ? 'ليست من علاماتك' : 'not one you named')) : c.note ?? null }; }
-      }
-      if (at.key === 'capacity_tr' || /capacity/i.test(at.key)) {
-        const want = cap && lineTr != null && (cap.capacities || []).some((c) => c.tr === lineTr) ? lineTr : null;
-        if (want != null) requested = trFmt(want, ar);
-        for (const s of Object.keys(values)) { const c = values[s]; const n = num(c.value); if (c.flag === 'na' || n == null) continue; values[s] = { ...c, value: trFmt(n, ar), flag: want != null ? (n === want ? 'match' : 'differs') : c.flag }; }
-      }
-      if (at.key === 'refrigerant' && ref) {
-        requested = ref.asked[lang];
-        for (const s of Object.keys(values)) { const c = values[s]; const got = refrigerantsIn(c.value); if (c.flag === 'na' || !got.length) continue; values[s] = { ...c, flag: got.every((g) => (ref.refrigerants || []).includes(g)) ? 'match' : 'differs' }; }
-      }
-      return { ...at, requested, values };
-    }).filter((at) => Object.values(at.values).some((c) => c.flag !== 'na'));
+    const attributes = l.attributes
+      // On a line that is not a product, a product attribute does not apply: dropped in HVAC always (his brand, capacity and
+      // refrigerant are those of the new units), elsewhere unless his request states a value for it.
+      .filter((at) => product || !PRODUCT_ATTR.test(at.key) || (!hvac && !!at.requested))
+      .map((at) => {
+        const values: Record<string, RCell> = { ...at.values }; let requested = at.requested ?? null;
+        if (at.key === 'brand' && brandReq) {
+          requested = brandReq.asked[lang];
+          for (const s of Object.keys(values)) {
+            const c = values[s]; const f = fits[s]; const ok = f?.cells[brandReq.code]?.status; if (c.flag === 'na' || !c.value) continue;
+            // Ledger 1588: where the tier and origin would name the make he listed, the cell says only that it is as he asked.
+            if (f?.brand.hidden) { values[s] = { ...c, value: BRAND_AS_ASKED[lang], flag: 'match', note: null }; continue; }
+            values[s] = { ...c, flag: ok === 'meets' ? 'match' : ok === 'differs' ? 'differs' : c.flag, note: brandReq.code === 'brand_list' && ok ? (ok === 'meets' ? (brandReq.equivalent && f?.brand.listed === false ? (ar ? 'ما يعادل علاماتك' : 'an equivalent') : (ar ? 'من علاماتك' : 'one you named')) : (ar ? 'ليست من علاماتك' : 'not one you named')) : c.note ?? null };
+          }
+        }
+        if (/^(?:origin|country(?:_of_origin)?)$/i.test(at.key)) {
+          for (const s of Object.keys(values)) { const c = values[s]; if (fits[s]?.brand.hidden && c.flag !== 'na' && c.value) values[s] = { ...c, value: ar ? 'تظهر بعد الكشف' : 'Shown after the reveal', note: null }; }
+        }
+        if (hvac && (at.key === 'capacity_tr' || /capacity/i.test(at.key))) {
+          const want = cap && lineTr != null && (cap.capacities || []).some((c) => c.tr === lineTr) ? lineTr : null;
+          if (want != null) requested = trFmt(want, ar);
+          // The value is read as TR only where it says so ("24000 BTU" is 2.0 TR, never "24000.0 TR"); a bare number is TR only
+          // under the TR key itself. Anything else is left exactly as the supplier wrote it.
+          for (const s of Object.keys(values)) { const c = values[s]; if (c.flag === 'na') continue; const n = trOf(c.value) ?? (at.key === 'capacity_tr' && /^\s*\d+(?:\.\d+)?\s*$/.test(S(c.value)) ? num(c.value) : null); if (n == null) continue; values[s] = { ...c, value: trFmt(n, ar), flag: want != null ? (n === want ? 'match' : 'differs') : c.flag }; }
+        }
+        if (at.key === 'refrigerant' && ref) {
+          requested = ref.asked[lang];
+          for (const s of Object.keys(values)) { const c = values[s]; const got = refrigerantsIn(c.value); if (c.flag === 'na' || !got.length) continue; values[s] = { ...c, flag: got.every((g) => (ref.refrigerants || []).includes(g)) ? 'match' : 'differs' }; }
+        }
+        return { ...at, requested, values };
+      }).filter((at) => Object.values(at.values).some((c) => c.flag !== 'na'));
+    if (!product && !attributes.length) { dropped++; return null; }
     return { ...l, item, attributes };
-  });
+  }).filter((l): l is NonNullable<typeof l> => l !== null);
   const terms = t.terms ? { ...t.terms } : t.terms;
   if (terms?.warranty) { const ws = ['warranty_installation', 'warranty_compressor'].map((c) => by.get(c)).filter(Boolean) as Requirement[]; if (ws.length) terms.warranty = { ...terms.warranty, requested: ws.map((w) => (ws.length > 1 ? `${w.label[lang]}: ` : '') + w.asked[lang]).join(ar ? '؛ ' : '; ') }; }
   if (terms?.lead_time && by.get('date')) terms.lead_time = { ...terms.lead_time, requested: by.get('date')!.asked[lang] };
-  return { ...t, lines, terms, scope_lines_dropped: t.lines.length - kept.length };
+  return { ...t, lines, terms, scope_lines_dropped: dropped };
 }
 
 /** The request side as the analysis carries it: what was asked, quote by quote, with no raw brand anywhere. */
 export function fitView(reqs: Requirement[], rows: { label: string; quote_id: string | null; fit: QuoteFit }[]) {
   return {
     requirements: reqs.map((r) => ({ code: r.code, hard: r.hard, label: r.label, asked: r.asked })),
-    quotes: rows.map((x) => ({ label: x.label, quote_id: x.quote_id, ...x.fit })),
+    // the supplier's copy of each open point stays on the server (it goes to the sales engineer's conversation with that supplier)
+    quotes: rows.map((x) => ({ label: x.label, quote_id: x.quote_id, ...x.fit, asks: x.fit.asks.map(({ en, ar }) => ({ en, ar })) })),
   };
 }
 
 /**
+ * WHERE A QUOTE STANDS AGAINST WHAT HE ASKED FOR: 0 states that it meets every hard requirement; 1 fails none but leaves one or
+ * more unstated (a lump sum that says nothing never outranks a quote that states it meets them); 2 fails one. The rules ranking
+ * and enforceFit both order by it before anything else.
+ */
+export function fitTier(f: QuoteFit | null | undefined): number {
+  if (!f) return 1;
+  return f.hard_fails.length ? 2 : f.hard_open.length ? 1 : 0;
+}
+/** "Supplier A", "A", "supplier a", "Supplier A – Option 1", "المورّد A": one key, so a label the model wrote loosely still matches. */
+export function labelKey(l: unknown): string {
+  return S(l).toLowerCase().replace(/\bsupplier\b|المورّد|المورد/g, ' ').replace(/[^a-z0-9\u0600-\u06ff]+/g, ' ').trim();
+}
+type Ranked = { rank?: number; label: string; why?: string; tradeoff?: string };
+/**
  * ON ANY RANKING (the model's, a cached one, the rules'): a shortlisted quote that fails a hard requirement says so in its
- * catch, and is never first while a shortlisted quote meets every hard requirement. The rules ranking already orders this
- * way; this is the guarantee for the model's answer and for an analysis cached before this rule.
+ * catch, and the first place goes to the best quote of the best tier (fitTier) among ALL the quotes measured, shortlisted by
+ * the model or not (review item 5a). Labels are matched loosely (5b). When the first place changes, the model's prose that
+ * named the old first (bottom line, best-value reason, advice, the first row's why) is replaced from the enforced order, never
+ * prefixed (5c). `rules` is the rules ranking of the same quotes (deterministicCompare): it says which quote is best within a
+ * tier and gives a pulled-in quote its row; `prices` gives the recommendation its price difference.
  */
 // deno-lint-ignore no-explicit-any
-export function enforceFit(a: any, fits: Record<string, QuoteFit>, lang: 'en' | 'ar'): void {
-  if (!a || !Array.isArray(a.top3) || !a.top3.length) return;
+export function enforceFit(a: any, fits: Record<string, QuoteFit>, lang: 'en' | 'ar', opts: { rules?: { top3?: Ranked[]; quotes?: { label: string }[] } | null; prices?: Record<string, number | null> } = {}): void {
+  if (!a || !Array.isArray(a.top3) || !a.top3.length || !Object.keys(fits).length) return;
   const ar = lang === 'ar';
-  for (const t of a.top3) {
+  const byKey = new Map(Object.keys(fits).map((l) => [labelKey(l), l]));
+  // The model's labels, written back as ours ("A" -> "Supplier A"), so every later reader matches them exactly.
+  for (const t of a.top3 as Ranked[]) { const l = t && byKey.get(labelKey(t.label)); if (l) t.label = l; }
+  if (a.best_value_label != null) { const l = byKey.get(labelKey(a.best_value_label)); if (l) a.best_value_label = l; }
+  for (const t of a.top3 as Ranked[]) {
     const f = t && fits[String(t.label)]; if (!f || !f.hard_fails.length) continue;
     const s = ar ? `لا يستوفي طلبك: ${failText(f, 'ar')}.` : `Fails ${failText(f, 'en')}.`;
     if (!String(t.tradeoff || '').includes(s)) t.tradeoff = [s, String(t.tradeoff || '').trim()].filter(Boolean).join(' ');
   }
-  const first = a.top3[0]; const ff = fits[String(first?.label)];
-  if (!ff || !ff.hard_fails.length) return;
-  const passing = a.top3.filter((t: { label: string }) => fits[String(t.label)] && !fits[String(t.label)].hard_fails.length);
-  if (!passing.length) return;
-  const failing = a.top3.filter((t: { label: string }) => !passing.includes(t));
-  a.top3 = [...passing, ...failing].map((t: Record<string, unknown>, i: number) => ({ ...t, rank: i + 1 }));
-  a.best_value_label = a.top3[0].label;
-  const note = ar ? `نضع ${a.top3[0].label} أولًا: ${first.label} لا يستوفي ${failText(ff, 'ar')}.` : `We place ${a.top3[0].label} first: ${first.label} fails ${failText(ff, 'en')}.`;
-  a.bottom_line = [note, String(a.bottom_line || '')].filter(Boolean).join(' ');
+  const first: Ranked = a.top3[0];
+  const tierOf = (l: string) => fitTier(fits[l]);
+  // Best within a tier: the rules ranking's order (price and fit), then the model's own order, then the label.
+  const rulesOrder = [...(opts.rules?.top3 || []).map((t) => t.label), ...(opts.rules?.quotes || []).map((q) => q.label)];
+  const modelOrder = (a.top3 as Ranked[]).map((t) => t.label);
+  const place = (l: string) => { const r = rulesOrder.indexOf(l); const m = modelOrder.indexOf(l); return [r < 0 ? 1e6 : r, m < 0 ? 1e6 : m]; };
+  const candidates = Object.keys(fits).sort((x, y) => tierOf(x) - tierOf(y) || place(x)[0] - place(y)[0] || place(x)[1] - place(y)[1] || x.localeCompare(y));
+  const best = candidates[0];
+  // A label we did not measure (a held quote, a label the model invented) stands as "not stated".
+  const tierAt = (l: string) => (fits[l] ? tierOf(l) : 1);
+  if (!best || tierOf(best) >= tierAt(String(first?.label))) {
+    // The first place stands; within the shortlist a better-tier quote still goes above a worse one (a stable sort).
+    a.top3 = [...(a.top3 as Ranked[])].sort((x, y) => tierAt(x.label) - tierAt(y.label)).map((t, i) => ({ ...t, rank: i + 1 }));
+    return;
+  }
+  // The new order: the best quote first (its own row, or the rules ranking's row for it), then the rest by tier, keeping three.
+  const rulesRow = (l: string) => (opts.rules?.top3 || []).find((t) => t.label === l);
+  const head: Ranked = (a.top3 as Ranked[]).find((t) => t.label === best) ?? { ...(rulesRow(best) ?? { label: best, why: '', tradeoff: '' }) };
+  const rest = (a.top3 as Ranked[]).filter((t) => t.label !== best).sort((x, y) => tierAt(x.label) - tierAt(y.label));
+  a.top3 = [head, ...rest].slice(0, 3).map((t, i) => ({ ...t, rank: i + 1 }));
+  a.best_value_label = best;
+  // THE PROSE FOLLOWS THE ORDER. The recommendation is written from the fits and prices; the old first is named by what it fails.
+  const price = (l: string) => (opts.prices && opts.prices[l] != null ? Number(opts.prices[l]) : null);
+  const rec = recommendation({ label: best, price: price(best), fit: fits[best] }, Object.keys(fits).filter((l) => l !== best).map((l) => ({ label: l, price: price(l), fit: fits[l] })), lang);
+  const old = fits[String(first?.label)];
+  const why = old && old.hard_fails.length
+    ? (ar ? `نضع ${best} أولًا: ${first.label} لا يستوفي ${failText(old, 'ar')}.` : `We place ${best} first: ${first.label} fails ${failText(old, 'en')}.`)
+    : (ar ? `نضع ${best} أولًا: يذكر كل ما طلبته بوضوح، و${first?.label} لا يذكر ${old ? old.hard_open.map((x) => x.label.ar).join('، ') : 'كل ما طلبته'}.` : `We place ${best} first: it states everything you asked for, and ${first?.label} does not state ${old ? old.hard_open.map((x) => x.label.en.toLowerCase()).join(', ') : 'all of it'}.`);
+  a.bottom_line = `${why} ${rec.bottom}`.trim();
+  a.top3[0] = { ...a.top3[0], why: rec.why, tradeoff: [rec.trade, ...(fits[best]?.hard_fails.length ? [ar ? `لا يستوفي طلبك: ${failText(fits[best], 'ar')}.` : `Fails ${failText(fits[best], 'en')}.`] : [])].filter(Boolean).join(' ') };
+  a.best_value_reason = rec.why;
+  a.advice = ar
+    ? `رتّبنا العروض وفق ما طلبته: ${best} أولًا. تبقى العروض جميعها مدرجة، ولك أن تكشف أيًّا منها، وتتولى QuotesDone مع المورّد النقاط التي يتركها عرضه مفتوحة.`
+    : `We ranked the quotes on what you asked for: ${best} first. Every quote stays listed and you can reveal any of them; QuotesDone settles with the supplier the points its quote leaves open.`;
+}
+
+/**
+ * THE OPEN POINTS, PUT TO THE SUPPLIER BY QUOTESDONE (founder, 14 Sep 2026; review item 6). Before the reveal the customer
+ * never puts a question to a supplier. Each point a quote leaves open becomes a clarification in the quotation conversation
+ * the sales engineer already has with that supplier (supplier_api quote_review_flow: public.quote_review_request, kind
+ * 'clarification', open until the supplier answers), in English (suppliers read English, ruling 1008), with nothing that names
+ * the customer. `known` is every key already raised on that conversation, in any state: a point is raised once, never again on
+ * the next view of the comparison. Returns the rows to insert and the engineer's message that asks them (null when none).
+ */
+export function settleRequests(fit: QuoteFit | null | undefined, reviewId: string, known: Set<string>): { rows: { review_id: string; key: string; code: string; kind: 'clarification'; line_no: null; boq_line: null; attr: null; label_en: string; label_ar: string }[]; message: string | null } {
+  const fresh = (fit?.asks || []).map((x) => ({ x, key: 'comparison:' + x.supplier.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 80) })).filter(({ key }) => !known.has(key));
+  const rows = [...new Map(fresh.map((f) => [f.key, f])).values()].map(({ x, key }) => ({ review_id: reviewId, key, code: 'comparison_point', kind: 'clarification' as const, line_no: null, boq_line: null, attr: null, label_en: x.supplier, label_ar: x.supplier }));
+  return { rows, message: rows.length ? ['The customer is comparing the quotations on this request. Please answer these points on your quotation:', ...rows.map((r) => `- ${r.label_en}`)].join('\n') : null };
 }

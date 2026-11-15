@@ -22,7 +22,7 @@
 // one.
 
 import { notesAsLists, reviewPenalty, type ReviewNote } from '../_shared/quote_review_notes.ts';
-import { failText, metText, recommendation, type QuoteFit } from '../_shared/request_fit.ts';
+import { failText, fitTier, metText, recommendation, type QuoteFit } from '../_shared/request_fit.ts';
 
 export type Labelled = {
   label: string; price: number | null; lead_time?: string | null; validity?: string | null;
@@ -238,6 +238,9 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
         ? (delivery_score === null ? price_score * 0.5 + quality_score * 0.5 : price_score * 0.4 + quality_score * 0.4 + delivery_score * 0.2)
         : price_score * 0.4 + quality_score * 0.4 + (delivery_score ?? 1) * 0.2) - penalty,
       _price: p, _fit: fit, _fails: fails_request,
+      // 2 fails what he asked for; 1 fails nothing but leaves a hard requirement unstated; 0 states it meets every one
+      // (request_fit.ts fitTier). Without his requirements only a high review note counts.
+      _tier: fails_request ? 2 : fit ? fitTier(fit) : 0,
     };
   });
 
@@ -253,7 +256,8 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
     Number(expiredOf.get(a.label)) - Number(expiredOf.get(b.label)) ||
     // A QUOTE THAT FAILS WHAT HE ASKED FOR IS NEVER RECOMMENDED OVER ONE THAT MEETS IT (15 Nov 2026, journey A: Supplier A
     // first with "Completeness 5" while it gave 1 year of warranty against his 2). It stays listed, labelled and open to reveal.
-    Number(a._fails) - Number(b._fails) ||
+    // AND A QUOTE THAT DOES NOT STATE A REQUIREMENT NEVER OUTRANKS ONE THAT STATES IT MEETS IT (review of 15 Nov 2026).
+    a._tier - b._tier ||
     b._composite - a._composite ||
     (a._price ?? Number.POSITIVE_INFINITY) - (b._price ?? Number.POSITIVE_INFINITY) ||
     a.label.localeCompare(b.label));
@@ -323,7 +327,7 @@ export function deterministicCompare(labelled: Labelled[], lang: 'en' | 'ar' = '
         : (ar ? `أدنى سعر معروض ${minPrice.toLocaleString('en-US')} درهم.` : `Cheapest quote is AED ${minPrice.toLocaleString('en-US')}.`),
       spread !== null ? (ar ? `الفارق بين أعلى سعر وأدناه ${spread.toLocaleString('en-US')} درهم.` : `Spread between highest and lowest is AED ${spread.toLocaleString('en-US')}.`) : '',
     ].filter(Boolean).join(' '),
-    quotes: short.map(({ _composite, _price, _tradeoff, _fit, _fails, ...rest }) => rest),
+    quotes: short.map(({ _composite, _price, _tradeoff, _fit, _fails, _tier, ...rest }) => rest),
     line_findings: [] as Array<{ item: string; finding: string }>,
     top3,
     cheapest_label: cheapest,
