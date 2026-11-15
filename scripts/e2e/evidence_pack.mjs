@@ -72,14 +72,16 @@ const save = () => writeFileSync(join(OUT, 'manifest.json'), JSON.stringify(M, n
 
 // ── small document makers ──────────────────────────────────────────────────────────────────────────────────────────
 let BROWSER = null; let RUN_REF = null;
-async function htmlPdf(html, opts = {}) {
+/** journey_proof/run.mjs drives these makers with its own browser and run (13 Nov 2026). */
+export function useHarness({ browser, run } = {}) { if (browser) BROWSER = browser; if (run) RUN_REF = run; }
+export async function htmlPdf(html, opts = {}) {
   const ctx = await BROWSER.newContext(); const p = await ctx.newPage();
   await p.setContent(html, { waitUntil: 'load' });
   const b = await p.pdf({ printBackground: true, format: opts.format || 'A4', landscape: !!opts.landscape, margin: { top: '12mm', bottom: '12mm', left: '12mm', right: '12mm' } });
   await ctx.close(); return b;
 }
 /** Every page of a PDF as a JPEG next to it (the portal's own rasteriser), so the README can show it. */
-async function pdfPictures(pdf, base) {
+export async function pdfPictures(pdf, base) {
   try {
     const imgs = await rasterise(pdf);
     imgs.forEach((im, i) => writeFileSync(`${base}_p${i + 1}.jpg`, Buffer.from(im.data, 'base64')));
@@ -90,14 +92,14 @@ const fetchBytes = async (url) => { const r = await fetch(url); if (!r.ok) throw
 const aed = (n) => Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const esc = (s) => String(s ?? '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-function xlsx(path, title, rows) {
+export function xlsx(path, title, rows) {
   const py = `import openpyxl,sys,json\nfrom openpyxl.styles import Font,PatternFill\nwb=openpyxl.Workbook();ws=wb.active;ws.title='BOQ'\nd=json.loads(sys.argv[2])\nws.append([d['title']]);ws['A1'].font=Font(bold=True,size=13)\nws.append([])\nws.append(['Item','Description','Qty','Unit'])\nfor c in ws[3]: c.font=Font(bold=True); c.fill=PatternFill('solid',fgColor='DDE6F0')\nfor r in d['rows']: ws.append(r)\nws.column_dimensions['B'].width=78\nwb.save(sys.argv[1])\n`;
   const r = spawnSync('python3', ['-c', py, path, JSON.stringify({ title, rows })], { encoding: 'utf8' });
   if (r.status !== 0) throw new Error('xlsx: ' + r.stderr);
 }
 
 /** A voice note: each [lang, text] segment spoken by an offline neural voice (piper), joined, 16 kHz mono WAV. */
-function voiceNote(path, segments) {
+export function voiceNote(path, segments) {
   const parts = [];
   segments.forEach(([lang, text], i) => {
     const model = join(VOICES, lang === 'ar' ? 'ar_JO-kareem-medium.onnx' : 'en_GB-alan-medium.onnx');
@@ -360,7 +362,7 @@ export function quotationHtml({ J, s, company, rfq, ref, lines }) {
 }
 
 // ── the request chat, driven as a customer drives it ───────────────────────────────────────────────────────────────
-function nextAnswer(J, j, given) {
+export function nextAnswer(J, j, given) {
   const asked = [j?.next_question?.text || j?.next_question?.question || (typeof j?.next_question === 'string' ? j.next_question : ''), j?.assistant_message || '',
     ...(Array.isArray(j?.remaining_questions) ? j.remaining_questions : []).map((x) => typeof x === 'string' ? x : (x?.text || x?.question || x?.label || ''))].join(' \n ');
   // the question asked FIRST, then anything else still open
@@ -370,7 +372,7 @@ function nextAnswer(J, j, given) {
   }
   return null;
 }
-async function intakeTurn(page, action, { timeoutMs = 360000 } = {}) {
+export async function intakeTurn(page, action, { timeoutMs = 360000 } = {}) {
   // the composer's mount-time carry_from:'portal' call is not this turn's answer (evidence re-run ea40c830: taking it as one
   // sent the next line before intake_id existed and opened a stray second intake)
   const first = page.waitForResponse((r) => r.url().includes('/functions/v1/inquiry_intake') && !/poll_turn_id|carry_from/.test(r.request().postData() || ''), { timeout: timeoutMs });
@@ -491,7 +493,7 @@ async function runChat(J, s, dir, ev) {
 }
 
 /** One voice note through the chat's microphone: play it into getUserMedia, stop, wait for transcribe, send. */
-async function speak(page, segments, name, dir, ev, panelShot, record) {
+export async function speak(page, segments, name, dir, ev, panelShot, record) {
   const wav = join(dir, `${name}.wav`);
   const secs = voiceNote(wav, segments);
   ev.voice_notes.push({ file: `${name}.wav`, seconds: Math.round(secs * 10) / 10, script: segments.map(([l, t]) => `[${l}] ${t}`).join(' ') });
@@ -519,7 +521,7 @@ async function speak(page, segments, name, dir, ev, panelShot, record) {
 
 // voice: the browser has no speech engine (as Firefox), so the chat records and uses the server's transcribe; the
 // microphone hands the page the voice note's audio.
-const VOICE_INIT = () => {
+export const VOICE_INIT = () => {
   try { Object.defineProperty(window, 'SpeechRecognition', { value: undefined, configurable: true }); Object.defineProperty(window, 'webkitSpeechRecognition', { value: undefined, configurable: true }); } catch (_e) { /* */ }
   const md = navigator.mediaDevices;
   if (md) md.getUserMedia = async () => {
@@ -644,71 +646,7 @@ async function journey(run, k) {
   }
 
   // five quotations, each the supplier's own PDF uploaded through the portal's door
-  const reqLines = (row.boq?.boq || []).filter((l) => l && (l.description || l.item));
-  const qDir = join(dir, 'quotations'); mkdirSync(qDir, { recursive: true });
-  for (const [i, x] of sups.entries()) {
-    const sp = x.spec, sup = x.fx;
-    const lines = quoteLinesFor(J, sp, reqLines);
-    const ref = `ZZQ-${run.tag.toUpperCase()}-${k}${i + 1}`;
-    const doc = quotationHtml({ J, s: sp, company: sup.company, rfq: row.rfq_no || quotable.slice(0, 8), ref, lines });
-    const pdf = await htmlPdf(doc.html, { landscape: true });
-    const fname = `Q${i + 1}_${sp.label.replace(/[^A-Za-z0-9]+/g, '_')}_supplier_quotation.pdf`;
-    writeFileSync(join(qDir, fname), pdf);
-    const rec = { n: i + 1, label: sp.label, company: sup.company, file: `quotations/${fname}`, ex_vat: doc.sub, vat: doc.vat, total: doc.tot, origin: sp.origin, lead: sp.lead, warranty: sp.warranty, omitted: sp.omit ? String(sp.omit) : null };
-    ev.quotes.push(rec);
-    try {
-      if (sp.omit) { await chatQuote(sup, quotable, pdf, fname, sp, rec, reqLines.length ? reqLines : J.defaultLines, J, lines); save(); continue; }
-      const images = (await rasterise(pdf)).map(({ mime, data }) => ({ mime, data }));
-      const ex = await call('supplier_api', sup.jwt, { action: 'extract_quote', inquiry_id: quotable, images, original: { b64: pdf.toString('base64'), filename: fname, mime: 'application/pdf' } }, 240000);
-      rec.extract = { http: ex.status, ok: ex.json?.ok ?? false, code: ex.json?.code ?? null, read_by: ex.json?.proposal?.fallback_reason ? 'code (doc_read)' : 'model', amount: ex.json?.proposal?.amount ?? null, lines: (ex.json?.proposal?.line_items || []).length, masked: ex.json?.proposal?.masked_terms || [] };
-      const pr = ex.json?.proposal || {};
-      // QuoteForm.buildPayload: the read proposal, with any term the read left blank typed by the supplier
-      const body = { action: 'submit_quote', inquiry_id: quotable, amount: Number(pr.amount ?? doc.sub), currency: 'AED', lead_time: pr.lead_time || sp.lead, notes: pr.notes || '', scope: pr.scope || pr.description_anonymized || J.title,
-        conditions: pr.conditions || '', exclusions: pr.exclusions || sp.excl, validity: pr.validity || '30 days', payment_terms: pr.payment_terms || sp.payment, warranty: pr.warranty || sp.warranty,
-        items: (pr.line_items && pr.line_items.length ? pr.line_items : lines.map((l) => ({ description: l.description, specification: l.specification, qty: l.qty, unit: l.unit, unit_price: l.rate, amount: l.amount, country_of_origin: l.origin }))),
-        masked_terms: pr.masked_terms || null, source: 'upload', original_file_path: ex.json?.original_file_path, original_file_name: ex.json?.original_file_name,
-        subtotal: pr.subtotal ?? undefined, vat_amount: pr.vat_amount ?? undefined, trn: pr.trn ?? undefined, vat_treatment: 'exclusive', price_ex_vat: Number(pr.subtotal ?? pr.amount ?? doc.sub) };
-      if (!ex.json?.ok) finding(`journey ${k} quote ${i + 1}`, `extract_quote did not read the PDF: HTTP ${ex.status} ${ex.json?.code || ''} ${ex.text}`);
-      const pre = await call('supplier_api', sup.jwt, { ...body, dry_run: true }, 180000);
-      rec.preflight = { would_hold: pre.json?.would_hold ?? null, missing: (pre.json?.spec_missing || []).map((m) => m.attr), would_accept: pre.json?.would_accept ?? null };
-      const sub = await call('supplier_api', sup.jwt, body, 240000);
-      const qid = sub.json?.quote?.id ?? sub.json?.quote_id ?? (sub.json?.options || [])[0]?.quote_id ?? null;
-      rec.quote_id = qid; rec.submit = { http: sub.status, accepted: sub.json?.accepted ?? null, held: sub.json?.held ?? null, code: sub.json?.code ?? null, missing: (sub.json?.missing || sub.json?.spec_missing || []).map((m) => m?.attr ?? m) };
-      if (qid) run.ids.quotes.add(String(qid));
-      // the review refused the form (a BOQ line unpriced, a quantity that differs): the portal sends him to the
-      // sales engineer's quotation chat, where he explains it
-      if (qid && sub.json?.accepted) rec.cleared_by = 'accepted at upload (no hold)';
-      if (!qid && sub.json?.code === 'quote_review_changes') { rec.via_form_refused = sub.json?.review_issues || null; await chatQuote(sup, quotable, pdf, fname, sp, rec, reqLines.length ? reqLines : J.defaultLines, J, lines); save(); continue; }
-      if (qid && sub.json?.held) {
-        // the hold desk, as the supplier uses it: state each named detail, approve the regenerated quotation; if the
-        // approval names more details, he states those too (at most three rounds)
-        rec.hold_rounds = [];
-        for (let round = 0; round < 3; round++) {
-          const h = await call('supplier_api', sup.jwt, { action: 'spec_hold', quote_id: qid });
-          const L = {}, Tm = {};
-          for (const l of h.json?.schema?.lines || []) for (const f of l.fields) if (f.missing || !f.value) (L[l.line_no] ||= {})[f.attr] = holdValue(J, sp, f, lines[l.line_no - 1]);
-          const TF = { delivery: sp.lead, lead_time: sp.lead, installation_included: 'yes', installation_detail: 'Included as quoted', warranty_period: /\d+\s*(year|month|week|day)/i.test(sp.warranty) ? sp.warranty : '6 months, the full contract period', warranty_coverage: sp.warranty, price_ex_vat: String(doc.sub), validity: '30 days', payment_terms: sp.payment };
-          for (const t of h.json?.schema?.terms || []) Tm[t.attr] = TF[t.attr] ?? (t.type === 'number' ? '1' : (t.options?.[0] ?? 'As per the quotation'));
-          const asked = (h.json?.schema?.lines || []).flatMap((l) => l.fields.filter((f) => f.missing || !f.value).map((f) => `line ${l.line_no}: ${f.attr}`)).concat((h.json?.schema?.terms || []).map((t) => `term: ${t.attr}`));
-          const f1 = await call('supplier_api', sup.jwt, { action: 'spec_fill', quote_id: qid, values: { lines: L, terms: Tm } }, 180000);
-          const ap = f1.json?.complete ? await call('supplier_api', sup.jwt, { action: 'spec_approve', quote_id: qid, confirm: true }, 180000) : null;
-          const r = { asked, lines: L, terms: Tm, fill: { http: f1.status, complete: f1.json?.complete ?? null, missing: (f1.json?.missing || []).map((m) => m?.attr ?? m), errors: f1.json?.errors ?? f1.json?.error ?? null },
-            approve: ap ? { http: ap.status, released: ap.json?.released ?? null, code: ap.json?.code ?? null, missing: (ap.json?.missing || []).map((m) => `${m?.line_no ? 'line ' + m.line_no + ' ' : ''}${m?.attr ?? m}`), review: (ap.json?.review_issues || []).map((x) => x.code) } : null };
-          r.form_fields = (h.json?.schema?.lines || []).map((l) => ({ line: l.line_no, fields: l.fields.map((f) => `${f.attr}${f.options ? '[' + f.options.slice(0, 6).join('/') + ']' : ''}${f.missing ? '*' : ''}`) }));
-          r.hold_missing_before = (h.json?.hold?.missing || []).map((m) => `${m.line_no ? 'line ' + m.line_no + ' ' : ''}${m.attr}`);
-          r.line_specifications = lines.map((l, k) => `line ${k + 1}: ${l.specification}`);
-          const hh = await call('supplier_api', sup.jwt, { action: 'spec_hold', quote_id: qid });
-          r.hold_after = { state: hh.json?.hold?.state ?? null, missing: (hh.json?.hold?.missing || []).map((m) => `${m.line_no ? 'line ' + m.line_no + ' ' : ''}${m.attr}: ${String(m.label_en || '').slice(0, 160)}`) };
-          rec.hold_rounds.push(r);
-          rec.hold_desk = { asked, complete: r.fill.complete, released: r.approve?.released ?? null };
-          if (r.approve?.released) rec.cleared_by = `hold desk, round ${round + 1} (spec_fill + spec_approve)`;
-          if (r.approve?.released || !asked.length || !f1.json?.complete) break;
-        }
-        if (!rec.hold_desk?.released) finding(`journey ${k} quote ${i + 1}`, `the hold desk did not release it: ${JSON.stringify(rec.hold_rounds.slice(-1)[0]?.approve || rec.hold_rounds.slice(-1)[0]?.fill).slice(0, 300)}`);
-      }
-    } catch (e) { finding(`journey ${k} quote ${i + 1}`, e.message.split('\n')[0]); }
-    save();
-  }
+  for (const [i, x] of sups.entries()) { await quoteOne({ J, k, i, x, quotable, row, dir, run, ev, onFinding: finding }); save(); }
   // the quotations as the customer sees them (our template, with the sales engineer's notes)
   const live = await read(`select id::text id, supplier_id, status, quote_amount, review_notes from public.quotes where inquiry_id = ${q(quotable)} order by quote_amount`);
   ev.live_quotes = live.map((r) => ({ id: r.id, supplier_id: r.supplier_id, status: r.status, amount: Number(r.quote_amount), notes: r.review_notes }));
@@ -756,10 +694,83 @@ async function journey(run, k) {
   return ev;
 }
 
+
+/** ONE supplier quotes: his own PDF (or `opts.pdfFor`'s), uploaded through the portal's door (extract_quote -> submit_quote),
+ *  through the hold desk or the quotation chat when the product asks for it. Extracted from journey() on 13 Nov 2026 so
+ *  journey_proof/run.mjs walks the same door with suppliers whose quotations carry their full identity. Returns the record. */
+export async function quoteOne({ J, k, i, x, quotable, row, dir, run, ev, onFinding, pdfFor = null }) {
+  const finding = onFinding || ((where, what) => log('FINDING', where, what));
+  const reqLines = (row.boq?.boq || []).filter((l) => l && (l.description || l.item));
+  const qDir = join(dir, 'quotations'); mkdirSync(qDir, { recursive: true });
+    const sp = x.spec, sup = x.fx;
+    const lines = quoteLinesFor(J, sp, reqLines);
+    const ref = `ZZQ-${run.tag.toUpperCase()}-${k}${i + 1}`;
+    // pdfFor (journey_proof): the supplier's own document with his full identity on it; default: the evidence pack's
+    const made = pdfFor ? await pdfFor({ J, sp, sup, row, quotable, ref, lines, i }) : null;
+    const doc = made?.doc || quotationHtml({ J, s: sp, company: sup.company, rfq: row.rfq_no || quotable.slice(0, 8), ref, lines });
+    const pdf = made?.pdf || await htmlPdf(doc.html, { landscape: true });
+    const fname = made?.fname || `Q${i + 1}_${sp.label.replace(/[^A-Za-z0-9]+/g, '_')}_supplier_quotation.pdf`;
+    writeFileSync(join(qDir, fname), pdf);
+    const rec = { n: i + 1, label: sp.label, company: sup.company, file: `quotations/${fname}`, ex_vat: doc.sub, vat: doc.vat, total: doc.tot, origin: sp.origin, lead: sp.lead, warranty: sp.warranty, omitted: sp.omit ? String(sp.omit) : null };
+    ev.quotes.push(rec);
+    try {
+      if (sp.omit) { await chatQuote(sup, quotable, pdf, fname, sp, rec, reqLines.length ? reqLines : J.defaultLines, J, lines, run); return rec; }
+      const images = (await rasterise(pdf)).map(({ mime, data }) => ({ mime, data }));
+      const ex = await call('supplier_api', sup.jwt, { action: 'extract_quote', inquiry_id: quotable, images, original: { b64: pdf.toString('base64'), filename: fname, mime: 'application/pdf' } }, 240000);
+      rec.extract = { http: ex.status, ok: ex.json?.ok ?? false, code: ex.json?.code ?? null, read_by: ex.json?.proposal?.fallback_reason ? 'code (doc_read)' : 'model', amount: ex.json?.proposal?.amount ?? null, lines: (ex.json?.proposal?.line_items || []).length, masked: ex.json?.proposal?.masked_terms || [] };
+      const pr = ex.json?.proposal || {};
+      // QuoteForm.buildPayload: the read proposal, with any term the read left blank typed by the supplier
+      const body = { action: 'submit_quote', inquiry_id: quotable, amount: Number(pr.amount ?? doc.sub), currency: 'AED', lead_time: pr.lead_time || sp.lead, notes: pr.notes || '', scope: pr.scope || pr.description_anonymized || J.title,
+        conditions: pr.conditions || '', exclusions: pr.exclusions || sp.excl, validity: pr.validity || '30 days', payment_terms: pr.payment_terms || sp.payment, warranty: pr.warranty || sp.warranty,
+        items: (pr.line_items && pr.line_items.length ? pr.line_items : lines.map((l) => ({ description: l.description, specification: l.specification, qty: l.qty, unit: l.unit, unit_price: l.rate, amount: l.amount, country_of_origin: l.origin }))),
+        masked_terms: pr.masked_terms || null, source: 'upload', original_file_path: ex.json?.original_file_path, original_file_name: ex.json?.original_file_name,
+        subtotal: pr.subtotal ?? undefined, vat_amount: pr.vat_amount ?? undefined, trn: pr.trn ?? undefined, vat_treatment: 'exclusive', price_ex_vat: Number(pr.subtotal ?? pr.amount ?? doc.sub) };
+      if (!ex.json?.ok) finding(`journey ${k} quote ${i + 1}`, `extract_quote did not read the PDF: HTTP ${ex.status} ${ex.json?.code || ''} ${ex.text}`);
+      const pre = await call('supplier_api', sup.jwt, { ...body, dry_run: true }, 180000);
+      rec.preflight = { would_hold: pre.json?.would_hold ?? null, missing: (pre.json?.spec_missing || []).map((m) => m.attr), would_accept: pre.json?.would_accept ?? null };
+      const sub = await call('supplier_api', sup.jwt, body, 240000);
+      const qid = sub.json?.quote?.id ?? sub.json?.quote_id ?? (sub.json?.options || [])[0]?.quote_id ?? null;
+      rec.quote_id = qid; rec.submit = { http: sub.status, accepted: sub.json?.accepted ?? null, held: sub.json?.held ?? null, code: sub.json?.code ?? null, missing: (sub.json?.missing || sub.json?.spec_missing || []).map((m) => m?.attr ?? m) };
+      if (qid) run.ids.quotes.add(String(qid));
+      // the review refused the form (a BOQ line unpriced, a quantity that differs): the portal sends him to the
+      // sales engineer's quotation chat, where he explains it
+      if (qid && sub.json?.accepted) rec.cleared_by = 'accepted at upload (no hold)';
+      if (!qid && sub.json?.code === 'quote_review_changes') { rec.via_form_refused = sub.json?.review_issues || null; await chatQuote(sup, quotable, pdf, fname, sp, rec, reqLines.length ? reqLines : J.defaultLines, J, lines, run); return rec; }
+      if (qid && sub.json?.held) {
+        // the hold desk, as the supplier uses it: state each named detail, approve the regenerated quotation; if the
+        // approval names more details, he states those too (at most three rounds)
+        rec.hold_rounds = [];
+        for (let round = 0; round < 3; round++) {
+          const h = await call('supplier_api', sup.jwt, { action: 'spec_hold', quote_id: qid });
+          const L = {}, Tm = {};
+          for (const l of h.json?.schema?.lines || []) for (const f of l.fields) if (f.missing || !f.value) (L[l.line_no] ||= {})[f.attr] = holdValue(J, sp, f, lines[l.line_no - 1]);
+          const TF = { delivery: sp.lead, lead_time: sp.lead, installation_included: 'yes', installation_detail: 'Included as quoted', warranty_period: /\d+\s*(year|month|week|day)/i.test(sp.warranty) ? sp.warranty : '6 months, the full contract period', warranty_coverage: sp.warranty, price_ex_vat: String(doc.sub), validity: '30 days', payment_terms: sp.payment };
+          for (const t of h.json?.schema?.terms || []) Tm[t.attr] = TF[t.attr] ?? (t.type === 'number' ? '1' : (t.options?.[0] ?? 'As per the quotation'));
+          const asked = (h.json?.schema?.lines || []).flatMap((l) => l.fields.filter((f) => f.missing || !f.value).map((f) => `line ${l.line_no}: ${f.attr}`)).concat((h.json?.schema?.terms || []).map((t) => `term: ${t.attr}`));
+          const f1 = await call('supplier_api', sup.jwt, { action: 'spec_fill', quote_id: qid, values: { lines: L, terms: Tm } }, 180000);
+          const ap = f1.json?.complete ? await call('supplier_api', sup.jwt, { action: 'spec_approve', quote_id: qid, confirm: true }, 180000) : null;
+          const r = { asked, lines: L, terms: Tm, fill: { http: f1.status, complete: f1.json?.complete ?? null, missing: (f1.json?.missing || []).map((m) => m?.attr ?? m), errors: f1.json?.errors ?? f1.json?.error ?? null },
+            approve: ap ? { http: ap.status, released: ap.json?.released ?? null, code: ap.json?.code ?? null, missing: (ap.json?.missing || []).map((m) => `${m?.line_no ? 'line ' + m.line_no + ' ' : ''}${m?.attr ?? m}`), review: (ap.json?.review_issues || []).map((x) => x.code) } : null };
+          r.form_fields = (h.json?.schema?.lines || []).map((l) => ({ line: l.line_no, fields: l.fields.map((f) => `${f.attr}${f.options ? '[' + f.options.slice(0, 6).join('/') + ']' : ''}${f.missing ? '*' : ''}`) }));
+          r.hold_missing_before = (h.json?.hold?.missing || []).map((m) => `${m.line_no ? 'line ' + m.line_no + ' ' : ''}${m.attr}`);
+          r.line_specifications = lines.map((l, k) => `line ${k + 1}: ${l.specification}`);
+          const hh = await call('supplier_api', sup.jwt, { action: 'spec_hold', quote_id: qid });
+          r.hold_after = { state: hh.json?.hold?.state ?? null, missing: (hh.json?.hold?.missing || []).map((m) => `${m.line_no ? 'line ' + m.line_no + ' ' : ''}${m.attr}: ${String(m.label_en || '').slice(0, 160)}`) };
+          rec.hold_rounds.push(r);
+          rec.hold_desk = { asked, complete: r.fill.complete, released: r.approve?.released ?? null };
+          if (r.approve?.released) rec.cleared_by = `hold desk, round ${round + 1} (spec_fill + spec_approve)`;
+          if (r.approve?.released || !asked.length || !f1.json?.complete) break;
+        }
+        if (!rec.hold_desk?.released) finding(`journey ${k} quote ${i + 1}`, `the hold desk did not release it: ${JSON.stringify(rec.hold_rounds.slice(-1)[0]?.approve || rec.hold_rounds.slice(-1)[0]?.fill).slice(0, 300)}`);
+      }
+    } catch (e) { finding(`journey ${k} quote ${i + 1}`, e.message.split('\n')[0]); }
+  return rec;
+}
+
 /** The quotation chat (Inquiries received -> "Send your quotation to the sales engineer"): upload the file, answer
  *  each point the review raises in words (an unpriced BOQ line is declared excluded, by the client), let the
  *  sales engineer generate the standardised quotation, submit. */
-async function chatQuote(sup, quotable, pdf, fname, sp, rec, reqLines, J, sLines = []) {
+export async function chatQuote(sup, quotable, pdf, fname, sp, rec, reqLines, J, sLines = [], run = RUN_REF) {
   rec.via = 'quotation chat (supplier_api review_*)';
   const C = rec.chat = [];
   const settle = async (r) => { let v = r; for (let i = 0; i < 40 && (v.json?.reviewing || v.json?.state === 'reviewing'); i++) { await sleep(6000); v = await call('supplier_api', sup.jwt, { action: 'review_thread', inquiry_id: quotable }); } return v; };
@@ -802,12 +813,12 @@ async function chatQuote(sup, quotable, pdf, fname, sp, rec, reqLines, J, sLines
   const ids = v.json?.submitted_quote_ids || [];
   rec.quote_id = ids[0] || null; rec.submit = { via: 'review_submit', state: v.json?.state ?? null, quote_ids: ids };
   if (ids.length) rec.cleared_by = 'quotation chat (review_message, review_choose generate, review_submit)';
-  for (const id of ids) RUN_REF.ids.quotes.add(String(id));
+  for (const id of ids) run.ids.quotes.add(String(id));
   if (!ids.length) finding('quotation chat', `${sp.label}: not submitted, state ${v.json?.state} ${JSON.stringify(C.slice(-1)).slice(0, 300)}`);
 }
 
 /** What the supplier types on the hold desk for one detail: the journey's own answer for it, else what his quotation states. */
-function holdValue(J, sp, f, line) {
+export function holdValue(J, sp, f, line) {
   const a = `${f.attr} ${f.label_en || ''}`.toLowerCase(), desc = line?.description || '';
   if (/specification/.test(a) && line?.specification) return `${line.specification}`;
   if (f.options?.length) {   // a field with choices takes one of them: the closest to what his quotation states
@@ -825,7 +836,7 @@ function holdValue(J, sp, f, line) {
   return desc || 'As stated in the quotation';
 }
 
-function summariseTop(A, ev) {
+export function summariseTop(A, ev) {
   if (!A) return null;
   const all = A.all_quotes || [];
   const ranked = (A.top_3 || A.top3 || A.ranking || A.quotes || []).slice(0, 3);

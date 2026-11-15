@@ -310,13 +310,15 @@ export async function makeDemoCustomer(run, opts = {}) {
  * A supplier with the mandatory six (founder's list): name, mobile, email, trade licence document,
  * profile, and the CURRENT Supplier Agreement accepted and signed - approved, capability confirmed.
  */
-export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', locale = 'en', activity = 'Aluminium and Glass Works' } = {}) {
+// coverage (13 Nov 2026, journey_proof): the emirates the supplier serves. Default every emirate, as before; a journey that
+// proves the matcher asked the RIGHT suppliers makes some of the trade in another emirate only, which it must not ask.
+export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', locale = 'en', activity = 'Aluminium and Glass Works', coverage = EMIRATES } = {}) {
   const email = demoEmail(run, 'sup');
   const phone = demoMobile();
   const company = `ZZ DEMO ${label} ${trade} ${run.tag}`;
   // Inserted 'pending', not approved: since #698 the database refuses an approval while any of the six
   // is missing, and approves by itself (fn_sales_engineer_verifies_supplier) once the last one lands.
-  const s = await makeSupplier(run, { trade, email, company_name: company, locale, approval: 'pending', coverage_emirates: EMIRATES });
+  const s = await makeSupplier(run, { trade, email, company_name: company, locale, approval: 'pending', coverage_emirates: coverage });
   run.ids.leads.add(String(s.leadId));
   // 1-3: name, mobile, email.   4: the trade licence and 5: the company profile, real PDFs in the real
   // bucket - fn_supplier_mandatory_six counts a document only if its path exists in supplier-docs.
@@ -359,7 +361,17 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
       to_jsonb(public.fn_supplier_mandatory_six(l)) as missing
       from public.leads l where l.id = ${num(s.leadId)}`))[0];
   const complete = (r) => r && Array.isArray(r.missing) && r.missing.length === 0 && r.approval_status === 'approved';
-  const row = (await waitFor(async () => { const r = await readRow(); return complete(r) ? r : null; }, { timeoutMs: 60000 })) || await readRow();
+  let row = (await waitFor(async () => { const r = await readRow(); return complete(r) ? r : null; }, { timeoutMs: 60000 })) || await readRow();
+  // ONE MORE CERTIFICATE ASK (13 Nov 2026, journey proof dry run 70b5d18b): 9 of 10 suppliers were certified; the 10th's
+  // compliance_archive render answered cert_record_failed (its write of signed_terms_path failed; agent_runs kyc 07:45:58Z) and
+  // the acceptance stood with no certificate. accept_terms for an acceptance already on file only asks for the certificate
+  // again, as a supplier pressing the button again would. Recorded on the fixture (certificate_retried) so a journey reports it.
+  let certificateRetried = false;
+  if (!complete(row) && !row?.signed && row?.accepted_terms_version) {
+    certificateRetried = true;
+    await call('kyc', s.jwt, { action: 'accept_terms', user_kind: 'supplier', email });
+    row = (await waitFor(async () => { const r = await readRow(); return complete(r) ? r : null; }, { timeoutMs: 60000 })) || await readRow();
+  }
   if (!complete(row)) {
     throw new Error(`demo supplier ${label} (lead ${s.leadId}) is not approved with the mandatory six: ` +
       `approval_status=${row?.approval_status} missing=${JSON.stringify(row?.missing)} ` +
@@ -367,7 +379,7 @@ export async function makeDemoSupplier(run, { trade = 'aluminium', label = 'A', 
   }
   const session = await passwordSession(email, s.password);
   const services = await stateServices(s.leadId, session.access_token, trade);
-  return trackSession({ kind: 'supplier', email, phone, company, leadId: s.leadId, trade, row, terms, session, jwt: session.access_token, services,
+  return trackSession({ kind: 'supplier', email, phone, company, leadId: s.leadId, trade, row, terms, certificateRetried, session, jwt: session.access_token, services,
            newSession: () => passwordSession(email, s.password) });
 }
 
