@@ -103,8 +103,9 @@ const fnBody = (text, name) => {
   return at < 0 ? '' : text.slice(at, text.indexOf('$fn$;', at));
 };
 
-// Review of 13 Nov evening (items 2 and 4): the escalation goes to the SILENT seat's superior (not the sender's), the founder
-// only when the CEO himself is silent; the silent seat is the one "awaiting" names, case-insensitively, else the receiver.
+// Review of 13 Nov evening (items 2 and 4): the escalation goes to the SILENT seat's superior (not the sender's); the silent
+// seat is the one "awaiting" names, case-insensitively, else the receiver. Founder ledger 1696 (15 Nov 2026): when the CEO
+// himself is silent it is his OWN queue (answer or wait), never the founder's; the founder reads the day in a summary.
 test('an overdue hand-over is escalated once, to the silent seat\'s superior, by its due date, and the sender is told', () => {
   const text = readFileSync(join(REPO, POOL_FILE), 'utf8');
   const esc = fnBody(text, 'fn_handoff_overdue_escalate');
@@ -113,21 +114,27 @@ test('an overdue hand-over is escalated once, to the silent seat\'s superior, by
   assert.match(esc, /not \(a\.detail \? 'escalated_report_id'\) and not \(a\.detail \? 'silence'\)/, 'ONCE: rows another loop escalated are left alone');
   assert.match(esc, /a\.detail->>'due_at'/, 'a month directive is late at its month end, not at its reply window');
   assert.match(esc, /from public\.org_reporting_edge e/, 'the superior is read from the reporting line, never assumed');
-  assert.match(esc, /if v_silent = 'ceo' then\s+v_sup := 'founder';/, 'the CEO\'s own overdue hand-overs go to the founder\'s brief');
+  assert.match(esc, /if v_silent = 'ceo' then\s+v_sup := 'ceo';/, 'the CEO\'s own overdue hand-overs are his own to decide (ledger 1696)');
+  assert.doesNotMatch(esc, /v_sup := 'founder'/, 'nothing escalates to the founder');
   assert.match(esc, /where e\.child_role_id = v_silent/, 'the superior asked is the SILENT seat\'s, not the sender\'s');
   assert.match(esc, /v_silent := public\.fn_handoff_owing_seat\(h\.detail->>'awaiting', h\.agent\)/, 'the silent seat is the one that owes the move');
   assert.match(fnBody(text, 'fn_handoff_owing_seat'), /~\* \('\(\^\|\[\^a-z_\]\)' \|\| r\.role_id/, 'the seat named in awaiting is read case-insensitively');
   assert.match(esc, /'silent_seat', v_silent/, 'the silence is recorded');
-  assert.ok(fnBody(text, 'fn_founder_brief_overdue_handoffs'), 'the founder\'s lines are gone');
+  assert.ok(!fnBody(text, 'fn_founder_brief_overdue_handoffs'), 'the founder\'s question list is gone (ledger 1696)');
   assert.match(esc, /where x\.due < now\(\)\s+order by x\.due limit 100/, 'the due check is in the WHERE: no starvation behind the first 100 ids');
   assert.match(fnBody(text, 'fn_seat_pool_waiting'), /'NO ANSWER YET: ' \|\| string_agg\(m\.owes \|\| ' owes '/, 'the sender is never blind, and reads who owes it');
   assert.match(fnBody(text, 'fn_seat_pool_waiting'), /'YOU ARE LATE: '/, 'the silent seat is told it is late');
   const tl = fnBody(text, 'fn_seat_pool_timeline');
   assert.match(tl, /'answered: ' \|\| left\(coalesce\(case when a\.evidence \? 'ceo_decision' then a\.evidence->>'reply' end,\s+a\.evidence->'ceo_decision'->>'choice', a\.evidence->>'verdict'/, 'the sender reads the outcome, not only "done"');
   assert.match(tl, /then 'answered: ' \|\| left\(coalesce\(a\.evidence->>'reply'/, 'a pending row the sender waits on prints the answer itself');
-  // an escalation is work somebody decides: the CEO's held question, or the founder's daily note
-  assert.match(fnBody(text, 'fn_ceo_files_judgements'), /a\.detail->'silence'->>'escalated_to' = 'ceo'/, 'an escalation to the CEO is filed for his decision');
-  assert.match(fnBody(text, 'fn_ceo_tells_the_founder_daily'), /public\.fn_notify_founder\(/, 'the founder is told once a day');
+  // an escalation is work the CEO decides; a late ORDER is never chased (third review item 3), and the founder is told, once a
+  // day, as information (the coverage file's summary)
+  const files = fnBody(text, 'fn_ceo_files_judgements');
+  assert.match(files, /a\.detail->'silence'->>'escalated_to' = 'ceo'/, 'an escalation to the CEO is filed for his decision');
+  assert.match(files, /case when r\.detail->>'type' = 'ceo\.order'\s+then jsonb_build_array\(jsonb_build_object\('id', 'withdraw'/, 'a late order is waited on or withdrawn, never chased');
+  assert.ok(!fnBody(text, 'fn_ceo_tells_the_founder_daily'), 'the pool asks the founder nothing');
+  const cov = readFileSync(join(REPO, 'scripts/sql/the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql'), 'utf8');
+  assert.match(fnBody(cov, 'fn_ceo_daily_summary_to_the_founder'), /public\.fn_notify_founder\([\s\S]*'info', 'ceo_daily_summary'/, 'the founder is told once a day, as information');
   const dl = fnBody(text, 'fn_authors_close_reviewed_deliberations');
   assert.match(dl, /in \('agree', 'agreed', 'approve', 'approved'\) and r\.state = 'done'/, 'only an agreeing review is closed by reading it');
   assert.match(dl, /'deliberation\.rework'/, 'a revise or reject goes back to its author as work');

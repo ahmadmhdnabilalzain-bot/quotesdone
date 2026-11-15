@@ -27,6 +27,8 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FILE = 'scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql';
 const PROBE = 'scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back_probe.sql';
+// applied BEFORE the pool file (docs/runbooks/apply-the-shared-pool.md step 1): the authority check reads its limits
+const LIMITS = 'scripts/sql/the_company_limits_bind_every_seat_and_the_ceo_changes_one_only_after_a_day.sql';
 const SEATS = ['customer_support', 'sales_engineer', 'marketing', 'it_engineer', 'ceo', 'accountant'];
 // what the sibling branches of 13 Nov emit: the sales engineer's request events, and the accountant's hand-over kinds
 const SIBLING_TYPES = ['request.reveal_outcome', 'request.reveal_period_ended', 'request.reopened', 'request.step_failed'];
@@ -134,15 +136,20 @@ test('2. every seat model path reads the one pool; the important line first; ins
   assert.match(sqlText, /\|\| case when v_ext then ': ' \|\| public\.fn_pool_neutral\(x\.what\)/);
 });
 
-test('2b. the CEO judges: no code acknowledgement, the routine route, a daily cap held as data, the founder told', () => {
+test('2b. the CEO judges: no code acknowledgement, the routine route, a daily cap held as data, the founder told, never asked', () => {
   assert.match(sqlText, /update public\.seat_handoff_kind set handler = 'fn_ceo_takes_it_finding'\s+where type = 'it\.finding' and from_seat = 'it_engineer' and to_seat = 'ceo';/);
   const take = sqlText.slice(sqlText.indexOf('create or replace function public.fn_ceo_takes_it_finding('), sqlText.indexOf('revoke execute on function public.fn_ceo_takes_it_finding('));
   assert.doesNotMatch(take, /acknowledged/, 'an acknowledgement that decides nothing is not an answer');
-  assert.match(read('supabase/functions/_shared/think/routing.ts'), /EASY_DUTY_SURFACE = \/\\\.\(knowledge_refresh\|it_finding\|overdue_handoff\)\$\//);
+  // ceo.authority too (third review, item 4: it ran on the CEO's Opus route at ~AED 0.42 a call against a cap priced at 0.0106)
+  assert.match(read('supabase/functions/_shared/think/routing.ts'), /EASY_DUTY_SURFACE = \/\\\.\(knowledge_refresh\|it_finding\|overdue_handoff\|authority\)\$\//);
   assert.match(sqlText, /\('ceo_daily_judgements', '\{"items": 30, "aed": 0\.5, "per_tick": 5, "unit_aed_default": 0\.0106\}'::jsonb,/);
   assert.match(sqlText, /'ceo\.company_pool', 'ceo', interval '15 minutes', 'fn_company_pool_tick'/);
   assert.match(sqlText, /begin v := v \|\| jsonb_build_object\('ceo', public\.fn_ceo_files_judgements\(\)\);/);
-  assert.match(sqlText, /begin v := v \|\| jsonb_build_object\('founder', public\.fn_ceo_tells_the_founder_daily\(\)\);/);
+  // founder ledger 1696 (15 Nov 2026): nothing waits on the founder. The pool no longer mails him questions; the CEO's daily
+  // summary (information only) is sent by the coverage file's duty.
+  assert.doesNotMatch(sqlText, /fn_ceo_tells_the_founder_daily\(\)\);|ceo_needs_the_founder'|ask_founder'|needs_founder:/, 'no path in the pool asks the founder');
+  const cov = read('scripts/sql/the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql');
+  assert.match(cov, /begin v := v \|\| jsonb_build_object\('founder', public\.fn_ceo_daily_summary_to_the_founder\(now\(\)\)\);/);
   assert.doesNotMatch(sqlText, /ceo_model_slot'\)/, 'the CEO\'s judgement is not gated on ceo_model_slot');
 });
 
@@ -210,6 +217,8 @@ test('5b. (local Postgres) the file applies, the probe answers PROBE OK, and a r
   psql(['-c', `create database ${db} template ${process.env.QD_POOL_LOCAL_TEMPLATE ?? 'qd_base'}`]);
   const at = (x) => spawnSync('psql', [LOCAL.replace(/dbname=\S+/, 'dbname=' + db), '-q', ...x], { encoding: 'utf8' });
   try {
+    // the limits file goes first (15 Nov 2026, ledger 1696): the authority check reads fn_company_limit and the classifiers
+    assert.equal(at(['-v', 'ON_ERROR_STOP=1', '-1', '-f', join(REPO, LIMITS)]).status, 0, 'the limits file does not apply');
     assert.equal(at(['-v', 'ON_ERROR_STOP=1', '-1', '-f', join(REPO, FILE)]).status, 0, 'the file does not apply');
     assert.match(at(['-f', join(REPO, PROBE)]).stderr, /PROBE OK/);
     at(['-c', "update event_subscription set delivery = 'none', reason = 'edited by the check' where event_type = 'supplier.approved' and agent_key = 'it_engineer'"]);
@@ -220,6 +229,7 @@ test('5b. (local Postgres) the file applies, the probe answers PROBE OK, and a r
 
 const REHEARSE = TOKEN && process.env.QD_POOL_RELEASE_REHEARSAL === '1' ? false
   : 'the rolled-back production rehearsal runs only at release (QD_POOL_RELEASE_REHEARSAL=1), never during work';
+// (5c needs the limits file applied first on production: step 1 of the runbook)
 test('5c. (release, rolled back) the probe on production', { skip: REHEARSE, timeout: 300000 }, async () => {
   const { rehearse } = await import('../ci/rehearse_sql.mjs');
   assert.equal(await rehearse(sqlText, read(PROBE), FILE), 'PROBE OK');

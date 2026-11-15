@@ -49,7 +49,7 @@
 --
 -- FOURTH ROUND (15 Nov 2026: the third review's findings, and founder ledger 1696 "CEO is having full authority ... He
 -- doesnt rely on me in anything"):
---   R1. NOBODY WAITS ON THE FOUNDER. ask_founder and needs_founder:* are gone from every question; the CEO decides, records
+--   R1. NOBODY WAITS ON THE FOUNDER. the choices that asked the founder are gone from every question; the CEO decides, records
 --       the reason, and the founder reads it in the CEO's daily summary (information, not approval; the summary is sent by
 --       the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql). The CEO's OWN late hand-over goes to the CEO's
 --       own queue (answer or wait), not to the founder. The IT engineer's questions go to the CEO too.
