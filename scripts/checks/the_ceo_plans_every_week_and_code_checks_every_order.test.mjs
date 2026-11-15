@@ -1,0 +1,140 @@
+// THE CEO PLANS EVERY WEEK, AND CODE CHECKS EVERY ORDER (ceo, 15 Nov 2026).
+// Founder, ledger 1705/1706: "instead of him just telling me issues, he need to find solutions ... Is it safe? If not, what's the
+// alternative? ... KPI ... is about actually taking action". Ledger 1696: the CEO does not rely on the founder. Ledger 1709: no
+// hire; the founder works his own network with his tracked link, and the CEO tells him who is stuck at which step.
+// The CEO seat audit (15 Nov) found the CEO was 40 SQL rule-duties, its model slot off since 22 Sep, two decision asks to the
+// founder in 30 days, and 72 self-addressed re-check directives nobody could meet.
+// Offline, from the text. This fails when:
+//   1. the planning pack loses a section, or stops counting registrations by first-touch source and the founder's people;
+//   2. a bet can become an order without code's check: the channel verdict, the message gates, the company limits, the seat,
+//      a readable measure with a target and a date, the capability, the open-order rule, or the founder-ask refusal;
+//   3. the channel register loses a refused channel or a refusal loses its rule or its alternative, or the hire comes back;
+//   4. the loop asks the model more than once plus one revision, or the weekly plan leaves the CEO's hard route, or the daily
+//      review calls the model without an anomaly;
+//   5. a path asks the founder again (the forecast's founder choice, a notice from the forecast, a plan door that notifies);
+//   6. the first plan stops being data filed through the checks, or loses the founder's network as its first bet;
+//   7. a routine is not revoked and pinned, a table has no policy, or the file enters MANIFEST.txt without being applied.
+//   node --test scripts/checks/the_ceo_plans_every_week_and_code_checks_every_order.test.mjs
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const read = (p) => readFileSync(join(REPO, p), 'utf8');
+const FILE = 'scripts/sql/the_ceo_thinks_plans_and_orders_every_week.sql';
+const PROBE = 'scripts/sql/the_ceo_thinks_plans_and_orders_every_week_probe.sql';
+const SQL = read(FILE);
+/** SQL with comments removed, so a check never matches the prose that explains it. */
+const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
+const C = code(SQL);
+const fnBody = (name) => {
+  const at = C.indexOf(`create or replace function public.${name}(`);
+  return at < 0 ? '' : C.slice(at, C.indexOf('$fn$;', at));
+};
+
+test('1. the pack returns every section, and counts registrations by first touch', () => {
+  const pack = fnBody('fn_ceo_planning_pack');
+  assert.ok(pack, 'fn_ceo_planning_pack exists');
+  for (const k of ['operating_target', 'coverage', 'funnel', 'registrations_by_source', 'founder_network', 'placement', 'replies', 'demand',
+    'pool', 'spend', 'seats', 'rulings', 'channels', 'capabilities', 'last_plan', 'own_decisions']) {
+    assert.ok(pack.includes(`'${k}'`), `the pack carries ${k}`);
+    assert.ok(new RegExp(`'${k}', jsonb_build_object\\('unavailable'`).test(pack), `a failing ${k} says why instead of failing the pack`);
+  }
+  const src = fnBody('fn_ceo_registrations_by_source');
+  assert.match(src, /marketing_first_touch/, 'the source is the first touch');
+  assert.match(src, /'founder'/, 'the founder\'s tag is its own source');
+  assert.match(src, /'email_invitation'/, 'an invited registration is its own source');
+  const people = fnBody('fn_ceo_founder_network_reading');
+  assert.match(people, /fn_ceo_registration_step/, 'each of his people carries the step he is at');
+  assert.doesNotMatch(people, /'email'|'phone'|to_email|phone_e164/, 'no contact detail goes into his list');
+});
+
+test('2. no bet becomes an order without code\'s check', () => {
+  const chk = fnBody('fn_ceo_plan_bet_check');
+  for (const [what, re] of [
+    ['the channel verdict', /c\.verdict = 'refused'/], ['the message gates per named recipient', /fn_company_message_gates\(/],
+    ['the company limits for money', /fn_company_spend_fits\(/], ['the seat takes a ceo\.order', /type = 'ceo\.order' and k\.from_seat = 'ceo'/],
+    ['a measure code can read', /fn_ceo_plan_measures\(\) \? v_measure/], ['a due date window', /v_due < now\(\) \+ interval '12 hours'/],
+    ['the capability', /c\.capability <> 'ready'/], ['switched-off invitations', /invite_enabled/], ['the placement providers', /fn_invite_placement_open_providers/],
+    ['the founder is never asked', /asks_founder/], ['one open order per seat and measure', /detail->>'path' = 'plan'/]]) {
+    assert.match(chk, re, `the check reads ${what}`);
+  }
+  const file = fnBody('fn_ceo_plan_file');
+  assert.match(file, /fn_ceo_plan_bet_check\(b\)/, 'every bet is checked');
+  const order = file.indexOf("fn_seat_handoff('ceo', v_seat, 'ceo.order'");
+  assert.ok(order > 0 && file.lastIndexOf('if cardinality(v_ref) > 0 then', order) > 0, 'an order is filed only after the check passed');
+  assert.match(file, /p\.revision = 0 and p\.kind <> 'seed'/, 'a refusal goes back once, and only once');
+});
+
+test('3. the register refuses the unsafe channels with their rule and their alternative; no hire', () => {
+  for (const ch of ['whatsapp_cold_scraped', 'linkedin_automation', 'paid_ads', 'bulk_sms', 'email_microsoft_yahoo', 'lookalike_domains', 'bought_or_scraped_lists', 'hired_caller', 'ai_voice_outbound']) {
+    assert.match(C, new RegExp(`\\('${ch}', 'refused',`), `${ch} is refused`);
+  }
+  assert.match(C, /constraint ceo_growth_channel_refusal_says_why check \(verdict <> 'refused' or \(length\(btrim\(coalesce\(refused_because/, 'a refusal names its rule and its alternative');
+  for (const [ch, ruling] of [['paid_ads', '1456'], ['bulk_sms', '1185'], ['email_microsoft_yahoo', '1537'], ['hired_caller', '1709'], ['whatsapp_cold_scraped', '1341']]) {
+    const row = C.slice(C.indexOf(`('${ch}', 'refused',`), C.indexOf(`('${ch}', 'refused',`) + 900);
+    assert.ok(row.includes(ruling), `${ch} rests on ruling ${ruling}`);
+  }
+  assert.doesNotMatch(C, /ceo_hire_request/, 'no hire request (ledger 1709)');
+});
+
+test('4. the model is asked on the right route, at most twice, and daily only on an anomaly', () => {
+  const ts = read('supabase/functions/ceo_agent/plan.ts');
+  assert.match(ts, /export const MAX_PLAN_CALLS = 2;/);
+  assert.match(ts, /if \(first\.filed\.revise !== true\) return/, 'a second call only on a revision');
+  assert.match(SQL, /"weekly_task_class": "ceo_strategic_planning"/, 'the weekly plan is the CEO\'s hard route');
+  assert.match(SQL, /"daily_task_class": "routine_employee_reasoning"/, 'the daily review is the routine route');
+  const due = fnBody('fn_ceo_plan_due');
+  assert.match(due, /jsonb_array_length\(v_anom\) = 0/, 'no anomaly, no model');
+  assert.match(due, /v_spent >= v_cap/, 'the loop has its own weekly cap');
+  const tick = read('supabase/functions/resilience_ping/ticks/ceo.ts');
+  assert.match(tick, /admin\.rpc\('fn_ceo_plan_due'/);
+  assert.match(tick, /action: 'plan', plan_id: t\.plan_id, detach: true/, 'the heartbeat hands the plan to the CEO\'s function, detached');
+});
+
+test('5. nothing asks the founder', () => {
+  assert.doesNotMatch(C, /needs your decision/, 'no "needs your decision" in code');
+  const fc = fnBody('fn_ceo_target_forecast');
+  assert.ok(fc && !fc.includes('"id":"tell_founder"'), 'the forecast offers no founder choice');
+  const apply = fnBody('fn_ceo_review_applies');
+  const forecast = apply.slice(apply.indexOf("if v_kind = 'target_forecast' then"), apply.indexOf("elsif v_kind = 'pricing_monitor' and v_choice = 'propose_change' and coalesce"));
+  assert.match(forecast, /insert into public\.ceo_own_decision/, 'a forecast decision is the CEO\'s own');
+  assert.doesNotMatch(forecast, /fn_ceo_review_tells_founder|fn_notify_founder/, 'the forecast tells the founder nothing');
+  for (const f of ['supabase/functions/ceo_agent/plan.ts']) {
+    assert.doesNotMatch(read(f), /fn_notify_founder|founder_alerts|ask_founder/, `${f} never reaches the founder`);
+  }
+  const summary = fnBody('fn_ceo_plan_summary_text');
+  assert.match(summary, /YOUR PEOPLE/, 'the founder reads his people in the daily summary');
+});
+
+test('6. the first plan is data filed by the loop\'s first run, the founder\'s network first', () => {
+  const seed = C.slice(C.indexOf("insert into public.ceo_plan_week (kind, period, status, task_class, output, pack)"));
+  assert.match(seed, /'seed', date '2026-11-16', 'asked'/);
+  const bets = seed.slice(seed.indexOf('"bets"'));
+  assert.ok(bets.indexOf('"channel": "founder_network"') > 0 && bets.indexOf('"channel": "founder_network"') < bets.indexOf('"channel": "reply_within_1h"'), 'the founder\'s network is bet 1');
+  assert.match(seed, /utm_source=founder&utm_medium=whatsapp&utm_campaign=2026-11/);
+  assert.match(fnBody('fn_ceo_plan_due'), /fn_ceo_plan_file\(s\.id, s\.output/, 'the seed goes through fn_ceo_plan_file like any plan');
+  assert.match(C, /insert into public\.ceo_operating_target \(objective, emirate, due_on, groups, source\)/, 'the operating target is a row');
+  for (const t of ['hvac', 'interior_fitout', 'building_materials']) assert.ok(C.includes(`"${t}"`), `the focus trades include ${t}`);
+  assert.match(C, /date '2026-12-20'/);
+});
+
+test('7. routines revoked and pinned, tables with a policy, the file pending until applied', () => {
+  const names = [...C.matchAll(/create or replace function public\.(\w+)\(/g)].map((m) => m[1]);
+  assert.ok(names.length >= 25, 'the file defines its routines');
+  for (const n of new Set(names)) {
+    const body = fnBody(n);
+    assert.match(body, /set search_path to 'public', 'pg_temp'/, `${n} pins its search_path`);
+    assert.match(C, new RegExp(`revoke execute on function public\\.${n}\\([^)]*\\) from public, anon, authenticated`), `${n} is revoked`);
+  }
+  assert.match(C, /create policy %I on public\.%I as permissive for all to public using \(false\) with check \(false\)/);
+  for (const t of ['ceo_growth_channel', 'ceo_operating_target', 'ceo_plan_week', 'ceo_plan_bet', 'ceo_own_decision']) assert.ok(C.includes(`'${t}'`), `${t} gets its policy`);
+  const manifest = read('scripts/sql/MANIFEST.txt');
+  for (const f of [FILE, PROBE]) {
+    const pending = f.replace('scripts/sql/', 'scripts/sql/pending/').replace(/\.sql$/, '.txt');
+    assert.ok(manifest.includes(f) !== existsSync(join(REPO, pending)), `${f}: a MANIFEST line or a pending note, never both`);
+  }
+  assert.match(read(PROBE), /raise exception 'CHK<<PROBE OK/, 'the probe raises, so it writes nothing');
+});

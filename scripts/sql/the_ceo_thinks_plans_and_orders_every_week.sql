@@ -710,7 +710,9 @@ begin
   -- one open order per seat and measure
   if v_seat is not null and v_measure is not null and exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.status = 'pending'
         and a.agent = v_seat and a.detail->>'type' = 'ceo.order' and a.detail->>'measure' = v_measure and a.detail->>'path' = 'plan'
-        and coalesce(a.detail->'measure_args', '{}'::jsonb) = coalesce(p_bet->'measure_args', '{}'::jsonb)) then
+        and coalesce(a.detail->'measure_args', '{}'::jsonb) = coalesce(p_bet->'measure_args', '{}'::jsonb)
+        -- a missed or withdrawn bet's order no longer blocks the next plan from ordering the same measure again
+        and not exists (select 1 from public.ceo_plan_bet x where x.handoff_id = a.id and x.status in ('missed', 'withdrawn'))) then
     v_out := v_out || ('an order to ' || v_seat || ' on ' || v_measure || ' is still open')::text;
   end if;
   return v_out;
