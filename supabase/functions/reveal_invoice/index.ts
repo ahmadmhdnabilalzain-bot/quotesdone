@@ -5,7 +5,7 @@ import { observe } from '../_shared/observe.ts';
 import { resolveSale } from './resolve.ts';
 import { jobNoOf } from '../_shared/quote_documents.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
-import { invoiceIsDue, NO_INVOICE, NOT_PAID, paymentState, revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
+import { invoiceIsDue, NO_INVOICE, NOT_PAID, paymentState, refusal, revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { attachInvoice, type Rendered } from './attach.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -176,11 +176,11 @@ Deno.serve(siteCors(observe('reveal_invoice', async (req) => {
     if ('error' in s) { await logRun('error', { quote_id: qid }, s.error); return J({ error: 'temporarily_unavailable', code: 'temporarily_unavailable' }, 503); }
     if ('notPaid' in s) {
       await logRun('ok', { quote_id: qid, doc: kind, refused: NOT_PAID.code, fee_status: tx.fee_status }, '');
-      return J({ error: NOT_PAID.code, code: NOT_PAID.code, message_en: NOT_PAID.en, message_ar: NOT_PAID.ar }, 409);
+      return J(refusal(NOT_PAID), 409);
     }
     if (kind === 'invoice' && !invoiceIsDue(s.sale)) {
       await logRun('ok', { quote_id: qid, doc: kind, refused: NO_INVOICE.code }, '');
-      return J({ error: NO_INVOICE.code, code: NO_INVOICE.code, message_en: NO_INVOICE.en, message_ar: NO_INVOICE.ar }, 409);
+      return J(refusal(NO_INVOICE), 409);
     }
     const d = await documentFor(tx, s.sale, kind, docLang, logRun);
     if ('error' in d) return J({ error: d.error }, 502);

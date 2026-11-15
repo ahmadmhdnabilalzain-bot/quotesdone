@@ -93,6 +93,14 @@ export const NO_INVOICE = {
   en: 'Nothing was charged for this reveal, so there is no invoice for it.',
   ar: 'لم يُستوفَ أي مبلغ عن هذا الكشف، لذلك لا توجد له فاتورة.',
 };
+
+// A REFUSAL THE CUSTOMER READS (review 5, item 4): the portal's errText (src/components/me/portalText.ts) renders a
+// refusal from its CODE_KEY or from `message` / `message_ar`. reveal_invoice sent message_en, which errText does not read,
+// so a zero-fee reveal's "no invoice" reached the customer as "Could not open the invoice." Both spellings are sent.
+// prevented by: scripts/checks/a_refused_reveal_document_reaches_the_customer_in_words.test.mjs
+export function refusal(r: { code: string; en: string; ar: string }) {
+  return { error: r.code, code: r.code, message: r.en, message_ar: r.ar, message_en: r.en };
+}
 export function invoiceIsDue(sale: Pick<RevealSale, 'reveal_fee' | 'total_charged'>): boolean {
   return Math.round(Number(sale.reveal_fee || 0) * 100) > 0 || Math.round(Number(sale.total_charged || 0) * 100) > 0;
 }
