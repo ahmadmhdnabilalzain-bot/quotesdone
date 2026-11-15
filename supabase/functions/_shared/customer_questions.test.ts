@@ -142,6 +142,19 @@ Deno.test('no entry asks for anything that identifies the customer', () => {
   }
 });
 
+// The register (native Arabic review, 15 Nov 2026): every Arabic line addresses the customer in the formal plural, never the
+// masculine singular a literal translation of "you" produces. The words below are second-person singular in every context they
+// can appear in on a question card (a feminine third-person "تحتاج الغرفة" is not in the list, so it is not caught).
+Deno.test('the Arabic addresses the customer in the formal plural, as every customer message of the company does', () => {
+  const L = '\u0621-\u064A\u064B-\u0652';
+  const singular = new RegExp(`(?<![${L}])(?:[وف]?(?:تريد|تريده|تريدها|لديك|عندك|يمكنك|أرسل|أخبرنا|اذكر|اختر|اكتب|أنت|بكلماتك)|لا تعرف؟|إن لم تكن متأكد[اًً]*)(?![${L}])`);
+  assert(singular.test('هل تريد وحدات؟') && singular.test('لا تعرف؟ أرسل صورة.') && !singular.test('هل تريدون وحدات؟ أرسلوا صورة.'));
+  for (const [code, q] of Object.entries(CUSTOMER_QUESTION)) {
+    for (const s of [q.ar, q.eg_ar ?? '', q.alt_ar ?? '']) assert(!singular.test(s), `${code}: singular address: ${s}`);
+  }
+  assert(!singular.test(ARABIC_FRAME), ARABIC_FRAME);
+});
+
 Deno.test('the trade tables do not overlap: a spec code has ONE wording, so a later table can never silently replace an earlier one', () => {
   const tables: Record<string, Record<string, unknown>> = { HOME_TRADES, BUILDING_TRADES, WORKS_TRADES, COMMERCIAL_TRADES, SERVICES_TRADES, INDUSTRIAL_TRADES, GOODS_TRADES };
   const seen = new Map<string, string>();
