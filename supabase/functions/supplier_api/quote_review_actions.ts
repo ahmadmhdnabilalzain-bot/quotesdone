@@ -109,6 +109,8 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
       drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length),
       drawing_pages_served: Number(i.drawing_pages_served ?? (i.drawing_pages || []).length),
       drawing_pages_failed: Number(i.drawing_pages_failed || 0), drawing_withheld: !!i.drawing_withheld,
+      // Photos from the site (ledger 1704): the inbox row's section as built by site_photos_door.ts, checked copies only.
+      site_photos: i.site_photos ?? null,
       quotes: i.quotes || [], review: stateOf(await repo.reviewsOf(sup.id), i.id),
     } } };
   }

@@ -104,3 +104,45 @@ test('the SQL file is ready to apply, and the runtime reads the column with a fa
   const before = ts.match(/const CHECKLIST_COLS_10_NOV = '([^']+)'/);
   assert.ok(before && !before[1].includes('photos_to_ask') && before[1].includes('blocking'), 'no fallback to the 10 Nov columns before the column is applied');
 });
+
+// ── review of bf8b9ea45 (15 Nov 2026), items 1, 3 and 4 — what a source reading can see ────────────────────────────────────────
+const FILE2 = 'scripts/sql/a_site_photo_is_queued_and_recorded_on_its_request_in_one_statement.sql';
+const PROBE2 = FILE2.replace(/\.sql$/, '_probe.sql');
+const jsCode = (t) => t.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => m.replace(/[^\n]/g, ' '));
+
+test('item 1: the queue takes site_photo_check and keeps every value its check held (the mirror\'s list, plus the photo)', () => {
+  const sql = code(read(FILE2));
+  const mirror = read('supabase/schema/full_schema/01_extensions_sequences_tables_constraints_indexes.sql').match(/cad_read_jobs_why_check CHECK \(\(why = ANY \(ARRAY\[([^\]]+)\]/)[1];
+  const held = [...mirror.matchAll(/'([a-z_]+)'::text/g)].map((m) => m[1]);
+  assert.ok(held.length >= 5, 'the mirror\'s check was not read');
+  const made = sql.match(/add constraint cad_read_jobs_why_check\s+check \(why = any \(array\[([^\]]+)\]/i);
+  assert.ok(made, 'the file does not re-create cad_read_jobs_why_check');
+  const now = [...made[1].matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
+  for (const v of held) assert.ok(now.includes(v), `the re-created check drops ${v}`);
+  assert.ok(now.includes('site_photo_check'));
+  assert.match(read(PROBE2), /site_photo_check/);
+  assert.match(read(PROBE2), /PROBE OK/);
+  assert.equal(existsSync(join(REPO, 'scripts/sql/pending', FILE2.split('/').pop().replace(/\.sql$/, '.txt'))) !== read('scripts/sql/MANIFEST.txt').split('\n').includes(FILE2), true, 'exactly one of a pending note and a MANIFEST line');
+});
+
+test('item 4: no function writes a photo record by reading brief or spec and writing it back whole', () => {
+  const wa = jsCode(read('supabase/functions/wa_inbound/customer_files.ts'));
+  assert.doesNotMatch(wa, /update\(\{\s*\[col\]/, 'WhatsApp writes the whole brief/spec back');
+  assert.match(wa, /recordSitePhotos\(admin/);
+  const handle = jsCode(read('supabase/functions/inquiry_intake/handle.ts'));
+  assert.doesNotMatch(handle, /briefToSave[^\n]*site_photos\s*=/, 'the chat turn puts the record into the brief it writes whole');
+  assert.match(handle, /recordSitePhotos\(admin/);
+  assert.match(code(read(FILE2)), /security definer[\s\S]*set search_path to 'public', 'pg_temp'[\s\S]*revoke execute on function public\.fn_site_photos_record\(text, uuid, uuid, text, jsonb, text, jsonb, boolean\) from public, anon, authenticated/);
+});
+
+test('item 3: the supplier\'s inquiry view renders "Photos from the site" from the detail\'s site_photos, checked copies only', () => {
+  const tab = jsCode(read('src/components/portal/supplier/InquiriesTab.tsx'));
+  assert.match(tab, /<SitePhotos photos=\{d\.site_photos\} \/>/, 'the inquiry view does not render the photos');
+  const parts = jsCode(read('src/components/portal/supplier/RfqParts.tsx'));
+  assert.match(parts, /export function SitePhotos/);
+  assert.match(parts, /photos\.urls\.map/);
+  assert.match(parts, /Not provided/);
+  assert.match(parts, /A final price may still need a site visit/);
+  assert.match(jsCode(read('supabase/functions/supplier_api/quote_review_actions.ts')), /site_photos: i\.site_photos \?\? null/, 'inquiry_detail drops the section');
+  assert.match(jsCode(read('supabase/functions/supplier_api/actions/prints.ts')), /site_photos: i\.site_photos \?/, 'the inquiry PDF row drops the section');
+});

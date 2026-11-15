@@ -18,7 +18,7 @@ import { categoryLabel } from '@/lib/categoryLabel';
 import { emirateLabel, srvMsg } from './serverCopy';
 import { ws } from './workspaceCopy';
 import DocActions from '../DocActions';
-import { BoqTable, ClarifyThread, DrawingGallery, RequestedTerms, WithheldCustomer } from './RfqParts';
+import { BoqTable, ClarifyThread, DrawingGallery, RequestedTerms, SitePhotos, WithheldCustomer } from './RfqParts';
 import { failed, openPdf, qr, saveInline, REVIEW_STATE, type InquiryDetail, type InquiryDocuments, type InquiryListItem, type Lang } from './quoteReviewApi';
 import { quotedAmount } from './money';
 import { AR_NOUN, arCount } from '@/lib/countedNoun';
@@ -148,6 +148,7 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
       <RequestedTerms spec={d.spec} lang={lang} />
       <Documents token={token} lang={lang} id={d.id} />
       <DrawingGallery pages={d.drawing_pages} failed={Number(d.drawing_pages_failed || 0)} lang={lang} />
+      <SitePhotos photos={d.site_photos} />
       {d.drawing_withheld ? <p role="status" className="mt-4 max-w-[70ch] text-[12.5px] text-muted-foreground">{ws(lang, 'rfq_file_withheld')}</p> : null}
       <BoqTable boq={d.boq} confidence={d.boq_confidence} lang={lang} />
       {d.boq_withheld ? <p className="mt-3 text-[12.5px] text-muted-foreground">{t.boqHeld}</p> : null}

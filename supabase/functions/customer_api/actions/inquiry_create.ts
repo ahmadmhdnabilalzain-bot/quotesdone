@@ -25,8 +25,8 @@ import { ownDrawingPath } from '../drawing_path.ts';
 import { matchAndNotify } from '../lib/matching.ts';
 import { keylessPlaceKeys, oneOfSeven, splitSite } from '../../_shared/site_location.ts';
 import { attachedLine } from '../../supplier_api/what_a_supplier_receives.ts';
-import { forSpec } from '../../_shared/site_photos.ts';
-import { photosLine } from '../../supplier_api/site_photos_door.ts';
+import { forSpec, recordOf } from '../../_shared/site_photos.ts';
+import { photoStates, photosAtSend, photosLine } from '../../supplier_api/site_photos_door.ts';
 import { isQuotationReading, quotationGate } from '../../drawing_boq/quotation_gate.ts';
 import { claimIntake, releaseIntake } from '../lib/intake_claim.ts';
 import { keysOfTrade, serviceKeyCols, stateKeysForIntake } from '../lib/state_service_keys.ts';
@@ -312,8 +312,12 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       if (briefQty != null && String(briefQty).trim() !== '' && !('quantity' in spec)) spec.quantity = briefQty;
       // THE SITE PHOTOS (15 Nov 2026, ledger 1704; _shared/site_photos.ts): the shots asked and the photos sent, each by its check
       // job. Kept apart from the details (the text gate never reads a job id); a supplier sees only the copies the check released.
-      const sitePhotos = forSpec(briefObj?.site_photos);
+      // The intake's own record (written by each upload, fn_site_photos_record), plus any photo job the portal sends with Send that
+      // is this customer's own (review of bf8b9ea45, item 2: a photo uploaded after the last chat turn reaches the request).
+      const sitePhotos = await photosAtSend(admin, cust.id, forSpec(recordOf(intake)), body.site_photos);
       if (sitePhotos) spec.site_photos = sitePhotos;
+      // The e-mail counts only copies the check has released by now (review item 3); the rest are said to be still checking.
+      const photoState = sitePhotos ? await photoStates(admin, cust.id, sitePhotos) : { released: 0, checking: 0 };
       // The window as stated, plus a resolved date when one can be resolved. Suppliers quote
       // against the phrase; the portal sorts against the date. `required_by` stays null rather than
       // guessing — "as soon as possible" is a real answer and is not a date.
@@ -443,7 +447,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, ...serviceKeyCols(stateKeys), compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
         if (e1) { await releaseIntake(admin, String(intake.id)); return J(...inquiryNotSaved(e1)); }
         const tradeList = distinctTrades.map(labelize).join(', ');
-        const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + attachedLine(briefSource, !!boqObj, !!drawingRedacted) + photosLine(sitePhotos);
+        const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + attachedLine(briefSource, !!boqObj, !!drawingRedacted) + photosLine(sitePhotos, photoState);
         const { matches, routing } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, summary, budget, extra: extra + supplierLine(reqStored) });
         // The routing goes back with the answer (finding c of 10 Nov 2026): a turnkey request no turnkey contractor matched
         // carries routing.separate_offer (how many specialists could quote it per trade), and the portal asks the customer
@@ -453,7 +457,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
 
       const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length || intakeTradeCodes.length ? [...new Set([...tradesIn, ...intakeTradeCodes])] : null, brief_source: briefSource, ...drawCols, ...briefCols, ...serviceKeyCols(stateKeys), compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
       if (e1) { await releaseIntake(admin, String(intake.id)); return J(...inquiryNotSaved(e1)); }
-      const extra = attachedLine(briefSource, !!boqObj, !!drawingRedacted) + photosLine(sitePhotos);
+      const extra = attachedLine(briefSource, !!boqObj, !!drawingRedacted) + photosLine(sitePhotos, photoState);
       const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, summary, budget, extra: extra + supplierLine(reqStored) });
       return J({ ...postedSingle(String(inq!.id), 'single', matches, routing), concierge: await confirmRequest(String(inq!.id)) });
     }
