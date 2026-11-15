@@ -14,7 +14,7 @@
 -- one directive to the it_engineer; no founder alert is written by any of it.
 do $probe$
 declare
-  v_tag text := substr(md5(clock_timestamp()::text), 1, 8); v_fail text := ''; v_r jsonb; v_p jsonb; v_k text; v_n int; v_txt text;
+  v_tag text := substr(md5(clock_timestamp()::text), 1, 8); v_fail text := ''; v_r jsonb; v_p jsonb; v_k text; v_n bigint; v_txt text;
   v_l1 bigint; v_l2 bigint; v_l3 bigint; v_l4 bigint; v_l5 bigint; v_sup bigint; v_im bigint; v_fu bigint; v_seed bigint; v_plan bigint;
   v_monday timestamptz; v_tuesday timestamptz; v_alerts int; v_b record; v_h bigint; v_due text := to_char(now() + interval '3 days', 'YYYY-MM-DD"T"HH24:MI:SSOF');
   v_cust uuid; v_hq bigint; v_week date;
@@ -29,27 +29,30 @@ begin
 
   -- ── fixtures: the founder's three people (started, submitted, approved), one invited registration, one who opted out, one
   -- verified HVAC supplier in Dubai, one dropped supplier reply
-  insert into public.leads (company_name, email, owner_email_verified, portal_updated_at, is_demo)
-  values ('ZZ DEMO Plan Started ' || v_tag, 'plan-st-' || v_tag || '@example.invalid', true, now() - interval '9 days', true) returning id into v_l1;
-  insert into public.leads (company_name, email, owner_email_verified, registration_submitted_at, is_demo)
-  values ('ZZ DEMO Plan Submitted ' || v_tag, 'plan-sb-' || v_tag || '@example.invalid', true, now() - interval '3 days', true) returning id into v_l2;
-  insert into public.leads (company_name, email, owner_email_verified, registration_submitted_at, is_demo)
-  values ('ZZ DEMO Plan Approved ' || v_tag, 'plan-ap-' || v_tag || '@example.invalid', true, now() - interval '8 days', true) returning id into v_l3;
-  update public.leads set approval_status = 'approved', approved_at = now() - interval '7 days', approval_decided_by = 'sales_engineer' where id = v_l3;
+  insert into public.leads (company_name, email, owner_email_verified, portal_updated_at)
+  values ('ZZ DEMO Plan Started ' || v_tag, 'plan-st-' || v_tag || '@example.invalid', true, now() - interval '9 days') returning id into v_l1;
+  insert into public.leads (company_name, email, owner_email_verified, registration_submitted_at)
+  values ('ZZ DEMO Plan Submitted ' || v_tag, 'plan-sb-' || v_tag || '@example.invalid', true, now() - interval '3 days') returning id into v_l2;
+  insert into storage.objects (bucket_id, name) values ('supplier-docs', 'zz-demo-plan-probe/' || v_tag || '/licence.pdf'), ('supplier-docs', 'zz-demo-plan-probe/' || v_tag || '/profile.pdf');
+  insert into public.leads (company_name, email, owner_email_verified, registration_submitted_at, phone, owner_phone_verified, signed_terms_path, license_doc_path, company_profile_doc_path)
+  values ('ZZ DEMO Plan Approved ' || v_tag, 'plan-ap-' || v_tag || '@example.invalid', true, now() - interval '8 days', '+971500000001', true,
+          'zz-demo-plan-probe/' || v_tag || '/terms.pdf', 'zz-demo-plan-probe/' || v_tag || '/licence.pdf', 'zz-demo-plan-probe/' || v_tag || '/profile.pdf') returning id into v_l3;
+  update public.leads set verified = true, approval_status = 'approved', approved_at = now() - interval '7 days', approval_decided_by = 'sales_engineer' where id = v_l3;
   insert into public.marketing_first_touch (lead_id, utm_source, utm_medium, utm_campaign, landing_path, first_seen_at, recorded_at) values
     (v_l1, 'founder', 'whatsapp', '2026-11', '/portal', now() - interval '9 days', now() - interval '9 days'),
     (v_l2, 'founder', 'whatsapp', '2026-11', '/portal', now() - interval '9 days', now() - interval '9 days'),
     (v_l3, 'founder', 'whatsapp', '2026-11', '/portal', now() - interval '9 days', now() - interval '9 days');
-  insert into public.leads (company_name, email, owner_email_verified, registration_submitted_at, invite_clicked_at, is_demo)
-  values ('ZZ DEMO Plan Invited ' || v_tag, 'plan-inv-' || v_tag || '@example.invalid', true, now() - interval '18 days', now() - interval '19 days', true) returning id into v_l4;
+  insert into public.leads (company_name, email, owner_email_verified, registration_submitted_at, invite_clicked_at)
+  values ('ZZ DEMO Plan Invited ' || v_tag, 'plan-inv-' || v_tag || '@example.invalid', true, now() - interval '18 days', now() - interval '19 days') returning id into v_l4;
+  -- the outbox refuses an invitation to a demo lead at insert (a07, BEFORE INSERT only): the probe records one already sent
   insert into public.notifications (type, to_email, to_role, lead_id, subject, body, channel, status, sent_at)
-  values ('supplier_invite', 'plan-inv-' || v_tag || '@example.invalid', 'supplier', v_l4, 'ZZ DEMO plan probe', 'ZZ DEMO plan probe', 'email', 'sent', now() - interval '20 days');
-  insert into public.leads (company_name, email, invite_status, is_demo)
-  values ('ZZ DEMO Plan Opted Out ' || v_tag, 'plan-out-' || v_tag || '@example.invalid', 'unsubscribed', true) returning id into v_l5;
-  insert into storage.objects (bucket_id, name) values ('supplier-docs', 'zz-demo-plan-probe/' || v_tag || '/licence.pdf'), ('supplier-docs', 'zz-demo-plan-probe/' || v_tag || '/profile.pdf');
-  insert into public.leads (company_name, email, phone, owner_phone_verified, owner_email_verified, signed_terms_path, license_doc_path, company_profile_doc_path, service_emirates, is_demo)
+  values ('zz_demo_plan_probe', 'plan-inv-' || v_tag || '@example.invalid', 'supplier', v_l4, 'ZZ DEMO plan probe', 'ZZ DEMO plan probe', 'email', 'sent', now() - interval '20 days') returning id into v_n;
+  update public.notifications set type = 'supplier_invite' where id = v_n;
+  insert into public.leads (company_name, email, invite_status)
+  values ('ZZ DEMO Plan Opted Out ' || v_tag, 'plan-out-' || v_tag || '@example.invalid', 'unsubscribed') returning id into v_l5;
+  insert into public.leads (company_name, email, phone, owner_phone_verified, owner_email_verified, signed_terms_path, license_doc_path, company_profile_doc_path, service_emirates)
   values ('ZZ DEMO Plan HVAC ' || v_tag, 'plan-hvac-' || v_tag || '@example.invalid', '+971500000000', true, true, 'zz-demo-plan-probe/' || v_tag || '/terms.pdf',
-          'zz-demo-plan-probe/' || v_tag || '/licence.pdf', 'zz-demo-plan-probe/' || v_tag || '/profile.pdf', array['Dubai'], true) returning id into v_sup;
+          'zz-demo-plan-probe/' || v_tag || '/licence.pdf', 'zz-demo-plan-probe/' || v_tag || '/profile.pdf', array['Dubai']) returning id into v_sup;
   update public.leads set verified = true, approval_status = 'approved', approval_decided_by = 'sales_engineer' where id = v_sup;
   insert into public.supplier_capabilities (supplier_id, trades, confirmed_at) values (v_sup, array['hvac'], now());
   insert into public.inbound_messages default values returning id into v_im;
@@ -66,8 +69,9 @@ begin
   if v_p->>'world' <> 'demo' then v_fail := v_fail || 'the probe read the real world; '; end if;
   if (v_p->'founder_network'->>'started')::int <> 3 or (v_p->'founder_network'->>'submitted')::int <> 2 or (v_p->'founder_network'->>'approved')::int <> 1
     then v_fail := v_fail || 'the founder''s people are not counted by step: ' || (v_p->'founder_network')::text || '; '; end if;
-  if (v_p->'founder_network'->'stuck')::text not like '%Plan Started ' || v_tag || '%account made, documents not submitted%'
-     or (v_p->'founder_network'->'stuck')::text not like '%Plan Submitted ' || v_tag || '%submitted, waiting for our review%'
+  if not exists (select 1 from jsonb_array_elements(v_p->'founder_network'->'stuck') x where x->>'company' = 'ZZ DEMO Plan Started ' || v_tag and x->>'step' = 'account made, documents not submitted')
+     or not exists (select 1 from jsonb_array_elements(v_p->'founder_network'->'stuck') x where x->>'company' = 'ZZ DEMO Plan Submitted ' || v_tag and x->>'step' = 'submitted, waiting for our review')
+     or exists (select 1 from jsonb_array_elements(v_p->'founder_network'->'stuck') x where x->>'company' like 'ZZ DEMO Plan Approved%')
     then v_fail := v_fail || 'the stuck list does not name his people and their step: ' || (v_p->'founder_network'->'stuck')::text || '; '; end if;
   if (v_p->'founder_network')::text like '%@%' or (v_p->'founder_network')::text like '%+971%' then v_fail := v_fail || 'the founder''s list carries a contact detail; '; end if;
   if (v_p->'registrations_by_source'->'totals'->'founder'->>'started')::int <> 3 or (v_p->'registrations_by_source'->'totals'->'email_invitation'->>'submitted')::int <> 1
@@ -113,7 +117,8 @@ begin
   v_r := public.fn_ceo_plan_request(v_plan);
   if v_r->>'task_class' <> 'ceo_strategic_planning' or not (v_r->'input'->'pack' ? 'founder_network') or v_r->>'system' not like '%Never ask the founder anything%'
     then v_fail := v_fail || 'the weekly request is not the contract with the pack: ' || left(v_r::text, 300) || '; '; end if;
-  if coalesce((public.fn_ceo_plan_due(v_monday)->>'call_model')::boolean, false) then v_fail := v_fail || 'a second weekly plan opened the same week; '; end if;
+  perform public.fn_ceo_plan_due(v_monday);
+  if (select count(*) from public.ceo_plan_week where kind = 'weekly') <> 1 then v_fail := v_fail || 'a second weekly plan opened the same week; '; end if;
 
   -- 4. A STUBBED MODEL ANSWER: unsafe bets refused with the reason, safe ones ordered
   v_r := public.fn_ceo_plan_file(v_plan, jsonb_build_object('situation', 'ZZ DEMO plan probe', 'decision', jsonb_build_object('bets', jsonb_build_array(
@@ -155,7 +160,7 @@ begin
   v_r := public.fn_ceo_plan_request(v_plan);
   if jsonb_array_length(coalesce(v_r->'input'->'refused_by_code', '[]'::jsonb)) <> 12 then v_fail := v_fail || 'the revision request does not carry the refusals; '; end if;
   v_r := public.fn_ceo_plan_file(v_plan, jsonb_build_object('decision', jsonb_build_object('bets', jsonb_build_array(
-    jsonb_build_object('channel', 'linkedin_company_page', 'seat', 'marketing', 'what', 'three company-page posts', 'measure', 'reported', 'target', 1, 'due_at', v_due),
+    jsonb_build_object('channel', 'linkedin_company_page', 'seat', 'marketing', 'what', 'three company-page posts', 'measure', 'registrations_by_source', 'measure_args', jsonb_build_object('source', 'linkedin'), 'target', 1, 'due_at', v_due),
     jsonb_build_object('channel', 'paid_ads', 'seat', 'marketing', 'what', 'ads again', 'measure', 'reported', 'target', 1, 'due_at', v_due)))), 'stub/model', null);
   if coalesce((v_r->>'revise')::boolean, true) or (v_r->>'filed')::int <> 1 or (select status from public.ceo_plan_week where id = v_plan) <> 'filed'
     then v_fail := v_fail || 'the revision was not filed once and for all: ' || v_r::text || '; '; end if;
@@ -216,7 +221,7 @@ begin
   insert into public.reasoning_held_question (seat, surface, question, request, reason, subject, dedupe_key)
   values ('ceo', 'ceo.target_forecast', 'ZZ DEMO plan probe forecast', jsonb_build_object('decision', jsonb_build_object('options', '[{"id":"hold_course"},{"id":"tell_founder"}]'::jsonb)),
           'probe', jsonb_build_object('kind', 'target_forecast', 'period', v_week), 'zz-demo-plan-probe:' || v_tag) returning id into v_hq;
-  v_r := public.fn_ceo_review_applies(v_hq, jsonb_build_object('decision', jsonb_build_object('choice', 'tell_founder', 'fields', jsonb_build_object('proposal', jsonb_build_object('value', 'raise the daily limit to AED 60 for the Chamber listing')))), 'answer', 'the gap needs money', 'model', 'stub/model'));
+  v_r := public.fn_ceo_review_applies(v_hq, jsonb_build_object('decision', jsonb_build_object('choice', 'tell_founder', 'fields', jsonb_build_object('proposal', jsonb_build_object('value', 'raise the daily limit to AED 60 for the Chamber listing'))), 'answer', 'the gap needs money', 'model', 'stub/model'));
   if v_r->'founder' is not null and v_r->>'founder' <> 'null' then v_fail := v_fail || 'the forecast reached the founder: ' || v_r::text || '; '; end if;
   if (select choice from public.ceo_own_decision where dedupe_key = 'target_forecast:' || v_week) is distinct from 'act_within_authority'
     then v_fail := v_fail || 'the old tell_founder answer is not the CEO''s own decision; '; end if;
