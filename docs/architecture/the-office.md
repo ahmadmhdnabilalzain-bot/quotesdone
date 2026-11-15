@@ -117,6 +117,37 @@ the seats' board, and ORDERS seats through the pool with a measured outcome, the
 invitation duty (only while invitations are switched on), the sales engineer (half-finished registrations), customer support
 (held registrations). Every decision is a `ceo_supply_decision` row with its reason.
 
+### An order is a conversation until its outcome (founder, 16 Nov 2026)
+
+"So he gave him an order. What will the IT do? What if he can't? How do they talk to each other? How do the CEO conclude what
+to do next?" Built by `scripts/sql/an_order_is_a_conversation_until_its_outcome.sql`; checked by its probe (the founder's
+Microsoft example end to end), `scripts/checks/an_order_is_a_conversation_until_its_outcome.test.mjs` and
+`supabase/functions/_shared/order_thread_surfaces.test.ts`.
+
+- **The thread is the hand-over.** Every `ceo.order` of path `plan` (a plan bet) or `thread` (a sub-order) gets one
+  `seat_order_thread` row; a sub-order carries `thread_id` = the root order, so the whole conversation is one thread. Each turn
+  is a `seat_order_turn` row and a held question of the seat that speaks (`<seat>.order_plan|order_status|order_retro`,
+  `ceo.order_answer|order_response|order_next`), answered by the one replay on the speaker's own route (the seat's judgement
+  route; the CEO's routine route, never Opus) with one model call, and applied by `fn_order_turn_applies`. The hand-over's
+  `awaiting` names who owes the next turn, so it is in that seat's "Waiting on you".
+- **Acknowledge**: within 12 hours the seat writes its plan: steps with its own tools (`seat_capability`, the register),
+  can / partly / cannot with the reason, needs (a build or the engineer session, another seat, money within the limits, a CEO
+  decision), risks, dated milestones with the reading it expects. A step naming a tool the seat lacks is refused.
+- **Answer**: the CEO accepts, adjusts the target or date, pulls in another seat (its own sub-order and plan, in the thread),
+  commissions a build or a GlockApps re-test (`engineer_session_request`: only the Claude Code engineer session holds the
+  GlockApps key, ruling 1344; a build is also opened in `it_code_defect` when that queue exists), decides the M365 warm-up volume
+  or money within the limits, or withdraws. Every CEO turn passes the plan bet's checks: no founder ask, no refused act in its
+  words, the company limits, the message gates, a seat that takes an order, a measure code can read, 12 hours to 6 weeks.
+- **Check-in**: at each milestone code reads the measure; behind it, the seat writes a status and the CEO responds.
+- **Retro and next**: at the due date (or when the measure is met or reported) the seat writes what was done, the result
+  against the target, why and what next; the CEO closes it met (only on a met measure), extends once, re-plans, reassigns or
+  drops it. The lesson goes to the seat's `seat_case_memory` (its playbook learns), to the pool (`order.lesson`, every seat
+  hears it) and into every later order turn (`lessons_from_recent_orders`).
+- A refused turn goes back once with the reasons; a second refusal blocks the thread on that reason. The founder's daily
+  summary carries one line per open order (status: on track / at risk / blocked on X, and the next step); the CEO's weekly
+  planning pack reads the open threads, the retros and the lessons. Cap: `decision_policy order_threads` (40 turns, AED 1.00 a
+  day); a thread of 8 turns costs about AED 0.11.
+
 ### Who verified: a customer or a supplier finished verifying
 
 - **Supplier**: `fn_sales_engineer_verifies_supplier` records `leads.approval_decided_by`; `supplier.approved` now carries it as

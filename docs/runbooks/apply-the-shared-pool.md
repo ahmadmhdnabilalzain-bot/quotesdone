@@ -1,4 +1,4 @@
-# Applying the shared pool and the CEO's authority (ceo, 13 Nov 2026; updated 15 Nov 2026)
+# Applying the shared pool and the CEO's authority (ceo, 13 Nov 2026; updated 15 and 16 Nov 2026)
 
 Three files, in this order (founder ledger 1688, then 1696 and 1701 of 15 Nov 2026), each with its probe:
 
@@ -147,6 +147,16 @@ each probe PROBE OK both times).
    copy, plans, orders and planted spend), so it passes after the hourly duty has filed the real seed, with real orders open,
    real spend over the cap or a limit change waiting (LOCAL). File it BEFORE 17 Nov 02:00 UTC: the seed's reply bet is due
    17 Nov 18:00 Dubai and a due date under 12 hours ahead is refused (by design; only that bet).
+1d. Apply the order conversations (any minute, after 1c; 16 Nov 2026, founder: "how do they talk to each other?"):
+   `node scripts/apply_sql.mjs scripts/sql/an_order_is_a_conversation_until_its_outcome.sql --apply --ddl --seat ceo`, its two
+   pending notes go, the file and its probe are appended to the END of `MANIFEST.txt` after the planning file. Locks (LOCAL):
+   ACCESS EXCLUSIVE on its four new tables at first apply only; ROW EXCLUSIVE from one row each in `decision_policy` and
+   `seat_duty` and six in `event_subscription`; re-apply 63-89 ms. Check: `select count(*) from seat_capability` is 21; the hourly
+   duty `ceo.order_threads` opens one `seat_order_thread` per open plan order (the real seed: 6, LOCAL) and files one
+   `<seat>.order_plan` held question each, inside `decision_policy order_threads` (40 turns and AED 1.00 a day). Deploy a function
+   that runs the replay (`resilience_ping`) with the new `_shared/think/routing.ts`, `prompts.ts` and `validator.ts` BEFORE the
+   first order turn is reasoned: without them the CEO's turns run on his Opus route and a plan's fields are refused for want of
+   quoted evidence (`decision.authored`). The engineer session reads `fn_engineer_session_request_queue()` beside `it_code_defect`.
 2. Release rehearsal, once, by the release session:
    `QD_POOL_RELEASE_REHEARSAL=1 node --test scripts/checks/every_seat_reads_one_pool.test.mjs` must print `PROBE OK`.
    The probe writes ZZ DEMO rows (and two `storage.objects` rows under `zz-demo-pool-probe/`) only and always rolls back.
@@ -193,3 +203,7 @@ week's plan with each bet's status (and code's reason for every refusal); and th
 - `company_spend_commitment` per day against `fn_company_limits()`, and `company_limit_change` rows set by the CEO (each in
   force a day after it was written).
 - `company_event` insert latency in the apply minute.
+- `seat_duty` `ceo.order_threads` hourly; `seat_order_thread` by state and risk (the founder's summary prints one line per open
+  order); `seat_order_turn` refused rows and their reasons (a refused turn goes back once, then blocks); `fn_order_turn_room()`
+  (at most 40 order turns a day); `engineer_session_request` queued past `due_at` (the thread says it is blocked on it);
+  `seat_case_memory` rows of `case_kind = 'ceo_order'` and `order.lesson` events after each closing decision.

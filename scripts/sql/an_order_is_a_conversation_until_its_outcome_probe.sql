@@ -30,6 +30,7 @@ begin
   -- the probe's own cap and rounds (rolled back): production's turns of today never fill the probe's room
   update public.decision_policy set value = value || '{"turns_per_day": 1000, "aed_per_day": 1000, "max_rounds": 3}'::jsonb where key = 'order_threads';
 
+  begin   -- a step that cannot run is a failure with its reason, never a crash without a verdict
   -- ── 0. THE ORDER: the plan file files the founder's example as any bet (its checks), in the probe's world ─────────────
   insert into public.ceo_plan_week (kind, period, status, task_class, output, pack)
   values ('daily', current_date + 1000, 'asked', 'routine_employee_reasoning', '{}'::jsonb, '{}'::jsonb) returning id into v_plan;
@@ -64,9 +65,11 @@ begin
   v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'can', 'fields', jsonb_build_object(
     'reason', 'ZZ DEMO I will run a GlockApps test myself every week and warm up the mailbox until Microsoft places us in the inbox.',
     'steps', jsonb_build_array(jsonb_build_object('tool', 'glockapps_test', 'action', 'run a GlockApps test of supplier@ every Monday', 'by', d7))::text,
-    'needs', '[]', 'risks', 'none', 'milestones', jsonb_build_array(jsonb_build_object('at', d7, 'expect', 50))::text))));
+    'needs', jsonb_build_array(jsonb_build_object('kind', 'engineer_session', 'tool', 'warmup_volume', 'what', 'the engineer session sends the warm-up volume'))::text,
+    'risks', 'none', 'milestones', jsonb_build_array(jsonb_build_object('at', d7, 'expect', 50))::text))));
   if not exists (select 1 from public.seat_order_turn where handoff_id = v_h and kind = 'plan' and round = 1 and status = 'refused'
-                  and array_to_string(refusal, ' ') ~ 'glockapps_test, which it_engineer does not have' and array_to_string(refusal, ' ') ~ 'engineer_session') then
+                  and array_to_string(refusal, ' ') ~ 'glockapps_test, which it_engineer does not have' and array_to_string(refusal, ' ') ~ 'engineer_session'
+                  and array_to_string(refusal, ' ') ~ 'the engineer session is asked only for what the register says it alone can do \(who_can engineer_session\): warmup_volume') then
     v_fail := v_fail || '2a: a plan naming a tool the seat lacks was not refused: ' || coalesce(v_r::text, '') || '; ';
   end if;
   v_q := (select held_id from public.seat_order_turn where handoff_id = v_h and kind = 'plan' and round = 2 and status = 'asked');
@@ -246,6 +249,9 @@ begin
   if exists (select 1 from public.seat_order_thread where world = 'real' and handoff_id in (v_h, v_sub, v_mk)) then v_fail := v_fail || 'the probe wrote a real-world conversation; '; end if;
   select count(*) into v_n from public.seat_order_turn where thread_id in (v_h, v_mk);
 
+  exception when others then
+    v_fail := v_fail || 'the probe stopped (' || sqlerrm || '); ';
+  end;
   if v_fail <> '' then raise exception 'CHK<<PROBE FAILED: %>>', v_fail; end if;
   raise exception 'CHK<<PROBE OK: % turns in two conversations, the founder''s example end to end>>', v_n;
 end $probe$;
