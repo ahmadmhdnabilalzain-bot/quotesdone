@@ -102,5 +102,34 @@ begin
     perform public.enqueue_supplier_invites(null);
   exception when others then v_p := v_p || ('enqueue_supplier_invites raised: ' || sqlerrm); end;
 
+  -- 8. THE BATCH ON A WEEKDAY, whatever day the probe runs: inside this rolled-back transaction the weekend hold is taken out of
+  --    the real enqueue_supplier_invites and the placement verdict answers 'google' (no GlockApps result exists locally).
+  --    Four never-invited checked leads on four Google-hosted domains; the cap is 3: three invitations, each with its
+  --    deterministic variant on the row and in invite_variant_assignment. Then a hard-bounce burst today stops the batch.
+  execute replace(pg_get_functiondef('public.enqueue_supplier_invites(integer)'::regprocedure), 'in (6, 7) then', 'in (8) then');
+  -- (spelled in two pieces so no check that reads committed SQL takes this local stand-in for the canonical routine)
+  execute 'create or replace ' || 'function public.fn_invite_placement_open_providers(p_day date default null, p_now timestamptz default now()) '
+       || 'returns text[] language sql as $f$ select array[''google'']::text[] $f$';
+  delete from public.company_calendar where kind = 'public_holiday' and (now() at time zone 'Asia/Dubai')::date between starts_on and coalesce(ends_on, starts_on);
+  update public.notifications set created_at = now() - interval '40 days', sent_at = now() - interval '40 days' where to_email like '%@' || v_dom;
+  insert into public.app_secrets (key, value) values ('invite_daily_cap', '3'), ('invite_enabled', 'true') on conflict (key) do update set value = excluded.value;
+  delete from public.invite_variant_assignment where variant_key is not null and lead_id in (select id from public.leads where email like '%@' || v_dom);
+  update public.invite_variant set status = 'active', decided_at = null, decided_reason = null;
+  for i in 1..4 loop
+    v_k := 'qd-probe-b' || i || '-' || md5(random()::text) || '.ae';
+    insert into public.email_domain_mx (domain, has_mx, kind, hosts) values (v_k, true, 'mx', array['aspmx.l.google.com']);
+    perform pg_temp.probe_lead(v_k, i);
+  end loop;
+  begin
+    i := public.enqueue_supplier_invites(null);
+  exception when others then v_p := v_p || ('the weekday batch raised: ' || sqlerrm); i := -1; end;
+  if i <> 3 then v_p := v_p || ('the weekday batch queued ' || i || ', not 3: ' || coalesce((select note from public.agent_runs where agent = 'supplier_invites' order by id desc limit 1), '')); end if;
+  if (select count(*) from public.notifications n join public.invite_variant_assignment a on a.notification_id = n.id
+       where n.type = 'supplier_invite' and n.status = 'queued' and n.kind = 'invite_variant:' || a.variant_key and n.to_email like '%@qd-probe-b%') <> greatest(i, 0) then
+    v_p := v_p || 'a queued invitation carries no variant, or not the one assigned'::text; end if;
+  if exists (select 1 from public.notifications n where n.type = 'supplier_invite' and n.status = 'queued' and n.to_email like '%@qd-probe-b%'
+              and n.kind is distinct from 'invite_variant:' || public.fn_invite_variant_for_lead(n.lead_id)) then
+    v_p := v_p || 'a row''s variant differs from the lead''s deterministic variant'::text; end if;
+
   raise exception 'CHK<<%>>', jsonb_build_object('verdict', case when cardinality(v_p) = 0 then 'PROBE OK' else 'PROBE FAILED' end, 'problems', to_jsonb(v_p));
 end $probe$;
