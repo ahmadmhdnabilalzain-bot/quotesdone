@@ -138,7 +138,9 @@ export async function whatsappReadings<M extends string>(deps: ThinkDeps, o: WaM
   // lean and full shapes cannot disagree on it. Prevented by: reasoned_channels_lean.test.ts.
   const choice = ok ? result.decision?.choice ?? null : null;
   const intent = choice === 'none' && needsPerson === true && o.intents.some((i) => i.intent_key === 'contact_human') ? 'intent:contact_human' : choice;
-  return { intent, needsPerson,
+  // a fault the person reports (site_fault, reasoned_decisions.ts) is the it_engineer's: the surface hands it over (ruling 1705)
+  const fault = ok && result.also?.needs_a_person === 'site_fault';
+  return { intent, needsPerson, fault,
            menu: ok ? result.also?.menu_meaning ?? null : null, result };
 }
 /** The meaning, filed in customer_support's queue for replay when nothing else answered the message — WITHOUT a

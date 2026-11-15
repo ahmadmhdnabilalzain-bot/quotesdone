@@ -157,3 +157,16 @@ Deno.test('a photo goes to the direct model reply as an image', async () => {
   assertMatch(r.reason ?? '', /^direct: photo/);
   assertEquals(seen[0], ['data:image/jpeg;base64,AAAA']);
 });
+
+// RULING 1705 (15 Nov 2026): a matter the reasoning names it_engineer's is HANDED OVER, not only named (0 hand-overs in 30 days).
+Deno.test('an it_engineer route with a handover files the fault once; without one it is only named', async () => {
+  const IT = JSON.stringify({ answer: 'Sorry, the upload is not working. I have passed it to our technical team. You can try again in a few minutes.', reasoning: ['s1: an upload fault'], cited: [], confidence: 0.8, route: 'it_engineer' });
+  const s = stub({ synth: [IT], corpus: [REFUND] });
+  const r = await supportReply(s.deps, { channel: 'whatsapp', message: 'the upload does not work', lang: 'en', audience: 'supplier',
+    handover: { caseKey: 'whatsapp:0a0b0c', audience: 'supplier' } }, () => Promise.resolve(null));
+  assertEquals(r.seat, 'it_engineer');
+  assertEquals(s.rpcs.filter((x) => x === 'fn_support_hands_it_a_fault').length, 1);
+  const s2 = stub({ synth: [IT], corpus: [REFUND] });
+  await supportReply(s2.deps, { channel: 'whatsapp', message: 'the upload does not work', lang: 'en', audience: 'supplier' }, () => Promise.resolve(null));
+  assertEquals(s2.rpcs.filter((x) => x === 'fn_support_hands_it_a_fault').length, 0);
+});
