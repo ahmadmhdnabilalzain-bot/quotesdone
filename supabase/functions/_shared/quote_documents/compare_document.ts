@@ -27,7 +27,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
   const emirate = ar ? (arEmirate(inq?.emirate) ?? k.loc(inq?.emirate).text) : String(inq?.emirate || '');
   const summary = k.loc(inq?.summary, 600);
   // deno-lint-ignore no-explicit-any
-  const prices = roster.filter((r: any) => r.status !== 'held' && Number(r.price_ex_vat ?? r.price) > 0).map((r: any) => Number(r.price_ex_vat ?? r.price));
+  const prices = roster.filter((r: any) => r.status !== 'held' && Number(r.price) > 0).map((r: any) => Number(r.price));   // the roster's price is the fee base (comparedPrice)
   const top = arrOf(a.top3);
   // deno-lint-ignore no-explicit-any
   const blocks: any[] = [];

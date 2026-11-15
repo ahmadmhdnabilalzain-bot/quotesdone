@@ -38,6 +38,7 @@ import { needsChecklist, withReasoned } from './reasoned_specs.ts';
 import { optionLabel } from './options.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
 import { VAT_GAP_TOLERANCE } from './vat.ts';
+import { feeBaseOf } from '../stated_price.ts';
 import { requestDelivery } from '../deliver.ts';
 import { quoteDocument, type ArTexts, type InquiryRow, type Item, type QuoteRow as DocQuote } from '../quote_documents.ts';
 
@@ -404,7 +405,9 @@ export type Standardised = {
 export function standardise(q: QuoteRow, lines: Line[], a: Assessment, ctx: Ctx): Standardised {
   return {
     contract: 'standardised_quotation', version: 1, quote_id: q.id, option_no: q.option_no, category: ctx.category, trade: a.trade, currency: 'AED',
-    total: Number(q.price_ex_vat ?? q.quote_amount), price_basis: 'ex_vat',
+    // ONE FIGURE (accountant, 15 Nov 2026): the fee base (feeBaseOf, quotes.quote_amount), never a second column read first;
+    // 0 while the VAT basis is held, as before (both columns are NULL then).
+    total: feeBaseOf(q) ?? 0, price_basis: 'ex_vat',
     lines: a.lines.filter((l) => l.material).map((l) => {
       const src = lines.find((x) => x.line_no === l.line_no)!;
       return { line_no: l.line_no, description: safe(l.description) ?? '', qty: src.qty ?? null, unit: src.unit ?? null, unit_price: src.unit_price ?? null, amount: src.amount ?? null, trade: l.trade,

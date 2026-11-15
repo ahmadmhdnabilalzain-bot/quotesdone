@@ -4,7 +4,7 @@ import { normText } from '../../_shared/line_specs/model.ts';
 import { applyReading, readQuote } from '../../_shared/reasoned_matching.ts';
 import { type ThinkDeps } from '../../_shared/think.ts';
 import { statedPrice } from '../../_shared/stated_price.ts';
-import { vatOnTopOfLines } from '../../_shared/line_specs/vat.ts';
+import { answerStands, vatOnTopOfLines } from '../../_shared/line_specs/vat.ts';
 import { type Issue, type IssueCode, type Review, type SafeInquiry, TERM_CODES, type Working } from './types.ts';
 import { heading, matchBoq, normUnit, priced } from './match.ts';
 import { num, parseQty } from './working.ts';
@@ -101,11 +101,13 @@ export function reviewQuotation(inq: SafeInquiry, w: Working, now: Date = new Da
   // The supplier's own lines are evidence of the VAT basis (line_specs/vat.ts, accountant 15 Nov 2026): a total that is exactly
   // their sum plus 5% has VAT in it. Single-option quotations only (options are totalled apiece).
   const singleOption = Object.keys(w.option_totals || {}).length < 2;
-  const sum = lines.filter((l) => !heading(l)).reduce((s, l) => s + (Number(l.amount) || 0), 0);
+  const pricedLines = lines.filter((l) => !heading(l));
+  const sum = pricedLines.reduce((s, l) => s + (Number(l.amount) || 0), 0);
+  const counted = pricedLines.filter((l) => Number(l.amount) > 0).length;
   // Rulings 1207/1208: read after the supplier's stated discount; price_ex_vat is the after-discount, ex-VAT figure.
   const vat = statedPrice({ amount: w.amount, subtotal: w.subtotal, vat_amount: w.vat_amount, text: vatText, stated, price_ex_vat: w.price_ex_vat,
     gross_amount: w.gross_amount ?? null, discount_amount: w.discount_amount ?? null, discount_label: w.discount_label ?? null,
-    lines_sum: singleOption ? sum : null, trn: w.trn, answered: !!w.vat_answered });
+    lines_sum: singleOption ? sum : null, lines_count: counted, trn: w.trn, answered: answerStands(w.vat_answered, w.vat_treatment) });
   const vatIssue = vat.treatment === 'not_stated' || (vat.treatment === 'inclusive' && !vat.price_ex_vat);
   // ONE PLAIN QUESTION, THREE ANSWERS, AND THE ANSWER RELEASES THE QUOTE (sales_engineer, 13 Nov 2026, workflow audit build
   // item 10). The basis is asked with the supplier's own figure and the UAE rate, so "including 5% VAT" settles the ex-VAT
@@ -113,23 +115,31 @@ export function reviewQuotation(inq: SafeInquiry, w: Working, now: Date = new Da
   // VAT" and "not VAT-registered" make the figure itself the ex-VAT price. Silence and "includes VAT" with no rate ask it;
   // zero-rated and exempt are stated answers (line_specs/vat.ts) and are never asked.
   const shown = vat.total_as_stated ?? w.amount;
-  const fig = shown ? `AED ${Number(shown).toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(Number(shown)) ? 0 : 2, maximumFractionDigits: 2 })}` : 'your total';
+  // One number format in the one question (independent review of 15 Nov 2026: "AED 17957, and AED 18,854.85").
+  const aedOf = (n: number) => `AED ${n.toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 })}`;
+  const fig = shown ? aedOf(Number(shown)) : 'your total';
+  // The lines the total is measured against: less a stated discount, which the lines are before (stated_price.ts).
+  const disc = Number(vat.discount_amount) > 0 && Number(vat.discount_amount) < sum ? Number(vat.discount_amount) : 0;
+  const net = Math.round((sum - disc) * 100) / 100;
   // His figures contradict the basis he stated (the lines plus exactly 5% make his total): the same question, with the arithmetic.
-  const why = vat.basis_conflict ? `Your line amounts add up to AED ${fmt(Math.round(sum * 100) / 100)}, and ${fig} is exactly that plus 5% VAT. ` : '';
+  const why = vat.basis_conflict
+    ? (disc ? `Your line amounts less the discount of ${aedOf(disc)} come to ${aedOf(net)}, and ${fig} is exactly that plus 5% VAT. ` : `Your line amounts add up to ${aedOf(net)}, and ${fig} is exactly that plus 5% VAT. `)
+    : '';
   if (vatIssue) {
     issues.push(I('vat_basis', 'adjustment', null, null, 'vat',
       `${why}Is ${fig} including 5% VAT, or before VAT, or are you not VAT-registered? A business below the AED 375,000 registration threshold is not VAT-registered and needs no TRN.`,
       // the same question in Arabic (the hold desk renders body_ar only if a supplier's language were ever 'ar'; ruling 1008 keeps it 'en')
-      `${vat.basis_conflict ? `مجموع مبالغ بنودكم ${fmt(Math.round(sum * 100) / 100)} درهم، و${fig} يساويه مضافًا إليه ضريبة 5% تمامًا. ` : ''}هل مبلغ ${fig} شامل ضريبة القيمة المضافة بنسبة 5%، أم قبل الضريبة، أم أنكم غير مسجّلين في الضريبة؟ والمنشأة التي تقل إيراداتها عن حد التسجيل البالغ 375,000 درهم غير مسجّلة ولا تحتاج إلى رقم ضريبي.`));
+      `${vat.basis_conflict ? `مجموع مبالغ بنودكم${disc ? ' بعد الخصم' : ''} ${net.toLocaleString('en-US', { maximumFractionDigits: 2 })} درهم، و${fig} يساويه مضافًا إليه ضريبة 5% تمامًا. ` : ''}هل مبلغ ${fig} شامل ضريبة القيمة المضافة بنسبة 5%، أم قبل الضريبة، أم أنكم غير مسجّلين في الضريبة؟ والمنشأة التي تقل إيراداتها عن حد التسجيل البالغ 375,000 درهم غير مسجّلة ولا تحتاج إلى رقم ضريبي.`));
   }
   const exVat = vat.price_ex_vat;
 
   // 4. The lines add up to the total (a single-option quotation only; options are totalled apiece).
+  // (sum and the priced lines are counted above, for the VAT basis.)
   // A stated discount explains the difference: the lines may add up to the price BEFORE the discount.
   const totals = [exVat, w.amount, w.subtotal, vat.gross_amount].filter((x): x is number => Number(x) > 0);
   // A difference of exactly 5% VAT while the VAT basis is being asked is that question, not a second one: answering it with
   // free text ("as per the quotation") released a VAT-inclusive total as the price before VAT (journey A, 15 Nov 2026).
-  const vatIsTheGap = vatIssue && vatOnTopOfLines(sum, w.amount);
+  const vatIsTheGap = vatIssue && vatOnTopOfLines(net, vat.total_as_stated ?? w.amount, counted);
   if (sum > 0 && totals.length && !vatIsTheGap && !w.qty_explained?.total && singleOption && !totals.some((t) => Math.abs(t - sum) <= Math.max(1, t * 0.01))) {
     issues.push(I('total_mismatch', 'clarification', null, null, 'total',
       `Your line amounts add up to AED ${fmt(Math.round(sum * 100) / 100)}, but the quotation's total is AED ${fmt(totals[0])}. Correct the lines or the total, or tell me what the difference is (for example a discount).`,

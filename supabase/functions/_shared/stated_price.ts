@@ -70,9 +70,9 @@ export function statedPrice(i: {
   price_ex_vat?: number | null; gross_amount?: number | null; discount_amount?: number | null; discount_pct?: number | null;
   discount_label?: string | null; net_amount?: number | null; amount_is_gross?: boolean;
   /** readVat's evidence (line_specs/vat.ts): the priced lines' sum, a TRN read off the document, a desk answer. */
-  lines_sum?: number | null; trn?: string | null; answered?: boolean;
+  lines_sum?: number | null; lines_count?: number | null; trn?: string | null; answered?: boolean;
 }): StatedPrice {
-  const ev = { lines_sum: i.lines_sum ?? null, trn: i.trn ?? null, answered: i.answered === true };
+  const ev = { lines_sum: i.lines_sum ?? null, lines_count: i.lines_count ?? null, trn: i.trn ?? null, answered: i.answered === true };
   const read = (!pos(i.discount_amount) && !pos(i.discount_pct)) ? readDiscount(String(i.text ?? '')) : null;
   const pct = pos(i.discount_pct) ?? read?.pct ?? null;
   let gross = pos(i.gross_amount) ?? pos(i.subtotal);
@@ -101,8 +101,11 @@ export function statedPrice(i: {
   const afterSub = pos(i.subtotal) != null ? r2(pos(i.subtotal)! - disc) : net;
   // The VAT basis is read on the figures AFTER the discount: a subtotal is an ex-VAT figure, so the subtotal less
   // the discount is the price ex-VAT; an inclusive total is already after the discount.
-  // The lines add up to the price BEFORE the discount, so they are no evidence about the after-discount total's VAT.
-  const v = readVat({ amount: total, subtotal: afterSub, vat_amount: pos(i.vat_amount), text: i.text, stated: i.stated, price_ex_vat: pos(i.price_ex_vat), ...ev, lines_sum: null });
+  // The lines add up to the price BEFORE the discount, so the evidence is the lines LESS the discount: lines 10,000, discount
+  // 1,000 and a total of 9,450 is (10,000 - 1,000) x 1.05, a total with VAT in it, whatever basis was stated (independent
+  // review of 15 Nov 2026: it was stored as 9,450 before VAT, and the fee taken on 9,450 instead of 9,000).
+  const linesNet = pos(i.lines_sum) != null && pos(i.lines_sum)! > disc ? r2(pos(i.lines_sum)! - disc) : null;
+  const v = readVat({ amount: total, subtotal: afterSub, vat_amount: pos(i.vat_amount), text: i.text, stated: i.stated, price_ex_vat: pos(i.price_ex_vat), ...ev, lines_sum: linesNet });
   if (gross == null && v.price_ex_vat != null) gross = r2(v.price_ex_vat + disc);
   return { ...keepStated(v, i.stated), gross_amount: gross, discount_amount: disc, discount_label: label, total_as_stated: total, fee_base: v.price_ex_vat };
 }

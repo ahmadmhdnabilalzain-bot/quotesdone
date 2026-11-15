@@ -97,7 +97,7 @@ Deno.test('the review asks the VAT question with the arithmetic, and no free-tex
   const rv = reviewQuotation(INQ, polar(), NOW);
   const vat = rv.issues.find((i) => i.code === 'vat_basis');
   assert(vat, 'the VAT basis is asked: ' + JSON.stringify(rv.issues.map((i) => i.code)));
-  assertStringIncludes(vat!.en, 'Your line amounts add up to AED 17957, and AED 18,854.85 is exactly that plus 5% VAT.');
+  assertStringIncludes(vat!.en, 'Your line amounts add up to AED 17,957, and AED 18,854.85 is exactly that plus 5% VAT.');
   assert(!rv.issues.some((i) => i.code === 'total_mismatch'), 'the 5% gap is the VAT question, not a difference to explain');
   assertEquals(rv.price_ex_vat, null);
   // what released it in run 8288bec3: "As per the quotation" against the total. It no longer answers anything.

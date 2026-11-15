@@ -58,7 +58,41 @@ Deno.test('quote_compare builds its roster and its technical comparison from com
   const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
   // code only: a comment naming the old expression is not a use of it
   const code = src.split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
-  assert(!/price_ex_vat\s*\?\?\s*q\.quote_amount/.test(code), 'quote_compare reads price_ex_vat ?? quote_amount again');
+  assert(!SECOND_COLUMN.test(code), 'quote_compare reads price_ex_vat ?? quote_amount again');
+  assert(!EXVAT_HELPER.test(code), 'quote_compare has its own exVat( helper again');
   assert(/\bprice:\s*comparedPrice\(q\)/.test(code), 'the roster price is not comparedPrice(q)');
   assert(/\bprice_ex_vat:\s*comparedPrice\(q\)/.test(code), 'the technical comparison price is not comparedPrice(q)');
+});
+
+// ONE FIGURE IN CODE, NOT ONLY IN DATA (independent review of 15 Nov 2026, items 2 and the merge note). Four more readers took
+// `price_ex_vat ?? quote_amount` (line_specs/workflow.ts standardise, quote_documents/rows.ts, compare_rows.ts,
+// compare_document.ts), and the comparison branch brought its own `exVat = q => q?.price_ex_vat ?? q?.quote_amount`, which the
+// first guard (`q\.` only) did not see. Every reader of a quote's price outside a test now goes through feeBaseOf or the
+// comparison's own price: no `price_ex_vat ?? quote_amount` in any optional-chaining form, no roster `price_ex_vat ?? price`,
+// and no `exVat(` helper, anywhere under supabase/functions or src.
+const SECOND_COLUMN = /price_ex_vat\s*\?\?\s*q?\??\.?quote_amount/;
+const ROSTER_SECOND = /price_ex_vat\s*\?\?\s*\w*\??\.?price\b/;
+const EXVAT_HELPER = /\bexVat\s*(?:=\s*\(|\()/;
+
+async function* sources(dir: URL): AsyncGenerator<[string, string]> {
+  for await (const e of Deno.readDir(dir)) {
+    const u = new URL(e.name + (e.isDirectory ? '/' : ''), dir);
+    if (e.isDirectory) { if (e.name !== 'node_modules' && !e.name.startsWith('.')) yield* sources(u); continue; }
+    if (!/\.(ts|tsx|mjs|js)$/.test(e.name) || /\.test\.|\.fixture\./.test(e.name)) continue;
+    yield [u.pathname, await Deno.readTextFile(u)];
+  }
+}
+Deno.test('no reader of a quote price anywhere reads a second column first, and no exVat( helper exists', async () => {
+  const hits: string[] = [];
+  for (const root of [new URL('../', import.meta.url), new URL('../../../src/', import.meta.url)]) {
+    try { await Deno.stat(root); } catch { continue; }
+    for await (const [path, src] of sources(root)) {
+      src.split('\n').forEach((l, i) => {
+        const code = l.replace(/\/\/.*$/, '');
+        if (/^\s*\*/.test(l)) return;   // a doc comment naming the old expression is not a use of it
+        if (SECOND_COLUMN.test(code) || ROSTER_SECOND.test(code) || EXVAT_HELPER.test(code)) hits.push(`${path.replace(/^.*?supabase\/functions\//, '')}:${i + 1}`);
+      });
+    }
+  }
+  assertEquals(hits, []);
 });

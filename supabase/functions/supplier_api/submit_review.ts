@@ -22,13 +22,19 @@ const num = (v: unknown): number | null => { const n = Number(v); return Number.
 const str = (v: unknown): string => (v == null ? '' : String(v));
 
 /** The supplier's explanations, as the engineer recorded them. Never the caller's. */
-export type Resolved = { boq_excluded: Record<string, string>; qty_explained: Record<string, string> };
+export type Resolved = {
+  boq_excluded: Record<string, string>; qty_explained: Record<string, string>;
+  /** His answer to the VAT-basis question, as the chat recorded it (quote_review/corrections.ts) or as the hold desk took it on
+   *  an earlier submission of the same option (carryHeldAnswers). Never the caller's: a body field is never read for it. */
+  vat_answered?: string | null;
+};
 export const NOTHING_EXPLAINED: Resolved = { boq_excluded: {}, qty_explained: {} };
+const vatChoice = (v: unknown): string | null => (RELEASE_CHOICES.vat.some((c) => c.value === v) ? String(v) : null);
 /** Whatever carries the explanations (a quote_reviews row's `working`), read defensively. */
 // deno-lint-ignore no-explicit-any
 export function resolvedFrom(working: any): Resolved {
   const o = (v: unknown) => (v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, string> : {});
-  return { boq_excluded: o(working?.boq_excluded), qty_explained: o(working?.qty_explained) };
+  return { boq_excluded: o(working?.boq_excluded), qty_explained: o(working?.qty_explained), vat_answered: vatChoice(working?.vat_answered) };
 }
 
 // deno-lint-ignore no-explicit-any
@@ -104,7 +110,7 @@ export function workingFromStoredQuote(q: any, rows: any[]): Working {
 
 /** Apply the engineer's recorded explanations to a working quote. */
 export function withResolved(w: Working, r: Resolved): Working {
-  return { ...w, boq_excluded: r.boq_excluded, qty_explained: r.qty_explained };
+  return { ...w, boq_excluded: r.boq_excluded, qty_explained: r.qty_explained, ...(r.vat_answered ? { vat_answered: r.vat_answered } : {}) };
 }
 
 /**
@@ -182,6 +188,8 @@ export type HeldAnswers = {
   /** The stored validity, only when the supplier gave it in the hold panel (a hold's supplier_values). */
   validity: string | null;
   lines: { description: string; spec: Record<string, string> }[];
+  /** His answer to the VAT-basis question on this row's hold desk (the hold's supplier_values `answers.vat`, the latest). */
+  vat: string | null;
 };
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -209,7 +217,10 @@ export function heldAnswersOf(owner: { inquiry_id: string; supplier_id: number }
     const spec = isObj(r?.spec) ? r.spec : {}, src = isObj(r?.spec_source) ? r.spec_source : {};
     return { description: str(r?.description), spec: Object.fromEntries(Object.entries(spec).filter(([k, v]) => src[k] === 'supplier_portal' && str(v).trim()).map(([k, v]) => [k, str(v)])) };
   }).filter((l) => l.description.trim() && Object.keys(l.spec).length);
-  return { quote_id: id, option_no: Number(q.option_no) || 1, terms_spec: ts, validity: answeredValidity && str(q.validity).trim() ? str(q.validity) : null, lines };
+  // The VAT answer, the latest given (workflow.ts answersOf reads supplier_values the same way).
+  let vat: string | null = null;
+  for (const h of (holds || []).filter(mineOnly)) for (const e of (Array.isArray(h?.supplier_values) ? h.supplier_values : [])) { const v = vatChoice(e?.answers?.vat); if (v) vat = v; }
+  return { quote_id: id, option_no: Number(q.option_no) || 1, terms_spec: ts, validity: answeredValidity && str(q.validity).trim() ? str(q.validity) : null, lines, vat };
 }
 
 /** The option each submitted item belongs to (index-aligned with `items`); null for a heading or a line shared by several options. */
@@ -227,7 +238,7 @@ type TermKey = 'delivery' | 'installation' | 'warranty';
  * numbers this submission writes. The shared review carries a term only when EVERY planned option answered it.
  */
 export function carryHeldAnswers(body: SubmitBody, held: HeldAnswers[], optionOf: (number | null)[], planned: number[]):
-  { body: SubmitBody; options: Record<string, { held: boolean; terms_spec: TermsSpec | null; validity: string }>; carried: string[] } {
+  { body: SubmitBody; options: Record<string, { held: boolean; terms_spec: TermsSpec | null; validity: string }>; carried: string[]; vat_answered: string | null } {
   const byOpt = new Map(held.map((h) => [h.option_no, h]));
   const sentTs = sanitizeTermsSpec(body.terms_spec) ?? {};
   // deno-lint-ignore no-explicit-any
@@ -272,6 +283,12 @@ export function carryHeldAnswers(body: SubmitBody, held: HeldAnswers[], optionOf
   }
   let validity = str(body.validity);
   if (!sentValidity && all.length && all.every((h) => h?.validity)) { validity = all[0]!.validity!; carried.push('validity'); }
+  // HIS VAT ANSWER IS CARRIED TOO (independent review of 15 Nov 2026, item 6): a re-submission after he answered the VAT
+  // question on the desk was asked it again, because nothing carried the answer. It is carried when every option written
+  // answered it the same way; it then stands only while the basis this submission states is that answer (vat.ts answerStands).
+  const vats = all.map((h) => h?.vat ?? null);
+  const vat_answered = vats.length && vats.every((v) => v && v === vats[0]) ? vats[0] : null;
+  if (vat_answered) carried.push('vat');
   // A line's answered specification follows the line that says the same thing, within its own option.
   const used = new Set<string>();
   const outItems = items.map((it, i) => {
@@ -293,11 +310,11 @@ export function carryHeldAnswers(body: SubmitBody, held: HeldAnswers[], optionOf
     carried.push(...add.map(([k]) => `line_spec:${i + 1}:${k}`));
     return { ...it, spec: { ...have, ...Object.fromEntries(add) } };
   });
-  if (!carried.length) return { body, options, carried };
+  if (!carried.length) return { body, options, carried, vat_answered };
   const reviewTs = withSent(review);
   const out: SubmitBody = { ...body, items: Array.isArray(body.items) ? outItems : body.items, validity };
   if (reviewTs) out.terms_spec = reviewTs;
-  return { body: out, options, carried };
+  return { body: out, options, carried, vat_answered };
 }
 
 // ── THE RELEASE CHECK IS ONE FUNCTION, AND IT JUDGES WHAT THE DESK JUDGES (live re-run ea40c830, 10 Nov 2026) ────────────
