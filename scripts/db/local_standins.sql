@@ -46,10 +46,30 @@ create or replace function net.http_get(url text, params jsonb default '{}', hea
 create table if not exists vault.secrets (id uuid default gen_random_uuid(), name text, secret text, description text, created_at timestamptz default now());
 create or replace view vault.decrypted_secrets as select id, name, secret as decrypted_secret, description, created_at from vault.secrets;
 create or replace function vault.create_secret(new_secret text, new_name text default null, new_description text default '') returns uuid language sql as $$ insert into vault.secrets(name,secret,description) values (new_name,new_secret,new_description) returning id $$;
+-- PGVECTOR, STOOD IN (15 Nov 2026, review 2 of the certificate branch, item 11). A plain Postgres 16 has no pgvector, and the loader
+-- writes every vector(N) column as real[] (local_pg16.mjs). A routine that says `p_embedding vector DEFAULT NULL::vector` or orders by
+-- `embedding <=> p_embedding` then failed ("type vector does not exist", "operator does not exist: real[] <=> real[]": 13 subtests of
+-- a_ready_request alone), and a red local gate is what tempts a session to replay on production. So: a domain `vector` over real[]
+-- (a value is written '{0.1,0.2}', not pgvector's '[0.1,0.2]') and the three distance operators as SQL on real[] (cosine <=>,
+-- Euclidean <->, negative inner product <#>), with pgvector's meanings; no index method (an hnsw index is simply not built here).
+do $$ begin create domain public.vector as real[]; exception when duplicate_object then null; end $$;
+create or replace function public.qd_local_cosine_distance(a real[], b real[]) returns double precision language sql immutable as $$
+  select 1 - sum(x * y) / nullif(sqrt(sum(x * x)) * sqrt(sum(y * y)), 0) from unnest(a, b) as t(x, y) $$;
+create or replace function public.qd_local_l2_distance(a real[], b real[]) returns double precision language sql immutable as $$
+  select sqrt(sum((x - y) * (x - y))) from unnest(a, b) as t(x, y) $$;
+create or replace function public.qd_local_negative_inner_product(a real[], b real[]) returns double precision language sql immutable as $$
+  select -sum(x * y) from unnest(a, b) as t(x, y) $$;
+do $$ begin create operator public.<=> (leftarg = real[], rightarg = real[], function = public.qd_local_cosine_distance, commutator = operator(public.<=>));
+  exception when duplicate_function or duplicate_object then null; end $$;
+do $$ begin create operator public.<-> (leftarg = real[], rightarg = real[], function = public.qd_local_l2_distance, commutator = operator(public.<->));
+  exception when duplicate_function or duplicate_object then null; end $$;
+do $$ begin create operator public.<#> (leftarg = real[], rightarg = real[], function = public.qd_local_negative_inner_product, commutator = operator(public.<#>));
+  exception when duplicate_function or duplicate_object then null; end $$;
 -- @@ SEEDS: run AFTER the schema has loaded @@
--- The rows the probes read before they act: a project_ref and a database credential (dummy values: the local database holds no
--- secret), and the six seats in org_role and org_agents, so a seat-owned routine finds its seat.
-insert into public.app_secrets (key, value) values ('project_ref', 'localpg16localpg16lo'), ('cred_db_internal', 'local-not-a-secret')
+-- The rows the probes read before they act: a project_ref, a database credential and the key credentials are hashed with (dummy
+-- values: the local database holds no secret), and the six seats in org_role and org_agents, so a seat-owned routine finds its seat.
+insert into public.app_secrets (key, value) values ('project_ref', 'localpg16localpg16lo'), ('cred_db_internal', 'local-not-a-secret'),
+  ('internal_credential_hmac_key', 'local-not-a-secret-either')
   on conflict (key) do nothing;
 insert into public.org_role (role_id, display_name, runtime_mode, responsibilities, activation_conditions, authority_level)
 select s, initcap(replace(s, '_', ' ')), 'persistent_manager', 'local stand-in for the ' || s || ' seat', 'local database', 'execute_medium'
@@ -59,3 +79,17 @@ insert into public.org_agents (agent_key, department, role, title, active, avail
 select s, null, s, initcap(replace(s, '_', ' ')), true, true
   from unnest(array['ceo','customer_support','sales_engineer','accountant','it_engineer','marketing']) s
 on conflict (agent_key) do nothing;
+-- The four it.finding conversations of the IT seat (scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql), whose 4-hour reply
+-- window fn_it_ceo_silence_watch and fn_it_loop_reverify read and raise without (review 2, item 11). The mirror holds the table, not
+-- its rows.
+insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
+select 'it.finding', 'it_engineer', s, 'local stand-in: the IT engineer found a fault in something ' || s || ' owns', 'fn_seat_answers_it_finding',
+       interval '4 hours', true, 'scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql'
+  from unnest(array['sales_engineer','accountant','customer_support','ceo']) s
+on conflict (type, from_seat, to_seat) do nothing;
+-- The database's own credential (context db.internal), hashed as production hashes it, for the dummy cred_db_internal above, scoped
+-- to every edge function in this checkout (local_pg16.mjs passes their names as :fn_names), so a probe that asks "may db.internal
+-- call X" finds the row it finds on production. The local database holds no secret: the value is the dummy above.
+insert into public.internal_credential (context, label, secret_hash, scope, is_legacy, active)
+select 'db.internal', 'local stand-in', public.fn_internal_credential_hash('local-not-a-secret'), string_to_array(:'fn_names', ','), false, true
+ where not exists (select 1 from public.internal_credential where context = 'db.internal');

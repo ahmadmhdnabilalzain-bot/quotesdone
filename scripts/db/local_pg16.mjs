@@ -19,7 +19,7 @@
 // Run as root it runs the server as the `postgres` user (initdb refuses root). The cluster listens on a Unix socket in its own
 // directory only, never on a network port. Postgres 16 has no transaction_timeout: the 5 s cut is production's guard, not this.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const REPO = join(import.meta.dirname, '..', '..');
@@ -82,7 +82,9 @@ function load() {
     if (n === last) break;
     last = n;
   }
-  const sd = psql(['-q', '-v', 'ON_ERROR_STOP=1', '-f', '-'], '-- @@ SEEDS' + seeds);
+  // every edge function of this checkout, for the stand-in db.internal credential's scope (local_standins.sql)
+  const fnNames = readdirSync(join(REPO, 'supabase/functions'), { withFileTypes: true }).filter((d) => d.isDirectory() && !d.name.startsWith('_')).map((d) => d.name).join(',');
+  const sd = psql(['-q', '-v', 'ON_ERROR_STOP=1', '-v', `fn_names=${fnNames}`, '-f', '-'], '-- @@ SEEDS' + seeds);
   if (sd.status !== 0) { say(`the seeds failed: ${sd.stderr}`); process.exit(1); }
   const count = (q) => one(q);
   say(`loaded in ${Math.round((Date.now() - t0) / 1000)} s: ${count("select count(*) from pg_tables where schemaname='public'")} tables, `
