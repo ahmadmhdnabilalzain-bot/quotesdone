@@ -1,0 +1,2 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run with
+the_company_recovers_no_input_vat_so_1150_is_moved_into_cost.sql in one rolled-back transaction and must print PROBE OK. This note stays for the life of the file. Seat: accountant.

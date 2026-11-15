@@ -15,6 +15,10 @@ export type TrackerInquiry = {
   status?: string | null; rfq_ready?: boolean | null; matched_suppliers?: number | null;
   hired_supplier_id?: string | null; pipeline_stage?: string | null; stage_changed_at?: string | null;
   created_at?: string | null;
+  // AFTER A PAID REVEAL (sales_engineer, 13 Nov 2026): the request stays 'revealed' and the other quotations stay revealable
+  // while they are valid: inquiries.reveal_open_until (scripts/sql/a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql),
+  // in the future = still possible, in the past = ended. The tracker says the same in plain words.
+  reveal_open_until?: string | null;
 };
 export type StageKey = 'posted' | 'specs' | 'sent' | 'quotes' | 'compare' | 'revealed' | 'done';
 export type TrackerStage = { key: StageKey; label: string; done: boolean; current: boolean; at: string | null };
@@ -39,6 +43,10 @@ const L = {
       reviewed: 'Next: rate the supplier you hired.',
       complete: 'Complete. Thank you for your review.',
       closed: 'This request is closed.',
+      // after a paid reveal the request takes no NEW quotations (trigger a05): the customer is told, and what to do instead
+      // the date is read live from the row each time (inquiries.reveal_open_until): a date that moves is always the current one
+      openUntil: (d: string | null) => ` This request is no longer taking new quotations. You can still open the other quotations you received ${d ? `until ${d}` : 'while they are valid'}. To get more quotations, post a new request.`,
+      revealEnded: ' The time to open the other quotations on this request has ended. To get more quotations, post a new request.',
     },
   },
   ar: {
@@ -56,6 +64,8 @@ const L = {
       reviewed: 'التالي: قيّم المورّد الذي تعاقدت معه.',
       complete: 'اكتمل. شكرًا على تقييمك.',
       closed: 'هذا الطلب مغلق.',
+      openUntil: (d: string | null) => ` لم يعد هذا الطلب يستقبل عروضًا جديدة. ما زال بإمكانك فتح العروض الأخرى التي وصلتك ${d ? `حتى ${d}` : 'ما دامت سارية'}. وللحصول على مزيد من العروض، انشر طلبًا جديدًا.`,
+      revealEnded: ' انتهت مدة فتح العروض الأخرى في هذا الطلب. وللحصول على مزيد من العروض، انشر طلبًا جديدًا.',
     },
   },
 };
@@ -98,8 +108,18 @@ export function trackerOf(inq: TrackerInquiry | null | undefined, quotes: Tracke
     return s[k];
   };
   const stages = KEYS.map((k, idx) => ({ key: k, label: labelOf(k), done: idx < current, current: idx === current, at: idx <= current ? atOf(k) : null }));
+  const nextKey = KEYS[current] as Exclude<keyof typeof s.next, 'openUntil' | 'revealEnded'>;
+  // Served (my_inquiries): a date, or null when the request has no reveal period. NOT served yet (undefined: the field is
+  // added in customer_api inquiry_lifecycle.ts by its owner): a paid request still says it takes no new quotations, without a date.
+  const active = !closed && !isDone && isRevealed && status === 'revealed';
+  const until = active && i.reveal_open_until ? Date.parse(i.reveal_open_until) : NaN;
+  const period = !active ? ''
+    : i.reveal_open_until === undefined ? s.next.openUntil(null)
+    : Number.isNaN(until) ? ''
+    : until > Date.now() ? s.next.openUntil(new Date(until).toLocaleDateString(lang === 'ar' ? 'ar-AE' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' }))
+    : s.next.revealEnded;
   const next = closed ? s.next.closed
     : current >= KEYS.length ? (reviewed ? s.next.complete : s.next.reviewed)
-    : s.next[KEYS[current] as keyof typeof s.next];
+    : s.next[nextKey] + period;
   return { stages, current, held, closed, next };
 }

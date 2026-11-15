@@ -13,7 +13,7 @@ export async function submit(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqui
 
 /** What submit_quote receives: the approved quotation, with every detail the chat confirmed. */
 export function submitPayload(inq: SafeInquiry, r: Pick<ReviewRow, 'original_file_path' | 'original_file_name'>, w: Working, rv: Review): Record<string, unknown> {
-  const vt = ['exclusive', 'inclusive', 'not_registered'].includes(String(w.vat_treatment)) ? w.vat_treatment : undefined;
+  const vt = ['exclusive', 'inclusive', 'not_registered', 'zero_rated', 'exempt'].includes(String(w.vat_treatment)) ? w.vat_treatment : undefined;
   return {
     action: 'submit_quote', inquiry_id: inq.id, source: 'upload', amount: rv.price_ex_vat ?? w.amount,
     items: w.lines.map((l) => ({ description: l.description, specification: l.specification ?? undefined, qty: parseQty(l.qty).n, unit: l.unit || null, unit_price: l.unit_price, amount: l.amount, spec: l.spec ?? undefined, country_of_origin: l.country_of_origin ?? undefined })),

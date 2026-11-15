@@ -26,3 +26,21 @@ Deno.test('silence or an inclusive price with no amount or rate is not a price: 
 Deno.test('the supplier TRN is captured for the record', () => {
   assertEquals(readVat({ amount: 1, text: 'TRN 100 2345 6789 0003, excl VAT' }).trn, '100234567890003');
 });
+
+// ZERO-RATED AND EXEMPT ARE STATED ANSWERS, NOT SILENCE (sales_engineer, 13 Nov 2026, workflow audit build item 10)
+Deno.test('zero-rated and exempt are read as stated: the price as written is the ex-VAT price, never held as not stated', () => {
+  for (const text of ['This supply is zero-rated.', 'VAT 0% applies to these exports', 'Total AED 12,000 (0% VAT)']) {
+    const v = readVat({ amount: 12000, text });
+    assertEquals([v.treatment, v.price_ex_vat], ['zero_rated', 12000], text);
+  }
+  for (const text of ['The supply is exempt from VAT.', 'VAT-exempt supply of residential building', 'Exempt supply under Article 46']) {
+    const v = readVat({ amount: 9000, text });
+    assertEquals([v.treatment, v.price_ex_vat], ['exempt', 9000], text);
+  }
+  // a document named "VAT exemption certificate" is not the supply's treatment
+  assertEquals(readVat({ amount: 9000, text: 'We can provide VAT exemption certificates on request.' }).treatment, 'not_stated');
+  // the supplier's own answer on the portal is kept
+  assertEquals(readVat({ amount: 5000, stated: 'exempt' }).treatment, 'exempt');
+  // a VAT amount actually added is not zero-rated, whatever else the text says
+  assertEquals(readVat({ amount: 1050, subtotal: 1000, vat_amount: 50, text: 'some lines zero-rated' }).treatment, 'exclusive');
+});

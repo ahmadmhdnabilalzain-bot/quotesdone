@@ -370,6 +370,8 @@ Object.assign(T.en, {
   // transactions.refund_status, said in words. An unknown value falls back to the raw code rather
   // than to a guess (RevealGuarantee.tsx); only 'requested' is written by customer_api today.
   refund_st_requested: 'requested', refund_st_approved: 'approved', refund_st_refunded: 'refunded', refund_st_rejected: 'declined', refund_st_processing: 'being processed',
+  // review 5, item 1 (15 Nov 2026): some, not all, of the payment has gone back (fn_refund_rolls_up_to_its_sale).
+  refund_st_partly_refunded: 'partly refunded',
   rcpt_title: 'Payment received', rcpt_body: "{fee} charged to your card (the reveal fee; no card fee). The supplier's contact is unlocked on the request below and your Reveal Guarantee clock has started.",
   rcpt_cancelled: 'Payment cancelled — nothing was charged. You can reveal the supplier whenever you are ready.',
   signup_email_reserved: 'That email domain is reserved for examples and testing and cannot receive mail, so no code can reach it. Please use your real email address.', err_need_email: 'Please enter your email address first.', err_need_id: 'Please enter your email or mobile number first.',
@@ -539,6 +541,7 @@ Object.assign(T.ar, {
   g_ph_waiting: 'تم إبلاغ المورّد.', g_ph_chased: 'مرحلة رسالة المتابعة — بانتظار ردّ المورّد.', g_ph_final: 'بلغنا الإنذار الأخير — يجري التحقق من استردادك بناءً على السجل.',
   g_ph_ack: 'أكّد المورّد استلام طلب الكشف.', g_ph_refund: 'حالة الاسترداد: {status}.',
   refund_st_requested: 'مطلوب', refund_st_approved: 'تمت الموافقة عليه', refund_st_refunded: 'تم ردّ المبلغ', refund_st_rejected: 'مرفوض', refund_st_processing: 'قيد التنفيذ',
+  refund_st_partly_refunded: 'تم ردّ جزء من المبلغ',
   rcpt_title: 'تم استلام الدفع', rcpt_body: 'خُصم {fee} من بطاقتك (رسوم الكشف فقط، دون رسوم على البطاقة). بيانات تواصل المورّد مفتوحة في الطلب أدناه، وبدأ عدّاد ضمان الكشف.',
   rcpt_cancelled: 'أُلغي الدفع — لم يُخصم أي مبلغ. يمكنك كشف المورّد متى شئت.',
   signup_email_reserved: 'نطاق هذا البريد محجوز للأمثلة والاختبار ولا يستقبل الرسائل، فلن يصله أي رمز. يُرجى استخدام بريدك الإلكتروني الحقيقي.', err_need_email: 'يُرجى إدخال بريدك الإلكتروني أولًا.', err_need_id: 'يُرجى إدخال بريدك الإلكتروني أو رقم جوالك أولًا.',

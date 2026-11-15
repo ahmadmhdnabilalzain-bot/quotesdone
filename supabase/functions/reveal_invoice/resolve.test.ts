@@ -3,7 +3,7 @@
 // invoice and receipt bodies are template documents in both languages with lines that add up.
 import { assertEquals, assertThrows } from 'jsr:@std/assert@1';
 import { resolveSale, type Sale } from './resolve.ts';
-import { NOT_PAID, paymentState, revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
+import { invoiceIsDue, NO_INVOICE, NOT_PAID, paymentState, revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
 
 const SALES: Record<string, Sale> = {
   'q-mine': { id: 'tx-1', customer_id: 'c-mine', stripe_invoice_id: 'in_zzdemo_mine', stripe_invoice_number: 'ZZDEMO-0001' },
@@ -91,4 +91,43 @@ Deno.test('the receipt cites the invoice and makes no number of its own, EN and 
 
 Deno.test('lines that do not add up to what was charged are refused, not printed', () => {
   assertThrows(() => revealInvoiceDocument({ ...SALE, total_charged: 778 }, 'en'));
+});
+
+// OUR NUMBER AND THE WINDOW'S END (accountant, 13 Nov 2026, ruling 1671 / ledger 1685): the invoice and the receipt print
+// QuotesDone's own invoice number, Stripe's only as a reference, and the date the refund window ends, in both languages.
+Deno.test('our invoice number is the document number, Stripe\'s a reference, and the refund window end is printed (EN + AR)', () => {
+  const s: RevealSale = { ...SALE, invoice_no: 'QD-INV-000001', stripe_invoice_no: 'PQZAIUL8-0001', refund_window_ends: '2026-09-28T09:30:20Z' };
+  for (const lang of ['en', 'ar'] as const) {
+    for (const doc of [revealInvoiceDocument(s, lang), revealReceiptDocument(s, lang)]) {
+      const text = JSON.stringify(doc);
+      assertEquals(doc.ref, 'QD-INV-000001');
+      assertEquals(text.includes(lang === 'en' ? 'Refund window ends' : 'تنتهي مهلة الاسترداد'), true, `${lang} ${doc.name}: no window line`);
+      assertEquals(text.includes(lang === 'en' ? '28 September 2026' : '2026'), true, `${lang} ${doc.name}: no window date`);
+    }
+    assertEquals(JSON.stringify(revealInvoiceDocument(s, lang)).includes('PQZAIUL8-0001'), true, 'Stripe\'s number as a reference');
+  }
+  // a sale with no window recorded prints no invented date
+  assertEquals(JSON.stringify(revealInvoiceDocument({ ...SALE }, 'en')).includes('Refund window ends'), false);
+});
+
+// AN OVERCHARGE RETURN IS NOT A REFUND OF THE FEE (13 Nov 2026, review 2 item 2): the invoice stays PAID, the money charged
+// above the fee is its own line, and it says "returned on <date>" only once Stripe confirmed it.
+Deno.test('an overcharge return leaves the fee paid and is printed as its own returned line', () => {
+  const pay = paymentState(TX, [{ status: 'succeeded', amount_fils: 3877, settled_at: '2026-09-23T10:00:00Z', reason_code: 'overcharge_return' }]);
+  assertEquals(pay.state === 'paid' && pay.refund, null);
+  const s: RevealSale = { ...SALE, processing_fee: 0, overcharge_returned: pay.state === 'paid' ? pay.overcharge_returned : null };
+  const text = JSON.stringify(revealInvoiceDocument(s, 'en'));
+  assertEquals(text.includes('Charged above our fee, returned to you on 23 September 2026'), true);
+  assertEquals(text.includes('REFUNDED'), false);
+  const pending = JSON.stringify(revealInvoiceDocument({ ...SALE, processing_fee: 0, overcharge_returned: null }, 'en'));
+  assertEquals(pending.includes('being returned to you') && !pending.includes('returned to you on'), true);
+});
+
+Deno.test('a zero-fee reveal is not invoiced (review 4, 6e): no invoice for AED 0, a readable EN + AR refusal', () => {
+  assertEquals(invoiceIsDue({ reveal_fee: 0, total_charged: 0 }), false);
+  assertEquals(invoiceIsDue({ reveal_fee: 0.004, total_charged: 0 }), false);   // below a fils
+  assertEquals(invoiceIsDue({ reveal_fee: 777.6, total_charged: 777.6 }), true);
+  assertEquals(invoiceIsDue({ reveal_fee: 0, total_charged: 38.77 }), true);      // something was charged: it is invoiced
+  assertEquals(NO_INVOICE.code, 'zero_fee_no_invoice');
+  assertEquals(/[؀-ۿ]/.test(NO_INVOICE.ar) && /no invoice/.test(NO_INVOICE.en), true);
 });

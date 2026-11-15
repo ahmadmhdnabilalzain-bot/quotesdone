@@ -42,12 +42,14 @@ export type RefundRefused = { ok: false; error: string; mode?: StripeMode; sent?
 // deterministic key, still rooted in the transaction: `topup<refund row>` for a top-up (the row is
 // reserved, capped, before Stripe is called) and `retry<fix handoff>` for a retry (a fresh key, because
 // reusing the failed attempt's key would return the failed refund). The table caps the total at what
-// the customer paid, whatever the key.
+// the customer paid, whatever the key. An OVERCHARGE RETURN (15 Nov 2026) is its own request too, `over<refund row>`: on
+// the transaction key the fee case that followed it reused the key with another amount, and Stripe refused it
+// (idempotency_error) until the key expired a day later. The fee case keeps the transaction key.
 export function refundIdempotencyKey(transactionId: string | number, attempt?: string): string {
   const id = String(transactionId ?? '').trim();
   if (!id) throw new Error('a refund idempotency key needs the transaction id');
   const a = String(attempt ?? '').trim();
-  if (a && !/^(topup|retry)\d+$/.test(a)) throw new Error('a refund attempt suffix is topup<n> or retry<n>, not ' + a);
+  if (a && !/^(topup|retry|over)\d+$/.test(a)) throw new Error('a refund attempt suffix is topup<n>, retry<n> or over<n>, not ' + a);
   return 'qd_refund_' + id + (a ? '_' + a : '');
 }
 

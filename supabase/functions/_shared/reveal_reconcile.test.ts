@@ -57,7 +57,9 @@ Deno.test('a paid reveal invoice with no sale is recorded through recordRevealSa
   const calls = { record: [] as SaleArgs[], lists: [] as string[] };
   const r = await sweepReveals(deps(w, calls), { days: 30, nowSec: NOW });
   assertEquals(r.outcomes.map((x) => x.outcome), ['recovered']);
-  assertEquals(calls.record, [{ quoteId: 'q1', customerId: 'c-zz', baseFee: 300, processingFee: 0, totalCharged: 300, paymentRef: 'pi_zz1', invoiceId: 'in_zz1' }]);
+  // 13 Nov 2026: the healed sale carries Stripe's own paid time, so its refund window counts from the payment, not the heal
+  assertEquals(calls.record, [{ quoteId: 'q1', customerId: 'c-zz', baseFee: 300, processingFee: 0, totalCharged: 300, paymentRef: 'pi_zz1', invoiceId: 'in_zz1',
+    paidAt: new Date(w.invoices[0].status_transitions.paid_at * 1000).toISOString(), livemode: true }]);
   assertEquals(w.book.length, 1);
 });
 

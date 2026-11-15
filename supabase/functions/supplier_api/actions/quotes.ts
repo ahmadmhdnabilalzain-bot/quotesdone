@@ -31,6 +31,7 @@ import { type ActionCtx, J, SUPA_URL, admin, failed, logged, secretVal, tellItSe
 import { maskContact } from '../../_shared/observe.ts';
 import type { Recorded } from '../../_shared/recorded_write.ts';
 import { CONCLUDED, UUID_RE, clip, numOrNull } from '../lib/fields.ts';
+import { isRequestRevealed, REQUEST_REVEALED } from '../lib/request_revealed.ts';
 import { NOT_MY_FILE, matchedInquiry, ownQuoteFile, sameVerdict, specChecklist } from '../lib/quote_gate.ts';
 import { QUOTE_NOT_SAVED, QUOTE_NOT_SENT, QUOTE_NOT_SENT_APPROVE, type QuoteSnapshot, acceptForRelease, acceptLive, acceptRule, kickDelivery, notifyNewQuote, restoreQuote, snapshotQuote, storeReviewNotes, supersedeQualityHold, supplierOf, writeQuoteLines } from '../lib/quote_acceptance.ts';
 import { regenRender } from '../lib/arabic_quotation.ts';
@@ -214,6 +215,12 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       return done?.length ? J({ ok: true, status: 'withdrawn' }) : J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
     }
     if (action === 'submit_quote') {
+      // THE TYPED FORM NAMES ITS CURRENCY (sales_engineer, 13 Nov 2026, workflow audit build item 10): AED or nothing. The estate
+      // has no FX source, so a non-AED total is refused with one plain sentence rather than converted or stored as if it were AED.
+      // A caller that sends no currency (the upload chat, older pages) is unchanged: its file's currency is checked as before.
+      if (body.currency != null && String(body.currency).trim().toUpperCase() !== 'AED') {
+        return J({ error: 'QuotesDone compares and charges in UAE dirhams and does not convert currencies: please type your total in AED.', code: 'currency_not_aed' }, 400);
+      }
       const { data: sup } = await admin.from('leads').select('id,company_name,locale,whatsapp,phone,accepted_terms_at,registration_status,approval_status,licence_gate_reason,rejection_reason').eq('claimed_by', email).maybeSingle();
       if (!sup) return J({ error: 'claim your company first', code: 'no_company' }, 400);
       // FIRST, AND BEFORE ANYTHING ELSE IS SAID ABOUT THIS ACCOUNT: is this enquiry one we sent them?
@@ -243,6 +250,17 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         if (reg.may_quote === false) return J({ error: 'Your ' + String(reg.currency || 'AED') + ' ' + Number(reg.fee_due || 0) + ' annual Subscription Fee is due. Please pay it in Billing to send quotes.', code: 'registration_due', params: { fee: Number(reg.fee_due || 0), currency: String(reg.currency || 'AED') }, registration: { status: reg.status, fee_due: reg.fee_due, currency: reg.currency, reason: reg.reason } }, 402);
       }
       const { data: inqStat } = await admin.from('inquiries').select('status').eq('id', inquiryId).maybeSingle();
+      // FROM THE FIRST PAID REVEAL THE REQUEST TAKES NO NEW QUOTATIONS (sales_engineer, 13 Nov 2026): a supplier who already
+      // quoted may revise or add an option; a new one is told plainly. The database holds every other door (trigger a05 on
+      // quotes, a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql).
+      {
+        const { data: paid } = await admin.from('transactions').select('id,refund_status').eq('inquiry_id', inquiryId).eq('fee_status', 'paid');
+        const standing = ((paid || []) as { refund_status: string | null }[]).some((t) => !['refunded', 'succeeded'].includes(String(t.refund_status ?? '')));
+        if (standing) {
+          const { count: mine } = await admin.from('quotes').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiryId).eq('supplier_id', sup.id);
+          if (!mine) return J(REQUEST_REVEALED, 409);
+        }
+      }
       if (inqStat && CONCLUDED.includes(String(inqStat.status))) return J({ error: 'This request has been concluded — the customer has already selected a supplier. Thank you for your interest, and best of luck on the next one.', code: 'inquiry_concluded' }, 409);
       const amt = Number(body.amount); if (!(amt > 0)) return J({ error: 'invalid amount', code: 'invalid_amount' }, 400);
       const isUpload = body.source === 'upload';
@@ -413,7 +431,7 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         }
         let qid: string;
         if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return failed(String(action), error); qid = String(prior.id); }
-        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
+        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error && isRequestRevealed(error)) return J(REQUEST_REVEALED, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
         let linesW: Recorded;
         try {
           // A line's own words fill brand / model / specification where the caller sent none; a scope

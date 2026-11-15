@@ -12,8 +12,11 @@
 // Modelled on the accountant's commercial invoice (supplier_charge_documents.ts invoiceDocument):
 // the same cover, parties, charges table, totals and no-VAT line. No TRN is printed because there is
 // none: QuotesDone is not VAT-registered (founder, 14 Sep 2026), so the document is an "Invoice",
-// never a "Tax Invoice". ONE INVOICE PER SALE (15 Sep 2026): the number is the one Stripe assigned to
-// this payment; a sale Stripe did not invoice prints its payment reference and no invented number.
+// never a "Tax Invoice". ONE INVOICE PER SALE (15 Sep 2026). OUR NUMBER, NOT STRIPE'S (13 Nov 2026, ruling 1671):
+// the number is QuotesDone's own (public.fn_reveal_invoice_number, QD-INV-000001...), allocated at the sale; Stripe's
+// number for the same payment is printed beside it as a reference only. A sale with no number of ours prints its
+// payment reference and no invented number. THE WINDOW'S END (13 Nov 2026): both documents print the date the refund
+// window ends (refund_deadline, counted from the payment by public.fn_reveal_refund_window_ends).
 //
 // Pure: a sale record in, renderer bodies out. No I/O, no model.
 import { fmtDate } from './supplier_charge_documents.ts';
@@ -25,8 +28,12 @@ export const REVEAL_DOC_VERSION = 't2';
 
 export type RevealSale = {
   tx_id: string;
-  /** Stripe's invoice number for this payment, or null for a sale paid before invoicing was on. */
+  /** OUR invoice number for this sale (reveal_invoices.invoice_no), or null when none was allocated. */
   invoice_no: string | null;
+  /** Stripe's own number for the same payment: a reference printed beside ours, never the document's number. */
+  stripe_invoice_no?: string | null;
+  /** When the refund window ends (transactions.refund_deadline), or null when the sale has none. */
+  refund_window_ends?: string | null;
   paid_at: string;
   reveal_fee: number;
   processing_fee: number;
@@ -39,6 +46,8 @@ export type RevealSale = {
   card: { brand: string; last4: string } | null;
   /** Money returned to the customer, from paymentState(); null when nothing was refunded. */
   refund: { amount: number; date: string } | null;
+  /** Money charged ABOVE the fee and returned (refunds reason overcharge_return, 13 Nov 2026), from paymentState(). */
+  overcharge_returned?: { amount: number; date: string } | null;
 };
 
 // WHAT THE PAYMENT IS NOW (21 Sep 2026, review of PR #775). A PAID document is issued only for a
@@ -50,16 +59,22 @@ export type RevealSale = {
 // transaction's own refund columns cover a refund recorded without a row. A requested or approved
 // refund has moved no money and changes nothing on the document.
 export type PaymentTx = { fee_status: string | null; revealed_at: string | null; refund_status: string | null; refund_amount_aed: number | string | null; refund_confirmed_at: string | null; refund_resolved_at: string | null };
-export type RefundRow = { status: string | null; amount_fils: number | string | null; settled_at: string | null; updated_at?: string | null };
-export type PaymentState = { state: 'not_paid' } | { state: 'paid'; refund: RevealSale['refund'] };
+export type RefundRow = { status: string | null; amount_fils: number | string | null; settled_at: string | null; updated_at?: string | null; reason_code?: string | null };
+export type PaymentState = { state: 'not_paid' } | { state: 'paid'; refund: RevealSale['refund']; overcharge_returned?: RevealSale['overcharge_returned'] };
 export function paymentState(tx: PaymentTx, refunds: RefundRow[]): PaymentState {
   if (String(tx.fee_status || '') !== 'paid' || !tx.revealed_at) return { state: 'not_paid' };
-  const done = refunds.filter((x) => x.status === 'succeeded' && Number(x.amount_fils) > 0);
+  // An OVERCHARGE RETURN (money charged above the fee, 13 Nov 2026) is not a refund of the fee: the fee stays paid and its
+  // own refund window keeps running; the document says what was returned and when, once Stripe confirmed it.
+  const sum = (xs: RefundRow[]) => ({ amount: Math.round(xs.reduce((a, x) => a + Number(x.amount_fils), 0)) / 100,
+    date: xs.map((x) => String(x.settled_at || x.updated_at || '')).filter(Boolean).sort().at(-1) || '' });
+  const over = refunds.filter((x) => x.reason_code === 'overcharge_return' && x.status === 'succeeded' && Number(x.amount_fils) > 0);
+  const overcharge_returned = over.length ? sum(over) : null;
+  const done = refunds.filter((x) => x.reason_code !== 'overcharge_return' && x.status === 'succeeded' && Number(x.amount_fils) > 0);
   if (done.length) {
-    const amount = Math.round(done.reduce((a, x) => a + Number(x.amount_fils), 0)) / 100;
-    const date = done.map((x) => String(x.settled_at || x.updated_at || '')).filter(Boolean).sort().at(-1) || String(tx.refund_confirmed_at || tx.refund_resolved_at || '');
-    return { state: 'paid', refund: { amount, date } };
+    const r = sum(done);
+    return { state: 'paid', refund: { amount: r.amount, date: r.date || String(tx.refund_confirmed_at || tx.refund_resolved_at || '') }, ...(overcharge_returned ? { overcharge_returned } : {}) };
   }
+  if (overcharge_returned) return { state: 'paid', refund: null, overcharge_returned };
   if (['refunded', 'succeeded'].includes(String(tx.refund_status || '')) && Number(tx.refund_amount_aed) > 0) {
     return { state: 'paid', refund: { amount: Number(tx.refund_amount_aed), date: String(tx.refund_confirmed_at || tx.refund_resolved_at || '') } };
   }
@@ -71,6 +86,24 @@ export const NOT_PAID = {
   en: 'This payment has not been completed, so there is no invoice or receipt for it yet.',
   ar: 'لم تكتمل هذه الدفعة بعد، لذلك لا توجد لها فاتورة أو إيصال حتى الآن.',
 };
+/** A ZERO-FEE REVEAL IS NOT INVOICED (13 Nov 2026, review 4, item 6e): an invoice for AED 0 is not an invoice, so no
+ *  invoice is rendered for it (and public.fn_reveal_invoice_number gives it no number). */
+export const NO_INVOICE = {
+  code: 'zero_fee_no_invoice',
+  en: 'Nothing was charged for this reveal, so there is no invoice for it.',
+  ar: 'لم يُستوفَ أي مبلغ عن هذا الكشف، لذلك لا توجد له فاتورة.',
+};
+
+// A REFUSAL THE CUSTOMER READS (review 5, item 4): the portal's errText (src/components/me/portalText.ts) renders a
+// refusal from its CODE_KEY or from `message` / `message_ar`. reveal_invoice sent message_en, which errText does not read,
+// so a zero-fee reveal's "no invoice" reached the customer as "Could not open the invoice." Both spellings are sent.
+// prevented by: scripts/checks/a_refused_reveal_document_reaches_the_customer_in_words.test.mjs
+export function refusal(r: { code: string; en: string; ar: string }) {
+  return { error: r.code, code: r.code, message: r.en, message_ar: r.ar, message_en: r.en };
+}
+export function invoiceIsDue(sale: Pick<RevealSale, 'reveal_fee' | 'total_charged'>): boolean {
+  return Math.round(Number(sale.reveal_fee || 0) * 100) > 0 || Math.round(Number(sale.total_charged || 0) * 100) > 0;
+}
 function refundFacts(s: RevealSale, lang: Lang) {
   const ar = lang === 'ar', f = s.refund;
   if (!f) return null;
@@ -107,19 +140,39 @@ function method(s: RevealSale, lang: Lang) {
   if (lang === 'ar') return c ? `بطاقة ${cardBrand(c.brand)} تنتهي بـ ${c.last4} عبر Stripe` : 'بطاقة عبر Stripe';
   return c ? `${cardBrand(c.brand)} card ending ${c.last4}, via Stripe` : 'Card, via Stripe';
 }
-/** The reference a document prints: Stripe's invoice number, else the payment reference. */
+/** The refund window's end as printed (EN/AR), or null. Under the terms the supplier must respond within five working
+ *  days of the payment; this is that date (public.fn_reveal_refund_window_ends). */
+export function windowEnds(s: RevealSale, lang: Lang): string | null {
+  return s.refund_window_ends ? fmtDate(s.refund_window_ends, lang) : null;
+}
+function windowNote(s: RevealSale, lang: Lang): string {
+  const d = windowEnds(s, lang);
+  if (!d) return '';
+  return lang === 'ar'
+    ? `تنتهي مهلة الاسترداد لهذا الكشف في ${d}، أي بعد خمسة أيام عمل من تاريخ الدفع. `
+    : `The refund window for this reveal ends on ${d}, five working days from your payment. `;
+}
+/** The reference a document prints: our invoice number, else the payment reference. */
 export function docRef(s: RevealSale) { return s.invoice_no || s.payment_ref; }
 function charges(s: RevealSale, lang: Lang): Block {
   const ar = lang === 'ar';
   const cents = (n: number) => Math.round(n * 100);
   // The lines must add up to what the card was charged, or the document is not issued at all.
-  if (cents(s.reveal_fee) + cents(s.processing_fee) !== cents(s.total_charged)) {
+  // money charged ABOVE the fee (an overcharge) is its own line, so the lines still add up to what the card was charged
+  const above = Math.max(0, cents(s.total_charged) - cents(s.reveal_fee) - cents(s.processing_fee)) / 100;
+  if (cents(s.reveal_fee) + cents(s.processing_fee) + cents(above) !== cents(s.total_charged)) {
     throw new Error(`lines do not add up: ${s.reveal_fee} + ${s.processing_fee} != ${s.total_charged}`);
   }
   const what = s.request.summary || s.request.category || (ar ? 'طلب خدمة' : 'service request');
   const base = s.quote_amount ? (ar ? ` — 3% من عرض السعر البالغ ${money(s.quote_amount, 'ar')}` : ` — 3% of the ${money(s.quote_amount)} quotation`) : '';
   const rows = [['1', (ar ? `رسوم الكشف: ${what} (المرجع ${s.request.ref})` : `Reveal fee: ${what} (ref. ${s.request.ref})`) + base, money(s.reveal_fee, lang)]];
   if (s.processing_fee > 0) rows.push(['2', ar ? 'رسوم معالجة البطاقة (Stripe)، تُمرَّر بالتكلفة' : 'Card processing (Stripe), passed on at cost', money(s.processing_fee, lang)]);
+  if (above > 0) {
+    const o = s.overcharge_returned;
+    rows.push([String(rows.length + 1), ar
+      ? (o ? `مبلغ زائد على الرسوم، رُدّ إليكم بتاريخ ${fmtDate(o.date, 'ar')}` : 'مبلغ زائد على الرسوم، يُردّ إليكم')
+      : (o ? `Charged above our fee, returned to you on ${fmtDate(o.date, 'en')}` : 'Charged above our fee, being returned to you'), money(above, lang)]);
+  }
   return { t: 'table', head: ar ? ['#', 'البيان', 'المبلغ'] : ['#', 'Description', 'Amount'], rows, widths: [0.06, 0.7, 0.24] };
 }
 function parties(s: RevealSale, lang: Lang, toLabel: string): Block {
@@ -144,7 +197,8 @@ export function revealInvoiceDocument(s: RevealSale, lang: Lang) {
   return body(lang, ref, `invoice-${ref}-${lang}-${REVEAL_DOC_VERSION}${s.refund ? '-rf' + Math.round(s.refund.amount * 100) : ''}`, T('Invoice', 'فاتورة'),
     rf ? T('Invoice — paid, then refunded — not subject to VAT', 'فاتورة — مدفوعة ثم مستردّة — غير خاضعة لضريبة القيمة المضافة') : T('Invoice — paid — not subject to VAT', 'فاتورة — مدفوعة — غير خاضعة لضريبة القيمة المضافة'),
     T(`Reveal fee for request ${s.request.ref}`, `رسوم الكشف عن الطلب ${s.request.ref}`), s,
-    [[T('Invoice no.', 'رقم الفاتورة'), s.invoice_no || T('— (see payment ref.)', '— (انظر مرجع الدفع)')], [T('Invoice date', 'تاريخ الفاتورة'), paid], [T('Status', 'الحالة'), rf ? rf.status : T('PAID', 'مدفوعة')], [T('Request ref.', 'مرجع الطلب'), s.request.ref]],
+    [[T('Invoice no.', 'رقم الفاتورة'), s.invoice_no || T('— (see payment ref.)', '— (انظر مرجع الدفع)')], [T('Invoice date', 'تاريخ الفاتورة'), paid], [T('Status', 'الحالة'), rf ? rf.status : T('PAID', 'مدفوعة')], [T('Request ref.', 'مرجع الطلب'), s.request.ref],
+      ...(windowEnds(s, lang) ? [[T('Refund window ends', 'تنتهي مهلة الاسترداد'), windowEnds(s, lang) as string]] : [])],
     // No key-figures strip: the meta row says PAID and the totals block ends on "Balance due 0.00";
     // the strip's 84pt is what keeps the signed invoice on one page.
     [],
@@ -153,8 +207,9 @@ export function revealInvoiceDocument(s: RevealSale, lang: Lang) {
       { t: 'section', n: 1, text: T('Charges', 'تفاصيل المبلغ') }, charges(s, lang),
       { t: 'totals', rows: [[T('Total', 'الإجمالي'), money(s.total_charged, lang), false], [T(`Paid on ${paid}`, `المدفوع بتاريخ ${paid}`), '− ' + money(s.total_charged, lang), false], ...(rf ? [rf.row, rf.netRow] : [[T('Balance due', 'الرصيد المستحق'), money(0, lang), true]])], note: '' },
       { t: 'note', text: (rf ? rf.note + ' ' : '') + NO_VAT[lang] },
-      { t: 'kv', pairs: [[T('Paid by', 'طريقة الدفع'), method(s, lang)], [T('Payment reference', 'مرجع الدفع'), s.payment_ref]] },
-      { t: 'note', text: (s.invoice_no ? T('The invoice number is the one our payment processor, Stripe, assigned to this payment; this is the only invoice for it. ', 'رقم الفاتورة هو الرقم الذي خصّصه معالج الدفع Stripe لهذه الدفعة، وهذه هي الفاتورة الوحيدة لها. ') : '') + NATURE[lang] },
+      { t: 'kv', pairs: [[T('Paid by', 'طريقة الدفع'), method(s, lang)], [T('Payment reference', 'مرجع الدفع'), s.payment_ref],
+        ...(s.stripe_invoice_no ? [[T('Stripe reference', 'مرجع Stripe'), s.stripe_invoice_no]] : [])] },
+      { t: 'note', text: windowNote(s, lang) + (s.invoice_no ? T('This is the only invoice for this payment. ', 'هذه هي الفاتورة الوحيدة لهذه الدفعة. ') : '') + NATURE[lang] },
     ]);
 }
 
@@ -163,13 +218,15 @@ export function revealReceiptDocument(s: RevealSale, lang: Lang) {
   const T = (en: string, a: string) => ar ? a : en;
   return body(lang, ref, `receipt-${ref}-${lang}-${REVEAL_DOC_VERSION}${s.refund ? '-rf' + Math.round(s.refund.amount * 100) : ''}`, T('Payment Receipt', 'إيصال دفع'), T('Receipt — payment received', 'إيصال — تم استلام الدفعة'),
     s.invoice_no ? T(`Payment of invoice ${s.invoice_no} — request ${s.request.ref}`, `سداد الفاتورة ${s.invoice_no} — الطلب ${s.request.ref}`) : T(`Reveal fee for request ${s.request.ref}`, `رسوم الكشف عن الطلب ${s.request.ref}`), s,
-    [[T('For invoice no.', 'عن الفاتورة رقم'), s.invoice_no || '—'], [T('Date received', 'تاريخ الاستلام'), paid], [T('Amount received', 'المبلغ المستلَم'), money(s.total_charged, lang)], [T('Status', 'الحالة'), rf ? rf.status : T('PAID', 'مدفوعة')]],
+    [[T('For invoice no.', 'عن الفاتورة رقم'), s.invoice_no || '—'], [T('Date received', 'تاريخ الاستلام'), paid], [T('Amount received', 'المبلغ المستلَم'), money(s.total_charged, lang)], [T('Status', 'الحالة'), rf ? rf.status : T('PAID', 'مدفوعة')],
+      ...(windowEnds(s, lang) ? [[T('Refund window ends', 'تنتهي مهلة الاسترداد'), windowEnds(s, lang) as string]] : [])],
     [],
     [
       parties(s, lang, T('Received from', 'استُلم من')),
       { t: 'section', n: 1, text: T('Payment for', 'مقابل') }, charges(s, lang),
       { t: 'totals', rows: [[T('Total received', 'إجمالي المبلغ المستلَم'), money(s.total_charged, lang), !rf], ...(rf ? [rf.row, rf.netRow] : [])], note: '' },
       ...(rf ? [{ t: 'note', text: rf.note }] : []),
+      ...(windowNote(s, lang) ? [{ t: 'note', text: windowNote(s, lang) }] : []),
       { t: 'kv', pairs: [[T('Paid by', 'طريقة الدفع'), method(s, lang)], [T('Payment reference', 'مرجع الدفع'), s.payment_ref]] },
       { t: 'note', text: (s.invoice_no ? T(`This receipt confirms payment in full of invoice ${s.invoice_no}. It is not a second invoice. `, `يؤكد هذا الإيصال سداد الفاتورة رقم ${s.invoice_no} بالكامل، وهو ليس فاتورة ثانية. `) : T('This receipt confirms payment in full of the amount above. ', 'يؤكد هذا الإيصال سداد المبلغ أعلاه بالكامل. ')) + NO_VAT[lang] },
       { t: 'note', text: NATURE[lang] },

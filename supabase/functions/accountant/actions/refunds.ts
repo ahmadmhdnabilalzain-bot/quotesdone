@@ -148,15 +148,19 @@ export async function refundActions(c: ActionCtx): Promise<Response | undefined>
 
       if (paused !== true) {
         let aq = admin.from('refunds')
-          .select('id,transaction_id,customer_id,supplier_lead_id,amount_fils,stripe_payment_intent,refund_decision_id,status')
+          .select('id,transaction_id,customer_id,supplier_lead_id,amount_fils,stripe_payment_intent,refund_decision_id,status,reason_code')
           .not('refund_decision_id', 'is', null).in('status', ['requested', 'approved']).is('stripe_refund_id', null);
         if (onlyRefund != null) aq = aq.eq('id', onlyRefund);
         const { data: approved } = await aq.limit(20);
         for (const r of approved || []) {
           // Before Stripe, because afterwards the money is gone: the refunds guard refuses 'processing'
           // before the transaction's refund_deadline, and a refund paid but unrecordable is the worst case.
+          // AN OVERCHARGE RETURN WAITS FOR NO WINDOW (15 Nov 2026, accountant; final review 2, follow-up 2): money charged above
+          // the fee is owed back whatever the supplier does, and the database already exempts it (a00, fn_refund_decide). Held
+          // here it stayed on the customer's card for up to five working days after the CEO approved it.
+          const over = r.reason_code === 'overcharge_return';
           const { data: tr } = await admin.from('transactions').select('refund_deadline').eq('id', r.transaction_id).maybeSingle();
-          if (tr?.refund_deadline && Date.now() < new Date(tr.refund_deadline).getTime()) {
+          if (!over && tr?.refund_deadline && Date.now() < new Date(tr.refund_deadline).getTime()) {
             results.push({ refund_id: r.id, error: 'refund_window_not_yet_open', decision_after: tr.refund_deadline }); continue;
           }
           // THE ONE DECISION (29 Sep 2026): a CEO-decided refund still 'requested' is approved here through
@@ -175,7 +179,7 @@ export async function refundActions(c: ActionCtx): Promise<Response | undefined>
           if (scr?.hold === true) { results.push({ refund_id: r.id, held: 'fraud_review', hold_id: scr.hold_id }); continue; }
           const demo = await payerIsDemo(r.customer_id, r.stripe_payment_intent);
           if (demo === null) { results.push({ refund_id: r.id, error: 'payer_unknown: the Stripe mode of this payment cannot be known, nothing sent' }); continue; }
-          const res = await stripeRefund(deps, { demoPayer: demo, ref: String(r.stripe_payment_intent || ''), amountFils: Number(r.amount_fils), idem: refundIdempotencyKey(String(r.transaction_id)),
+          const res = await stripeRefund(deps, { demoPayer: demo, ref: String(r.stripe_payment_intent || ''), amountFils: Number(r.amount_fils), idem: over ? refundIdempotencyKey(String(r.transaction_id), 'over' + r.id) : refundIdempotencyKey(String(r.transaction_id)),
             metadata: { refund_id: String(r.id), transaction_id: String(r.transaction_id || ''), approved_by: 'ceo' } });
           if (!res.ok) { results.push({ refund_id: r.id, error: res.error }); continue; }
           await admin.from('refunds').update({ status: 'processing', stripe_refund_id: String(res.refund.id) }).eq('id', r.id).is('stripe_refund_id', null);

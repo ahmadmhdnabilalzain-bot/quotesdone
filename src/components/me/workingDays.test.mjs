@@ -4,6 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { workingDaysSince, guaranteeClock } from './workingDays.ts';
+import { t, tf } from './portalText.ts';
 
 // Monday 14 Sep 2026, 10:00 Dubai (06:00Z).
 const PAID = '2026-09-14T06:00:00Z';
@@ -51,4 +52,14 @@ test('an open refund window is not a refund: window_open and none read as no ref
   assert.equal(guaranteeClock({ revealed_at: PAID, refund_status: 'window_open' }, TERMS, at('2026-09-14T08:00:00Z')).phase, 'waiting');
   assert.equal(guaranteeClock({ revealed_at: PAID, refund_status: 'none' }, TERMS, at('2026-09-17T06:00:00Z')).phase, 'chased');
   assert.equal(guaranteeClock({ revealed_at: PAID, refund_status: 'window_open', supplier_ack_at: PAID }, TERMS, at('2026-09-15T06:00:00Z')).phase, 'acknowledged');
+});
+
+// review 5, item 1 (15 Nov 2026): a partial Stripe refund leaves the sale 'partly_refunded' (the SQL's sum of refunds);
+// the guarantee shows a refund in play and says, in both languages, that part of it went back, never the raw code.
+test('a partial refund reads "partly refunded" on the guarantee, in both languages', () => {
+  const c = guaranteeClock({ revealed_at: PAID, refund_status: 'partly_refunded' }, TERMS, at('2026-09-16T06:00:00Z'));
+  assert.equal(c.phase, 'refund');
+  assert.equal(tf('en', 'g_ph_refund', { status: t('en', 'refund_st_partly_refunded') }), 'Refund partly refunded.');
+  assert.notEqual(t('ar', 'refund_st_partly_refunded'), 'refund_st_partly_refunded');
+  assert.match(t('ar', 'refund_st_partly_refunded'), /[\u0600-\u06FF]/);
 });

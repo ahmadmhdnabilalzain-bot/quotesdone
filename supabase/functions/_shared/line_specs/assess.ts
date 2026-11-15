@@ -281,10 +281,11 @@ const TERM_LABEL: Record<string, [string, string, MissingItem['type']]> = {
 /** The choices a release-review item is answered with on the hold desk (supplier_api submit_review.ts issueAsMissing). */
 export const RELEASE_CHOICES: Record<'vat' | 'currency', { value: string; en: string; ar: string }[]> = {
   vat: [
-    { value: 'exclusive', en: 'The total excludes VAT',
-      ar: 'الإجمالي غير شامل ضريبة القيمة المضافة' },
-    { value: 'inclusive', en: 'The total includes VAT',
-      ar: 'الإجمالي شامل ضريبة القيمة المضافة' },
+    { value: 'exclusive', en: 'Before VAT (VAT is added on top)',
+      ar: 'قبل ضريبة القيمة المضافة (تُضاف الضريبة عليه)' },
+    // 13 Nov 2026: "including 5% VAT" names the UAE rate, so the answer settles the ex-VAT price (workflow.ts: total / 1.05)
+    { value: 'inclusive', en: 'Including 5% VAT',
+      ar: 'شامل ضريبة القيمة المضافة 5%' },
     { value: 'not_registered', en: 'We are not VAT-registered',
       ar: 'لسنا مسجّلين في ضريبة القيمة المضافة' },
   ],

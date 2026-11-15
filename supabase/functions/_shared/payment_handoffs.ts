@@ -41,6 +41,23 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'subscription.renewal_reminder', from: 'accountant', to: 'sales_engineer' },
   { type: 'subscription.dunning', from: 'accountant', to: 'sales_engineer' },
   { type: 'subscription.payment_failed', from: 'accountant', to: 'sales_engineer' },
+  // A PAID REVEAL IS RECONCILED, BOOKED AND TOLD (13 Nov 2026, ledger 1685;
+  // scripts/sql/a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql).
+  // the sale was made in the sales engineer's portal: the accountant reconciles our invoice, the PaymentIntent and the
+  // balance transaction against 3% of the quotation ex-VAT, books it, and answers with the verdict (code)
+  { type: 'reveal.reconcile', from: 'sales_engineer', to: 'accountant' },
+  // the CEO is told of each sale: what was sold, the fee, the trade, the emirate, the customer type, the month total
+  { type: 'sale.made', from: 'accountant', to: 'ceo' },
+  // a payment that did not reconcile, after the accountant's model judged it: the CEO decides by reasoning, the sales
+  // engineer is told so it does not discuss money with the customer until then
+  { type: 'payment.exception', from: 'accountant', to: 'ceo' },
+  { type: 'payment.exception', from: 'accountant', to: 'sales_engineer' },
+  // paid but not recorded: the it_engineer holds the finding, customer_support tells the customer once; the heal is
+  // reported on both when the sale is recorded
+  // money charged above the fee is being returned (the CEO decided, or a standing grant): customer_support tells the customer once
+  { type: 'overcharge.customer_notice', from: 'accountant', to: 'customer_support' },
+  { type: 'payment.unrecorded', from: 'accountant', to: 'it_engineer' },
+  { type: 'payment.unrecorded', from: 'accountant', to: 'customer_support' },
   // sales engineer -> accountant: somebody asked about money, the books must answer
   { type: 'refund.requested', from: 'sales_engineer', to: 'accountant' },
   { type: 'billing.question', from: 'sales_engineer', to: 'accountant' },
