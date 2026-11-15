@@ -80,7 +80,7 @@ test('the message is written in English and in formal Arabic', () => {
 // supplier_own_word_reading row, never through an alias: until it is read, it stays his own word (29 Sep 2026).
 test('live: no trade gap while the matcher still reaches silent suppliers; a reasoned word names its service', { skip: SKIP }, async () => {
   const { sql } = await import('../lib/db.mjs');
-  const r = await sql(`
+  const r = await replaySql(`
     create temp table if not exists zz_gap_logic (v text) on commit drop;
     do $t$
     declare v_id bigint; g jsonb; f text := ''; v_silent boolean;
@@ -103,7 +103,7 @@ test('live: no trade gap while the matcher still reaches silent suppliers; a rea
       end;
       insert into zz_gap_logic values (case when f = '' then 'OK' else f end);
     end $t$;
-    select v from zz_gap_logic;`, { retry: false });
+    select v from zz_gap_logic;`, { rows: true, label: 'the trade-gap logic probe' });
   assert.equal(String(r?.[0]?.v), 'OK');
 });
 

@@ -46,10 +46,16 @@ jobs:
       - run: npm ci
         timeout-minutes: 8
       - name: Rehearse, rolled back
+        # production is never a replay's default (scripts/lib/safe_replay.mjs, 13 Nov 2026): a runner has no local database,
+        # so the operator who dispatches this opts in; the replay is cut at 5 s and a file that needs longer is refused here
+        env:
+          QD_REPLAY_ON_PRODUCTION: '1'
         run: node scripts/ci/rehearse_sql.mjs "$FILE" $PROBE
       - name: Apply and read back
         if: ${{ inputs.apply }}
         run: node scripts/apply_sql.mjs "$FILE" --apply --ddl --seat "$SEAT"
       - name: Probe the applied file
         if: ${{ inputs.apply && inputs.probe != '' }}
+        env:
+          QD_REPLAY_ON_PRODUCTION: '1'
         run: node scripts/ci/rehearse_sql.mjs scripts/ci/noop.sql "$PROBE"

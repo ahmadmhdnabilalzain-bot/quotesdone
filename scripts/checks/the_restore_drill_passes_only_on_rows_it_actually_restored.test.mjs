@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILE = 'scripts/sql/the_restore_drill_passes_only_on_rows_it_actually_restored.sql';
@@ -43,7 +44,7 @@ test('an empty page fails, the pick prefers a page with rows, and live rows rest
       raise exception 'CHK<<%>>', o;
     end $p$;`;
   let r;
-  try { await sql('begin;\n' + ddl + '\n' + body); } catch (e) {
+  try { await replaySql('begin;\n' + ddl + '\n' + body, { label: 'the restore drill rows probe' }); } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!m) throw e;
     r = JSON.parse(m[1].replace(/\\"/g, '"'));

@@ -86,13 +86,12 @@ end $$;`;
 
 test('production: demo identities are marked, never meet real ones, and nothing about them is dispatched',
   { skip: !token && 'no SUPABASE_ACCESS_TOKEN (expected in CI)' }, async () => {
-    const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
-      method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: PROBE }),
-    });
-    const body = await r.text();
+    // through the replay guard (13 Nov 2026): this POSTed its rolled-back probe straight to the management API
+    const { replaySql } = await import('../lib/safe_replay.mjs');
+    let body = '';
+    try { await replaySql(PROBE, { label: 'the demo identities probe' }); } catch (e) { body = String(e?.body ?? e?.message ?? e); }
     const m = /CHK<<(\{.*\})>>/s.exec(body.replace(/\\"/g, '"'));
-    assert.ok(m, `probe did not report (HTTP ${r.status}): ${body.slice(0, 400)}`);
+    assert.ok(m, `probe did not report: ${body.slice(0, 400)}`);
     const x = JSON.parse(m[1]);
     assert.deepEqual(x.marker, { demo_customer: true, real_customer: false, demo_supplier: true, real_supplier: false });
     assert.deepEqual(x.matches, { demo_demo: 1, demo_real: 0, real_demo: 0 });

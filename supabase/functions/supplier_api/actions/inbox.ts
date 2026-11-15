@@ -230,13 +230,15 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
       // 11 and 33) then obliges the supplier to respond within 5 working days, chased at 3. The tab
       // listed category, amount and date only: no customer name or number, no deadline, and no way to
       // say "done". The contact is served HERE and only here, keyed on the supplier's own transactions
-      // rows, so it cannot reach a supplier before a reveal. Deadlines come from fn_add_working_days,
-      // the one working-day calendar refund_flow and the nudges use.
+      // rows, so it cannot reach a supplier before a reveal. Deadlines come from fn_reveal_window (13 Nov 2026), the one
+      // source of the window: from the payment, on the working-day calendar refund_flow and the nudges use.
       const { data: projs } = await admin.from('transactions').select('id,inquiry_id,customer_id,revealed_at,quote_amount,refund_deadline,supplier_ack_at,refund_status,inquiries(category,emirate,summary,spec)').eq('supplier_id', sup.id).not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(50);
       const custIds = Array.from(new Set((projs || []).map((p: any) => p.customer_id).filter(Boolean)));
       const cust: Record<string, any> = {};
       if (custIds.length) { const { data: cs } = await admin.from('customers').select('id,full_name,email,phone').in('id', custIds); for (const c of (cs || [])) cust[String(c.id)] = c; }
-      const wd = async (from: string, n: number) => { try { const { data } = await admin.rpc('fn_add_working_days', { p_from: from, p_days: n }); return (data as string) || null; } catch (_e) { return null; } };
+      // The window of one sale, from the one source (public.fn_reveal_window, 13 Nov 2026): counted from the payment.
+      const winCache: Record<string, any> = {};
+      const win = async (tx: string) => { if (tx in winCache) return winCache[tx]; try { const { data } = await admin.rpc('fn_reveal_window', { p_tx: tx }); return (winCache[tx] = data || null); } catch (_e) { return (winCache[tx] = null); } };
       // The customer's post-job review (T2): stars, words and photos, on the supplier's own revealed
       // jobs only. Photos come from the private review-photos bucket as 1-hour signed URLs.
       const rvBy: Record<string, any> = {};
@@ -248,7 +250,7 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
         const c = cust[String(p.customer_id)] || {};
         out.push({ id: p.id, inquiry_id: p.inquiry_id, category: p.inquiries?.category || null, emirate: p.inquiries?.emirate || null, summary: p.inquiries?.summary || null,
           revealed_at: p.revealed_at, amount: p.quote_amount, acknowledged_at: p.supplier_ack_at || null, refund_status: p.refund_status || null,
-          chase_at: await wd(p.revealed_at, 3), respond_by: p.refund_deadline || await wd(p.revealed_at, 5),
+          chase_at: (await win(p.id))?.chase_at ?? null, respond_by: p.refund_deadline || ((await win(p.id))?.ends_at ?? null),
           // The exact site is released by the reveal (13 Nov 2026, founder ruling 1683): the customer-only key the request
           // stored it under (_shared/site_location.ts), else the address answer of an older row. Shown with the contact card.
           customer: { name: c.full_name || null, email: c.email || null, phone: c.phone || null, site: String(p.inquiries?.spec?.site_location || p.inquiries?.spec?.location || '').trim() || null },

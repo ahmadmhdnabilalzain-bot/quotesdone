@@ -69,7 +69,7 @@ const SEATS = [
 const PROBE = /CHK<<([\s\S]*)>>CHK/;
 async function probe(body) {
   try {
-    await sql(`do $probe$\nbegin\n${body}\nend $probe$;`);
+    await replaySql(`do $probe$\nbegin\n${body}\nend $probe$;`, { label: 'a company-knowledge probe' });
   } catch (e) {
     // db.mjs throws the raw HTTP body, so the payload arrives BACKSLASH-ESCAPED inside it. Parsing
     // the body first and taking .message is what turns \" back into " — pulling the regex straight

@@ -75,7 +75,7 @@ export type SweepDeps = {
   /** The PaymentIntent behind an invoice that did not carry it, or null. */
   invoicePayment: (mode: Mode, invoiceId: string) => Promise<string | null>;
   /** The PaymentIntent itself, or null when it cannot be read. */
-  readPayment: (mode: Mode, pi: string) => Promise<{ status: string; amount_received: number; amount_refunded: number; fee_fils?: number | null; fee_details?: unknown } | null>;
+  readPayment: (mode: Mode, pi: string) => Promise<{ status: string; amount_received: number; amount_refunded: number; fee_fils?: number | null; fee_details?: unknown; facts?: Record<string, unknown> } | null>;
   /** Sales whose stripe_invoice_id, payment_ref or quote_id is one of these. */
   findTransactions: (q: { invoices: string[]; refs: string[]; quotes: string[] }) => Promise<Tx[]>;
   /** Whether the quote's inquiry belongs to a demo account (fn_inquiry_is_demo). Asked only for TEST-mode payments; false when it cannot be told. */
@@ -83,7 +83,8 @@ export type SweepDeps = {
   /** recordRevealSale. */
   record: (a: SaleArgs) => Promise<{ id: string; created: boolean; other_payment?: string } | { error: string }>;
   /** What Stripe kept on a sale this sweep wrote (stripe_webhook's recordStripeFee does the same); best-effort. */
-  recordFee?: (txId: string, feeFils: number, details: unknown) => Promise<void>;
+  // 13 Nov 2026: with the charge's facts (amount received, balance transaction, paid_at) the accountant reconciles from.
+  recordFee?: (txId: string, feeFils: number, details: unknown, facts?: Record<string, unknown>) => Promise<void>;
 };
 
 export type SweepOptions = { days: number; nowSec: number; maxPages?: number; maxRecords?: number; maxAttempts?: number; graceSeconds?: number };
@@ -254,7 +255,9 @@ export async function sweepReveals(deps: SweepDeps, o: SweepOptions): Promise<{ 
     let res;
     try {
       res = await deps.record({ quoteId: c.quoteId, customerId: c.customerId, baseFee: c.baseFee, processingFee: c.processingFee,
-        totalCharged: c.totalCharged, paymentRef: pi, invoiceId: c.invoiceId || '' });
+        totalCharged: c.totalCharged, paymentRef: pi, invoiceId: c.invoiceId || '',
+        // Stripe's paid time, so the refund window of a sale healed hours later still counts from the payment (13 Nov 2026)
+        paidAt: c.paidAt ? new Date(c.paidAt * 1000).toISOString() : null, livemode: c.livemode });
     } catch (e) { res = { error: String((e as Error)?.message || e) }; }
     if ('error' in res) { done(cc, 'failed', null, String(res.error).slice(0, 300)); continue; }
     // The sale exists now: a second payment of the same quote later in this run is seen as one (review of #1841).
@@ -262,7 +265,7 @@ export async function sweepReveals(deps: SweepDeps, o: SweepOptions): Promise<{ 
     if (res.other_payment) { done(cc, 'second_payment', res.id); continue; }
     done(cc, res.created ? 'recovered' : 'recorded', res.id);
     if (res.created && deps.recordFee && typeof pay.fee_fils === 'number') {
-      try { await deps.recordFee(res.id, pay.fee_fils, pay.fee_details ?? null); } catch (_e) { /* a record, never a reason to fail */ }
+      try { await deps.recordFee(res.id, pay.fee_fils, pay.fee_details ?? null, pay.facts); } catch (_e) { /* a record, never a reason to fail */ }
     }
   }
   return { modes, outcomes, checked: ready.length, too_recent: tooRecent };

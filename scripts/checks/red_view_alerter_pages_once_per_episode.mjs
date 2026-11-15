@@ -13,6 +13,7 @@
 //
 //   node scripts/checks/red_view_alerter_pages_once_per_episode.mjs
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const probe = `
 do $probe$
@@ -75,7 +76,7 @@ begin
 end $probe$;`;
 
 let msg;
-try { await sql(probe); }
+try { await replaySql(probe, { label: 'the red-view alerter probe' }); }
 catch (e) { msg = String(e.message || e); }
 if (!msg) { console.error('the probe committed — it must always RAISE'); process.exit(1); }
 // the management API wraps the RAISE text in a JSON error body; unwrap it before reading the payload

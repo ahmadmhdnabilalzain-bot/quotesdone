@@ -20,6 +20,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ddl = [
@@ -57,7 +58,7 @@ test('targets, weekly drill, RPO/RTO misses, rotation age, full-restore compare,
       raise exception 'CHK<<%>>', o;
     end $p$;`;
   let r;
-  try { await sql('begin;\n' + ddl + '\n' + body); } catch (e) {
+  try { await replaySql('begin;\n' + ddl + '\n' + body, { label: 'the backup RPO/RTO probe' }); } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!m) throw e;
     r = JSON.parse(m[1].replace(/\\"/g, '"'));

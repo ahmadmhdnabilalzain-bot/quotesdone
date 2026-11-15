@@ -3,7 +3,9 @@
 import { SUPPLIER_LOCALE } from '../../_shared/registered_locale.ts';
 import type { MissingItem } from '../../_shared/line_specs/assess.ts';
 import { requestDelivery } from '../../_shared/deliver.ts';
-import { SUPA_URL, admin, secretVal } from '../context.ts';
+import { SUPA_URL, admin, secretVal, tellItSeat } from '../context.ts';
+import { writeRecorded } from '../../_shared/recorded_write.ts';
+import { maskContact } from '../../_shared/observe.ts';
 import { requestOf, reviewNotes } from '../../_shared/quote_review_notes.ts';
 
 export async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) { /* */ } }
@@ -92,6 +94,61 @@ async function qualityHold(qid: string): Promise<{ missing: MissingItem[]; messa
 export async function supersedeQualityHold(qid: string) {
   try { await admin.from('quote_quality_hold').update({ superseded_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('quote_id', qid).is('released_at', null).is('superseded_at', null); } catch (_e) { /* absent before the SQL is applied */ }
 }
+/** What the supplier reads when the write that sends his quotation did not land (item A): plain, retryable, and true. The portal's
+ *  copy for the code is src/components/portal/supplier/serverCopy.ts `quote_not_sent`. */
+export const QUOTE_NOT_SENT = {
+  code: 'quote_not_sent', retryable: true,
+  message: 'Your quotation was saved but NOT sent to the customer: our system could not complete the last step just now. Nothing is lost. Please press "Submit quote" again in a moment.',
+} as const;
+/** The same, at the hold desk, whose button is "Approve and send to the customer" (SpecHold.tsx; third review, items 1 and 6). */
+export const QUOTE_NOT_SENT_APPROVE = {
+  code: 'quote_not_sent_approve', retryable: true,
+  message: 'Your quotation was NOT sent to the customer: our system could not complete the last step just now. Nothing is lost and your approval still waits. Please press "Approve and send to the customer" again in a moment.',
+} as const;
+/** What the supplier reads when his quotation's lines could not be saved (item B). Portal copy: serverCopy.ts `quote_not_saved`. */
+export const QUOTE_NOT_SAVED = {
+  code: 'quote_not_saved', retryable: true,
+  message: 'Your quotation was NOT sent: our system could not save its lines just now. Nothing is lost. Please press "Submit quote" again in a moment.',
+} as const;
+/**
+ * A QUOTATION'S LINES, WRITTEN OR SAID NOT TO BE (15 Nov 2026, review 2 of the certificate branch, item B). The old lines are deleted
+ * and the new ones inserted, and BOTH answers are read: supabase-js answers { error }, it never throws, so the try/catch this
+ * replaced let a lock or a timeout leave the quotation with its old lines or none while the submission answered ok. A blip retries
+ * the PAIR (delete, then insert): a retry after an insert whose answer was lost deletes what landed first, so no line is doubled.
+ */
+export const writeQuoteLines = (qid: string, rows: Record<string, unknown>[], sleep?: (ms: number) => Promise<void>) =>
+  writeRecorded(async () => {
+    const d = await admin.from('quote_items').delete().eq('quote_id', qid);
+    if (d.error) return { data: null, error: d.error };
+    if (!rows.length) return { data: [{ quote_id: qid }], error: null };
+    const i = await admin.from('quote_items').insert(rows);
+    return { data: i.error ? null : rows, error: i.error };
+  }, [800], sleep, { budgetMs: 10_000 });
+/** A quotation as it stood before a submission rewrote it: the columns the submission writes (plus status and submittable) and
+ *  every line, with its own id. Null when either read failed: the caller then writes nothing. */
+export type QuoteSnapshot = { row: Record<string, unknown>; lines: Record<string, unknown>[] };
+export async function snapshotQuote(qid: string, cols: string): Promise<QuoteSnapshot | null> {
+  const [{ data: sr, error: se }, { data: sl, error: sle }] = await Promise.all([
+    admin.from('quotes').select(cols).eq('id', qid).maybeSingle(),
+    admin.from('quote_items').select('*').eq('quote_id', qid),
+  ]);
+  if (se || sle || !sr) return null;
+  return { row: sr as unknown as Record<string, unknown>, lines: (sl || []) as unknown as Record<string, unknown>[] };
+}
+/**
+ * PUT A QUOTATION BACK AS IT STOOD (15 Nov 2026, third review of the certificate branch, item 4). Used after a check (dry run), and
+ * after a re-sent quotation whose new lines could not be written: the header (amount, terms) was already overwritten, and if the
+ * retry's delete landed and its insert failed, a quotation the customer already sees showed with no lines while the supplier read
+ * "Nothing is lost". True only when the row and every line are back.
+ */
+export async function restoreQuote(qid: string, snap: QuoteSnapshot): Promise<boolean> {
+  try {
+    const u = await admin.from('quotes').update(snap.row).eq('id', qid);
+    const d = await admin.from('quote_items').delete().eq('quote_id', qid);
+    const i = snap.lines.length ? await admin.from('quote_items').insert(snap.lines) : { error: null };
+    return !u.error && !d.error && !i.error;
+  } catch (_e) { return false; }
+}
 /** Offer a quote that has cleared the hold gate to the accept rule; on pass it goes to the customer. */
 export async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolean) {
   // Quote quality is scored by structure in trg_quote_quality; the category aspects are no longer read by the
@@ -100,14 +157,33 @@ export async function acceptLive(qid: string, inquiryId: string, notifyCustomer:
   // deno-lint-ignore no-explicit-any
   let coaching: any = null;
   if (r.accept) {
-    try { await admin.from('quotes').update({ status: 'submitted' }).eq('id', qid); } catch (_e) { /* */ }
+    // THE QUOTATION IS SENT ONLY IF THE WRITE THAT SENDS IT LANDED (15 Nov 2026, review 2 of the certificate branch, item A). This
+    // write sat in a try/catch, which supabase-js never enters (it answers { error }, it does not throw): on 13 Nov a lock on quotes
+    // cancelled writes like it, so the quote stayed a draft, qualityHold below found no hold, and the supplier was told "accepted"
+    // while the customer was told of a quote he could not see. Now a blip is tried again (the same value; within a page's wait), and
+    // a write that did not land answers the supplier that the quotation was NOT sent, tells nobody else, and tells the IT seat.
+    const sent = await writeRecorded(async () => {
+      const { error } = await admin.from('quotes').update({ status: 'submitted' }).eq('id', qid);
+      return { data: error ? null : [{ id: qid }], error };
+    }, [800], undefined, { budgetMs: 10_000 });
+    if (!sent.ok) {
+      tellItSeat('quote_not_sent:submitted_write', "supplier_api could not set a supplier's accepted quotation to submitted, so it did not reach the customer",
+        'edge function supplier_api, acceptLive (submit_quote / spec_approve)', { quote_id: qid, inquiry_id: inquiryId, attempts: sent.attempts,
+          reason: maskContact(sent.reason).slice(0, 300), told: 'the supplier was told the quotation was not sent and to press Send again; the customer was not told' });
+      return { accepted: false, submittable: r.submittable, score: r.score, coaching, held: false, not_sent: true, ...QUOTE_NOT_SENT };
+    }
     // THE QUALITY CHECK (founder ledger 1018, 29 Sep 2026; scripts/sql/a_quote_is_checked_for_specs_prices_and_terms_
     // before_the_customer_sees_it.sql). z40_quote_quality_gate keeps a quote with missing checklist specs, a price outside
     // the UAE range or no validity / delivery time / VAT basis a draft for up to 24 h. The status is read back: a held
     // quote is answered as held, with the exact fixes, and the customer is not told of a quote they cannot see.
     const qh = await qualityHold(qid);
     if (qh) return { accepted: false, submittable: r.submittable, score: r.score, coaching, held: true, code: 'quality_hold', missing: qh.missing, message: qh.message };
-    await admin.from('inquiries').update({ status: 'quoted' }).eq('id', inquiryId).in('status', ['sent', 'quoted']);
+    // THE REQUEST'S STATUS FOLLOWS (item C): the quotation itself stands (it is submitted and the customer reads quotes by their own
+    // status), so a failed write here is not said to the supplier; it is told to the IT seat, because the request's lists read it.
+    const { error: inqErr } = await admin.from('inquiries').update({ status: 'quoted' }).eq('id', inquiryId).in('status', ['sent', 'quoted']);
+    if (inqErr) tellItSeat('inquiry_not_marked_quoted', "supplier_api could not mark a request 'quoted' after a quotation went to the customer",
+      'edge function supplier_api, acceptLive', { quote_id: qid, inquiry_id: inquiryId, reason: maskContact(String(inqErr.message ?? inqErr.code ?? '')).slice(0, 300),
+        note: 'the quotation is submitted and stands; only inquiries.status was left as it was' });
     if (notifyCustomer) await notifyNewQuote(inquiryId, qid);
     // A QUOTE THAT WENT LIVE IS NEVER COACHED (final audit 12 Nov 2026, B3; ledger 1642). fn_quote_coach was called here
     // whenever the score said "not submittable", and told 8 of 8 suppliers "your quote needs a few more details before
@@ -119,4 +195,10 @@ export async function acceptLive(qid: string, inquiryId: string, notifyCustomer:
   await supersedeQualityHold(qid);
   try { const { data } = await admin.rpc('fn_quote_coach', { p_quote: qid }); coaching = data; } catch (_e) { /* */ }
   return { accepted: false, submittable: false, score: r.score, coaching };
+}
+/** What spec_approve offers approve() (workflow.ts): the quote goes live (true), stays for its commercial terms (false), or the
+ *  write that sends it did not land ('not_sent': approve() puts the hold back and sends no notice; third review, item 1). */
+export async function acceptForRelease(row: { id: unknown; inquiry_id: unknown }): Promise<boolean | 'not_sent'> {
+  const l = await acceptLive(String(row.id), String(row.inquiry_id), true);
+  return 'not_sent' in l && l.not_sent === true ? 'not_sent' : l.accepted;
 }

@@ -14,6 +14,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
@@ -21,7 +22,7 @@ const SKIP = hasToken ? false : 'no Supabase management token in this environmen
 test('anon, signed-in-unscoped and signed-in-scoped definer routines are told apart; a reasonless baseline row is refused', { skip: SKIP }, async () => {
   let res;
   try {
-    await sql(`do $p$
+    await replaySql(`do $p$
       declare v_refused boolean := false;
       begin
         create function public.zz_demo_open() returns int language sql security definer set search_path to 'public' as 'select 1';

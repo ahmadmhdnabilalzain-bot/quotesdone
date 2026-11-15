@@ -7,6 +7,7 @@ import { recordRevealSale } from '../_shared/reveal_sale.ts';
 import { checkoutSaleArgs, elementSaleArgs } from '../_shared/reveal_args.ts';
 import { absorbedStripeCost } from '../_shared/reveal_fee.ts';
 import { observe } from '../_shared/observe.ts';
+import { chargeFacts, chargePaidAt, disputeFees } from '../_shared/charge_facts.ts';  // what the accountant reconciles (13 Nov 2026)
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const TOLERANCE_SECONDS = 600; // reject events whose signature timestamp is older/newer than this (replay guard)
 async function secret(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || ''; }
@@ -95,6 +96,28 @@ async function captureInvoice(
   }
 }
 
+// THE ACCOUNTANT RECONCILES THE PAYMENT (13 Nov 2026, ledger 1685). Called once Stripe's figures are written: the
+// accountant's check (public.fn_accountant_reconciles_reveal) compares our invoice, the PaymentIntent and the balance
+// transaction with 3% of the quotation ex-VAT, books a straight match and tells the CEO, and sends anything else to its
+// own judgement. Best-effort: the hourly sweep re-reads a check this misses. Never fails the payment path.
+async function accountantReconciles(txId: string, logRun: (s: string, c: Record<string, unknown>, n: string) => Promise<void>) {
+  try {
+    const { data, error } = await admin.rpc('fn_accountant_reconciles_reveal', { p_tx: txId, p_from_handler: false });
+    await logRun(error ? 'error' : 'ok', { transaction: txId, reconcile: error ? null : (data as Record<string, unknown>)?.verdict ?? null },
+      error ? 'the accountant\'s reconcile refused: ' + error.message + ' (the hourly sweep re-reads it)' : '');
+  } catch (e) { await logRun('error', { transaction: txId }, 'reconcile threw: ' + String((e as Error)?.message || e)); }
+}
+
+// PAID BUT NOT RECORDED IS A HANDOFF, NOT A LOG LINE (13 Nov 2026). The it_engineer holds a finding until the sale is
+// recorded; customer_support tells the customer once that the payment arrived. The heal is reported on both handoffs
+// by trg_reveal_receipt when the sale is written (the webhook retry or the accountant's hourly reconcile).
+async function paidNotRecorded(o: { paymentRef: string; quoteId: string; amountFils: number | null; customerId: string | null; reason: string; demo: boolean }) {
+  try {
+    await admin.rpc('fn_accountant_payment_unrecorded', { p_payment_ref: o.paymentRef, p_quote_id: o.quoteId, p_amount_fils: o.amountFils,
+      p_customer_id: o.customerId, p_reason: o.reason, p_demo: o.demo });
+  } catch (_e) { /* the agent_runs line below still names it */ }
+}
+
 // WHAT STRIPE ACTUALLY KEPT (14 Sep 2026, agent: accountant). Since 24 Sep 2026 the customer pays the 3% only and
 // QuotesDone bears Stripe's fee (Cabinet Res. 66/2023 Art. 5(3); _shared/reveal_fee.ts). The
 // real fee depends on the card, and is only known from the balance transaction, so it is read here
@@ -113,6 +136,14 @@ async function recordStripeFee(sk: string, txId: string, pi: string,
     }
     await admin.from('transactions').update({ stripe_fee_fils: bt.fee, stripe_fee_details: bt.fee_details || null })
       .eq('id', txId).is('stripe_fee_fils', null);
+    // WHAT THE ACCOUNTANT RECONCILES AND WHEN THE CLOCK STARTS (13 Nov 2026, ledger 1685). Stripe's own figures, written
+    // once: what the customer was charged (amount_received), the balance transaction's gross and currency, and the time
+    // the charge succeeded. trg_reveal_window counts the refund window from paid_at (public.fn_reveal_refund_window_ends).
+    // Two write-once updates (review item 1): the figures where they are still empty, the paid time where it is.
+    const facts = chargeFacts(j, bt);
+    if (Object.keys(facts).length) await admin.from('transactions').update(facts).eq('id', txId).is('stripe_amount_received_fils', null);
+    const paidAt = chargePaidAt(j, bt);
+    if (paidAt) await admin.from('transactions').update({ paid_at: paidAt, paid_at_source: 'stripe' }).eq('id', txId).is('paid_at', null);
     // ABSORBED, NOT RECOVERED (24 Sep 2026). The card fee plus Stripe's separately billed Invoicing fee is
     // QuotesDone's cost, booked to 6100 by fn_gl_sync_business from stripe_fee_fils. Recorded here, never an incident.
     const { data: sale } = await admin.from('transactions').select('total_charged').eq('id', txId).maybeSingle();
@@ -341,8 +372,12 @@ Deno.serve(observe('stripe_webhook', async (req) => {
           if ('error' in sale && /^quote not found/.test(sale.error)) {
             // Money taken at Stripe but the quote row is gone - previously silent.
             await logRun('error', { quote_id: qid, amount_total: s.amount_total }, 'PAID BUT NOT RECORDED - quote_id not found in quotes: ' + qid);
+            await paidNotRecorded({ paymentRef: payRef, quoteId: qid, amountFils: Number(s.amount_total) || null, customerId: md.customer_id || null,
+              reason: 'the quote this payment names is not in quotes', demo: sigMode === 'test' });
           } else if ('error' in sale) {
             await logRun('error', { quote_id: qid, reveal_fee: fee }, 'PAID BUT NOT RECORDED - ' + sale.error + ' | payment_ref: ' + payRef);
+            await paidNotRecorded({ paymentRef: payRef, quoteId: qid, amountFils: Number(s.amount_total) || null, customerId: md.customer_id || null,
+              reason: sale.error, demo: sigMode === 'test' });
             return new Response(sale.error, { status: 500 });
           } else if (sale.other_payment) {
             await logRun('error', { quote_id: qid, transaction: sale.id, second_payment: payRef, amount: totalCharged },
@@ -367,6 +402,8 @@ Deno.serve(observe('stripe_webhook', async (req) => {
                 // invoice_creation was off for that session, and the sale will read 'missing'.
                 await logRun('error', { quote_id: qid, session: String(s.id || '') }, 'NO INVOICE ON A PAID REVEAL - checkout.session.completed carried no invoice id, so nothing can be filed for the accountant. Check invoice_creation on stripe_checkout.');
               }
+              // Both Stripe figures are in (the charge above, the invoice just captured): the accountant reconciles now.
+              if (tx?.id) await accountantReconciles(String(tx.id), logRun);
               // 3 SEP 2026: the supplier's email used to be queued HERE, which meant a reveal recorded by
               // any other path told the supplier nothing. transactions.revealed_at is still the one door
               // every reveal goes through, but the trigger on it no longer writes the messages itself —
@@ -390,10 +427,13 @@ Deno.serve(observe('stripe_webhook', async (req) => {
             // fn_transaction_attach_invoice is write-once on identity, so this can never rewrite an
             // invoice that is already attached.
             const dupInvoice = String(s.invoice || '');
+            const dupKey = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
             if (dupInvoice && existing?.id && !existing?.doc_path) {
-              const dupKey = sigMode === 'test' ? (await secret('stripe_secret_key_test')) || '' : await secret('stripe_secret_key');
               if (dupKey) await captureInvoice(dupKey, String(existing.id), dupInvoice, logRun);
             }
+            // The sale another path recorded (stripe_confirm won the race): its Stripe figures and paid time are read here,
+            // write-once, so the reconcile and the customer's receipt (which waits for paid_at) are not left to the hour.
+            if (existing?.id && dupKey) { await recordStripeFee(dupKey, String(existing.id), payRef, logRun); await accountantReconciles(String(existing.id), logRun); }
             await logRun('ok', { quote_id: qid, duplicate: true, invoice_repair_attempted: Boolean(dupInvoice && existing?.id && !existing?.doc_path) }, 'duplicate delivery ignored (transaction already exists)');
           }
         } else {
@@ -439,6 +479,11 @@ Deno.serve(observe('stripe_webhook', async (req) => {
     if ((DISPUTE_EVENTS as readonly string[]).includes(String(event.type))) {
       const dp = event.data?.object || {};
       const { data: rec, error: dErr } = await admin.rpc('fn_accountant_dispute_record', { p_dispute: dp, p_livemode: sigMode === 'live' });
+      // Stripe's dispute fee, from the dispute's balance transactions (R3): booked Dr 6100 / Cr 1050 by fn_gl_sync_business.
+      const fees = disputeFees(dp);
+      if (!dErr && fees && dp.id) {
+        try { await admin.from('stripe_dispute').update(fees).eq('id', String(dp.id)); } catch (_e) { /* the next delivery of the dispute writes it */ }
+      }
       await logRun(dErr ? 'error' : 'ok', { type: event.type, dispute: String(dp.id || ''), result: rec ?? null },
         dErr ? 'DISPUTE NOT RECORDED - ' + dErr.message + '. The accountant runtime re-reads open disputes daily, but until then the evidence clock runs unwatched.' : '');
       // 13 Oct 2026: a NEW dispute gets its evidence pack built and saved at Stripe as a draft now (submit=false),
@@ -477,7 +522,11 @@ Deno.serve(observe('stripe_webhook', async (req) => {
         }
         const sale = elementArgs ? await recordRevealSale(admin, elementArgs) : { id: '', created: false, skipped: true } as const;
         if ('skipped' in sale) { /* already recorded under this invoice */ }
-        else if ('error' in sale) await logRun('error', { invoice: String(inv.id), quote_id: md.quote_id }, 'PAID BUT NOT RECORDED - element invoice.paid: ' + sale.error);
+        else if ('error' in sale) {
+          await logRun('error', { invoice: String(inv.id), quote_id: md.quote_id }, 'PAID BUT NOT RECORDED - element invoice.paid: ' + sale.error);
+          await paidNotRecorded({ paymentRef: pi || String(inv.id), quoteId: String(md.quote_id), amountFils: Number(inv.amount_paid) || null,
+            customerId: md.customer_id || null, reason: sale.error, demo: sigMode === 'test' });
+        }
         else if (sale.other_payment) await logRun('error', { invoice: String(inv.id), quote_id: md.quote_id, transaction: sale.id, second_payment: sale.other_payment },
           'SECOND PAYMENT FOR A REVEALED QUOTE - recorded once; the second payment is filed as reveal:second_payment:' + sale.other_payment + ' for a CEO-approved refund');
         // The fee of THIS payment belongs to this sale only when this payment is the sale (it was read for the second too).
@@ -494,6 +543,11 @@ Deno.serve(observe('stripe_webhook', async (req) => {
         },
       }, inv);
       await logRun(res.action === 'other_invoice' ? 'error' : 'ok', { type: event.type, invoice: String(inv?.id || ''), ...res }, res.action === 'other_invoice' ? 'invoice event names a sale already billed under a different invoice - left untouched' : '');
+      // The element flow's figures arrive here (invoice.paid recorded or found the sale and read its charge): reconcile.
+      if (String(event.type) === 'invoice.paid' && inv?.metadata?.quote_id) {
+        const { data: sold } = await admin.from('transactions').select('id').eq('quote_id', String(inv.metadata.quote_id)).maybeSingle();
+        if (sold?.id) await accountantReconciles(String(sold.id), logRun);
+      }
     }
     // ---- REFUNDS (2 Aug 2026, Phase 1.7) ---------------------------------------------------
     // Until now the only Stripe event this function understood was checkout.session.completed, so

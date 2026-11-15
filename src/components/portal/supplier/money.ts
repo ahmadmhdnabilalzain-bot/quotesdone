@@ -41,3 +41,12 @@ export const price = (lang: Lang | string, n: number | null | undefined, currenc
   if (currency === 'AED') return aed(lang, Math.round(v));
   return currency + ' ' + num(Math.round(v));
 };
+
+/** THE SUPPLIER'S OWN QUOTED FIGURE (sales_engineer, 13 Nov 2026). A quotation held for its VAT basis stores no fee base
+ * (quote_amount NULL, stated_price.ts storedPrice), and aed() prints NULL as 0, so the supplier read "AED 0" for his own
+ * quotation. It shows the total as he stated it, and says it waits for his VAT answer. English: suppliers read English only. */
+export function quotedAmount(lang: Lang | string, q: { quote_amount?: number | null; amount_as_stated?: number | null }): string {
+  if (q.quote_amount != null && Number(q.quote_amount) > 0) return aed(lang, q.quote_amount);
+  if (q.amount_as_stated != null && Number(q.amount_as_stated) > 0) return `${aed(lang, q.amount_as_stated)} as stated, waiting for your VAT answer`;
+  return '—';
+}

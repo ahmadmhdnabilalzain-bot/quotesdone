@@ -1,6 +1,9 @@
 // @ts-nocheck
 'use client';
 import { useRef, useState } from 'react';
+// Suppliers are written in English (ruling 1008). One sentence, shown here and returned by supplier_api for a non-AED total.
+const NOT_AED_MSG = 'QuotesDone compares and charges in UAE dirhams and does not convert currencies: please type your total in AED.';
+const CURRENCIES = ['AED', 'USD', 'EUR', 'GBP', 'SAR', 'Other'];
 import { QuoteTemplateBar } from '../QuoteTemplateBar';
 import { srvMsg, srvText } from '../serverCopy';
 import { call, REASONING_TIMEOUT_MS, tooBigToRead, sizeMb } from '../api';
@@ -38,10 +41,15 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     : q0.vat_treatment === 'confirmed_on_portal' && Number(q0.price_ex_vat) > 0
       ? (Number(q0.amount_as_stated) > Number(q0.price_ex_vat) + 0.5 ? 'inclusive' : 'exclusive') : '';
   const [vat, setVat] = useState(vat0);
+  // THE TYPED FORM NAMES ITS CURRENCY (sales_engineer, 13 Nov 2026, workflow audit build item 10). QuotesDone compares and
+  // charges in AED and converts no currency (no FX source exists in the estate), so AED is the default and any other
+  // currency is refused here and by supplier_api submit_quote with one plain sentence: the supplier types his AED total.
+  const [currency, setCurrency] = useState('AED');
+  const notAed = () => { if (currency === 'AED') return false; setMsg(NOT_AED_MSG); return true; };
   const [exVat, setExVat] = useState(vat0 === 'inclusive' && q0.price_ex_vat != null ? String(q0.price_ex_vat) : '');
   const lines0 = initialItems && initialItems.length ? initialItems
     : (Array.isArray(q0.items) && q0.items.length ? q0.items.map((r) => ({ description: r.description || '', qty: r.qty == null ? '' : String(r.qty), unit: r.unit || '', unit_price: r.unit_price == null ? '' : String(r.unit_price) })) : [{ description: '', qty: '', unit: '', unit_price: '' }]);
-  const [amount, setAmount] = useState(vat0 === 'inclusive' && Number(q0.amount_as_stated) > 0 ? String(q0.amount_as_stated) : q0.quote_amount != null ? String(q0.quote_amount) : ''); const [lead, setLead] = useState(q0.lead_time || ''); const [notes, setNotes] = useState(q0.notes || ''); const [scope, setScope] = useState(q0.scope || ''); const [validity, setValidity] = useState(q0.validity || ''); const [payment, setPayment] = useState(q0.payment_terms || ''); const [warranty, setWarranty] = useState(q0.warranty || ''); const [items, setItems] = useState(lines0); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+  const [amount, setAmount] = useState(vat0 === 'inclusive' && Number(q0.amount_as_stated) > 0 ? String(q0.amount_as_stated) : q0.quote_amount != null ? String(q0.quote_amount) : Number(q0.amount_as_stated) > 0 ? String(q0.amount_as_stated) : ''); const [lead, setLead] = useState(q0.lead_time || ''); const [notes, setNotes] = useState(q0.notes || ''); const [scope, setScope] = useState(q0.scope || ''); const [validity, setValidity] = useState(q0.validity || ''); const [payment, setPayment] = useState(q0.payment_terms || ''); const [warranty, setWarranty] = useState(q0.warranty || ''); const [items, setItems] = useState(lines0); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   const [reading, setReading] = useState(false); const [prop, setProp] = useState(null); const [orig, setOrig] = useState(null);
   // THE QUOTATION IS READ BEFORE THE ANSWER (28 Oct 2026, sales_engineer): extract_quote calls quote_extract synchronously,
   // whose model read measured p50 15.5 s / p90 20.7 s / max 24.7 s (ai_cost_log, 30 days, n=29), so the 20 s default cut
@@ -60,6 +68,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
   // says submittable=false — so they reach customers without per-item pricing or brand/model,
   // which is exactly what the comparison depends on. accept_via makes that visible here instead.
   const check = async () => {
+    if (notAed()) return;
     if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
     setChecking(true); setMsg(''); setChk(null);
     // THE CHECK REASONS AT HIGH EFFORT AND IS WAITED FOR (it_engineer, 12 Nov 2026; ledger 1642; final audit H5). Measured on
@@ -67,7 +76,7 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     // "could not submit" for a check still working. It waits REASONING_TIMEOUT_MS (90 s), and after STILL_WORKING_MS the
     // supplier is told it is still checking. prevented by: scripts/checks/a_long_reasoning_call_is_waited_for_with_progress.test.mjs
     const slow = setTimeout(() => setMsg(t(lang, 'check_still')), STILL_WORKING_MS);
-    const j = await call('supplier_api', { ...buildPayload(), dry_run: true }, token, { timeoutMs: REASONING_TIMEOUT_MS }).finally(() => clearTimeout(slow));
+    const j = await call('supplier_api', { ...buildPayload(), currency, dry_run: true }, token, { timeoutMs: REASONING_TIMEOUT_MS }).finally(() => clearTimeout(slow));
     setChecking(false); setMsg('');
     if (j && j.ok) setChk(j.options ? { ...j.options[0], options: j.options } : j); else setMsg(srvMsg(lang, j, t(lang, 'could_not_submit')));
   };
@@ -76,9 +85,10 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
   const inFlight = useRef(false);
   const submit = async () => {
     if (inFlight.current || checking) return;
+    if (notAed()) return;
     if (!(Number(amount) > 0)) { setMsg(t(lang, 'enter_valid_amount')); return; }
     inFlight.current = true; setBusy(true); setMsg('');
-    const j = await call('supplier_api', buildPayload(), token).finally(() => { inFlight.current = false; });
+    const j = await call('supplier_api', { ...buildPayload(), currency }, token).finally(() => { inFlight.current = false; });
     setBusy(false);
     // Accepted, held by the sales engineer (the card then shows exactly what is missing and the two
     // ways out) or split into options: the card is the next thing the supplier needs to see.
@@ -106,6 +116,10 @@ function QuoteForm({ inquiry, token, onDone, lang, initialItems = null, quote = 
     <div className={cn(grp, 'border-t border-border pt-4')}>{ar ? 'السعر والشروط' : 'Price and terms'}</div>
     <div className="flex gap-2.5 flex-wrap -mt-2"><Lbl className="flex-1" text={t(lang, 'total_aed')}><Input className="tabular font-mono text-[15px]" inputMode="decimal" placeholder={t(lang, 'total_aed')} value={amount} onChange={(e) => setAmount(e.target.value)} /></Lbl><Lbl className="flex-1" text={t(lang, 'lead_time')}><Input placeholder={t(lang, 'lead_time')} value={lead} onChange={(e) => setLead(e.target.value)} /></Lbl></div>
     <div className="flex gap-2.5 flex-wrap">
+      <Lbl className="w-[120px]" visible text="Currency">
+        <select aria-label="Currency" className="h-9 w-full rounded-md border border-input bg-background px-2 text-[13px] pointer-coarse:text-[16px] pointer-coarse:min-h-11" value={currency} onChange={(e) => { setCurrency(e.target.value); if (e.target.value !== 'AED') setMsg(NOT_AED_MSG); else setMsg(''); }}>
+          {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select></Lbl>
       <Lbl className="flex-1 min-w-[200px]" visible text={ar ? 'الإجمالي أعلاه' : 'The total above'}>
         <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-[13px] pointer-coarse:text-[16px] pointer-coarse:min-h-11" value={vat} onChange={(e) => setVat(e.target.value)}>
           <option value="">{ar ? 'يُرجى الاختيار: هل يشمل ضريبة القيمة المضافة؟' : 'Choose: does it include VAT?'}</option>

@@ -17,7 +17,7 @@
 // e-mail and phone the reveal paid for are served by supplier_api `projects`, keyed the same way.
 //
 // respond_by is the Supplier Agreement's 5-working-day rule (cl. 11 and 33): transactions.refund_deadline
-// when refund_flow has stamped it, else fn_add_working_days(revealed_at, 5) — the same calendar
+// when trg_reveal_window has stamped it, else public.fn_reveal_window(tx).ends_at (13 Nov 2026: the one source, from the payment) — the same calendar
 // supplier_api `projects` and the nudges use.
 
 // deno-lint-ignore no-explicit-any
@@ -40,7 +40,7 @@ export function gateOf(revealedJobs: number): MailboxGate {
 
 export async function buildSupplierMailbox(admin: Admin, supId: number): Promise<Mailbox> {
   const { data: tx } = await admin.from('transactions')
-    .select('inquiry_id,revealed_at,refund_deadline,supplier_ack_at,inquiries(category,emirate,summary)')
+    .select('id,inquiry_id,revealed_at,refund_deadline,supplier_ack_at,inquiries(category,emirate,summary)')
     .eq('supplier_id', supId).not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(100);
   // One job per inquiry: a second transactions row for the same job is the same conversation.
   const seen = new Set<string>();
@@ -52,7 +52,8 @@ export async function buildSupplierMailbox(admin: Admin, supId: number): Promise
       admin.from('messages').select('body,created_at').eq('inquiry_id', iq).eq('supplier_id', supId).eq('blocked', false).order('created_at', { ascending: false }).limit(1).maybeSingle(),
       admin.from('messages').select('id', { count: 'exact', head: true }).eq('inquiry_id', iq).eq('supplier_id', supId).eq('sender', 'customer').eq('read_by_supplier', false).eq('blocked', false),
       t.refund_deadline ? Promise.resolve(String(t.refund_deadline))
-        : Promise.resolve(admin.rpc('fn_add_working_days', { p_from: t.revealed_at, p_days: 5 })).then((r: Row) => (r?.data as string) || null).catch(() => null),
+        // the one source of the window (public.fn_reveal_window: from the payment, to 23:59 UAE time of the 5th working day)
+        : Promise.resolve(admin.rpc('fn_reveal_window', { p_tx: t.id })).then((r: Row) => ((r?.data as Row)?.ends_at as string) || null).catch(() => null),
     ]);
     const i = (t.inquiries || {}) as Row;
     return { inquiry_id: iq, supplier_id: supId, counterpart: 'customer', subject: i.summary || i.category || null, category: i.category || null, emirate: i.emirate || null,
