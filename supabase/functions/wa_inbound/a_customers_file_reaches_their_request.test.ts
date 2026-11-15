@@ -18,7 +18,7 @@ async function sign(params: Record<string, string>): Promise<string> {
   return btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data)))));
 }
 type World = { docs: Record<string, unknown>[]; inqPatches: Record<string, unknown>[]; intakes: Record<string, unknown>[]; boq: Record<string, unknown>[]; redact: Record<string, unknown>[];
-  gateway: string[]; inquiries: Record<string, unknown>[]; jobs: Record<string, unknown>[] };
+  gateway: string[]; inquiries: Record<string, unknown>[]; jobs: Record<string, unknown>[]; media?: Uint8Array; fileHeld?: boolean };
 function stub(w: World): Stub {
   return {
     rpc: { fn_internal_auth: { ok: true, context: 'test', credential_id: 1, legacy: false }, fn_wa_lead_id: null,
@@ -26,13 +26,17 @@ function stub(w: World): Stub {
       fn_wa_route: { ok: true, needs_model: true, needs_a_person: false, deterministic_intent: null, deterministic_reply: '', fact_pack: { known: false } } },
     rows: { customers: [{ id: 'c0ffee00-0000-4000-8000-000000000001', email: 'zz-demo-customer@example.invalid', full_name: 'ZZ DEMO Customer', phone: '+971500000081' }] },
     secrets: { wa_autoreply_enabled: 'true', twilio_wa_from: 'whatsapp:+14155550100' },
-    twilio: (_req, u) => u.hostname === 'api.twilio.com' && u.pathname.includes('/Media/') ? new Response(DWG, { status: 200, headers: { 'content-type': 'application/octet-stream' } }) : undefined,
+    twilio: (_req, u) => u.hostname === 'api.twilio.com' && u.pathname.includes('/Media/') ? new Response((w.media ?? DWG) as BodyInit, { status: 200, headers: { 'content-type': 'application/octet-stream' } }) : undefined,
     handle: async (req, u) => {
       const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json' } });
       const body = req.method === 'GET' ? null : await req.clone().text();
       if (u.pathname === '/functions/v1/ai_gateway') { w.gateway.push(body!); return J({ ok: true, content: JSON.stringify({ answer: 'ZZ DEMO noted', escalate: false }), model: 'stub/model' }); }
       if (u.pathname === '/functions/v1/drawing_boq') { w.boq.push(JSON.parse(body!)); return J({ ok: true, kind: 'dwg', boq: { boq: [{ item: 'ZZ DEMO door', qty: 4 }, { item: 'ZZ DEMO window', qty: 6 }] } }); }
-      if (u.pathname === '/functions/v1/drawing_redact') { w.redact.push(JSON.parse(body!)); return J({ ok: true, recorded: true, job_id: 'j-1', paths: ['redacted/zz-demo/page-1.png'] }); }
+      if (u.pathname === '/functions/v1/drawing_redact') {
+        const b = JSON.parse(body!); w.redact.push(b);
+        if (b.mode === 'file' && w.fileHeld) return J({ ok: true, recorded: true, job_id: 'j-2', paths: [], status: 'failed', held_reason: 'pdf_no_text_layer', redaction_complete: false });
+        return J({ ok: true, recorded: true, job_id: 'j-' + w.redact.length, paths: [b.mode === 'file' ? 'redacted/zz-demo/page_drawing.' + (w.media ? 'pdf' : 'dxf') : 'redacted/zz-demo/page_p0.jpg'], redaction_complete: true });
+      }
       if (u.pathname === '/rest/v1/rpc/fn_identify_contact') return J({ audience: 'customer', name: 'ZZ DEMO Customer', claimed: true });
       if (u.pathname === '/rest/v1/inquiries' && req.method === 'GET') return J(w.inquiries);
       if (u.pathname === '/rest/v1/inquiries' && req.method === 'PATCH') { w.inqPatches.push(JSON.parse(body!)); return J([{}]); }
@@ -65,7 +69,9 @@ Deno.test('a registered customer\'s DWG on WhatsApp is accepted, read, redacted 
   assertEquals(w.redact[0]?.mode, 'cad', 'and drawn for suppliers with the identity left out');
   const p = w.inqPatches.find((x) => 'drawing_file_path' in x);
   assert(p && /^drawings\/c0ffee00/.test(String(p.drawing_file_path)), 'the request gets it as its drawing: ' + JSON.stringify(w.inqPatches));
-  assertEquals(p!.drawing_redacted_paths, ['redacted/zz-demo/page-1.png']);
+  // The preview decides, and the anonymised DXF rides with it (the portal's order, lib/drawings.redactCad).
+  assertEquals(w.redact.map((x) => x.mode), ['cad', 'file']);
+  assertEquals(p!.drawing_redacted_paths, ['redacted/zz-demo/page_p0.jpg', 'redacted/zz-demo/page_drawing.dxf']);
   const told = w.gateway.join(' ');
   assert(/with their request/.test(told) && /2 take-off lines/.test(told), 'the customer is told what was received and where it went');
   assert(!/no account/.test(told), 'never answered as a number with no account');
@@ -77,4 +83,25 @@ Deno.test('with no open request, an intake is started for the file', async () =>
   assertEquals(w.intakes.length, 1);
   assertEquals([w.docs[0].ref_table, w.docs[0].ref_id], ['inquiry_intake', 'intake-1']);
   assertEquals(w.inqPatches.length, 0, 'a closed request is never given the file');
+});
+
+// ANONYMITY AUDIT B, FINDING I3 (13 Nov 2026, sales_engineer): a PDF drawing sent on WhatsApp went onto the open request
+// with no redaction run at all. It now goes through drawing_redact mode 'file' (the anonymised, verified vector PDF), and
+// a path is attached only from a recorded, complete run; a held one attaches NOTHING.
+const PDF = new TextEncoder().encode('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n');
+Deno.test('a PDF drawing on WhatsApp reaches suppliers only as the anonymised, verified file', async () => {
+  const w = world([{ id: 'inq-zz-2', status: 'open', drawing_file_path: null }]); w.media = PDF;
+  await send(w, 'ZZ DEMO pool drawing');
+  assertEquals(w.redact.map((x) => x.mode), ['file'], 'the PDF is redacted the portal\'s file way: ' + JSON.stringify(w.redact.map((x) => x.mode)));
+  const p = w.inqPatches.find((x) => 'drawing_file_path' in x);
+  assertEquals(p!.drawing_redacted_paths, ['redacted/zz-demo/page_drawing.pdf']);
+});
+Deno.test('a PDF the redaction holds attaches nothing: suppliers see no page of it', async () => {
+  const w = world([{ id: 'inq-zz-3', status: 'open', drawing_file_path: null }]); w.media = PDF; w.fileHeld = true;
+  await send(w, 'ZZ DEMO scanned drawing');
+  const p = w.inqPatches.find((x) => 'drawing_file_path' in x);
+  assertEquals(p!.drawing_redacted_paths, null);
+  // Review item 13 (13 Nov 2026): the reply is true - a held drawing is never described as shown to suppliers.
+  const told = w.gateway.join(' ');
+  assert(/NOT shown to suppliers yet/.test(told) && !/suppliers are shown it only with/.test(told), 'the reply describes a held drawing as shared: ' + told.slice(0, 300));
 });

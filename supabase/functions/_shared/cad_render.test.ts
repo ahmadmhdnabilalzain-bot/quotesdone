@@ -11,16 +11,24 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { renderCadForSupplier, frameKind, MAX_TITLE_SHARE } from './cad_render.ts';
 import { seedTerms } from './anonymise.ts';
+import { cadStrings } from './drawing_string_reading.ts';
+import { stripMtext } from './doc_read/cad.ts';
 import { dwgToDxf } from './doc_read/dwg.ts';
 import { dxfFrom, dxfSection } from './doc_read/cad.fixtures.ts';
 import { CONTENT, CUSTOMER, FILE_NAME, IDENTITY, zzDwgDb, zzDxf, zzDxfBinary, zzGlyphSheetDxf, zzLeakyDxf } from './doc_read/zz_demo_drawings.fixtures.ts';
 
 const seeds = seedTerms({ ...CUSTOMER, extra: [FILE_NAME] });
+// 13 Nov 2026 (design change B): a word only a reader can tell is a party ("DAR", "WSP", "ORBIT", "RASHEED") is marked by
+// the model that reads every string of the file (drawing_string_reading.ts), no longer by a vocabulary. These tests run
+// that model as a FAITHFUL stub: it marks each string carrying a party the reviewer planted. The code floor's own cases
+// (phones, e-mails, licence numbers, company words, places, seeds, title blocks) need no stub and still hold without it.
+const PARTY = /ORB|0RB1T|OR BI T|\bIT\b|OMEGA|\bDAR\b|\bWSP\b|ARUP|HARBOUR|HOLDINGS|RASH|KAR[IE]+M|KAREM|\bALI\b|ZZ|SHEET 4|GROUND FLOOR|\bK A R/i;
+const faithful = (input: Uint8Array | string) => { const t = typeof input === 'string' ? input : new TextDecoder().decode(input); return new Set(cadStrings(t).filter((x) => PARTY.test(stripMtext(x)) || PARTY.test(x))); };
 const lower = (s: string) => s.toLowerCase();
 const leaks = (texts: string[]) => IDENTITY.filter((id) => texts.some((t) => lower(t).includes(lower(id))));
 
 async function render(input: Uint8Array | string) {
-  const g = await renderCadForSupplier(input, { seeds });
+  const g = await renderCadForSupplier(input, { seeds, identity: typeof input === 'string' || !new TextDecoder('latin1').decode(input.subarray(0, 18)).startsWith('AutoCAD Binary') ? faithful(input) : undefined });
   if (!g.ok) throw new Error(`render refused: ${g.reason} ${g.detail}`);
   return g;
 }
@@ -131,7 +139,7 @@ const plan = (): Q => [
   ...tx(2000, 10000, 'KITCHEN'), ...tx(6000, 10000, 'MAJLIS'), ...tx(10000, 10000, 'MAID ROOM'), ...tx(14000, 10000, 'TOILET 2'),
   ...tx(3000, 500, '6000'), ...tx(8000, 500, '4500'),
 ];
-const onPlan = (extra: Q, blocks: Q = []) => renderCadForSupplier(dxfFrom([...dxfSection('HEADER', [[9, '$INSUNITS'], [70, 4]]), ...dxfSection('BLOCKS', blocks), ...dxfSection('ENTITIES', [...plan(), ...extra])]), { seeds, longEdge: 1200 });
+const onPlan = (extra: Q, blocks: Q = []) => { const d = dxfFrom([...dxfSection('HEADER', [[9, '$INSUNITS'], [70, 4]]), ...dxfSection('BLOCKS', blocks), ...dxfSection('ENTITIES', [...plan(), ...extra])]); return renderCadForSupplier(d, { seeds, longEdge: 1200, identity: faithful(d) }); };
 const symBlock = (name: string): Q => [[0, 'BLOCK'], [8, '0'], [2, name], [70, 2], [10, 0], [20, 0], [0, 'LINE'], [8, '0'], [10, 0], [20, 0], [11, 100], [21, 0], [0, 'ENDBLK'], [8, '0']];
 
 Deno.test('second review: a sheet drawn one glyph per TEXT is HELD, never reassembled or drawn', async () => {

@@ -36,6 +36,8 @@ import { scrubIdentity } from '../drawing_boq/boq_from_text.ts';
 import { LICENCE_NO, TRN_BARE, TRN_LABELLED } from './identity_numbers.ts';
 import { CONTACT_PATTERNS } from './identity_contacts.ts';
 import { IBAN, identityShapesIn, LICENCE_SHORT, PHONE_UAE_INTL, PHONE_UAE_NATIONAL, PO_BOX } from './identity_text.ts';
+import { drawingLocation } from './drawing_location.ts';
+import { tradeWord } from './drawing_vocabulary.ts';
 export type Box = { x: number; y: number; w: number; h: number };
 export type SeedSource = { name?: string; company?: string; email?: string; phone?: string; project?: string; address?: string; plot?: string; makani?: string; extra?: string[] };
 
@@ -286,6 +288,9 @@ const TB_STRONG = /\b(?:project\s*(?:no|number|#)|job\s*(?:no|number|#)|drawn\s*
 // Company suffixes that name a firm on their own. "Architect", "Consultants", "Contracting" are left to
 // the strip: outside it they are usually a keynote talking about a trade ("PROVIDED BY ARCHITECT").
 const FIRM = /\b[\w&.' -]{2,40}\s(?:L\.?L\.?C|FZ-?LLC|FZE|FZCO|Inc\.?|Corp\.?|Ltd\.?|Establishment|Est\.)(?=\W|$)|شركة|مؤسسة|ذ\.م\.م/i;
+// A surveyor named on the sheet ("Survey by ZZ Demo Surveyors", B1's scale-bar note, 13 Nov 2026): a firm word, and
+// "by <Name>" after a survey / prepared / issued verb is a party.
+const SURVEY_FIRM = /\bsurveyors?\b|\bsurveying\b|\b(?:survey(?:ed)?|prepared|issued|designed|drawn)\s+by\s+\S/i;
 // What makes a strip text DRAWING content: the name of a view or of the sheet, or its issue status. A
 // discipline word alone does not ("DEMO" is in a project called "ZZ DEMO CRIME LAB", a "FLOOR" can be in
 // a building's name), so only the words that name a drawing are here.
@@ -297,7 +302,9 @@ const around = (rs: TextRun[], pad = M): Box => {
   const x2 = Math.max(...rs.map((r) => r.x + r.w * 1.25)), y2 = Math.max(...rs.map((r) => r.y + r.h));
   return clamp({ x: x1 - pad, y: y1 - pad, w: x2 - x1 + 2 * pad, h: y2 - y1 + 2 * pad });
 };
-const sameLine = (p: PdfPage, r: TextRun) => p.runs.filter((o) => Math.abs((o.y + o.h) - (r.y + r.h)) <= Math.max(o.h, r.h) * 0.6);
+// A tilted run is never on another run's line (13 Nov 2026): the 28-degree watermark's box is 42% of the sheet tall, so
+// every label within 0.6 of THAT height counted it as its neighbour and boxed the watermark's whole bounding box.
+const sameLine = (p: PdfPage, r: TextRun) => p.runs.filter((o) => (o === r || !o.quad) && Math.abs((o.y + o.h) - (r.y + r.h)) <= Math.max(o.h, r.h) * 0.6);
 const covers = (b: Box, r: { x: number; y: number; w: number; h: number }) => r.x >= b.x - 1e-6 && r.y >= b.y - 1e-6 && r.x + r.w <= b.x + b.w + 1e-6 && r.y + r.h <= b.y + b.h + 1e-6;
 const centreIn = (b: Box, r: { x: number; y: number; w: number; h: number }) => r.x + r.w / 2 >= b.x && r.x + r.w / 2 <= b.x + b.w && r.y + r.h / 2 >= b.y && r.y + r.h / 2 <= b.y + b.h;
 const contactHit = (t: string) => GENERIC_ID.some(([, re]) => new RegExp(re.source, re.flags.replace('g', '')).test(t));
@@ -339,12 +346,17 @@ export function titleStrip(p: PdfPage): Box | null {
 }
 
 /** Names printed in the strip that are not drawing content: looked for everywhere else on the set. */
+/** A strip line that is ONLY a label (round 3 of the anonymity fix, 13 Nov 2026). MEASURED on the reviewer's quoting sheet
+ *  q3: "DRAWING TITLE", "DRAWING NO", "DRAWN BY" and "CHECKED BY" became set seeds, and seedHit's spelling-tolerant match
+ *  read "TILE 600x600 PORCELAIN" as "title": a code floor seeded with them would have covered a quoting string. */
+const STRIP_LABEL_ONLY = /^(?:(?:drawing|sheet|project|job|plot|dwg\.?)\s*(?:title|no\.?|number|name|#)|(?:drawn|checked|approved|designed|prepared|reviewed|verified)\s*by|client|owner|employer|consultant|contractor|architect|engineer|developer|date|scale|revision|rev\.?)\s*[:：.]?$/i;
 export function stripSeeds(p: PdfPage, strip: Box): string[] {
   const out = new Set<string>();
   for (const r of p.runs) {
     if (!centreIn(strip, r)) continue;
     const t = r.text.replace(/\s+/g, ' ').trim();
     if (VIEW_WORDS.test(t) || /^\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}$/.test(t) || /^[A-Z]{1,2}-?\d{1,2}\.\d{1,2}[A-Z]?$/.test(t)) continue;
+    if (STRIP_LABEL_ONLY.test(t)) continue;   // a label is not a party (see STRIP_LABEL_ONLY)
     const n = norm(t);
     if (/^[\d ]+$/.test(n)) { if (n.replace(/ /g, '').length >= 6) out.add(n.replace(/ /g, '')); continue; }
     if (n.length >= 8 && n.includes(' ') && !GENERIC.has(n)) out.add(n);
@@ -352,28 +364,114 @@ export function stripSeeds(p: PdfPage, strip: Box): string[] {
   return [...out];
 }
 
-export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box[][]; confidence: 'low' | 'medium'; residual: string[]; strips: (Box | null)[] } {
+// ── 13 Nov 2026 (sales_engineer; anonymity audit B, findings L2, L3, L4) ─────────────────────────────────────────
+// L4 A TILTED RUN IS COVERED ALONG ITS OWN LINE. The box around a run is the axis-aligned box of its glyph quad; for the
+// auditor's 28-degree watermark that was 66% x 42% of the sheet, and it blacked out Section A-A, the site plan and the
+// scale bar. A run with a `quad` (pdf_text_positions: drawn at an angle that is not a quarter turn) is now covered by a
+// STAIRCASE of small boxes along its baseline, each the bounding box of one slice of the quad: the same text is under
+// solid black, and the sheet around it is not.
+const SLICES = 12;
+export function runCover(r: TextRun, pad = 0.01): Box[] {
+  if (!r.quad || r.quad.length !== 4) return [clamp({ x: r.x - pad, y: r.y - pad, w: r.w * 1.25 + 2 * pad, h: r.h + 2 * pad })];
+  const [p0, p1, p2, p3] = r.quad;
+  // The run's estimated width (0.6 em a glyph) is padded by a quarter, as around() pads it.
+  const L = (a: [number, number], b: [number, number], t: number): [number, number] => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  const out: Box[] = [];
+  const p = pad / 2;
+  // Slices about half a text height long: each slice's box overhangs the quad by about its height x sin(angle).
+  const len = Math.hypot(p1[0] - p0[0], p1[1] - p0[1]), ht = Math.hypot(p3[0] - p0[0], p3[1] - p0[1]) || 1e-3;
+  const n = Math.max(SLICES, Math.min(160, Math.ceil((len * 1.25) / (ht * 0.5))));
+  for (let i = 0; i < n; i++) {
+    const t0 = (i / n) * 1.25 - 0.01, t1 = ((i + 1) / n) * 1.25 + 0.01;
+    const pts = [L(p0, p1, t0), L(p0, p1, t1), L(p3, p2, t1), L(p3, p2, t0)];
+    const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
+    // `slice` marks a staircase box: pdf_vector_redact cuts the tilted run itself, never another run that a slice happens to hold.
+    out.push(Object.assign(clamp({ x: Math.min(...xs) - p, y: Math.min(...ys) - p, w: Math.max(...xs) - Math.min(...xs) + 2 * p, h: Math.max(...ys) - Math.min(...ys) + 2 * p }), { slice: true }));
+  }
+  return out;
+}
+/** Is this run under the boxes? A tilted run is covered when points across its whole quad all are. */
+export function runCovered(bx: Box[], r: TextRun): boolean {
+  if (bx.some((b) => covers(b, r))) return true;
+  if (!r.quad || r.quad.length !== 4) return false;
+  const [p0, p1, , p3] = r.quad;
+  for (let i = 0; i <= 20; i++) for (let j = 0; j <= 4; j++) {
+    const t = i / 20, u = j / 4;
+    const x = p0[0] + (p1[0] - p0[0]) * t + (p3[0] - p0[0]) * u, y = p0[1] + (p1[1] - p0[1]) * t + (p3[1] - p0[1]) * u;
+    if (!bx.some((b) => x >= b.x - 1e-6 && x <= b.x + b.w + 1e-6 && y >= b.y - 1e-6 && y <= b.y + b.h + 1e-6)) return false;
+  }
+  return true;
+}
+// L2 A KEY PLAN, A LOCATION PLAN OR A MAP IS IDENTITY BY ITS NATURE. Measured on B1: a key-plan raster of 15% of the sheet
+// ("Villa 15", "Al Barsha 2 - 23B Street", "Umm Suqeim Rd" and a red pin, all pixels, no text layer) reached a supplier
+// readable, because (d) below boxed only logo-sized images. Now the label and the region it names are covered whole:
+// the picture under or beside it, else the ruled frame under it, else a fixed share of the sheet under it.
+export const MAP_LABEL = /\b(?:KEY\s*PLAN|LOCATION\s*(?:PLAN|MAP)|VICINITY\s*(?:PLAN|MAP)|SITE\s*LOCATION(?:\s*(?:PLAN|MAP))?|LOCALITY\s*(?:PLAN|MAP)|LOCATION\s*SKETCH|AREA\s*MAP)\b|\u0645\u062e\u0637\u0637\s*\u0645\u0641\u062a\u0627\u062d\u064a|\u062e\u0631\u064a\u0637\u0629|\u0627\u0644\u0645\u062e\u0637\u0637\s*\u0627\u0644\u0645\u0641\u062a\u0627\u062d\u064a|\u0645\u0648\u0642\u0639\s*\u0627\u0644\u0645\u0634\u0631\u0648\u0639/i;
+/** The region a map label names: the image nearest under (or beside) it, else the ruled frame under it, else null.
+ *  NO FALLBACK REGION (13 Nov 2026, independent review item 9): a fixed 25% x 20% under a "KEY PLAN" label with nothing
+ *  under it blacked out the POOL in the preview and let the vector file cut the pool outline and its levels. With no
+ *  picture or frame found, the label alone is covered and the sheet is HELD (titleBlockBoxes: confidence low). */
+export function mapRegion(p: PdfPage, r: TextRun): Box | null {
+  const near = (p.images || []).filter((im) => im.x < r.x + Math.max(r.w, 0.05) + 0.02 && im.x + im.w > r.x - 0.02 && im.y >= r.y - 0.25 && im.y <= r.y + r.h + 0.08);
+  if (near.length) {
+    const im = near.sort((a, b) => Math.abs(a.y - r.y) - Math.abs(b.y - r.y))[0];
+    return clamp({ x: Math.min(im.x, r.x) - 0.005, y: Math.min(im.y, r.y) - 0.005, w: Math.max(im.x + im.w, r.x + r.w * 1.25) - Math.min(im.x, r.x) + 0.01, h: Math.max(im.y + im.h, r.y + r.h) - Math.min(im.y, r.y) + 0.01 });
+  }
+  const hs = (p.lines || []).filter((l) => l.y2 - l.y1 < 1e-3 && l.y1 >= r.y + r.h - 0.002 && l.y1 <= r.y + r.h + 0.05 && Math.abs(l.x1 - r.x) <= 0.03);
+  if (hs.length) {
+    const top = hs.sort((a, b) => a.y1 - b.y1)[0];
+    const bot = (p.lines || []).filter((l) => l.y2 - l.y1 < 1e-3 && l.y1 > top.y1 + 0.01 && Math.abs(l.x1 - top.x1) <= 0.01 && Math.abs(l.x2 - top.x2) <= 0.01).sort((a, b) => a.y1 - b.y1)[0];
+    if (bot) {
+      const fr = clamp({ x: Math.min(r.x, top.x1) - 0.005, y: r.y - 0.005, w: Math.max(top.x2, r.x + r.w * 1.25) - Math.min(r.x, top.x1) + 0.01, h: bot.y1 - r.y + 0.01 });
+      // A frame that holds the drawing's own measurements is the DRAWING, not a map (review item 9: "KEY PLAN" printed
+      // above the pool plan took the pool's outline as its frame): levels, dimensions or a scale inside it - no region.
+      const measured = p.runs.some((o) => o !== r && centreIn(fr, o) && /\b(?:FFL|SSL|FGL|NGL|TOC|TOW|IL|WL|DEPTH|THK|DIA|SCALE)\b|(?<![\d.])\d{3,5}(?![\d.])\s*(?:MM)?$/i.test(o.text.trim()));
+      if (!measured && fr.w * fr.h <= 0.2) return fr;
+    }
+  }
+  return null;
+}
+/** Words of a phrase printed in the title strip that are not a label, an initial or a word of the trade. */
+const STRIP_WORD_STOP = new Set(['owner', 'client', 'consultant', 'contractor', 'private', 'public', 'checked', 'approved', 'drawn', 'designed',
+  'reviewed', 'prepared', 'title', 'permit', 'number', 'scale', 'date', 'revision', 'sheet', 'signature', 'makani', 'plot', 'issued', 'tender',
+  'licence', 'license', 'fax', 'tel', 'phone', 'mobile', 'email', 'office', 'main', 'consultants', 'contracting']);
+/** An image this large is the drawing itself (a scanned sheet in a PDF wrapper): the page goes the scan route. */
+export const SHEET_IMAGE = 0.5;
+
+export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box[][]; confidence: 'low' | 'medium'; residual: string[]; strips: (Box | null)[]; regions: Box[][]; setSeeds: string[] } {
   let low = !seeds.length || !pages.length;
   const residual: string[] = [];
   const strips = pages.map((p) => (p.runs.length ? titleStrip(p) : null));
   // Seeds from every sheet's strip apply to the whole set: the project name is the same on every sheet.
   const setSeeds = [...new Set(pages.flatMap((p, i) => (strips[i] ? stripSeeds(p, strips[i]!) : [])))];
-  const allSeeds = [...seeds, ...setSeeds].sort((a, b) => b.length - a.length);
+  // L3 (13 Nov 2026): the strip's phrases are ALSO split into their words, as scan_redact does (seedTerms({extra})).
+  // Whole phrases only ("villa 15 al barsha 2 dubai") missed the site plan's "AL BARSHA 2" and the scale-bar note
+  // "(Survey by ZZ Demo Surveyors, Al Barsha 2)" whenever the file name did not happen to say "Barsha". A word that is
+  // a label or a word of the trade ("owner", "swimming") is not a seed: it would black out the drawing's own notes.
+  const setWords = seedTerms({ extra: setSeeds }).filter((w) => !w.includes(' ') && !/^\d+$/.test(w) && !tradeWord(w) && !STRIP_WORD_STOP.has(w));
+  const allSeeds = [...new Set([...seeds, ...setSeeds, ...setWords])].sort((a, b) => b.length - a.length);
   // A label written as its own run ("LOCATION:" with "GREELEY, CO" as the next run, measured on the
   // mechanical cover sheet's design-data table) never matched LABEL_TEST, which wants the value on the
   // same run. Either shape now takes the values to its right.
   const isLabel = (t: string) => LABEL_TEST.test(t) || LABEL_ONLY.test(t);
-  const hitsOutside = (t: string) => residualScan(t, allSeeds).length > 0 || isLabel(t) || FIRM.test(t);
+  // A place below the emirate is identity wherever it stands (ruling 1683): "AL BARSHA 2", "STREET 23B", "VILLA 15".
+  const hitsOutside = (t: string) => residualScan(t, allSeeds).length > 0 || isLabel(t) || FIRM.test(t) || SURVEY_FIRM.test(t) || !!drawingLocation(t);
+  // REGIONS: the boxes whose GRAPHICS are identity too (the strip, a label-cluster block, a revision table, a key plan,
+  // a picture). pdf_vector_redact cuts paths and images only there; a run's own box (a staircase along a watermark)
+  // removes the run, never the linework under it.
+  const regions: Box[][] = pages.map(() => []);
   const boxes = pages.map((p, pi) => {
     // No text at all (a scan): nothing here can see it.
     if (!p.runs.length) { low = true; return []; }
     const bx: Box[] = [];
     const strip = strips[pi];
-    if (strip) bx.push(clamp({ ...strip }));
+    if (strip) { bx.push(clamp({ ...strip })); regions[pi].push(clamp({ ...strip })); }
     const outside = strip ? p.runs.filter((r) => !centreIn(strip, r)) : p.runs;
     // (a) every identifying run outside the strip; a label also takes the values to its right on the same line.
     const hit = outside.filter((r) => hitsOutside(r.text) || (!strip && TB_LABEL.test(r.text) && isEvidence(r.text)));
-    for (const r of hit) bx.push(isLabel(r.text) ? around(sameLine(p, r).filter((o) => o.x >= r.x && o.x <= r.x + r.w + 0.25)) : around([r], 0.01));
+    for (const r of hit) { if (isLabel(r.text)) bx.push(around(sameLine(p, r).filter((o) => o.x >= r.x && o.x <= r.x + r.w + 0.25))); else bx.push(...runCover(r, 0.01)); }
+    // (a2) a key plan, a location plan, a vicinity map: the label and the region it names (L2).
+    for (const r of outside) if (MAP_LABEL.test(r.text) && r.text.replace(/\s+/g, ' ').trim().length <= 40) { const m = mapRegion(p, r); bx.push(clamp({ x: r.x - 0.005, y: r.y - 0.005, w: r.w * 1.25 + 0.01, h: r.h + 0.01 })); if (m) { bx.push(m); regions[pi].push(m); } else { low = true; residual.push(`page ${pi + 1}: a map label with no picture or frame under it`); } }
     // (b) no strip found: the older label cluster (>= 2 title-block labels hard against the right or bottom edge).
     let block = !!strip;
     if (!strip) {
@@ -383,7 +481,8 @@ export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box
         const y1 = Math.min(...zone.map((r) => r.y)), y2 = Math.max(...zone.map((r) => r.y + r.h)), x1 = Math.min(...zone.map((r) => r.x));
         const rows = p.runs.filter((r) => r.y + r.h / 2 >= y1 - M && r.y + r.h / 2 <= y2 + M && r.x + r.w >= x1 - M);
         const b = around(rows, M * 1.5);
-        bx.push(clamp(edge === 'right' ? { ...b, w: 1 - b.x } : { ...b, h: 1 - b.y }));
+        const cb = clamp(edge === 'right' ? { ...b, w: 1 - b.x } : { ...b, h: 1 - b.y });
+        bx.push(cb); regions[pi].push(cb);
         block = true;
       }
     }
@@ -398,26 +497,60 @@ export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box
         grew = false;
         for (const o of col) if (o.y <= y2 + 2.5 * r.h && o.y + o.h >= y1 - 2.5 * r.h && (o.y < y1 || o.y + o.h > y2)) { y1 = Math.min(y1, o.y); y2 = Math.max(y2, o.y + o.h); x1 = Math.min(x1, o.x); x2 = Math.max(x2, o.x + o.w); grew = true; }
       }
-      bx.push(clamp({ x: x1 - M, y: y1 - M, w: x2 - x1 + 2 * M, h: y2 - y1 + 2 * M }));
+      const rb = clamp({ x: x1 - M, y: y1 - M, w: x2 - x1 + 2 * M, h: y2 - y1 + 2 * M });
+      bx.push(rb); regions[pi].push(rb);
       block = true;
     }
-    // (d) logo-sized images outside the strip (a firm's logo or a stamp placed on the drawing).
+    // (d) images outside the strip (a firm's logo, a stamp, a key-plan screenshot placed on the drawing).
+    let sheetImage = false;
     for (const im of p.images || []) {
       // WHOLLY inside the strip is covered by it; one laid across the strip's edge gets its own box (3 Nov 2026: a
       // logo at 0.80..0.90 against a strip from 0.816 kept its left edge in the preview, and its whole self in the PDF).
       if (strip && covers(strip, im)) continue;
-      if (im.w * im.h <= 0.03 && im.px * im.py <= 1_500_000) bx.push(clamp({ x: im.x - 0.005, y: im.y - 0.005, w: im.w + 0.01, h: im.h + 0.01 }));
+      // L2 (13 Nov 2026): EVERY picture outside the strip is covered, not only a logo-sized one: a map screenshot, a
+      // photo of the plot, a pasted location sketch carry their words in pixels no rule here can read. Only a picture
+      // that is the drawing itself (SHEET_IMAGE of the page, a scanned sheet) is not boxed: the page is then held below
+      // and goes the scan route, where OCR reads it.
+      if (im.w * im.h >= SHEET_IMAGE) { sheetImage = true; continue; }
+      const ib = clamp({ x: im.x - 0.005, y: im.y - 0.005, w: im.w + 0.01, h: im.h + 0.01 });
+      bx.push(ib); regions[pi].push(ib);
     }
+    if (sheetImage) low = true;
+    // TEXT NO RULE CAN READ (review item 2): a font this reader cannot decode (Type3, no ToUnicode), or rows of small
+    // filled shapes outside the strip (outlined text, a pixel font, a QR code). Whatever they say, code cannot prove it
+    // is not identity: the sheet is not confident, so no file is cut from it and its preview goes to the models.
+    if (p.undecodable) { low = true; residual.push(`page ${pi + 1}: ${p.undecodable} run(s) in a font with no readable text`); }
+    const shapes = (p.glyphRows || []).filter((g) => !strip || !centreIn(strip, g));
+    // ROWS OF SHAPES IN THE TITLE-BLOCK BAND ARE COVERED, NOT ONLY COUNTED (second review, item 7). MEASURED on the
+    // reviewer's v02 (the whole title block outlined: consultant, client, villa, area, plot, drawing number): 10 rows were
+    // detected here and only lowered the confidence, so with a lazy model they reached the supplier. Rows whose centre
+    // lies in the right band (x >= 0.6) or the bottom band (y >= 0.75), the zones (b) reads a title block in, are boxed
+    // with the band from their extent to the sheet's edge, the way (b) boxes a label cluster. Elsewhere on the sheet a
+    // row of shapes may be the drawing (a hatch, a symbol row), so it only lowers the confidence, as before.
+    const inBand = (g: Box, edge: 'right' | 'bottom') => edge === 'right' ? g.x + g.w / 2 >= 0.6 : g.y + g.h / 2 >= 0.75;
+    let banded = 0;
+    for (const edge of ['right', 'bottom'] as const) {
+      const zone = shapes.filter((g) => inBand(g, edge) && (edge === 'right' || !inBand(g, 'right')));
+      if (zone.length < 2) continue;
+      const b = around(zone.map((g) => ({ text: '', x: g.x, y: g.y, w: g.w / 1.25, h: g.h })), M * 1.5);
+      const cb = clamp(edge === 'right' ? { ...b, w: 1 - b.x } : { ...b, h: 1 - b.y });
+      bx.push(cb); regions[pi].push(cb); banded += zone.length; block = true;
+    }
+    const loose = shapes.filter((g) => !bx.some((b) => covers(b, g)));
+    if (loose.length) { low = true; residual.push(`page ${pi + 1}: ${loose.length} row(s) of text drawn as shapes`); }
     // A sheet with text but no findable title block most likely has it as vectors or in an image.
     if (!block) low = true;
     // RESIDUAL: every run not covered by a box is scanned again, with the strip's seeds.
     for (const r of p.runs) {
-      if (bx.some((b) => covers(b, r))) continue;
+      if (runCovered(bx, r)) continue;
       if (hitsOutside(r.text) || contactHit(r.text)) residual.push(`page ${pi + 1}: ${r.text.slice(0, 60)}`);
     }
     return bx;
   });
-  return { boxes, confidence: low || residual.length ? 'low' : 'medium', residual, strips };
+  // setSeeds: what every sheet's strip names, for a caller that sends one page at a time (review item 14: drawing_redact's
+  // code floor read one page alone, so a name on sheet 2 printed only in sheet 1's strip was the model's alone). The
+  // caller passes them on as seed_terms.
+  return { boxes, confidence: low || residual.length ? 'low' : 'medium', residual, strips, regions, setSeeds: [...setSeeds, ...setWords] };
 }
 
 

@@ -98,7 +98,7 @@ async function publishPages(job: Job, key: string, jpgs: Uint8Array[], detail: R
   try {
     await sql(`insert into public.drawing_redaction_runs (id, customer_id, owner_email, caller_ref, source_path, output_paths, pages_in, pages_out, skipped, status, pages_verified, verify_failed, verify_detail)
       values (${lit(runId)}::uuid, ${job.customer_id ? lit(job.customer_id) + '::uuid' : 'null'}, ${job.owner_email ? lit(job.owner_email) : 'null'}, 'redacted', ${lit(job.source_path)},
-              array[${paths.map(lit).join(',')}]::text[], ${paths.length}, ${paths.length}, 0, 'complete', ${paths.length}, 0, ${lit(JSON.stringify({ ...detail, worker: true }))}::jsonb)`);
+              array[${paths.map(lit).join(',')}]::text[], ${paths.length}, ${paths.length}, 0, 'complete', ${paths.length}, 0, ${lit(JSON.stringify({ ...detail, worker: true, pixel_usd: takeSpent(job) }))}::jsonb)`);
   } catch (e) {
     await removeObjects(key, paths);
     return { ...carry, redaction_complete: false, held_reason: 'run_not_recorded: ' + String((e as Error)?.message || e).slice(0, 120) };
@@ -106,20 +106,73 @@ async function publishPages(job: Job, key: string, jpgs: Uint8Array[], detail: R
   return { ...carry, redaction_complete: true, redaction_job_id: runId, drawing_redacted_paths: paths };
 }
 
+// ── NOTHING THE WORKER DRAWS IS PUBLISHED UNSEEN (13 Nov 2026, sales_engineer; design changes A and B after the
+// independent review of the anonymity fix). Every page the worker draws goes through drawing_redact mode 'gate' (a
+// vision model of another family than any author, asked of the final page, up to twice more after painting what it
+// names) and only the page it returns is published; a CAD file's strings are read by drawing_redact mode
+// 'read_strings' first. No answer = held.
+// The worker calls drawing_redact as customer_api does, with customer_api's per-context credential (fn_internal_auth),
+// read once from app_secrets through the worker's own database access and never printed.
+let credCache: string | null = null;
+async function internalSecret(_key: string): Promise<string> {
+  if (credCache === null) { const r = await sql<{ value: string }>(`select value from public.app_secrets where key = 'cred_fn_customer_api'`); credCache = String(r[0]?.value || ''); }
+  return credCache;
+}
+async function edge(key: string, body: Record<string, unknown>): Promise<any> {
+  try {
+    const r = await fetch(`${BASE}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify(body), signal: AbortSignal.timeout(180_000) });
+    return await r.json().catch(() => null);
+  } catch (_e) { return null; }
+}
+const b64u = (u: Uint8Array) => { let s = ''; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode(...u.subarray(i, i + 0x8000)); return btoa(s); };
+// What the model calls of a job cost (USD), recorded on the next run the job writes so the set's budget (drawing_redact
+// pixelBudgetFor, by source path, 24 h) counts the worker's calls too; and sent with every call as spent_usd, so the
+// calls of one job are counted before that run is written (drawing_redact budgetInFlight).
+const spent = new Map<string, number>();
+const addSpent = (job: Job, usd: unknown) => spent.set(job.id, (spent.get(job.id) ?? 0) + (Number(usd) || 0));
+const takeSpent = (job: Job) => { const u = spent.get(job.id) ?? 0; spent.delete(job.id); return u; };
+/** One drawn page through the edge's pixel gate. `pageMm`: a CAD drawing's sheet size (drawing_pixel_gate.pageSizeFromCad),
+ *  so it is tiled to its own text; a scan goes without and is tiled as the larger of A1 and its pixels. */
+async function gated(job: Job, key: string, jpg: Uint8Array, firstLook = false, pageMm?: { w: number; h: number }): Promise<Uint8Array | { held: string }> {
+  const j = await edge(key, { __secret: await internalSecret(key), mode: 'gate', jpg_b64: b64u(jpg), source_path: job.source_path, spent_usd: spent.get(job.id) ?? 0, ...(pageMm ? { page_mm: pageMm } : {}) });
+  addSpent(job, j?.pixel_usd);
+  if (!j?.ok || typeof j.jpg_b64 !== 'string') return { held: String(j?.held || 'pixels_unverified') };
+  if (firstLook && j.first_look_clean !== true) return { held: 'pixels_found_identity' };
+  return Uint8Array.from(atob(j.jpg_b64), (c) => c.charCodeAt(0));
+}
+async function readStrings(job: Job, key: string, dxf: string): Promise<Set<string> | null> {
+  const j = await edge(key, { __secret: await internalSecret(key), mode: 'read_strings', dxf_text: dxf, source_path: job.source_path, spent_usd: spent.get(job.id) ?? 0 });
+  addSpent(job, j?.strings_usd);
+  return j?.ok && Array.isArray(j.identity) ? new Set(j.identity.map(String)) : null;
+}
+
 async function supplierDrawing(job: Job, bytes: Uint8Array, key: string): Promise<Record<string, unknown>> {
   const seeds = await seedsOf(job);
   // Imported here, not at the top: drawing_redact_page encodes with imagescript, whose Deno build fetches its
   // codec from deno.land when imported, and dwg_samples.check.ts imports this file with no network to it.
   const { cadPage } = await import('../supabase/functions/_shared/drawing_redact_page.ts');
-  const page = await cadPage(bytes, seeds, { maxDwgBytes: Infinity, maxSegments: WORKER_MAX_SEGMENTS });
+  const { asciiDxfOf } = await import('../supabase/functions/_shared/cad_file_redact.ts');
+  const src = await asciiDxfOf(bytes, Infinity);
+  if (!src.ok) return { redaction_complete: false, held_reason: 'cad_' + src.held };
+  const identity = await readStrings(job, key, src.dxf);
+  if (!identity) return { redaction_complete: false, held_reason: 'strings_not_read' };
+  const page = await cadPage(bytes, seeds, { maxDwgBytes: Infinity, maxSegments: WORKER_MAX_SEGMENTS, identity });
   if (!page.ok) return { redaction_complete: false, held_reason: page.skipped };
-  const out = await publishPages(job, key, [page.jpg], { method: 'cad_render', pages: [{ page: 0, ...page.detail }] });
+  const { pageSizeFromCad } = await import('../supabase/functions/_shared/drawing_pixel_gate.ts');
+  const mm = (d: Record<string, unknown>) => { const z = pageSizeFromCad(Number(d.width), Number(d.height), Number(d.text_px_p10)); return { w: z.wMm, h: z.hMm }; };
+  const seen = await gated(job, key, page.jpg, false, mm(page.detail));
+  if (!(seen instanceof Uint8Array)) return { redaction_complete: false, held_reason: seen.held };
+  const out = await publishPages(job, key, [seen], { method: 'cad_render', pages: [{ page: 0, ...page.detail }] });
   if (out.redaction_complete !== true) return out;
   // The anonymised DXF (28 Sep 2026, _shared/drawing_file_redact.ts) rides beside the preview as its own recorded
-  // run, released only when its verifier proves geometry, counts and zero identifiers; otherwise it is left out.
+  // run, released only when its verifier proves geometry, counts and zero identifiers AND a drawing of its own bytes
+  // is clean on the model's first look (13 Nov 2026); otherwise it is left out.
   const { anonymisedDrawingFile } = await import('../supabase/functions/_shared/drawing_file_redact.ts');
-  const f = await anonymisedDrawingFile(bytes, seeds, { maxDwgBytes: Infinity });
+  const f = await anonymisedDrawingFile(bytes, seeds, { maxDwgBytes: Infinity, identity });
   if (!f.ok) { console.log(`job ${job.id}: the anonymised drawing file was held (${f.held})`); return out; }
+  const fp = await cadPage(f.bytes, seeds, { maxDwgBytes: Infinity, maxSegments: WORKER_MAX_SEGMENTS });
+  const fseen = fp.ok ? await gated(job, key, fp.jpg, true, mm(fp.detail)) : { held: 'released_file_not_drawn' };
+  if (!(fseen instanceof Uint8Array)) { console.log(`job ${job.id}: the anonymised drawing file was held (${fseen.held})`); return out; }
   const file = await publishPages(job, key, [f.bytes], { method: 'file', kind: f.kind, ...f.proof }, { ext: f.ext, mime: f.mime });
   if (file.redaction_complete !== true) return out;
   return { ...out, redaction_job_ids: [out.redaction_job_id, file.redaction_job_id], drawing_redacted_paths: [...(out.drawing_redacted_paths as string[]), ...(file.drawing_redacted_paths as string[])] };
@@ -168,7 +221,14 @@ export async function scanDrawing(job: Job, key: string, pages: string[]): Promi
       detail.push({ page: i, ...out.detail });
     }
   } finally { await engine.done(); }
-  return publishPages(job, key, jpgs, { method: 'scan_ocr', pages: detail }, undefined, { boq });
+  // A (13 Nov 2026): every OCR-redacted page is looked at by a model before it is published; all pages or none.
+  const seen: Uint8Array[] = [];
+  for (let i = 0; i < jpgs.length; i++) {
+    const g = await gated(job, key, jpgs[i]);
+    if (!(g instanceof Uint8Array)) return { redaction_complete: false, held_reason: 'scan_' + g.held, pages: detail, boq };
+    seen.push(g);
+  }
+  return publishPages(job, key, seen, { method: 'scan_ocr', pages: detail }, undefined, { boq });
 }
 
 // A JOB THAT FAILS FOR GOOD IS RAISED, NOT ONLY LOGGED (24 Sep 2026, drawings audit finding 4): a customer's

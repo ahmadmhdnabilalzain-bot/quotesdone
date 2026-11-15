@@ -36,9 +36,15 @@
 //    are read by OCR in the portal (ocrClient.ocrSchedules), never here.
 //  * A page stops being read after MAX_OPS operators (its `truncated` flag says so), never silently.
 // ponytail: full-buffer object regex, no xref parsing; fine for a drawing set of tens of MB.
-import { inflate, unescapePdfString, hexToString } from './pdf_text.ts';
+import { unescapePdfString, hexToString } from './pdf_text.ts';
+import { decodePdfStream } from './pdf_filters.ts';
 
-export type TextRun = { text: string; x: number; y: number; w: number; h: number; vertical?: boolean; at?: string }; // at: "<stream>:<op>" (pdf_vector_redact.ts) // display frame, normalised 0..1, top-left origin
+// `unread`: drawn in a font this reader cannot decode (Type3, or no ToUnicode): its text is not what the page shows
+// (round 3, 13 Nov 2026; drawing_code_floor.unreadAreas).
+export type TextRun = { text: string; x: number; y: number; w: number; h: number; vertical?: boolean; at?: string; quad?: [number, number][]; unread?: boolean };
+// `quad` (13 Nov 2026): the glyph quad of a run drawn at an angle that is not a quarter turn, in the display frame
+// (baseline start, baseline end, top end, top start). The box above is its axis-aligned bounding box, which for the
+// auditor's 28-degree watermark was 66% x 42% of the sheet; a redactor that covers the quad instead keeps Section A-A. // at: "<stream>:<op>" (pdf_vector_redact.ts) // display frame, normalised 0..1, top-left origin
 /** An image painted on the page (a logo, a stamp, a scanned schedule): its placement box and pixel size. */
 export type PdfImage = { x: number; y: number; w: number; h: number; px: number; py: number; at?: string; name?: string };
 /** A straight stroked or filled edge, display frame, normalised. Only axis-aligned ones are kept. */
@@ -54,7 +60,7 @@ export type PdfMark = { x: number; y: number; w: number; h: number; n: number; l
 /** A painted path (pdf_vector_redact.ts): where it was drawn, its operator indexes, its exact source text, and its
  *  display-frame box. Collected only by pdfRedactionView; `clip` paths are never removed. */
 export type PdfPath = { at: string; ops: number[]; text: string; x: number; y: number; w: number; h: number; clip: boolean };
-export type PdfPage = { width: number; height: number; rotate: number; runs: TextRun[]; images?: PdfImage[]; lines?: PdfLine[]; layers?: LayerSegs; layerWidths?: LayerSegs; marks?: PdfMark[]; truncated?: boolean; paths?: PdfPath[] };
+export type PdfPage = { width: number; height: number; rotate: number; runs: TextRun[]; undecodable?: number; glyphRows?: { x: number; y: number; w: number; h: number }[]; images?: PdfImage[]; lines?: PdfLine[]; layers?: LayerSegs; layerWidths?: LayerSegs; marks?: PdfMark[]; truncated?: boolean; paths?: PdfPath[] };
 
 const DEC = new TextDecoder('latin1');
 type Obj = { dict: string; stream: Uint8Array | null };
@@ -68,34 +74,51 @@ const MAX_FORM_DEPTH = 12;
  *  exhaust memory; past it the page is marked truncated. */
 export const MAX_LAYER_SEGS = 600_000;
 
-async function decodeStream(dict: string, body: Uint8Array): Promise<Uint8Array | null> {
-  if (/\/FlateDecode\b/.test(dict)) return (await inflate(body, 'deflate')) ?? (await inflate(body, 'deflate-raw'));
-  if (!/\/Filter\b/.test(dict)) return body;
-  return null;
-}
+// The whole filter chain since 13 Nov 2026 (pdf_filters.ts): Flate alone read a reportlab PDF's ASCII85+Flate
+// streams as nothing, and its vector sheet went down the scan route (anonymity audit B, G2; audit A, L5).
+const decodeStream = (dict: string, body: Uint8Array): Promise<Uint8Array | null> => decodePdfStream(dict, body);
 
 async function readObjects(bytes: Uint8Array): Promise<Map<number, Obj>> {
   const raw = DEC.decode(bytes);
   const objs = new Map<number, Obj>();
   const re = /(\d+)\s+\d+\s+obj\b/g;
   let m: RegExpExecArray | null;
+  // /Length IS HONOURED (13 Nov 2026, independent review of the anonymity fix, item 4): a stream used to end at the
+  // first "endstream" after its start, so a note printed as "(SEE SPEC endstream endobj)" ended the content stream
+  // there and the owner line after it was never read, while every viewer drew it. A direct /Length is used when
+  // "endstream" follows it; an indirect one is resolved once every object is read; only a length that does not
+  // check out falls back to the scan.
+  const fixLen: { num: number; ref: number; dataStart: number }[] = [];
+  const endsAt = (at: number) => { let k = at; while (k < raw.length && (raw[k] === '\r' || raw[k] === '\n' || raw[k] === ' ')) k++; return raw.startsWith('endstream', k) ? k : -1; };
+  const trim = (from: number, to: number) => { while (to > from && (bytes[to - 1] === 10 || bytes[to - 1] === 13)) to--; return to; };
   while ((m = re.exec(raw)) !== null) {
     const start = m.index + m[0].length;
-    const end = raw.indexOf('endobj', start);
-    if (end < 0) break;
-    const chunk = raw.slice(start, end);
-    const si = chunk.search(/\bstream\r?\n/);
-    let stream: Uint8Array | null = null; let dict = chunk;
-    if (si >= 0) {
-      dict = chunk.slice(0, si);
-      const dataStart = start + si + chunk.slice(si).match(/^stream\r?\n/)![0].length;
-      let dataEnd = raw.indexOf('endstream', dataStart);
-      if (dataEnd < 0) dataEnd = end;
-      while (dataEnd > dataStart && (bytes[dataEnd - 1] === 10 || bytes[dataEnd - 1] === 13)) dataEnd--;
+    const firstEnd = raw.indexOf('endobj', start);
+    if (firstEnd < 0) break;
+    const sm = /\bstream\r?\n/.exec(raw.slice(start, firstEnd));
+    let stream: Uint8Array | null = null; let dict = raw.slice(start, firstEnd); let end = firstEnd;
+    if (sm) {
+      dict = raw.slice(start, start + sm.index);
+      const dataStart = start + sm.index + sm[0].length;
+      const lm = /\/Length\s+(\d+)(\s+\d+\s+R)?/.exec(dict);
+      let dataEnd = -1;
+      if (lm && !lm[2]) { const n = Number(lm[1]); if (endsAt(dataStart + n) >= 0) dataEnd = dataStart + n; }
+      if (dataEnd < 0) {
+        if (lm && lm[2]) fixLen.push({ num: Number(m[1]), ref: Number(lm[1]), dataStart });
+        const es = raw.indexOf('endstream', dataStart);
+        dataEnd = trim(dataStart, es < 0 ? firstEnd : es);
+      }
       stream = bytes.subarray(dataStart, dataEnd);
+      const after = endsAt(dataEnd);
+      const oe = raw.indexOf('endobj', after >= 0 ? after : dataEnd);
+      end = oe < 0 ? firstEnd : oe;
     }
     objs.set(Number(m[1]), { dict, stream });
     re.lastIndex = end;
+  }
+  for (const f of fixLen) {
+    const n = Number(((objs.get(f.ref)?.dict || '').match(/^\s*(\d+)\s*$/) || [])[1]);
+    if (Number.isFinite(n) && endsAt(f.dataStart + n) >= 0) { const o = objs.get(f.num)!; objs.set(f.num, { ...o, stream: bytes.subarray(f.dataStart, f.dataStart + n) }); }
   }
   // Object streams: "n1 off1 n2 off2 ... " header, then the objects back to back.
   for (const o of [...objs.values()]) {
@@ -164,7 +187,7 @@ function pageTree(objs: Map<number, Obj>): PageRef[] {
 
 // Tokeniser for a content stream: numbers, names, strings, arrays (as raw source), operators.
 // `p` / `e`: the token's start and end offsets in `src` (pdf_vector_redact.ts cuts operators out by them).
-function* tokens(src: string): Generator<{ t: 'num' | 'str' | 'arr' | 'op' | 'name'; v: string; p: number; e: number }> {
+function* tokens(src: string): Generator<{ t: 'num' | 'str' | 'arr' | 'op' | 'name'; v: string; p: number; e: number; d?: string }> {
   let i = 0; const n = src.length;
   while (i < n) {
     const c = src[i];
@@ -186,13 +209,28 @@ function* tokens(src: string): Generator<{ t: 'num' | 'str' | 'arr' | 'op' | 'na
     let j = i; while (j < n && !/[\s\/\[\]()<>{}%]/.test(src[j])) j++;
     if (j === i) { i++; continue; }
     const w = src.slice(i, j); const p0 = i; i = j;
+    // AN INLINE IMAGE IS ONE OPERATOR, ITS BYTES SKIPPED (13 Nov 2026, independent review item 1): BI <dict> ID <data> EI
+    // was tokenised as text, so a "(" in one image's bytes and a ")" in a later one's swallowed the owner line drawn
+    // between them, and an inline-image map was never reported as a picture. It is now yielded as 'BI_IMG' with its
+    // dictionary, spanning to the EI, and the interpreter reports it as an image like any XObject.
+    if (w === 'BI') {
+      const id = /\sID[\s]/.exec(src.slice(j));
+      if (!id) { i = n; continue; }
+      const dict = src.slice(j, j + id.index);
+      const dataStart = j + id.index + id[0].length;
+      const len = Number((dict.match(/\/L(?:ength)?\s+(\d+)/) || [])[1]);
+      let ei = -1;
+      if (Number.isFinite(len) && len > 0) { const k = dataStart + len; const mm = /^\s*EI(?=[\s]|$)/.exec(src.slice(k, k + 8)); if (mm) ei = k + mm[0].length; }
+      if (ei < 0) { const mm = /\sEI(?=[\s]|$)/.exec(src.slice(dataStart)); ei = mm ? dataStart + mm.index + mm[0].length : n; }
+      yield { t: 'op', v: 'BI_IMG', p: p0, e: ei, d: dict }; i = ei; continue;
+    }
     const c0 = w.charCodeAt(0);
     yield { p: p0, e: j, t: (c0 >= 48 && c0 <= 57) || c0 === 45 || c0 === 43 || c0 === 46 ? (/^[+-]?(\d+\.?\d*|\.\d+)$/.test(w) ? 'num' : 'op') : 'op', v: w };
   }
 }
 
 // ── fonts: /ToUnicode CMaps (bfchar / bfrange), code width from the codespace ─────────────────────
-type Font = { two: boolean; map: Map<number, string> | null };
+type Font = { two: boolean; map: Map<number, string> | null; undecodable?: boolean };
 const hexCode = (h: string) => parseInt(h, 16);
 const utf16 = (h: string) => { let s = ''; for (let i = 0; i + 3 < h.length; i += 4) s += String.fromCharCode(parseInt(h.slice(i, i + 4), 16)); return s; };
 function parseCMap(src: string): { two: boolean; map: Map<number, string> } {
@@ -210,7 +248,7 @@ function parseCMap(src: string): { two: boolean; map: Map<number, string> } {
   return { two, map };
 }
 
-type Ctx = { objs: Map<number, Obj>; forms: Map<number, string | null>; fonts: Map<number, Font>; ocg: Map<number, string | null>; ops: number; truncated: boolean; segs: number; layers: boolean; paths?: boolean };
+type Ctx = { objs: Map<number, Obj>; forms: Map<number, string | null>; fonts: Map<number, Font>; ocg: Map<number, string | null>; ops: number; truncated: boolean; segs: number; layers: boolean; paths?: boolean; undecodable?: number };
 async function fontOf(ctx: Ctx, num: number): Promise<Font> {
   const hit = ctx.fonts.get(num); if (hit) return hit;
   const o = ctx.objs.get(num); let f: Font = { two: false, map: null };
@@ -220,6 +258,12 @@ async function fontOf(ctx: Ctx, num: number): Promise<Font> {
     const cm = tu ? ctx.objs.get(Number(tu[1])) : null;
     const dec = cm?.stream ? await decodeStream(cm.dict, cm.stream) : null;
     if (dec) { const p = parseCMap(DEC.decode(dec)); f = { two: two || p.two, map: p.map.size ? p.map : null }; } else f = { two, map: null };
+    // TEXT NO READER CAN DECODE (13 Nov 2026, review item 2): a Type3 font, a composite font with no ToUnicode, or a
+    // simple font whose /Differences rename glyphs (/g1../gN) draws words a viewer shows and this reader cannot read.
+    // The run is still reported (its position is real); the page is marked, and titleBlockBoxes lowers its confidence.
+    const diffs = /\/Differences\s*\[([^\]]*)\]/.exec(o.dict)?.[1] || (/\/Encoding\s+(\d+)\s+\d+\s+R/.exec(o.dict) ? (/\/Differences\s*\[([^\]]*)\]/.exec(ctx.objs.get(Number(/\/Encoding\s+(\d+)/.exec(o.dict)![1]))?.dict || '')?.[1] || '') : '');
+    const oddNames = (diffs.match(/\/[A-Za-z0-9_.]+/g) || []).filter((n) => /^\/(?:g|glyph|cid|c|G|index)\d+$|^\/[A-Za-z]?\d+$/.test(n)).length;
+    if (!f.map && (/\/Subtype\s*\/Type3\b/.test(o.dict) || f.two || oddNames >= 3)) f.undecodable = true;
   }
   ctx.fonts.set(num, f); return f;
 }
@@ -246,8 +290,10 @@ async function formContent(ctx: Ctx, num: number): Promise<string | null> {
 
 /** Interpret one content stream (a page's, or a form's) into runs, images and axis-aligned lines. */
 async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: number, emit: {
-  run: (text: string, m: M, size: number, n: number, at: string) => void; image: (m: M, px: number, py: number, at: string, name: string) => void; seg: (x1: number, y1: number, x2: number, y2: number) => void;
+  run: (text: string, m: M, size: number, n: number, at: string, unread?: boolean) => void; image: (m: M, px: number, py: number, at: string, name: string) => void; seg: (x1: number, y1: number, x2: number, y2: number) => void;
   layerSeg: (layer: string, x1: number, y1: number, x2: number, y2: number, width: number) => void; mark: (layer: string, pts: [number, number][]) => void;
+  fill?: (pts: [number, number][]) => void;
+  patternFill?: (pattern: string, pts: [number, number][]) => void;
   paint?: (at: string, ops: number[], text: string, pts: [number, number][], clip: boolean) => void;
 }, active: Set<number>, layer0 = '', lw0 = 1, sid = 'p'): Promise<void> {
   let ctm: M = ctm0; const stack: [M, number][] = []; let lw = lw0; let opn = 0;
@@ -270,6 +316,7 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
     ctx.ocg.set(num, nm); return nm;
   };
   let path: [number, number][][] = []; let curPath: [number, number][] | null = null;
+  let fillPattern: string | undefined;   // the tiling pattern the current fill colour is (scn /P1), if any
   const T = (x: number, y: number): [number, number] => [ctm[0] * x + ctm[2] * y + ctm[4], ctm[1] * x + ctm[3] * y + ctm[5]];
   // `decoded` is already through decodeText (Tj/'/" and each TJ piece are decoded by the caller).
   // Measured 21 Sep 2026 (sales_engineer, drawing_chain.test.ts): decoding it a SECOND time here
@@ -278,7 +325,8 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
   const show = (decoded: string) => {
     const text = decoded.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, '');
     const n = text.length;
-    if (text.trim()) emit.run(text, mul(tm, ctm), size, n, `${sid}:${opn}`);
+    if (font?.undecodable && text.trim()) ctx.undecodable = (ctx.undecodable || 0) + 1;
+    if (text.trim()) emit.run(text, mul(tm, ctm), size, n, `${sid}:${opn}`, font?.undecodable === true);
     tm = mul([1, 0, 0, 1, n * 0.6 * size, 0], tm);
   };
   const newline = (tx: number, ty: number) => { tlm = mul([1, 0, 0, 1, tx, ty], tlm); tm = tlm; };
@@ -287,6 +335,8 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
       for (let i = 1; i < sp.length; i++) emit.seg(sp[i - 1][0], sp[i - 1][1], sp[i][0], sp[i][1]);
       if (layer && stroked && ctx.layers) { const wd = lw * Math.sqrt(Math.abs(ctm[0] * ctm[3] - ctm[1] * ctm[2])); for (let i = 1; i < sp.length; i++) emit.layerSeg(layer, sp[i - 1][0], sp[i - 1][1], sp[i][0], sp[i][1], wd); }
       if (layer && sp.length >= 5 && sp[0][0] === sp[sp.length - 1][0] && sp[0][1] === sp[sp.length - 1][1]) emit.mark(layer, sp);
+      if (!stroked && emit.fill && sp.length >= 3) emit.fill(sp);
+      if (!stroked && fillPattern && emit.patternFill && sp.length >= 2) emit.patternFill(fillPattern, sp);
     }
     path = []; curPath = null;
   };
@@ -349,10 +399,17 @@ async function interpret(ctx: Ctx, src: string, res: string, ctm0: M, depth: num
       case 'h': if (curPath && curPath.length > 1) curPath.push(curPath[0]); break;
       case 'S': case 's': case 'B': case 'B*': case 'b': case 'b*': flushPath(true); break;
       case 'f': case 'F': case 'f*': flushPath(false); break;
+      case 'scn': case 'SCN': if (tk.v === 'scn') fillPattern = name; break;
+      case 'rg': case 'g': case 'k': case 'sc': fillPattern = undefined; break;
       case 'BDC': { layers.push(layer); const nm = name !== undefined ? ocgName(props.get(name)) : null; if (nm) layer = nm; } break;
       case 'BMC': layers.push(layer); break;
       case 'EMC': layer = layers.length ? layers.pop()! : layer0; break;
       case 'n': path = []; curPath = null; break;
+      case 'BI_IMG': {
+        const d = tk.d || '';
+        const px = Number((d.match(/\/W(?:idth)?\s+(\d+)/) || [])[1] || 0), py = Number((d.match(/\/H(?:eight)?\s+(\d+)/) || [])[1] || 0);
+        emit.image(ctm, px, py, `${sid}:${opn}`, '__inline');
+      } break;
       case 'Do': {
         if (name === undefined) break;
         const num = xobjs.get(name); if (num === undefined) break;
@@ -405,16 +462,20 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
     const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
     const x = Math.min(...xs), y = Math.min(...ys); return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y };
   };
-  ctx.ops = 0; ctx.truncated = false;
-  await interpret(ctx, src, p.res, ID, 0, {
-    run: (text, m, size, n, where) => {
+  ctx.ops = 0; ctx.truncated = false; ctx.undecodable = 0;
+  const fills: { x: number; y: number; w: number; h: number }[] = [];
+  const patternAreas = new Map<string, { x: number; y: number; w: number; h: number }[]>();
+  const emitAll: Parameters<typeof interpret>[5] = {
+    run: (text, m, size, n, where, unread) => {
       const W = n * 0.6 * size;
       const at = (tx: number, ty: number) => D(m[0] * tx + m[2] * ty + m[4], m[1] * tx + m[3] * ty + m[5]);
       const q = [at(0, -0.2 * size), at(W, -0.2 * size), at(W, size), at(0, size)];
       const b = box(q);
       const base = [at(0, 0), at(W || 1, 0)];
       const vertical = (p.rotate % 180 === 0) ? Math.abs(m[1]) > Math.abs(m[0]) : Math.abs(m[0]) > Math.abs(m[1]);
-      runs.push({ text, ...b, ...(vertical ? { vertical: true } : {}), at: where });
+      const ang = Math.atan2(base[1][1] - base[0][1], base[1][0] - base[0][0]) * 180 / Math.PI;
+      const tilted = Math.abs(((ang % 90) + 90) % 90) > 2 && Math.abs(((ang % 90) + 90) % 90) < 88;
+      runs.push({ text, ...b, ...(vertical ? { vertical: true } : {}), at: where, ...(tilted ? { quad: q as [number, number][] } : {}), ...(unread ? { unread: true } : {}) });
     },
     image: (m, px, py, at, name) => { images.push({ ...box([D(m[4], m[5]), D(m[0] + m[4], m[1] + m[5]), D(m[2] + m[4], m[3] + m[5]), D(m[0] + m[2] + m[4], m[1] + m[3] + m[5])]), px, py, at, name }); },
     seg: (ax, ay, bx, by) => {
@@ -433,9 +494,43 @@ async function readPage(ctx: Ctx, p: PageRef): Promise<{ page: PdfPage; content:
       const b = box(pts.map(([x, y]) => D(x, y)));
       if (b.w < 0.02 && b.h < 0.02 && b.w > 0 && b.h > 0) marks.push({ ...b, n: pts.length - 1, layer: l });
     },
-  }, new Set());
+    fill: (pts) => { if (fills.length < 20000) { const b = box(pts.map(([x, y]) => D(x, y))); if (b.w < 0.012 && b.h < 0.012) fills.push(b); } },
+    patternFill: (name, pts) => { const b = box(pts.map(([x, y]) => D(x, y))); (patternAreas.get(name) ?? patternAreas.set(name, []).get(name)!).push(b); },
+  };
+  await interpret(ctx, src, p.res, ID, 0, emitAll, new Set());
+  // TILING PATTERNS (13 Nov 2026, review item 6): a pattern cell is a content stream of its own; one drew "ARJAN PLOT
+  // 6512 VILLA" over a rectangle outside the strip and nothing read it. Each tiling pattern the page's resources name
+  // is read like a form, at its /Matrix (pattern space = the page's default space), so its text is a run like any other.
+  // Its words are reported AT EVERY AREA THE PAGE FILLS WITH IT (the cell tiles that whole area), so the box that covers
+  // them covers what a viewer shows; a pattern the page never fills is read at its own matrix.
+  for (const [pname, num] of namedRefs(ctx.objs, p.res, 'Pattern')) {
+    const o = ctx.objs.get(num);
+    if (!o?.stream || !/\/PatternType\s+1\b/.test(o.dict) || ctx.truncated) continue;
+    if (!ctx.forms.has(num)) { const dd = await decodeStream(o.dict, o.stream); ctx.forms.set(num, dd ? DEC.decode(dd) : null); }
+    const psrc = ctx.forms.get(num); if (!psrc) continue;
+    const mtx = numArr((o.dict.match(/\/Matrix\s*\[([^\]]*)\]/) || [])[1]);
+    const areas = patternAreas.get(pname) ?? [];
+    const before = runs.length;
+    await interpret(ctx, psrc, dictValue(ctx.objs, o.dict, 'Resources') ?? p.res, mtx.length === 6 ? mtx as M : ID, 1, emitAll, new Set([num]), '', 1, 'f' + num);
+    if (areas.length) { const cell = runs.splice(before); for (const r of cell) for (const a of areas) runs.push({ text: r.text, ...a, at: r.at, ...(r.unread ? { unread: true } : {}) }); }
+  }
+  // TEXT DRAWN AS SHAPES (review item 2): a row of small filled shapes - an outlined label, a pixel-font name, a QR code
+  // - is text no reader can read. Rows of 15 or more small fills, abutting along one band, are reported as glyph rows.
+  const glyphRows: { x: number; y: number; w: number; h: number }[] = [];
+  { const fs = fills.filter((f) => f.w > 0 || f.h > 0).sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2) || a.x - b.x);
+    let i = 0;
+    while (i < fs.length) {
+      const cy = fs[i].y + fs[i].h / 2; let j = i; while (j < fs.length && (fs[j].y + fs[j].h / 2) - cy <= 0.004) j++;
+      const band = fs.slice(i, j).sort((a, b) => a.x - b.x);
+      let run = [band[0]];
+      const flush = () => { if (run.length >= 15) { const x0 = Math.min(...run.map((r) => r.x)), y0 = Math.min(...run.map((r) => r.y)); glyphRows.push({ x: x0, y: y0, w: Math.max(...run.map((r) => r.x + r.w)) - x0, h: Math.max(...run.map((r) => r.y + r.h)) - y0 }); } };
+      for (let k = 1; k < band.length; k++) { if (band[k].x - (run[run.length - 1].x + run[run.length - 1].w) <= 0.008) run.push(band[k]); else { flush(); run = [band[k]]; } }
+      if (run.length) flush();
+      i = j;
+    }
+  }
   const hasLayers = Object.keys(layerSegs).length > 0;
-  return { page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs, images, lines, ...(hasLayers ? { layers: layerSegs, layerWidths } : {}), ...(marks.length ? { marks } : {}), ...(ctx.truncated ? { truncated: true } : {}), ...(paths ? { paths } : {}) }, content: src };
+  return { page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs, images, lines, ...(ctx.undecodable ? { undecodable: ctx.undecodable } : {}), ...(glyphRows.length ? { glyphRows } : {}), ...(hasLayers ? { layers: layerSegs, layerWidths } : {}), ...(marks.length ? { marks } : {}), ...(ctx.truncated ? { truncated: true } : {}), ...(paths ? { paths } : {}) }, content: src };
 }
 
 /** Pages in order, each with its text runs AND its decoded content stream (for pdf_measure's path
@@ -505,7 +600,10 @@ export async function pdfPages(bytes: Uint8Array, only?: [number, number], opts:
  * table is only a table when the runs are put back into rows. Nothing is judged here — the statement parser
  * proves every row it reads against the printed running balance.
  */
-export function linesFromRuns(pages: PdfPage[], tolerance = 0.003): string {
+/** The text of each printed line, runs joined left to right. `maxGapEm`: a line is cut where the space between two runs is
+ *  wider than this many text heights (second review, item 6: two COLUMNS of notes on one baseline, 280 pt apart, read as
+ *  one line "FIRE ALARM PANEL FACP-1 ALL WORKS IN THE VILLA ..." and held an ordinary sheet as a firm's name). */
+export function linesFromRuns(pages: PdfPage[], tolerance = 0.003, maxGapEm = Infinity): string {
   return pages.map((p) => {
     const runs = p.runs.filter((r) => !r.vertical).sort((a, b) => a.y - b.y || a.x - b.x);
     const rows: TextRun[][] = [];
@@ -513,7 +611,16 @@ export function linesFromRuns(pages: PdfPage[], tolerance = 0.003): string {
       const last = rows[rows.length - 1];
       if (last && Math.abs(last[0].y - r.y) <= tolerance) last.push(r); else rows.push([r]);
     }
-    return rows.map((row) => row.sort((a, b) => a.x - b.x).map((r) => r.text).join(' ').replace(/\s+/g, ' ').trim())
+    const split = (row: TextRun[]) => {
+      const out: TextRun[][] = [];
+      for (const r of row.sort((a, b) => a.x - b.x)) {
+        const cur = out[out.length - 1], prev = cur?.[cur.length - 1];
+        const gapPt = prev ? (r.x - (prev.x + prev.w)) * (p.width || 1) : 0, emPt = prev ? Math.max(prev.h, r.h) * (p.height || 1) : 0;
+        if (cur && gapPt <= maxGapEm * Math.max(emPt, 1e-6)) cur.push(r); else out.push([r]);
+      }
+      return out;
+    };
+    return rows.flatMap(split).map((row) => row.map((r) => r.text).join(' ').replace(/\s+/g, ' ').trim())
       .filter(Boolean).join('\n');
   }).join('\n');
 }

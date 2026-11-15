@@ -78,7 +78,9 @@ export async function customerFile(cust: { id: string; email: string; name: stri
     await admin.from('documents').insert({ bucket: 'drawing-files', path, file_name: name, kind: kind === 'photo' ? 'whatsapp_photo' : 'whatsapp_drawing',
       ref_table: target.table, ref_id: target.id, mime, status: 'received' });
   } catch (_e) { /* the file is stored; the vault row is best effort, as for a chat attachment (messages_api) */ }
-  if (kind === 'photo') return { ok: true, kind, target: target.ref, note: 'a photo, added to ' + target.ref };
+  // A PHOTO is kept with the request for the customer and our team; it is NOT offered to suppliers (13 Nov 2026, review
+  // item 13: the customer was never told). The reply says so, and how to share a drawing instead.
+  if (kind === 'photo') return { ok: true, kind, target: target.ref, held: true, note: 'a photo, added to ' + target.ref + '; photos are kept with the request and are not sent to suppliers - a drawing can be shared as a PDF or a CAD file (DWG/DXF)' };
 
   // A DRAWING GOES THE PORTAL'S WAY (customer_api analyze_drawing): read for the take-off, redacted before any supplier sees it.
   const secret = await sec('cred_fn_wa_drawings');
@@ -100,14 +102,36 @@ export async function customerFile(cust: { id: string; email: string; name: stri
       queued = !!job?.id;
     }
   } catch (_e) { /* the file is stored and attached; the take-off is read when it can be */ }
-  if (kind === 'cad') {
+  // THE SAME REDACTION AND THE SAME ALL-OR-NOTHING GATE AS THE PORTAL (13 Nov 2026, sales_engineer; anonymity audit B
+  // finding I3). Before, only a CAD file was redacted here (its preview); a PDF wrote nothing it had proved and the
+  // request carried no drawing, and nothing said why. Now every drawing goes through drawing_redact, and a path reaches
+  // drawing_redacted_paths only from a RECORDED run that returned exactly the one page or file asked for:
+  //   * CAD: the preview (mode 'cad') decides; the anonymised DXF (mode 'file') rides with it only when its own verifier
+  //     proved it (customer_api lib/drawings.redactCad, the same order);
+  //   * PDF: the anonymised vector PDF (mode 'file': every identifying run cut, key plans and pictures cut, metadata gone,
+  //     re-read and proved). The portal's JPEG preview needs the browser's raster, which a WhatsApp file does not come
+  //     with; a PDF the file route holds (a scan, a sheet it cannot prove) attaches NOTHING and stays held.
+  // A held drawing is said in the reply (held: true) and suppliers are shown no page of it.
+  const seeds = seedTerms({ name: cust.name, email: cust.email, phone: cust.phone, extra: [name] });
+  // The CAD preview's string reading rides to the file (read once, second review item 8); a set past its model budget is
+  // said in plain words (overBudget).
+  let reading: unknown = null, overBudget = false;
+  const redactOne = async (mode: 'cad' | 'file'): Promise<string | null> => {
     try {
-      const r = await fetch(inDbRegion(SUPA() + '/functions/v1/drawing_redact'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(60_000),
-        body: JSON.stringify({ __secret: secret, mode: 'cad', original_b64: fileB64, seed_terms: seedTerms({ name: cust.name, email: cust.email, phone: cust.phone, extra: [name] }),
-          prefix: 'redacted', owner_customer_id: cust.id, owner_email: cust.email, source_path: path }) });
+      const r = await fetch(inDbRegion(SUPA() + '/functions/v1/drawing_redact'), { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(150_000),
+        body: JSON.stringify({ __secret: secret, mode, original_b64: fileB64, seed_terms: seeds, prefix: 'redacted', owner_customer_id: cust.id, owner_email: cust.email, source_path: path, ...(mode === 'file' && reading ? { strings_reading: reading } : {}) }) });
       const rj = await r.json().catch(() => null);
-      if (rj?.ok && rj.recorded && rj.job_id && Array.isArray(rj.paths) && rj.paths.length === 1) redacted = rj.paths.map(String);
-    } catch (_e) { /* held below */ }
+      if (rj?.strings_reading) reading = rj.strings_reading;
+      if (rj?.customer_message || rj?.held_reason === 'pixels_budget') overBudget = true;
+      return rj?.ok && rj.recorded && rj.job_id && Array.isArray(rj.paths) && rj.paths.length === 1 && rj.redaction_complete !== false ? String(rj.paths[0]) : null;
+    } catch (_e) { return null; }
+  };
+  if (kind === 'cad') {
+    const preview = await redactOne('cad');
+    if (preview) { redacted = [preview]; const file = await redactOne('file'); if (file) redacted.push(file); }
+  } else {
+    const file = await redactOne('file');
+    if (file) redacted = [file];
   }
   // the request's drawing, when it has none: suppliers are shown it only through verified redacted pages (held otherwise)
   if (target.table === 'inquiries' && !target.hasDrawing) {
@@ -118,7 +142,13 @@ export async function customerFile(cust: { id: string; email: string; name: stri
     } catch (_e) { /* the documents row still names it against the request */ }
   }
   return { ok: true, kind, target: target.ref, boqLines, queued, held: !redacted.length,
+           // THE REPLY IS TRUE (13 Nov 2026, review item 13): `held` used to be returned and never read, so a held drawing
+           // was described as shown to suppliers with the details removed. A held drawing is said to be held, with what
+           // to send instead; a scanned PDF (no text to cut) and a PDF whose released copy still needs its page check,
+           // which only the request page can run, are held here.
            note: (kind === 'cad' ? 'a CAD drawing' : 'a drawing') + ', added to ' + target.ref
              + (boqLines ? '; ' + boqLines + ' take-off lines were read from it' : queued ? '; it is large, so it is being read by our drawing reader' : '; its take-off is read next')
-             + '; suppliers are shown it only with the customer\'s details removed' };
+             + (redacted.length ? '; suppliers are shown it only with the customer\'s details removed'
+               : overBudget ? '; it is NOT shown to suppliers yet: there are too many large sheets to check today - the customer can send only the sheets suppliers need, or try again tomorrow'
+               : '; it is NOT shown to suppliers yet, because it could not be cleared of every detail that identifies the customer here - uploading it on the request page (where the customer checks the pages first), or sending the CAD file (DWG/DXF) or a vector PDF instead of a scan, lets it be shared') };
 }

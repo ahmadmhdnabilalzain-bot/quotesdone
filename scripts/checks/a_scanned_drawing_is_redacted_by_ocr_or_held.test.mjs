@@ -35,7 +35,8 @@ test('the worker OCRs with the pinned free engine and publishes only a proved-cl
   assert.ok(worker.includes("if (job.why === 'scan_needs_ocr')"));
   assert.ok(worker.includes("tesseractOcr('eng+ara')"));
   assert.ok(worker.includes("if (!out.ok) return { redaction_complete: false"), 'one held page must publish none');
-  assert.ok(worker.includes("return publishPages(job, key, jpgs, { method: 'scan_ocr'"));
+  // 13 Nov 2026 (design change A): the OCR-redacted pages are looked at by a model (drawing_redact mode 'gate') first.
+  assert.ok(worker.includes("return publishPages(job, key, seen, { method: 'scan_ocr'") && worker.includes('const g = await gated(job, key, jpgs[i]);'));
   // The scanned take-off is extra: if it throws, the BOQ is omitted and the pages still publish (review of #1056).
   assert.match(worker, /try \{ boq = \(await scanTakeoff\(imgs, engine\.ocr\)\)\.boq; \}\s*catch \(e\) \{ boq = null;/, 'a failing scanned take-off can take the redacted pages down with it');
   const pub = worker.slice(worker.indexOf('async function publishPages'), worker.indexOf('async function supplierDrawing'));
@@ -49,12 +50,15 @@ test('the fail-closed rules stand: no title block, a low-confidence title block,
   assert.ok(scan.includes('export const MIN_TITLE_CONF = 70;'));
   assert.ok(scan.includes("if (!strip || tb.confidence !== 'medium') return { ok: false, held: 'no_title_block_found'"));
   assert.ok(scan.includes("if (titleConf < MIN_TITLE_CONF) return { ok: false, held: 'title_block_low_confidence'"));
-  assert.ok(scan.includes('const second = standing(await readAllWays(painted, ocr));'), 'the painted page is no longer re-read every way up');
-  assert.ok(scan.includes("if (left.length) return { ok: false, held: 'identity_survived_reocr'"));
+  // 13 Nov 2026: the re-read is at the page's own magnification, and a vocabulary-only span is removed and read again.
+  assert.ok(scan.includes('let second = standing(await readAllWays(painted, ocr, pk));'), 'the painted page is no longer re-read every way up');
+  assert.ok(scan.includes("if (ident.length) return { ok: false, held: 'identity_survived_reocr'"));
   // Second review of #967: fail closed. Every quarter turn is read, a word outside the vocabulary is boxed, and
   // text-like ink no read word covers holds the page.
   assert.ok(scan.includes('for (const q of [0, 1, 2, 3])'), 'the page is no longer OCRed at all four orientations');
-  assert.ok(scan.includes('const pageWide = standing(all).filter((l) => party(l.text) || notContent(l))'), 'a line that is not drawing content is no longer boxed');
+  // 13 Nov 2026 (anonymity audit B): every standing reading AND every upright reading is judged, and a place below the
+  // emirate is boxed with the parties.
+  assert.ok(scan.includes('const pageWide = [...new Set([...stood, ...first])].filter((l) => party(l.text) || drawingLocation(l.text) || notContent(l))'), 'a line that is not drawing content is no longer boxed');
   assert.ok(scan.includes("if (unread.length) return { ok: false, held: 'unread_ink'"), 'unread text-like ink no longer holds the page');
   assert.match(checks, /--allow-env\s+--allow-net=deno\.land\s+supabase\/functions\/_shared\/scan_redact\.check\.ts/, 'the real-engine check is not run in CI');
 });

@@ -108,5 +108,73 @@ Deno.test('a held anonymised file is said to the customer, in English and Arabic
   const src = functionSource('customer_api');
   const finalAnswer = src.split('\n').find((l) => /return J\(\{ ok: true, boq: boqOut, drawing_file_path: path/.test(l)) || '';
   assert(/\.\.\.fileHeldNote\(fileHeld\)/.test(finalAnswer), "analyze_drawing's final answer does not spread fileHeldNote(fileHeld)");
-  assert(/fileHeld = f\.held/.test(src), 'fileHeld is never set from the anonymised file result');
+  assert(/\) fileHeld = PDF_PREVIEWS_ONLY;/.test(src), 'fileHeld is never set for a vector PDF (round 4: previews only)');
+});
+
+// Round 4 of the drawings fix (15 Nov 2026; third review ANONYMITY F3 DRAWINGS 3, fix 3): every vector PDF was held with
+// "you can upload a clearer copy", which is false - its file waits for verifyReleasedFile, which nothing calls.
+Deno.test('a vector PDF goes to suppliers as its checked previews, the file is not attempted, and the customer is told the truth', async () => {
+  const { fileHeldNote, PDF_PREVIEWS_ONLY, PDF_PREVIEWS_MESSAGE } = await import('./drawing_hold.ts');
+  for (const reason of [PDF_PREVIEWS_ONLY, 'awaiting_pixels']) {
+    const n = fileHeldNote(reason) as { drawing_file_held: string; drawing_file_message: { en: string; ar: string } };
+    assertEquals(n.drawing_file_held, reason);
+    assertEquals(n.drawing_file_message, PDF_PREVIEWS_MESSAGE);
+    assert(!/clearer copy|upload/i.test(n.drawing_file_message.en), 'no false advice to re-upload');
+    assert(!/نسخة أوضح/.test(n.drawing_file_message.ar), 'no false advice to re-upload (Arabic)');
+  }
+  assertEquals(PDF_PREVIEWS_MESSAGE.en, "Suppliers see a cleaned picture of each sheet, with your details removed. The drawing file itself is not sent to them now: when you open a supplier's quotation, you can send that supplier the original file.");
+  assert(/صورة منقّحة لكل لوحة/.test(PDF_PREVIEWS_MESSAGE.ar) && /الملف الأصلي/.test(PDF_PREVIEWS_MESSAGE.ar));
+  // Other holds keep their own words.
+  assert(/upload the drawing again/.test((fileHeldNote('image_straddles_title_block') as { drawing_file_message: { en: string } }).drawing_file_message.en));
+  // analyze_drawing makes no anonymised vector file for a PDF (no mode 'file' call, no pending file left in storage).
+  const docs = Deno.readTextFileSync(new URL('./actions/documents.ts', import.meta.url));
+  assert(!/redactFile\(/.test(docs), 'analyze_drawing still calls redactFile for a PDF');
+  assert(/redMeta\.redaction_complete && path && !isCad && body\.original_b64 && \/\^JVBERi0\/[^\n]*\) fileHeld = PDF_PREVIEWS_ONLY;/.test(docs));
+});
+
+// Round 3 of the anonymity fix (13 Nov 2026): drawing_redact answered customer_message when the pixel gate held a page
+// for the set's budget, and customer_api dropped it, so the customer saw only the general "held" text.
+Deno.test('a set past what the model check may spend is said to the customer in plain words, on the picture, CAD and file routes', async () => {
+  const { budgetNote, fileHeldNote } = await import('./drawing_hold.ts');
+  const { PIXEL_BUDGET_MESSAGE } = await import('../_shared/drawing_pixel_gate.ts');
+  assertEquals(budgetNote(false), {});
+  assertEquals(budgetNote(true), { drawing_held_reason: 'pixels_budget', drawing_held_message: PIXEL_BUDGET_MESSAGE });
+  assertEquals((fileHeldNote('pixels_budget') as { drawing_file_message: unknown }).drawing_file_message, PIXEL_BUDGET_MESSAGE);
+  assert(/Too many large sheets to check today/.test(PIXEL_BUDGET_MESSAGE.en) && PIXEL_BUDGET_MESSAGE.ar.length > 20);
+  const src = functionSource('customer_api');
+  assert(/if \(rj\?\.customer_message\) budgetHit = true;/.test(src), 'the picture route reads customer_message');
+  assert(/const redMeta = \{[^\n]*\.\.\.budgetNote\(budgetHit\)/.test(src), 'the redaction answer does not carry budgetNote(budgetHit)');
+  const finalAnswer = src.split('\n').find((l) => /return J\(\{ ok: true, boq: boqOut, drawing_file_path: path/.test(l)) || '';
+  assert(/\.\.\.redMeta,/.test(finalAnswer), "analyze_drawing's final answer does not spread redMeta");
+  assert(/budgetNote\(cadRed\?\.reason === 'pixels_budget'\)/.test(src), 'the CAD route does not say the budget hold');
+});
+
+// Round 4 (third review fix 2; _shared/drawing_deadline.ts): a page not checked inside the request is held for time, and said.
+Deno.test('a drawing not checked in time is held and the customer is told why and what helps, in English and Arabic', async () => {
+  const { timeNote, TIME_MESSAGE, heldRun } = await import('./drawing_hold.ts');
+  assertEquals(timeNote(0), {});
+  assertEquals(timeNote(2), { drawing_held_reason: 'time', drawing_held_message: TIME_MESSAGE, redaction_pages_held_for_time: 2 });
+  assert(/suppliers do not see this drawing yet/.test(TIME_MESSAGE.en) && /a few at a time/.test(TIME_MESSAGE.en));
+  assert(/لا يرى المورّدون هذا المخطّط/.test(TIME_MESSAGE.ar));
+  const row = heldRun({ customerId: 'c', email: 'e', sourcePath: 'p', meta: { redaction_pages_in: 4, redaction_pages_out: 2, redaction_complete: false }, reason: 'time', detail: { pages_held_for_time: 2, pages_not_started: [3] } });
+  assertEquals(row.verify_detail, { reason: 'time', pages_held_for_time: 2, pages_not_started: [3] });
+  assertEquals(row.skipped, 2);
+});
+
+// Round 5 (fourth review, fixes 2 and 3): a page drawing_redact abandoned at the stop is named on the held row and to the
+// customer; a call the clock cut is held for time, not counted as a dead redactor.
+Deno.test('the sheets not checked in time are named; a call the clock cut is time, not a dead redactor', async () => {
+  const { timeNote, pagesHeldForTime, cutByClock, heldRun, TIME_MESSAGE } = await import('./drawing_hold.ts');
+  assertEquals(pagesHeldForTime({ time_held: 1, time_held_pages: [0] }, 2, 1), [2], 'the third sheet, abandoned');
+  assertEquals(pagesHeldForTime({ time_held: 0 }, 2, 1), []);
+  assertEquals(pagesHeldForTime({ time_held: 2 }, 4, 2), [4, 5], 'an answer that only counts: the whole batch');
+  assertEquals(pagesHeldForTime({ time_held: 1, time_held_pages: [7] }, 4, 2), [4, 5], 'a page number outside the batch is not trusted');
+  assertEquals(timeNote(2, [3, 2]), { drawing_held_reason: 'time', drawing_held_message: TIME_MESSAGE, redaction_pages_held_for_time: 2, redaction_sheets_not_checked: [3, 4] });
+  const timeout = new DOMException('signal timed out', 'TimeoutError');
+  assert(cutByClock(timeout, 100, 125_000) && cutByClock(new DOMException('x', 'AbortError'), 100, 125_000));
+  assert(cutByClock(new Error('reset'), 130_000, 125_000), 'any failure past the stop');
+  assert(!cutByClock(new Error('WORKER_RESOURCE_LIMIT'), 50_000, 125_000), 'a worker death before the stop is still a death');
+  assert(cutByClock(null, 126_000, 125_000) && !cutByClock(null, 90_000, 125_000), 'an {ok:false} answer: time only after the stop');
+  const row = heldRun({ customerId: 'c', email: 'e', sourcePath: 'p', meta: { redaction_pages_in: 4, redaction_pages_out: 2, redaction_complete: false }, reason: 'time', detail: { pages_held_for_time: 2, pages_abandoned: [2], pages_not_started: [3] } });
+  assertEquals(row.verify_detail, { reason: 'time', pages_held_for_time: 2, pages_abandoned: [2], pages_not_started: [3] });
 });
