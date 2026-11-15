@@ -3,8 +3,8 @@
 -- Pure probe, no DDL: it always ends in raise exception 'CHK<<...>>'. LOCAL Postgres 16 ONLY (built from the schema mirror,
 -- whose money tables are empty): it asserts absolute figures on the rows it seeds, so it is never run on production.
 --   psql -1 -f <file>.sql -f <file>_probe.sql      (expect CHK<<PROBE OK ...>>)
--- It cannot reach a person: it queues nothing; the customer is a ZZ DEMO-free probe row at example.invalid ... which the
--- demo rule would exclude, so the real-request customer is 'probe-buyer@probe.test' and is rolled back with the rest.
+-- It cannot reach a person: it runs on a local copy and is rolled back. The real-request customer cannot carry a demo
+-- address (the demo rule would exclude it, which is the point), so it is 'buyer@probe-books.ae', on that local copy only.
 do $probe$
 declare
   v_fi bigint; v_d date := (now() at time zone 'Asia/Dubai')::date; v_m date := date_trunc('month', (now() at time zone 'Asia/Dubai')::date)::date;
@@ -61,14 +61,16 @@ begin
   end if;
 
   -- 4. request economics: one real request; test spend never reaches the cost per request
-  insert into public.customers (email) values ('probe-buyer@probe.test') returning id into v_cust;
+  insert into public.customers (email) values ('buyer@probe-books.ae') returning id into v_cust;
   insert into public.inquiries (customer_id) values (v_cust);
   insert into public.ai_cost_log (fn, model_used, cost_aed, e2e_run_tag) values
     ('inquiry_intake', 'probe', 2.00, null),        -- a real request's model cost
     ('knowledge_exam', 'probe', 5.00, null),        -- certification: test
     ('resilience_ping', 'probe', 3.00, null),       -- clock overhead: fixed
-    ('inquiry_intake', 'probe', 4.00, 'probe-run-1'),  -- a journey
-    ('quote_compare',  'probe', 2.00, 'probe-run-1');
+    ('inquiry_intake', 'probe', 4.00, null),        -- a journey (tagged below: the insert trigger keeps only an open run's tag)
+    ('quote_compare',  'probe', 2.00, null);
+  update public.ai_cost_log set e2e_run_tag = 'proberun1' where model_used = 'probe' and cost_aed in (4.00, 2.00) and fn in ('inquiry_intake', 'quote_compare')
+     and id > (select max(id) - 5 from public.ai_cost_log) and not (fn = 'inquiry_intake' and cost_aed = 2.00);
   insert into public.break_even_basis (id, founder_spent_aed, spent_as_of, target_date, customer_launch, licence_aed, licence_due,
          assumed_quote_aed, assumed_reveal_rate, assumed_requests_per_supplier_month, assumed_invite_to_verified, reason)
   values (1, 0, v_d, v_d + 200, v_d + 30, 1200, v_d + 200, 13000, 0.15, 0.2, 0.03, 'probe')

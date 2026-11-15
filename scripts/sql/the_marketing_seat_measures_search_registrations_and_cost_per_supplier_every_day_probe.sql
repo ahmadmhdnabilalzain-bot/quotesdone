@@ -3,7 +3,8 @@
 -- Pure probe, no DDL: always ends in raise exception 'CHK<<...>>'. LOCAL Postgres 16 ONLY (it asserts on a local copy
 -- built from the mirror, whose tables are empty); never run on production.
 --   psql -1 -f <file>.sql -f <file>_probe.sql      (expect CHK<<PROBE OK ...>>)
--- It cannot reach a person: it sends nothing; its two suppliers are probe rows rolled back with the rest.
+-- It cannot reach a person: it sends nothing, runs on a local copy only, and its two suppliers (non-demo addresses, so the
+-- KPI counts them) are rolled back with the rest.
 do $probe$
 declare v_d date := (now() at time zone 'Asia/Dubai')::date; k jsonb; v_a bigint; v_b bigint; v_fail text := '';
 begin
@@ -15,15 +16,18 @@ begin
   if k #>> '{search,unavailable}' is null or (k->>'suppliers_approved_30d')::int <> 0 then v_fail := v_fail || ' empty:' || left(k::text, 300) || ';'; end if;
 
   -- two registrations: one from the founder's tracked link (approved), one untagged (submitted)
-  insert into public.leads (company_name, email, claimed, claimed_by, registration_submitted_at, approved_at, approval_status)
-  values ('Probe Steel Trading LLC', 'owner@probe-steel.test', true, 'owner@probe-steel.test', now() - interval '3 days', now() - interval '1 day', 'approved')
+  -- approved_at is what the KPI reads; approval_status is left unset so the mandatory-six gate (licence, profile...) is not in play
+  insert into public.leads (company_name, email, claimed, claimed_by, registration_submitted_at, approved_at)
+  values ('Probe Steel Trading LLC', 'owner@probe-steel-books.ae', true, 'owner@probe-steel-books.ae', now() - interval '3 days', now() - interval '1 day')
   returning id into v_a;
   insert into public.leads (company_name, email, claimed, claimed_by, registration_submitted_at)
-  values ('Probe Glass LLC', 'owner@probe-glass.test', true, 'owner@probe-glass.test', now() - interval '2 days') returning id into v_b;
+  values ('Probe Glass LLC', 'owner@probe-glass-books.ae', true, 'owner@probe-glass-books.ae', now() - interval '2 days') returning id into v_b;
   perform public.fn_marketing_first_touch_record(v_a, '{"utm_source":"founder","utm_medium":"whatsapp","utm_campaign":"2026-11","landing_path":"/portal"}'::jsonb);
   -- marketing cost: 300 booked to 6200; the seat's model spend 12.50; a test-tagged marketing call is not counted
   perform public.fn_gl_entry(v_d - 5, 'probe marketing', 'manual', 'probe:mkt', '[{"account":"6200","debit":300},{"account":"1000","credit":300}]'::jsonb, 'probe');
-  insert into public.ai_cost_log (fn, model_used, cost_aed, e2e_run_tag) values ('marketing', 'probe', 12.50, null), ('marketing', 'probe', 99, 'probe-run');
+  insert into public.ai_cost_log (fn, model_used, cost_aed, e2e_run_tag) values ('marketing', 'probe', 12.50, null), ('marketing', 'probe', 99, null);
+  -- tagged after the insert: the insert trigger keeps only an open rehearsal's tag
+  update public.ai_cost_log set e2e_run_tag = 'proberun1' where fn = 'marketing' and model_used = 'probe' and cost_aed = 99;
   -- search: two days of totals, a query in the top 10, a blog page; one sitemap
   insert into public.marketing_search_day (day, dim, key, clicks, impressions, ctr, position) values
     (v_d - 3, 'total', '', 4, 100, 0.04, 14), (v_d - 2, 'total', '', 6, 100, 0.06, 10),

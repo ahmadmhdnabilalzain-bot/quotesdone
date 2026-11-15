@@ -96,7 +96,8 @@ begin
   r := public.fn_accountant_expense_on_founder_word('Probemail', v_d - 4, 30.00, 'AED', null, 'Subscription', 'probe mailbox', v_fi, 'receipt', false);
   update public.expense_entries set doc_path = 'receipts/probe2.pdf', doc_kind = 'vendor_document', source_msg_id = 'probe:msg:held-2'
    where id = (r->>'entry_id')::bigint;
-  if public.fn_expense_post_to_gl((r->>'entry_id')::bigint) is distinct from (r->>'journal_id')::bigint
+  v_j := public.fn_expense_post_to_gl((r->>'entry_id')::bigint);   -- its own statement: the check below must see its write
+  if v_j is distinct from (r->>'journal_id')::bigint
      or not exists (select 1 from public.expense_awaiting_document where expense_entry_id = (r->>'entry_id')::bigint and state = 'attached') then
     v_fail := v_fail || ' same-day-attach;';
   end if;
