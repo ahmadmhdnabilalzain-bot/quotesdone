@@ -110,6 +110,13 @@ const REFUSALS: Record<string, { status: number; en: string; ar: string }> = {
   quote_not_found: { status: 404, en: 'That quote is no longer available.', ar: 'هذا العرض لم يعد متاحًا.' },
   not_your_inquiry: { status: 403, en: 'That request is not on your account.', ar: 'هذا الطلب ليس ضمن طلباتك.' },
   inquiry_closed: { status: 409, en: 'This request is closed, so a supplier cannot be revealed on it.', ar: 'هذا الطلب مغلق، فلا يمكن كشف مورّد فيه.' },
+  // THE REVEAL PERIOD (sales_engineer, 13 Nov 2026; a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql): after a
+  // paid reveal the other quotations stay revealable while they are valid (inquiries.reveal_open_until), then no longer.
+  reveal_period_ended: {
+    status: 409,
+    en: 'The other quotations on this request can no longer be revealed: their validity after your first reveal has ended. The supplier you revealed is still in your Messages.',
+    ar: 'لم يعد بالإمكان كشف العروض الأخرى في هذا الطلب، إذ انتهت مدة صلاحيتها بعد الكشف الأول. ويبقى المورّد الذي كشفتَ عنه في رسائلك.',
+  },
   quote_on_hold: {
     status: 409,
     en: 'This quote is on hold: the supplier has not stated every detail your request needs, so we are asking them for it. It is not ready to reveal yet.',
@@ -159,13 +166,15 @@ export async function canReveal(
   if (!q || !isLiveQuote(q.status)) return refuse('quote_not_found');
   // rfq_no and summary travel with the row because the callers print them (the Stripe line item's
   // reference, the supplier's notice); one read, not three.
-  const { data: inq } = await admin.from('inquiries').select('id,customer_id,status,category,spec,rfq_no,summary').eq('id', q.inquiry_id).maybeSingle();
+  const { data: inq } = await admin.from('inquiries').select('id,customer_id,status,category,spec,rfq_no,summary,reveal_open_until').eq('id', q.inquiry_id).maybeSingle();
   if (!inq || String(inq.customer_id) !== String(opts.customerId)) return refuse('not_your_inquiry');
   // 'revealed' and 'completed' are NOT closed: a customer may reveal a second supplier on a job
   // they already revealed or hired on. Cancelled and closed are the end of the request.
   if (['cancelled', 'closed'].includes(String(inq.status || ''))) return refuse('inquiry_closed');
   const { data: existing } = await admin.from('transactions').select('id').eq('quote_id', qid).maybeSingle();
   const already = !!existing;
+  // a quotation already paid for is always shown again; ANOTHER one only while the request's reveal period runs
+  if (!already && inq.reveal_open_until && Date.parse(String(inq.reveal_open_until)) <= Date.now()) return refuse('reveal_period_ended');
   // Sanctions bite even on an already-paid reveal: instruction 516 is "never shown to a customer".
   if (await sanctionedLead(admin, q.supplier_id)) return refuse('account_sanctioned');
   // A quote already paid for is never re-held: the customer owns that disclosure.

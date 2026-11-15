@@ -82,3 +82,19 @@ test('the portal renders it as an ordered list with aria-current="step"', () => 
   assert.match(fn[1], /aria-current=\{st\.current \? 'step'/);
   assert.match(src, /<RequestTracker inq=\{inq\} quotes=\{quotes\}/);
 });
+
+// AFTER A PAID REVEAL (sales_engineer, 13 Nov 2026): the request stays 'revealed'; reveal_open_until says, in plain words,
+// that it takes no new quotations, what the customer can still open, and that he posts a new request for more.
+test('a paid request says until when another quotation can be revealed, and when it no longer can', () => {
+  const q = [{ revealed: true, revealed_at: '2026-11-13T08:00:00Z' }, {}];
+  const open = trackerOf({ status: 'revealed', reveal_open_until: new Date(Date.now() + 5 * 864e5).toISOString() }, q, 'en');
+  assert.match(open.next, /This request is no longer taking new quotations\. You can still open the other quotations you received until \d{1,2} \w{3,4} \d{4}\. To get more quotations, post a new request\.$/);
+  // the field not served yet: the same line, without a date
+  assert.match(trackerOf({ status: 'revealed' }, q, 'en').next, /You can still open the other quotations you received while they are valid\./);
+  // served as null: no reveal period, nothing said
+  assert.equal(open.closed, false);
+  const ended = trackerOf({ status: 'revealed', reveal_open_until: new Date(Date.now() - 864e5).toISOString() }, q, 'en');
+  assert.match(ended.next, /has ended\. To get more quotations, post a new request\.$/);
+  assert.doesNotMatch(trackerOf({ status: 'revealed', reveal_open_until: null }, q, 'en').next, /no longer taking|has ended/);
+  assert.match(trackerOf({ status: 'revealed', reveal_open_until: new Date(Date.now() + 864e5).toISOString() }, q, 'ar').next, /لم يعد هذا الطلب يستقبل عروضًا جديدة/);
+});

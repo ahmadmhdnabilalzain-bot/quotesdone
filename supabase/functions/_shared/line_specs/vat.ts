@@ -13,7 +13,7 @@
 import { normText } from './model.ts';
 import { findTrn } from '../identity_numbers.ts';
 
-export type VatTreatment = 'exclusive' | 'inclusive' | 'not_registered' | 'not_stated' | 'confirmed_on_portal';
+export type VatTreatment = 'exclusive' | 'inclusive' | 'not_registered' | 'zero_rated' | 'exempt' | 'not_stated' | 'confirmed_on_portal';
 export type VatRead = { treatment: VatTreatment; price_ex_vat: number | null; vat_amount: number | null; vat_rate: number | null; trn: string | null };
 
 const NOT_REG = /not\s*(?:vat\s*)?registered(?:\s*for\s*vat)?|no\s*vat\s*(?:applicable|charged)?\b|vat\s*(?:is\s*)?not\s*applicable|غير مسجل(?:ة)?\s*(?:في|ب|لدى)?\s*(?:ضريبة|الضريبة)|بدون ضريبة|لا توجد ضريبة/i;
@@ -43,6 +43,11 @@ const INCL = new RegExp([
   'شامل\\s*(?:ل)?(?:ال)?ضريبة', 'يشمل\\s*(?:ال)?ضريبة', 'متضمن\\s*(?:ال)?ضريبة',
 ].join('|'), 'i');
 const TAX_WORD = new RegExp(TAX, 'i');
+// ZERO-RATED AND EXEMPT ARE STATED ANSWERS, NOT SILENCE (sales_engineer, 13 Nov 2026, workflow audit build item 10). Both
+// mean no VAT is added to the supplier's price, so the price as written is the ex-VAT figure; they were held as "not stated".
+// "VAT exemption certificate(s)" names a document, not the supply's treatment, so "exempt" must not be followed by "ion".
+const ZERO_RATED = /zero[\s-]*rated|\b0(?:\.0+)?\s*%\s*(?:vat|value\s+added\s+tax)|(?:vat|value\s+added\s+tax)\s*(?:@|at|rate(?:\s+of)?)?\s*0(?:\.0+)?\s*%|نسبة\s*صفر|بنسبة\s*0\s*%|خاضع(?:ة)?\s*لنسبة\s*الصفر/i;
+const EXEMPT = /(?:vat|value\s+added\s+tax)[\s-]*exempt(?!ion)|exempt(?!ion)(?:ed)?\s+(?:from\s+)?(?:vat|value\s+added\s+tax)|exempt\s+supply|معفا?ة?\s*من\s*(?:ال)?ضريبة/i;
 /** 'exclusive' | 'inclusive' | null: the basis the text's clauses state. */
 function clauseBasis(t: string): 'exclusive' | 'inclusive' | null {
   const parts: string[] = [];
@@ -70,6 +75,8 @@ export function readVat(i: { amount: number | null; subtotal?: number | null; va
   if (Number(i.price_ex_vat) > 0) return { treatment: 'confirmed_on_portal', price_ex_vat: r2(Number(i.price_ex_vat)), ...base };
   if (i.stated === 'not_registered' || NOT_REG.test(t)) return { treatment: 'not_registered', price_ex_vat: amt, ...base, vat_amount: null };
   if (sub && vat) return { treatment: 'exclusive', price_ex_vat: sub, ...base };
+  if (i.stated === 'zero_rated' || (i.stated !== 'inclusive' && i.stated !== 'exclusive' && ZERO_RATED.test(t) && !(vat && vat > 0))) return { treatment: 'zero_rated', price_ex_vat: amt, ...base, vat_amount: null };
+  if (i.stated === 'exempt' || (i.stated !== 'inclusive' && i.stated !== 'exclusive' && EXEMPT.test(t) && !(vat && vat > 0))) return { treatment: 'exempt', price_ex_vat: amt, ...base, vat_amount: null };
   const basis = clauseBasis(t);
   if (i.stated === 'exclusive' || (i.stated !== 'inclusive' && basis === 'exclusive')) return { treatment: 'exclusive', price_ex_vat: amt, ...base };
   if (i.stated === 'inclusive' || basis === 'inclusive') {

@@ -42,7 +42,9 @@ import { quoteDocument, type ArTexts, type InquiryRow, type Item, type QuoteRow 
 
 export type QuoteRow = Terms & {
   id: string; inquiry_id: string; supplier_id: number; status: string; option_no: number; submission_id: string | null;
-  quote_amount: number; validity?: string | null; payment_terms?: string | null; vat_treatment?: string | null;
+  // quote_amount is NULL while the VAT basis is held (stated_price.ts storedPrice); amount_as_stated keeps the supplier's total
+  quote_amount: number | null; validity?: string | null; payment_terms?: string | null; vat_treatment?: string | null;
+  price_ex_vat?: number | null; amount_as_stated?: number | null;
 };
 // Customer-bound text never carries a TRN or a licence number (identity_numbers.ts).
 const safe = (v: unknown) => (v == null ? null : maskIdentityNumbers(v).replace(/\s{2,}/g, ' ').trim() || null);
@@ -511,7 +513,14 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   // that excludes VAT, or a supplier not registered, is itself the ex-VAT figure (quote_review corrections.ts, the chat's rule).
   else if (answers.vat) {
     patch.vat_treatment = answers.vat;
-    if (answers.vat !== 'inclusive' && !(Number(q.price_ex_vat) > 0) && Number(q.quote_amount) > 0) patch.price_ex_vat = Number(q.quote_amount);
+    // THE ANSWER RELEASES THE QUOTE (13 Nov 2026): the supplier's own total (amount_as_stated; quote_amount is NULL while held)
+    // is the ex-VAT price for "before VAT" / "not registered", and total / 1.05 for "including 5% VAT" (the UAE standard
+    // rate the question names). The fee base (quote_amount) is written only now that it is known.
+    const total = Number(q.amount_as_stated) > 0 ? Number(q.amount_as_stated) : Number(q.quote_amount);
+    if (!(Number(q.price_ex_vat) > 0) && total > 0) {
+      const ex = answers.vat === 'inclusive' ? Math.round((total / 1.05) * 100) / 100 : total;
+      patch.price_ex_vat = ex; patch.quote_amount = ex;
+    }
   }
   patch.terms_spec = ts;
   const changed = next.filter((l, i) => JSON.stringify(l.spec) !== JSON.stringify(lines[i].spec ?? {})).map((l) => ({ line_no: l.line_no, spec: l.spec, spec_source: l.spec_source as Record<string, string> }));
@@ -604,7 +613,7 @@ export function supabaseRepo(admin: any, opts: { dispatch?: () => Promise<void> 
   // deno-lint-ignore no-explicit-any
   const must = (r: { data?: any; error?: { message: string } | null }) => { if (r.error) throw new Error(r.error.message); return r; };
   return {
-    async quote(id) { const { data } = must(await admin.from('quotes').select('id,inquiry_id,supplier_id,status,option_no,submission_id,quote_amount,price_ex_vat,vat_treatment,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,notes,terms_spec').eq('id', id).maybeSingle()); return data ?? null; },
+    async quote(id) { const { data } = must(await admin.from('quotes').select('id,inquiry_id,supplier_id,status,option_no,submission_id,quote_amount,price_ex_vat,amount_as_stated,vat_treatment,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,notes,terms_spec').eq('id', id).maybeSingle()); return data ?? null; },
     async lines(quoteId) { const { data } = must(await admin.from('quote_items').select('line_no,description,brand,model,specification,qty,unit,unit_price,labour,install,amount,notes,spec,spec_source').eq('quote_id', quoteId).order('line_no', { ascending: true })); return (data ?? []).map((r: Line) => ({ ...r, description: String(r.description ?? '') })); },
     async saveLineSpecs(quoteId, rows) { for (const r of rows) must(await admin.from('quote_items').update({ spec: r.spec, spec_source: r.spec_source }).eq('quote_id', quoteId).eq('line_no', r.line_no)); },
     async updateQuote(id, patch) { must(await admin.from('quotes').update(patch).eq('id', id)); },

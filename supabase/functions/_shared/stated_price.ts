@@ -106,7 +106,7 @@ export function statedPrice(i: {
 /** A figure confirmed on the portal keeps the treatment the supplier stated (inclusive / exclusive / not registered):
  * the customer is shown the supplier's VAT as stated (ruling 1207); the price is the same either way. */
 function keepStated(v: VatRead, stated: string | null | undefined): VatRead {
-  return v.treatment === 'confirmed_on_portal' && ['exclusive', 'inclusive', 'not_registered'].includes(String(stated)) ? { ...v, treatment: stated as VatTreatment } : v;
+  return v.treatment === 'confirmed_on_portal' && ['exclusive', 'inclusive', 'not_registered', 'zero_rated', 'exempt'].includes(String(stated)) ? { ...v, treatment: stated as VatTreatment } : v;
 }
 
 // ── What the customer reads ──────────────────────────────────────────────────────────────────────
@@ -120,7 +120,13 @@ const money = (v: unknown, lang: L) => aed(v, lang, !Number.isInteger(Number(v))
 /** Ruling 1208: the figure our fee is taken on — after the stated discount, excluding VAT. It is quotes.quote_amount,
  * the column every charge path (revealCharge in customer_api, stripe_checkout, element_pay) reads, so what a page
  * says the fee is taken on is the figure the card is charged on. storedPrice() writes it from the ex-VAT price. */
-export function feeBaseOf(q: PriceRow): number | null { return pos(q.quote_amount) ?? pos(q.price_ex_vat); }
+export function feeBaseOf(q: PriceRow): number | null {
+  // A HELD VAT BASIS HAS NO FEE BASE (sales_engineer, 13 Nov 2026, workflow audit build item 10). A quotation whose VAT basis
+  // is not settled (not stated, or "includes VAT" with no ex-VAT figure) used to carry its VAT-inclusive total in quote_amount,
+  // so every page that showed "our fee" showed 3% of a gross figure. Until the supplier's answer settles it, no fee is shown.
+  if (!pos(q.price_ex_vat) && (q.vat_treatment === 'not_stated' || q.vat_treatment === 'inclusive')) return null;
+  return pos(q.quote_amount) ?? pos(q.price_ex_vat);
+}
 
 /** "AED 2,000, after discount AED 1,700" — or the one price when no discount was stated. Ex-VAT figures. */
 export function priceStated(q: PriceRow, lang: L): string {
@@ -135,6 +141,8 @@ export function vatStated(q: PriceRow, lang: L): string {
   const t = String(q.vat_treatment || 'not_stated') as VatTreatment; const vat = pos(q.vat_amount); const fin = feeBaseOf(q);
   const ar = lang === 'ar';
   if (t === 'not_registered') return ar ? 'يذكر المورّد أنه غير مسجّل في ضريبة القيمة المضافة، فلا تُضاف ضريبة على سعره.' : 'The supplier states it is not VAT-registered, so no VAT is added to its price.';
+  if (t === 'zero_rated') return ar ? 'يذكر المورّد أن توريده خاضع لنسبة الصفر من ضريبة القيمة المضافة، فلا تُضاف ضريبة على سعره.' : 'The supplier states its supply is zero-rated for VAT (0%), so no VAT is added to its price.';
+  if (t === 'exempt') return ar ? 'يذكر المورّد أن توريده معفى من ضريبة القيمة المضافة، فلا تُضاف ضريبة على سعره.' : 'The supplier states its supply is exempt from VAT, so no VAT is added to its price.';
   if (t === 'inclusive') return ar ? `يذكر المورّد أن إجماليه شامل ضريبة القيمة المضافة${vat ? ` (${money(vat, lang)})` : ''}${pos(q.amount_as_stated) ? `، والإجمالي كما ذكره ${money(q.amount_as_stated, lang)}` : ''}.` : `The supplier states its total includes VAT${vat ? ` (${money(vat, lang)})` : ''}${pos(q.amount_as_stated) ? `; total as stated ${money(q.amount_as_stated, lang)}` : ''}.`;
   if (t === 'exclusive' || t === 'confirmed_on_portal') {
     if (vat && fin) return ar ? `يضيف المورّد ضريبة القيمة المضافة ${money(vat, lang)}، فيصبح الإجمالي شاملًا الضريبة ${money(r2(fin + vat), lang)} كما ذكره.` : `The supplier adds VAT of ${money(vat, lang)}: total including VAT ${money(r2(fin + vat), lang)}, as stated.`;
@@ -166,6 +174,8 @@ export const _figure = figure;
 export function vatShort(q: PriceRow, lang: L): string {
   const t = String(q.vat_treatment || 'not_stated'); const vat = pos(q.vat_amount); const fin = feeBaseOf(q); const ar = lang === 'ar';
   if (t === 'not_registered') return ar ? 'غير مسجّل في الضريبة' : 'Not VAT-registered';
+  if (t === 'zero_rated') return ar ? 'خاضع لنسبة الصفر' : 'Zero-rated (0% VAT)';
+  if (t === 'exempt') return ar ? 'معفى من الضريبة' : 'VAT-exempt';
   if (t === 'inclusive') return ar ? `شامل الضريبة${vat ? ` (${money(vat, lang)})` : ''}` : `VAT included${vat ? ` (${money(vat, lang)})` : ''}`;
   if (t === 'exclusive' || t === 'confirmed_on_portal') {
     if (vat && fin) return ar ? `+ ضريبة ${money(vat, lang)} (${money(r2(fin + vat), lang)} شاملًا الضريبة)` : `+ VAT ${money(vat, lang)} (${money(r2(fin + vat), lang)} with VAT)`;
@@ -174,12 +184,15 @@ export function vatShort(q: PriceRow, lang: L): string {
   return ar ? 'غير مذكورة' : 'Not stated';
 }
 
-/** The quotes-row price columns for a stated price. quote_amount — what revealCharge reads — is the fee base
- * (ruling 1208); only when no ex-VAT figure is known (the quote is then held for its VAT basis) does it fall back to
- * the final total as stated, which is after the discount, never the gross. */
+/** The quotes-row price columns for a stated price. quote_amount — what revealCharge reads, and what the generated
+ * app_fee / customer_price are computed from — is the fee base (ruling 1208) and NOTHING ELSE: when no ex-VAT figure is
+ * known (the quote is then held for its VAT basis) it is NULL, and the supplier's own total stays in amount_as_stated until
+ * his answer settles the basis (line_specs/workflow.ts). It used to fall back to that total, so app_fee was 3% of a
+ * VAT-inclusive figure (sales_engineer, 13 Nov 2026; needs quotes.quote_amount nullable:
+ * scripts/sql/a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql section 8). */
 export function storedPrice(sp: StatedPrice, statedAmount: number | null) {
   return {
-    quote_amount: sp.fee_base ?? sp.total_as_stated ?? statedAmount, price_ex_vat: sp.price_ex_vat, vat_treatment: sp.treatment, vat_amount: sp.vat_amount,
+    quote_amount: sp.fee_base, price_ex_vat: sp.price_ex_vat, vat_treatment: sp.treatment, vat_amount: sp.vat_amount,
     amount_as_stated: sp.total_as_stated ?? statedAmount, gross_amount: sp.gross_amount, discount_amount: sp.discount_amount,
   };
 }
