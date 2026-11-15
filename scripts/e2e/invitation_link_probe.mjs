@@ -4,8 +4,9 @@
 // The registration certification (supplier_registration_certification.mjs) starts INSIDE the page. Nothing proved the link
 // itself: what WhatsApp's preview card shows (it reads the Open Graph tags of the raw HTML, no script runs), that every way a
 // person may type or forward the link lands on the same page (http, www, .ae, a trailing slash), that the card's picture is
-// small enough to be shown, and that the two buttons of the public supplier page lead to the sign-up door. This does that with
-// plain GETs: no sign-up, no script, no write, no model call, USD 0. Safe to run against production at any time.
+// small enough to be shown, that the two buttons of the public supplier page lead to the sign-up door, and that every edge
+// function the registration calls lets a browser on each of the four site origins send the headers the page sends. This does that
+// with plain GETs and preflight OPTIONS: no sign-up, no script, no write, no model call, USD 0. Safe against production any time.
 //
 //   node scripts/e2e/invitation_link_probe.mjs              # quotesdone.com and quotesdone.ae, prints PASS/FAIL per check
 //   node scripts/e2e/invitation_link_probe.mjs --json out.json
@@ -108,6 +109,29 @@ export function entryChecks(hosts = HOSTS) {
   return out;
 }
 
+// THE DOORS THE REGISTRATION CALLS, AS A BROWSER MUST BE ALLOWED TO CALL THEM (13 Nov 2026 lesson,
+// .claude/memory/an-intercepted-browser-cannot-prove-what-a-real-browser-allows.md: a preflight is proven by what it ALLOWS, for
+// every domain the site is served on, never by its status). The headers are the ones the page sends today: supplier/api.ts call()
+// sends Authorization and Content-Type; PrivacyControls.tsx sends apikey to my_data_pdf as well. The static twin, which reads the
+// page's own source, is scripts/checks/every_header_the_site_sends_a_function_is_allowed_by_its_preflight.test.mjs.
+export const FUNCTIONS_URL = 'https://htdblwldjkcgjvmqkbeh.supabase.co/functions/v1/';
+export const PREFLIGHTS = [
+  ...['login_otp', 'claim_lookup', 'supplier_api', 'kyc', 'supplier_portal'].map((fn) => ({ fn, headers: ['authorization', 'content-type'] })),
+  { fn: 'my_data_pdf', headers: ['apikey', 'authorization', 'content-type'] },
+];
+export const SITE_ORIGINS = ['https://quotesdone.com', 'https://www.quotesdone.com', 'https://quotesdone.ae', 'https://www.quotesdone.ae'];
+
+/** Problems with a preflight answer for `origin` asking to send `headers`; [] when a browser would send the request. */
+export function judgePreflight({ status, allowOrigin, allowHeaders }, origin, headers) {
+  const bad = [];
+  if (!(Number(status) >= 200 && Number(status) < 300)) bad.push(`preflight answered ${status}`);
+  if (allowOrigin !== origin && allowOrigin !== '*') bad.push(`origin ${origin} not echoed (got ${allowOrigin || 'none'})`);
+  const allowed = new Set(String(allowHeaders || '').toLowerCase().split(',').map((h) => h.trim()).filter(Boolean));
+  const missing = headers.filter((h) => !allowed.has(h.toLowerCase()));
+  if (missing.length && !allowed.has('*')) bad.push(`not allowed: ${missing.join(', ')}`);
+  return bad;
+}
+
 async function get(url, ua) {
   const r = await fetch(url, { redirect: 'manual', headers: { 'user-agent': ua || WHATSAPP_UA }, signal: AbortSignal.timeout(20000) });
   const buf = Buffer.from(await r.arrayBuffer());
@@ -136,6 +160,16 @@ export async function runProbe(hosts = HOSTS) {
     try { const r = await get(url); const size = imageSize(r.buf) || {}; meta = { bytes: r.buf.length, ...size }; bad = judgeOgImage({ status: r.status, contentType: r.contentType, bytes: r.buf.length, ...size }); }
     catch (e) { bad = ['request failed: ' + String(e?.message || e)]; }
     results.push({ id: 'og_image', url, ok: !bad.length, bad, ...meta });
+  }
+  for (const { fn, headers } of PREFLIGHTS) for (const origin of SITE_ORIGINS) {
+    let bad = [];
+    try {
+      const r = await fetch(FUNCTIONS_URL + fn, { method: 'OPTIONS', signal: AbortSignal.timeout(20000),
+        headers: { Origin: origin, 'Access-Control-Request-Method': 'POST', 'Access-Control-Request-Headers': headers.join(',') } });
+      await r.arrayBuffer();
+      bad = judgePreflight({ status: r.status, allowOrigin: r.headers.get('access-control-allow-origin'), allowHeaders: r.headers.get('access-control-allow-headers') }, origin, headers);
+    } catch (e) { bad = ['request failed: ' + String(e?.message || e)]; }
+    results.push({ id: `preflight:${fn}`, url: `${origin} -> ${fn}`, ok: !bad.length, bad });
   }
   return results;
 }

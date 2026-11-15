@@ -2,7 +2,7 @@
 // judge weakens so far that a broken preview card, a redirect to the wrong page or an oversized card picture would pass.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { entryChecks, headFacts, imageSize, judgeCard, judgeOgImage, judgeRedirect, JOIN_PATH, OG_IMAGE_MAX_BYTES } from './invitation_link_probe.mjs';
+import { entryChecks, headFacts, imageSize, judgeCard, judgeOgImage, judgePreflight, judgeRedirect, JOIN_PATH, OG_IMAGE_MAX_BYTES, PREFLIGHTS, SITE_ORIGINS } from './invitation_link_probe.mjs';
 
 // The head of /portal?join=1 as production served it on 15 Nov 2026 (plain GET, WhatsApp user agent), shortened.
 const PORTAL_HEAD = `<!DOCTYPE html><html data-dpl-id="x" lang="en" dir="ltr"><head><title>Supplier portal — QuotesDone</title>
@@ -60,4 +60,16 @@ test('the list holds every way the link reaches a person: both domains, http, ww
   for (const h of ['quotesdone.com', 'quotesdone.ae']) for (const k of ['card', 'http', 'www', 'slash', 'supplier']) assert.ok(ids.includes(`${k}:${h}`), `${k}:${h}`);
   assert.ok(ids.includes('supplier_ar') && ids.includes('portal_ar'));
   for (const c of entryChecks()) if (c.kind === 'redirect') assert.ok(c.want.endsWith(JOIN_PATH), `${c.id} must keep ?join=1, or the page opens on "Sign in"`);
+});
+
+test('a preflight passes only by what it allows: the origin echoed and every header the page sends (13 Nov 2026 lesson)', () => {
+  const ok = { status: 200, allowOrigin: 'https://quotesdone.ae', allowHeaders: 'authorization, content-type, apikey, x-client-info, cache-control, pragma' };
+  assert.deepEqual(judgePreflight(ok, 'https://quotesdone.ae', ['apikey', 'authorization', 'content-type']), []);
+  // the 13 Nov defect: 200, the origin echoed, and apikey not in the list
+  assert.match(judgePreflight({ ...ok, allowHeaders: 'authorization, content-type' }, 'https://quotesdone.ae', ['apikey', 'authorization', 'content-type']).join(), /not allowed: apikey/);
+  assert.match(judgePreflight({ ...ok, allowOrigin: 'https://quotesdone.com' }, 'https://quotesdone.ae', ['authorization']).join(), /not echoed/);
+  assert.equal(judgePreflight({ ...ok, status: 404 }, 'https://quotesdone.ae', ['authorization']).length, 1);
+  assert.equal(SITE_ORIGINS.length, 4, 'both domains, with and without www');
+  for (const fn of ['login_otp', 'claim_lookup', 'supplier_api', 'kyc', 'supplier_portal', 'my_data_pdf']) assert.ok(PREFLIGHTS.some((p) => p.fn === fn), fn);
+  assert.ok(PREFLIGHTS.find((p) => p.fn === 'my_data_pdf').headers.includes('apikey'), 'PrivacyControls.tsx sends apikey');
 });
