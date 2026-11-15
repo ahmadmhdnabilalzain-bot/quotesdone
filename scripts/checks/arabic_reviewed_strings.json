@@ -7203,6 +7203,9 @@
  "supabase/functions/_shared/reasoned_suppliers.ts": [
   "6d600e059646"
  ],
+ "supabase/functions/_shared/recorded_write.ts": [
+  "3a164f1b68e6"
+ ],
  "supabase/functions/_shared/reveal_guard.ts": [
   "41fffe0e12af",
   "4cda3eff8bef",
@@ -7984,8 +7987,8 @@
  "supabase/functions/supplier_api/quote_review_flow/submit.ts": [
   "0c4b45efc9bf",
   "265323a0e5fd",
-  "2b249861ae60",
-  "6fbb7fb79755"
+  "6fbb7fb79755",
+  "c7f983efeafb"
  ],
  "supabase/functions/supplier_api/quote_review/match.ts": [
   "1314b4ec29ef",
