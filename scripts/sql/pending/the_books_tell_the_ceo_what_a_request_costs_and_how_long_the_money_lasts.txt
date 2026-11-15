@@ -9,3 +9,4 @@ What moves it: review, then at merge, after the_books_hold_a_cost_on_the_founder
 then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit, and run once:
   select public.fn_accountant_request_economics_tick();
 Proved on a local Postgres 16 with its probe (PROBE OK twice): the_books_tell_the_ceo_what_a_request_costs_and_how_long_the_money_lasts_probe.sql.
+15 Nov evening (review fixes 4, 5 and savings): PROBE OK twice again; the same probe on the previous version fails 7 named rows.
