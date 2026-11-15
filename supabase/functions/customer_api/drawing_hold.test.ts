@@ -160,3 +160,20 @@ Deno.test('a drawing not checked in time is held and the customer is told why an
   assertEquals(row.verify_detail, { reason: 'time', pages_held_for_time: 2, pages_not_started: [3] });
   assertEquals(row.skipped, 2);
 });
+
+// Round 5 (fourth review, fixes 2 and 3): a page drawing_redact abandoned at the stop is named on the held row and to the
+// customer; a call the clock cut is held for time, not counted as a dead redactor.
+Deno.test('the sheets not checked in time are named; a call the clock cut is time, not a dead redactor', async () => {
+  const { timeNote, pagesHeldForTime, cutByClock, heldRun, TIME_MESSAGE } = await import('./drawing_hold.ts');
+  assertEquals(pagesHeldForTime({ time_held: 1, time_held_pages: [0] }, 2, 1), [2], 'the third sheet, abandoned');
+  assertEquals(pagesHeldForTime({ time_held: 0 }, 2, 1), []);
+  assertEquals(pagesHeldForTime({ time_held: 2 }, 4, 2), [4, 5], 'an answer that only counts: the whole batch');
+  assertEquals(pagesHeldForTime({ time_held: 1, time_held_pages: [7] }, 4, 2), [4, 5], 'a page number outside the batch is not trusted');
+  assertEquals(timeNote(2, [3, 2]), { drawing_held_reason: 'time', drawing_held_message: TIME_MESSAGE, redaction_pages_held_for_time: 2, redaction_sheets_not_checked: [3, 4] });
+  const timeout = new DOMException('signal timed out', 'TimeoutError');
+  assert(cutByClock(timeout, 100, 125_000) && cutByClock(new DOMException('x', 'AbortError'), 100, 125_000));
+  assert(cutByClock(new Error('reset'), 130_000, 125_000), 'any failure past the stop');
+  assert(!cutByClock(new Error('WORKER_RESOURCE_LIMIT'), 50_000, 125_000), 'a worker death before the stop is still a death');
+  const row = heldRun({ customerId: 'c', email: 'e', sourcePath: 'p', meta: { redaction_pages_in: 4, redaction_pages_out: 2, redaction_complete: false }, reason: 'time', detail: { pages_held_for_time: 2, pages_abandoned: [2], pages_not_started: [3] } });
+  assertEquals(row.verify_detail, { reason: 'time', pages_held_for_time: 2, pages_abandoned: [2], pages_not_started: [3] });
+});

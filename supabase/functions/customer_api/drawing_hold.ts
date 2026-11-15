@@ -105,6 +105,25 @@ export const TIME_MESSAGE = {
   en: 'We could not check every sheet in the time one upload allows, so suppliers do not see this drawing yet. Upload the sheets suppliers need most, a few at a time, and each upload is checked in full.',
   ar: 'لم يتّسع وقت الرفع الواحد لفحص كل اللوحات، لذلك لا يرى المورّدون هذا المخطّط حتى الآن. ارفع اللوحات التي يحتاجها المورّدون أكثر من غيرها، بضع لوحات في كل مرة، فتُفحص كل دفعة كاملة.',
 } as const;
-export function timeNote(pagesHeldForTime: number) {
-  return pagesHeldForTime > 0 ? { drawing_held_reason: 'time' as const, drawing_held_message: TIME_MESSAGE, redaction_pages_held_for_time: pagesHeldForTime } : {};
+export function timeNote(pagesHeldForTime: number, pages: number[] = []) {
+  if (!(pagesHeldForTime > 0)) return {};
+  // The sheets not checked, numbered as the customer numbers them (1 = the first sheet), so he knows which to send again.
+  const sheets = [...new Set(pages.filter((n) => Number.isInteger(n) && n >= 0))].sort((a, b) => a - b).map((n) => n + 1);
+  return { drawing_held_reason: 'time' as const, drawing_held_message: TIME_MESSAGE, redaction_pages_held_for_time: pagesHeldForTime, ...(sheets.length ? { redaction_sheets_not_checked: sheets } : {}) };
+}
+
+/** The set's page numbers drawing_redact held for time in a batch that began at page `from` (round 5, fourth review fix 2):
+ *  its time_held_pages (batch-local), or, from an older answer that only counts them, the whole batch. */
+export function pagesHeldForTime(rj: { time_held?: unknown; time_held_pages?: unknown } | null | undefined, from: number, len: number): number[] {
+  const n = Math.max(0, Number(rj?.time_held) || 0);
+  if (!n) return [];
+  const local = Array.isArray(rj?.time_held_pages) ? (rj!.time_held_pages as unknown[]).map(Number).filter((k) => Number.isInteger(k) && k >= 0 && k < len) : [];
+  return (local.length ? local : Array.from({ length: len }, (_x, k) => k)).map((k) => from + k);
+}
+
+/** A redaction call that failed because the clock cut it (its signal timed out or aborted, or the stop has passed): held
+ *  for time (round 5, fourth review fix 3), not recorded as a dead redactor. */
+export function cutByClock(e: unknown, now: number, stopAt: number): boolean {
+  const name = (e as { name?: string } | null)?.name;
+  return name === 'TimeoutError' || name === 'AbortError' || now >= stopAt;
 }

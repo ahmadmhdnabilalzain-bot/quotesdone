@@ -9,7 +9,7 @@ import { SAFE_UPLOAD, SAFE_SHEET, SAFE_DOCS } from '../../_shared/attachment.ts'
 import { seedTerms, titleBlockBoxes } from '../../_shared/anonymise.ts';
 import { supplierBoxes } from '../../_shared/supplier_copy.ts';
 import { cadSupplierBoq, dxfTextOf } from '../../_shared/cad_identity.ts';
-import { PDF_PREVIEWS_ONLY, budgetNote, cadNote, fileHeldNote, drawingHandoff, heldRun, timeNote } from '../drawing_hold.ts';
+import { PDF_PREVIEWS_ONLY, budgetNote, cadNote, cutByClock, fileHeldNote, drawingHandoff, heldRun, pagesHeldForTime, timeNote } from '../drawing_hold.ts';
 import { DRAWING_DEADLINE, eachPageInTime } from '../../_shared/drawing_deadline.ts';
 import { isPhotoOrScan, visionCountBody, applyVisionCounts } from '../vision_count_wire.ts';
 import { documentLocale } from '../../_shared/registered_locale.ts';
@@ -288,7 +288,9 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // A page held because the set is past what the model check may spend is said to the customer (budgetNote).
         let budgetHit = false;
         // Pages held for time: never started (past redStartBy) or abandoned by drawing_redact (time_held). Never lost.
-        let timeHeld = 0; let notReached: number[] = [];
+        // pages_abandoned (round 5, fourth review fix 2): the set's page numbers drawing_redact held for time, or whose call the
+        // clock cut; pages_not_started: never sent. Both go on the held row and back to the customer.
+        let timeHeld = 0; let notReached: number[] = []; const abandoned: number[] = [];
         // Only pass paths back to the client once drawing_redact has RECORDED the run server-side
         // (drawing_redaction_runs). An unrecorded run cannot be verified at create_inquiry, so its
         // paths are unusable — dropping them here lands on the existing total-failure behaviour
@@ -301,13 +303,17 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             const inN = Number(rj?.pages_in || 0);
             if (rj?.needs_manual_boxes === true) needsManual = true;
             if (rj?.customer_message) budgetHit = true;
-            timeHeld += Math.max(0, Number(rj?.time_held) || 0);
+            const cut = pagesHeldForTime(rj, i, slice.length); timeHeld += cut.length; abandoned.push(...cut);
             // A 546 answers JSON too - {code:'WORKER_RESOURCE_LIMIT'} with no pages_in - so an
             // isolate death is counted as pages LOST rather than as a batch that carried no pages.
             if (!inN && !rj?.ok) { redDied += slice.length; redIn += slice.length; return; }
             redIn += inN; redOut += Number(rj?.pages_out || 0);
             if (rj?.ok && rj?.recorded && rj?.job_id && Array.isArray(rj.paths)) { redacted = redacted.concat(rj.paths.map((x: any) => String(x))); redJobs.push(String(rj.job_id)); }
-          } catch (_e) { redDied += slice.length; redIn += slice.length; }
+          } catch (e) {
+            // A call the clock cut (its signal ends at the answer budget) is held for TIME, not lost to a dead redactor.
+            redIn += slice.length;
+            if (cutByClock(e, Date.now(), redStopAt)) { timeHeld += slice.length; abandoned.push(...slice.map((_x, k) => i + k)); } else redDied += slice.length;
+          }
         }, redStartBy);
         // A page never started is a page sent and not verified: it counts in redIn, so the set is held, and it is recorded.
         notReached = ran.notReached.flatMap((b) => images.slice(b * REDACT_BATCH, (b + 1) * REDACT_BATCH).map((_x, k) => b * REDACT_BATCH + k));
@@ -316,7 +322,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // redaction_complete compared redOut >= redIn, and both are 0 when the redactor dies before
         // it can report anything - so total failure read as "complete". It now requires that pages
         // were sent AND that every one of them came back.
-        const redMeta = { redaction_job_id: redJobs[0] || null, redaction_job_ids: redJobs, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_pages_lost: redDied, redaction_complete: redIn > 0 && redOut === redIn, needs_manual_boxes: false /* the customer's boxes no longer make a page shareable (trust boundary, 14 Sep 2026), so they are not asked for */, ...budgetNote(budgetHit) /* a budget hold is said (drawing_hold.budgetNote) */, ...timeNote(timeHeld) /* so is a hold for time (drawing_hold.timeNote) */ };
+        const redMeta = { redaction_job_id: redJobs[0] || null, redaction_job_ids: redJobs, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_pages_lost: redDied, redaction_complete: redIn > 0 && redOut === redIn, needs_manual_boxes: false /* the customer's boxes no longer make a page shareable (trust boundary, 14 Sep 2026), so they are not asked for */, ...budgetNote(budgetHit) /* a budget hold is said (drawing_hold.budgetNote) */, ...timeNote(timeHeld, [...abandoned, ...notReached]) /* so is a hold for time, with the sheets (drawing_hold.timeNote) */ };
         // THE HOLD IS DECIDED AND RECORDED HERE (audit 21 Sep 2026, finding 9; ./drawing_hold.ts).
         // Anything short of every page verified hands back NO redacted paths and share_redacted:false,
         // and writes one 'held' row against the stored original so the unshared drawing is visible.
@@ -328,7 +334,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         const hand = drawingHandoff(redMeta, path, redacted);
         if (hand.drawing_held && path && !pricedByCode) {
           const reason = timeHeld ? 'time' : (serverBoxes ? 'server_boxes_sent_pages_refused' : (needsManual ? 'no_server_boxes_and_model_refused' : (redDied ? 'redactor_died' : 'pages_not_verified')));
-          await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: redMeta, reason, detail: timeHeld ? { pages_held_for_time: timeHeld, pages_not_started: notReached } : undefined }));
+          await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: redMeta, reason, detail: timeHeld ? { pages_held_for_time: timeHeld, pages_abandoned: abandoned, pages_not_started: notReached } : undefined }));
         }
         // SCANNED PAGES ARE READ BY OCR OFF THE REQUEST PATH (24 Sep 2026, sales_engineer; founder instruction 579:
         // "OCR for scanned drawings"). A photo or a PDF with no text layer gives the server no words to box, so the

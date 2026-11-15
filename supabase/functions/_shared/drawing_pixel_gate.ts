@@ -258,6 +258,9 @@ export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint
     // What was never asked was never spent: it goes back to the set's budget and out of the record.
     if (notAsked) { const back = answers.filter((a) => a.late).reduce((s, a) => s + cost(a.t), 0); budget.spend(-back); calls -= notAsked; usd -= back; }
     if (notAsked) return { ok: false, held: 'time', calls, usd, detail: { calls, usd, boxes_added: added, round, not_asked: notAsked } };
+    // An answer missing once the clock has run out was cut by it (round 5: every call's timeout ends at the stop plus a
+    // grace, drawing_deadline.callTimeoutMs): held for time, not as unverified.
+    if (late() && answers.some((a) => !a.v || !a.read)) return { ok: false, held: 'time', calls, usd, detail: { calls, usd, boxes_added: added, round, cut: answers.filter((a) => !a.v || !a.read).length } };
     if (answers.some((a) => !a.v)) return { ok: false, held: 'pixels_unverified', calls, usd, detail: { calls, usd, boxes_added: added, round } };
     // A VIEW NOT READ IS NO ANSWER (round 3, the reading mark): an answer that does not carry the number drawn under that
     // view did not read it, whatever it says, so the page is HELD. MEASURED with an ALWAYS-CLEAN stub on the reviewer's
@@ -282,7 +285,7 @@ export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint
     const found = dirty.flatMap((a) => kept.get(a.t)!);
     seen.push(...dirty.flatMap((a) => a.v!.regions.map((r) => r.what || 'unnamed')));
     if (round === PIXEL_MAX_RECHECKS) break;
-    img = await paint(img, found);
+    try { img = await paint(img, found); } catch (e) { if (late()) return { ok: false, held: 'time', calls, usd, detail: { calls, usd, boxes_added: added, round, cut: 'paint' } }; throw e; }
     added += found.length; boxes.push(...found);
     if (late()) return { ok: false, held: 'time', calls, usd, detail: { calls, usd, boxes_added: added, round: round + 1 } };
     pending = dirty.map((a) => a.t);

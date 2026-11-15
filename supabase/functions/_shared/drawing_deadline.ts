@@ -12,7 +12,19 @@
 // A caller may only bring the deadlines EARLIER (customer_api passes its own request's clock, which started before this
 // function's); a later value than the default is ignored.
 
-export const DRAWING_DEADLINE = { startByMs: 100_000, stopAtMs: 125_000 } as const;
+export const DRAWING_DEADLINE = { startByMs: 100_000, stopAtMs: 125_000, callGraceMs: 10_000 } as const;
+
+/**
+ * THE CALLS UNDER WAY ARE CUT TOO (round 5, fourth review fix 3). The stop kept new views from starting, but a model call
+ * started at 124 s had no signal (the gateway's own 55 s applied), a crop worker 60 s and a repaint 90 s twice: such a call
+ * outlived customer_api's 140 s abort and the page was recorded as redactor_died, with the generic message. Every model,
+ * crop and repaint call now waits at most until stopAt + callGraceMs (and never less than 1 s, never more than its own
+ * cap); one cut there is held for time (pixelGate: an answer missing past the stop is 'time').
+ */
+export function callTimeoutMs(stopAt: number | undefined, capMs: number, now: () => number = Date.now): number {
+  if (stopAt === undefined || !Number.isFinite(stopAt)) return capMs;
+  return Math.min(capMs, Math.max(1_000, stopAt + DRAWING_DEADLINE.callGraceMs - now()));
+}
 
 /** The hold reason for a page not checked in time. */
 export const TIME_HELD = 'time' as const;
