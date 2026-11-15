@@ -7,7 +7,8 @@
 // pipe material, "not in scope", survey keys.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { INQUIRY_A, journeyA, NOW, QUOTES_A, SUPPLIER_NAMES } from './request_fit.journey_a.fixture.ts';
-import { annotateTechnical, enforceFit, fitQuote, recommendation, requestRequirements, settleRequests, siteVisitAsked, type QuoteFit } from './request_fit.ts';
+import { annotateTechnical, enforceFit, fitQuote, hiddenBrandPhrases, hideBrandForModel, hideBrandPhrases, mayRaisePoints, pointsHandoff, recommendation, requestRequirements, siteVisitAsked, withAnswers, type QuoteFit } from './request_fit.ts';
+import { generaliseLine } from './quote_generalise.ts';
 import { compareDocument } from './quote_documents.ts';
 import { deterministicCompare } from '../quote_compare/deterministic.ts';
 import { ctxOfQuote, generaliseQuoteTerms } from './quote_generalise.ts';
@@ -172,25 +173,44 @@ Deno.test('5b. a hard requirement the quote does not state never outranks a quot
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------
-Deno.test('6. the open points are QuotesDone\'s to settle with the supplier, through its existing conversation, never his to ask', () => {
+Deno.test('6. the open points go to the sales engineer as ONE hand-over per quote; the customer is promised only that QuotesDone asks', () => {
+  // FINAL REVIEW FIX 1 (CEO, ruling 1696): no code-written engineer message; a hand-over filed through fn_seat_handoff.
   const { fits } = journeyA('en');
   const d = compareDocument({ analysis: journeyA('en').analysis, inquiry: INQUIRY_A as never, lang: 'en', maskNames: SUPPLIER_NAMES, date: '15 November 2026' });
   const json = JSON.stringify(d.body);
-  assert(json.includes('Points QuotesDone settles with the supplier for you'));
-  assert(!/Ask before you reveal|put them to the suppliers|before you reveal, with your identity hidden/.test(json), 'nothing tells him to ask a supplier');
+  assert(json.includes('Points QuotesDone asks the supplier to confirm'));
+  assert(json.includes('QuotesDone asks the supplier to confirm these points'));
+  assert(!/settles|Ask before you reveal|put them to the suppliers|before you reveal, with your identity hidden/.test(json), 'nothing promises more than an ask, nor tells him to ask');
   const ar = JSON.stringify(compareDocument({ analysis: journeyA('ar').analysis, inquiry: INQUIRY_A as never, lang: 'ar', maskNames: SUPPLIER_NAMES, date_ar: '15 نوفمبر 2026' }).body);
-  assert(ar.includes('نقاط تتولاها QuotesDone مع المورّد نيابةً عنك') && !ar.includes('ما تسأل عنه قبل الكشف'));
-  // the supplier's copy: a clarification row in the sales engineer's conversation, English, raised once
-  const first = settleRequests(fits['Supplier A'], 'rv-1', new Set());
-  assertEquals(first.rows.length, 3);
-  for (const r of first.rows) {
-    assert(r.kind === 'clarification' && r.code === 'comparison_point' && r.key.startsWith('comparison:'));
-    assert(!/[؀-ۿ]/.test(r.label_en) && !/\bYou asked\b/.test(r.label_en), r.label_en);
-    for (const n of [...SUPPLIER_NAMES, 'zzd3m0aa', 'villa']) assert(!r.label_en.toLowerCase().includes(n.toLowerCase()), `"${n}" in "${r.label_en}"`);
+  assert(ar.includes('نقاط تطلب QuotesDone من المورّد تأكيدها') && !ar.includes('تتولاها') && !ar.includes('ما تسأل عنه قبل الكشف'));
+  assert(!/settles/.test(String(journeyA('en').analysis.advice || '')), 'the advice promises only the ask');
+  // ONE hand-over per quote, through the estate's door, keyed on the quote (fn_seat_handoff opens one per kind and subject)
+  const h = pointsHandoff(fits['Supplier A'], { inquiry_id: INQUIRY_A.id, quote_id: 'q-a', label: 'Supplier A' })!;
+  assertEquals([h.p_from, h.p_to, h.p_type, h.p_subject_table, h.p_subject_id], ['sales_engineer', 'sales_engineer', 'comparison.points', 'quotes', 'q-a']);
+  assertEquals(h.p_payload.points.length, 3);
+  assert(typeof h.p_payload.summary === 'string' && h.p_payload.summary.length > 0, 'the seat reads a summary (fn_seat_handoff_notes)');
+  for (const p of h.p_payload.points) {
+    assert(p.key.startsWith('comparison:') && !/[؀-ۿ]/.test(p.supplier) && !/\bYou asked\b/.test(p.supplier), p.supplier);
+    // the words the seat and the supplier read (the ids are ours): no supplier, no customer, no site
+    for (const n of [...SUPPLIER_NAMES, 'zzd3m0aa', 'villa']) assert(!JSON.stringify([p, h.p_payload.summary, h.p_payload.waiting_for]).toLowerCase().includes(n.toLowerCase()), `"${n}" in the hand-over`);
   }
-  assert(first.message && first.message.startsWith('The customer is comparing the quotations'));
-  const again = settleRequests(fits['Supplier A'], 'rv-1', new Set(first.rows.map((r) => r.key)));
-  assertEquals([again.rows.length, again.message], [0, null]);
+  // the same points give the same keys on every view, so the handler raises each once
+  assertEquals(pointsHandoff(fits['Supplier A'], { inquiry_id: INQUIRY_A.id, quote_id: 'q-a', label: 'Supplier A' })!.p_payload.points.map((p) => p.key), h.p_payload.points.map((p) => p.key));
+  // nothing to hand over: no hand-over
+  assertEquals(pointsHandoff({ ...fits['Supplier A'], asks: [] }, { inquiry_id: INQUIRY_A.id, quote_id: 'q-a', label: 'Supplier A' }), null);
+  // NEVER AFTER A REVEAL OR ONCE THE REQUEST IS CONCLUDED (FIX 1 iv)
+  assert(mayRaisePoints({ status: 'quoting' }, false));
+  for (const st of ['revealed', 'completed', 'closed', 'cancelled', 'expired', 'lost']) assert(!mayRaisePoints({ status: st }, false), st);
+  assert(!mayRaisePoints({ status: 'quoting' }, true), 'a reveal on the request stops it');
+  // HIS ANSWER COMES BACK: an answered point shows his words; an unanswered one is "not answered yet"
+  const k0 = h.p_payload.points[0].key;
+  const answered = withAnswers(fits['Supplier A'], { [k0]: { state: 'answered', answer: 'The price is final; no site visit is needed.' } });
+  assertEquals(answered.asks.map((x) => x.state), ['answered', 'asked', 'asked']);
+  assertEquals(answered.asks[0].answer, 'The price is final; no site visit is needed.');
+  const a = journeyA('en').analysis; const rf = a.request_fit;
+  rf.quotes = rf.quotes.map((q: { label: string }) => q.label === 'Supplier A' ? { ...q, asks: answered.asks.map(({ en, ar, state, answer }) => ({ en, ar, state, answer })) } : q);
+  const page = JSON.stringify(compareDocument({ analysis: a, inquiry: INQUIRY_A as never, lang: 'en', maskNames: SUPPLIER_NAMES, date: '15 November 2026' }).body);
+  assert(page.includes('The price is final; no site visit is needed.') && page.includes('Not answered yet'), 'the answer is on the page beside its point');
   // the customer's analysis carries his copy only
   assert(!JSON.stringify(journeyA('en').analysis.request_fit).includes('Please confirm'));
 });
@@ -217,11 +237,16 @@ Deno.test('8. the date cell carries the generalised lead time, never the raw one
 Deno.test('9. no listed brand is identifiable before the reveal (ledger 1588)', () => {
   // journey A: Gree is his only economy Chinese brand; Daikin and Mitsubishi Electric are both premium Japanese
   const { analysis: a, fits } = journeyA('en');
-  assertEquals([fits['Supplier A'].brand.generic, fits['Supplier A'].brand.hidden, fits['Supplier B'].brand.hidden], [null, true, false]);
+  // per REQUEST (final review FIX 2a): B and C are hidden too, or A is Gree by elimination
+  assertEquals([fits['Supplier A'].brand.generic, fits['Supplier A'].brand.hidden, fits['Supplier B'].brand.hidden, fits['Supplier C'].brand.hidden], [null, true, true, true]);
   const brandCells = a.technical.lines.flatMap((l: { attributes: { key: string; values: Record<string, { value: string; note?: string | null }> }[] }) => l.attributes.filter((x) => x.key === 'brand').map((x) => x.values['Supplier A']));
   assert(brandCells.length && brandCells.every((c: { value: string; note?: string | null }) => c.value === 'As you asked; the brand is shown after the reveal' && !c.note), JSON.stringify(brandCells));
-  assert(!/economy Chinese|made in China/i.test(JSON.stringify(a)), 'A\'s tier and origin do not reach the analysis');
-  assert(!/صينية|صنع في الصين/.test(JSON.stringify(journeyA('ar').analysis)), 'nor the Arabic analysis');
+  for (const l of ['Supplier B', 'Supplier C']) {
+    const cs = a.technical.lines.flatMap((x: { attributes: { key: string; values: Record<string, { value: string }> }[] }) => x.attributes.filter((y) => y.key === 'brand').map((y) => y.values[l]));
+    assert(cs.every((c: { value: string }) => c.value === 'As you asked; the brand is shown after the reveal'), l + ' ' + JSON.stringify(cs));
+  }
+  assert(!/economy Chinese|made in China|premium Japanese|made in Japan/i.test(JSON.stringify(a)), 'no listed tier or origin reaches the analysis');
+  assert(!/صينية|صنع في الصين|يابانية|صنع في اليابان/.test(JSON.stringify(journeyA('ar').analysis)), 'nor the Arabic analysis');
   // a single-brand list always identifies the make
   const one = requestRequirements({ category: 'hvac', spec: { spec_brand_preference_or_equivalent_tier: 'Daikin only' } });
   const f = fitQuote(one, { quote: {}, lines: QUOTES_A[1].items, now: NOW, trade: 'hvac' });
@@ -231,4 +256,37 @@ Deno.test('9. no listed brand is identifiable before the reveal (ledger 1588)', 
   // a brand he did not name is still said plainly (it narrows nothing to one of his)
   const midea: QuoteFit = fitQuote(one, { quote: {}, lines: [line('Wall split 1.5 TR, supply and install', { brand: 'Midea' })], now: NOW, trade: 'hvac' });
   assert(midea.cells.brand_list.shown.en.startsWith('No: '));
+});
+
+// ---------------------------------------------------------------------------------------------------------------------------
+Deno.test('9b. journey A: A, B and C all read "as you asked"; the model never reads a listed tier or origin; the backstop takes every phrasing', () => {
+  const { analysis: a, fits } = journeyA('en');
+  // FIX 2a: decided per request, so none of the three can be told apart by tier and origin
+  assertEquals(['Supplier A', 'Supplier B', 'Supplier C'].map((l) => fits[l].cells.brand_list.shown.en), Array(3).fill('As you asked; the brand is shown after the reveal'));
+  assertEquals(['Supplier A', 'Supplier B', 'Supplier C'].map((l) => fits[l].cells.brand_list.shown.ar), Array(3).fill('كما طلبت؛ تظهر العلامة بعد الكشف'));
+  assert(a.bottom_line.startsWith('We recommend Supplier B: one of your listed brands, and it meets'), a.bottom_line);
+  // a list where no tier and origin is unique hides nothing (it narrows nothing to one make)
+  const two = requestRequirements({ category: 'hvac', spec: { spec_brand_preference_or_equivalent_tier: 'Daikin or Mitsubishi Electric' } });
+  assertEquals(fitQuote(two, { quote: {}, lines: QUOTES_A[1].items, now: NOW, trade: 'hvac' }).cells.brand_list.shown.en, 'Yes: premium Japanese brand');
+  // FIX 2b, the model's input: A's lines as quote_compare generalises them, then hideBrandForModel
+  const qA = QUOTES_A.find((q) => q.supplier_id === 9002)!;
+  const ph = hiddenBrandPhrases(fits['Supplier A'], qA.items as never, 'hvac');
+  const ctx = ctxOfQuote(qA.items, [qA.supplier_name]);
+  const generalised = { label: 'Supplier A', items: qA.items.map((x) => generaliseLine({ ...x, country_of_origin: 'China' }, ctx)), notes: 'Units are Chinese-made, economy brand from China.' };
+  assert(/economy Chinese brand/.test(JSON.stringify(generalised)), 'the generaliser alone leaves the tier and origin (the review\'s finding)');
+  const model = JSON.stringify(hideBrandForModel(generalised, ph));
+  assert(!/economy|Chinese|China|country_of_origin/i.test(model), model);
+  assert(model.includes('as the customer asked (shown after the reveal)'));
+  // the backstop: the review's 15 English and 4 Arabic phrasings (and the three it already caught), and no "an brand"
+  const en = ['Supplier A quotes an economy Chinese brand.', 'A uses a Chinese economy brand.', 'A quotes economy-tier Chinese units.', 'A is a budget Chinese brand.', 'A units are Chinese-made.', 'A: China-made compressors.', 'A: origin China.', 'A: country of origin: China', 'A sources from China.', 'A: made in the PRC.', 'A: Made In China', 'A: manufactured in China.', 'A quotes an economy brand from China.', 'A quotes a Chinese brand.', 'A is the only economy option on your list.', 'A is the cheaper non-Japanese brand on your list.', 'A: economy  Chinese brand (double space)', 'A: Economy Chinese Brand'];
+  const all = [ph, hiddenBrandPhrases(fits['Supplier B'], QUOTES_A.find((q) => q.supplier_id !== 9002)!.items as never, 'hvac')];
+  for (const t of en) {
+    const out = hideBrandPhrases({ x: t }, all).x as string;
+    assert(!/economy|budget|chinese|china|prc|japanese/i.test(out), `${t} -> ${out}`);
+    assert(!/\ban brand\b/i.test(out), `${t} -> ${out}`);
+  }
+  const arT = ['يقدّم المورّد A علامة صينية اقتصادية', 'منشأ صيني', 'صنع في الصين', 'مصنوع في الصين', 'بلد المنشأ: الصين'];
+  for (const t of arT) { const out = hideBrandPhrases({ x: t }, all).x as string; assert(!/صيني|الصين|اقتصادية/.test(out), `${t} -> ${out}`); }
+  // what is not about a hidden brand stays as written
+  assertEquals(hideBrandPhrases({ x: 'Supplier D quotes a premium German brand; the UAE market range is AED 15,000-19,000.' }, all).x, 'Supplier D quotes a premium German brand; the UAE market range is AED 15,000-19,000.');
 });

@@ -13,15 +13,15 @@ Executive summary
 1
 Cheapest quote is AED 12,279. Spread between highest and lowest is AED 5,678.
 Recommended: Supplier B
-One of your listed brands (premium Japanese brand), and it meets 11 of your 13 requirements, including
-the installation warranty you asked for. Catch: It costs AED 3,471 more than Supplier A, which fails your
-installation warranty: 1 year against the 2 years you asked for.
+One of your listed brands, and it meets 11 of your 13 requirements, including the installation warranty you
+asked for. Catch: It costs AED 3,471 more than Supplier A, which fails your installation warranty: 1 year
+against the 2 years you asked for.
 All 3 quotes are listed in this report; the top 3 are compared in detail.
 Recommended
 # Supplier Why Catch
-1 Supplier B One of your listed brands (premium Japanese It costs AED 3,471 more than
-brand), and it meets 11 of your 13 requirements, Supplier A, which fails your
-including the installation warranty you asked for. installation warranty: 1 year
+1 Supplier B One of your listed brands, and it meets 11 of your 13 It costs AED 3,471 more than
+requirements, including the installation warranty Supplier A, which fails your
+you asked for. installation warranty: 1 year
 against the 2 years you asked
 for.
 2 Supplier C It meets 11 of your 13 requirements; AED 2,207 more —
@@ -63,9 +63,9 @@ supplier wrote. A brand is checked against the brands you named before the suppl
 hidden, so only whether it is one of yours is shown, with its tier and origin only where they cannot name
 it.
 Requirement You asked for Supplier B Supplier C Supplier A
-Brand One of the 3 Yes: premium Yes: premium As you asked; the
-brands you Japanese brand Japanese brand brand is shown
-named after the reveal
+Brand One of the 3 As you asked; the As you asked; the As you asked; the
+brands you brand is shown brand is shown brand is shown
+named after the reveal after the reveal after the reveal
 Inverter units Inverter Yes Yes Yes
 Refrigerant R32 or R410A R32 R32 R32
 Units and capacity 2 × 1.5 TR and 2 × 2 × 1.5 TR, 2 × 2.0 2 × 1.5 TR, 2 × 2.0 2 × 1.5 TR, 2 × 2.0
@@ -118,9 +118,9 @@ on the installation on the installation
 Line by line: stated specification against your request
 Specification You asked for Supplier A Supplier B Supplier C
 1. 1.5 TR units: you asked for 2
-Brand / One of the 3 As you asked; the premium Japanese premium Japanese
-manufacturer brands you brand is shown brand (one you brand (one you
-named after the reveal named) named)
+Brand / One of the 3 As you asked; the As you asked; the As you asked; the
+manufacturer brands you brand is shown brand is shown brand is shown
+named after the reveal after the reveal after the reveal
 QuotesDone Technologies · DET Trader License No. 1633275 · TDRA NOL-26-100000665 Page 3 of 6
 Dubai, United Arab Emirates · management@quotesdone.com · WhatsApp +1 218 316 6814 · +971 56 791 8605 · quotesdone.ae
 QD-166739-CMP · v2.3 · Generated 15 November 2026 · Prepared by the QuotesDone sales engineer
@@ -135,9 +135,9 @@ Efficiency — ESMA 5-star ESMA 5-star ESMA 5-star
 (SEER / EER /
 ESMA stars)
 2. 2.0 TR units: you asked for 2
-Brand / One of the 3 As you asked; the premium Japanese premium Japanese
-manufacturer brands you brand is shown brand (one you brand (one you
-named after the reveal named) named)
+Brand / One of the 3 As you asked; the As you asked; the As you asked; the
+manufacturer brands you brand is shown brand is shown brand is shown
+named after the reveal after the reveal after the reveal
 Model / — model stated (shown model stated (shown model stated (shown
 product code after reveal) after reveal) after reveal)
 Cooling 2.0 TR 2.0 TR 2.0 TR 2.0 TR
@@ -200,25 +200,27 @@ Supplier What to know before you choose
 Supplier B Nothing flagged from what the supplier stated.
 Supplier C Nothing flagged from what the supplier stated.
 Supplier A Fails your installation warranty: 1 year against the 2 years you asked for.
-Points QuotesDone settles with the supplier for you
+Points QuotesDone asks the supplier to confirm
 7
-Each quotation leaves these points open. Our sales engineer puts each one to that supplier in writing,
-with your identity hidden, and the answer is added to this comparison. You do not need to contact
-anyone.
+Each quotation leaves these points open. QuotesDone asks the supplier to confirm these points, with
+your identity hidden, and shows the answer here once it arrives. You do not need to contact anyone.
 QuotesDone Technologies · DET Trader License No. 1633275 · TDRA NOL-26-100000665 Page 5 of 6
 Dubai, United Arab Emirates · management@quotesdone.com · WhatsApp +1 218 316 6814 · +971 56 791 8605 · quotesdone.ae
 QD-166739-CMP · v2.3 · Generated 15 November 2026 · Prepared by the QuotesDone sales engineer
 Quote comparison report · QD-166739-CMP
-Supplier Open point
-Supplier B Is this price final, or subject to the site visit your request mentions?
-It excludes electrical works. Is connecting the new units to your existing isolators
-included?
-Supplier C Is this price final, or subject to the site visit your request mentions?
-Supplier A Is this price final, or subject to the site visit your request mentions?
-It excludes electrical works. Is connecting the new units to your existing isolators
-included?
-What warranty does it give on the compressors? You asked for at least 5 years; the quote
-does not say.
+Supplier Open point The supplier's answer
+Supplier B Is this price final, or subject to the site visit your request Not answered yet
+mentions?
+It excludes electrical works. Is connecting the new units Not answered yet
+to your existing isolators included?
+Supplier C Is this price final, or subject to the site visit your request Not answered yet
+mentions?
+Supplier A Is this price final, or subject to the site visit your request Not answered yet
+mentions?
+It excludes electrical works. Is connecting the new units Not answered yet
+to your existing isolators included?
+What warranty does it give on the compressors? You Not answered yet
+asked for at least 5 years; the quote does not say.
 Advice and next steps
 8
 Quotes are compared on what each supplier stated in writing. A quote missing a required detail is held

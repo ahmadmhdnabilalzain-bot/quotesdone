@@ -1,6 +1,7 @@
 import { applyCorrections, carryOver, choiceSaid, issueKey, readReply, readyToSubmitSaid, reviewQuotation, reviewSaid, unreadableSaid, workingFromProposal, type Issue, type SafeInquiry, type Working } from '../quote_review.ts';
 import { type Choice, type Ctx, type Fail, type FileRead, type ReviewDeps, type ReviewRepo, type ReviewRow, type ReviewState, type Scanned, type ThreadView, fail } from './types.ts';
 import { effectiveState, ensure, isFail, load, say, supplierSays, view, writableOr } from './thread_view.ts';
+import { POINT_CODE } from '../../_shared/comparison_points.ts';
 
 // ---------------------------------------------------------------------------------------------
 // The review, and the requests it opens and closes.
@@ -19,7 +20,9 @@ async function runReview(repo: ReviewRepo, deps: ReviewDeps, inq: SafeInquiry, r
   // prevented by: supplier_api/a_typed_price_and_its_total_are_one_state.test.ts
   await repo.updateReview(r.id, { status, choice, working: w, last_review: rv, reviewing_since: null, total_amount: rv.price_ex_vat ?? w.amount, currency: 'AED' });
   const open = await repo.requests(r.id, true);
-  const openIssues = open.filter((x) => x.kind !== 'choice');
+  // A COMPARISON POINT IS CLOSED ONLY BY HIS ANSWER (final review of 15 Nov 2026, FIX 1 iii): it is not one of the review's
+  // own issues, so the review's "not raised again, so answered" would close it with no answer. message.ts closes it.
+  const openIssues = open.filter((x) => x.kind !== 'choice' && x.code !== POINT_CODE);
   const keys = new Set(rv.issues.map(issueKey));
   const answered = openIssues.filter((x) => !keys.has(x.key)).map((x) => x.id);
   if (answered.length) await repo.closeRequests(answered, 'answered', trigger);

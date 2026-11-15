@@ -1,5 +1,6 @@
 import { closedSaid, greeting, SEAT, type Issue, type SafeInquiry, type Said } from '../quote_review.ts';
 import { type Attachment, type Ctx, type Fail, type MessageRow, type MessageView, type MsgKind, type ReviewDeps, type ReviewRepo, type ReviewRow, type ReviewState, type ThreadView, fail } from './types.ts';
+import { POINT_CODE } from '../../_shared/comparison_points.ts';
 
 
 /** A review stuck in 'reviewing' this long crashed mid-way; it is treated as not reviewing. 8 minutes: a review now runs
@@ -29,8 +30,11 @@ async function view(repo: ReviewRepo, deps: ReviewDeps, inq: SafeInquiry, r: Rev
     messages.push({ id: m.id, role: eng ? 'sales_engineer' : 'supplier', kind: m.kind, body_en: eng ? m.body : null, body_ar: eng ? m.body_ar : null, text: eng ? null : m.body, attachments: atts, issues: m.issues, created_at: m.created_at });
   }
   const writable = WRITABLE.includes(st) && !closedInq;
+  // A SUBMITTED CONVERSATION TAKES HIS ANSWER WHILE A COMPARISON POINT IS OPEN (final review of 15 Nov 2026, FIX 1 i): he can
+  // write, not upload or submit; nothing else reopens it, and the points close only with his answer (message.ts).
+  const answering = st === 'submitted' && !closedInq && open.some((q) => q.code === POINT_CODE);
   return {
-    ...base, state: st, choice: r.choice, can_write: writable, can_upload: writable, can_choose: writable && st === 'awaiting_choice',
+    ...base, state: st, choice: r.choice, can_write: writable || answering, can_upload: writable, can_choose: writable && st === 'awaiting_choice',
     can_submit: writable && st === 'ready_to_submit', reviewing: st === 'reviewing',
     file: r.original_file_name ? { name: r.original_file_name } : null, total_ex_vat: r.last_review?.price_ex_vat ?? null,
     submitted_quote_ids: r.submitted_quote_ids || [], messages,
@@ -106,11 +110,13 @@ async function ensure(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded): 
   await say(repo, deps, r.id, 'notice', greeting(l.inq.job_no));
   return r;
 }
-function writableOr(l: Loaded, r: ReviewRow | null, now: Date): Fail | null {
+/** `answeringPoints`: a text message to a submitted conversation that has an open comparison point is his answer to it. */
+function writableOr(l: Loaded, r: ReviewRow | null, now: Date, answeringPoints = false): Fail | null {
   if (l.inq.concluded || l.inq.revealed) return fail(409, 'inquiry_closed', 'This job is closed; the customer has already chosen.');
   if (!r) return null;
   const st = effectiveState(r, now);
   if (st === 'reviewing') return fail(409, 'reviewing', 'Your quotation is being reviewed; please wait for the result.');
+  if (st === 'submitted' && answeringPoints) return null;
   if (st === 'submitted' || st === 'closed') return fail(409, 'review_closed', 'This conversation is closed.');
   return null;
 }

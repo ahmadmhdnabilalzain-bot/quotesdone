@@ -39,6 +39,9 @@ export interface ReviewRepo {
   storeFile(path: string, bytes: Uint8Array, mime: string): Promise<boolean>;
   signFile(bucket: string, path: string): Promise<string | null>;
   log(counts: Record<string, unknown>, note: string): Promise<void>;
+  /** The supplier answered the last open comparison point of this conversation: its comparison hand-overs are done
+   *  (public.fn_sales_engineer_comparison_points_answered). Absent: nothing to close (tests). */
+  pointsAnswered?(reviewId: string): Promise<void>;
   /** Which reader wrote this supplier's quotation for this inquiry (quote_extraction_model); quote_compare names it. */
   recordReader?(inquiryId: string, supplierId: number, model: string): Promise<void>;
 }

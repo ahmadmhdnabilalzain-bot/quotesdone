@@ -256,19 +256,20 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
     blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('What to know before you choose', 'ما يجب معرفته قبل الاختيار')], rows: risk, widths: [0.2, 0.8] });
   }
 
-  // 7 — POINTS QUOTESDONE SETTLES WITH THE SUPPLIER FOR YOU (founder, 14 Sep 2026: before the reveal the customer never puts a
-  // question to a supplier, and nothing tells him to; review item 6 of 15 Nov 2026). Each point is put to that supplier by our
-  // sales engineer in the quotation conversation he already has with them (supplier_api quote_review_flow, quote_review_request),
-  // with the customer's identity hidden; the answer joins this comparison. The customer is told what is open, never asked to act.
+  // 7 — POINTS QUOTESDONE ASKS THE SUPPLIER TO CONFIRM (founder, 14 Sep 2026: before the reveal the customer never puts a
+  // question to a supplier, and nothing tells him to; CEO under ruling 1696, final review of 15 Nov 2026, FIX 1). Each point
+  // is handed to our sales engineer, who asks that supplier in the quotation conversation with the customer's identity hidden
+  // (request_fit.ts pointsHandoff); the supplier's answer is shown beside it once it arrives. The page promises only that.
   if (fit) {
     const asks: Cell[][] = [];
     // deno-lint-ignore no-explicit-any
-    for (const q of qs) { const f = fitOf(q.label); arrOf(f?.asks).forEach((x: any, i: number) => asks.push([i === 0 ? { text: k.label(q.label), bold: true } : '', bi(x)])); }
+    for (const q of qs) { const f = fitOf(q.label); arrOf(f?.asks).forEach((x: any, i: number) => asks.push([i === 0 ? { text: k.label(q.label), bold: true } : '', bi(x),
+      x?.state === 'answered' && x?.answer ? String(x.answer) : T('Not answered yet', 'لم تصل الإجابة بعد')])); }
     if (asks.length) {
-      section('Points QuotesDone settles with the supplier for you', 'نقاط تتولاها QuotesDone مع المورّد نيابةً عنك');
-      blocks.push({ t: 'p', text: T('Each quotation leaves these points open. Our sales engineer puts each one to that supplier in writing, with your identity hidden, and the answer is added to this comparison. You do not need to contact anyone.',
-        'يترك كل عرض هذه النقاط مفتوحة. يطرح مهندس المبيعات لدينا كل نقطة على المورّد المعني كتابةً، مع بقاء هويتك مخفية، وتُضاف الإجابة إلى هذه المقارنة. لا يلزمك التواصل مع أحد.'), muted: true });
-      blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('Open point', 'النقطة المفتوحة')], rows: asks, widths: [0.2, 0.8] });
+      section('Points QuotesDone asks the supplier to confirm', 'نقاط تطلب QuotesDone من المورّد تأكيدها');
+      blocks.push({ t: 'p', text: T('Each quotation leaves these points open. QuotesDone asks the supplier to confirm these points, with your identity hidden, and shows the answer here once it arrives. You do not need to contact anyone.',
+        'يترك كل عرض هذه النقاط مفتوحة. تطلب QuotesDone من المورّد تأكيد هذه النقاط، مع بقاء هويتك مخفية، وتظهر الإجابة هنا عند وصولها. لا يلزمك التواصل مع أحد.'), muted: true });
+      blocks.push({ t: 'table', head: [T('Supplier', 'المورّد'), T('Open point', 'النقطة المفتوحة'), T("The supplier's answer", 'إجابة المورّد')], rows: asks, widths: [0.18, 0.5, 0.32] });
     }
   }
 

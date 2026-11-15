@@ -52,9 +52,10 @@ async function typedJob(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: Loaded,
 
 /** What the engineer knows at this point of the thread, for the model to answer from: the state, the open points,
  *  what the supplier can do next, and the review's standing rules. Facts only; the words are the model's. */
-function stateFacts(inq: SafeInquiry, r: ReviewRow, st: ReviewState, open: Issue[]): string {
+function stateFacts(inq: SafeInquiry, r: ReviewRow, st: ReviewState, open: Issue[], points: string[] = []): string {
   const boq = r.last_review?.boq_lines ?? inq.boq_rows.length;
-  const now = !r.working || st === 'awaiting_upload' ? awaitingUploadSaid().en
+  const now = st === 'submitted' ? 'Their quotation has been submitted to the customer. The only thing open in this thread is the customer\'s points below, which QuotesDone asks them to confirm: ask them to answer those here; nothing else can be changed in this thread.'
+    : !r.working || st === 'awaiting_upload' ? awaitingUploadSaid().en
     : st === 'awaiting_choice' ? choiceSaid().en
     : st === 'ready_to_submit' ? readyToSubmitSaid(inq.job_no).en
     : notUnderstoodSaid(inq.job_no, open).en;
@@ -63,7 +64,7 @@ function stateFacts(inq: SafeInquiry, r: ReviewRow, st: ReviewState, open: Issue
   return `You are the sales engineer reviewing this supplier's quotation for Job ${inq.job_no} on QuotesDone, in one conversation thread.
 STATE: ${st}. ${r.working ? 'A quotation has been read' + (r.last_review?.price_ex_vat != null ? ' (AED ' + r.last_review.price_ex_vat + ' excluding VAT)' : '') + '.' : 'No quotation has been read yet.'}
 OPEN POINTS (${open.length}): ${open.map((x, i) => (i + 1) + '. ' + x.en).join(' ') || 'none'}
-WHERE THE THREAD STANDS AND WHAT THEY CAN DO NEXT: ${now}
+${points.length ? `THE CUSTOMER'S POINTS QUOTESDONE ASKS THEM TO CONFIRM (${points.length}; the customer compared the quotations and these are open on theirs): ${points.map((x, i) => (i + 1) + '. ' + x).join(' ')}\nRaise these with them until they answer; never name or describe the customer.\n` : ''}WHERE THE THREAD STANDS AND WHAT THEY CAN DO NEXT: ${now}
 THE REVIEW'S RULES (answer their question from these and your own trade expertise):
 ${rules}
 Answer what they wrote directly; if it is not a question, guide them to the next step above.`;

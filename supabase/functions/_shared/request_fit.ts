@@ -35,6 +35,8 @@ import { brandFact, genericBrand, ORIGIN, TIER_RANK, tierOf, type Tier } from '.
 import { deliveryOf, warrantyPeriod } from './line_specs/assess.ts';
 import { tradeOfCategory } from './line_specs/model.ts';
 import { arDuration } from './quote_documents/arabic.ts';
+import { isClosedRequest } from './request_closed.ts';
+import { POINT_CODE } from './comparison_points.ts';
 
 export type Bi = { en: string; ar: string };
 export type FitStatus = 'meets' | 'differs' | 'not_stated';
@@ -44,9 +46,15 @@ export type Requirement = {
   units?: number | null; tr?: number | null; subitems?: string[]; metres?: number | null; date?: string; months?: number; words?: string[];
   /** "Schneider or ABB or equivalent": a brand he did not name passes when it is an equivalent (same tier or better). */
   equivalent?: boolean;
+  /** LEDGER 1588, DECIDED PER REQUEST (final review of 15 Nov 2026, FIX 2a): when the tier and origin of any brand on his
+   *  list would name it (a list of one, or a tier and origin only one listed brand has), EVERY listed match says only "as
+   *  you asked", so the hidden one cannot be found by elimination from the others. */
+  hide_listed?: boolean;
 };
-/** A point the quote leaves open: what the customer reads (en / ar), and the same point put to the supplier, in English. */
-export type Ask = Bi & { supplier: string };
+/** A point the quote leaves open: what the customer reads (en / ar), and the same point put to the supplier, in English.
+ *  `key` names it in the supplier's quotation conversation (quote_review_request.key); once the supplier has answered,
+ *  `state` is 'answered' and `answer` carries his words as the customer may read them (pointAnswers). */
+export type Ask = Bi & { supplier: string; key?: string; state?: 'asked' | 'answered'; answer?: string | null };
 export type FitCell = { status: FitStatus; shown: Bi };
 export type FitFail = { code: string; noun: Bi; detail: Bi };
 export type QuoteFit = {
@@ -159,7 +167,10 @@ export function requestRequirements(inq: RequestIn): Requirement[] {
   // deno-lint-ignore no-explicit-any
   const tierAnswer: any = ((cr.materials || []) as any[]).find((m) => /brand/i.test(S(m?.component)) && ['premium', 'mid', 'economy'].includes(S(m?.choice)));
   if (brands.length) {
-    out.push({ code: 'brand_list', hard: !equivalent, equivalent, label: bi('Brand', 'العلامة التجارية'), brands,
+    // Would a listed brand's tier and origin name it? Then no listed match says its tier or origin (hide_listed).
+    const gen = (b: string) => genericBrand(b).en;
+    const hide_listed = brands.length === 1 || brands.some((b) => brands.filter((x) => gen(x) === gen(b)).length === 1);
+    out.push({ code: 'brand_list', hard: !equivalent, equivalent, hide_listed, label: bi('Brand', 'العلامة التجارية'), brands,
       asked: equivalent
         ? (brands.length === 1 ? bi('The brand you named, or an equivalent', 'العلامة التي سمّيتها أو ما يعادلها') : bi(`One of the ${brands.length} brands you named, or an equivalent`, `إحدى العلامات الـ${brands.length} التي سمّيتها أو ما يعادلها`))
         : (brands.length === 1 ? bi('The brand you named', 'العلامة التي سمّيتها') : bi(`One of the ${brands.length} brands you named`, `إحدى العلامات الـ${brands.length} التي سمّيتها`)) });
@@ -275,7 +286,7 @@ export function fitQuote(reqs: Requirement[], input: { quote: FitQuote; lines: F
   const all = [...lines.map(lineText), terms].join(' · ');
   const itemised = lines.length > 0;
   const cells: Record<string, FitCell> = {}; const asks: Ask[] = []; const fails: FitFail[] = [];
-  const ask = (en: string, ar: string, supplier: string): Ask => ({ en, ar, supplier });
+  const ask = (en: string, ar: string, supplier: string): Ask => ({ en, ar, supplier, key: pointKey(supplier) });
   let brand: QuoteFit['brand'] = { listed: null, generic: null }; let meetsDate: boolean | null = null;
   const set = (r: Requirement, status: FitStatus, shown: Bi, fail?: Bi) => { cells[r.code] = { status, shown }; if (status === 'differs' && r.hard) fails.push({ code: r.code, noun: lower(r.label), detail: fail ?? bi(`${shown.en}, against ${r.asked.en.toLowerCase()} you asked for`, `${shown.ar}، والمطلوب: ${r.asked.ar}`) }); };
 
@@ -294,9 +305,9 @@ export function fitQuote(reqs: Requirement[], input: { quote: FitQuote; lines: F
         if (listed) {
           // LEDGER 1588: NO BRAND REACHES THE CUSTOMER BEFORE THE REVEAL. "One of yours" plus the tier and origin names the make
           // whenever his list has only one brand, or only one listed brand of that tier and origin (journey A: Gree is his only
-          // economy Chinese brand). Then the cell says only that the brand is as he asked, with no tier or origin.
-          const gen = (b: string) => genericBrand(b).en;
-          const identifies = (r.brands || []).length === 1 || quotedBrands.some((b) => (r.brands || []).filter((x) => gen(x) === gen(b)).length === 1);
+          // economy Chinese brand). Decided for the REQUEST, not this quote (final review, FIX 2a): when B and C read "premium
+          // Japanese" and A reads "as you asked", A is Gree. So every listed match says only that the brand is as he asked.
+          const identifies = !!r.hide_listed;
           if (identifies) brand.generic = null;
           brand = { ...brand, listed: true, hidden: identifies };
           set(r, 'meets', identifies ? BRAND_AS_ASKED : bi(`Yes: ${brand.generic!.en}`, `نعم: ${brand.generic!.ar}`));
@@ -463,7 +474,9 @@ export function recommendation(best: { label: string; price: number | null; fit:
   }
   const cheaper = others.filter((o) => o.price != null && best.price != null && o.price < best.price).sort((a, b) => a.price! - b.price!);
   const failing = cheaper.find((o) => o.fit.hard_fails.length);
-  const brandPart = f.brand.listed && f.brand.generic ? (ar ? `إحدى العلامات التي سمّيتها (${f.brand.generic.ar})، و` : `one of your listed brands (${f.brand.generic.en}), and `) : '';
+  // A hidden listed brand (ledger 1588) is still one of his: said without its tier and origin.
+  const brandPart = f.brand.listed && f.brand.generic ? (ar ? `إحدى العلامات التي سمّيتها (${f.brand.generic.ar})، و` : `one of your listed brands (${f.brand.generic.en}), and `)
+    : f.brand.listed && f.brand.hidden ? (ar ? 'إحدى العلامات التي سمّيتها، و' : 'one of your listed brands, and ') : '';
   // What the cheaper quote fails and this one meets is the reason to pay more: named as a strength.
   const strengths = failing ? failing.fit.hard_fails.filter((x) => f.cells[x.code]?.status === 'meets').map((x) => x.noun) : [];
   const incl = strengths.length ? (ar ? `، بما في ذلك ${strengths.map((x) => x.ar).join(' و')} كما طلبت` : `, including the ${strengths.map((x) => x.en).join(' and ')} you asked for`) : '';
@@ -550,8 +563,9 @@ export function annotateTechnical<T extends RTech>(t: T, reqs: Requirement[], fi
 export function fitView(reqs: Requirement[], rows: { label: string; quote_id: string | null; fit: QuoteFit }[]) {
   return {
     requirements: reqs.map((r) => ({ code: r.code, hard: r.hard, label: r.label, asked: r.asked })),
-    // the supplier's copy of each open point stays on the server (it goes to the sales engineer's conversation with that supplier)
-    quotes: rows.map((x) => ({ label: x.label, quote_id: x.quote_id, ...x.fit, asks: x.fit.asks.map(({ en, ar }) => ({ en, ar })) })),
+    // the supplier's copy of each open point stays on the server (it goes to the sales engineer, who asks that supplier); the
+    // customer reads his copy, whether it is still asked, and the supplier's answer once it came (pointAnswers)
+    quotes: rows.map((x) => ({ label: x.label, quote_id: x.quote_id, ...x.fit, asks: x.fit.asks.map(({ en, ar, state, answer }) => ({ en, ar, state: state ?? 'asked', answer: answer ?? null })) })),
   };
 }
 
@@ -629,58 +643,162 @@ export function enforceFit(a: any, fits: Record<string, QuoteFit>, lang: 'en' | 
   a.top3[0] = { ...a.top3[0], why: rec.why, tradeoff: [rec.trade, ...(fits[best]?.hard_fails.length ? [ar ? `لا يستوفي طلبك: ${failText(fits[best], 'ar')}.` : `Fails ${failText(fits[best], 'en')}.`] : [])].filter(Boolean).join(' ') };
   a.best_value_reason = rec.why;
   a.advice = ar
-    ? `رتّبنا العروض وفق ما طلبته: ${best} أولًا. تبقى العروض جميعها مدرجة، ولك أن تكشف أيًّا منها، وتتولى QuotesDone مع المورّد النقاط التي يتركها عرضه مفتوحة.`
-    : `We ranked the quotes on what you asked for: ${best} first. Every quote stays listed and you can reveal any of them; QuotesDone settles with the supplier the points its quote leaves open.`;
+    ? `رتّبنا العروض وفق ما طلبته: ${best} أولًا. تبقى العروض جميعها مدرجة، ولك أن تكشف أيًّا منها. تطلب QuotesDone من المورّد تأكيد النقاط التي يتركها عرضه مفتوحة، وتظهر إجابته هنا عند وصولها.`
+    : `We ranked the quotes on what you asked for: ${best} first. Every quote stays listed and you can reveal any of them. QuotesDone asks the supplier to confirm the points its quote leaves open, and shows the answer here once it arrives.`;
 }
 
+
+// ---------------------------------------------------------------------------------------------
+// The open points, put to the supplier by QuotesDone, and his answers back.
+// ---------------------------------------------------------------------------------------------
+/** A point's key in the supplier's quotation conversation: one key per point, the same on every view. */
+export function pointKey(supplier: string): string {
+  return 'comparison:' + S(supplier).toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 80);
+}
+/** The code of a comparison point in quote_review_request; supplier_api keeps these out of its auto-close. */
+export { POINT_CODE };
+/** The hand-over kind (scripts/sql/the_comparison_hands_its_open_points_to_the_sales_engineer.sql). */
+export const POINTS_HANDOFF = 'comparison.points';
 /**
- * THE OPEN POINTS, PUT TO THE SUPPLIER BY QUOTESDONE (founder, 14 Sep 2026; review item 6). Before the reveal the customer
- * never puts a question to a supplier. Each point a quote leaves open becomes a clarification in the quotation conversation
- * the sales engineer already has with that supplier (supplier_api quote_review_flow: public.quote_review_request, kind
- * 'clarification', open until the supplier answers), in English (suppliers read English, ruling 1008), with nothing that names
- * the customer. `known` is every key already raised on that conversation, in any state: a point is raised once, never again on
- * the next view of the comparison. Returns the rows to insert and the engineer's message that asks them (null when none).
+ * WHETHER THE POINTS MAY BE RAISED AT ALL (final review of 15 Nov 2026, FIX 1 iv): never once the customer has revealed a
+ * supplier on this request, nor once the request is at an end (request_closed.ts) or a live deal ('revealed'). A customer or
+ * an admin who opens the comparison afterwards raises nothing with the suppliers who lost.
  */
-export function settleRequests(fit: QuoteFit | null | undefined, reviewId: string, known: Set<string>): { rows: { review_id: string; key: string; code: string; kind: 'clarification'; line_no: null; boq_line: null; attr: null; label_en: string; label_ar: string }[]; message: string | null } {
-  const fresh = (fit?.asks || []).map((x) => ({ x, key: 'comparison:' + x.supplier.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 80) })).filter(({ key }) => !known.has(key));
-  const rows = [...new Map(fresh.map((f) => [f.key, f])).values()].map(({ x, key }) => ({ review_id: reviewId, key, code: 'comparison_point', kind: 'clarification' as const, line_no: null, boq_line: null, attr: null, label_en: x.supplier, label_ar: x.supplier }));
-  return { rows, message: rows.length ? ['The customer is comparing the quotations on this request. Please answer these points on your quotation:', ...rows.map((r) => `- ${r.label_en}`)].join('\n') : null };
+export function mayRaisePoints(inq: { status?: unknown } | null | undefined, revealed: boolean): boolean {
+  const st = S(inq?.status);
+  return !revealed && st !== 'revealed' && !isClosedRequest(st);
+}
+/**
+ * THE OPEN POINTS GO TO THE SALES ENGINEER, NOT INTO THE SUPPLIER'S CONVERSATION (CEO, under founder ruling 1696; final
+ * review FIX 1). Code never writes an engineer message (rulings 1195-1197, 1339): quote_compare files ONE hand-over per quote
+ * through the estate's one door, public.fn_seat_handoff, which opens one per kind and subject (the quote) and never again.
+ * Its handler records the points in the supplier's quotation conversation, in the same transaction, where the sales
+ * engineer's model turns raise them and the supplier answers; a quote with no conversation stays on the seat's desk.
+ * The payload carries the customer's copy of each point and the supplier's copy, in English (ruling 1008), and nothing that
+ * names the customer. Returns the fn_seat_handoff arguments, or null when the quote leaves nothing open.
+ */
+export function pointsHandoff(fit: QuoteFit | null | undefined, q: { inquiry_id: string; quote_id: string; label: string }) {
+  const points = [...new Map((fit?.asks || []).map((x) => [x.key ?? pointKey(x.supplier), x])).entries()]
+    .map(([key, x]) => ({ key, supplier: x.supplier, en: x.en, ar: x.ar }));
+  if (!points.length || !S(q?.quote_id) || !S(q?.inquiry_id)) return null;
+  return {
+    p_from: 'sales_engineer', p_to: 'sales_engineer', p_type: POINTS_HANDOFF, p_subject_table: 'quotes', p_subject_id: S(q.quote_id),
+    p_payload: {
+      inquiry_id: S(q.inquiry_id), quote_id: S(q.quote_id), label: S(q.label), points,
+      summary: `${points.length} point(s) ${S(q.label)}'s quotation leaves open against the customer's request: ${points.map((p) => p.supplier).join(' ')}`.slice(0, 900),
+      waiting_for: 'the supplier to answer these points in the quotation conversation; with no conversation, the sales engineer asks the supplier',
+    },
+  };
+}
+/**
+ * HIS ANSWER COMES BACK INTO THE COMPARISON. `answers` is what the supplier's quotation conversation holds for each point
+ * (quote_compare reads quote_review_request and the answering message on every view): an answered point carries the
+ * supplier's answer as the customer may read it (generalised and scrubbed by the caller). A point not recorded yet is asked.
+ */
+export function withAnswers(fit: QuoteFit, answers: Record<string, { state: 'asked' | 'answered'; answer: string | null }>): QuoteFit {
+  if (!fit?.asks?.length) return fit;
+  return { ...fit, asks: fit.asks.map((x) => { const a = answers[x.key ?? pointKey(x.supplier)]; return a?.state === 'answered' ? { ...x, state: 'answered' as const, answer: a.answer } : { ...x, state: 'asked' as const, answer: null }; }) };
 }
 
+// ---------------------------------------------------------------------------------------------
+// Ledger 1588: a hidden listed brand is said nowhere, not to the model and not to the customer.
+// ---------------------------------------------------------------------------------------------
+export type HiddenPhrases = { en: string[]; ar: string[]; countries: { code: string | null; en: string; ar: string; adj: string; ar_adj: string }[] };
+/** Other names a country goes by in a model's prose. */
+const COUNTRY_ALIASES: Record<string, string[]> = { CN: ['PRC', "People's Republic of China", 'mainland China'], US: ['United States', 'America', 'U.S.A.', 'U.S.'], GB: ['United Kingdom', 'Britain', 'England'], KR: ['Korea'], AE: [], JP: ['Nippon'] };
 /**
- * LEDGER 1588, EVERYWHERE THE ANALYSIS SAYS IT (review item 9). Where a quote's brand is one he listed and its tier and origin
- * would name it (fit.brand.hidden), those words are taken out of the whole analysis the customer receives, after the generaliser
- * wrote them: the generic phrase ("economy Chinese brand") and the country it is made in ("made in China") read "as you asked,
- * shown after the reveal". A quote with the same generic phrase whose brand is not his loses it too: hiding more is safe.
+ * The words that would name a hidden listed brand: its generic phrase, and its country and nationality in both languages.
+ * With per-request hiding every listed match is hidden, so the others' origins are here too ("non-Japanese" names Gree).
  */
-export function hiddenBrandPhrases(fit: QuoteFit | null | undefined, lines: FitLine[], trade: string | null): { en: string[]; ar: string[]; countries: { en: string; ar: string }[] } {
-  const out = { en: [] as string[], ar: [] as string[], countries: [] as { en: string; ar: string }[] };
+export function hiddenBrandPhrases(fit: QuoteFit | null | undefined, lines: FitLine[], trade: string | null): HiddenPhrases {
+  const out: HiddenPhrases = { en: [], ar: [], countries: [] };
   if (!fit?.brand.hidden) return out;
   const product = (lines || []).filter((l) => isProductLine(S(l.description) || S(l.specification), trade));
   for (const b of quotedBrandsOf(product)) {
     const g = genericBrand(b); out.en.push(g.en); out.ar.push(g.ar);
-    const o = g.origin ? ORIGIN[g.origin] : null; if (o) out.countries.push({ en: o.country, ar: o.ar_country });
+    const o = g.origin ? ORIGIN[g.origin] : null; if (o) out.countries.push({ code: g.origin, en: o.country, ar: o.ar_country, adj: o.en, ar_adj: o.ar });
   }
   return out;
 }
+const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+const alt = (xs: string[]) => [...new Set(xs.filter(Boolean))].sort((x, y) => y.length - x.length).map(esc).join('|');
+const AS_ASKED_EN = 'a brand as you asked (shown after the reveal)';
+const AS_ASKED_AR = 'علامة كما طلبت (تظهر بعد الكشف)';
+const ORIGIN_EN = 'origin shown after the reveal';
+const ORIGIN_AR = 'المنشأ يظهر بعد الكشف';
+const TIER_EN = '(?:premium|high[- ]end|top[- ]tier|luxury|mid[- ]?range|mid[- ]tier|middle[- ]tier|economy|economical|budget|entry[- ]level|low[- ]cost)';
+const NOUN_EN = '(?:brands?|makes?|manufacturers?|units?|products?|equipment|compressors?|options?|choices?|systems?|models?)';
+const LEAD_EN = '(?:\\b(?:an?|the)\\s+)?(?:(?:only|cheaper|cheapest|lower[- ]cost|dearer|other|same)\\s+)?';
+const TIER_AR = '(?:ال)?(?:فاخرة|فاخر|متوسطة\\s+الفئة|متوسط\\s+الفئة|اقتصادية|اقتصادي)';
+const AR_B = '(?<![\\u0600-\\u06FF])'; const AR_E = '(?![\\u0600-\\u06FF])';
+/**
+ * LEDGER 1588, EVERYWHERE THE ANALYSIS SAYS IT — THE BACKSTOP (review item 9; final review FIX 2b). The model no longer reads a
+ * hidden brand's tier or origin (hideBrandForModel), so this only catches what is left: the generic phrase in any spacing or
+ * case, any brand phrase built from the hidden nationalities ("Chinese economy brand", "economy-tier Chinese units", "a
+ * Chinese brand", "non-Japanese brand"), a tier word on a brand noun ("the only economy option"), every way of stating the
+ * origin ("Chinese-made", "China-made", "origin: China", "country of origin: China", "from China", "made in the PRC"), and
+ * the Arabic forms ("علامة صينية اقتصادية", "منشأ صيني", "مصنوع في الصين", "بلد المنشأ: الصين"). Hiding more is safe.
+ */
 // deno-lint-ignore no-explicit-any
-export function hideBrandPhrases(a: any, phrases: { en: string[]; ar: string[]; countries: { en: string; ar: string }[] }[]): any {
-  const en = [...new Set(phrases.flatMap((p) => p.en))].filter(Boolean).sort((x, y) => y.length - x.length);
-  const arr = [...new Set(phrases.flatMap((p) => p.ar))].filter(Boolean).sort((x, y) => y.length - x.length);
-  const countries = phrases.flatMap((p) => p.countries);
-  if (!en.length && !arr.length && !countries.length) return a;
-  const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export function hideBrandPhrases(a: any, phrases: HiddenPhrases[]): any {
+  const en = phrases.flatMap((p) => p.en); const arr = phrases.flatMap((p) => p.ar); const cs = phrases.flatMap((p) => p.countries || []);
+  if (!en.length && !arr.length && !cs.length) return a;
+  const adj = alt(cs.map((c) => c.adj)); const ctry = alt(cs.flatMap((c) => [c.en, ...(COUNTRY_ALIASES[c.code ?? ''] ?? [])]));
+  // A bare "UAE" is the market every quote is in, never a brand's tell on its own: only its phrased forms are taken out.
+  const bare = alt(cs.filter((c) => c.code !== 'AE').flatMap((c) => [c.adj, c.en, ...(COUNTRY_ALIASES[c.code ?? ''] ?? [])]));
+  const adjAr = alt(cs.flatMap((c) => [c.ar_adj, c.ar_adj.replace(/ة$/, '')]));
+  const ctryAr = alt(cs.map((c) => c.ar));
+  const bareAr = alt(cs.filter((c) => c.code !== 'AE').flatMap((c) => [c.ar_adj, c.ar_adj.replace(/ة$/, ''), c.ar]));
+  const rules: [RegExp, string][] = [];
+  if (en.length) rules.push([new RegExp(`${LEAD_EN}(?:${alt(en)})\\b`, 'gi'), AS_ASKED_EN]);
+  if (adj) {
+    const A = `(?:non-)?(?:${adj})`;
+    rules.push([new RegExp(`${LEAD_EN}(?:${TIER_EN}(?:[\\s-]+tier)?[\\s-]+)?${A}(?:[\\s-]+${TIER_EN}(?:[\\s-]+tier)?)?[\\s-]+${NOUN_EN}\\b`, 'gi'), AS_ASKED_EN]);
+    rules.push([new RegExp(`\\b(?:${adj})[\\s-]+(?:made|manufactured|built|origin)\\b`, 'gi'), ORIGIN_EN]);
+  }
+  if (ctry) {
+    rules.push([new RegExp(`${LEAD_EN}${TIER_EN}(?:[\\s-]+tier)?[\\s-]+${NOUN_EN}\\s+(?:from|made\\s+in)\\s+(?:the\\s+)?(?:${ctry})(?![A-Za-z])`, 'gi'), AS_ASKED_EN]);
+    rules.push([new RegExp(`\\b(?:country\\s+of\\s+)?origin\\s*(?:is\\s*)?[:\\-–]?\\s*(?:the\\s+)?(?:${ctry}${adj ? '|' + adj : ''})(?![A-Za-z])`, 'gi'), ORIGIN_EN]);
+    rules.push([new RegExp(`\\b(?:made|manufactured|produced|built|assembled|sourced|imported)\\s+(?:in|from)\\s+(?:the\\s+)?(?:${ctry})(?![A-Za-z])`, 'gi'), ORIGIN_EN]);
+    rules.push([new RegExp(`(?<![A-Za-z])(?:${ctry})[\\s-]+(?:made|manufactured|built)\\b`, 'gi'), ORIGIN_EN]);
+    rules.push([new RegExp(`\\bfrom\\s+(?:the\\s+)?(?:${ctry})(?![A-Za-z])`, 'gi'), `from an ${ORIGIN_EN}`]);
+  }
+  rules.push([new RegExp(`${LEAD_EN}${TIER_EN}(?:[\\s-]+tier)?[\\s-]+${NOUN_EN}\\b`, 'gi'), AS_ASKED_EN]);
+  if (bare) rules.push([new RegExp(`(?<![A-Za-z])(?:non-)?(?:${bare})(?![A-Za-z])`, 'gi'), `(${ORIGIN_EN})`]);
+  if (arr.length) rules.push([new RegExp(`(?:${alt(arr)})`, 'g'), AS_ASKED_AR]);
+  if (adjAr) {
+    rules.push([new RegExp(`${AR_B}(?:ال)?(?:علامة|علامات|ماركة|وحدات|خيار)(?:\\s+(?:ال)?تجارية)?\\s+(?:${TIER_AR}\\s+)?(?:ال)?(?:${adjAr})(?:\\s+${TIER_AR})?${AR_E}`, 'g'), AS_ASKED_AR]);
+    rules.push([new RegExp(`${AR_B}(?:بلد\\s+)?(?:ال)?منشأ\\s*[:：]?\\s*(?:ال)?(?:${adjAr}${ctryAr ? '|' + ctryAr : ''})${AR_E}`, 'g'), ORIGIN_AR]);
+  }
+  if (ctryAr) {
+    rules.push([new RegExp(`${AR_B}(?:صنع|صُنع|صُنعت|مصنوع|مصنوعة|مصنّع|مصنّعة|مصنع|مصنعة|منتج|منتجة)\\s+في\\s+(?:${ctryAr})${AR_E}`, 'g'), ORIGIN_AR]);
+    rules.push([new RegExp(`${AR_B}من\\s+(?:${ctryAr})${AR_E}`, 'g'), `من ${ORIGIN_AR}`]);
+  }
+  rules.push([new RegExp(`${AR_B}(?:ال)?(?:علامة|ماركة|وحدات|خيار)(?:\\s+(?:ال)?تجارية)?\\s+${TIER_AR}${AR_E}`, 'g'), AS_ASKED_AR]);
+  if (bareAr) rules.push([new RegExp(`${AR_B}[وبلف]?(?:ال)?(?:${bareAr})${AR_E}`, 'g'), `(${ORIGIN_AR})`]);
   const fix = (t: string) => {
     let s = t;
-    for (const p of en) s = s.replace(new RegExp(esc(p), 'gi'), 'brand as you asked (shown after the reveal)');
-    for (const p of arr) s = s.split(p).join('علامة كما طلبت (تظهر بعد الكشف)');
-    for (const c of countries) {
-      s = s.replace(new RegExp(`\\b(?:made|manufactured|produced)\\s+in\\s+${esc(c.en)}\\b`, 'gi'), 'origin shown after the reveal');
-      s = s.replace(new RegExp(`(?:صنع|صُنع)\\s+في\\s+${esc(c.ar)}`, 'g'), 'المنشأ يظهر بعد الكشف');
-    }
-    return s;
+    for (const [re, to] of rules) s = s.replace(re, to);
+    // "an brand as you asked" (the review's own catch) and a doubled article read as one article.
+    return s.replace(/\b([Aa])n?\s+(?:an?\s+)?(?=brand as you asked)/g, '$1 ').replace(/\b(?:[Tt]he)\s+a brand as you asked/g, 'a brand as you asked');
   };
   // deno-lint-ignore no-explicit-any
   const walk = (o: any): any => typeof o === 'string' ? fix(o) : Array.isArray(o) ? o.map(walk) : o && typeof o === 'object' ? Object.fromEntries(Object.entries(o).map(([k, v]) => [k, walk(v)])) : o;
   return walk(a);
+}
+const BRAND_FIELD = /^(?:brand|brand_name|make|manufacturer)$/i;
+const ORIGIN_FIELD = /^(?:country_of_origin|origin|country|made_in)$/i;
+/**
+ * WHAT THE MODEL READS OF A HIDDEN QUOTE (final review FIX 2b): its brand fields say only that the brand is as the customer
+ * asked, its origin fields are left out, and every phrase hideBrandPhrases knows is taken out of the rest (descriptions,
+ * terms, review notes) before the payload is built. The model cannot write what it never read.
+ */
+// deno-lint-ignore no-explicit-any
+export function hideBrandForModel<T>(q: T, phrases: HiddenPhrases | null | undefined): T {
+  if (!phrases || (!phrases.en.length && !phrases.ar.length && !phrases.countries.length)) return q;
+  // deno-lint-ignore no-explicit-any
+  const walk = (o: any): any => Array.isArray(o) ? o.map(walk) : o && typeof o === 'object'
+    ? Object.fromEntries(Object.entries(o).filter(([k]) => !ORIGIN_FIELD.test(k)).map(([k, v]) => [k, BRAND_FIELD.test(k) && typeof v === 'string' && v.trim() ? 'as the customer asked (shown after the reveal)' : walk(v)]))
+    : o;
+  return hideBrandPhrases(walk(q), [phrases]);
 }

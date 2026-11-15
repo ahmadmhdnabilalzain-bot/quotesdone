@@ -67,8 +67,9 @@ Deno.test('2. a quote that fails a stated requirement is never called complete, 
 
 Deno.test('2b. the brand is checked against his list BEFORE it is anonymised; only yes / no, tier and origin leave', () => {
   const { analysis: a, fits } = journeyA('en');
-  // Gree is his only economy Chinese brand, so "one of yours, economy Chinese" would name it (ledger 1588): A says only "as you asked".
-  assertEquals(['Supplier A', 'Supplier B', 'Supplier C'].map((l) => fits[l].cells.brand_list.shown.en), ['As you asked; the brand is shown after the reveal', 'Yes: premium Japanese brand', 'Yes: premium Japanese brand']);
+  // Gree is his only economy Chinese brand, so "one of yours, economy Chinese" would name it (ledger 1588), and "premium
+  // Japanese" on B and C would name it by elimination (final review FIX 2a): every listed match says only "as you asked".
+  assertEquals(['Supplier A', 'Supplier B', 'Supplier C'].map((l) => fits[l].cells.brand_list.shown.en), Array(3).fill('As you asked; the brand is shown after the reveal'));
   const json = JSON.stringify(a);
   for (const name of ['Daikin', 'Gree', 'Mitsubishi', 'Arabian Air', 'Cool Breeze', 'Polar Tech']) assert(!json.includes(name), `"${name}" reaches the analysis`);
   // A brand he did not name fails the request, and is said to.
@@ -82,9 +83,9 @@ Deno.test('2b. the brand is checked against his list BEFORE it is anonymised; on
 
 Deno.test('3. the recommendation says plainly what the extra money buys, with the price difference', () => {
   const { analysis: a } = journeyA('en');
-  assertEquals(a.bottom_line, 'We recommend Supplier B: one of your listed brands (premium Japanese brand), and it meets 11 of your 13 requirements, including the installation warranty you asked for. It costs AED 3,471 more than Supplier A, which fails your installation warranty: 1 year against the 2 years you asked for.');
+  assertEquals(a.bottom_line, 'We recommend Supplier B: one of your listed brands, and it meets 11 of your 13 requirements, including the installation warranty you asked for. It costs AED 3,471 more than Supplier A, which fails your installation warranty: 1 year against the 2 years you asked for.');
   assert(!/Highest combined score/.test(JSON.stringify(a.top3)), 'no generic reason is left');
-  assertEquals([a.top3[0].why, a.top3[0].tradeoff], ['One of your listed brands (premium Japanese brand), and it meets 11 of your 13 requirements, including the installation warranty you asked for.',
+  assertEquals([a.top3[0].why, a.top3[0].tradeoff], ['One of your listed brands, and it meets 11 of your 13 requirements, including the installation warranty you asked for.',
     'It costs AED 3,471 more than Supplier A, which fails your installation warranty: 1 year against the 2 years you asked for.']);
   assertEquals(a.top3[1].why, 'It meets 11 of your 13 requirements; AED 2,207 more than Supplier B.');
 });
@@ -130,14 +131,14 @@ Deno.test('7. the Arabic report carries the same comparison in Arabic, with noth
   const ours = Object.values(fits).flatMap((f) => [...Object.values(f.cells).map((c) => c.shown.en), ...f.asks.map((x) => x.en)]).filter((s) => /[a-z]{3}/.test(s));
   for (const s of d.untranslated) assert(!ours.includes(s), `our own text "${s}" needs Arabic`);
   const body = JSON.stringify(d.body);
-  for (const s of ['You asked for', 'Ask before you reveal', 'Points QuotesDone settles', 'What you asked for', 'Meets your request', 'Not stated']) assert(!body.includes(s), `"${s}" on the Arabic page`);
+  for (const s of ['You asked for', 'Ask before you reveal', 'Points QuotesDone settles', 'Points QuotesDone asks', 'What you asked for', 'Meets your request', 'Not stated']) assert(!body.includes(s), `"${s}" on the Arabic page`);
 });
 
 Deno.test('8. the report a customer downloads for journey A (PDF text snapshot)', async () => {
   const text = await reportText();
   const flat = text.replace(/\s+/g, ' ');
-  for (const s of ['What you asked for, quote by quote', 'Requirement You asked for Supplier B Supplier C Supplier A', 'Refrigerant R32 or R410A R32 R32 R32', 'Points QuotesDone settles with the supplier for you', 'Supplier A fails what you asked for', 'It costs AED 3,471 more than Supplier A', '1.5 TR units: you asked for 2', 'Price score Meets your request Done by your date Overall', 'Supplier C AED 17,957 14 days from LPO']) assert(flat.includes(s), `"${s}" is not on the page`);
-  for (const s of ['All 30 match', 'Highest combined score', 'relative to the other quotes', 'Ask before you reveal', 'put them to the suppliers', 'economy Chinese']) assert(!text.includes(s), `"${s}" is still on the page`);
+  for (const s of ['What you asked for, quote by quote', 'Requirement You asked for Supplier B Supplier C Supplier A', 'Refrigerant R32 or R410A R32 R32 R32', 'Points QuotesDone asks the supplier to confirm', 'Supplier A fails what you asked for', 'It costs AED 3,471 more than Supplier A', '1.5 TR units: you asked for 2', 'Price score Meets your request Done by your date Overall', 'Supplier C AED 17,957 14 days from LPO']) assert(flat.includes(s), `"${s}" is not on the page`);
+  for (const s of ['All 30 match', 'Highest combined score', 'relative to the other quotes', 'Ask before you reveal', 'put them to the suppliers', 'economy Chinese', 'premium Japanese', 'settles']) assert(!text.includes(s), `"${s}" is still on the page`);
   let update = false;
   try { update = (await Deno.permissions.query({ name: 'env', variable: 'QD_UPDATE_SNAPSHOT' })).state === 'granted' && !!Deno.env.get('QD_UPDATE_SNAPSHOT'); } catch { update = false; }
   if (update) { await Deno.writeTextFile(SNAPSHOT, text); return; }
