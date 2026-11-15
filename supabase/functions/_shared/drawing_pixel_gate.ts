@@ -228,7 +228,7 @@ async function pool<T, R>(items: T[], f: (x: T) => Promise<R>, late: (x: T) => R
  * again (at most PIXEL_MAX_RECHECKS times); painting only adds black, so a view once clean stays clean. Without a plan
  * the image is asked whole (one view, PIXEL_CALL_USD). `budget` is in USD; a round it cannot pay for HOLDS the page.
  */
-export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint, budget: PixelBudget = { left: () => Infinity, spend: () => {} }, look?: { plan: TilePlan; crop: PixelCrop; stopAt?: number; now?: () => number; vet?: (regions: Box[]) => { keep: Box[]; ignored: { box: Box; text: string }[] } }): Promise<PixelOutcome> {
+export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint, budget: PixelBudget = { left: () => Infinity, spend: () => {} }, look?: { plan: TilePlan; crop: PixelCrop; stopAt?: number; now?: () => number; vet?: (regions: (Box & { what?: string })[]) => { keep: Box[]; ignored: { box: Box; text: string }[] } }): Promise<PixelOutcome> {
   const views: Tile[] = look ? [...look.plan.tiles, ...(look.plan.whole ? [look.plan.whole] : [])] : [{ x: 0, y: 0, w: 1, h: 1, outW: 0, outH: 0, whole: true }];
   const cost = (t: Tile) => look ? callUsd(t.outW, t.outH + TILING.markPx) : PIXEL_CALL_USD;
   let img = jpgB64, calls = 0, usd = 0, added = 0, pending = views;
@@ -273,7 +273,8 @@ export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint
     for (const a of dirty) {
       const onPage = a.v!.regions.map((r) => toPage(a.t, r));
       if (!look?.vet || a.v!.unsure || a.v!.addressed) { kept.set(a.t, onPage); continue; }
-      const v = look.vet(onPage); ignoredWhat.push(...v.ignored.map((x) => x.text)); kept.set(a.t, v.keep);
+      // The checker's own words for each box go with it (round 5): the vet ignores a box only when they are the text under it.
+      const v = look.vet(a.v!.regions.map((r) => ({ ...toPage(a.t, r), what: r.what }))); ignoredWhat.push(...v.ignored.map((x) => x.text)); kept.set(a.t, v.keep);
     }
     dirty = dirty.filter((a) => kept.get(a.t)!.length > 0);
     const vetDetail = ignoredWhat.length ? { ignored: ignoredWhat.length, ignored_what: ignoredWhat.slice(0, 12) } : {};

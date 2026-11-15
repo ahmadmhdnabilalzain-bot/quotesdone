@@ -66,7 +66,8 @@ export function unreadTextHold(page: PdfPage | undefined, seeds: string[], paint
  * safe part). MEASURED by the reviewer: an OVER-EAGER checker (it boxes every line it reads) published 22 of 23 ordinary
  * previews with 0 of 28 quoting strings left, and nothing noticed. On a page with a text layer, code reads what lies under
  * each box the checker names; a box is IGNORED (not painted, logged in the gate's detail) only when ALL of this holds:
- *   - it covers at least one run (its centre inside the box) and every run it touches by a fifth or more is DRAWING
+ *   - (round 5) what the checker SAID it saw (its `what`) is the text under the box (whatIsUnder below);
+ *   - it covers at least one run (its centre inside the box) and every run it touches at all is DRAWING
  *     VOCABULARY: the strict closed-list gate (drawing_text_policy.isVocabularyContent: every token a number, a size or
  *     device code, or a trade word; no company, licence, contact, label, place, Arabic, letter-spaced text), at least
  *     one real word of the trade in it (a bare number such as the reviewer's n03 plot "+6512" written like a level is
@@ -76,7 +77,27 @@ export function unreadTextHold(page: PdfPage | undefined, seeds: string[], paint
  * Anything else the checker boxes is painted as before. Levels, grids, scales, sheet numbers, revision rows and schedule
  * rows are exactly such runs.
  */
-export type Vet = (regions: Box[]) => { keep: Box[]; ignored: { box: Box; text: string }[] };
+export type Vet = (regions: (Box & { what?: string })[]) => { keep: Box[]; ignored: { box: Box; text: string }[] };
+/** Letters and digits of a text, upper case, split into tokens. */
+const tokensOf = (t: string) => String(t || '').toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+/** One edit apart (a misread letter, one dropped or added), for a word of 4+ letters; digits must match exactly. */
+function nearWord(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (/\d/.test(a) || /\d/.test(b) || Math.min(a.length, b.length) < 4 || Math.abs(a.length - b.length) > 1) return false;
+  let i = 0, j = 0, edits = 0;
+  while (i < a.length && j < b.length) {
+    if (a[i] === b[j]) { i++; j++; continue; }
+    if (++edits > 1) return false;
+    if (a.length > b.length) i++; else if (b.length > a.length) j++; else { i++; j++; }
+  }
+  return edits + (a.length - i) + (b.length - j) <= 1;
+}
+/** What the checker SAID it saw is the text under the box: every token of `what` is a token of `runs` (a word of 4+
+ *  letters may be one edit off, as OCR reads it; a number must be exact). An empty or descriptive `what` is not. */
+export function whatIsUnder(what: string | undefined, runs: string[]): boolean {
+  const w = tokensOf(what ?? ''), under = runs.flatMap(tokensOf);
+  return w.length > 0 && w.every((t) => under.some((u) => nearWord(t, u)));
+}
 export function vocabularyVet(page: PdfPage | undefined, seeds: string[]): Vet | undefined {
   if (!page || !page.runs.length) return undefined;
   const area = (b: Box) => Math.max(0, b.w) * Math.max(0, b.h);
@@ -89,12 +110,18 @@ export function vocabularyVet(page: PdfPage | undefined, seeds: string[]): Vet |
     return !(namesParty(s) || partyLabel(s) || drawingLocation(s) || seedHit(s, seeds) || residualScan(s, seeds).length > 0);
   };
   const unread = unreadAreas(page, seeds), pics = page.images ?? [];
-  return (regions: Box[]) => {
+  return (regions: (Box & { what?: string })[]) => {
     const keep: Box[] = [], ignored: { box: Box; text: string }[] = [];
-    for (const b of regions) {
-      const touched = page.runs.filter((r) => area(r) > 0 && inter(r, b) >= 0.2 * area(r));
+    for (const g of regions) {
+      const b: Box = { x: g.x, y: g.y, w: g.w, h: g.h };
+      // ROUND 5 (fourth review, fix 1): every run the box touches AT ALL must be vocabulary (a box that clips 15% of
+      // "+6512" is kept), and what the checker said it saw must be the text under the box. MEASURED (SP/f3rev4/vet_probe.ts):
+      // a checker that sees "+6512" or "MARINA PEARL TOWER" and draws its box one line high lands on a level note or a pump
+      // row; round 4 ignored that box and published the page. Now it is painted and the view is asked again.
+      const touched = page.runs.filter((r) => area(r) > 0 && inter(r, b) > 0);
       const covered = touched.filter((r) => centreIn(b, r));
       const ok = covered.length > 0 && touched.every((r) => !r.unread && vocab(r.text))
+        && whatIsUnder(g.what, touched.map((r) => r.text))
         && !unread.some((u) => inter(u, b) > 0) && !pics.some((im) => inter(im, b) > 0);
       if (ok) {
         const u = { x: Math.min(...touched.map((r) => r.x)), y: Math.min(...touched.map((r) => r.y)), w: 0, h: 0 };

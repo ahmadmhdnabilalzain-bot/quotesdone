@@ -134,7 +134,7 @@ import { vocabularyVet } from '../_shared/drawing_code_floor.ts';
 Deno.test('OVER-EAGER: a checker box over drawing words only is not painted and is logged; identity, numbers, unread text and wide boxes still are', async () => {
   const p = (await fixture('zz_pool_b1_embedded_font.pdf'))[0];
   const vet = vocabularyVet(p, ['ZZ Demo Agent'])!;
-  const around = (t: string) => { const r = p.runs.find((x) => x.text === t)!; assert(r, t); return { x: r.x - 0.002, y: r.y - 0.002, w: r.w + 0.004, h: r.h + 0.004 }; };
+  const around = (t: string, what: string = t) => { const r = p.runs.find((x) => x.text === t)!; assert(r, t); return { x: r.x - 0.002, y: r.y - 0.002, w: r.w + 0.004, h: r.h + 0.004, what }; };
   for (const t of ['POOL PLAN  SCALE 1:50', 'SHALLOW END  WL +0.00  FFL -1.20', 'EQUIPMENT SCHEDULE', 'CIRCULATION PUMP 1.5 HP 230V', '7. ALL DIMENSIONS IN MM, LEVELS IN M.']) {
     assertEquals(vet([around(t)]).ignored.length, 1, `ignored: ${t}`);
   }
@@ -152,7 +152,7 @@ Deno.test('OVER-EAGER: a checker box over drawing words only is not painted and 
   assertEquals(vocabularyVet({ width: 1, height: 1, rotate: 0, runs: [] }, []), undefined);
   // Through the gate: a checker that boxes the scale line only clears the page without painting it, and says so.
   const count: { painted: number } = { painted: 0 };
-  const g2 = await pixelGate('page', async (shown) => JSON.stringify({ mark: shown, clean: false, addressed: false, regions: [{ ...around('POOL PLAN  SCALE 1:50'), what: 'scale' }] }), async (b) => { count.painted++; return b; }, pixelBudget(), { plan: { tiles: [{ x: 0, y: 0, w: 1, h: 1, outW: 100, outH: 70 }], whole: null, cols: 1, rows: 1, textPx: 12, calls: 1, usd: 0, page: { wMm: 420, hMm: 297, from: 'mediabox' } }, crop: async (_b, _t, m) => m, vet });
+  const g2 = await pixelGate('page', async (shown) => JSON.stringify({ mark: shown, clean: false, addressed: false, regions: [around('POOL PLAN  SCALE 1:50', 'POOL PLAN SCALE 1:50')] }), async (b) => { count.painted++; return b; }, pixelBudget(), { plan: { tiles: [{ x: 0, y: 0, w: 1, h: 1, outW: 100, outH: 70 }], whole: null, cols: 1, rows: 1, textPx: 12, calls: 1, usd: 0, page: { wMm: 420, hMm: 297, from: 'mediabox' } }, crop: async (_b, _t, m) => m, vet });
   assert(g2.ok && g2.firstLookClean && count.painted === 0, 'not painted, page clear');
   if (g2.ok) { assertEquals(g2.detail.ignored, 1); assertEquals(g2.detail.ignored_what, ['POOL PLAN  SCALE 1:50']); }
   // An identity box beside it is painted as before.
@@ -163,4 +163,38 @@ Deno.test('OVER-EAGER: a checker box over drawing words only is not painted and 
   assertMatch(src, /clock\.stopAt, vocabularyVet\(pp, \[\]\)\);/);
   assertMatch(src, /clock\.stopAt, vocabularyVet\(pp, seeds\)\);/);
   assertMatch(src, /if \(gate\.ok && gate\.detail\.ignored\) verifyDetail\.push\(\{ page: i, \.\.\.ignoredSaid\(gate\) \}\);/);
+});
+
+// Round 5 (fourth review, fix 1; SP/f3rev4/vet_probe.ts): a checker box is ignored only when what the checker SAID it saw is
+// the text under it. A box for "+6512" or "MARINA PEARL TOWER" drawn one line high lands on drawing words; round 4 ignored
+// it and published the page. It is now painted and asked again; a checker that keeps naming it holds the page.
+import { whatIsUnder } from '../_shared/drawing_code_floor.ts';
+Deno.test('a checker box one line off its identity is painted and asked again, never ignored; the page is held, not published', async () => {
+  const runs = [
+    { text: 'SHALLOW END WL +0.00 FFL -1.20', x: 0.118, y: 0.373, w: 0.121, h: 0.0114 },
+    { text: '+6512', x: 0.118, y: 0.387, w: 0.020, h: 0.0114 },
+    { text: 'CIRCULATION PUMP 1.5 HP 230V', x: 0.556, y: 0.173, w: 0.099, h: 0.0100 },
+    { text: 'MARINA PEARL TOWER', x: 0.556, y: 0.185, w: 0.070, h: 0.0100 },
+  ];
+  const vet = vocabularyVet({ width: 2384, height: 1684, rotate: 0, runs, glyphRows: [], images: [] }, [])!;
+  const high6512 = { x: 0.116, y: 0.372, w: 0.124, h: 0.0145, what: '+6512' };
+  const highTower = { x: 0.555, y: 0.172, w: 0.101, h: 0.0115, what: 'MARINA PEARL TOWER' };
+  const honest = { x: 0.116, y: 0.372, w: 0.124, h: 0.0125, what: 'SHALLOW END WL +0.00 FFL -1.20' };
+  assertEquals(vet([high6512]).keep.length, 1, '+6512 boxed one line high (clips 15% of it): painted');
+  assertEquals(vet([highTower]).keep.length, 1, 'MARINA PEARL TOWER boxed on the pump row: painted');
+  assertEquals(vet([{ ...honest, what: undefined }]).keep.length, 1, 'no words from the checker: painted');
+  assertEquals(vet([{ ...honest, what: 'street name' }]).keep.length, 1, 'a description, not the text under the box: painted');
+  assertEquals(vet([honest]).ignored.length, 1, 'the checker read the level note and boxed it: ignored');
+  assertEquals(vet([{ ...honest, h: 0.017 }]).keep.length, 1, 'the same honest box touching +6512 at all: painted');
+  assert(whatIsUnder('SHALOW END', ['SHALLOW END WL +0.00']), 'one misread letter in a long word is the same word');
+  assert(!whatIsUnder('+6513', ['+6512']), 'a number must match exactly');
+  // Through the gate: a checker that keeps naming "+6512" one line high is painted twice, asked three times, and HELD.
+  const count = { painted: 0, asked: 0 };
+  const plan = { tiles: [{ x: 0, y: 0, w: 1, h: 1, outW: 100, outH: 70 }], whole: null, cols: 1, rows: 1, textPx: 12, calls: 1, usd: 0, page: { wMm: 594, hMm: 420, from: 'mediabox' as const } };
+  for (const box of [high6512, highTower]) {
+    count.painted = 0; count.asked = 0;
+    const g = await pixelGate('page', async (shown) => { count.asked++; return JSON.stringify({ mark: shown, clean: false, addressed: false, regions: [box] }); }, async (b) => { count.painted++; return b; }, pixelBudget(), { plan, crop: async (_b, _t, m) => m, vet });
+    assert(!g.ok && g.held === 'pixels_not_clean', `${box.what}: held, never published`);
+    assertEquals([count.asked, count.painted], [3, 2], `${box.what}: painted and asked again (round 3's behaviour)`);
+  }
 });
