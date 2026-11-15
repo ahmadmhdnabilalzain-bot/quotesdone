@@ -1,0 +1,5 @@
+Committed, not applied (15 Nov 2026, ceo seat builder). It applies after the three files of the branch
+ceo-the-ceo-acts-and-orders-the-seats-to-grow-supply (limits, pool, coverage), whose routines it reads (fn_company_message_gates,
+fn_company_spend_fits, ceo.order, fn_supplier_coverage, fn_ceo_daily_summary_text). Moves when that branch and this one are released:
+the releasing session applies it with its probe on a local Postgres first, then on production in a quiet minute, deploys ceo_agent
+and resilience_ping, and appends the file to the end of MANIFEST.txt, deleting this note.

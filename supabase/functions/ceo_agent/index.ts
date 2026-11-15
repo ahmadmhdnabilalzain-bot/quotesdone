@@ -36,6 +36,7 @@ import { liveReviewIO } from '../_shared/review_request.ts';
 import { precedentBlock, recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { seatPool } from '../_shared/seat_pool.ts';
 import { COVERAGE_ACTIONS, coverageAction } from './coverage.ts';
+import { PLAN_ACTIONS, planAction } from './plan.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -440,7 +441,31 @@ Deno.serve(observe('ceo_agent', async (req) => {
       who, action, body);
     if (cov) return J(cov.body, cov.status);
 
-    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'review_refund', 'accept', 'judgement', ...COVERAGE_ACTIONS] }, 400);
+    // ── THE PLANNING LOOP (15 Nov 2026, founder ledger 1696/1701/1705/1709; plan.ts): the CEO answers the plan fn_ceo_plan_due
+    // opened, on the request's own task class (the weekly plan on ceo_strategic_planning, his hard route; the daily review on
+    // routine_employee_reasoning), and code files it (fn_ceo_plan_file). At most two model calls a plan.
+    const plan = await planAction({
+      rpc: (fn, args) => admin.rpc(fn, args),
+      model: async (system, user, taskClass) => {
+        const daily = taskClass === 'routine_employee_reasoning';
+        const llm = makeLlmRich(undefined, { json: true, fn: 'ceo_agent', agent: 'ceo', taskClass, max: daily ? 2000 : 8000,
+          timeoutMs: daily ? 40000 : 110000, temperature: 0.2 });
+        const r = await llm(system, user, daily ? 2000 : 8000);
+        return { content: r.content ?? null, error: r.error ?? (r.content ? null : r.outcome ?? 'no answer'), truncated: !!r.truncated, model: r.model ?? null };
+      },
+      recentPlans: (limit) => admin.from('ceo_plan_week').select('id,kind,period,status,model,error,refusals,created_at,filed_at,ceo_plan_bet(id,revision,ord,channel,seat,what,measure,target,due_at,status,refusal,actual)')
+        .order('id', { ascending: false }).limit(limit),
+      detach: (work) => {
+        // deno-lint-ignore no-explicit-any
+        const rt = (globalThis as any).EdgeRuntime;
+        if (typeof rt?.waitUntil !== 'function') return false;
+        rt.waitUntil(work);
+        return true;
+      },
+    }, who, action, body);
+    if (plan) return J(plan.body, plan.status);
+
+    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'review_refund', 'accept', 'judgement', ...COVERAGE_ACTIONS, ...PLAN_ACTIONS] }, 400);
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }

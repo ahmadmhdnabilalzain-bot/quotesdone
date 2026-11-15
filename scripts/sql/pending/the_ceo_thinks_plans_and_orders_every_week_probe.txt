@@ -1,0 +1,3 @@
+The probe of the_ceo_thinks_plans_and_orders_every_week.sql: it always raises CHK<<...>> and so writes nothing. Run locally during
+work (PROBE OK twice on a fresh database, 15 Nov 2026); on production only by the releasing session, right after the apply, in a
+quiet minute. Moves with its file.

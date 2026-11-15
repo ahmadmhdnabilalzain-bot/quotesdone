@@ -123,6 +123,33 @@ export async function ceoDecisionsTick(): Promise<unknown> {
 // client. The slot is off today, so that branch has never reached the gateway.
 // scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql.
 export async function ceoPlanTick(): Promise<unknown> {
+  const planC = await planCTick();
+  return { ...(planC as Record<string, unknown>), loop: await ceoPlanningLoopTick() };
+}
+
+// THE CEO'S PLANNING LOOP (15 Nov 2026, ceo, founder ledger 1696/1701/1705/1709). fn_ceo_plan_due measures the open bets and
+// learns the channel priors once a day, files the seeded first plan, and opens the weekly reasoned plan (Monday) or a daily
+// review when code found an anomaly. When it says call_model, the CEO's own function answers it (ceo_agent action 'plan',
+// detached: it answers 202 and runs under its own clock), and code files the answer. Not gated on ceo_model_slot: the loop
+// has its own switch and weekly cap (decision_policy ceo_planning_loop). scripts/sql/the_ceo_thinks_plans_and_orders_every_week.sql
+export async function ceoPlanningLoopTick(): Promise<unknown> {
+  try {
+    const { data, error } = await admin.rpc('fn_ceo_plan_due', {});
+    if (error) return { ok: false, error: error.message };
+    // deno-lint-ignore no-explicit-any
+    const t = data as any;
+    if (!t?.call_model || !t?.plan_id) return t;
+    const r = await fetch(FN + '/ceo_agent', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
+      body: JSON.stringify({ __secret: await sec('cred_fn_ceo_agent'), action: 'plan', plan_id: t.plan_id, detach: true }),
+      signal: AbortSignal.timeout(20000),
+    });
+    const j = await r.json().catch(() => null);
+    return { ...t, answer: j, ...(r.ok ? {} : { ok: false, error: 'ceo_agent plan ' + r.status }) };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+async function planCTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_ceo_plan_tick');
     if (error) return { ok: false, error: error.message };
