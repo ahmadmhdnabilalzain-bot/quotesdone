@@ -50,7 +50,7 @@ const { rehearse } = await import('./rehearse_sql.mjs');
 const { replaySql } = await import('../lib/safe_replay.mjs');
 const { maskSql } = await import('../lib/sql_text.mjs');
 // A rehearsal that waits on a lock is one holding production up; it fails, and the finding counts (review of #1825).
-const LIMITS = "set local lock_timeout = '5s';\nset local statement_timeout = '90s';\n";
+const LIMITS = "set local lock_timeout = '1s';\nset local statement_timeout = '90s';\n";
 const texts = files.map((f) => readFileSync(f, 'utf8'));
 const upTo = (k) => LIMITS + texts.slice(0, k + 1).join('\n;\n');
 const bare = (n) => n.replace(/"/g, '').toLowerCase().replace(/^public\./, '');

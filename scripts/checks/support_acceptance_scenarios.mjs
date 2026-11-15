@@ -32,12 +32,10 @@ const TOKEN = (process.env.SUPABASE_ACCESS_TOKEN
 const REF = 'htdblwldjkcgjvmqkbeh';
 
 async function runBlock(sql) {
-  const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + TOKEN, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: sql }),
-  });
-  const text = await res.text();
+  // through the replay guard (13 Nov 2026): each block is a rolled-back probe and was POSTed straight to the management API
+  const { replaySql } = await import('../lib/safe_replay.mjs');
+  let text = '';
+  try { await replaySql(sql, { label: 'a support acceptance block' }); } catch (e) { text = String(e?.body ?? e?.message ?? e); }
   const m = text.match(/CHK<<([\s\S]*?)>>/);
   if (!m) return { error: text.slice(0, 900) };
   const out = {};

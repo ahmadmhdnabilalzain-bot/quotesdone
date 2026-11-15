@@ -176,7 +176,8 @@ test('the applier actually reads the result set it used to throw away', () => {
   // The convention is worth nothing if apply_sql.mjs stops looking. Anchored on the assignment and
   // on the exit, not on prose, so a comment cannot satisfy it.
   const applier = readFileSync('scripts/apply_sql.mjs', 'utf8');
-  assert.match(applier, /const applied = await dbPost\(/,
+  // (13 Nov 2026: the apply became a retry loop, `let applied; ... applied = await dbPost(`; still the assignment, never a bare await)
+  assert.match(applier, /(?:const )?\bapplied = await dbPost\(/,
     'scripts/apply_sql.mjs must keep the rows the apply returns — `await dbPost(...)` on its own '
     + 'discards the only channel a DDL file has for reporting a verdict.');
   assert.match(applier, /probeFailures\+\+/, 'apply_sql.mjs must count a failed probe verdict.');

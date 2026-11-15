@@ -29,6 +29,8 @@ export const ALLOWED = new Map([
   ['scripts/lib/safe_replay.mjs', 'the door itself'],
   ['scripts/checks/canonical_routine_manifest.mjs', 'its q() sends catalogue reads written in the file'],
   ['scripts/checks/every_tick_step_is_scheduled.mjs', 'sends two selects written in the file'],
+  ['scripts/checks/no_script_sends_ddl_to_production_except_through_the_guard.test.mjs', 'a static check: its SQL texts are fixtures it reads, never sent'],
+  ['scripts/checks/whatsapp_goes_to_a_confirmed_number.mjs', 'its walk goes through replaySql since 13 Nov 2026'],
   ['scripts/checks/language_follows_registration.mjs', 'sends WALK, an aborted probe written in the file with no interpolation'],
   ['scripts/record_inbox_placement_verdict.mjs', 'the live path sends one generated call of a routine already applied (recordSql, no file text); its --dry-run replays the pending files through replaySql'],
   ['scripts/checks/every_duty_has_an_owner_and_a_clock.test.mjs', 'its one sql() send is a select it asks only when no pending file exists; the pending file is replayed through replaySql. It cannot be readOnly: the read-only role is refused fn_suppression_stops'],
@@ -166,6 +168,10 @@ test('a begin; create function; commit; file replayed through the helper leaves 
   const name = `zz_demo_safe_replay_${process.pid}`;
   const exists = async () => (await sql(`select count(*)::int n from pg_proc where proname = '${name}'`, { readOnly: true }))[0].n;
   try { await exists(); } catch (e) { if (/No Supabase access token|SUPABASE_ACCESS_TOKEN is not set/.test(e.message)) return t.skip('no management token'); throw e; }
+  // production is never the default for a replay (13 Nov 2026): with no local database and no QD_REPLAY_ON_PRODUCTION=1 there is
+  // nothing to replay on, and the helper says so instead of rehearsing on production
+  const { replayTarget } = await import('../lib/safe_replay.mjs');
+  if (!replayTarget()) return t.skip('no replay target: QD_LOCAL_DB_URL or QD_REPLAY_ON_PRODUCTION=1');
   assert.equal(await exists(), 0, 'the demo routine is already on production');
   const file = `BEGIN;\ncreate function public.${name}() returns int language sql as $f$ select 1 $f$;\nCOMMIT;\n`
     + `select public.${name}();\n`;

@@ -18,6 +18,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
@@ -160,7 +161,7 @@ test('production: yes, no and silence on demo data, and nothing survives', { ski
   const { sql } = await import('../lib/db.mjs');
   let out = null;
   const parse = (s) => { try { return JSON.parse(s); } catch { return JSON.parse(s.replace(/\\\\/g, '\\').replace(/\\"/g, '"')); } };
-  try { await sql(PROBE); } catch (e) { const m = String(e.body || e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
+  try { await replaySql(PROBE, { label: 'the spec offer probe' }); } catch (e) { const m = String(e.body || e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
   assert.ok(out, 'the probe did not report');
   if (out.skipped) { t.skip(out.skipped); return; }
 

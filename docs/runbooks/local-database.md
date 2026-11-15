@@ -46,6 +46,37 @@ Use it to:
   `docker exec -i supabase_db_<project> psql -U postgres -v ON_ERROR_STOP=1 < scripts/sql/<file>.sql`;
 - read a routine's live definition without a production token.
 
+## Without Docker: the database every rehearsal runs on (`scripts/db/local_pg16.mjs`, 13 Nov 2026)
+
+On 13 Nov 2026 rolled-back rehearsals on production held the locks of the changes they rehearsed for 12-15 s and live requests
+were cancelled behind them (`.claude/memory/a-rehearsal-on-production-holds-the-locks-of-a-real-change.md`). Since then every
+replay (`scripts/lib/safe_replay.mjs`: `rehearse_sql.mjs`, `rehearseChain`, the checks' rolled-back probes) runs on a local
+database by default, and on production only with `QD_REPLAY_ON_PRODUCTION=1`, cut at 5 s. A cloud session has no Docker
+daemon but has Postgres 16, so this builds the same schema with plain `initdb`:
+
+```bash
+node scripts/db/local_pg16.mjs start      # initdb + start, then load the mirror if empty: ~20 s
+export QD_LOCAL_DB_URL="$(node scripts/db/local_pg16.mjs url)"
+node scripts/ci/rehearse_sql.mjs scripts/sql/<file>.sql scripts/sql/<file>_probe.sql    # PROBE OK, on the local copy
+npm test                                  # every replay in it goes here too
+node scripts/db/local_pg16.mjs load       # reload after a mirror change
+node scripts/db/local_pg16.mjs stop       # stop and delete the directory
+```
+
+- `QD_LOCAL_PG_DIR` (default `/tmp/pg-qd`), `QD_LOCAL_PG_PORT` (default 55433), `QD_PG_BIN` (default
+  `/usr/lib/postgresql/16/bin`). As root it runs the server as `postgres` (initdb refuses root); it listens only on a Unix
+  socket in its own directory.
+- What a plain Postgres lacks is stood in by `scripts/db/local_standins.sql`: the Supabase roles, `auth.users`,
+  `storage.objects`, `cron.job` / `cron.schedule`, `net.http_post` (queues a row, sends nothing), the vault; pgvector columns
+  become `real[]`. After the schema it seeds what the probes read first: dummy `project_ref` and `cred_db_internal` rows in
+  `app_secrets` (no real secret) and the six seats in `org_role` and `org_agents`.
+- Measured 13 Nov 2026: 808 tables, 2,175 routines, 374 policies, 403 triggers, 110 cron jobs (0 active), loaded in ~18 s.
+- It holds no row data. A probe that counts production's rows answers differently here; that is what
+  `QD_REPLAY_ON_PRODUCTION=1` is for, behind the 5 s cut. Postgres 16 has no `transaction_timeout`, so the cut itself is
+  measured on a 17 (production runs 17.6).
+- `npm test` / `npm run gate` with a management token and neither `QD_LOCAL_DB_URL` nor `QD_REPLAY_ON_PRODUCTION=1`: every
+  replaying check stops with "SAFE REPLAY HAS NO DATABASE" and the command above; nothing is rehearsed on production.
+
 ## What it is and is not
 
 - **Schema only.** No rows and no secret values: the mirror carries neither. Nothing in the local database

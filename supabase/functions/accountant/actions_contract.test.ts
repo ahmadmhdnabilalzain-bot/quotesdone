@@ -329,6 +329,23 @@ t('execute_refunds: before the refund window opens, nothing is sent', async () =
   assertEquals(stripeCalls().length, 0);
 });
 
+t('execute_refunds: an overcharge return waits for no refund window and is sent under its own key; the fee case keeps the transaction key', async () => {
+  money({ deadline: '2999-01-01T00:00:00Z', rows: [{ ...ROW, id: 41, amount_fils: 3877, reason_code: 'overcharge_return' }] });
+  const r = await read(await asSeat('execute_refunds'));
+  assertEquals(r.j.results, [{ refund_id: 41, stripe_refund_id: 're_zz_new', status: 'succeeded', mode: 'test' }]);
+  assertEquals(posted().length, 1);
+  assertEquals(posted()[0].headers.get('idempotency-key'), 'qd_refund_zz-tx-1_over41');
+  assertEquals(new URLSearchParams(posted()[0].body).get('amount'), '3877');
+  assert(calls.find((c) => c.method === 'GET' && c.path === '/rest/v1/refunds')!.search.includes('reason_code'), 'the read must carry reason_code');
+  // the fee case on the same sale, before its window: still held; after it: the transaction key
+  money({ deadline: '2999-01-01T00:00:00Z', rows: [{ ...ROW, reason_code: 'supplier_unresponsive' }] });
+  assertEquals((await read(await asSeat('execute_refunds'))).j.results[0].error, 'refund_window_not_yet_open');
+  assertEquals(stripeCalls().length, 0);
+  money({ rows: [{ ...ROW, reason_code: 'supplier_unresponsive' }] });
+  await asSeat('execute_refunds');
+  assertEquals(posted()[0].headers.get('idempotency-key'), 'qd_refund_zz-tx-1');
+});
+
 t("execute_refunds: a 'requested' row is decided first; a refused decision sends nothing", async () => {
   money({ rows: [{ ...ROW, status: 'requested' }], decide: { ok: false, reason: 'zz second seat says no' } });
   const r = await read(await asSeat('execute_refunds'));

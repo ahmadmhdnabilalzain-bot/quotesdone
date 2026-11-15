@@ -28,6 +28,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
 import { functionSource } from '../lib/function_sources.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
@@ -35,7 +36,7 @@ if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
 async function probe(body) {
   try {
-    await sql(`do $p$ ${body} $p$;`);
+    await replaySql(`do $p$ ${body} $p$;`, { label: 'an 18-21 September recurrence probe' });
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (m) return JSON.parse(m[1].replace(/\\"/g, '"'));

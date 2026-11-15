@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { t } from './copy';
+import { srvMsg } from '../serverCopy';
 import { S } from './styles';
 
 // A NEW AGREEMENT VERSION IS ACCEPTED AGAIN ON THE NEXT SIGN-IN (14 Sep 2026, agent: sales_engineer).
@@ -129,7 +130,9 @@ function ReacceptTerms({ token, lang, me, onDone }) {
     if (!ok) { setMsg(t(lang, 'must_accept')); return; }
     setBusy(true); setMsg('');
     const j = await call('supplier_api', { action: 'accept_terms' }, token).catch(() => null);
-    if (!j || !j.ok) { setBusy(false); setMsg(t(lang, 'err_generic')); return; }
+    // the server's own sentence (terms_not_recorded: "We could not record your acceptance just now ... press the button again"),
+    // never only "Something went wrong." (15 Nov 2026, third review of the certificate branch, item 6)
+    if (!j || !j.ok) { setBusy(false); setMsg(srvMsg(lang, j, t(lang, 'err_generic'))); return; }
     try { await call('kyc', { action: 'accept_terms' }, token); } catch (_e) { /* the acceptance is recorded; the certificate is retried by kyc's own trail */ }
     setBusy(false); onDone();
   };

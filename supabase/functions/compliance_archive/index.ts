@@ -31,7 +31,8 @@ import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 // a third-party CDN a deploy-time dependency of the compliance register. 22 Sep 2026, UNSOLVED-08.
 // @deno-types="../_shared/vendor/sheetjs-0.20.3/types/index.d.ts"
 import * as XLSX from '../_shared/vendor/sheetjs-0.20.3/xlsx.mjs';
-import { observe } from '../_shared/observe.ts';
+import { maskContact, observe } from '../_shared/observe.ts';
+import { writeRecorded } from '../_shared/recorded_write.ts';
 import { certFields, certLang, certificate, COMPANY_NOT_YET_READ, isRegisterRow, noAcceptanceRunStatus, supplierCompany, supplierEvidence, type Lang } from './certificate.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const URL_ = Deno.env.get('SUPABASE_URL')!;
@@ -45,6 +46,23 @@ async function sec(k: string): Promise<string | undefined> { const { data } = aw
 // The JWT half goes through the one admin door (_shared/admin_session.ts): admin_emails AND an aal2 session. An admin
 // whose session has one factor gets the body naming the step instead of `true` (security audit 10 Nov 2026, item 1).
 async function authed(req: Request, body: any): Promise<true | false | TwoStepBody> { if ((await requireInternal(admin, body?.__secret, 'compliance_archive')).ok) return true; const a = await adminCaller(admin, sec, req.headers.get('Authorization')); return a.kind === 'admin' ? true : a.kind === 'two_step_required' ? a.body : false; }
+// A CERTIFICATE THAT COULD NOT BE WRITTEN TELLS THE IT SEAT (13 Nov 2026). The person is not left with nothing: the
+// supplier's portal says "Signing your Supplier Agreement…" while signed_terms_path is empty, and the minute sweeps
+// (fn_sales_engineer_resigns_unsigned_agreements for suppliers, fn_customer_support_resigns_unsigned_terms for
+// customers) post the sign again after 5 minutes, 3 times, then ask a person. This finding is the IT seat's step: a write
+// that fails after its retries is a database that is not answering, which no re-sign repairs by itself.
+async function certificateNotRecorded(kind: string, id: unknown, attempts: number, reason: string): Promise<void> {
+  try {
+    await admin.rpc('fn_it_engineer_finding_upsert', {
+      p_issue_key: `certificate_not_recorded:${kind}`, p_title: `compliance_archive could not write a ${kind}'s signed-terms certificate onto the row`,
+      p_where: 'edge function compliance_archive, action sign', p_blast: 'customer_facing', p_affected: 1,
+      p_evidence: { kind, row_id: id, attempts, reason: maskContact(reason).slice(0, 300), at: new Date().toISOString(),
+        recovers_by: kind === 'supplier' ? 'fn_sales_engineer_resigns_unsigned_agreements (every minute, after 5 min, 3 tries)' : 'fn_customer_support_resigns_unsigned_terms (every minute, after 5 min, 3 tries)' },
+      p_ruled_out: [], p_undetermined: ['what held the lock or the time: the postgres log at this time ("still waiting for", "statement timeout"); scripts/lib/replay_guard.mjs'],
+      p_raised_by: 'it_engineer',
+    });
+  } catch (e) { console.error('compliance_archive: IT finding not raised:', maskContact(String((e as Error)?.message || e))); }
+}
 function safeName(s: string) { return String(s || '').replace(/[^\w.\- ]+/g, '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'record'; }
 async function sha256hex(s: string) { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join(''); }
 
@@ -193,17 +211,45 @@ Deno.serve(observe('compliance_archive', async (req) => {
       // signed_terms_path is what puts this certificate into the organized Dropbox tree:
       // fn_enqueue_doc_backups reads it for customers AND suppliers and files it under
       // '<entity folder>/Signed Terms & Conditions - <file>'. See the header note.
-      const cas = admin.from(table).update({ signed_terms_url: certUrl, signed_terms_path: cert.path, signed_terms_at: nowIso }).eq('id', rec.id);
-      const { data: won, error: casErr } = await (priorPath === null ? cas.is('signed_terms_path', null) : cas.eq('signed_terms_path', priorPath)).select('id');
-      if (casErr || !won?.length) {
-        // Lost the race (or the write failed): this render is named by no row, so it must not stay. The
-        // winner already rebuilt the customer register after its own write, so nothing is left to refresh.
-        const { error: rmErr } = await admin.storage.from(BUCKET).remove([cert.path]);
-        if (rmErr) await admin.from('agent_runs').insert({ agent: 'compliance_archive', status: 'error', started_at: nowIso, finished_at: new Date().toISOString(),
-          counts: { stage: 'sign', kind, orphan_left: 1 }, note: ('a duplicate certificate render could not be removed and is named by no row: ' + cert.path + ' (' + rmErr.message + ')').slice(0, 500) });
-        if (casErr) return J({ error: 'cert_record_failed', detail: casErr.message }, 502);
-        const { data: w } = await admin.from(table).select('signed_terms_path').eq('id', rec.id).maybeSingle();
-        return J({ ok: true, kind, signed_url: await signedUrlOf((w?.signed_terms_path as string) || null), filed_by: 'fn_enqueue_doc_backups', register: null, reused: true });
+      // THE WRITE IS READ BACK AND A BLIP IS TRIED AGAIN (13 Nov 2026, _shared/recorded_write.ts). At 07:46:10 this write
+      // waited behind a rehearsal's lock on quotes (the gate it fires sends a notice whose trigger reads quotes) and the 8 s
+      // statement timeout cancelled it: cert_record_failed, and the supplier stayed unapproved until the minute sweep
+      // (fn_sales_engineer_resigns_unsigned_agreements) signed it again at 07:51. A compare-and-set is safe to repeat: a
+      // retry after a write that did land matches no row, and the re-read below tells that apart from a lost race.
+      const casWrite = () => {
+        const cas = admin.from(table).update({ signed_terms_url: certUrl, signed_terms_path: cert.path, signed_terms_at: nowIso }).eq('id', rec.id);
+        return (priorPath === null ? cas.is('signed_terms_path', null) : cas.eq('signed_terms_path', priorPath)).select('id');
+      };
+      const w = await writeRecorded(casWrite);
+      let won = w.ok && w.data.length > 0;
+      let casErr: string | null = !w.ok && w.reason !== 'the write matched no row' ? w.reason : null;
+      // A LOST ANSWER IS NOT A LOST RACE (15 Nov 2026, review 2 item 1). A blip that arrives AFTER the write committed (a
+      // dropped connection, `fetch failed`, a gateway 5xx) is retried, and the retry's compare-and-set then matches no row
+      // because THIS call's own write already filled signed_terms_path; a final blip can likewise follow an earlier attempt
+      // that landed. Before this re-read both were taken as the lost race and the file was removed while the row named it:
+      // the row looked signed, no sweep re-signed it, and the certificate was gone. So the row is read again: naming this
+      // render, the write won. If that read fails too, the file is KEPT: an extra file named by no row can be cleaned up,
+      // a row naming a deleted certificate cannot be repaired by anyone.
+      let named: string | null | undefined;
+      if (!won) {
+        const { data: rd, error: rdErr } = await admin.from(table).select('signed_terms_path').eq('id', rec.id).maybeSingle();
+        if (!rdErr) named = ((rd as { signed_terms_path?: string | null } | null)?.signed_terms_path) ?? null;
+        if (named === cert.path) { won = true; casErr = null; }
+      }
+      if (!won) {
+        if (casErr) await certificateNotRecorded(kind, rec.id, w.attempts, casErr);
+        // Lost the race (or the write failed): this render is named by no row, so it must not stay. The winner already
+        // rebuilt the customer register after its own write, so nothing is left to refresh.
+        if (named === undefined) {
+          await admin.from('agent_runs').insert({ agent: 'compliance_archive', status: 'error', started_at: nowIso, finished_at: new Date().toISOString(),
+            counts: { stage: 'sign', kind, orphan_kept: 1 }, note: ('the certificate write was not confirmed and the row could not be read back, so this render was kept rather than risk deleting the one the row names: ' + cert.path).slice(0, 500) });
+        } else {
+          const { error: rmErr } = await admin.storage.from(BUCKET).remove([cert.path]);
+          if (rmErr) await admin.from('agent_runs').insert({ agent: 'compliance_archive', status: 'error', started_at: nowIso, finished_at: new Date().toISOString(),
+            counts: { stage: 'sign', kind, orphan_left: 1 }, note: ('a duplicate certificate render could not be removed and is named by no row: ' + cert.path + ' (' + rmErr.message + ')').slice(0, 500) });
+        }
+        if (casErr) return J({ error: 'cert_record_failed', detail: maskContact(casErr) }, 502);
+        return J({ ok: true, kind, signed_url: await signedUrlOf(named ?? null), filed_by: 'fn_enqueue_doc_backups', register: null, reused: true });
       }
 
       // The register is a whole-of-register document, not an entity document, so it has no row in

@@ -40,6 +40,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 // The sandbox run tag (ledger 1119) lives in its own module: llm_hold.ts needs it too, and llm_hold.ts is
 // imported by node tests that cannot load this file's jsr: import.
 import { E2E_RUN, resolveE2eRun, resolveE2eRunByIdentity } from './e2e_run.ts';
+import { EMAIL, PHONE_INTL, PHONE_UAE_INTL, PHONE_UAE_NATIONAL } from './identity_text.ts';
 export { e2eRunTag } from './e2e_run.ts';
 
 // deno-lint-ignore no-explicit-any
@@ -203,6 +204,28 @@ export function annotate(res: Response, counts: Record<string, unknown>): Respon
   ANNOTATIONS.set(res, { ...(ANNOTATIONS.get(res) ?? {}), ...counts });
   return res;
 }
+// A CAUSE CARRIES NO CONTACT (13 Nov 2026, review item 7). A database error's text is written to agent_runs as counts.cause, and
+// 233 committed `raise exception` messages put an e-mail, a phone number or a name into that text ("Key (email)=(...) already
+// exists" too). agent_runs is read by every seat and kept; an e-mail address or a phone number in it is personal data with no use
+// there. They are replaced by <email> / <phone> (the shapes of _shared/identity_text.ts, plus any longer run of digits).
+const LONG_DIGITS = /\+?\d(?:[\s-]?\d){8,14}/g;
+// A TIME IS NOT A PHONE NUMBER (15 Nov 2026, review 2, item 10): "2026-11-13 08:47" is ten digits with separators, and was written
+// as "<phone>:47", so a cause lost the moment it happened. A date of this century or the last (year 19xx/20xx, month 01-12, day
+// 01-31), with an optional time and zone, not preceded by + or a digit, is set aside before the masking and put back after it.
+const DATE_TIME = /(?<![+\d])(?:19|20)\d{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])(?:[ T](?:[01]\d|2[0-3])(?::[0-5]\d(?::[0-5]\d(?:\.\d+)?)?)?(?:Z|[+-]\d{2}(?::?\d{2})?)?)?(?!\d)/g;
+// the placeholder carries the DECIMAL index, each digit as a letter a-j (third review, item 5: a base-26 index mapped its digits onto
+// g-p, which collide with base-26's own letters, so the 17th date came back as the 1st)
+const KEPT = (i: number) => '\u0000' + String(i).replace(/\d/g, (d) => String.fromCharCode(97 + Number(d))) + '\u0000';
+export function maskContact(text: string): string {
+  const kept: string[] = [];
+  let out = String(text ?? '').replace(DATE_TIME, (m) => { kept.push(m); return KEPT(kept.length - 1); });
+  for (const [re, as] of [[EMAIL, '<email>'], [PHONE_UAE_INTL, '<phone>'], [PHONE_UAE_NATIONAL, '<phone>'], [PHONE_INTL, '<phone>'], [LONG_DIGITS, '<phone>']] as [RegExp, string][]) {
+    re.lastIndex = 0; out = out.replace(re, as);
+  }
+  return kept.length ? out.replace(/\u0000([a-j]+)\u0000/g, (all, k: string) => kept[Number(k.replace(/[a-j]/g, (c) => String(c.charCodeAt(0) - 97)))] ?? all) : out;
+}
+/** What annotate() put on a Response, as the agent_runs row will carry it (read by tests). */
+export const annotationsOf = (res: Response): Record<string, unknown> | undefined => ANNOTATIONS.get(res);
 
 /** Read a failed response's body WITHOUT disturbing the one being returned. */
 async function bodyOf(res: Response): Promise<string> {

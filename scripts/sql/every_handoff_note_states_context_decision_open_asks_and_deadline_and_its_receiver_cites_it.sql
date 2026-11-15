@@ -55,26 +55,83 @@
 -- Pending: scripts/sql/pending/every_handoff_note_states_context_decision_open_asks_and_deadline_and_its_receiver_cites_it.txt
 -- Proved by: scripts/sql/every_handoff_note_states_context_decision_open_asks_and_deadline_probe.sql
 
-set local lock_timeout = '5s';
+-- 13 Nov 2026 (it_engineer; coordinator's review 3, items 2 and 4): 1.5 s, the same as every file of that release; the
+-- apply FAILS rather than queue behind a long query on agent_actions. The trigger is replaced in place (CREATE OR REPLACE
+-- TRIGGER) and the CHECK is added NOT VALID (no scan). Canonical for every routine it defines, checked 13 Nov 2026 against
+-- production (md5 of each body, read only) and by applying it whole on a local copy: fn_handoff_redact, fn_handoff_summary,
+-- trg_handoff_carries_its_note, fn_handoff_note_citation and fn_seat_handoff_complete are this file's; the copy of
+-- fn_handoff_citation_gaps that lived here was superseded by a_handoff_closes_only_when_its_receiver_cites_the_note_or_says_why_not.sql
+-- (MANIFEST line 2149) and is removed, so re-applying this file no longer reverts it.
+set local lock_timeout = '1500ms';
 
 -- Redacts e-mail addresses and phone numbers: international (+ or 00 then 7+ digits, spaces/dashes allowed) and
 -- UAE local (a word starting 0[1-9] with exactly 9-10 digits, single space/dash between: 05x xxx xxxx, 04 xxx xxxx).
 -- Measured not to touch ids (no leading 0), ISO dates/times (separators are ':' or 'T', at most 2 digits per run),
 -- dd-mm-yyyy dates (8 digits), or AED amounts (a '.' ends the run) - see the probe's control string.
 -- Applied to the WHOLE note, so case-memory lessons copied under tried.case_memory are redacted too.
--- from every string in a JSON value. Timestamps and ids have no + or 00 prefix and are left alone.
+--
+-- 13 Nov 2026 (it_engineer; coordinator's review 3, item 4). It ran the patterns over the note's JSON TEXT, so a NUMBER
+-- was text to it: 135.000000000000000000 (a numeric total with its scale) became 135.[phone] and the cast back to jsonb
+-- raised 22P02, refusing the hand-over (reproduced on production with a SELECT the same day). Now it walks the value:
+-- object KEYS and string VALUES are redacted, at any depth, in objects and arrays; numbers, booleans and null are
+-- returned as they are. And neither phone pattern starts on a digit that follows a digit or a dot ((?<![0-9.])), so the
+-- decimals of an amount written as text ('135.000000000') are never a phone number either.
+-- 13 Nov 2026, review 4 (item 6d):
+--   * "00 971 50 123 4567" (00, a space, then the number) was not redacted: the 00 form now allows one space or dash
+--     after 00, and needs 10 to 14 digits after it (a country code and a subscriber number), so "PO 0012345678" (8
+--     digits after 00, a reference) is no longer taken for a phone;
+--   * two keys that redact to the same text ("a@x" and "b@y" -> "[email]") were collapsed into one, dropping a value:
+--     the second keeps its value as "[email] (2)";
+--   * a phone stored as a JSON NUMBER (971501234567) passed through: a number under a contact key (phone, mobile,
+--     whatsapp, msisdn, fax, tel) is redacted, and so is a whole number of 11 to 15 digits (a phone written without its
+--     + or 00; never an amount in fils this company sees), except 13 digits starting 1 (a time in milliseconds).
+--     Amounts, fils, ids, ratios and the 21-digit control in the probe come back as they went in.
+create or replace function public.fn_handoff_redact_text(p text)
+returns text
+language sql
+immutable
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select regexp_replace(regexp_replace(
+           regexp_replace(p, '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}', '[email]', 'g'),
+           '(?<![0-9.])([+][0-9][0-9 -]{5,}[0-9]|\m00[ -]?[1-9]([ -]?[0-9]){9,13})', '[phone]', 'g'),
+           '(?<![0-9.])\m0[1-9]([ -]?[0-9]){7,8}\M', '[phone]', 'g');
+$fn$;
+
+revoke execute on function public.fn_handoff_redact_text(text) from public, anon, authenticated;
+
 create or replace function public.fn_handoff_redact(p jsonb)
 returns jsonb
-language sql
+language plpgsql
 immutable
 security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
-  select regexp_replace(regexp_replace(
-           regexp_replace(p::text, '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}', '[email]', 'g'),
-           '([+]|\m00)[0-9][0-9 -]{5,}[0-9]', '[phone]', 'g'),
-           '\m0[1-9]([ -]?[0-9]){7,8}\M', '[phone]', 'g')::jsonb;
-$fn$;
+declare v jsonb;
+begin
+  case jsonb_typeof(p)
+    when 'object' then
+      select coalesce(jsonb_object_agg(case when x.n = 1 then x.k else x.k || ' (' || x.n || ')' end, x.v), '{}'::jsonb)
+        into v
+        from (select public.fn_handoff_redact_text(e.key) as k,
+                     case when jsonb_typeof(e.value) = 'number' and e.key ~* '(phone|mobile|whatsapp|msisdn|fax|\mtel)'
+                          then to_jsonb('[phone]'::text)
+                          else public.fn_handoff_redact(e.value) end as v,
+                     row_number() over (partition by public.fn_handoff_redact_text(e.key) order by e.key) as n
+                from jsonb_each(p) e) x;
+    when 'array' then
+      select coalesce(jsonb_agg(public.fn_handoff_redact(e.value) order by e.n), '[]'::jsonb)
+        into v from jsonb_array_elements(p) with ordinality e(value, n);
+    when 'string' then
+      v := to_jsonb(public.fn_handoff_redact_text(p #>> '{}'));
+    when 'number' then
+      -- the number's own digits, never the patterns over JSON text (an amount is never a phone)
+      v := case when (p #>> '{}') ~ '^[1-9][0-9]{10,14}$' and (p #>> '{}') !~ '^1[0-9]{12}$' then to_jsonb('[phone]'::text) else p end;
+    else
+      v := p;   -- boolean, null: never text to the patterns
+  end case;
+  return v;
+end $fn$;
 
 revoke execute on function public.fn_handoff_redact(jsonb) from public, anon, authenticated;
 
@@ -271,8 +328,7 @@ end $fn$;
 
 revoke execute on function public.trg_handoff_carries_its_note() from public, anon, authenticated;
 
-drop trigger if exists a01_handoff_carries_its_note on public.agent_actions;
-create trigger a01_handoff_carries_its_note
+create or replace trigger a01_handoff_carries_its_note
   before insert or update on public.agent_actions
   for each row
   when (new.kind = 'handoff'
@@ -340,22 +396,7 @@ end $function$;
 
 revoke execute on function public.fn_seat_handoff_complete(bigint, jsonb) from public, anon, authenticated;
 
--- THE MEASUREMENT: handoffs closed since p_since whose note has the four fields and whose answer cites no note.
-create or replace function public.fn_handoff_citation_gaps(p_since timestamptz default now() - interval '1 day')
-returns jsonb
-language sql
-stable
-security definer
-set search_path to 'public', 'pg_temp'
-as $fn$
-  select jsonb_build_object(
-    'since', p_since,
-    'closed_with_note', count(*),
-    'cited', count(*) filter (where (a.evidence->'cites_note'->>'handoff_id') = a.id::text),
-    'uncited_ids', coalesce(jsonb_agg(a.id order by a.id) filter (where (a.evidence->'cites_note'->>'handoff_id') is distinct from a.id::text), '[]'::jsonb))
-    from public.agent_actions a
-   where a.kind = 'handoff' and a.status = 'done' and a.decided_at >= p_since
-     and a.detail->'summary' ?& array['context','decision','open_asks','deadline'];
-$fn$;
-
-revoke execute on function public.fn_handoff_citation_gaps(timestamptz) from public, anon, authenticated;
+-- THE MEASUREMENT, public.fn_handoff_citation_gaps(p_since): handoffs closed since p_since whose note has the four fields
+-- and whose answer cites no note. Its canonical definition is
+-- scripts/sql/a_handoff_closes_only_when_its_receiver_cites_the_note_or_says_why_not.sql (MANIFEST line 2149, which
+-- superseded the one this file held; removed here 13 Nov 2026 so a re-apply cannot revert it).

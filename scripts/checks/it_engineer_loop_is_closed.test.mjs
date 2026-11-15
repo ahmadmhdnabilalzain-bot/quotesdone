@@ -73,7 +73,7 @@ async function probe(body, { pending = false } = {}) {
   try {
     const block = `do $p$ ${body} $p$;`;
     if (pending && PENDING_REGISTER.length) await replaySql(withPending(block), { label: 'pending seat_handoff_kind' });
-    else await sql(block);
+    else await replaySql(block, { label: 'an IT loop probe' });
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (m) return JSON.parse(m[1].replace(/\\"/g, '"'));
@@ -378,7 +378,7 @@ test('the alert tick fits the 8 s statement timeout and escalates before it open
   let r;
   try {
     if (PENDING_TICK.length) await replaySql([...PENDING_TICK, block].join('\n;\n'), { label: 'pending alert tick' });
-    else await sql(block);
+    else await replaySql(block, { label: 'the alert tick probe' });
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!m) throw e; // a statement_timeout cancel lands here: the tick did not fit

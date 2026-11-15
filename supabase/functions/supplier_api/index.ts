@@ -55,6 +55,7 @@ const handle = async (req: Request): Promise<Response> => {
   // KEEP-WARM (resilience_ping; 28 Sep 2026 it_engineer, supplier journey). No auth, no DB: the isolate is
   // what needs exercising. See warmPortal() in resilience_ping/index.ts.
   if (req.headers.get('x-qd-warm') === '1') return new Response(null, { status: 204 });
+  let actionName = '';   // named in the cause of a throw (context.ts failed), 13 Nov 2026
   try {
     // The one internal door, before any session is asked for: the replay of a held Arabic translation.
     const peek = await req.clone().json().catch(() => ({}));
@@ -113,7 +114,7 @@ const handle = async (req: Request): Promise<Response> => {
     // public.sanctions_ban and NOT of leads.banned: a supplier banned for unpaid dues must keep
     // reaching supplier_pay to clear it.
     if (await sanctionedEmail(admin, email)) return J(SANCTIONED_REFUSAL, 403);
-    const body = await req.json().catch(() => ({})); const action = body.action;
+    const body = await req.json().catch(() => ({})); const action = body.action; actionName = String(action ?? '').slice(0, 40);
     const ctx: ActionCtx = { req, jwt, user, email, body, action, handle, safeInquiryOf };
     for (const group of ACTION_GROUPS) {
       // awaited inside the try, so an action that throws still reaches the catch below
@@ -122,7 +123,7 @@ const handle = async (req: Request): Promise<Response> => {
     }
     return J({ error: 'unknown action' }, 400);
   } catch (e) {
-    return failed('unhandled', e);
+    return failed(actionName ? `unhandled in ${actionName}` : 'unhandled', e);
   }
 };
 Deno.serve(siteCors(observe('supplier_api', handle)));

@@ -1,0 +1,47 @@
+Committed, not applied. Assigned: accountant, 13 Nov 2026 (workflow fix round; reviews 1 to 4 of 13 Nov; rulings R1-R6).
+
+Why it waits: the fix round may not apply, deploy or merge. The main session releases it in ONE sitting, following
+docs/runbooks/a_paid_reveal_release_13_nov_2026.md, which says when to start each step, gives the pg_stat_activity read
+and the lock-timeout retry rule, and lists the checks after each step. The order:
+  1. THIS file (--seat accountant). Then append it as the LAST line of scripts/sql/MANIFEST.txt and delete this note,
+     in the same commit. It is safe before the deploy: a row the old code writes has livemode NULL (unknown), and such a
+     row is never booked, numbered or counted until the new runtime reads Stripe's answer.
+  2. Re-apply scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql (--seat it_engineer). Its fn_seat_handoff calls
+     fn_demo_shadow_record and fn_payload_names_a_live_payment, which step 1 creates. Then
+     2b. scripts/sql/the_it_loop_reads_handoffs_by_kind_type_and_sender_on_an_index_built_concurrently.sql (it has its own note).
+  2c. The sales engineer's a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql (it has its own note), BEFORE
+     any deploy: a function built from a main holding the sales branch selects inquiries.reveal_open_until, which this
+     file adds (review 5, R1).
+  3. Deploy the union of 16 from the merged main (runbook step 3 lists them, from the import graph), once supplier_api
+     measures under 4,400,000 bytes (it needs it_engineer-supplier-api-fits-the-deploy-limit on main: 4,221,350 with it,
+     4,726,421 without, measured 15 Nov 2026).
+  3b. verify_deploy_parity on the sixteen.
+  5. Re-apply scripts/sql/every_handoff_note_states_context_decision_open_asks_and_deadline_and_its_receiver_cites_it.sql
+     (--seat it_engineer). After it, fn_handoff_redact walks keys and values and leaves numbers untouched.
+  6. Only on the founder's yes: the 1150 file and the_ceo_may_let_the_accountant_return_an_overcharge_itself.sql.
+
+Proved 13 Nov 2026 on a LOCAL copy of the schema only. Nothing was rehearsed on production; the copy was seeded with
+SELECT-only reads.
+  - This file, with steps 2 and 5 and the 1150 file, in one rolled-back transaction: each of the three probes printed
+    PROBE OK.
+  - All of these files applied for real, twice in a row, on the local copy: both re-applies were clean, and the probes
+    run alone afterwards printed PROBE OK.
+  - Eleven mutants were caught.
+  - Review 4 (13 Nov 2026, evening), LOCAL: every file applied twice; the three probes PROBE OK. The probe now runs the
+    hand-over queue (no customer message before Stripe holds a return), a sale refunded before booking (no revenue,
+    Stripe's own card fee), a guard refusing the CEO's return, Stripe-dashboard refunds, a zero fee. Ten new mutants and
+    the review's fourteen that still apply were all caught (M08 now by the verdict). Seven sessions racing the snapshot,
+    the reconcile, the webhook, the gl sync and the sweep: 0 deadlocks (the previous file: hundreds), one journal.
+  - Review 5 (15 Nov 2026), LOCAL /tmp/pg-w1-r6: every money file applied twice in the runbook order with the sales SQL
+    at 2c; the main, redaction, 1150 and sales probes PROBE OK. New probe sections K (partial refunds add up), L (a later
+    event matches an unbooked refund and closes its finding) and G+ (a refunded sale's card fee is read and booked once);
+    the file before this round fails them, and four single-item mutants are caught.
+  - Final review (15 Nov 2026), LOCAL /tmp/pg-paid7: every file applied twice in the runbook order; the four probes PROBE
+    OK. New probe sections O (after an overcharge return the customer's fee case opens for exactly the fee) and R (that
+    fee refunded in full counts 0 in the month); main's fn_refund_open_from_customer, the old one-case index, the old a00
+    and the old month revenue each fail them. This file now also replaces fn_refund_open_from_customer (canonical once
+    appended to MANIFEST after a_refund_request_after_a_partial_stripe_refund_is_answered_not_a_500.sql) and the index
+    refunds_one_live_platform_refund_per_payment, and adds refunds_one_live_overcharge_return_per_payment.
+  - Round 8 (15 Nov 2026), LOCAL /tmp/pg-paid8, on main 66b228aa2 merged in: every file applied twice in the runbook
+    order; the four probes PROBE OK. Probe O+ (a declined overcharge return, then the customer's fee request) and O's
+    wording check fail when either change is reverted.

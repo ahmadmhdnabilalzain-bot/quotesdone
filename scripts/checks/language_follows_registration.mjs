@@ -154,18 +154,14 @@ if (!TOKEN) {
   const onPath = /seat_handoff_kind|fn_accountant_files_reveal_invoice|fn_sales_engineer_tells_customer_invoice_ready|fn_sales_engineer_writes|fn_customer_support_acts_on_handoff|fn_supplier_notice|fn_registered_locale|fn_language_mismatch|fn_handoff_summary/;
   const pendingOnPath = manifestWithPending().filter((f) => !applied.has(f) && !/_probe\.sql$/.test(f) && onPath.test(src(f)));
   let msg;
-  if (pendingOnPath.length) {
-    console.log(`walk: replayed after ${pendingOnPath.length} pending file(s) on its path: ${pendingOnPath.join(', ')}`);
-    try { await replaySql([...pendingOnPath.map(src), WALK].join('\n;\n'), { label: 'language walk after pending files' }); msg = 'the walk returned without raising'; }
-    catch (e) {
-      msg = String(e?.body ?? e?.message ?? e);
-      const brace = msg.indexOf('{');
-      if (brace >= 0) { try { msg = String(JSON.parse(msg.slice(brace)).message ?? msg); } catch (_e) { /* raw */ } }
-    }
-  } else {
-    const r = await sql(WALK);
-    msg = r.text; try { const j = JSON.parse(r.text); msg = String(j.message || j.error || r.text); } catch (_e) { /* raw */ }
-    if (!/CHK<</.test(msg)) msg = `HTTP ${r.status}: ${msg}`;
+  // ALWAYS THROUGH THE REPLAY GUARD (13 Nov 2026): the walk writes and rolls back; with no pending file on its path it used to be
+  // POSTed straight to the management API. Local by default; production only with QD_REPLAY_ON_PRODUCTION=1, cut at 5 s.
+  if (pendingOnPath.length) console.log(`walk: replayed after ${pendingOnPath.length} pending file(s) on its path: ${pendingOnPath.join(', ')}`);
+  try { await replaySql([...pendingOnPath.map(src), WALK].join('\n;\n'), { label: pendingOnPath.length ? 'language walk after pending files' : 'the language walk' }); msg = 'the walk returned without raising'; }
+  catch (e) {
+    msg = String(e?.body ?? e?.message ?? e);
+    const brace = msg.indexOf('{');
+    if (brace >= 0) { try { msg = String(JSON.parse(msg.slice(brace)).message ?? msg); } catch (_e) { /* raw */ } }
   }
   const m = msg.match(/CHK<<(.*)>>/s);
   if (!m) fails.push('the walk did not report: ' + msg.slice(0, 400));

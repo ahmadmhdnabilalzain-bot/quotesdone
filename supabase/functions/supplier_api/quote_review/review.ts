@@ -101,14 +101,18 @@ export function reviewQuotation(inq: SafeInquiry, w: Working, now: Date = new Da
   const vat = statedPrice({ amount: w.amount, subtotal: w.subtotal, vat_amount: w.vat_amount, text: vatText, stated, price_ex_vat: w.price_ex_vat,
     gross_amount: w.gross_amount ?? null, discount_amount: w.discount_amount ?? null, discount_label: w.discount_label ?? null });
   const vatIssue = vat.treatment === 'not_stated' || (vat.treatment === 'inclusive' && !vat.price_ex_vat);
-  if (vat.treatment === 'not_stated') {
+  // ONE PLAIN QUESTION, THREE ANSWERS, AND THE ANSWER RELEASES THE QUOTE (sales_engineer, 13 Nov 2026, workflow audit build
+  // item 10). The basis is asked with the supplier's own figure and the UAE rate, so "including 5% VAT" settles the ex-VAT
+  // price on its own (line_specs/workflow.ts: total / 1.05) instead of asking a second question for a typed number; "before
+  // VAT" and "not VAT-registered" make the figure itself the ex-VAT price. Silence and "includes VAT" with no rate ask it;
+  // zero-rated and exempt are stated answers (line_specs/vat.ts) and are never asked.
+  const shown = vat.total_as_stated ?? w.amount;
+  const fig = shown ? `AED ${Number(shown).toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(Number(shown)) ? 0 : 2, maximumFractionDigits: 2 })}` : 'your total';
+  if (vatIssue) {
     issues.push(I('vat_basis', 'adjustment', null, null, 'vat',
-      'State whether your total includes VAT, excludes VAT, or that you are not VAT-registered. A business below the AED 375,000 registration threshold is not VAT-registered and needs no TRN — just reply "not VAT registered".',
-      'يُرجى بيان ما إذا كان الإجمالي شاملًا ضريبة القيمة المضافة أم غير شامل لها، أو أنكم غير مسجّلين في الضريبة. والمنشأة التي تقل إيراداتها عن حدّ التسجيل البالغ 375,000 درهم غير مسجّلة ولا تحتاج إلى رقم ضريبي، ويكفي أن تكتبوا «غير مسجل في الضريبة».'));
-  } else if (vat.treatment === 'inclusive' && !vat.price_ex_vat) {
-    issues.push(I('vat_ex_price', 'adjustment', null, null, 'price_ex_vat',
-      'Your total includes VAT, but the VAT amount is not stated. Tell me the total excluding VAT (for example: "price excluding VAT 10,500").',
-      'إجماليكم شامل الضريبة، لكن مبلغ الضريبة غير مذكور. يُرجى إفادتي بالإجمالي غير شامل الضريبة (مثال: «السعر غير شامل الضريبة 10,500»).'));
+      `Is ${fig} including 5% VAT, or before VAT, or are you not VAT-registered? A business below the AED 375,000 registration threshold is not VAT-registered and needs no TRN.`,
+      // the same question in Arabic (the hold desk renders body_ar only if a supplier's language were ever 'ar'; ruling 1008 keeps it 'en')
+      `هل مبلغ ${fig} شامل ضريبة القيمة المضافة بنسبة 5%، أم قبل الضريبة، أم أنكم غير مسجّلين في الضريبة؟ والمنشأة التي تقل إيراداتها عن حد التسجيل البالغ 375,000 درهم غير مسجّلة ولا تحتاج إلى رقم ضريبي.`));
   }
   const exVat = vat.price_ex_vat;
 

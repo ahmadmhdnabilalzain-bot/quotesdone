@@ -18,6 +18,7 @@ const DOCS_BEING_READ = 'we are still reading your company profile or catalogue;
 // workspace header no longer prints this as a nine-line red paragraph (Dashboard.tsx RegistrationReceived), it is the reason a
 // refused action gives (not_verified below).
 const SERVICES_UNCONFIRMED = 'one step is left: confirm your services. Open the Services tab, check what we read from your company profile and press Confirm my services. Everything else is in order; you are verified as soon as you confirm';
+const DISPOSABLE = 'This e-mail address is a temporary inbox, and a supplier account needs a permanent one. Please sign out and create your account with your company e-mail, or write to management@quotesdone.com.';
 const LICENCE_BEING_READ = 'our document reader has not finished reading your trade licence yet. That is on our side, not yours: we read it again automatically and tell you if anything is needed';
 const READING_NOW = 'We are reading your company profile or catalogue now. This page updates by itself when the read finishes; you can keep working meanwhile.';
 const NO_ANSWER = 'We did not get an answer from QuotesDone. Please check your internet connection and try again.';
@@ -529,6 +530,10 @@ const COPY: Record<string, Entry> = {
   notice_new_inquiry: s('A new request was matched to you', 'وصلكم طلب جديد يطابق نشاطكم'),
   notice_rfq_addendum: s('A customer updated a request you received', 'حدّث أحد العملاء طلبًا وصلكم'),
   notice_job_awarded_other: s('A request you quoted was awarded to another supplier', 'أُسند طلب قدّمتم عليه عرضًا إلى مورّد آخر'),
+  // after a paid reveal (sales_engineer, 13 Nov 2026). Suppliers read English only (ruling 1008).
+  notice_quote_not_selected: s('The customer opened one quotation on a request you quoted; yours remains available to them while it is valid', 'The customer opened one quotation on a request you quoted; yours remains available to them while it is valid'),
+  notice_request_ended: s('A request you quoted has ended', 'A request you quoted has ended'),
+  notice_request_reopened: s('A request you quoted is open again', 'A request you quoted is open again'),
   notice_rfq_no_supplier: s('A request closed without a supplier', 'أُغلق طلب دون مورّد'),
   notice_doc_received: s('We received your document', 'استلمنا مستندكم'),
   notice_registration_received: s('We received your registration', 'استلمنا تسجيلكم'),
@@ -634,6 +639,9 @@ const COPY: Record<string, Entry> = {
   email_already_registered: s('This e-mail already has an account — sign in instead.', 'لهذا البريد الإلكتروني حساب مسجّل مسبقًا — يُرجى تسجيل الدخول بدلًا من ذلك.'),
   verify_email_first: s('Please verify your work e-mail with the 6-digit code we send you, then register your company.', 'يُرجى تأكيد بريدكم الإلكتروني بالرمز المكوّن من 6 أرقام الذي نرسله إليكم، ثم تسجيل شركتكم.'),
   register_failed: s('We could not register your company. Please try again, or write to management@quotesdone.com.', 'تعذّر تسجيل شركتكم. يُرجى المحاولة مرة أخرى، أو مراسلتنا على management@quotesdone.com.'),
+  // 15 Nov 2026 (customer_support): the leads trigger refused a temporary inbox; create_company.ts DISPOSABLE_EMAIL, word for word.
+  // English only (ruling 1008).
+  disposable_email: s(DISPOSABLE, DISPOSABLE),
   enter_company: s('Enter your company name.', 'أدخلوا اسم شركتكم.'),
   terms_not_accepted: s('Accept the supplier terms first (Profile tab).', 'يُرجى الموافقة على شروط المورّد أولًا (من تبويب الملف).'),
   // 10 Nov 2026 (customer_support): the hold reason's own words say what to do. "Upload a clear licence" was appended to every
@@ -653,6 +661,12 @@ const COPY: Record<string, Entry> = {
   registration_state_unavailable: s('We could not confirm your registration status. Please try again shortly.', 'تعذّر التحقق من حالة تسجيلكم. يُرجى المحاولة بعد قليل.'),
   inquiry_concluded: s('This request has been concluded — the customer has already selected a supplier. Best of luck on the next one.', 'أُغلق هذا الطلب بعد أن اختار العميل مورّدًا. نتمنى لكم التوفيق في الطلبات القادمة.'),
   invalid_amount: s('Enter a valid amount.', 'أدخلوا مبلغًا صحيحًا.'),
+  // A write that sends his quotation, or saves its lines, did not land (15 Nov 2026, review 2 of the certificate branch, items A and B):
+  // said plainly, never "accepted". supplier_api/lib/quote_acceptance.ts QUOTE_NOT_SENT / QUOTE_NOT_SAVED carry the same sentence.
+  // English only: suppliers are always written to in English (ruling 1008), so both slots carry the same sentence.
+  quote_not_sent: s('Your quotation was saved but NOT sent to the customer: our system could not complete the last step just now. Nothing is lost. Please press "Submit quote" again in a moment.', 'Your quotation was saved but NOT sent to the customer: our system could not complete the last step just now. Nothing is lost. Please press "Submit quote" again in a moment.'),
+  quote_not_sent_approve: s('Your quotation was NOT sent to the customer: our system could not complete the last step just now. Nothing is lost and your approval still waits. Please press "Approve and send to the customer" again in a moment.', 'Your quotation was NOT sent to the customer: our system could not complete the last step just now. Nothing is lost and your approval still waits. Please press "Approve and send to the customer" again in a moment.'),
+  quote_not_saved: s('Your quotation was NOT sent: our system could not save its lines just now. Nothing is lost. Please press "Submit quote" again in a moment.', 'Your quotation was NOT sent: our system could not save its lines just now. Nothing is lost. Please press "Submit quote" again in a moment.'),
   draft_saved: s('Your quote was saved as a draft. Add the missing details so we can send it to the customer.', 'حُفظ عرضكم كمسودة. يُرجى إضافة التفاصيل الناقصة لنتمكّن من إرساله إلى العميل.'),
   quote_no_pages: s('Could not read the file pages. Please attach a clear PDF or photo.', 'تعذّرت قراءة صفحات الملف. يُرجى إرفاق ملف PDF أو صورة واضحة.'),
   quote_read_failed: s('We could not read that quotation automatically — fill in the form below instead; nothing else is needed.', 'تعذّرت قراءة عرض السعر تلقائيًا. يُرجى تعبئة النموذج أدناه بدلًا من ذلك، ولا يلزم أي إجراء آخر.'),
@@ -798,6 +812,13 @@ export function srvMsg(lang: string, j: any, fallback: string): string {
   if (j.code && COPY[j.code]) return srvText(lang, j.code, j.params, fallback);
   if (lang === 'ar') return fallback;
   return j.message || (typeof j.error === 'string' && j.error.includes(' ') ? j.error : '') || fallback;
+}
+
+/** A thread notice as the supplier reads it (QuoteReviewChat): the copy its code has, else its message when that is a sentence, else
+ *  `fallback`; never a bare code (15 Nov 2026, third review of the certificate branch, item 2: the banner read "quote_not_sent"). */
+export function noticeText(lang: string, notice: any, fallback: string): string {
+  const m = srvMsg(lang, notice, fallback);
+  return /\s/.test(m) ? m : fallback;
 }
 
 // Eligibility / alert rows carry `code` (+ params); titles and details are keyed `<code>_title|_detail`.
