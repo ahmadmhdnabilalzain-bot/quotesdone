@@ -48,8 +48,9 @@ test('a supplier registration records the post that brought it', () => {
   assert.match(api, /createCompany\(admin, email, body, \{[^}]*\brecordFirstTouch, /, 'create_company is not handed the first-touch recorder');
   // 11 Nov 2026: after the write, afterTheWrite records the first touch beside the supplier read the answer carries.
   assert.match(door, /async function afterTheWrite\(id: number, touch: unknown, deps: CreateDeps\)[^]*?deps\.recordFirstTouch\(id, touch\)/, 'afterTheWrite does not record the first touch');
-  assert.match(door, /deps\.setRegistration\(Number\(ins!\.id\)\);\s*const supplier = await afterTheWrite\(Number\(ins!\.id\), body\.first_touch, deps\)/, 'create_company does not record the first touch');
-  assert.match(door, /deps\.setRegistration\(id\);\s*const supplier = await afterTheWrite\(id, body\.first_touch, deps\)/, 'create_company does not record the first touch when it claims an invited listing');
+  // 15 Nov 2026: afterTheWrite also reads the registration state (no touch), in the same wave; both paths still hand it body.first_touch.
+  assert.match(door, /const \[\{ registration, \.\.\.supplier \}\] = await Promise\.all\(\[afterTheWrite\(Number\(ins!\.id\), body\.first_touch, deps\)/, 'create_company does not record the first touch');
+  assert.match(door, /const \{ registration, \.\.\.supplier \} = await afterTheWrite\(id, body\.first_touch, deps\)/, 'create_company does not record the first touch when it claims an invited listing');
   // #979 (28 Sep 2026) issues the two together: Promise.all([setRegistration(id, false), recordFirstTouch(...)]).
   assert.match(api, /setRegistration\(id(, false)?\)(; await |, )recordFirstTouch\(id, body\.first_touch\)/, 'claim does not record the first touch');
   const portal = readSupplierPortal();

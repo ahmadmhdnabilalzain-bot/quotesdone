@@ -16,6 +16,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { safeInquiry } from './quote_review_actions.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { type ActionCtx, J, admin, cors, failed } from './context.ts';
+import { atTheDoor } from './lib/door.ts';
 import { arabicFinish } from './lib/arabic_quotation.ts';
 import { emailedQuotationThread, quoteReviewChatActions } from './actions/quote_review_chat.ts';
 import { accountActions } from './actions/account.ts';
@@ -105,15 +106,17 @@ const handle = async (req: Request): Promise<Response> => {
       return J(peek.action === 'email_quote_read' ? await emailQuoteRead(peek, deps) : await emailQuote(peek, deps));
     }
     const jwt = (req.headers.get('Authorization') || '').replace('Bearer ', '');
-    const { data: { user } } = await admin.auth.getUser(jwt);
-    if (!user || !user.email) return J({ error: 'unauthorized' }, 401);
-    const email = user.email.toLowerCase();
     // A SANCTIONED PARTY CANNOT ACT (founder instruction 516, 18 Sep 2026). Above the action
     // switch, before the body is even read, because this function serves forty-odd actions and a
     // per-action guard is a list somebody will one day add to without reading. Asked of
     // public.sanctions_ban and NOT of leads.banned: a supplier banned for unpaid dues must keep
     // reaching supplier_pay to clear it.
-    if (await sanctionedEmail(admin, email)) return J(SANCTIONED_REFUSAL, 403);
+    // The ban read leaves beside the sign-in check for the address the token names, and is used only for the address getUser
+    // verified (15 Nov 2026: one round trip fewer on every action; ./lib/door.ts says why it decides exactly what it did).
+    const door = await atTheDoor(jwt, { getUser: async (t) => (await admin.auth.getUser(t)).data.user, sanctioned: (e) => sanctionedEmail(admin, e) });
+    if (door.kind === 'unauthorized') return J({ error: 'unauthorized' }, 401);
+    if (door.kind === 'sanctioned') return J(SANCTIONED_REFUSAL, 403);
+    const { user, email } = door;
     const body = await req.json().catch(() => ({})); const action = body.action; actionName = String(action ?? '').slice(0, 40);
     const ctx: ActionCtx = { req, jwt, user, email, body, action, handle, safeInquiryOf };
     for (const group of ACTION_GROUPS) {
