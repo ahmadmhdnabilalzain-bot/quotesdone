@@ -24,6 +24,7 @@ import { ADVISE_RULE, heldProblem, problemIndex, problemsFor, readSolution, serv
 import { SUPPLIER_TO_ADVISE, adviseUnknown, packFields, placeTrades, slugOfTrade, withUniversal, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, universalAnswers, validCodes, validServiceKeys, validTopics,
   type Placement, type TradeContext } from '../_shared/inquiry_trades.ts';
 import { blockingGate, briefConditions, recordedSpecs, withPack } from './blocking_gate.ts';
+import { photoAskDraft, photoAskNow, photoPromptBlock, withPhotos, type SitePhotos } from '../_shared/site_photos.ts';
 
 export async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -382,6 +383,10 @@ export async function handle(req: Request): Promise<Response> {
     const refProblems = problemsFor({ slug: category && category !== 'general' ? category : null, codes: st?.trade_codes ?? [], held: heldProblem(st) });
     const solutionsText = refProblems.length ? solutionsBlock(refProblems, ar ? 'ar' : 'en') : problemIndex();
     const tradeText = tradeBlock(tradeCtx, ar ? 'ar' : 'en', prevTopics);
+    // PHOTOS FOR A SITE-VISIT JOB (15 Nov 2026, founder ledger 1704; _shared/site_photos.ts): the shots each placed trade's job
+    // checklist asks for, shown to the model until the one turn that asks; never again after it.
+    const photoRecord: SitePhotos | null = draft.brief && typeof draft.brief === 'object' && (draft.brief as any).site_photos && typeof (draft.brief as any).site_photos === 'object' ? (draft.brief as any).site_photos : null;
+    const photoText = photoPromptBlock(tradeCtx, prevTopics, turns, photoRecord, ar ? 'ar' : 'en');
     const taxonomyText = taxonomy && !(st?.trade_codes?.length) ? taxonomyBlock(taxonomy) : '';
     const solutionState = solutionStateText(st, ar ? 'ar' : 'en');
     const stageRule = capRule(stage, replyNo);
@@ -418,7 +423,7 @@ YOU ARE TALKING TO SOMEONE WHO IS PROBABLY NOT TECHNICAL, and the questions abov
 - One idea per question, and no more questions at a time than rule 2 allows. A wall of trade questions is how a customer abandons a request.
 - If they answer vaguely ("normal size", "standard"), accept it and move on rather than pressing — an approximate answer with a note is worth more than an abandoned inquiry, and suppliers can flag what they still need.
 - A customer who says they do not know is telling you something useful. Record it as unknown and let the suppliers quote against an assumption, stated as an assumption.
-${tradeText ? `\n${tradeText}\n` : ''}${taxonomyText ? `\n${taxonomyText}\n` : ''}${solutionsText ? `\n${solutionsText}\n` : ''}
+${tradeText ? `\n${tradeText}\n` : ''}${photoText ? `\n${photoText}\n` : ''}${taxonomyText ? `\n${taxonomyText}\n` : ''}${solutionsText ? `\n${solutionsText}\n` : ''}
 RULES:
 1. If the message is gibberish, a test, empty, spam, or NOT a genuine request for a construction / fit-out / maintenance / supply / trade service in the UAE, set status \"rejected\" and politely ask them to describe an actual job.
 2. If genuine but missing REQUIRED details, set status \"needs_info\" and ask ONLY the most important missing questions — at most 4 total. First re-read the entire conversation and put every fact the customer has already given (per trade) in \"already_provided\". Do not ask about, or list in \"missing\", anything already in \"already_provided\": a customer asked twice for the same thing abandons the request. Offer sensible options where helpful. Never ask for their name, phone or email (already collected).
@@ -464,6 +469,7 @@ Return STRICT JSON only, no prose, with this shape:
   \"not_needed\": { \"<key of a spec whose NOT NEEDED condition holds>\": \"<the customer's exact words that show it>\" },
   \"asked_keys\": [\"<key of each spec assistant_message asks>\"],
   \"site_visit\": [\"<trade code whose site-visit condition applies>\"],
+  \"photos_asked\": <true only on the turn assistant_message asks for the site photos (PHOTOS FOR A SITE-VISIT JOB); else false>,
   \"condition\": { \"object\": \"\", \"material\": \"\", \"condition\": \"\", \"location\": \"\", \"use\": \"\", \"constraint\": \"\" },
   \"problem\": \"<reference situation key or empty>\",
   \"options_offered\": [\"<problem/option>\"],
@@ -654,6 +660,11 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     const topicsNow: string[] = modelTopics.length ? modelTopics : validTopics(prevTopics, tradeCtx);
     // The trades whose site-visit condition the model judged applies to this job (a known condition on the brief).
     const siteVisitNow: string[] = out && llmParseOk && Array.isArray(out.site_visit) ? out.site_visit.map(String).filter((c: string) => (tradeCtx?.codes ?? []).includes(c)) : [];
+    // THE ONE PHOTO ASK (founder ledger 1704): due on the first turn a visit applies to a trade whose checklist names shots, and never
+    // again (the stamp on the turn and the record's `asked`). Optional: nothing below reads it for status or readiness. Photos the
+    // portal sends (body.site_photos: each by its check job) are recorded by job, with the shot they answer.
+    const photoAsk = photoAskNow(tradeCtx, topicsNow, siteVisitNow, turns, photoRecord);
+    const photosNow = withPhotos(photoRecord, photoAsk, b.site_photos, 'portal', b.photos_declined === true);
     checklist = withPack(checklist, tradeCtx, String((out && out.category) || category || ''), topicsNow);
     // What the model put to them and what they chose (rule 13), and the services of their trades it named.
     const solution = out && llmParseOk ? readSolution(out) : null;
@@ -1174,6 +1185,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       // the emirate the model read on a turn that is not ready yet is kept (review of #1979: it was lost, and a later turn
       // where the model gave none counted across the UAE)
       : { ...(emirate ? { emirate, al_ain: alAin && emirate === 'Abu Dhabi' } : {}), emirate_asked: emirateAsked, details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : (heldNext ? heldNext.key : null), ...(heldNext ? { asked_on_hold: true } : {}), state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, checklist_topics: topicsNow, ...drawingState };
+    if (photosNow.asked.length || photosNow.photos.length) (briefToSave as any).site_photos = photosNow;
     // The two additions the portal renders (14 Sep 2026). On the model path they are derived from
     // what the model and the canonical gate returned; on the interview path they are exact.
     const reqCount = checklist.filter((f: any) => f && f.required).length;
@@ -1243,6 +1255,9 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     if (modelAnswer && String(out.assistant_message || '').trim() !== String(modelWrote ?? '').trim() && !String(out.assistant_message || '').includes(modelAnswer)) {
       out.assistant_message = modelAnswer + ' ' + String(out.assistant_message || '');
     }
+    // The photo ask is IN the reply on the turn it is due: when the model's own reply did not ask, the list is added to the draft,
+    // which the model then voices (1339: the customer reads the model's words).
+    if (photoAsk.length && !(out && llmParseOk && out.photos_asked === true)) out.assistant_message = `${String(out.assistant_message || '').trim()} ${photoAskDraft(photoAsk, slotLang)}`.trim();
     {
       // SENT AS IT IS (re-check of 15 Nov 2026, item 3): a ready request carrying a "supplier to advise" says so, and names the sales
       // engineer's WhatsApp line, so a customer who did not know some details is never left at a dead end.
@@ -1269,7 +1284,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     const reaskTid = !String(out.assistant_message || '').trim() && replyBy === 'none'
       ? await fileReask(voiced.draft + (nextQuestion ? '\nTHE ONE QUESTION TO ASK NOW: ' + nextQuestion.text : '\nAsk no question unless the message above asks one.'), voiced.problems)
       : null;
-    for (let i = turns.length - 1; i >= 0; i--) if (turns[i] && turns[i].role === 'assistant') { turns[i].text = out.assistant_message || ''; if (reaskTid) turns[i].reask_pending = reaskTid; if (settleOfferNow) turns[i].settle_offered = true; break; }
+    for (let i = turns.length - 1; i >= 0; i--) if (turns[i] && turns[i].role === 'assistant') { turns[i].text = out.assistant_message || ''; if (reaskTid) turns[i].reask_pending = reaskTid; if (settleOfferNow) turns[i].settle_offered = true; if (photoAsk.length) turns[i].photo_ask = photoAsk.map((p) => p.shot); break; }
     const missingKeys: string[] = status === 'ready' ? [] : (requiredGate ? requiredGate.missing_keys : slotMissingKeys);
     // WHAT THIS REPLY ASKED (slots.ts askedTurnsByKey: a spec is held after three ASKS, and the next question is one not yet asked):
     // the question card's key; else, when the model's own sentence asks, the keys it names ("asked_keys", known specs only), or
@@ -1327,6 +1342,9 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       // THE PRICE-BLOCKING DETAILS (ledger 1587): which blocking specs of the job are still open, which go to the suppliers as
       // "supplier to advise", and every site-visit condition, so the portal shows what stands between this and a firm price.
       blocking: { open: gate.verdict.open.map((o) => o.key), advised: gate.verdict.advised.map((o) => o.key), site_visits: gate.verdict.site_visits.map((v) => v.text) },
+      // THE PHOTO ASK, ONCE (ledger 1704): the shots, for the card with an upload button per shot; optional, never a hold.
+      photo_ask: photoAsk.length ? { optional: true, shots: photoAsk.map((p) => ({ shot: p.shot, shot_ar: p.shot_ar, trade: p.trade })) } : null,
+      site_photos: photosNow.asked.length || photosNow.photos.length ? photosNow : null,
       ...(carry ? { carried: true, carried_turns: carry.turns.length } : {}), ...(stage !== 'normal' ? { stage } : {}),
       reply_by: replyBy,   // who wrote assistant_message: the model, or the code draft because OpenRouter was down (1339)
       pending: reaskTid !== null, ...(reaskTid ? { reask_turn_id: reaskTid } : {}),   // filed for the re-ask: the portal waits for it
