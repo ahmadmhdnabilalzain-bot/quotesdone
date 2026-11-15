@@ -19,7 +19,7 @@ function fakeAdmin(existing: any = null) {
   };
   return { writes, from: chain, rpc: async () => ({ data: '2026-10-23T00:00:00Z' }) };
 }
-const args = { quoteId: 'q1', customerId: 'c1', baseFee: 3555, processingFee: 0, totalCharged: 3555, paymentRef: 'pi_x', invoiceId: 'in_1ABC' };
+const args = { quoteId: 'q1', customerId: 'c1', baseFee: 3555, processingFee: 0, totalCharged: 3555, paymentRef: 'pi_x', invoiceId: 'in_1ABC', livemode: true };
 
 Deno.test('a new sale is inserted with its invoice reference', async () => {
   const a = fakeAdmin();
