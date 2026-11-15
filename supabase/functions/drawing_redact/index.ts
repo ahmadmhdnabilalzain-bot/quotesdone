@@ -41,7 +41,7 @@ import { asciiDxfOf } from '../_shared/cad_file_redact.ts';
 import { TIME_HELD, callTimeoutMs, deadlinesFrom } from '../_shared/drawing_deadline.ts';
 
 import { instructingRuns, verifyVerdict } from './verify_verdict.ts';
-import { PHOTO_VERIFY_SYS } from '../_shared/site_photo_gate.ts';
+import { PHOTO_VERIFY_SYS, photoBudget, photoPageSize } from '../_shared/site_photo_gate.ts';
 
 // ── DETERMINISTIC REDACTION, 14 Sep 2026 ─────────────────────────────────────────────────────────
 // Every model route is held, so detection below fails and no drawing page has reached a supplier
@@ -438,8 +438,15 @@ Deno.serve(observe('drawing_redact', async (req) => {
       const pm = body.page_mm, size = pm && Number(pm.w) > 0 && Number(pm.h) > 0 ? { wMm: Number(pm.w), hMm: Number(pm.h), from: 'cad' as const } : undefined;
       // A SITE PHOTO (15 Nov 2026, ledger 1704; _shared/site_photo_gate.ts) is looked at with the photo prompt (faces, plates,
       // house numbers), through the same gate, the same budget and the same fail-closed verdict parser.
-      const sys = body.subject === 'site_photo' ? PHOTO_VERIFY_SYS : PIXEL_VERIFY_SYS;
-      const g = await gatePage(key, held, String(body.__secret || ''), String(body.authors || 'deterministic'), stripB64(body.jpg_b64), await budgetInFlight(body.source_path, body.spent_usd), size, clock.stopAt, undefined, sys);
+      // It is tiled as a PHOTO (an A4 sheet in its own aspect: a few tiles, not an A1 sheet's twenty) and spends at most
+      // PHOTO_USD_CAP across its rounds and the worker's retries (review of bf8b9ea45, item 6; _shared/site_photo_gate.ts).
+      const photo = body.subject === 'site_photo';
+      const sys = photo ? PHOTO_VERIFY_SYS : PIXEL_VERIFY_SYS;
+      const jpg = stripB64(body.jpg_b64);
+      const px = photo ? jpegSize(b64ToBytes(jpg)) : null;
+      const setBudget = await budgetInFlight(body.source_path, body.spent_usd);
+      const photoSize = photo ? photoPageSize(px?.w ?? 1600, px?.h ?? 1200) : size, gateBudget = photo ? photoBudget(setBudget, body.spent_usd) : setBudget;
+      const g = await gatePage(key, held, String(body.__secret || ''), String(body.authors || 'deterministic'), jpg, gateBudget, photoSize, clock.stopAt, undefined, sys);
       return J(g.ok ? { ok: true, jpg_b64: g.jpgB64, pixel_calls: g.calls, pixel_usd: g.usd, first_look_clean: fileMayBeShared(g) } : { ok: true, held: g.held, pixel_calls: g.calls, pixel_usd: g.usd, detail: g.detail, ...budgetSaid(g.held) });
     }
     if (body.mode === 'read_strings') {

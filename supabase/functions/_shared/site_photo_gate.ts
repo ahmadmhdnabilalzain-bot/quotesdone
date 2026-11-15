@@ -27,11 +27,49 @@ import { residualScan } from './anonymise.ts';
 import { isVocabularyContent, seedHit, drawingLocation } from './drawing_text_policy.ts';
 import { IDENTITY_TEXT_PATTERNS, ADDRESS } from './identity_text.ts';
 import { readAllWays, rgbaToBmp, unreadInk, READ_CONF, type Ocr, type Rgba } from './scan_redact.ts';
+import { planTiles, PIXEL_MAX_RECHECKS, type PageSize, type PixelBudget, type TilePlan } from './drawing_pixel_gate.ts';
+
+// ── A PHOTO IS CHECKED AS A PHOTO (review of bf8b9ea45, item 6) ─────────────────────────────────────────────────────────────────
+// The final look went through drawing_redact's gate with no page size, so a photo was planned as the larger of A1 and its pixels at
+// 150 dpi: a 1600 x 1200 photo became 20 tiles plus a whole view, about $0.084 a look, up to three looks, retried up to three times,
+// for up to 12 photos a request. A drawing is tiled so 6-point text is readable; what identifies someone in a photo (a house number,
+// a plate, a sign, a face) is far larger. So a photo is planned as a sheet of A4's AREA in its own aspect: 3 tiles and one whole
+// view (4 calls) for a 4:3 photo, about $0.014 a look; 3 or 4 calls for a square, a portrait or a panorama (LOCAL, planTiles with
+// TILING and PIXEL_COST, 15 Nov 2026).
+// The worker also scales a photo down to PHOTO_MAX_EDGE_PX before OCR (8 reads), so the job stays inside PHOTO_JOB_MS.
+/** The area of the sheet a photo is planned as (mm²): A4's, 297 x 210. */
+export const PHOTO_SHEET_MM2 = 297 * 210;
+/** A photo larger than this (px, long edge) is scaled down before it is read and looked at. */
+export const PHOTO_MAX_EDGE_PX = 2000;
+/** At most this much (USD) is spent on the looks at one photo, across every round and every retry the worker makes. */
+export const PHOTO_USD_CAP = 0.05;
+/** A photo's whole check must end inside this (ms): under the worker's 5-minute JOB_MS, so a slow check is withheld, not retried. */
+export const PHOTO_JOB_MS = 4 * 60_000;
+/** The sheet a photo of wPx x hPx is planned as: A4's area, in the photo's own orientation and aspect. */
+export function photoPageSize(wPx: number, hPx: number): PageSize {
+  const w = Math.max(1, wPx), h = Math.max(1, hPx), k = Math.sqrt(PHOTO_SHEET_MM2 / (w * h));
+  return { wMm: w * k, hMm: h * k, from: 'pixels' };
+}
+/** The tile plan of one look at a photo, and the most its check can spend (every round of the gate). */
+export function photoLookPlan(wPx: number, hPx: number): TilePlan & { maxUsd: number } {
+  const plan = planTiles(photoPageSize(wPx, hPx));
+  return { ...plan, maxUsd: plan.usd * (PIXEL_MAX_RECHECKS + 1) };
+}
+/** The size a photo is read and looked at: scaled so its long edge is at most PHOTO_MAX_EDGE_PX (never up). */
+export function photoScale(wPx: number, hPx: number): { w: number; h: number; scaled: boolean } {
+  const k = Math.min(1, PHOTO_MAX_EDGE_PX / Math.max(1, wPx, hPx));
+  return { w: Math.max(1, Math.round(wPx * k)), h: Math.max(1, Math.round(hPx * k)), scaled: k < 1 };
+}
+/** The set's budget, capped for one photo at PHOTO_USD_CAP less what its job already spent (the worker sends spent_usd). */
+export function photoBudget(b: PixelBudget, spentUsd: unknown): PixelBudget {
+  let mine = Math.max(0, Number(spentUsd) || 0);
+  return { left: () => Math.min(b.left(), PHOTO_USD_CAP - mine), spend: (u: number) => { mine += u; b.spend(u); } };
+}
 
 export type PhotoBox = { x: number; y: number; w: number; h: number; what?: string };
 /** The final look: the photo as a supplier would see it in, its verdict out; null = no answer (unavailable, held, refused). */
 export type PhotoLook = (img: Rgba) => Promise<{ clean: boolean; unsure?: boolean; regions: PhotoBox[] } | null>;
-export type PhotoReason = 'house_number' | 'car_plate' | 'name' | 'contact' | 'place' | 'writing' | 'unread_writing' | 'face_or_other' | 'too_much_masked' | 'not_checked';
+export type PhotoReason = 'house_number' | 'account_number' | 'car_plate' | 'name' | 'contact' | 'place' | 'writing' | 'unread_writing' | 'face_or_other' | 'too_much_masked' | 'not_checked';
 export type PhotoResult =
   | { status: 'released' | 'masked'; image: Rgba; reasons: PhotoReason[]; masked: number }
   | { status: 'withheld'; reasons: PhotoReason[]; detail: string };
@@ -43,8 +81,14 @@ const PAD = 0.01;
 
 // A UAE car plate: an emirate word or code letters beside a 1-5 digit number, or a plate-shaped short line ("A 12345", "DXB 1234").
 const PLATE = /\b(?:dubai|dxb|abu\s?dhabi|auh|sharjah|shj|ajman|ajm|umm\s?al\s?quwain|uaq|ras\s?al\s?khaimah|rak|fujairah|fuj|u\.?a\.?e)\b[\s\-.:]*[a-z]{0,2}[\s\-.:]*\d{1,5}\b|^\s*[a-z]{1,3}[\s\-.:]+\d{1,5}\s*$|دبي|أبوظبي|ابوظبي|الشارقة|عجمان/i;
-// A house, villa, flat, building or plot number, also a bare number on its own (a gate's number plate).
-const HOUSE = /\b(?:villa|house|home|flat|apt|apartment|unit|bldg|building|tower|plot|street|st\.?|road|rd\.?|block|gate|no\.?|#)\s*[:#.\-]?\s*\d{1,5}\b|^\s*\d{1,5}[a-z]?\s*$|فيلا|شقة|مبنى|برج|شارع|قطعة/i;
+// A house, villa, flat, office, shop, suite, room, unit, warehouse, building or plot number, also a bare number on its own (a gate's
+// number plate). Review of bf8b9ea45, item 5: "Office 1204", "Shop 12", "Room 1204" and "Suite 301" were kept; they name a place as
+// surely as a villa number. Arabic: the word alone for a home (فيلا, شقة), the word with a number for a premises (مكتب ١٢٠٤).
+const HOUSE = /\b(?:villa|house|home|flat|apt|apartment|unit|office|shop|suite|room|warehouse|store|showroom|bldg|building|tower|plot|street|st\.?|road|rd\.?|block|gate|no\.?|#)\s*[:#.\-]?\s*\d{1,5}\b|^\s*\d{1,5}[a-z]?\s*$|فيلا|شقة|مبنى|برج|شارع|قطعة|(?:مكتب|محل|معرض|جناح|غرفة|وحدة|مستودع|مخزن|أرض)\s*(?:رقم)?\s*[:#.\-]?\s*[0-9٠-٩]{1,5}/i;
+// A utility, tenancy or account number (review item 5): a meter, premise, account, contract or consumer number, or a DEWA / ADDC /
+// SEWA / FEWA / Ejari / Makani number, with a number of 4 digits or more after it. A meter or premise number on an electrical board
+// is one of the shots we ask for, and it finds the customer's address in the utility's own records.
+const ACCOUNT_NO = /\b(?:meter|premises?|account|acct|contract|consumer|customer|dewa|addc|aadc|sewa|fewa|etihad\s*we|ejari|makani|tawtheeq)\b[^0-9\n]{0,24}[0-9][0-9\s\-]{3,}|(?:عداد|حساب|عقد|مشترك|مستهلك|ديوا|إيجاري|ايجاري|مكاني|توثيق)[^0-9٠-٩\n]{0,24}[0-9٠-٩][0-9٠-٩\s\-]{3,}/i;
 // A line that says who someone is: a title, a Dear/To/Attn, a name label, a company word.
 const NAMEISH = /\b(?:mr|mrs|ms|miss|dr|eng|sheikh|dear|attn|to|from|name)\b\.?\s+\p{L}|\b(?:llc|l\.l\.c|fze|fzco|est\.?|trading|contracting|properties|real estate|developers?)\b|السيد|السيدة|المهندس|الشيخ/iu;
 
@@ -54,6 +98,7 @@ export function lineKind(text: string, seeds: string[]): PhotoReason | null {
   if (!t) return null;
   const hit = IDENTITY_TEXT_PATTERNS.find(([, re]) => { re.lastIndex = 0; const h = re.test(t); re.lastIndex = 0; return h; })?.[0];
   if (hit) return hit === 'address' ? 'house_number' : /^(firm_|person_|signature)/.test(hit) ? 'name' : 'contact';
+  if (ACCOUNT_NO.test(t)) return 'account_number';
   if (PLATE.test(t)) return 'car_plate';
   ADDRESS.lastIndex = 0;
   if (HOUSE.test(t) || ADDRESS.test(t)) { ADDRESS.lastIndex = 0; return 'house_number'; }
@@ -121,7 +166,8 @@ export async function checkSitePhoto(img: Rgba, ocr: Ocr, seeds: string[], look:
 
 /** The customer's notice for a photo, in his language: which photo (its number and shot) and why, in plain words. */
 const WHY: Record<PhotoReason, [string, string]> = {
-  house_number: ['a house, villa or building number', 'رقم منزل أو فيلا أو مبنى'], car_plate: ['a car number plate', 'لوحة سيارة'],
+  house_number: ['a house, villa, office, shop or building number', 'رقم منزل أو فيلا أو مكتب أو محل أو مبنى'],
+  account_number: ['a meter, account or contract number', 'رقم عداد أو حساب أو عقد'], car_plate: ['a car number plate', 'لوحة سيارة'],
   name: ['a name', 'اسم'], contact: ['a phone number, e-mail or website', 'رقم هاتف أو بريد إلكتروني أو موقع'], place: ['a street or area name', 'اسم شارع أو منطقة'],
   writing: ['writing', 'كتابة'], unread_writing: ['writing we could not read clearly', 'كتابة لم نتمكن من قراءتها بوضوح'],
   face_or_other: ['a person\'s face or something else that could identify you', 'وجه شخص أو شيء آخر قد يدل عليك'],
@@ -134,6 +180,8 @@ export function photoNotice(n: number, shot: string | null, r: PhotoResult, lang
   const why = [...new Set(r.reasons)].map((x) => WHY[x][ar ? 1 : 0]);
   if (r.status === 'released') return ar ? `${which}: فُحصت وستصل إلى الموردين.` : `${which}: checked, and the suppliers will see it.`;
   if (r.status === 'masked') return ar ? `${which}: غطّينا ${why.join('، ')} قبل أن يراها الموردون.` : `${which}: we covered ${why.join(', ')} before the suppliers see it.`;
+  // a check that did not finish (time, the model held, an error) is said as that, not as something the photo shows (review item 8)
+  if (r.reasons.length && r.reasons.every((x) => x === 'not_checked')) return ar ? `${which}: لن تُرسل إلى الموردين لأن فحصها لم يكتمل. يمكنك إرسالها مرة أخرى لاحقًا.` : `${which}: not sent to the suppliers, because its check could not be finished. You can send it again later.`;
   return ar ? `${which}: لن تُرسل إلى الموردين لأنها تُظهر ${why.join('، ')}. يمكنك إرسال صورة أخرى بدونها.` : `${which}: not sent to the suppliers, because it shows ${why.join(', ')}. You can send another photo without it.`;
 }
 
