@@ -13,14 +13,16 @@
 --      (lead:<id>, customer:<uuid>, fault:<support_fault_report id>; never a name or an address), the evidence masked
 --      (fn_it_mask_text), the suspected files, a repro with ZZ DEMO fixtures, the precedent (the earlier fix of the same class and
 --      the playbook row), and the life cycle queued -> claimed -> fixing -> in_review -> merged -> deployed -> verified, or
---      wont_fix with a reason (money, a secret, a founder decision, a gate change, not reproducible). A claim holds a 2-hour lease;
---      a session that dies leaves the row claimed and the next run takes it back.
+--      wont_fix with a reason (money, a secret, a founder decision, a gate change, not reproducible, a duplicate). A claim holds a
+--      2-hour lease; only the leaseholder advances, one step at a time; a session that dies at any step leaves the row with its
+--      lease run out and the next run takes it back (at merged or deployed it continues from there). affected_cases is a sample of
+--      at most 200 refs and affected_count the number of people.
 --   2. fn_it_code_defect_open(...): written by the seat (the classifier in fn_it_registration_watch and the families), never by
 --      hand: a new class is queued; an open class counts the occurrence; a VERIFIED class that returns is REOPENED with its old
 --      PR and lesson in history, so the session starts from the known fix. Each affected person is told once, through support,
 --      that the platform is fixing it (no date promised). Emits it.defect_opened.
 --   3. fn_it_code_defect_claim(session, id): the next queued (or lease-expired) defect by severity then age, for update skip
---      locked; with an id (a fire with a payload) that defect first.
+--      locked; with an id (a fire with a payload) that defect first; never a fixture defect for a live session.
 --   4. fn_it_code_defect_progress(id, session, status, pr, note): the session's steps; wont_fix only with an allowed reason.
 --   5. fn_it_code_defect_verified(id, session, observed, lesson_ref): only after deployed and only against what a SELECT showed;
 --      closes the finding, tells every affected person "fixed, try again" through support, completes their hand-overs, emits
@@ -41,7 +43,8 @@ create table if not exists public.it_code_defect (
   first_seen timestamptz not null default now(),
   last_seen timestamptz not null default now(),
   occurrences integer not null default 1 check (occurrences >= 1),
-  affected_cases text[] not null default '{}'::text[] check (cardinality(affected_cases) <= 200),
+  affected_cases text[] not null default '{}'::text[] check (cardinality(affected_cases) <= 200),   -- a bounded sample (FIX 5)
+  affected_count integer not null default 0 check (affected_count >= 0),                          -- every person it reached
   fn text,
   http integer,
   action text,
@@ -60,6 +63,7 @@ create table if not exists public.it_code_defect (
   verified_observed text,
   lesson_ref text,
   wont_fix_reason text,
+  wont_fix_at timestamptz,
   reopened_count integer not null default 0,
   history jsonb not null default '[]'::jsonb,
   fixture boolean not null default false,
@@ -67,6 +71,8 @@ create table if not exists public.it_code_defect (
   check (status <> 'verified' or (verified_at is not null and deployed_at is not null and coalesce(btrim(verified_observed), '') <> '')),
   check (status <> 'wont_fix' or coalesce(btrim(wont_fix_reason), '') <> '')
 );
+alter table public.it_code_defect add column if not exists affected_count integer not null default 0;
+alter table public.it_code_defect add column if not exists wont_fix_at timestamptz;
 create index if not exists it_code_defect_queue_idx on public.it_code_defect (severity, opened_at) where status in ('queued', 'claimed');
 alter table public.it_code_defect enable row level security;
 drop policy if exists it_code_defect_service_role_only on public.it_code_defect;
@@ -78,8 +84,14 @@ insert into public.table_export_registry (table_name, exported, category, reason
 on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason;
 
 -- ── 2. OPEN (or count, or reopen) ───────────────────────────────────────────────────────────────────────────────────
+-- FIX 5 (review of f79833d44): affected_cases is a SAMPLE of at most 200 refs and affected_count the number of people (exact while
+-- the sample holds them all; past 200, a ref outside the sample is counted when it is passed, so the count is an upper bound).
+-- FIX 6: p_observed_at is WHEN the condition was seen (the classifier passes the run, report or park time it read). A verified
+-- defect reopens only on a condition seen AFTER its verification, and a wont_fix only when it said 'not reproducible' and the
+-- condition is newer than that answer; a duplicate, money, a secret, a founder decision or a gate change stays closed and is counted.
 create or replace function public.fn_it_code_defect_open(p_class_key text, p_severity text, p_issue_key text, p_fn text, p_http integer,
-  p_action text, p_evidence jsonb, p_affected text[] default '{}'::text[], p_suspected_files text[] default '{}'::text[], p_repro jsonb default '{}'::jsonb)
+  p_action text, p_evidence jsonb, p_affected text[] default '{}'::text[], p_suspected_files text[] default '{}'::text[], p_repro jsonb default '{}'::jsonb,
+  p_observed_at timestamptz default null)
 returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
@@ -89,6 +101,7 @@ declare
   v_ev jsonb := jsonb_build_object('at', now(), 'issue_key', p_issue_key,
                                    'detail', public.fn_it_mask_text(left(coalesce(p_evidence::text, '{}'), 1500)));
   v_files text[] := coalesce(p_suspected_files, '{}'::text[]);
+  v_seen timestamptz := least(coalesce(p_observed_at, now()), now());
   d public.it_code_defect; v_new boolean := false; v_reopened boolean := false; v_pb public.it_playbook; a text; v_new_aff text[];
 begin
   if length(v_class) < 3 then raise exception 'fn_it_code_defect_open: a defect needs its class'; end if;
@@ -96,8 +109,8 @@ begin
   select * into d from public.it_code_defect where class_key = v_class for update;
   if d.id is null then
     select * into v_pb from public.it_playbook b where coalesce(p_issue_key, v_class) like b.issue_prefix || '%' order by length(b.issue_prefix) desc limit 1;
-    insert into public.it_code_defect (class_key, severity, issue_key, fn, http, action, time_window, evidence, affected_cases, suspected_files, repro, precedent, fixture)
-    values (v_class, v_sev, p_issue_key, p_fn, p_http, p_action, tstzrange(now() - interval '15 minutes', now(), '[]'), jsonb_build_array(v_ev), v_aff,
+    insert into public.it_code_defect (class_key, severity, issue_key, fn, http, action, time_window, evidence, affected_cases, affected_count, suspected_files, repro, precedent, fixture)
+    values (v_class, v_sev, p_issue_key, p_fn, p_http, p_action, tstzrange(now() - interval '15 minutes', now(), '[]'), jsonb_build_array(v_ev), v_aff[1:200], cardinality(v_aff),
             v_files, coalesce(p_repro, '{}'::jsonb),
             jsonb_build_object('playbook', case when v_pb.failure_class is null then null else jsonb_build_object('class', v_pb.failure_class,
               'prefix', v_pb.issue_prefix, 'remedy', v_pb.remedy, 'remedy_routine', v_pb.remedy_routine, 'regression_check', v_pb.regression_check) end), v_fx)
@@ -106,10 +119,14 @@ begin
   else
     v_new_aff := array(select x from unnest(v_aff) x where not x = any (d.affected_cases));
     if d.status in ('verified', 'wont_fix') then
-      -- A FIXED CLASS THAT RETURNS IS REOPENED, carrying what fixed it last time (C3.5: "two months later, the same issue")
-      v_reopened := d.status = 'verified' or d.wont_fix_reason !~* '^(money|secret|founder)';
+      -- A FIXED CLASS THAT RETURNS IS REOPENED, carrying what fixed it last time (C3.5: "two months later, the same issue"), but only
+      -- on a condition seen after the fix (a parked family stays parked for a day, a return is counted over 7 days: FIX 6)
+      v_reopened := (d.status = 'verified' and v_seen > d.verified_at)
+                 or (d.status = 'wont_fix' and d.wont_fix_reason ~* '^not reproducible' and v_seen > coalesce(d.wont_fix_at, d.updated_at));
       if not v_reopened then
-        update public.it_code_defect set occurrences = occurrences + 1, last_seen = now(), updated_at = now() where id = d.id;
+        if v_seen > coalesce(d.verified_at, d.wont_fix_at, d.updated_at) then
+          update public.it_code_defect set occurrences = occurrences + 1, last_seen = now(), updated_at = now() where id = d.id;
+        end if;
         return d.id;
       end if;
       update public.it_code_defect
@@ -120,15 +137,15 @@ begin
                'reopened_at', now())),
              precedent = precedent || jsonb_build_object('previous_fix', jsonb_build_object('pr_number', d.pr_number, 'lesson_ref', d.lesson_ref)),
              claimed_by_session = null, claimed_at = null, lease_until = null, pr_number = null, deployed_at = null, verified_at = null,
-             verified_observed = null, wont_fix_reason = null,
-             affected_cases = (select coalesce(array_agg(distinct x), '{}'::text[]) from unnest(v_aff) x),
+             verified_observed = null, wont_fix_reason = null, wont_fix_at = null,
+             affected_cases = v_aff[1:200], affected_count = cardinality(v_aff),
              evidence = jsonb_build_array(v_ev), time_window = tstzrange(now() - interval '15 minutes', now(), '[]')
        where id = d.id returning * into d;
       v_new_aff := v_aff;
     else
       update public.it_code_defect
          set occurrences = occurrences + 1, last_seen = now(), updated_at = now(), severity = least(severity, v_sev),
-             affected_cases = (select coalesce(array_agg(distinct x), '{}'::text[]) from (select unnest(affected_cases) x union select unnest(v_aff)) z),
+             affected_cases = (affected_cases || v_new_aff)[1:200], affected_count = affected_count + cardinality(v_new_aff),
              evidence = case when jsonb_array_length(evidence) >= 20 then evidence else evidence || jsonb_build_array(v_ev) end,
              time_window = tstzrange(least(lower(time_window), now() - interval '15 minutes'), now(), '[]')
        where id = d.id returning * into d;
@@ -181,48 +198,71 @@ begin
 end $fn$;
 
 -- ── 3. CLAIM ────────────────────────────────────────────────────────────────────────────────────────────────────────
+-- FIX 7 (review of f79833d44): a session that dies at ANY step is taken back once its lease ends, merged and deployed included,
+-- and the new leaseholder continues from where the dead one stopped (a merged PR is not merged twice); before merge the work was
+-- the dead session's branch, so the defect starts again at claimed. A fixture defect is claimed only under the fixtures switch,
+-- and a live defect never under it (the queue counts the same way).
+create or replace function public.fn_it_code_defect_claimable(d public.it_code_defect)
+returns boolean language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select d.fixture = (coalesce(current_setting('qd.duty_fixtures', true), '') = 'on')
+     and (d.status = 'queued' or (d.status in ('claimed', 'fixing', 'in_review', 'merged', 'deployed') and coalesce(d.lease_until, '-infinity') < now()))
+$fn$;
+
 create or replace function public.fn_it_code_defect_claim(p_session text, p_id bigint default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare d public.it_code_defect;
+declare d public.it_code_defect; v_keep boolean; v_prev text;
 begin
   if coalesce(btrim(p_session), '') = '' then raise exception 'fn_it_code_defect_claim: the session names itself'; end if;
   select * into d from public.it_code_defect x
-   where (p_id is null or x.id = p_id)
-     and (x.status = 'queued' or (x.status in ('claimed', 'fixing', 'in_review') and x.lease_until < now()))
+   where (p_id is null or x.id = p_id) and public.fn_it_code_defect_claimable(x)
    order by case when p_id is not null then 0 else 1 end, x.severity, x.opened_at
    limit 1 for update skip locked;
   if d.id is null then return jsonb_build_object('claimed', false, 'reason', case when p_id is null then 'no defects' else 'defect ' || p_id || ' is not claimable' end); end if;
+  v_keep := d.status in ('merged', 'deployed'); v_prev := d.claimed_by_session;
   update public.it_code_defect
-     set status = 'claimed', claimed_by_session = left(p_session, 200), claimed_at = now(), lease_until = now() + interval '2 hours', updated_at = now(),
-         history = history || jsonb_build_array(jsonb_build_object('claimed_by', left(p_session, 200), 'at', now(), 'took_back_from', d.claimed_by_session))
+     set status = case when v_keep then status else 'claimed' end, claimed_by_session = left(p_session, 200), claimed_at = now(),
+         lease_until = now() + interval '2 hours', updated_at = now(),
+         history = history || jsonb_build_array(jsonb_build_object('claimed_by', left(p_session, 200), 'at', now(), 'took_back_from', d.claimed_by_session,
+                                                                   'at_status', d.status))
    where id = d.id returning * into d;
-  return jsonb_build_object('claimed', true, 'defect', to_jsonb(d));
+  return jsonb_build_object('claimed', true, 'took_back_from', v_prev, 'defect', to_jsonb(d));
 end $fn$;
 
 -- ── 4. PROGRESS ─────────────────────────────────────────────────────────────────────────────────────────────────────
+-- FIX 7: ONLY THE LEASEHOLDER ADVANCES (a named session holding a live lease on a claimed row; a null or empty session never
+-- does), and ONE STEP AT A TIME: claimed -> fixing -> in_review -> merged -> deployed (verified is its own routine). Naming the
+-- current step again renews the lease.
 create or replace function public.fn_it_code_defect_progress(p_id bigint, p_session text, p_status text, p_pr_number integer default null, p_note text default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare d public.it_code_defect; v_order text[] := array['claimed', 'fixing', 'in_review', 'merged', 'deployed'];
+declare d public.it_code_defect; v_order text[] := array['claimed', 'fixing', 'in_review', 'merged', 'deployed']; v_at int; v_to int;
 begin
+  if coalesce(btrim(p_session), '') = '' then return jsonb_build_object('ok', false, 'reason', 'the session names itself'); end if;
   select * into d from public.it_code_defect where id = p_id for update;
   if d.id is null then return jsonb_build_object('ok', false, 'reason', 'no such defect'); end if;
-  if d.claimed_by_session is distinct from p_session then return jsonb_build_object('ok', false, 'reason', 'claimed by another session'); end if;
+  v_at := array_position(v_order, d.status);
+  if v_at is null or d.claimed_by_session is distinct from p_session or coalesce(d.lease_until, '-infinity') < now() then
+    return jsonb_build_object('ok', false, 'reason', 'only the session holding a live lease advances it (status ' || d.status || ', lease '
+                              || coalesce(d.claimed_by_session, 'none') || ')');
+  end if;
   if p_status = 'wont_fix' then
     if coalesce(p_note, '') !~* '^(money|secret|founder decision|gate change|not reproducible|duplicate of [0-9]+)' then
       return jsonb_build_object('ok', false, 'reason', 'wont_fix needs one of: money, secret, founder decision, gate change, not reproducible, duplicate of <id>');
     end if;
-    update public.it_code_defect set status = 'wont_fix', wont_fix_reason = left(p_note, 1000), lease_until = null, updated_at = now() where id = p_id;
+    update public.it_code_defect set status = 'wont_fix', wont_fix_reason = left(p_note, 1000), wont_fix_at = now(), lease_until = null, updated_at = now(),
+           history = history || jsonb_build_array(jsonb_build_object('status', 'wont_fix', 'at', now(), 'note', left(p_note, 500)))
+     where id = p_id;
     return jsonb_build_object('ok', true, 'status', 'wont_fix');
   end if;
-  if not p_status = any (v_order) or array_position(v_order, p_status) < array_position(v_order, d.status) then
-    return jsonb_build_object('ok', false, 'reason', 'a defect moves forward through ' || array_to_string(v_order, ' -> ') || ', not from ' || d.status || ' to ' || coalesce(p_status, '?'));
+  v_to := array_position(v_order, p_status);
+  if v_to is null or v_to not in (v_at, v_at + 1) then
+    return jsonb_build_object('ok', false, 'reason', 'a defect moves one step at a time through ' || array_to_string(v_order, ' -> ') || ', not from ' || d.status || ' to ' || coalesce(p_status, '?'));
   end if;
   if p_status in ('merged', 'deployed') and coalesce(p_pr_number, d.pr_number) is null then
     return jsonb_build_object('ok', false, 'reason', 'merged and deployed name the PR');
   end if;
   update public.it_code_defect
      set status = p_status, pr_number = coalesce(p_pr_number, pr_number), lease_until = now() + interval '2 hours', updated_at = now(),
-         deployed_at = case when p_status = 'deployed' then now() else deployed_at end,
+         deployed_at = case when p_status = 'deployed' then coalesce(deployed_at, now()) else deployed_at end,
          history = history || jsonb_build_array(jsonb_build_object('status', p_status, 'at', now(), 'note', left(coalesce(p_note, ''), 500)))
    where id = p_id;
   return jsonb_build_object('ok', true, 'status', p_status);
@@ -235,7 +275,9 @@ declare d public.it_code_defect; a text; n_told int := 0;
 begin
   select * into d from public.it_code_defect where id = p_id for update;
   if d.id is null then return jsonb_build_object('ok', false, 'reason', 'no such defect'); end if;
-  if d.claimed_by_session is distinct from p_session then return jsonb_build_object('ok', false, 'reason', 'claimed by another session'); end if;
+  if coalesce(btrim(p_session), '') = '' or d.claimed_by_session is distinct from p_session or coalesce(d.lease_until, '-infinity') < now() then
+    return jsonb_build_object('ok', false, 'reason', 'only the session holding a live lease verifies it');
+  end if;
   if d.status <> 'deployed' or d.deployed_at is null then return jsonb_build_object('ok', false, 'reason', 'verified only after deployed (now ' || d.status || ')'); end if;
   if coalesce(btrim(p_observed), '') = '' or length(p_observed) < 20 then
     return jsonb_build_object('ok', false, 'reason', 'verified names what the production SELECT showed (at least 20 characters)');
@@ -264,18 +306,19 @@ begin
 end $fn$;
 
 -- ── 6. THE QUEUE THE SESSION READS FIRST ────────────────────────────────────────────────────────────────────────────
+-- claimable counts what fn_it_code_defect_claim would hand out (a dead session's merged or deployed defect included, FIX 7);
+-- taken_back_after_merge says how many of those a dead session left after its merge.
 create or replace function public.fn_it_code_defect_queue()
 returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   select jsonb_build_object(
-    'claimable', (select count(*) from public.it_code_defect x where not x.fixture
-                   and (x.status = 'queued' or (x.status in ('claimed', 'fixing', 'in_review') and x.lease_until < now()))),
-    'next_id', (select x.id from public.it_code_defect x where not x.fixture
-                 and (x.status = 'queued' or (x.status in ('claimed', 'fixing', 'in_review') and x.lease_until < now()))
-                 order by x.severity, x.opened_at limit 1),
+    'claimable', (select count(*) from public.it_code_defect x where public.fn_it_code_defect_claimable(x)),
+    'taken_back_after_merge', (select count(*) from public.it_code_defect x where public.fn_it_code_defect_claimable(x) and x.status in ('merged', 'deployed')),
+    'next_id', (select x.id from public.it_code_defect x where public.fn_it_code_defect_claimable(x) order by x.severity, x.opened_at limit 1),
     'by_status', (select coalesce(jsonb_object_agg(status, n), '{}'::jsonb) from (select status, count(*) n from public.it_code_defect where not fixture group by 1) z))
 $fn$;
 
-revoke execute on function public.fn_it_code_defect_open(text, text, text, text, integer, text, jsonb, text[], text[], jsonb) from public, anon, authenticated;
+revoke execute on function public.fn_it_code_defect_open(text, text, text, text, integer, text, jsonb, text[], text[], jsonb, timestamptz) from public, anon, authenticated;
+revoke execute on function public.fn_it_code_defect_claimable(public.it_code_defect) from public, anon, authenticated;
 revoke execute on function public.fn_it_defect_tell(bigint, text, text) from public, anon, authenticated;
 revoke execute on function public.fn_it_code_defect_claim(text, bigint) from public, anon, authenticated;
 revoke execute on function public.fn_it_code_defect_progress(bigint, text, text, integer, text) from public, anon, authenticated;

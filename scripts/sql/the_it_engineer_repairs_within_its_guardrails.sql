@@ -4,12 +4,14 @@
 -- 2026: "the IT engineer fixes the glitches it can fix itself (not core code) instead of sending counts of problems"), 1705
 -- (15 Nov 2026: "The IT engineer should solve it, not report it"), 1706 (bring solutions, not issues).
 --
--- MEASURED BEFORE WRITING (production, SELECT, 15 Nov 2026 about 19:10 UTC):
+-- MEASURED BEFORE WRITING (production, SELECT, 15 Nov 2026 about 19:10 UTC; it.escalation read again about 21:30 UTC):
 --   org_role.responsibilities for it_engineer read "Then email the founder directly so he can open a session and have it fixed.
 --   It never repairs production itself", and forbidden_decisions refused [deploy], [code_change], [production_config],
 --   [data_mutation], [job_rerun] and [ceo_direction], each routed to the founder. The seat's own knowledge pack says the opposite
 --   ("resolves (retry, fail over, roll back, fix and deploy) in the moment", it_engineer:company-vision), so the model read one
---   rule in its brief and the other in its role row (SP/audit/SUPPORT_IT.md finding 1). ceo_standing_grant it_engineer/job_rerun
+--   rule in its brief and the other in its role row (SP/audit/SUPPORT_IT.md finding 1). ceo_standing_grant it.escalation read
+--   "Email the founder directly when something is wrong ... so i can open a session with you to fix it" (9 Sep), active.
+--   ceo_standing_grant it_engineer/job_rerun
 --   was inactive "because cron_registry records no idempotency fact".
 --   customer_support's row forbade "promising that a person will follow up, or that a message has been passed to someone"
 --   while its reply prompt says "say you have passed it to that team": now a fault IS passed (support.root_cause, live_fault).
@@ -28,6 +30,8 @@
 --      register is still refused by fn_it_safe_fix_stuck_job_rerun.
 --   3. customer_support's charter: it hands a fault a person reports to the IT engineer and tells them when the fix lands; it
 --      may say a matter was passed on only when the hand-over was filed.
+--   4. ceo_standing_grant it.escalation under founder ruling 1696: the escalation goes to the CEO, who decides; the founder gets
+--      the record for information only; a destructive deploy or production change stays excluded.
 --
 -- APPLY LAST of the four files of this change (the grant names it_rerunnable_job, which the families file creates).
 -- No routine is created here, so there is no SECURITY DEFINER function to revoke.
@@ -68,7 +72,7 @@ update public.org_role set
     '[money] CHANGING, REFUNDING OR CHARGING MONEY, OR ANY CREDIT OR CAP (OpenRouter, Stripe, Twilio) -- never by the seat: the route is the CEO seat, told with the evidence; the seat fails over to a recorded plan B instead.',
     '[gate] WEAKENING A GATE (the licence gate, the sanctions check, the OTP limits, the reply guard, suppression) -- never, not even in a rush: add capacity or a fallback and queue the person with a clear message.',
     '[job_rerun] RE-RUNNING A JOB THAT IS NOT IN public.it_rerunnable_job -- refused: only a reader registered there with its idempotency fact is re-run, once per occurrence and within its daily limit; any other job is a finding.',
-    '[ceo_direction] TAKING DIRECTION ON HOW TO REPAIR -- operations are this seat''s; the CEO decides money, priorities and data decisions and both read the company''s events; the reporting line to the founder (9 Sep 2026) is a record of what was done, never a request.'
+    '[ceo_direction] TAKING DIRECTION ON HOW TO REPAIR -- operations are this seat''s; the CEO has full authority (founder ruling 1696, 15 Nov 2026: "He doesnt rely on me in anything") and decides money, priorities, data decisions and what an escalation becomes; both read the company''s events; the founder receives the record of what was done, for information, never a request.'
   ],
   activation_conditions =
     'A health check fails; a scheduled job stops running or starts failing; an edge function errors or stops answering; an agent '
@@ -77,6 +81,20 @@ update public.org_role set
     || 'the same fault reaches 3 or more people in 15 minutes; a class it fixed comes back; a person tells support something is broken.',
   updated_at = now()
 where role_id = 'it_engineer';
+
+-- it.escalation UNDER RULING 1696 (review of f79833d44, FIX 9): the 9 Sep grant read "Email the founder directly ... so i can open a
+-- session"; since 1696 the CEO has full authority and the founder is not asked. The runtime already routes an IT loop the seat
+-- could not close to the CEO (fn_ceo_it_reports_sweep -> fn_ceo_it_escalation_decide), which decides and tells the founder for
+-- information through customer_support. The grant now says so. The one exclusion is kept: a destructive deploy or production
+-- change (one that drops or deletes data) is outside this grant and outside the CEO's escalation; the seat never makes one.
+update public.ceo_standing_grant
+   set scope_note = 'Escalate to the CEO what the seat could not repair within its guardrails (founder ruling 1696, 15 Nov 2026: the CEO has full authority '
+                    || 'and the founder is not asked). The CEO decides it (fn_ceo_it_escalation_decide); a code defect goes to the engineer session '
+                    || '(public.it_code_defect). The founder receives the record for information only, never a request to act.',
+       limit_note = 'The founder copy is information only and goes through public.founder_mail_policy, so he can silence a class without silencing '
+                    || 'the seat. An escalation names what was measured, over what window, and what is NOT known. Excluded, as on 9 Sep: a destructive '
+                    || 'deploy or production change (one that drops or deletes data) is never made or authorised through this grant.'
+ where grant_key = 'it.escalation';
 
 update public.ceo_standing_grant
    set active = true,
@@ -117,4 +135,6 @@ select case when problems is null then 'PROBE OK' else 'PROBE FAILED: ' || probl
     union all select 'the job_rerun grant is active without its register' where exists (select 1 from public.ceo_standing_grant where grantee_role_id = 'it_engineer'
                 and action_class = 'job_rerun' and active) and to_regclass('public.it_rerunnable_job') is null
     union all select 'customer_support does not hand a fault over' from public.org_role where role_id = 'customer_support' and responsibilities not like '%support.root_cause%'
+    union all select 'it.escalation still asks the founder to act' from public.ceo_standing_grant where grant_key = 'it.escalation'
+                and (scope_note !~ 'CEO' or scope_note !~ '1696' or limit_note !~* 'destructive')
   ) z) y;

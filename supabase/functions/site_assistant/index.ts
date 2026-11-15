@@ -398,14 +398,16 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message)));
       const msgKey = Array.from(digest.slice(0, 8), (b) => b.toString(16).padStart(2, '0')).join('');
       const hour = new Date().toISOString().slice(0, 13);
-      // A fault the visitor reports is handed to the it_engineer (ruling 1705, support_fault_handover.ts). The widget is
-      // anonymous: the case key is a hash of the caller and the hour, no address is known, so the repair is recorded but the
-      // visitor cannot be written to later (support_fault_report.told says so).
+      // A fault the visitor reports is handed to the it_engineer (ruling 1705, support_fault_handover.ts). A SIGNED-IN person is
+      // known by the e-mail their session proved (identify(): auth.getUser, never typed into the chat), so their account can be
+      // repaired and they are told when it is fixed (review of f79833d44, FIX 9); the case key is a hash of the account and the
+      // hour. An anonymous visitor's key is a hash of the caller and the hour, no address is known, so the repair is recorded but
+      // the visitor cannot be written to later (support_fault_report.told says so).
       const person = (await needsAPerson(defaultDeps(admin, 'site_assistant'), {
         seat: 'customer_support', surface: 'site_assistant.person', message: message.slice(0, 4000), audience: 'visitor',
         dedupeKey: 'widget:person:' + ip + ':' + hour + ':' + msgKey, subject: { path },
-        fault: { channel: 'widget', caseKey: await caseKeyOf('widget', ip + ':' + hour), lang: uiLang === 'ar' ? 'ar' : 'en',
-                 audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor' },
+        fault: { channel: 'widget', caseKey: await caseKeyOf('widget', (who ? accountKey(who.audience, who.id) : ip) + ':' + hour), lang: uiLang === 'ar' ? 'ar' : 'en',
+                 email: who?.email ?? null, audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor' },
       })).value;
       // Ledger 1152 / ruling 1264: a contested decision goes to its owning seat; an explicit ask for a person to the founder.
       if (person === true) {

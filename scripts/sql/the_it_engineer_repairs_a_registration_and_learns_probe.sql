@@ -8,248 +8,344 @@
 -- people use the undeliverable top-level domain .qdprobe (not a demo domain, so the live path is the one exercised); every
 -- net.http_post on the local database only queues a row; and it ends in raise exception, so every row it wrote rolls back.
 --
--- What it plants and what PROBE OK needs (each line of the CHK names one):
---   A  a failed licence read (8 tries spent): raised once, re-read exactly once, closed when the reader succeeds, the person told
---      once, support.registration_rescued; a re-read while every licence route is open-circuit is refused.
---   A2 a licence read the family re-reads twice without success: one code defect remedy_exhausted.licence_read_rerun, the person
---      told once that it is being fixed; a second watch counts, never a second row.
---   B  an acceptance with no certificate: retried exactly once, closed when it lands; with no acceptance on record, refused.
---   C  a held registration: refused while the person is not talking to support; explained once (the exact item) once they are.
---   D  a mobile on two accounts: each owner told once, no account merged or deleted, the data decision handed to the CEO.
---   E  a code that never came: a fresh code sent once to the account's e-mail; when used, the report is told once and its
---      hand-over completed.
---   F  a job that is not registered is refused; a registered one runs once.
---   G  route failover: refused without a plan B; with one, the gate's answer is obeyed, and a failover past its hour is put back.
---   H  BURST: the same cause at 3 or more people opens one P1 defect.
---   I  RETURNS: a key fixed on two occurrences opens returns_after_fix.
---   J  an unmatched report becomes a P3 defect; claim, lease take-back, verified only after deployed, the people told; a verified
---      class that returns is reopened with its PR in history.
---   K  a demo report is not filed; a second report from one case in one hour is not filed.
---   L  guardrails: no lead deleted, no approval, no licence value, no ban changed; the four event kinds were emitted.
+-- EVERY REPAIR HERE GOES THROUGH THE DISPATCHER (review of f79833d44: the first probe called the families directly, so it never
+-- saw that a refusal spent the run budget). The probe calls fn_it_registration_watch(), which raises, runs fn_it_safe_fix_tick
+-- for the families of ruling 1705, closes and classifies, exactly as the 5-minute duty does. The defect life cycle is driven
+-- through its own routines. Each numbered line below is one row of the review (FIX 1-9); each fails on f79833d44.
+--   1   a refusal spends nothing: a licence re-read refused while the routes are open runs once they close; a held registration
+--       refused while the person is not talking to support is explained once they report; one refusal row per unchanged answer.
+--   2   a licence whose reader stopped on purpose (licence_read_tries 8: held for a person, a wrong document) is never re-read.
+--   3   one person, one repair, one message: a licence repaired for a person with three hourly support reports, and a verified
+--       defect naming the same person twice (lead and fault), each send exactly one "fixed" notice; one "being fixed" notice.
+--   4   a burst is repaired first: no P1 defect and no notice in its first 30 minutes; one that cleared opens none; one still
+--       stalled 30 minutes on opens one P1 defect naming only the people who had their repair window, each told once.
+--   5   a defect of 260 people stores 200 refs and the count; one bad finding never rolls the watch back.
+--   6   a verified defect does not reopen on a condition older than its verification, does on a newer one; a duplicate stays closed.
+--   7   only the leaseholder advances; claimed -> fixing -> in_review -> merged -> deployed -> verified, no step skipped; a session
+--       that died at merged is taken back at merged and counted; a fixture defect is never claimed by a live session.
+--   8   no plan B for json_extraction*; qwen/qwen3.8-flash recorded by the CEO for both document classes, pending its eval, and
+--       the failover refuses while it is pending.
+--   9   the shared-mobile key is a keyed hash (never md5 of the phone); the certificate retry names the account by id; the watch
+--       adds no 'playbook' agent_runs row; a repaired lead's support:fault finding closes; it.escalation routes to the CEO.
+--   and the earlier rows that still hold: K (demo not filed, once per case per hour), D (each owner of a shared mobile told once,
+--   the CEO handed the data decision), E (a code resent once, the report told when used), F (a registered reader re-run once),
+--   L (no lead deleted, no approval, ban or licence value changed, the four event kinds emitted, no family parked).
 do $p$
 declare
-  v_ok boolean := true; v_fail text[] := '{}'; v jsonb; r jsonb; n int; n2 int; v_id bigint; v_d bigint; v_d2 bigint;
-  l1 bigint; l2 bigint; l3 bigint; l4 bigint; l5 bigint; l6 bigint; l7 bigint; l8 bigint; l9 bigint; l10 bigint; c1 uuid;
-  v_rep bigint; v_rep2 bigint; v_leads_before int; v_snap jsonb; v_snap_after jsonb; v_failover text; v_events jsonb;
+  v_fail text[] := '{}'; v jsonb; r jsonb; n int; n2 int; v_id bigint; v_d bigint; v_t0 timestamptz := now();
+  la bigint; l8 bigint; lr bigint; lh bigint; ld1 bigint; ld2 bigint; lx bigint; b1 bigint; b2 bigint; b3 bigint; b4 bigint; b5 bigint; b6 bigint; b7 bigint;
+  c1 uuid; v_rep bigint; v_repx bigint; v_leads_before int; v_snap jsonb; v_snap_after jsonb; v_events jsonb; v_refs text[];
 begin
   if coalesce((select value from public.app_secrets where key = 'project_ref'), '') <> 'localpg16localpg16lo' then
     raise exception 'PROBE REFUSED: this probe runs only on the local database (project_ref is not the local seed)';
   end if;
   perform set_config('qd.duty_fixtures', '', true);
-  -- what the local seeds do not hold and production does
   insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
   values ('support.root_cause', 'customer_support', 'it_engineer', 'probe stand-in', 'fn_seat_takes_support_root_cause', null, true,
           'scripts/sql/customer_support_finds_the_root_cause_each_week_and_measures_the_fix.sql')
   on conflict (type, from_seat, to_seat) do nothing;
   insert into public.app_secrets (key, value) values ('cred_fn_resilience_ping', 'local-not-a-secret'), ('publishable_key', 'local-not-a-key')
   on conflict (key) do nothing;
-  -- the eight 1574 families are not on the local database: the dispatcher sees only the seven of 1705 here
   select count(*) into v_leads_before from public.leads;
+  -- the licence routes, all open-circuit at first; the plan B model registered as it is on production
+  insert into public.model_registry (model_id, provider, tier, in_per_mtok_usd, out_per_mtok_usd) values
+    ('probe/primary', 'probe', 'medium', 1, 1), ('probe/fallback', 'probe', 'medium', 1, 1), ('qwen/qwen3.8-flash', 'openrouter', 'small', 0.15, 0.47)
+  on conflict do nothing;
+  insert into public.llm_route_health (model_id, open_until) values ('probe/primary', now() + interval '10 minutes'), ('probe/fallback', now() + interval '10 minutes')
+  on conflict (model_id) do update set open_until = excluded.open_until;
+  insert into public.model_policy (task_class, tier, model_primary, model_fallback) values
+    ('document_extraction', 'medium', 'probe/primary', 'probe/fallback'), ('document_extraction_multimodal', 'medium', 'probe/primary', 'probe/fallback')
+  on conflict do nothing;
 
   -- ── plant the people (idle 2 hours) ──
-  insert into public.leads (company_name, claimed, claimed_by, email, licence_read_state, license_doc_path, licence_read_tries, licence_read_at,
-                            portal_updated_at, created_at, trade_license_no, license_expiry)
-  values ('Probe Licence One LLC', true, 'one@selfheal.qdprobe', 'one@selfheal.qdprobe', 'ours_failed', 'probe/one.pdf', 8, now() - interval '1 hour',
-          now() - interval '2 hours', now() - interval '3 hours', 'P-1001', date '2027-01-01') returning id into l1;
-  insert into public.leads (company_name, claimed, claimed_by, email, licence_read_state, license_doc_path, licence_read_tries, licence_read_at, portal_updated_at, created_at)
-  values ('Probe Licence Two LLC', true, 'two@selfheal.qdprobe', 'two@selfheal.qdprobe', 'ours_failed', 'probe/two.pdf', 8, now() - interval '1 hour',
-          now() - interval '2 hours', now() - interval '3 hours') returning id into l2;
-  insert into public.leads (company_name, claimed, claimed_by, email, accepted_terms_at, portal_updated_at, created_at)
-  values ('Probe Certificate Three LLC', true, 'three@selfheal.qdprobe', 'three@selfheal.qdprobe', now() - interval '40 minutes', now() - interval '2 hours', now() - interval '3 hours')
-  returning id into l3;
-  insert into public.leads (company_name, claimed, claimed_by, email, portal_updated_at, created_at)
-  values ('Probe No Acceptance Four LLC', true, 'four@selfheal.qdprobe', 'four@selfheal.qdprobe', now() - interval '2 hours', now() - interval '3 hours') returning id into l4;
+  insert into public.leads (company_name, claimed, claimed_by, email, licence_read_state, license_doc_path, licence_read_at, portal_updated_at, created_at, trade_license_no, license_expiry)
+  values ('Probe Licence A LLC', true, 'a@selfheal.qdprobe', 'a@selfheal.qdprobe', 'ours_failed', 'probe/a.pdf', now() - interval '1 hour', now() - interval '2 hours', now() - interval '3 hours', 'P-1001', date '2027-01-01')
+  returning id into la;
+  insert into public.leads (company_name, claimed, claimed_by, email, licence_read_state, license_doc_path, licence_read_at, portal_updated_at, created_at)
+  values ('Probe Held For A Person LLC', true, 'eight@selfheal.qdprobe', 'eight@selfheal.qdprobe', 'ours_failed', 'probe/eight.pdf', now() - interval '1 hour', now() - interval '2 hours', now() - interval '3 hours')
+  returning id into l8;
+  insert into public.leads (company_name, claimed, claimed_by, email, licence_read_state, license_doc_path, licence_read_at, portal_updated_at, created_at)
+  values ('Probe Licence R LLC', true, 'r@selfheal.qdprobe', 'r@selfheal.qdprobe', 'ours_failed', 'probe/r.pdf', now() - interval '1 hour', now() - interval '2 hours', now() - interval '3 hours')
+  returning id into lr;
   insert into public.leads (company_name, claimed, claimed_by, email, licence_gate_reason, approval_status, portal_updated_at, created_at)
-  values ('Probe Held Five LLC', true, 'five@selfheal.qdprobe', 'five@selfheal.qdprobe', 'licence_expired', 'action_required', now() - interval '2 hours', now() - interval '3 hours')
-  returning id into l5;
+  values ('Probe Held H LLC', true, 'h@selfheal.qdprobe', 'h@selfheal.qdprobe', 'licence_expired', 'action_required', now() - interval '2 hours', now() - interval '3 hours')
+  returning id into lh;
   insert into public.leads (company_name, claimed, claimed_by, email, phone_e164, portal_updated_at, created_at)
-  values ('Probe Shared Mobile Six LLC', true, 'six@selfheal.qdprobe', 'six@selfheal.qdprobe', '+971559990001', now() - interval '2 hours', now() - interval '3 hours') returning id into l6;
+  values ('Probe Shared Mobile D1 LLC', true, 'd1@selfheal.qdprobe', 'd1@selfheal.qdprobe', '+971559990001', now() - interval '2 hours', now() - interval '3 hours') returning id into ld1;
   insert into public.leads (company_name, claimed, claimed_by, email, phone_e164, portal_updated_at, created_at)
-  values ('Probe Shared Mobile Seven LLC', true, 'seven@selfheal.qdprobe', 'seven@selfheal.qdprobe', '+971559990001', now() - interval '2 hours', now() - interval '3 hours') returning id into l7;
+  values ('Probe Shared Mobile D2 LLC', true, 'd2@selfheal.qdprobe', 'd2@selfheal.qdprobe', '+971559990001', now() - interval '2 hours', now() - interval '3 hours') returning id into ld2;
+  insert into public.leads (company_name, claimed, claimed_by, email, portal_updated_at, created_at)
+  values ('Probe Defect X LLC', true, 'x@selfheal.qdprobe', 'x@selfheal.qdprobe', now() - interval '2 hours', now() - interval '3 hours') returning id into lx;
+  -- four acceptances with no certificate: a burst of one cause (the first stored with capitals: the retry must name it by id)
   insert into public.leads (company_name, claimed, claimed_by, email, accepted_terms_at, portal_updated_at, created_at) values
-    ('Probe Burst Eight LLC', true, 'eight@selfheal.qdprobe', 'eight@selfheal.qdprobe', now() - interval '40 minutes', now() - interval '2 hours', now() - interval '3 hours') returning id into l8;
+    ('Probe Burst B1 LLC', true, 'Bee1@Selfheal.qdprobe', 'bee1@selfheal.qdprobe', now() - interval '40 minutes', now() - interval '2 hours', now() - interval '3 hours') returning id into b1;
   insert into public.leads (company_name, claimed, claimed_by, email, accepted_terms_at, portal_updated_at, created_at) values
-    ('Probe Burst Nine LLC', true, 'nine@selfheal.qdprobe', 'nine@selfheal.qdprobe', now() - interval '40 minutes', now() - interval '2 hours', now() - interval '3 hours') returning id into l9;
+    ('Probe Burst B2 LLC', true, 'bee2@selfheal.qdprobe', 'bee2@selfheal.qdprobe', now() - interval '40 minutes', now() - interval '2 hours', now() - interval '3 hours') returning id into b2;
   insert into public.leads (company_name, claimed, claimed_by, email, accepted_terms_at, portal_updated_at, created_at) values
-    ('Probe Burst Ten LLC', true, 'ten@selfheal.qdprobe', 'ten@selfheal.qdprobe', now() - interval '40 minutes', now() - interval '2 hours', now() - interval '3 hours') returning id into l10;
-  -- the licence-read clock (a05_leads_licence_read_clock) starts a new licence at 0 tries: these two have spent all 8
-  update public.leads set licence_read_tries = 8 where id in (l1, l2);
+    ('Probe Burst B3 LLC', true, 'bee3@selfheal.qdprobe', 'bee3@selfheal.qdprobe', now() - interval '40 minutes', now() - interval '2 hours', now() - interval '3 hours') returning id into b3;
+  insert into public.leads (company_name, claimed, claimed_by, email, accepted_terms_at, portal_updated_at, created_at) values
+    ('Probe Burst B4 LLC', true, 'bee4@selfheal.qdprobe', 'bee4@selfheal.qdprobe', now() - interval '40 minutes', now() - interval '2 hours', now() - interval '3 hours') returning id into b4;
+  -- the licence-read clock (a05_leads_licence_read_clock) starts a new licence at 0 tries: A has spent 3, R 2, and the held one
+  -- sits at the reader's deliberate ceiling of 8 (supplier_api documents.ts: held for a person, or a wrong document)
+  update public.leads set licence_read_tries = 3 where id = la;
+  update public.leads set licence_read_tries = 2 where id = lr;
+  update public.leads set licence_read_tries = 8 where id = l8;
   insert into public.customers (email, full_name) values ('cust@selfheal.qdprobe', 'Probe Customer') returning id into c1;
   insert into public.email_verifications (email, purpose, user_kind, expires_at, created_at)
   values ('cust@selfheal.qdprobe', 'signin', 'customer', now() - interval '20 minutes', now() - interval '30 minutes');
+  -- R told support three times, in three different hours (three report rows, one person)
+  insert into public.support_fault_report (channel, case_key, hour_key, audience, email, lead_id, turns, issue_key, reported_at)
+  select 'email', 'email:probe-r', h, 'supplier', 'r@selfheal.qdprobe', lr, '[]'::jsonb, 'support:fault:proberrrrrrrrrrr', now() - make_interval(hours => k)
+    from (values ('2026111501', 3), ('2026111502', 2), ('2026111503', 1)) z(h, k);
+  perform public.fn_it_engineer_finding_upsert('support:fault:proberrrrrrrrrrr', 'A person told support something is broken (email)', 'probe', 'internal', 1,
+    jsonb_build_object('owner_seat', 'it_engineer', 'lead_id', lr), '{}'::text[], '{}'::text[], 'customer_support');
   select jsonb_agg(jsonb_build_object('id', id, 'a', approval_status, 'b', banned, 'n', trade_license_no, 'e', license_expiry, 'c', claimed_by) order by id) into v_snap
-    from public.leads where id in (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10);
+    from public.leads where id in (la, l8, lr, lh, ld1, ld2, lx, b1, b2, b3, b4);
 
   -- ── K: demo not filed; one per case per hour ──
   r := public.fn_support_hands_it_a_fault('email', 'email:probe-demo', 'en', 'customer', '[{"role":"customer","text":"ZZ DEMO broken"}]', 'zz@example.invalid');
-  if coalesce((r->>'filed')::boolean, true) then v_fail := array_append(v_fail, ('K: a demo report was filed')::text); end if;
+  if coalesce((r->>'filed')::boolean, true) then v_fail := v_fail || 'K: a demo report was filed'::text; end if;
   r := public.fn_support_hands_it_a_fault('email', 'email:probe-cust', 'en', 'customer', '[{"role":"customer","text":"the code never came, write to me at x@y.ae"}]', 'cust@selfheal.qdprobe');
   v_rep := (r->>'report_id')::bigint;
-  if not coalesce((r->>'filed')::boolean, false) or (r->>'handoff_id') is null then v_fail := array_append(v_fail, (('K: the fault was not filed with its hand-over: ' || r::text))::text); end if;
-  if exists (select 1 from public.support_fault_report where id = v_rep and turns::text ~ '@') then v_fail := array_append(v_fail, ('K: an address survived the mask'::text)::text); end if;
+  if not coalesce((r->>'filed')::boolean, false) or (r->>'handoff_id') is null then v_fail := v_fail || ('K: the fault was not filed with its hand-over: ' || r::text); end if;
+  if exists (select 1 from public.support_fault_report where id = v_rep and turns::text ~ '@') then v_fail := v_fail || 'K: an address survived the mask'::text; end if;
   r := public.fn_support_hands_it_a_fault('email', 'email:probe-cust', 'en', 'customer', '[{"role":"customer","text":"again"}]', 'cust@selfheal.qdprobe');
-  if coalesce((r->>'filed')::boolean, true) then v_fail := array_append(v_fail, ('K: a second report in one hour was filed')::text); end if;
-  if not exists (select 1 from public.agent_actions where id = (select handoff_id from public.support_fault_report where id = v_rep)
-                   and agent = 'it_engineer' and detail->>'type' = 'support.root_cause' and status = 'pending' and detail ? 'awaiting') then
-    v_fail := array_append(v_fail, ('K: the hand-over is not waiting with the IT engineer')::text);
-  end if;
+  if coalesce((r->>'filed')::boolean, true) then v_fail := v_fail || 'K: a second report in one hour was filed'::text; end if;
 
-  -- ── refusals by direct call (no run recorded) ──
-  r := public.fn_it_safe_fix_terms_certificate_retry('reg:stall:certificate:' || l4);
-  if r->>'outcome' <> 'refused_by_guardrail' then v_fail := array_append(v_fail, (('B: a certificate with no acceptance was not refused: ' || r::text))::text); end if;
-  r := public.fn_it_safe_fix_held_registration_explain('reg:stall:held:' || l5);
-  if r->>'outcome' <> 'refused_by_guardrail' then v_fail := array_append(v_fail, (('C: a held person not talking to us was written to: ' || r::text))::text); end if;
-  r := public.fn_it_safe_fix_stuck_job_rerun('reg:job_stalled:send_outbox');
-  if r->>'outcome' <> 'refused_by_guardrail' then v_fail := array_append(v_fail, (('F: an unregistered job was re-run: ' || r::text))::text); end if;
-  r := public.fn_it_safe_fix_route_failover('reg:circuit_open:document_extraction');
-  if r->>'outcome' <> 'refused_by_guardrail' then v_fail := array_append(v_fail, (('G: a failover with no plan B was not refused: ' || r::text))::text); end if;
-  -- every licence route open-circuit: a re-read is refused (the routes registered, as model_policy's trigger requires)
-  insert into public.model_registry (model_id, provider, tier, in_per_mtok_usd, out_per_mtok_usd) values
-    ('probe/primary', 'probe', 'medium', 1, 1), ('probe/fallback', 'probe', 'medium', 1, 1), ('anthropic/claude-sonnet-5.5', 'openrouter', 'large', 1, 1)
-  on conflict do nothing;
-  insert into public.llm_route_health (model_id, open_until) values ('probe/primary', now() + interval '10 minutes'), ('probe/fallback', now() + interval '10 minutes'),
-    ('anthropic/claude-sonnet-5.5', null)
-  on conflict (model_id) do update set open_until = excluded.open_until;
-  insert into public.model_policy (task_class, tier, model_primary, model_fallback) values ('document_extraction', 'medium', 'probe/primary', 'probe/fallback')
-  on conflict do nothing;
-  r := public.fn_it_safe_fix_licence_read_rerun('reg:stall:licence_read:' || l1);
-  if r->>'outcome' <> 'refused_by_guardrail' then v_fail := array_append(v_fail, (('A: a re-read ran while every route was open: ' || r::text))::text); end if;
-  -- G with a plan B: json_extraction (seeded) on a ladder whose two routes are open
-  insert into public.model_policy (task_class, tier, model_primary, model_fallback) values ('json_extraction', 'medium', 'probe/primary', 'probe/fallback')
-  on conflict do nothing;
-  r := public.fn_it_safe_fix_route_failover('reg:circuit_open:json_extraction');
-  v_failover := r->>'outcome';
-  if v_failover = 'fixed' then
-    if not exists (select 1 from public.model_policy where task_class = 'json_extraction' and model_fallback = 'anthropic/claude-sonnet-5.5') then v_fail := array_append(v_fail, ('G: the plan B is not on the ladder')::text); end if;
-    update public.it_route_failover set started_at = now() - interval '2 hours', until = now() - interval '1 hour' where task_class = 'json_extraction';
-  elsif not (v_failover = 'refused_by_guardrail' and r->>'why' like 'the paid-provider gate refuses%') then
-    v_fail := array_append(v_fail, (('G: the failover neither landed nor was refused by the gate: ' || r::text))::text);
-  end if;
-  update public.llm_route_health set open_until = null where model_id in ('probe/primary', 'probe/fallback');
-
-  -- ── WATCH 1: raise and repair ──
+  -- ── WATCH 1 and 2, every licence route open ──
   v := public.fn_it_registration_watch();
-  if v_failover = 'fixed' and exists (select 1 from public.model_policy where task_class = 'json_extraction' and model_fallback <> 'probe/fallback') then
-    v_fail := array_append(v_fail, ('G: a failover past its hour was not put back')::text);
-  end if;
-  -- backdate this occurrence of A so a later return is a new occurrence (one transaction has one now())
-  update public.it_engineer_finding set started_at = now() - interval '1 hour' where issue_key = 'reg:stall:licence_read:' || l1;
-  update public.it_safe_fix_run set occurrence_started_at = now() - interval '1 hour' where issue_key = 'reg:stall:licence_read:' || l1;
-  select count(*) into n from public.it_safe_fix_run where issue_key = 'reg:stall:licence_read:' || l1 and outcome = 'fixed';
-  if n <> 1 then v_fail := array_append(v_fail, (('A: the licence was re-read ' || n || ' times on watch 1, not once'))::text); end if;
-  if not exists (select 1 from public.leads where id = l1 and licence_read_tries = 7) then v_fail := array_append(v_fail, ('A: the spent tries were not given one more')::text); end if;
-  select count(*) into n from public.it_safe_fix_run where issue_key = 'reg:stall:certificate:' || l3 and outcome = 'fixed';
-  if n <> 1 then v_fail := array_append(v_fail, (('B: the certificate was retried ' || n || ' times, not once'))::text); end if;
-  select count(*) into n from public.it_safe_fix_run where family = 'duplicate_mobile_guide' and outcome = 'fixed';
-  if n <> 1 then v_fail := array_append(v_fail, (('D: the shared mobile was guided ' || n || ' times, not once'))::text); end if;
-  select count(*) into n from public.customer_support_voice_owed where stage = 'it_repair.dup_mobile';
-  if n <> 2 then v_fail := array_append(v_fail, (('D: ' || n || ' owners told, not 2'))::text); end if;
-  if not exists (select 1 from public.it_engineer_finding where issue_key like 'reg:dup\_mobile:%' and evidence->>'owner_seat' = 'ceo') then v_fail := array_append(v_fail, ('D: the data decision is not the CEO''s')::text); end if;
-  if not exists (select 1 from public.agent_actions where kind = 'handoff' and agent = 'ceo' and detail->>'type' = 'it.finding' and detail->>'issue_key' like 'reg:dup\_mobile:%') then
-    v_fail := array_append(v_fail, (('D: the CEO was not handed the data decision: ' || coalesce((select result::text from public.it_safe_fix_run where family = 'duplicate_mobile_guide' limit 1), 'no run')))::text);
-  end if;
-  select count(*) into n from public.it_safe_fix_run where family = 'code_resend_assist' and outcome = 'fixed';
-  if n <> 1 then v_fail := array_append(v_fail, (('E: the code was resent ' || n || ' times, not once: ' || coalesce((select string_agg(coalesce(result->>'why', error, outcome), ' | ') from public.it_safe_fix_run where family = 'code_resend_assist'), 'no run')))::text); end if;
-  select count(*) into n from public.it_safe_fix_run where family = 'stuck_job_rerun' and issue_key = 'reg:job_stalled:agreement_resign' and outcome = 'fixed';
-  if n <> 1 then v_fail := array_append(v_fail, (('F: the registered re-sign ran ' || n || ' times, not once'))::text); end if;
-  if not exists (select 1 from public.it_code_defect where class_key = 'burst.certificate' and severity = 'P1' and cardinality(affected_cases) >= 3) then
-    v_fail := array_append(v_fail, (('H: no P1 burst defect for 3 people: ' || coalesce((select string_agg(class_key, ',') from public.it_code_defect), 'none')))::text);
-  end if;
+  v := public.fn_it_registration_watch();
+  begin
+    select count(*) filter (where outcome = 'refused_by_guardrail'), count(*) filter (where outcome = 'fixed') into n, n2
+      from public.it_safe_fix_run where issue_key = 'reg:stall:licence_read:' || la;
+    if n <> 1 or n2 <> 0 then v_fail := v_fail || ('1: a re-read refused twice on open routes left ' || n || ' refusal rows and ' || n2 || ' fixes, not 1 and 0'); end if;
+    select count(*) into n from public.it_safe_fix_run where issue_key = 'reg:stall:held:' || lh and outcome = 'refused_by_guardrail';
+    if n <> 1 then v_fail := v_fail || ('1: the held registration refused ' || n || ' rows, not 1'); end if;
+    -- 8: the document classes have the CEO's plan B, pending its eval; the failover refuses while it is pending
+    if exists (select 1 from public.it_route_plan_b where task_class like 'json\_extraction%') then v_fail := v_fail || '8: a plan B is still recorded for json_extraction'::text; end if;
+    select count(*) into n from public.it_route_plan_b b where task_class in ('document_extraction', 'document_extraction_multimodal')
+       and plan_b_model = 'qwen/qwen3.8-flash' and recorded_by = 'ceo' and not active and (to_jsonb(b)->>'pending_eval') ~* 'ZZ DEMO';
+    if n <> 2 then v_fail := v_fail || ('8: ' || n || ' document classes carry the CEO''s pending qwen plan B, not 2'); end if;
+    if not exists (select 1 from public.it_safe_fix_run where family = 'route_failover' and issue_key = 'reg:circuit_open:document_extraction'
+                     and outcome = 'refused_by_guardrail' and result->>'why' ~* 'eval') then
+      v_fail := v_fail || ('8: the failover of document_extraction was not refused for its pending eval: '
+        || coalesce((select string_agg(coalesce(result->>'why', outcome), ' | ') from public.it_safe_fix_run where family = 'route_failover'), 'no run'));
+    end if;
+    if exists (select 1 from public.model_policy where task_class like 'document\_extraction%' and model_fallback = 'qwen/qwen3.8-flash') then
+      v_fail := v_fail || '8: a pending plan B was put on the ladder'::text;
+    end if;
+    -- 4: the burst is raised and repaired, not escalated, in its first 30 minutes
+    if not exists (select 1 from public.it_engineer_finding where issue_key = 'reg:burst:certificate' and closed_at is null) then
+      v_fail := v_fail || '4: the certificate burst was not raised'::text;
+    end if;
+    if exists (select 1 from public.it_code_defect where class_key = 'burst.certificate') then v_fail := v_fail || '4: a burst opened a P1 defect before any repair'::text; end if;
+    select count(*) into n from public.customer_support_voice_owed where stage = 'it_defect.opened' and to_email like 'bee%';
+    if n <> 0 then v_fail := v_fail || ('4: ' || n || ' "we are fixing it" notices went out while the repair was in flight'); end if;
+    select count(*) into n from public.it_safe_fix_run where family = 'terms_certificate_retry' and outcome = 'fixed' and (result->>'lead_id')::bigint in (b1, b2, b3, b4);
+    if n < 4 then v_fail := v_fail || ('4: the burst''s certificates were retried ' || n || ' times, fewer than its 4 people'); end if;
+    -- 9: the certificate retry names the account by id, never by an address it would lower-case
+    select convert_from(q.body, 'UTF8')::jsonb into v from net.http_request_queue q
+     where q.id = (select (result->>'sign_request')::bigint from public.it_safe_fix_run where family = 'terms_certificate_retry' and (result->>'lead_id')::bigint = b1 order by id limit 1);
+    if v is null or v->>'id' is distinct from b1::text or v ? 'email' then v_fail := v_fail || ('9: the certificate retry did not name the account by id: ' || coalesce(v - '__secret', 'null'::jsonb)::text); end if;
+    -- 9: the shared mobile's key is a keyed hash, never md5 of the phone
+    if not exists (select 1 from public.it_engineer_finding where issue_key like 'reg:dup\_mobile:%') then v_fail := v_fail || '9: the shared mobile was not raised'::text; end if;
+    if exists (select 1 from public.it_engineer_finding where issue_key = 'reg:dup_mobile:' || left(md5('+971559990001'), 12)) then
+      v_fail := v_fail || '9: the shared-mobile key is md5 of the phone (reversible)'::text;
+    end if;
+    -- D: each owner told once; the data decision is the CEO's
+    select count(*) into n from public.customer_support_voice_owed where stage = 'it_repair.dup_mobile' and to_email in ('d1@selfheal.qdprobe', 'd2@selfheal.qdprobe');
+    if n <> 2 then v_fail := v_fail || ('D: ' || n || ' owners told, not 2'); end if;
+    if not exists (select 1 from public.agent_actions where kind = 'handoff' and agent = 'ceo' and detail->>'type' = 'it.finding' and detail->>'issue_key' like 'reg:dup\_mobile:%') then
+      v_fail := v_fail || 'D: the CEO was not handed the data decision'::text;
+    end if;
+    -- E and F
+    select count(*) into n from public.it_safe_fix_run where family = 'code_resend_assist' and outcome = 'fixed';
+    if n <> 1 then v_fail := v_fail || ('E: the code was resent ' || n || ' times, not once'); end if;
+    select count(*) into n from public.it_safe_fix_run where family = 'stuck_job_rerun' and issue_key = 'reg:job_stalled:agreement_resign' and outcome = 'fixed';
+    if n <> 1 then v_fail := v_fail || ('F: the registered re-sign ran ' || n || ' times, not once'); end if;
+  exception when others then v_fail := v_fail || ('watch 1-2 checks raised: ' || sqlerrm);
+  end;
 
-  -- ── C: the held person talks to support, and is told the one thing missing ──
-  r := public.fn_support_hands_it_a_fault('email', 'email:probe-five', 'en', 'supplier', '[{"role":"supplier","text":"registration stuck"}]', 'five@selfheal.qdprobe');
-  update public.it_safe_fix_run set issue_key = issue_key || ':moved' where issue_key = 'reg:stall:held:' || l5;   -- the earlier refusal: this probe replays the next occurrence
-  -- the reader succeeds for l1 and the certificate lands for l3; the code is used for c1
-  update public.leads set licence_read_state = 'read' where id = l1;
-  update public.leads set signed_terms_path = 'probe/cert.pdf', signed_terms_at = now() where id = l3;
+  -- ── the held person writes to support; the routes close ──
+  r := public.fn_support_hands_it_a_fault('email', 'email:probe-h', 'en', 'supplier', '[{"role":"supplier","text":"registration stuck"}]', 'h@selfheal.qdprobe');
+  update public.llm_route_health set open_until = null where model_id in ('probe/primary', 'probe/fallback');
+  v := public.fn_it_registration_watch();
+  begin
+    select count(*) into n from public.it_safe_fix_run where issue_key = 'reg:stall:licence_read:' || la and outcome = 'fixed';
+    if n <> 1 then v_fail := v_fail || ('1: the licence was re-read ' || n || ' times once the routes closed, not once'); end if;
+    if not exists (select 1 from public.leads where id = la and licence_read_tries = 3 and licence_read_at < now() - interval '1 day') then
+      v_fail := v_fail || '1: the re-read did not make the licence due, or touched its tries'::text;
+    end if;
+    select count(*) into n from public.customer_support_voice_owed where stage = 'it_repair.held_explain' and to_email = 'h@selfheal.qdprobe' and draft ~ 'expired';
+    if n <> 1 then v_fail := v_fail || ('1: the held person who reported was told the missing item ' || n || ' times, not once: '
+      || coalesce((select string_agg(coalesce(result->>'why', outcome), ' | ') from public.it_safe_fix_run where family = 'held_registration_explain'), 'no run')); end if;
+    -- 2: the reader's own stop stands
+    if not exists (select 1 from public.leads where id = l8 and licence_read_tries = 8) then v_fail := v_fail || '2: a licence held for a person had its tries reset'::text; end if;
+    if exists (select 1 from public.it_safe_fix_run where issue_key = 'reg:stall:licence_read:' || l8 and outcome = 'fixed') then v_fail := v_fail || '2: a licence held for a person was re-read'::text; end if;
+    if not exists (select 1 from public.it_safe_fix_run where issue_key = 'reg:stall:licence_read:' || l8 and outcome = 'refused_by_guardrail' and result->>'why' ~* 'person') then
+      v_fail := v_fail || '2: the refusal does not say a person judges it'::text;
+    end if;
+  exception when others then v_fail := v_fail || ('watch 3 checks raised: ' || sqlerrm);
+  end;
+
+  -- ── the reader succeeds for A and R; the code is used for the customer ──
+  update public.leads set licence_read_state = 'read' where id in (la, lr);
   insert into public.email_verifications (email, purpose, user_kind, expires_at, created_at, used_at)
   values ('cust@selfheal.qdprobe', 'signin', 'customer', now() + interval '10 minutes', now() + interval '1 second', now() + interval '2 seconds');
-
-  -- ── WATCH 2: close and tell; A2 re-read a second time ──
   v := public.fn_it_registration_watch();
-  if not exists (select 1 from public.it_engineer_finding where issue_key = 'reg:stall:licence_read:' || l1 and closed_at is not null) then v_fail := array_append(v_fail, ('A: the repaired licence finding did not close')::text); end if;
-  select count(*) into n from public.customer_support_voice_owed where stage = 'it_repair.done' and to_email = 'one@selfheal.qdprobe';
-  if n <> 1 then v_fail := array_append(v_fail, (('A: the person was told ' || n || ' times, not once'))::text); end if;
-  select count(*) into n from public.customer_support_voice_owed where stage = 'it_repair.done' and to_email = 'three@selfheal.qdprobe';
-  if n <> 1 then v_fail := array_append(v_fail, (('B: the certificate person was told ' || n || ' times, not once'))::text); end if;
-  select count(*) into n from public.customer_support_voice_owed where stage = 'it_repair.held_explain' and to_email = 'five@selfheal.qdprobe' and draft ~ 'expired';
-  if n <> 1 then v_fail := v_fail || ('C: the held person was told the missing item ' || n || ' times, not once: '
-                                       || coalesce((select string_agg(coalesce(result->>'why', outcome), ' | ') from public.it_safe_fix_run where family = 'held_registration_explain'), 'no run')); end if;
-  if not exists (select 1 from public.support_fault_report where id = v_rep and told = 'owed') then v_fail := array_append(v_fail, ('E: the code report was not told it is fixed')::text); end if;
-  if not exists (select 1 from public.agent_actions a join public.support_fault_report s on s.handoff_id = a.id where s.id = v_rep and a.status = 'done') then
-    v_fail := array_append(v_fail, ('E: the code report''s hand-over did not complete')::text);
+  begin
+    if not exists (select 1 from public.it_engineer_finding where issue_key = 'reg:stall:licence_read:' || la and closed_at is not null) then v_fail := v_fail || 'A: the repaired licence finding did not close'::text; end if;
+    select count(*) into n from public.customer_support_voice_owed where stage in ('it_repair.done', 'it_fault.fixed', 'it_defect.fixed') and to_email = 'r@selfheal.qdprobe';
+    if n <> 1 then v_fail := v_fail || ('3: one repair sent ' || n || ' "fixed" notices to one person with three reports, not 1'); end if;
+    if exists (select 1 from public.support_fault_report where lead_id = lr and told_at is null) then v_fail := v_fail || '3: a report of the repaired person was left untold'::text; end if;
+    if not exists (select 1 from public.it_engineer_finding where issue_key = 'support:fault:proberrrrrrrrrrr' and closed_at is not null) then
+      v_fail := v_fail || '9: the repaired lead''s support:fault finding stayed open'::text;
+    end if;
+    if not exists (select 1 from public.support_fault_report where id = v_rep and told = 'owed') then v_fail := v_fail || 'E: the code report was not told it is fixed'::text; end if;
+  exception when others then v_fail := v_fail || ('watch 4 checks raised: ' || sqlerrm);
+  end;
+
+  -- ── 4: three certificates land, the fourth does not; 30 minutes later one person is not a burst ──
+  update public.leads set signed_terms_path = 'probe/cert.pdf', signed_terms_at = now() where id in (b1, b2, b3);
+  v := public.fn_it_registration_watch();
+  update public.it_engineer_finding set started_at = now() - interval '31 minutes' where issue_key in ('reg:burst:certificate', 'reg:stall:certificate:' || b4);
+  update public.it_safe_fix_run set occurrence_started_at = now() - interval '31 minutes' where issue_key = 'reg:stall:certificate:' || b4;
+  v := public.fn_it_registration_watch();
+  begin
+    if exists (select 1 from public.it_code_defect where class_key = 'burst.certificate') then v_fail := v_fail || '4: a burst the repair cleared opened a defect'::text; end if;
+  exception when others then v_fail := v_fail || ('burst checks raised: ' || sqlerrm);
+  end;
+  -- three more stall and stay stalled past their repair window: now it is a defect, naming only those who had their window
+  insert into public.leads (company_name, claimed, claimed_by, email, accepted_terms_at, portal_updated_at, created_at) values
+    ('Probe Burst B5 LLC', true, 'bee5@selfheal.qdprobe', 'bee5@selfheal.qdprobe', now() - interval '40 minutes', now() - interval '2 hours', now() - interval '3 hours') returning id into b5;
+  insert into public.leads (company_name, claimed, claimed_by, email, accepted_terms_at, portal_updated_at, created_at) values
+    ('Probe Burst B6 LLC', true, 'bee6@selfheal.qdprobe', 'bee6@selfheal.qdprobe', now() - interval '40 minutes', now() - interval '2 hours', now() - interval '3 hours') returning id into b6;
+  v := public.fn_it_registration_watch();
+  update public.it_engineer_finding set started_at = now() - interval '31 minutes' where issue_key in ('reg:stall:certificate:' || b5, 'reg:stall:certificate:' || b6);
+  update public.it_safe_fix_run set occurrence_started_at = now() - interval '31 minutes' where issue_key in ('reg:stall:certificate:' || b5, 'reg:stall:certificate:' || b6);
+  insert into public.leads (company_name, claimed, claimed_by, email, accepted_terms_at, portal_updated_at, created_at) values
+    ('Probe Burst B7 LLC', true, 'bee7@selfheal.qdprobe', 'bee7@selfheal.qdprobe', now() - interval '40 minutes', now() - interval '2 hours', now() - interval '3 hours') returning id into b7;
+  v := public.fn_it_registration_watch();
+  begin
+    select count(*), max(cardinality(affected_cases)) into n, n2 from public.it_code_defect where class_key = 'burst.certificate' and severity = 'P1';
+    if n <> 1 or n2 <> 3 then v_fail := v_fail || ('4: a burst still stalled 30 minutes on opened ' || n || ' P1 defects naming ' || coalesce(n2, 0) || ' people, not 1 naming 3'); end if;
+    if exists (select 1 from public.it_code_defect where class_key = 'burst.certificate' and ('lead:' || b7) = any (affected_cases)) then
+      v_fail := v_fail || '4: a person still inside their repair window was escalated'::text;
+    end if;
+    select count(*), count(distinct to_email) into n, n2 from public.customer_support_voice_owed where stage = 'it_defect.opened' and to_email like 'bee%';
+    if n <> 3 or n2 <> 3 then v_fail := v_fail || ('4: ' || n || ' "being fixed" notices to ' || n2 || ' people, not 3 to 3'); end if;
+  exception when others then v_fail := v_fail || ('burst escalation checks raised: ' || sqlerrm);
+  end;
+
+  -- ── 3: a verified defect naming one person twice sends one "being fixed" and one "fixed" ──
+  begin
+    insert into public.support_fault_report (channel, case_key, hour_key, audience, email, lead_id, turns, issue_key)
+    values ('email', 'email:probe-x', '2026111509', 'supplier', 'x@selfheal.qdprobe', lx, '[]'::jsonb, 'support:fault:probexxxxxxxxxxx') returning id into v_repx;
+    v_d := public.fn_it_code_defect_open('probe.dedupe', 'P2', null, null, null, 'probe', '{}'::jsonb, array['lead:' || lx, 'fault:' || v_repx]);
+    perform public.fn_it_code_defect_claim('probe-s-x', v_d);
+    perform public.fn_it_code_defect_progress(v_d, 'probe-s-x', s, case when s in ('merged', 'deployed') then 77 end, 'probe') from unnest(array['fixing', 'in_review', 'merged', 'deployed']) s;
+    r := public.fn_it_code_defect_verified(v_d, 'probe-s-x', 'a SELECT showed the class gone for 30 minutes after the deploy', 'probe-lesson');
+    if not coalesce((r->>'ok')::boolean, false) then v_fail := v_fail || ('3: the dedupe defect did not verify: ' || r::text); end if;
+    select count(*) into n from public.customer_support_voice_owed where stage = 'it_defect.opened' and to_email = 'x@selfheal.qdprobe';
+    select count(*) into n2 from public.customer_support_voice_owed where stage in ('it_repair.done', 'it_fault.fixed', 'it_defect.fixed') and to_email = 'x@selfheal.qdprobe';
+    if n <> 1 or n2 <> 1 then v_fail := v_fail || ('3: one person named twice on a defect got ' || n || ' "being fixed" and ' || n2 || ' "fixed" notices, not 1 and 1'); end if;
+  exception when others then v_fail := v_fail || ('3: the defect dedupe raised: ' || sqlerrm);
+  end;
+
+  -- ── 5: 260 people; one bad finding ──
+  begin
+    select array_agg('lead:' || (9000000 + g)) into v_refs from generate_series(1, 250) g;
+    v_d := public.fn_it_code_defect_open('probe.many', 'P2', null, null, null, 'probe', '{}'::jsonb, v_refs);
+    select array_agg('lead:' || (9100000 + g)) into v_refs from generate_series(1, 10) g;
+    perform public.fn_it_code_defect_open('probe.many', 'P2', null, null, null, 'probe', '{}'::jsonb, v_refs);
+    select cardinality(affected_cases), (to_jsonb(d)->>'affected_count')::int into n, n2 from public.it_code_defect d where class_key = 'probe.many';
+    if n <> 200 or coalesce(n2, 0) < 260 then v_fail := v_fail || ('5: 260 people stored ' || n || ' refs and a count of ' || coalesce(n2::text, 'none') || ', not 200 and 260'); end if;
+  exception when others then v_fail := v_fail || ('5: a defect of 260 people raised: ' || sqlerrm);
+  end;
+  begin
+    perform public.fn_it_engineer_finding_upsert('reg:stall:certificate:c:not-a-uuid-not-a-uuid-not-a-uuid-xx', 'probe: a malformed key', 'probe', 'internal', 1,
+      '{}'::jsonb, '{}'::text[], '{}'::text[], 'it_engineer');
+    v := public.fn_it_registration_watch();
+    if coalesce(jsonb_array_length(v->'errors'), 0) = 0 then v_fail := v_fail || ('5: the watch did not record the bad finding as an error: ' || left(v::text, 300)); end if;
+  exception when others then v_fail := v_fail || ('5: one bad finding rolled the whole watch back: ' || sqlerrm);
+  end;
+  perform public.fn_it_engineer_finding_close('reg:stall:certificate:c:not-a-uuid-not-a-uuid-not-a-uuid-xx', 'probe');
+
+  -- ── 6: a verified defect and the age of the condition; a duplicate ──
+  begin
+    v_d := public.fn_it_code_defect_open('probe.verified', 'P2', null, null, null, 'probe', '{}'::jsonb, '{}'::text[], '{}'::text[], '{}'::jsonb, now() - interval '2 hours');
+    perform public.fn_it_code_defect_claim('probe-s-v', v_d);
+    perform public.fn_it_code_defect_progress(v_d, 'probe-s-v', s, case when s in ('merged', 'deployed') then 78 end, 'probe') from unnest(array['fixing', 'in_review', 'merged', 'deployed']) s;
+    perform public.fn_it_code_defect_verified(v_d, 'probe-s-v', 'a SELECT showed the class gone for 30 minutes after the deploy', 'probe-lesson');
+    perform public.fn_it_code_defect_open('probe.verified', 'P2', null, null, null, 'probe', '{}'::jsonb, '{}'::text[], '{}'::text[], '{}'::jsonb, now() - interval '1 hour');
+    if not exists (select 1 from public.it_code_defect where id = v_d and status = 'verified') then v_fail := v_fail || '6: a condition older than the fix reopened a verified defect'::text; end if;
+    update public.it_code_defect set verified_at = now() - interval '3 hours', deployed_at = now() - interval '3 hours' where id = v_d;
+    perform public.fn_it_code_defect_open('probe.verified', 'P2', null, null, null, 'probe', '{}'::jsonb, '{}'::text[], '{}'::text[], '{}'::jsonb, now());
+    if not exists (select 1 from public.it_code_defect where id = v_d and status = 'queued' and reopened_count = 1 and history::text like '%78%') then
+      v_fail := v_fail || '6: a condition newer than the fix did not reopen the defect with its PR'::text;
+    end if;
+    v_d := public.fn_it_code_defect_open('probe.duplicate', 'P3', null, null, null, 'probe', '{}'::jsonb);
+    perform public.fn_it_code_defect_claim('probe-s-d', v_d);
+    r := public.fn_it_code_defect_progress(v_d, 'probe-s-d', 'wont_fix', null, 'duplicate of 1');
+    perform public.fn_it_code_defect_open('probe.duplicate', 'P3', null, null, null, 'probe', '{}'::jsonb);
+    if not exists (select 1 from public.it_code_defect where id = v_d and status = 'wont_fix' and reopened_count = 0) then v_fail := v_fail || '6: a duplicate reopened'::text; end if;
+  exception when others then v_fail := v_fail || ('6: raised: ' || sqlerrm);
+  end;
+
+  -- ── 7: the lease and the order ──
+  begin
+    v_d := public.fn_it_code_defect_open('probe.lease', 'P1', null, null, null, 'probe', '{}'::jsonb);
+    r := public.fn_it_code_defect_progress(v_d, null, 'deployed', 99, 'no session');
+    if coalesce((r->>'ok')::boolean, false) then v_fail := v_fail || '7: a null session advanced an unclaimed defect'::text; end if;
+    r := public.fn_it_code_defect_verified(v_d, null, 'a SELECT showed the class gone for 30 minutes after the deploy', 'x');
+    if coalesce((r->>'ok')::boolean, false) then v_fail := v_fail || '7: a null session verified an unclaimed defect'::text; end if;
+    r := public.fn_it_code_defect_claim('probe-s1', v_d);
+    r := public.fn_it_code_defect_progress(v_d, 'probe-s1', 'deployed', 99, 'skip');
+    if coalesce((r->>'ok')::boolean, false) then v_fail := v_fail || '7: claimed went straight to deployed'::text; end if;
+    r := public.fn_it_code_defect_progress(v_d, 'probe-s1', 'merged', 99, 'skip');
+    if coalesce((r->>'ok')::boolean, false) then v_fail := v_fail || '7: claimed went straight to merged'::text; end if;
+    perform public.fn_it_code_defect_progress(v_d, 'probe-s1', s, case when s = 'merged' then 99 end, 'probe') from unnest(array['fixing', 'in_review', 'merged']) s;
+    r := public.fn_it_code_defect_progress(v_d, 'probe-s2', 'deployed', 99, 'not mine');
+    if coalesce((r->>'ok')::boolean, false) then v_fail := v_fail || '7: a session that holds no lease advanced the defect'::text; end if;
+    -- the session dies at merged
+    update public.it_code_defect set lease_until = now() - interval '1 minute' where id = v_d;
+    if coalesce((public.fn_it_code_defect_queue()->>'taken_back_after_merge')::int, 0) < 1 then
+      v_fail := v_fail || ('7: a defect whose session died at merged is not counted claimable: ' || public.fn_it_code_defect_queue()::text);
+    end if;
+    r := public.fn_it_code_defect_claim('probe-s2', v_d);
+    if not coalesce((r->>'claimed')::boolean, false) or r->'defect'->>'status' <> 'merged' then v_fail := v_fail || ('7: the dead session''s merged defect was not taken back at merged: ' || left(r::text, 200)); end if;
+    r := public.fn_it_code_defect_progress(v_d, 'probe-s2', 'deployed', null, 'deployed');
+    if not coalesce((r->>'ok')::boolean, false) then v_fail := v_fail || ('7: the new leaseholder could not deploy from merged: ' || r::text); end if;
+    -- a fixture defect is never handed to a live session
+    v_id := public.fn_it_code_defect_open('probe.fixture', 'P1', null, null, null, 'probe', '{}'::jsonb);
+    update public.it_code_defect set fixture = true, opened_at = now() - interval '1 year' where id = v_id;
+    r := public.fn_it_code_defect_claim('probe-s3', null);
+    if (r->'defect'->>'id')::bigint = v_id then v_fail := v_fail || '7: a live session claimed a fixture defect'::text; end if;
+    r := public.fn_it_code_defect_claim('probe-s3', v_id);
+    if coalesce((r->>'claimed')::boolean, false) then v_fail := v_fail || '7: a live session claimed a fixture defect by its id'::text; end if;
+  exception when others then v_fail := v_fail || ('7: raised: ' || sqlerrm);
+  end;
+
+  -- ── 9 and L: what the watch left behind ──
+  select count(*) into n from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'playbook' and started_at >= v_t0;
+  if n <> 0 then v_fail := v_fail || ('9: the watch added ' || n || ' playbook agent_runs rows (the founder list counts them as hourly runs)'); end if;
+  if not exists (select 1 from public.ceo_standing_grant where grant_key = 'it.escalation' and active and scope_note ~ 'CEO' and scope_note ~ '1696'
+                   and limit_note ~* 'destructive' and limit_note ~* 'information') then
+    v_fail := v_fail || '9: it.escalation does not route to the CEO under ruling 1696 with the founder told for information'::text;
   end if;
-  select count(*) into n from public.it_safe_fix_run where issue_key = 'reg:stall:licence_read:' || l2 and outcome = 'fixed';
-  if n <> 2 then v_fail := array_append(v_fail, (('A2: the unsuccessful licence was re-read ' || n || ' times across two watches, not 2'))::text); end if;
-
-  -- ── WATCH 3 and 4: still failing 30 minutes on -> one defect; a second watch counts, never a second row ──
-  update public.it_safe_fix_run set ran_at = now() - interval '31 minutes' where issue_key = 'reg:stall:licence_read:' || l2;
-  v := public.fn_it_registration_watch();
-  v := public.fn_it_registration_watch();
-  select count(*), max(occurrences) into n, n2 from public.it_code_defect where class_key = 'remedy_exhausted.licence_read_rerun';
-  if n <> 1 or n2 < 2 then v_fail := array_append(v_fail, (('A2: remedy_exhausted rows ' || n || ', occurrences ' || coalesce(n2, 0)))::text); end if;
-  select count(*) into n from public.customer_support_voice_owed where stage = 'it_defect.opened' and to_email = 'two@selfheal.qdprobe';
-  if n <> 1 then v_fail := array_append(v_fail, (('A2: the person was told ' || n || ' times that it is being fixed, not once'))::text); end if;
-
-  -- ── I: the repaired licence fails again (a new occurrence) and is fixed again -> returns_after_fix ──
-  update public.leads set licence_read_state = 'ours_failed', licence_read_at = now() - interval '1 day' where id = l1;
-  v := public.fn_it_registration_watch();
-  if not exists (select 1 from public.it_code_defect where class_key = 'returns_after_fix.licence_read_rerun') then
-    v_fail := array_append(v_fail, (('I: a key fixed on two occurrences did not open returns_after_fix: ' || coalesce((select string_agg(class_key, ',') from public.it_code_defect), 'none')))::text);
-  end if;
-
-  -- ── J: an unmatched widget report -> P3 defect; the session's life cycle ──
-  r := public.fn_support_hands_it_a_fault('widget', 'widget:probe-anon', 'en', 'visitor', '[{"role":"visitor","text":"the page shows an error"}]', null);
-  v_rep2 := (r->>'report_id')::bigint;
-  update public.support_fault_report set reported_at = now() - interval '3 hours' where id = v_rep2;
-  v := public.fn_it_registration_watch();
-  select id into v_d from public.it_code_defect where class_key = 'support_fault.widget' and ('fault:' || v_rep2) = any (affected_cases);
-  if v_d is null then v_fail := array_append(v_fail, ('J: the unmatched report opened no defect')::text); end if;
-  select id into v_d2 from public.it_code_defect where class_key = 'burst.certificate';
-  r := public.fn_it_code_defect_claim('probe-session-1', v_d);
-  if not coalesce((r->>'claimed')::boolean, false) then v_fail := array_append(v_fail, (('J: the defect could not be claimed: ' || r::text))::text); end if;
-  r := public.fn_it_code_defect_claim('probe-session-2', v_d);
-  if coalesce((r->>'claimed')::boolean, false) then v_fail := array_append(v_fail, ('J: a claimed defect was claimed twice')::text); end if;
-  r := public.fn_it_code_defect_verified(v_d, 'probe-session-1', 'a SELECT showed no new occurrence for 30 minutes', 'probe-lesson');
-  if coalesce((r->>'ok')::boolean, false) then v_fail := array_append(v_fail, ('J: a defect was verified before it was deployed')::text); end if;
-  perform public.fn_it_code_defect_progress(v_d, 'probe-session-1', 'fixing', null, 'reproduced');
-  perform public.fn_it_code_defect_progress(v_d, 'probe-session-1', 'in_review', null, 'review: agreed');
-  r := public.fn_it_code_defect_progress(v_d, 'probe-session-1', 'merged', null, 'no pr');
-  if coalesce((r->>'ok')::boolean, false) then v_fail := array_append(v_fail, ('J: merged without a PR number')::text); end if;
-  perform public.fn_it_code_defect_progress(v_d, 'probe-session-1', 'merged', 9999, 'merged');
-  perform public.fn_it_code_defect_progress(v_d, 'probe-session-1', 'deployed', 9999, 'DEPLOYED_OK 1/1');
-  r := public.fn_it_code_defect_verified(v_d, 'probe-session-1', 'a SELECT showed no new occurrence for 30 minutes after the deploy', 'probe-lesson');
-  if not coalesce((r->>'ok')::boolean, false) then v_fail := array_append(v_fail, (('J: the deployed defect did not verify: ' || r::text))::text); end if;
-  if not exists (select 1 from public.support_fault_report where id = v_rep2 and told like 'no_email%') then v_fail := array_append(v_fail, ('J: the anonymous reporter was not recorded as not reachable')::text); end if;
-  -- the lease: a claim that dies is taken back after its lease
-  r := public.fn_it_code_defect_claim('probe-session-3', v_d2);
-  update public.it_code_defect set lease_until = now() - interval '1 minute' where id = v_d2;
-  r := public.fn_it_code_defect_claim('probe-session-4', v_d2);
-  if not coalesce((r->>'claimed')::boolean, false) or r->'defect'->>'claimed_by_session' <> 'probe-session-4' then v_fail := array_append(v_fail, ('J: an expired lease was not taken back')::text); end if;
-  r := public.fn_it_code_defect_progress(v_d2, 'probe-session-4', 'wont_fix', null, 'because I said so');
-  if coalesce((r->>'ok')::boolean, false) then v_fail := array_append(v_fail, ('J: wont_fix took a reason outside the allowed list')::text); end if;
-  -- the verified class returns: reopened with its PR in history
-  v_id := public.fn_it_code_defect_open('support_fault.widget', 'P3', null, null, null, 'support_fault', '{"again": true}'::jsonb, '{}'::text[]);
-  if not exists (select 1 from public.it_code_defect where id = v_id and id = v_d and status = 'queued' and reopened_count = 1 and history::text like '%9999%') then
-    v_fail := array_append(v_fail, ('J: a verified class that returned was not reopened with its PR')::text);
-  end if;
-  if (select count(*) from public.it_code_defect where class_key = 'support_fault.widget') <> 1 then v_fail := array_append(v_fail, ('J: a class has two rows')::text); end if;
-
-  -- ── L: guardrails and the knowledge loop ──
   select jsonb_agg(jsonb_build_object('id', id, 'a', approval_status, 'b', banned, 'n', trade_license_no, 'e', license_expiry, 'c', claimed_by) order by id) into v_snap_after
-    from public.leads where id in (l1, l2, l3, l4, l5, l6, l7, l8, l9, l10);
-  if v_snap_after is distinct from v_snap then v_fail := array_append(v_fail, ('L: an approval, a ban, a licence value or an owner changed')::text); end if;
-  if (select count(*) from public.leads) <> v_leads_before + 10 then v_fail := array_append(v_fail, ('L: a lead was deleted or created')::text); end if;
+    from public.leads where id in (la, l8, lr, lh, ld1, ld2, lx, b1, b2, b3, b4);
+  if v_snap_after is distinct from v_snap then v_fail := v_fail || 'L: an approval, a ban, a licence value or an owner changed'::text; end if;
+  if (select count(*) from public.leads) <> v_leads_before + 14 then v_fail := v_fail || 'L: a lead was deleted or created'::text; end if;
   select jsonb_object_agg(event_type, k) into v_events from (select event_type, count(*) k from public.company_event
-    where event_type in ('it.safe_fix', 'it.defect_opened', 'it.defect_fixed', 'support.registration_rescued') and occurred_at >= now() group by 1) z;
-  if (select count(*) from jsonb_object_keys(coalesce(v_events, '{}'::jsonb))) <> 4 then v_fail := array_append(v_fail, (('L: not all four event kinds were emitted: ' || coalesce(v_events::text, 'none')))::text); end if;
+    where event_type in ('it.safe_fix', 'it.defect_opened', 'it.defect_fixed', 'support.registration_rescued') and occurred_at >= v_t0 group by 1) z;
+  if (select count(*) from jsonb_object_keys(coalesce(v_events, '{}'::jsonb))) <> 4 then v_fail := v_fail || ('L: not all four event kinds were emitted: ' || coalesce(v_events::text, 'none')); end if;
   if exists (select 1 from public.it_safe_fix_family where approval_ruling = 1705 and not active) then
-    v_fail := array_append(v_fail, (('L: a family parked: ' || (select string_agg(family || ' (' || left(parked_reason, 120) || ')', '; ') from public.it_safe_fix_family where approval_ruling = 1705 and not active)))::text);
+    v_fail := v_fail || ('L: a family parked: ' || (select string_agg(family || ' (' || left(parked_reason, 120) || ')', '; ') from public.it_safe_fix_family where approval_ruling = 1705 and not active));
   end if;
 
-  v_ok := cardinality(v_fail) = 0;
-  raise exception '% CHK<<%>>', case when v_ok then 'PROBE OK' else 'PROBE FAILED: ' || array_to_string(v_fail, ' || ') end,
-    jsonb_build_object('failover', v_failover, 'events', v_events,
+  raise exception '% CHK<<%>>', case when cardinality(v_fail) = 0 then 'PROBE OK' else 'PROBE FAILED: ' || array_to_string(v_fail, ' || ') end,
+    jsonb_build_object('events', v_events,
       'runs', (select jsonb_object_agg(family || ':' || outcome, k) from (select family, outcome, count(*) k from public.it_safe_fix_run group by 1, 2) z),
       'defects', (select jsonb_agg(jsonb_build_object('class', class_key, 'sev', severity, 'status', status, 'occ', occurrences, 'aff', cardinality(affected_cases))) from public.it_code_defect),
       'told', (select jsonb_object_agg(stage, k) from (select stage, count(*) k from public.customer_support_voice_owed where stage like 'it\_%' group by 1) z));

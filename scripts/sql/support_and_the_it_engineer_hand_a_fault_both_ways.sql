@@ -72,8 +72,10 @@ create table if not exists public.support_fault_report (
   told_at timestamptz,
   told text,                                           -- 'owed' | 'no_email' | 'not_sendable: ...'
   fixed_observed text,
+  defect_id bigint,                                    -- the code defect it went into (fn_it_registration_watch), so it goes in once
   unique (case_key, hour_key)
 );
+alter table public.support_fault_report add column if not exists defect_id bigint;
 create index if not exists support_fault_report_issue_idx on public.support_fault_report (issue_key) where told_at is null;
 create index if not exists support_fault_report_lead_idx on public.support_fault_report (lead_id) where told_at is null and lead_id is not null;
 alter table public.support_fault_report enable row level security;
@@ -86,6 +88,22 @@ insert into public.table_export_registry (table_name, exported, category, reason
 on conflict (table_name) do update set exported = excluded.exported, category = excluded.category, reason = excluded.reason;
 
 -- ── 4. THE IT ENGINEER REACHES A PERSON ONLY THROUGH SUPPORT ────────────────────────────────────────────────────────
+-- ONE PERSON, ONE REPAIR, ONE MESSAGE (review of f79833d44, FIX 3: one licence repair sent it_repair.done and three it_fault.fixed,
+-- one per hourly report row; a verified defect sent it_defect.fixed and then it_fault.fixed to the same fault). The notices fall
+-- in two classes, and a person hears at most one of a class inside its window, whichever routine reaches them first:
+--   fixed   it_repair.done, it_fault.fixed, it_defect.fixed   one an hour (one repair is one tick or one verification)
+--   opened  it_defect.opened                                    one a day ("we are fixing it" is said once)
+-- fn_it_told_recently answers the stage already owed (or null), so a caller records the person as told by that notice.
+create or replace function public.fn_it_told_recently(p_email text, p_class text)
+returns text language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select o.stage from public.customer_support_voice_owed o
+   where o.to_email = lower(btrim(coalesce(p_email, '')))
+     and ((p_class = 'fixed' and o.stage in ('it_repair.done', 'it_fault.fixed', 'it_defect.fixed') and o.created_at > now() - interval '1 hour')
+       or (p_class = 'opened' and o.stage = 'it_defect.opened' and o.created_at > now() - interval '1 day'))
+   order by o.created_at desc limit 1
+$fn$;
+revoke execute on function public.fn_it_told_recently(text, text) from public, anon, authenticated;
+
 create or replace function public.fn_it_tells_the_person(p_stage text, p_key text, p_role text, p_email text, p_lang text,
   p_subject text, p_draft text, p_situation text, p_facts text)
 returns boolean language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -96,6 +114,8 @@ begin
   if v_to is null or p_stage !~ '^it_[a-z]+\.[a-z_]+$' then return false; end if;
   -- a fixture run reaches only a demo address, and a live run never reaches one
   if public.fn_is_demo_email(v_to) is distinct from v_fx then return false; end if;
+  if p_stage in ('it_repair.done', 'it_fault.fixed', 'it_defect.fixed') and public.fn_it_told_recently(v_to, 'fixed') is not null then return false; end if;
+  if p_stage = 'it_defect.opened' and public.fn_it_told_recently(v_to, 'opened') is not null then return false; end if;
   return public.fn_customer_support_voice_owe(p_stage, p_key, p_stage || ':' || v_lang || ':' || v_role, v_role, v_to, v_lang,
     p_subject, p_draft, p_situation, coalesce(p_facts, ''), '{}'::text[]);
 end $fn$;
@@ -184,18 +204,29 @@ end $fn$;
 revoke execute on function public.fn_seat_takes_support_root_cause(bigint) from public, anon, authenticated;
 
 -- ── 5. FIXED -> TOLD ────────────────────────────────────────────────────────────────────────────────────────────────
+-- Every open report for the finding or the lead is closed with the observation, but ONE PERSON HEARS ONE "fixed" (FIX 3): the
+-- first report of an address carries the message, the others (an hour apart, the same case) and any person a repair notice
+-- already reached this hour are recorded as covered by it. Each support:fault finding whose reports are all told is closed
+-- (FIX 9: a lead's support:fault findings stayed open when the repair was told by lead).
 create or replace function public.fn_support_fault_fixed(p_issue_key text, p_lead_id bigint, p_observed text)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare r public.support_fault_report; v_owed boolean; n_told int := 0; n_no_email int := 0; v_ar boolean;
+declare r public.support_fault_report; v_owed boolean; n_told int := 0; n_no_email int := 0; n_covered int := 0; v_ar boolean; v_prev text;
+  v_reached text[] := '{}'; v_keys text[] := '{}'; v_leads bigint[] := '{}'; k text;
 begin
   if coalesce(btrim(p_observed), '') = '' then raise exception 'fn_support_fault_fixed: a fix is told only against what was observed'; end if;
   for r in select * from public.support_fault_report
             where told_at is null and ((p_issue_key is not null and issue_key = p_issue_key) or (p_lead_id is not null and lead_id = p_lead_id))
             order by id for update skip locked loop
     v_ar := r.lang = 'ar' and r.audience <> 'supplier';
+    v_keys := v_keys || r.issue_key;
     if r.email is null then
       update public.support_fault_report set told_at = now(), told = 'no_email: the channel gave no address to write to', fixed_observed = left(p_observed, 500) where id = r.id;
       n_no_email := n_no_email + 1;
+    elsif r.email = any (v_reached) or public.fn_it_told_recently(r.email, 'fixed') is not null then
+      v_prev := coalesce(public.fn_it_told_recently(r.email, 'fixed'), 'it_fault.fixed');
+      update public.support_fault_report set told_at = now(), told = 'covered: told once by ' || v_prev || ' (one notice per person per repair)',
+             fixed_observed = left(p_observed, 500) where id = r.id;
+      n_covered := n_covered + 1;
     else
       v_owed := public.fn_it_tells_the_person('it_fault.fixed', r.id::text, r.audience, r.email, r.lang,
         case when v_ar then 'QuotesDone: تم إصلاح المشكلة' else 'QuotesDone: the problem you told us about is fixed' end,
@@ -205,6 +236,7 @@ begin
         'STATUS: fixed' || chr(10) || 'WHAT THEY CAN DO NOW: carry on from where they stopped');
       update public.support_fault_report set told_at = now(), told = case when v_owed then 'owed' else 'not_owed: already told or not reachable in this mode' end,
              fixed_observed = left(p_observed, 500) where id = r.id;
+      v_reached := v_reached || r.email;
       if v_owed then n_told := n_told + 1; end if;
     end if;
     if r.handoff_id is not null then
@@ -214,15 +246,19 @@ begin
                                                                           'closed_by', 'customer_support'));
       perform set_config('qd.handoff_closer', '', true);
     end if;
-    if r.lead_id is not null then
+    if r.lead_id is not null and not r.lead_id = any (v_leads) then
+      v_leads := v_leads || r.lead_id;
       perform public.fn_emit('support.registration_rescued', 'leads', r.lead_id::text, 'customer_support',
         jsonb_build_object('supplier_id', r.lead_id, 'issue_key', r.issue_key, 'report_id', r.id, 'told', r.email is not null, 'observed', left(p_observed, 300)));
     end if;
   end loop;
-  if p_issue_key like 'support:fault:%' then
-    perform public.fn_it_engineer_finding_close(p_issue_key, 'fixed and verified: ' || left(p_observed, 400));
-  end if;
-  return jsonb_build_object('told', n_told, 'no_email', n_no_email);
+  if p_issue_key like 'support:fault:%' then v_keys := v_keys || p_issue_key; end if;
+  foreach k in array array(select distinct x from unnest(v_keys) x where x like 'support:fault:%') loop
+    if not exists (select 1 from public.support_fault_report where issue_key = k and told_at is null) then
+      perform public.fn_it_engineer_finding_close(k, 'fixed and verified: ' || left(p_observed, 400));
+    end if;
+  end loop;
+  return jsonb_build_object('told', n_told, 'covered', n_covered, 'no_email', n_no_email);
 end $fn$;
 revoke execute on function public.fn_support_fault_fixed(text, bigint, text) from public, anon, authenticated;
 
@@ -231,7 +267,7 @@ select case when problems is null then 'PROBE OK' else 'PROBE FAILED: ' || probl
   select string_agg(p, '; ') problems from (
     select 'a routine is open or unpinned: ' || p.oid::regprocedure::text p from pg_proc p join pg_namespace n on n.oid = p.pronamespace
      where n.nspname = 'public' and p.proname in ('fn_it_tells_the_person', 'fn_support_hands_it_a_fault', 'fn_it_engineer_takes_a_support_fault',
-                                                  'fn_seat_takes_support_root_cause', 'fn_support_fault_fixed')
+                                                  'fn_seat_takes_support_root_cause', 'fn_support_fault_fixed', 'fn_it_told_recently')
        and (not p.prosecdef or not coalesce(p.proconfig @> array['search_path=public, pg_temp'], false)
             or has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
     union all select 'the mask is executable by a client' where has_function_privilege('anon', 'public.fn_it_mask_text(text)', 'execute')

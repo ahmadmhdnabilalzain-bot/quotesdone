@@ -82,8 +82,18 @@ create table if not exists public.it_route_plan_b (
   why text not null check (length(btrim(why)) >= 30),
   recorded_by text not null check (recorded_by in ('it_engineer', 'ceo')),
   active boolean not null default true,
+  pending_eval text,                 -- what must pass before it may be activated (null: nothing pending)
+  eval_passed_at timestamptz,
+  eval_ref text,                     -- the eval's report (docs/reports/...) and run tag
   recorded_at timestamptz not null default now()
 );
+alter table public.it_route_plan_b add column if not exists pending_eval text;
+alter table public.it_route_plan_b add column if not exists eval_passed_at timestamptz;
+alter table public.it_route_plan_b add column if not exists eval_ref text;
+do $ck$ begin
+  alter table public.it_route_plan_b add constraint it_route_plan_b_eval_before_active
+    check (not active or pending_eval is null or (eval_passed_at is not null and coalesce(btrim(eval_ref), '') <> ''));
+exception when duplicate_object then null; end $ck$;
 create table if not exists public.it_route_failover (
   id bigint generated always as identity primary key,
   task_class text not null,
@@ -122,11 +132,23 @@ insert into public.it_rerunnable_job (job_key, routine, idempotency_fact, max_pe
 on conflict (job_key) do update set routine = excluded.routine, idempotency_fact = excluded.idempotency_fact, max_per_day = excluded.max_per_day,
   owner_file = excluded.owner_file;
 
-insert into public.it_route_plan_b (task_class, plan_b_model, why, recorded_by) values
-  ('json_extraction', 'anthropic/claude-sonnet-5.5',
-   'already the fallback of document_extraction, which reads every supplier licence today: a model the estate routes extraction work to, not a new one', 'it_engineer'),
-  ('json_extraction_text', 'anthropic/claude-sonnet-5.5',
-   'already the fallback of document_extraction, which reads every supplier licence today: a model the estate routes extraction work to, not a new one', 'it_engineer')
+-- THE PLAN B OF THE LICENCE READER (review of f79833d44, FIX 8). The first version seeded anthropic/claude-sonnet-5.5 for
+-- json_extraction*: dead (it fired only when Sonnet was itself open) and, had it fired, a reversal of ruling 1571 to a model about
+-- 13 times dearer. It is removed. The licence classes get the model the review chose, recorded as the CEO's decision (ruling 1696:
+-- "CEO is having full authority ... He doesnt rely on me in anything"; ruling 1571: "pick the right model per task yourself"):
+-- qwen/qwen3.8-flash (production model_registry, SELECT 15 Nov 2026: active, approved, supports_vision, USD 0.15 / 0.47 per Mtok;
+-- a third provider family, already the founder-ruled fallback of the T1 classes, the cheapest there is, so no money increase).
+-- It is NOT active: route_failover refuses it until the releasing session has run the licence-read eval on ZZ DEMO licences
+-- (scripts/eval/model_routing/eval_licence_plan_b.ts, which records eval_passed_at and eval_ref and activates it only on a pass).
+-- If an outage is OpenRouter-wide (credit, 10 Nov), no plan B on OpenRouter helps: that is a money decision, the CEO's.
+delete from public.it_route_plan_b where task_class in ('json_extraction', 'json_extraction_text') and plan_b_model = 'anthropic/claude-sonnet-5.5';
+insert into public.it_route_plan_b (task_class, plan_b_model, why, recorded_by, active, pending_eval) values
+  ('document_extraction', 'qwen/qwen3.8-flash',
+   'the CEO''s plan B for the licence reader (rulings 1696, 1571): active, approved, reads images, a third provider family and the cheapest registered model, so a 1-hour failover adds no cost',
+   'ceo', false, 'one licence-read eval on ZZ DEMO licences (scripts/eval/model_routing/eval_licence_plan_b.ts) must pass before it may be activated'),
+  ('document_extraction_multimodal', 'qwen/qwen3.8-flash',
+   'the CEO''s plan B for the licence reader (rulings 1696, 1571): active, approved, reads images, a third provider family and the cheapest registered model, so a 1-hour failover adds no cost',
+   'ceo', false, 'one licence-read eval on ZZ DEMO licences (scripts/eval/model_routing/eval_licence_plan_b.ts) must pass before it may be activated')
 on conflict (task_class) do nothing;
 
 -- ── HELPERS ─────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -137,6 +159,16 @@ returns public.leads language sql stable security definer set search_path to 'pu
    where l.id = p_lead_id and l.claimed_by is not null and not coalesce(l.banned, false)
      and coalesce(l.approval_status, '') <> 'approved'
      and (coalesce(l.is_demo, false) or public.fn_is_demo_email(l.claimed_by)) = (coalesce(current_setting('qd.duty_fixtures', true), '') = 'on')
+$fn$;
+
+-- A SHARED MOBILE IS NAMED BY A KEYED HASH (review of f79833d44, FIX 9: the first key was a 48-bit md5 prefix of the phone, which a
+-- brute force over UAE mobiles reverses, and it flows into company_event and the CEO's hand-over). HMAC-SHA256 under the estate's
+-- internal_credential_hmac_key (app_secrets, never printed), the first 12 hex characters; null when the key is missing, so nothing
+-- is raised rather than raised under a reversible name.
+create or replace function public.fn_it_phone_key(p_phone text)
+returns text language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select left(encode(extensions.hmac(convert_to('dup_mobile:' || regexp_replace(p_phone, '[^0-9+]', '', 'g'), 'UTF8'), convert_to(k.value, 'UTF8'), 'sha256'), 'hex'), 12)
+    from public.app_secrets k where k.key = 'internal_credential_hmac_key' and coalesce(k.value, '') <> '' and coalesce(btrim(p_phone), '') <> ''
 $fn$;
 
 -- the reader's own model routes: open-circuit when the primary AND the fallback of every licence class are open
@@ -190,20 +222,27 @@ begin
   if l.licence_read_state is distinct from 'ours_failed' or l.license_doc_path is null then
     return jsonb_build_object('outcome', 'nothing_to_do', 'why', 'the licence is not in a failed read (' || coalesce(l.licence_read_state, 'no state') || ')');
   end if;
+  -- THE READER'S DELIBERATE STOP IS NEVER UNDONE (review of f79833d44, FIX 2): supplier_api documents.ts sets licence_read_tries to its
+  -- ceiling of 8 for a file held for a person (the model doubts it is a licence) and for a wrong document, so the model is never asked
+  -- about it again. The first version reset 8 to 7. A licence at 8 stays with a person; support explains it (the hold already told him).
+  if l.licence_read_tries >= 8 then
+    return jsonb_build_object('outcome', 'refused_by_guardrail',
+      'why', 'the reader stopped on purpose (licence_read_tries 8: a file held for a person, a wrong document, or every read spent): a person judges it and support explains; never re-read by the seat');
+  end if;
   if public.fn_it_licence_routes_open() then
     return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'every licence-reading route is still open-circuit: a read now would fail the same way (route_failover acts first)');
   end if;
   select count(*) into n_today from public.it_safe_fix_run r
    where r.family = 'licence_read_rerun' and r.issue_key = p_issue_key and r.outcome = 'fixed' and r.ran_at > now() - interval '1 day';
   if n_today >= 2 then return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'two re-reads of this licence today already: the third is a code defect'); end if;
-  -- THE READER'S OWN SCHEDULE, NEVER A LICENCE VALUE: due now, and one more try when the 8 were spent while no model could answer
-  update public.leads set licence_read_at = now() - interval '30 days', licence_read_tries = least(licence_read_tries, 7)
-   where id = l.id and licence_read_state = 'ours_failed';
+  -- THE READER'S OWN SCHEDULE, NEVER A LICENCE VALUE AND NEVER ITS TRIES: due now
+  update public.leads set licence_read_at = now() - interval '30 days'
+   where id = l.id and licence_read_state = 'ours_failed' and licence_read_tries < 8;
   if not public.fn_supplier_doc_reread_due() then
     return jsonb_build_object('outcome', 'failed', 'why', 'the licence was made due and the reader still says nothing is due', 'lead_id', l.id);
   end if;
   v_req := public.fn_supplier_doc_reread_kick();
-  return jsonb_build_object('outcome', 'fixed', 'lead_id', l.id, 'reader_request', v_req, 'tries_left', 8 - least(l.licence_read_tries, 7),
+  return jsonb_build_object('outcome', 'fixed', 'lead_id', l.id, 'reader_request', v_req, 'tries_left', 8 - l.licence_read_tries,
                             'verify', 'the watch closes the finding when licence_read_state leaves ours_failed');
 end $fn$;
 
@@ -235,8 +274,10 @@ begin
   select value into v_secret from public.app_secrets where key = 'cred_db_internal';
   begin v_ref := public.qd_project_ref(); exception when others then v_ref := null; end;
   if v_ref is null or coalesce(v_secret, '') = '' then return jsonb_build_object('outcome', 'failed', 'why', 'no project ref or internal credential'); end if;
+  -- BY ID (review of f79833d44, FIX 9): compliance_archive lower-cases an e-mail and matches claimed_by exactly, so an address stored
+  -- with capitals finds no row; with no e-mail it reads the row by its id (compliance_archive/index.ts action 'sign')
   v_req := net.http_post('https://' || v_ref || '.supabase.co/functions/v1/compliance_archive',
-    jsonb_build_object('__secret', v_secret, 'action', 'sign', 'kind', v_kind, 'email', v_email), '{}'::jsonb, '{"Content-Type":"application/json"}'::jsonb, 60000);
+    jsonb_build_object('__secret', v_secret, 'action', 'sign', 'kind', v_kind, 'id', coalesce(v_lead::text, v_cust::text)), '{}'::jsonb, '{"Content-Type":"application/json"}'::jsonb, 60000);
   return jsonb_build_object('outcome', 'fixed', 'kind', v_kind, 'lead_id', v_lead, 'customer_id', v_cust, 'sign_request', v_req,
                             'verify', 'the watch closes the finding when signed_terms_at reaches the acceptance');
 end $fn$;
@@ -314,12 +355,12 @@ begin
   if v_hash is null then return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'not a duplicate-mobile finding'); end if;
   -- NEVER MERGED, NEVER DELETED: each owner hears about their OWN account only, and no other account is named
   for a in select 'supplier' role, lower(l.claimed_by) email from public.leads l
-            where l.claimed_by is not null and not coalesce(l.banned, false) and left(md5(l.phone_e164), 12) = v_hash
+            where l.claimed_by is not null and not coalesce(l.banned, false) and public.fn_it_phone_key(l.phone_e164) = v_hash
               and (coalesce(l.is_demo, false) or public.fn_is_demo_email(l.claimed_by)) = v_fx
            union
            select 'customer', lower(c.email) from public.customers c
             where c.email is not null and not coalesce(c.banned, false) and c.phone is not null
-              and left(md5(regexp_replace(c.phone, '[^0-9+]', '', 'g')), 12) = v_hash and coalesce(c.is_demo, false) = v_fx loop
+              and public.fn_it_phone_key(c.phone) = v_hash and coalesce(c.is_demo, false) = v_fx loop
     n := n + 1;
     if public.fn_it_tells_the_person('it_repair.dup_mobile', v_hash || ':' || md5(a.email), a.role, a.email, 'en',
          'QuotesDone: sign in with your e-mail address',
@@ -366,8 +407,12 @@ returns jsonb language plpgsql security definer set search_path to 'public', 'pg
 declare v_class text := substring(p_issue_key from '^reg:circuit_open:([a-z0-9_]+)$'); b public.it_route_plan_b; p public.model_policy; v_gate jsonb; n_today int;
 begin
   if v_class is null then return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'not an open-circuit finding'); end if;
-  select * into b from public.it_route_plan_b where task_class = v_class and active;
+  select * into b from public.it_route_plan_b where task_class = v_class;
   if b.task_class is null then return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'no plan B is recorded for ' || v_class || ': choosing a model is not the seat''s (the CEO records one)'); end if;
+  if not b.active then
+    return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'the plan B ' || b.plan_b_model || ' for ' || v_class || ' is not active: '
+      || coalesce('pending ' || b.pending_eval, 'switched off') || ' (the releasing session runs the eval and activates it)');
+  end if;
   select * into p from public.model_policy where task_class = v_class and active limit 1;
   if p.task_class is null then return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'no active model policy for ' || v_class); end if;
   if p.model_fallback is not distinct from b.plan_b_model or p.model_primary = b.plan_b_model then
@@ -415,13 +460,26 @@ create trigger it_safe_fix_run_emits after insert on public.it_safe_fix_run for 
 
 -- ── THE DISPATCHER, ONE COPY: the live body (the_it_engineer_runs_the_safe_fix_playbooks_itself.sql), plus a filter the watch
 --    sets for its own transaction (qd.safe_fix_only_ruling = 1705), so a stalled registration is repaired within 5 minutes while
---    the eight housekeeping families keep their hourly duty. Unset, it runs every active family exactly as before.
+--    the eight housekeeping families keep their hourly duty. Unset, it runs every active family as before, with three changes the
+--    review of f79833d44 required:
+--      FIX 1  ONLY AN ATTEMPTED REPAIR SPENDS THE RUN BUDGET. max_runs_per_occurrence counts the runs that answered fixed or failed;
+--             a refusal ("not now": the routes are still open, the person is not talking to support) and nothing_to_do spend
+--             nothing, so the family acts on the first tick its guardrail admits. The first version counted every outcome, so two
+--             refusals on open routes left a 368-read outage unrepaired for good. A refusal or nothing_to_do that repeats the
+--             answer already on record for the same occurrence is not written again (no row, no it.safe_fix event per tick).
+--      FIX 9  ONE DISPATCHER AT A TIME: the hourly duty and the 5-minute watch take the same transaction advisory lock; the one that
+--             finds it held skips this tick (two runs could each send a code).
+--      FIX 9  THE WATCH'S RUNS ARE NOT HOURLY PLAYBOOK RUNS: filtered (the watch), it writes no agent_runs row of job 'playbook'
+--             (fn_it_founder_list counts them as playbook_runs_today); the watch's own row carries what it repaired.
 create or replace function public.fn_it_safe_fix_tick()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare fam public.it_safe_fix_family; f record; v jsonb; v_outcome text; v_err text; n int; v_out jsonb := '{}'::jsonb; v_fam jsonb;
   v_until timestamptz := clock_timestamp() + interval '40 seconds';
-  v_only integer := nullif(current_setting('qd.safe_fix_only_ruling', true), '')::integer;
+  v_only integer := nullif(current_setting('qd.safe_fix_only_ruling', true), '')::integer; v_same boolean;
 begin
+  if not pg_try_advisory_xact_lock(hashtext('public.it_safe_fix_dispatch')) then
+    return jsonb_build_object('families', '{}'::jsonb, 'skipped', 'another safe-fix dispatch holds the lock this tick');
+  end if;
   for fam in select * from public.it_safe_fix_family where active and (v_only is null or approval_ruling = v_only) order by family loop
     v_fam := jsonb_build_object('fixed', 0, 'nothing_to_do', 0, 'refused_by_guardrail', 0, 'failed', 0);
     n := 0;
@@ -431,7 +489,7 @@ begin
               where fam.issue_like is not null and x.closed_at is null and x.issue_key like fam.issue_like
                 and x.issue_key not ilike '%demo%' and not coalesce((x.evidence->>'demo')::boolean, false)
                 and (select count(*) from public.it_safe_fix_run r where r.family = fam.family and r.issue_key = x.issue_key
-                      and r.occurrence_started_at is not distinct from x.started_at) < fam.max_runs_per_occurrence
+                      and r.occurrence_started_at is not distinct from x.started_at and r.outcome in ('fixed', 'failed')) < fam.max_runs_per_occurrence
              order by 2 nulls first, 1 loop
       exit when n >= fam.max_per_tick or clock_timestamp() > v_until;
       n := n + 1; v := null; v_err := null;
@@ -443,8 +501,15 @@ begin
       exception when others then
         v_outcome := 'failed'; v_err := left(sqlerrm, 500);
       end;
-      insert into public.it_safe_fix_run (family, issue_key, occurrence_started_at, outcome, result, error)
-      values (fam.family, f.issue_key, f.started_at, v_outcome, coalesce(v, '{}'::jsonb), v_err);
+      v_same := v_outcome in ('refused_by_guardrail', 'nothing_to_do') and f.issue_key is not null
+        and exists (select 1 from (select r.outcome, r.result->>'why' why from public.it_safe_fix_run r
+                                    where r.family = fam.family and r.issue_key = f.issue_key and r.occurrence_started_at is not distinct from f.started_at
+                                    order by r.id desc limit 1) last
+                     where last.outcome = v_outcome and last.why is not distinct from v->>'why');
+      if not v_same then
+        insert into public.it_safe_fix_run (family, issue_key, occurrence_started_at, outcome, result, error)
+        values (fam.family, f.issue_key, f.started_at, v_outcome, coalesce(v, '{}'::jsonb), v_err);
+      end if;
       v_fam := jsonb_set(v_fam, array[v_outcome], to_jsonb((v_fam->>v_outcome)::int + 1));
     end loop;
     -- TWO FAILED REMEDIES PARK THE FAMILY: it stops, says why, and goes on the session's daily list
@@ -458,10 +523,11 @@ begin
     end if;
     v_out := v_out || jsonb_build_object(fam.family, v_fam);
   end loop;
-  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
-  values ('it_engineer', 'ok', now(), clock_timestamp(), jsonb_build_object('job', 'playbook', 'families', v_out, 'only_ruling', v_only),
-          case when v_only is null then 'the IT engineer''s safe-fix playbooks ran (ruling 1574)'
-               else 'the IT engineer''s safe-fix playbooks of ruling ' || v_only || ' ran' end);
+  if v_only is null then
+    insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+    values ('it_engineer', 'ok', now(), clock_timestamp(), jsonb_build_object('job', 'playbook', 'families', v_out),
+            'the IT engineer''s safe-fix playbooks ran (ruling 1574)');
+  end if;
   return jsonb_build_object('families', v_out);
 end $fn$;
 revoke execute on function public.fn_it_safe_fix_tick() from public, anon, authenticated;
@@ -470,289 +536,347 @@ revoke execute on function public.fn_it_safe_fix_tick() from public, anon, authe
 -- session, so the it.finding hand-over loop (fn_it_open_findings: severity above warn) opens only for a finding still open after
 -- 6 hours (fn_it_engineer_severity), and the founder is not paged for what the seat is already repairing.
 -- ── 3. THE WATCH: DETECT, CLOSE, CLASSIFY ───────────────────────────────────────────────────────────────────────────
+-- THE WATCH NEVER ROLLS BACK AS A WHOLE (review of f79833d44, FIX 5): each step runs in its own block, and each finding of the close
+-- step in its own, so one bad row or one failing routine is recorded in the run's errors and the rest of the tick still lands.
+-- It takes the dispatcher's advisory lock first, so it never runs beside the hourly duty or another watch (FIX 9).
 create or replace function public.fn_it_registration_watch()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
-  f record; l record; r record; v_key text; v_cleared boolean; v_obs text; v_fixed boolean; v_lead bigint; v_cust uuid;
-  n_raised int := 0; n_closed int := 0; n_rescued int := 0; n_defects int := 0; n_restored int := 0; v_fam text; v_what text;
-  v_routes_open boolean := public.fn_it_licence_routes_open(); v_tick jsonb;
+  f record; l record; r record; v_cleared boolean; v_obs text; v_fixed boolean; v_lead bigint; v_cust uuid;
+  n_raised int := 0; n_closed int := 0; n_rescued int := 0; n_defects int := 0; n_restored int := 0; v_what text;
+  v_routes_open boolean; v_tick jsonb; v_errors jsonb := '[]'::jsonb; v_people text[]; v_seen timestamptz; v_d bigint; v_key text;
 begin
+  if not pg_try_advisory_xact_lock(hashtext('public.it_safe_fix_dispatch')) then
+    return jsonb_build_object('skipped', 'another safe-fix dispatch holds the lock this tick', 'fixture', v_fx);
+  end if;
+  v_routes_open := public.fn_it_licence_routes_open();
+
   -- 0. A FAILOVER LASTS ONE HOUR: put the previous fallback back (only if nobody changed it since)
-  for r in select * from public.it_route_failover where restored_at is null and until <= now() for update skip locked loop
-    update public.model_policy set model_fallback = r.prior_fallback where task_class = r.task_class and active and model_fallback = r.plan_b_model;
-    update public.it_route_failover set restored_at = now(),
-           restore_note = case when found then 'the previous fallback is back' else 'the policy had changed since; left as it is' end where id = r.id;
-    n_restored := n_restored + 1;
-  end loop;
+  begin
+    for r in select * from public.it_route_failover where restored_at is null and until <= now() for update skip locked loop
+      update public.model_policy set model_fallback = r.prior_fallback where task_class = r.task_class and active and model_fallback = r.plan_b_model;
+      update public.it_route_failover set restored_at = now(),
+             restore_note = case when found then 'the previous fallback is back' else 'the policy had changed since; left as it is' end where id = r.id;
+      n_restored := n_restored + 1;
+    end loop;
+  exception when others then v_errors := v_errors || jsonb_build_object('step', 'restore_failover', 'error', left(sqlerrm, 300));
+  end;
 
   -- 1. CLOSE WHAT CLEARED; a family that repaired it tells the person and the company
   for f in select x.* from public.it_engineer_finding x where x.closed_at is null and x.raised_by = 'it_engineer'
              and (x.issue_key like 'reg:%' or x.issue_key like 'support:code\_unused:%') and coalesce((x.evidence->>'demo')::boolean, false) = v_fx loop
-    v_cleared := false; v_obs := null; v_lead := null; v_cust := null; v_what := null;
-    if f.issue_key like 'reg:stall:licence\_read:%' then
-      v_lead := substring(f.issue_key from '([0-9]+)$')::bigint; v_what := 'licence_read';
-      select * into l from public.leads where id = v_lead;
-      v_cleared := l.id is null or l.licence_read_state is distinct from 'ours_failed' or coalesce(l.approval_status, '') = 'approved' or coalesce(l.banned, false);
-      v_obs := 'licence_read_state ' || coalesce(l.licence_read_state, 'null');
-    elsif f.issue_key like 'reg:stall:certificate:c:%' then
-      v_cust := substring(f.issue_key from 25)::uuid; v_what := 'certificate';
-      select * into l from public.customers where id = v_cust;
-      v_cleared := l.id is null or l.tos_accepted_at is null or (l.signed_terms_path is not null and l.signed_terms_at >= l.tos_accepted_at);
-      v_obs := 'signed_terms_at ' || coalesce(l.signed_terms_at::text, 'null');
-    elsif f.issue_key like 'reg:stall:certificate:%' then
-      v_lead := substring(f.issue_key from '([0-9]+)$')::bigint; v_what := 'certificate';
-      select * into l from public.leads where id = v_lead;
-      v_cleared := l.id is null or l.accepted_terms_at is null or (l.signed_terms_path is not null and l.signed_terms_at >= l.accepted_terms_at);
-      v_obs := 'signed_terms_at ' || coalesce(l.signed_terms_at::text, 'null');
-    elsif f.issue_key like 'reg:stall:held:%' then
-      v_lead := substring(f.issue_key from '([0-9]+)$')::bigint; v_what := 'held';
-      select * into l from public.leads where id = v_lead;
-      v_cleared := l.id is null or l.licence_gate_reason is null or coalesce(l.approval_status, '') = 'approved';
-      v_obs := 'licence_gate_reason ' || coalesce(l.licence_gate_reason, 'cleared');
-    elsif f.issue_key like 'reg:job\_stalled:supplier\_doc\_reread' then
-      v_cleared := not exists (select 1 from public.leads x where x.licence_read_state = 'ours_failed' and x.license_doc_path is not null
-                                 and x.claimed_by is not null and x.licence_read_tries < 8 and not coalesce(x.banned, false)
-                                 and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
-                                 and coalesce(x.licence_read_at, '-infinity'::timestamptz) + make_interval(mins => 10 * (2 ^ x.licence_read_tries)::int) < now() - interval '30 minutes');
-      v_obs := 'no licence read waits 30 minutes past its due time';
-    elsif f.issue_key like 'reg:job\_stalled:agreement\_resign' then
-      v_cleared := not exists (select 1 from public.leads x where x.accepted_terms_at is not null and x.claimed_by is not null and not coalesce(x.banned, false)
-                                 and (x.signed_terms_path is null or x.signed_terms_at < x.accepted_terms_at) and x.accepted_terms_at < now() - interval '30 minutes'
-                                 and x.accepted_terms_at > now() - interval '14 days'
-                                 and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx);
-      v_obs := 'no acceptance waits 30 minutes for its certificate';
-    elsif f.issue_key like 'reg:circuit\_open:%' then
-      v_cleared := not v_routes_open; v_obs := 'the licence routes are closed';
-    elsif f.issue_key like 'reg:dup\_mobile:%' then
-      v_cleared := (select count(*) from public.leads x where x.claimed_by is not null and left(md5(x.phone_e164), 12) = substring(f.issue_key from 16)) < 2;
-      v_obs := 'the mobile is on one account';
-    elsif f.issue_key like 'support:code\_unused:%' then
-      select * into r from public.support_fault_report where id = substring(f.issue_key from 21)::bigint;
-      v_cleared := r.id is null or exists (select 1 from public.email_verifications e where lower(e.email) = r.email and e.created_at > f.started_at
-                                             and (e.used_at is not null or e.verified_at is not null));
-      v_obs := 'a code sent after the report was used';
-    elsif f.issue_key like 'reg:burst:%' then
-      v_cleared := f.last_seen_at < now() - interval '30 minutes'; v_obs := 'no new person with this cause for 30 minutes';
-    end if;
-    continue when not v_cleared;
-    v_fixed := exists (select 1 from public.it_safe_fix_run x where x.issue_key = f.issue_key and x.occurrence_started_at is not distinct from f.started_at and x.outcome = 'fixed');
-    perform public.fn_it_engineer_finding_close(f.issue_key, case when v_fixed then 'repaired by the IT engineer''s safe fix and verified: ' else 'cleared: ' end || v_obs);
-    n_closed := n_closed + 1;
-    if v_fixed and (v_lead is not null or v_cust is not null) then
-      perform public.fn_it_registration_rescued(f.issue_key, v_lead, v_cust, v_what, v_obs);
-      n_rescued := n_rescued + 1;
-    elsif v_fixed and f.issue_key like 'support:code\_unused:%' and r.id is not null then
-      perform public.fn_support_fault_fixed(r.issue_key, null, 'a new sign-in code was sent and used');
-      n_rescued := n_rescued + 1;
-    elsif v_lead is not null and f.issue_key like 'reg:stall:%'
-          and not exists (select 1 from public.it_engineer_finding x where x.closed_at is null and x.issue_key ~ ('^reg:stall:[a-z_]+:' || v_lead || '$')) then
-      -- cleared without a repair (the person sent the page, the reader caught up): a person who told support still hears it is done
-      perform public.fn_support_fault_fixed(null, v_lead, 'cleared: ' || v_obs);
-    end if;
+    begin
+      v_cleared := false; v_obs := null; v_lead := null; v_cust := null; v_what := null;
+      if f.issue_key like 'reg:stall:licence\_read:%' then
+        v_lead := substring(f.issue_key from '([0-9]+)$')::bigint; v_what := 'licence_read';
+        select * into l from public.leads where id = v_lead;
+        v_cleared := l.id is null or l.licence_read_state is distinct from 'ours_failed' or coalesce(l.approval_status, '') = 'approved' or coalesce(l.banned, false);
+        v_obs := 'licence_read_state ' || coalesce(l.licence_read_state, 'null');
+      elsif f.issue_key like 'reg:stall:certificate:c:%' then
+        v_cust := substring(f.issue_key from 25)::uuid; v_what := 'certificate';
+        select * into l from public.customers where id = v_cust;
+        v_cleared := l.id is null or l.tos_accepted_at is null or (l.signed_terms_path is not null and l.signed_terms_at >= l.tos_accepted_at);
+        v_obs := 'signed_terms_at ' || coalesce(l.signed_terms_at::text, 'null');
+      elsif f.issue_key like 'reg:stall:certificate:%' then
+        v_lead := substring(f.issue_key from '([0-9]+)$')::bigint; v_what := 'certificate';
+        select * into l from public.leads where id = v_lead;
+        v_cleared := l.id is null or l.accepted_terms_at is null or (l.signed_terms_path is not null and l.signed_terms_at >= l.accepted_terms_at);
+        v_obs := 'signed_terms_at ' || coalesce(l.signed_terms_at::text, 'null');
+      elsif f.issue_key like 'reg:stall:held:%' then
+        v_lead := substring(f.issue_key from '([0-9]+)$')::bigint; v_what := 'held';
+        select * into l from public.leads where id = v_lead;
+        v_cleared := l.id is null or l.licence_gate_reason is null or coalesce(l.approval_status, '') = 'approved';
+        v_obs := 'licence_gate_reason ' || coalesce(l.licence_gate_reason, 'cleared');
+      elsif f.issue_key like 'reg:job\_stalled:supplier\_doc\_reread' then
+        v_cleared := not exists (select 1 from public.leads x where x.licence_read_state = 'ours_failed' and x.license_doc_path is not null
+                                   and x.claimed_by is not null and x.licence_read_tries < 8 and not coalesce(x.banned, false)
+                                   and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
+                                   and coalesce(x.licence_read_at, '-infinity'::timestamptz) + make_interval(mins => 10 * (2 ^ x.licence_read_tries)::int) < now() - interval '30 minutes');
+        v_obs := 'no licence read waits 30 minutes past its due time';
+      elsif f.issue_key like 'reg:job\_stalled:agreement\_resign' then
+        v_cleared := not exists (select 1 from public.leads x where x.accepted_terms_at is not null and x.claimed_by is not null and not coalesce(x.banned, false)
+                                   and (x.signed_terms_path is null or x.signed_terms_at < x.accepted_terms_at) and x.accepted_terms_at < now() - interval '30 minutes'
+                                   and x.accepted_terms_at > now() - interval '14 days'
+                                   and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx);
+        v_obs := 'no acceptance waits 30 minutes for its certificate';
+      elsif f.issue_key like 'reg:circuit\_open:%' then
+        v_cleared := not v_routes_open; v_obs := 'the licence routes are closed';
+      elsif f.issue_key like 'reg:dup\_mobile:%' then
+        v_cleared := (select count(*) from public.leads x where x.claimed_by is not null and not coalesce(x.banned, false)
+                       and public.fn_it_phone_key(x.phone_e164) = substring(f.issue_key from 16)) < 2;
+        v_obs := 'the mobile is on one account';
+      elsif f.issue_key like 'support:code\_unused:%' then
+        select * into r from public.support_fault_report where id = substring(f.issue_key from 21)::bigint;
+        v_cleared := r.id is null or exists (select 1 from public.email_verifications e where lower(e.email) = r.email and e.created_at > f.started_at
+                                               and (e.used_at is not null or e.verified_at is not null));
+        v_obs := 'a code sent after the report was used';
+      elsif f.issue_key like 'reg:burst:%' then
+        v_cleared := f.last_seen_at < now() - interval '30 minutes'; v_obs := 'no new person with this cause for 30 minutes';
+      end if;
+      continue when not v_cleared;
+      v_fixed := exists (select 1 from public.it_safe_fix_run x where x.issue_key = f.issue_key and x.occurrence_started_at is not distinct from f.started_at and x.outcome = 'fixed');
+      perform public.fn_it_engineer_finding_close(f.issue_key, case when v_fixed then 'repaired by the IT engineer''s safe fix and verified: ' else 'cleared: ' end || v_obs);
+      n_closed := n_closed + 1;
+      if v_fixed and (v_lead is not null or v_cust is not null) then
+        perform public.fn_it_registration_rescued(f.issue_key, v_lead, v_cust, v_what, v_obs);
+        n_rescued := n_rescued + 1;
+      elsif v_fixed and f.issue_key like 'support:code\_unused:%' and r.id is not null then
+        perform public.fn_support_fault_fixed(r.issue_key, null, 'a new sign-in code was sent and used');
+        n_rescued := n_rescued + 1;
+      elsif v_lead is not null and f.issue_key like 'reg:stall:%'
+            and not exists (select 1 from public.it_engineer_finding x where x.closed_at is null and x.issue_key ~ ('^reg:stall:[a-z_]+:' || v_lead || '$')) then
+        -- cleared without a repair (the person sent the page, the reader caught up): a person who told support still hears it is done
+        perform public.fn_support_fault_fixed(null, v_lead, 'cleared: ' || v_obs);
+      end if;
+    exception when others then v_errors := v_errors || jsonb_build_object('step', 'close', 'issue_key', left(f.issue_key, 120), 'error', left(sqlerrm, 300));
+    end;
   end loop;
 
-  -- 2. (a) STALL: a registering person idle 30 minutes with a cause on their row; at once when they told support
-  for l in select x.*, exists (select 1 from public.support_fault_report s where s.lead_id = x.id and s.told_at is null and s.reported_at > now() - interval '2 hours') reported
-             from public.leads x
-            where x.claimed_by is not null and not coalesce(x.banned, false) and coalesce(x.approval_status, '') <> 'approved'
-              and coalesce(x.portal_updated_at, x.created_at) > now() - interval '14 days'
-              and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
-              and (x.licence_read_state = 'ours_failed' or x.licence_gate_reason is not null
-                   or (x.accepted_terms_at is not null and x.accepted_terms_at < now() - interval '10 minutes'
-                       and (x.signed_terms_path is null or x.signed_terms_at is null or x.signed_terms_at < x.accepted_terms_at)))
-            limit 200 loop
-    continue when not l.reported and greatest(coalesce(l.portal_updated_at, '-infinity'), coalesce(l.accepted_terms_at, '-infinity'), coalesce(l.licence_read_at, '-infinity'),
-                                              coalesce(l.signed_terms_at, '-infinity'), coalesce(l.created_at, '-infinity')) > now() - interval '30 minutes';
-    if l.licence_read_state = 'ours_failed' then
-      perform public.fn_it_engineer_finding_upsert('reg:stall:licence_read:' || l.id, 'A registering supplier''s licence read failed and is waiting',
-        'supplier_api process_docs (the licence reader)', 'internal', 1,
-        jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'supplier_api', 'duty', 'registration_watch', 'lead_id', l.id, 'cause', 'licence_read',
-                           'tries', l.licence_read_tries, 'routes_open', v_routes_open, 'told_support', l.reported, 'demo', v_fx),
-        '{}'::text[], '{}'::text[], 'it_engineer');
-      n_raised := n_raised + 1;
-    end if;
-    if l.accepted_terms_at is not null and (l.signed_terms_path is null or l.signed_terms_at is null or l.signed_terms_at < l.accepted_terms_at)
-       and l.accepted_terms_at < now() - interval '10 minutes' then
-      perform public.fn_it_engineer_finding_upsert('reg:stall:certificate:' || l.id, 'A registering supplier accepted the agreement and no signed certificate landed',
+  -- 2. RAISE
+  begin
+    -- (a) STALL: a registering person idle 30 minutes with a cause on their row; at once when they told support
+    for l in select x.*, exists (select 1 from public.support_fault_report s where s.lead_id = x.id and s.told_at is null and s.reported_at > now() - interval '2 hours') reported
+               from public.leads x
+              where x.claimed_by is not null and not coalesce(x.banned, false) and coalesce(x.approval_status, '') <> 'approved'
+                and coalesce(x.portal_updated_at, x.created_at) > now() - interval '14 days'
+                and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
+                and (x.licence_read_state = 'ours_failed' or x.licence_gate_reason is not null
+                     or (x.accepted_terms_at is not null and x.accepted_terms_at < now() - interval '10 minutes'
+                         and (x.signed_terms_path is null or x.signed_terms_at is null or x.signed_terms_at < x.accepted_terms_at)))
+              limit 200 loop
+      continue when not l.reported and greatest(coalesce(l.portal_updated_at, '-infinity'), coalesce(l.accepted_terms_at, '-infinity'), coalesce(l.licence_read_at, '-infinity'),
+                                                coalesce(l.signed_terms_at, '-infinity'), coalesce(l.created_at, '-infinity')) > now() - interval '30 minutes';
+      if l.licence_read_state = 'ours_failed' then
+        -- a licence the reader stopped on (tries 8: held for a person, a wrong document) is support's to explain, never re-read (FIX 2)
+        perform public.fn_it_engineer_finding_upsert('reg:stall:licence_read:' || l.id, 'A registering supplier''s licence read failed and is waiting',
+          'supplier_api process_docs (the licence reader)', 'internal', 1,
+          jsonb_build_object('owner_seat', case when l.licence_read_tries >= 8 then 'customer_support' else 'it_engineer' end, 'subject', 'supplier_api',
+                             'duty', 'registration_watch', 'lead_id', l.id, 'cause', 'licence_read', 'tries', l.licence_read_tries,
+                             'held_for_person', l.licence_read_tries >= 8, 'routes_open', v_routes_open, 'told_support', l.reported, 'demo', v_fx),
+          '{}'::text[], '{}'::text[], 'it_engineer');
+        n_raised := n_raised + 1;
+      end if;
+      if l.accepted_terms_at is not null and (l.signed_terms_path is null or l.signed_terms_at is null or l.signed_terms_at < l.accepted_terms_at)
+         and l.accepted_terms_at < now() - interval '10 minutes' then
+        perform public.fn_it_engineer_finding_upsert('reg:stall:certificate:' || l.id, 'A registering supplier accepted the agreement and no signed certificate landed',
+          'kyc accept_terms -> compliance_archive sign', 'internal', 1,
+          jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'compliance_archive', 'duty', 'registration_watch', 'lead_id', l.id, 'cause', 'certificate',
+                             'told_support', l.reported, 'demo', v_fx),
+          '{}'::text[], '{}'::text[], 'it_engineer');
+        n_raised := n_raised + 1;
+      end if;
+      if l.licence_gate_reason is not null then
+        perform public.fn_it_engineer_finding_upsert('reg:stall:held:' || l.id, 'A registering supplier is held at the licence gate',
+          'the licence gate (licence_gate_reason)', 'internal', 1,
+          jsonb_build_object('owner_seat', 'customer_support', 'subject', 'supplier_api', 'duty', 'registration_watch', 'lead_id', l.id, 'cause', 'held',
+                             'reason', l.licence_gate_reason, 'told_support', l.reported, 'demo', v_fx),
+          '{}'::text[], '{}'::text[], 'it_engineer');
+        n_raised := n_raised + 1;
+      end if;
+    end loop;
+    -- a customer's missing certificate
+    for l in select c.id from public.customers c
+              where c.tos_accepted_at is not null and c.tos_accepted_at < now() - interval '30 minutes' and c.tos_accepted_at > now() - interval '14 days'
+                and (c.signed_terms_path is null or c.signed_terms_at is null or c.signed_terms_at < c.tos_accepted_at)
+                and not coalesce(c.banned, false) and coalesce(c.is_demo, false) = v_fx limit 50 loop
+      perform public.fn_it_engineer_finding_upsert('reg:stall:certificate:c:' || l.id, 'A customer accepted the terms and no signed certificate landed',
         'kyc accept_terms -> compliance_archive sign', 'internal', 1,
-        jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'compliance_archive', 'duty', 'registration_watch', 'lead_id', l.id, 'cause', 'certificate',
-                           'told_support', l.reported, 'demo', v_fx),
-        '{}'::text[], '{}'::text[], 'it_engineer');
-      n_raised := n_raised + 1;
-    end if;
-    if l.licence_gate_reason is not null then
-      perform public.fn_it_engineer_finding_upsert('reg:stall:held:' || l.id, 'A registering supplier is held at the licence gate',
-        'the licence gate (licence_gate_reason)', 'internal', 1,
-        jsonb_build_object('owner_seat', 'customer_support', 'subject', 'supplier_api', 'duty', 'registration_watch', 'lead_id', l.id, 'cause', 'held',
-                           'reason', l.licence_gate_reason, 'told_support', l.reported, 'demo', v_fx),
-        '{}'::text[], '{}'::text[], 'it_engineer');
-      n_raised := n_raised + 1;
-    end if;
-  end loop;
-  -- a customer's missing certificate
-  for l in select c.id from public.customers c
-            where c.tos_accepted_at is not null and c.tos_accepted_at < now() - interval '30 minutes' and c.tos_accepted_at > now() - interval '14 days'
-              and (c.signed_terms_path is null or c.signed_terms_at is null or c.signed_terms_at < c.tos_accepted_at)
-              and not coalesce(c.banned, false) and coalesce(c.is_demo, false) = v_fx limit 50 loop
-    perform public.fn_it_engineer_finding_upsert('reg:stall:certificate:c:' || l.id, 'A customer accepted the terms and no signed certificate landed',
-      'kyc accept_terms -> compliance_archive sign', 'internal', 1,
-      jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'compliance_archive', 'duty', 'registration_watch', 'customer_id', l.id, 'cause', 'certificate', 'demo', v_fx),
-      '{}'::text[], '{}'::text[], 'it_engineer');
-    n_raised := n_raised + 1;
-  end loop;
-
-  -- a mobile on more than one account, where one of them is registering
-  for r in select left(md5(x.phone_e164), 12) h, count(*) n from public.leads x
-            where x.claimed_by is not null and x.phone_e164 is not null and not coalesce(x.banned, false)
-              and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
-            group by 1 having count(*) > 1 and max(coalesce(x.portal_updated_at, x.created_at)) > now() - interval '14 days' loop
-    perform public.fn_it_engineer_finding_upsert('reg:dup_mobile:' || r.h, 'A mobile number is on more than one account, so SMS sign-in cannot select one',
-      'login_otp (ambiguous_phone)', 'internal', r.n::int,
-      jsonb_build_object('owner_seat', 'ceo', 'subject', 'login_otp', 'duty', 'registration_watch', 'accounts', r.n, 'demo', v_fx,
-                         'decision_needed', 'which account keeps this mobile: the CEO''s data decision'),
-      '{}'::text[], array['which account keeps the mobile: the CEO''s data decision'], 'it_engineer');
-    n_raised := n_raised + 1;
-  end loop;
-
-  -- a registered reader that stopped: a due licence read waiting 30 minutes past due, or an acceptance with no certificate and no re-sign
-  if exists (select 1 from public.leads x where x.licence_read_state = 'ours_failed' and x.license_doc_path is not null and x.claimed_by is not null
-               and x.licence_read_tries < 8 and not coalesce(x.banned, false)
-               and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
-               and coalesce(x.licence_read_at, '-infinity'::timestamptz) + make_interval(mins => 10 * (2 ^ x.licence_read_tries)::int) < now() - interval '30 minutes') then
-    perform public.fn_it_engineer_finding_upsert('reg:job_stalled:supplier_doc_reread', 'A due licence re-read has waited 30 minutes past its time',
-      'pg_cron supplier_doc_reread_5min -> supplier_api docs_reread', 'internal', 1,
-      jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'supplier_api', 'duty', 'registration_watch', 'job', 'supplier_doc_reread', 'demo', v_fx),
-      '{}'::text[], '{}'::text[], 'it_engineer');
-    n_raised := n_raised + 1;
-  end if;
-  if exists (select 1 from public.leads x where x.accepted_terms_at is not null and x.claimed_by is not null and not coalesce(x.banned, false)
-               and (x.signed_terms_path is null or x.signed_terms_at < x.accepted_terms_at)
-               and x.accepted_terms_at < now() - interval '30 minutes' and x.accepted_terms_at > now() - interval '14 days'
-               and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
-               and not exists (select 1 from public.agent_actions a where a.agent = 'sales_engineer' and a.kind = 'supplier_agreement_resign'
-                                 and a.target_id = x.id::text and a.created_at > now() - interval '20 minutes')
-               and (select count(*) from public.agent_actions a where a.agent = 'sales_engineer' and a.kind = 'supplier_agreement_resign'
-                      and a.target_id = x.id::text and a.status = 'auto_done') < 3) then
-    perform public.fn_it_engineer_finding_upsert('reg:job_stalled:agreement_resign', 'An acceptance has waited 30 minutes with no certificate and no re-sign',
-      'fn_sales_engineer_resigns_unsigned_agreements (the minute sweep)', 'internal', 1,
-      jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'compliance_archive', 'duty', 'registration_watch', 'job', 'agreement_resign', 'demo', v_fx),
-      '{}'::text[], '{}'::text[], 'it_engineer');
-    n_raised := n_raised + 1;
-  end if;
-  -- every licence-reading route open-circuit: a class with a recorded plan B gets a failover finding
-  if v_routes_open then
-    for r in select b.task_class from public.it_route_plan_b b where b.active loop
-      perform public.fn_it_engineer_finding_upsert('reg:circuit_open:' || r.task_class, 'Every licence-reading route is open-circuit',
-        'ai_gateway (llm_route_health)', 'internal', 1,
-        jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'ai_gateway', 'duty', 'registration_watch', 'task_class', r.task_class, 'demo', v_fx),
+        jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'compliance_archive', 'duty', 'registration_watch', 'customer_id', l.id, 'cause', 'certificate', 'demo', v_fx),
         '{}'::text[], '{}'::text[], 'it_engineer');
       n_raised := n_raised + 1;
     end loop;
-  end if;
 
-  -- a person who told support a code never came: an unused code for their address around the report
-  for r in select s.* from public.support_fault_report s
-            where s.told_at is null and s.email is not null and (s.lead_id is not null or s.customer_id is not null)
-              and s.fixture = v_fx and s.reported_at > now() - interval '2 hours'
-              and exists (select 1 from public.email_verifications e where lower(e.email) = s.email
-                            and e.created_at between s.reported_at - interval '2 hours' and s.reported_at + interval '10 minutes'
-                            and e.used_at is null and e.verified_at is null and (e.expires_at < now() or e.created_at < now() - interval '10 minutes'))
-              and not exists (select 1 from public.email_verifications e where lower(e.email) = s.email and e.created_at > s.reported_at - interval '2 hours'
-                                and (e.used_at is not null or e.verified_at is not null)) loop
-    perform public.fn_it_engineer_finding_upsert('support:code_unused:' || r.id, 'A person told support a sign-in code never came, and it was never used',
-      'login_otp send (e-mail)', 'internal', 1,
-      jsonb_build_object('owner_seat', 'customer_support', 'subject', 'login_otp', 'duty', 'registration_watch', 'report_id', r.id, 'demo', v_fx),
-      '{}'::text[], '{}'::text[], 'it_engineer');
-    n_raised := n_raised + 1;
-  end loop;
+    -- a mobile on more than one account, where one of them is registering (named by its keyed hash, never the phone)
+    for r in select public.fn_it_phone_key(x.phone_e164) h, count(*) n from public.leads x
+              where x.claimed_by is not null and x.phone_e164 is not null and not coalesce(x.banned, false)
+                and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
+              group by 1 having public.fn_it_phone_key(min(x.phone_e164)) is not null and count(*) > 1
+                 and max(coalesce(x.portal_updated_at, x.created_at)) > now() - interval '14 days' loop
+      perform public.fn_it_engineer_finding_upsert('reg:dup_mobile:' || r.h, 'A mobile number is on more than one account, so SMS sign-in cannot select one',
+        'login_otp (ambiguous_phone)', 'internal', r.n::int,
+        jsonb_build_object('owner_seat', 'ceo', 'subject', 'login_otp', 'duty', 'registration_watch', 'accounts', r.n, 'demo', v_fx,
+                           'decision_needed', 'which account keeps this mobile: the CEO''s data decision'),
+        '{}'::text[], array['which account keeps the mobile: the CEO''s data decision'], 'it_engineer');
+      n_raised := n_raised + 1;
+    end loop;
+
+    -- a registered reader that stopped: a due licence read waiting 30 minutes past due, or an acceptance with no certificate and no re-sign
+    if exists (select 1 from public.leads x where x.licence_read_state = 'ours_failed' and x.license_doc_path is not null and x.claimed_by is not null
+                 and x.licence_read_tries < 8 and not coalesce(x.banned, false)
+                 and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
+                 and coalesce(x.licence_read_at, '-infinity'::timestamptz) + make_interval(mins => 10 * (2 ^ x.licence_read_tries)::int) < now() - interval '30 minutes') then
+      perform public.fn_it_engineer_finding_upsert('reg:job_stalled:supplier_doc_reread', 'A due licence re-read has waited 30 minutes past its time',
+        'pg_cron supplier_doc_reread_5min -> supplier_api docs_reread', 'internal', 1,
+        jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'supplier_api', 'duty', 'registration_watch', 'job', 'supplier_doc_reread', 'demo', v_fx),
+        '{}'::text[], '{}'::text[], 'it_engineer');
+      n_raised := n_raised + 1;
+    end if;
+    if exists (select 1 from public.leads x where x.accepted_terms_at is not null and x.claimed_by is not null and not coalesce(x.banned, false)
+                 and (x.signed_terms_path is null or x.signed_terms_at < x.accepted_terms_at)
+                 and x.accepted_terms_at < now() - interval '30 minutes' and x.accepted_terms_at > now() - interval '14 days'
+                 and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
+                 and not exists (select 1 from public.agent_actions a where a.agent = 'sales_engineer' and a.kind = 'supplier_agreement_resign'
+                                   and a.target_id = x.id::text and a.created_at > now() - interval '20 minutes')
+                 and (select count(*) from public.agent_actions a where a.agent = 'sales_engineer' and a.kind = 'supplier_agreement_resign'
+                        and a.target_id = x.id::text and a.status = 'auto_done') < 3) then
+      perform public.fn_it_engineer_finding_upsert('reg:job_stalled:agreement_resign', 'An acceptance has waited 30 minutes with no certificate and no re-sign',
+        'fn_sales_engineer_resigns_unsigned_agreements (the minute sweep)', 'internal', 1,
+        jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'compliance_archive', 'duty', 'registration_watch', 'job', 'agreement_resign', 'demo', v_fx),
+        '{}'::text[], '{}'::text[], 'it_engineer');
+      n_raised := n_raised + 1;
+    end if;
+    -- every licence-reading route open-circuit: each class with a recorded plan B (active or pending its eval) gets a failover
+    -- finding, so a pending plan B is refused on the record instead of nothing being raised
+    if v_routes_open then
+      for r in select b.task_class from public.it_route_plan_b b loop
+        perform public.fn_it_engineer_finding_upsert('reg:circuit_open:' || r.task_class, 'Every licence-reading route is open-circuit',
+          'ai_gateway (llm_route_health)', 'internal', 1,
+          jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'ai_gateway', 'duty', 'registration_watch', 'task_class', r.task_class, 'demo', v_fx),
+          '{}'::text[], '{}'::text[], 'it_engineer');
+        n_raised := n_raised + 1;
+      end loop;
+    end if;
+
+    -- a person who told support a code never came: an unused code for their address around the report
+    for r in select s.* from public.support_fault_report s
+              where s.told_at is null and s.email is not null and (s.lead_id is not null or s.customer_id is not null)
+                and s.fixture = v_fx and s.reported_at > now() - interval '2 hours'
+                and exists (select 1 from public.email_verifications e where lower(e.email) = s.email
+                              and e.created_at between s.reported_at - interval '2 hours' and s.reported_at + interval '10 minutes'
+                              and e.used_at is null and e.verified_at is null and (e.expires_at < now() or e.created_at < now() - interval '10 minutes'))
+                and not exists (select 1 from public.email_verifications e where lower(e.email) = s.email and e.created_at > s.reported_at - interval '2 hours'
+                                  and (e.used_at is not null or e.verified_at is not null)) loop
+      perform public.fn_it_engineer_finding_upsert('support:code_unused:' || r.id, 'A person told support a sign-in code never came, and it was never used',
+        'login_otp send (e-mail)', 'internal', 1,
+        jsonb_build_object('owner_seat', 'customer_support', 'subject', 'login_otp', 'duty', 'registration_watch', 'report_id', r.id, 'demo', v_fx),
+        '{}'::text[], '{}'::text[], 'it_engineer');
+      n_raised := n_raised + 1;
+    end loop;
+
+    -- (b) BURST: one cause at 3 or more distinct people inside 15 minutes is RAISED here, and repaired by the families below; it
+    -- becomes a code defect only if the repair has not cleared it (the escalation step after the repair)
+    for r in select cause, array_agg(distinct who) people from (
+               select x.evidence->>'cause' cause, 'lead:' || (x.evidence->>'lead_id') who from public.it_engineer_finding x
+                where x.closed_at is null and x.issue_key like 'reg:stall:%' and x.started_at > now() - interval '15 minutes'
+                  and x.evidence ? 'lead_id' and coalesce((x.evidence->>'demo')::boolean, false) = v_fx
+               union all
+               select 'support_fault_' || s.channel, 'fault:' || s.id from public.support_fault_report s
+                where s.reported_at > now() - interval '15 minutes' and s.fixture = v_fx) z
+              group by cause having count(distinct who) >= 3 loop
+      perform public.fn_it_engineer_finding_upsert('reg:burst:' || r.cause, 'The same registration fault reached ' || cardinality(r.people) || ' people in 15 minutes',
+        'registration (' || r.cause || ')', 'internal', cardinality(r.people),
+        jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'registration', 'duty', 'registration_watch', 'cause', r.cause, 'people', cardinality(r.people), 'demo', v_fx),
+        '{}'::text[], array['the code path all of them hit'], 'it_engineer');
+      n_raised := n_raised + 1;
+    end loop;
+  exception when others then v_errors := v_errors || jsonb_build_object('step', 'raise', 'error', left(sqlerrm, 300));
+  end;
 
   -- ── THE REPAIR, NOW: the seven families run on what was just raised (the dispatcher's bounds and parking hold) ──
-  perform set_config('qd.safe_fix_only_ruling', '1705', true);
-  v_tick := public.fn_it_safe_fix_tick();
-  perform set_config('qd.safe_fix_only_ruling', '', true);
+  begin
+    perform set_config('qd.safe_fix_only_ruling', '1705', true);
+    v_tick := public.fn_it_safe_fix_tick();
+    perform set_config('qd.safe_fix_only_ruling', '', true);
+  exception when others then
+    perform set_config('qd.safe_fix_only_ruling', '', true);
+    v_errors := v_errors || jsonb_build_object('step', 'repair', 'error', left(sqlerrm, 300));
+  end;
 
-  -- ── THE CLASSIFIER: what no family can repair becomes a code defect ──
-  -- (b) BURST: one cause at 3 or more distinct people inside 15 minutes
-  for r in select cause, array_agg(distinct who) people from (
-             select x.evidence->>'cause' cause, 'lead:' || (x.evidence->>'lead_id') who from public.it_engineer_finding x
-              where x.closed_at is null and x.issue_key like 'reg:stall:%' and x.started_at > now() - interval '15 minutes'
-                and x.evidence ? 'lead_id' and coalesce((x.evidence->>'demo')::boolean, false) = v_fx
-             union all
-             select 'support_fault_' || s.channel, 'fault:' || s.id from public.support_fault_report s
-              where s.reported_at > now() - interval '15 minutes' and s.fixture = v_fx) z
-            group by cause having count(distinct who) >= 3 loop
-    perform public.fn_it_engineer_finding_upsert('reg:burst:' || r.cause, 'The same registration fault reached ' || cardinality(r.people) || ' people in 15 minutes',
-      'registration (' || r.cause || ')', 'internal', cardinality(r.people),
-      jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'registration', 'duty', 'registration_watch', 'cause', r.cause, 'people', cardinality(r.people), 'demo', v_fx),
-      '{}'::text[], array['the code path all of them hit'], 'it_engineer');
-    perform public.fn_it_code_defect_open('burst.' || r.cause, 'P1', 'reg:burst:' || r.cause,
-      case when r.cause = 'licence_read' then 'supplier_api' when r.cause = 'certificate' then 'compliance_archive' end, null, r.cause,
-      jsonb_build_object('people', cardinality(r.people), 'window', '15 minutes', 'cause', r.cause), r.people);
-    n_defects := n_defects + 1;
-  end loop;
-  -- (ii) a family ran its maximum on this occurrence and the fault is still there 30 minutes after its last run
-  for r in select x.issue_key, x.evidence, fam.family, max(run.ran_at) last_run
-             from public.it_engineer_finding x
-             join public.it_safe_fix_family fam on fam.approval_ruling = 1705 and x.issue_key like fam.issue_like
-             join public.it_safe_fix_run run on run.family = fam.family and run.issue_key = x.issue_key and run.occurrence_started_at is not distinct from x.started_at
-            where x.closed_at is null and coalesce((x.evidence->>'demo')::boolean, false) = v_fx
-            group by x.issue_key, x.evidence, fam.family, fam.max_runs_per_occurrence
-           having count(run.*) >= fam.max_runs_per_occurrence and max(run.ran_at) < now() - interval '30 minutes'
-              and bool_or(run.outcome in ('fixed', 'failed')) loop
-    perform public.fn_it_code_defect_open('remedy_exhausted.' || r.family, case when r.issue_key like 'reg:%' then 'P1' else 'P2' end, r.issue_key,
-      case r.family when 'licence_read_rerun' then 'supplier_api' when 'terms_certificate_retry' then 'compliance_archive' when 'code_resend_assist' then 'login_otp'
-                    when 'route_failover' then 'ai_gateway' end, null, r.family,
-      jsonb_build_object('family', r.family, 'last_run', r.last_run, 'runs', (select jsonb_agg(jsonb_build_object('outcome', x.outcome, 'why', x.result->>'why', 'error', x.error))
-        from (select * from public.it_safe_fix_run where family = r.family and issue_key = r.issue_key order by id desc limit 3) x)),
-      case when r.evidence ? 'lead_id' then array['lead:' || (r.evidence->>'lead_id')]
-           when r.evidence ? 'customer_id' then array['customer:' || (r.evidence->>'customer_id')]
-           when r.evidence ? 'report_id' then array['fault:' || (r.evidence->>'report_id')] else '{}'::text[] end);
-    n_defects := n_defects + 1;
-  end loop;
-  -- (iii) a family of this file parked itself today
-  for r in select family, parked_reason from public.it_safe_fix_family where approval_ruling = 1705 and not active and parked_at > now() - interval '1 day' loop
-    perform public.fn_it_code_defect_open('family_parked.' || r.family, 'P2', null, null, null, r.family,
-      jsonb_build_object('family', r.family, 'parked_reason', left(r.parked_reason, 500)));
-    n_defects := n_defects + 1;
-  end loop;
-  -- (c) RETURNS: one key a family fixed on two different occurrences inside 7 days
-  for r in select run.family, run.issue_key, count(distinct run.occurrence_started_at) n from public.it_safe_fix_run run
-             join public.it_safe_fix_family fam on fam.family = run.family and fam.approval_ruling = 1705
-            where run.outcome = 'fixed' and run.ran_at > now() - interval '7 days'
-              and exists (select 1 from public.it_engineer_finding x where x.issue_key = run.issue_key and coalesce((x.evidence->>'demo')::boolean, false) = v_fx)
-            group by 1, 2 having count(distinct run.occurrence_started_at) >= 2 loop
-    perform public.fn_it_code_defect_open('returns_after_fix.' || r.family, 'P2', r.issue_key, null, null, r.family,
-      jsonb_build_object('family', r.family, 'issue_key', r.issue_key, 'fixed_occurrences_7d', r.n),
-      case when r.issue_key ~ '^reg:stall:[a-z_]+:[0-9]+$' then array['lead:' || substring(r.issue_key from '([0-9]+)$')]
-           when r.issue_key ~ '^reg:stall:certificate:c:' then array['customer:' || substring(r.issue_key from 25)] else '{}'::text[] end);
-    n_defects := n_defects + 1;
-  end loop;
-  -- (i) a person's report no family matched for 2 hours (no repair finding for their account, no unused code)
-  for r in select s.* from public.support_fault_report s
-            where s.told_at is null and s.fixture = v_fx and s.reported_at < now() - interval '2 hours' and s.reported_at > now() - interval '3 days'
-              and not exists (select 1 from public.it_engineer_finding x where x.started_at > s.reported_at - interval '1 day'
-                                and ((s.lead_id is not null and x.issue_key ~ ('^reg:stall:[a-z_]+:' || s.lead_id || '$'))
-                                     or (s.customer_id is not null and x.issue_key = 'reg:stall:certificate:c:' || s.customer_id)
-                                     or x.issue_key = 'support:code_unused:' || s.id))
-              and not exists (select 1 from public.it_code_defect d where ('fault:' || s.id) = any (d.affected_cases)) loop
-    perform public.fn_it_code_defect_open('support_fault.' || r.channel || case when r.lead_id is not null then '.registering' else '' end,
-      case when r.lead_id is not null then 'P2' else 'P3' end, r.issue_key, null, null, 'support_fault',
-      jsonb_build_object('channel', r.channel, 'turns', r.turns, 'audience', r.audience), array['fault:' || r.id]);
-    n_defects := n_defects + 1;
-  end loop;
+  -- ── THE CLASSIFIER: what no family can repair becomes a code defect. Each defect is opened with WHEN its condition was seen, so
+  --    a verified defect never reopens on a condition older than its fix (FIX 6). ──
+  begin
+    -- (b) A BURST THE REPAIR DID NOT CLEAR (FIX 4): the burst is 30 minutes old and 3 or more of its people are still stalled after
+    -- their own 30-minute repair window. Only those people are named, and told, once; a person still inside the window is not.
+    for r in select x.issue_key, x.started_at, x.last_seen_at, x.evidence->>'cause' cause from public.it_engineer_finding x
+              where x.closed_at is null and x.issue_key like 'reg:burst:%' and coalesce((x.evidence->>'demo')::boolean, false) = v_fx
+                and x.started_at <= now() - interval '30 minutes' loop
+      select array_agg(distinct who), max(seen) into v_people, v_seen from (
+        select 'lead:' || (s.evidence->>'lead_id') who, s.started_at seen from public.it_engineer_finding s
+         where s.closed_at is null and s.issue_key like 'reg:stall:%' and s.evidence->>'cause' = r.cause and s.evidence ? 'lead_id'
+           and coalesce((s.evidence->>'demo')::boolean, false) = v_fx
+           and s.started_at >= r.started_at - interval '15 minutes' and s.started_at <= now() - interval '30 minutes'
+        union all
+        select 'fault:' || s.id, s.reported_at from public.support_fault_report s
+         where r.cause = 'support_fault_' || s.channel and s.told_at is null and s.fixture = v_fx
+           and s.reported_at >= r.started_at - interval '15 minutes' and s.reported_at <= now() - interval '30 minutes') z;
+      continue when coalesce(cardinality(v_people), 0) < 3;
+      perform public.fn_it_code_defect_open('burst.' || r.cause, 'P1', r.issue_key,
+        case when r.cause = 'licence_read' then 'supplier_api' when r.cause = 'certificate' then 'compliance_archive' end, null, r.cause,
+        jsonb_build_object('people_still_stalled', cardinality(v_people), 'window', '15 minutes', 'repair_window', '30 minutes', 'cause', r.cause),
+        v_people[1:200], '{}'::text[], '{}'::jsonb, coalesce(v_seen, r.last_seen_at));
+      n_defects := n_defects + 1;
+    end loop;
+    -- (ii) a family made its maximum ATTEMPTS on this occurrence (fixed or failed; a refusal is not an attempt, FIX 1) and the fault is
+    -- still there 30 minutes after the last one
+    for r in select x.issue_key, x.evidence, fam.family, max(run.ran_at) last_run
+               from public.it_engineer_finding x
+               join public.it_safe_fix_family fam on fam.approval_ruling = 1705 and x.issue_key like fam.issue_like
+               join public.it_safe_fix_run run on run.family = fam.family and run.issue_key = x.issue_key and run.occurrence_started_at is not distinct from x.started_at
+                                               and run.outcome in ('fixed', 'failed')
+              where x.closed_at is null and coalesce((x.evidence->>'demo')::boolean, false) = v_fx
+              group by x.issue_key, x.evidence, fam.family, fam.max_runs_per_occurrence
+             having count(run.*) >= fam.max_runs_per_occurrence and max(run.ran_at) < now() - interval '30 minutes' loop
+      perform public.fn_it_code_defect_open('remedy_exhausted.' || r.family, case when r.issue_key like 'reg:%' then 'P1' else 'P2' end, r.issue_key,
+        case r.family when 'licence_read_rerun' then 'supplier_api' when 'terms_certificate_retry' then 'compliance_archive' when 'code_resend_assist' then 'login_otp'
+                      when 'route_failover' then 'ai_gateway' end, null, r.family,
+        jsonb_build_object('family', r.family, 'last_run', r.last_run, 'runs', (select jsonb_agg(jsonb_build_object('outcome', x.outcome, 'why', x.result->>'why', 'error', x.error))
+          from (select * from public.it_safe_fix_run where family = r.family and issue_key = r.issue_key order by id desc limit 3) x)),
+        case when r.evidence ? 'lead_id' then array['lead:' || (r.evidence->>'lead_id')]
+             when r.evidence ? 'customer_id' then array['customer:' || (r.evidence->>'customer_id')]
+             when r.evidence ? 'report_id' then array['fault:' || (r.evidence->>'report_id')] else '{}'::text[] end,
+        '{}'::text[], '{}'::jsonb, r.last_run);
+      n_defects := n_defects + 1;
+    end loop;
+    -- (iii) a family of this file parked itself today
+    for r in select family, parked_reason, parked_at from public.it_safe_fix_family where approval_ruling = 1705 and not active and parked_at > now() - interval '1 day' loop
+      perform public.fn_it_code_defect_open('family_parked.' || r.family, 'P2', null, null, null, r.family,
+        jsonb_build_object('family', r.family, 'parked_reason', left(r.parked_reason, 500)), '{}'::text[], '{}'::text[], '{}'::jsonb, r.parked_at);
+      n_defects := n_defects + 1;
+    end loop;
+    -- (c) RETURNS: one key a family fixed on two different occurrences inside 7 days
+    for r in select run.family, run.issue_key, count(distinct run.occurrence_started_at) n, max(run.ran_at) last_fix from public.it_safe_fix_run run
+               join public.it_safe_fix_family fam on fam.family = run.family and fam.approval_ruling = 1705
+              where run.outcome = 'fixed' and run.ran_at > now() - interval '7 days'
+                and exists (select 1 from public.it_engineer_finding x where x.issue_key = run.issue_key and coalesce((x.evidence->>'demo')::boolean, false) = v_fx)
+              group by 1, 2 having count(distinct run.occurrence_started_at) >= 2 loop
+      perform public.fn_it_code_defect_open('returns_after_fix.' || r.family, 'P2', r.issue_key, null, null, r.family,
+        jsonb_build_object('family', r.family, 'issue_key', r.issue_key, 'fixed_occurrences_7d', r.n),
+        case when r.issue_key ~ '^reg:stall:[a-z_]+:[0-9]+$' then array['lead:' || substring(r.issue_key from '([0-9]+)$')]
+             when r.issue_key ~ '^reg:stall:certificate:c:' then array['customer:' || substring(r.issue_key from 25)] else '{}'::text[] end,
+        '{}'::text[], '{}'::jsonb, r.last_fix);
+      n_defects := n_defects + 1;
+    end loop;
+    -- (i) a person's report no family matched for 2 hours (no repair finding for their account, no unused code); it goes into one
+    -- defect once (support_fault_report.defect_id), whatever the defect's sample holds
+    for r in select s.* from public.support_fault_report s
+              where s.told_at is null and s.defect_id is null and s.fixture = v_fx and s.reported_at < now() - interval '2 hours' and s.reported_at > now() - interval '3 days'
+                and not exists (select 1 from public.it_engineer_finding x where x.started_at > s.reported_at - interval '1 day'
+                                  and ((s.lead_id is not null and x.issue_key ~ ('^reg:stall:[a-z_]+:' || s.lead_id || '$'))
+                                       or (s.customer_id is not null and x.issue_key = 'reg:stall:certificate:c:' || s.customer_id)
+                                       or x.issue_key = 'support:code_unused:' || s.id)) loop
+      v_d := public.fn_it_code_defect_open('support_fault.' || r.channel || case when r.lead_id is not null then '.registering' else '' end,
+        case when r.lead_id is not null then 'P2' else 'P3' end, r.issue_key, null, null, 'support_fault',
+        jsonb_build_object('channel', r.channel, 'turns', r.turns, 'audience', r.audience), array['fault:' || r.id], '{}'::text[], '{}'::jsonb, r.reported_at);
+      update public.support_fault_report set defect_id = v_d where id = r.id;
+      n_defects := n_defects + 1;
+    end loop;
+  exception when others then v_errors := v_errors || jsonb_build_object('step', 'classify', 'error', left(sqlerrm, 300));
+  end;
 
   insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
-  values ('it_engineer', 'ok', now(), clock_timestamp(),
+  values ('it_engineer', case when jsonb_array_length(v_errors) = 0 then 'ok' else 'partial' end, now(), clock_timestamp(),
           jsonb_build_object('job', 'registration_watch', 'raised', n_raised, 'closed', n_closed, 'rescued', n_rescued, 'defects', n_defects,
-                             'failovers_restored', n_restored, 'fixture', v_fx, 'repairs', v_tick->'families'),
-          'the IT engineer watched registration: ' || n_raised || ' raised, ' || n_closed || ' closed, ' || n_rescued || ' rescued, ' || n_defects || ' to the engineer session');
+                             'failovers_restored', n_restored, 'fixture', v_fx, 'repairs', v_tick->'families', 'errors', v_errors),
+          'the IT engineer watched registration: ' || n_raised || ' raised, ' || n_closed || ' closed, ' || n_rescued || ' rescued, ' || n_defects
+            || ' to the engineer session' || case when jsonb_array_length(v_errors) > 0 then ', ' || jsonb_array_length(v_errors) || ' step(s) failed and were recorded' else '' end);
   return jsonb_build_object('raised', n_raised, 'closed', n_closed, 'rescued', n_rescued, 'defects', n_defects, 'failovers_restored', n_restored, 'fixture', v_fx,
-                            'repairs', v_tick->'families');
+                            'repairs', v_tick->'families', 'errors', v_errors);
 end $fn$;
 
 revoke execute on function public.fn_it_registering_lead(bigint) from public, anon, authenticated;
 revoke execute on function public.fn_it_licence_routes_open() from public, anon, authenticated;
+revoke execute on function public.fn_it_phone_key(text) from public, anon, authenticated;
 revoke execute on function public.fn_it_registration_rescued(text, bigint, uuid, text, text) from public, anon, authenticated;
 revoke execute on function public.fn_it_safe_fix_licence_read_rerun(text) from public, anon, authenticated;
 revoke execute on function public.fn_it_safe_fix_terms_certificate_retry(text) from public, anon, authenticated;
@@ -801,7 +925,7 @@ on conflict (duty) do update set every = excluded.every, routine = excluded.rout
 select case when problems is null then 'PROBE OK' else 'PROBE FAILED: ' || problems end as verdict from (
   select string_agg(p, '; ') problems from (
     select 'a routine is open or unpinned: ' || p.oid::regprocedure::text p from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'public' and p.proname in ('fn_it_registering_lead', 'fn_it_licence_routes_open', 'fn_it_registration_rescued', 'fn_it_safe_fix_licence_read_rerun',
+     where n.nspname = 'public' and p.proname in ('fn_it_registering_lead', 'fn_it_licence_routes_open', 'fn_it_phone_key', 'fn_it_registration_rescued', 'fn_it_safe_fix_licence_read_rerun',
              'fn_it_safe_fix_terms_certificate_retry', 'fn_it_safe_fix_code_resend_assist', 'fn_it_safe_fix_held_registration_explain', 'fn_it_safe_fix_duplicate_mobile_guide',
              'fn_it_safe_fix_stuck_job_rerun', 'fn_it_safe_fix_route_failover', 'fn_it_safe_fix_run_emits', 'fn_it_registration_watch')
        and (not p.prosecdef or not coalesce(p.proconfig @> array['search_path=public, pg_temp'], false)
