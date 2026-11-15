@@ -90,6 +90,9 @@ test('4. the objective is data, and the CEO orders with a measure, the leads and
   const prop = fnBody(c, 'fn_supplier_coverage_target_propose');
   for (const src of ['from public.inquiries i', 'from public.customer_trade_waitlist q', 'from public.supply_gap g']) assert.ok(prop.includes(src), `the proposal reads ${src}`);
   assert.match(prop, /trade_opening_rule\.open_at_suppliers/, 'the target is the company\'s own opening level, not invented');
+  // demo is never demand, and a probe's world is only demo (the fixture seam): every reading carries the same predicate
+  assert.match(prop, /where coalesce\(public\.fn_seat_clock_customer_is_fixture\(c\), false\) = \(coalesce\(current_setting\('qd\.duty_fixtures', true\), ''\) = 'on'\)/);
+  assert.match(fnBody(c, 'fn_supplier_coverage'), /coalesce\(l\.is_demo, false\) = \(coalesce\(current_setting\('qd\.duty_fixtures', true\), ''\) = 'on'\)/);
   assert.match(c, /select public\.fn_supplier_coverage_target_propose\(\);\s*$/, 'the proposal is written at apply');
   // ONE routine for the numbers: no other SQL file defines it
   const owners = read('scripts/sql/MANIFEST.txt').split('\n').filter((l) => l.endsWith('.sql')).map((l) => l.trim())

@@ -38,7 +38,7 @@
 --      placement gate (only when invitations are switched on); sales_engineer: follow up the half-finished registrations
 --      through allowed channels; customer_support: unblock the held registrations. Each order names the leads it is about,
 --      a measured outcome and a due date; the seat's report closes it (fn_seat_reports_done); the loop measures it every day
---      and closes one whose outcome was met a day before the seat said so. Every decision, with its reason, is a row in
+--      and closes one whose outcome was met a day (20 hours) before the seat said so. Every decision, with its reason, is a row in
 --      public.ceo_supply_decision.
 --   5. fn_ceo_daily_summary_to_the_founder(): once a day, INFORMATION, NOT APPROVAL (ledger 1696): coverage against target,
 --      the funnel, the CEO's decisions of the last day (IT findings, late hand-overs, seats' questions of authority, his own
@@ -365,7 +365,8 @@ begin
     update public.agent_actions set detail = detail || jsonb_build_object('reading_now', v_read)
              || case when (v_read->>'met')::boolean and not (detail ? 'met_at') then jsonb_build_object('met_at', now()) else '{}'::jsonb end
      where id = o.id;
-    if (v_read->>'met')::boolean and o.detail ? 'met_at' and (o.detail->>'met_at')::timestamptz < now() - interval '1 day' then
+    -- 20 hours, not 24: the daily run's own minute drifts, and a day's grace must not become two
+    if (v_read->>'met')::boolean and o.detail ? 'met_at' and (o.detail->>'met_at')::timestamptz < now() - interval '20 hours' then
       perform public.fn_seat_handoff_complete(o.id, jsonb_build_object('outcome', 'met', 'reply',
         'Met, measured by the CEO: ' || (v_read->>'value') || ' against ' || (v_read->>'target') || ' (' || (o.detail->>'measure') || '); ' || o.agent || ' did not report it',
         'reading', v_read, 'not_cited', jsonb_build_object('reason', 'closed by its measure', 'by', 'ceo')));

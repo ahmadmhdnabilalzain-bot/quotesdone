@@ -21,7 +21,7 @@ begin
   perform set_config('qd.probe_files_demo_handoff', 'on', true);
   v_day := (now() at time zone 'Asia/Dubai')::date;
   v_at := (v_day + time '10:00') at time zone 'Asia/Dubai';
-  delete from public.ceo_supply_decision where decided_on = v_day;                    -- the probe's own day
+  delete from public.ceo_supply_decision where decided_on >= v_day;                   -- the probe's own days
   update public.supplier_coverage_target set status = 'retired', retired_at = now() where status <> 'retired';
   select code into v_t1 from public.taxonomy_trade where active order by code limit 1;
   select code into v_t2 from public.taxonomy_trade where active and code <> v_t1 order by code limit 1;
@@ -103,8 +103,9 @@ begin
   if (select count(*) from public.ceo_supply_decision where decided_on = v_day and kind = 'order') <> 3 then v_fail := v_fail || 'an order has no recorded decision; '; end if;
   if (public.fn_ceo_grows_supply(v_at)->>'ran')::boolean then v_fail := v_fail || 'the loop ran twice in a day; '; end if;
 
-  -- 4. THE NEXT DAY'S RUN: no second order on an open measure; the report closes an order and its measure is written beside it
-  delete from public.ceo_supply_decision where dedupe_key = 'run:' || v_day;
+  -- 4. THE NEXT DAY'S RUN (a new Dubai day, so a new order would have a new key): no second order on an open measure; the
+  -- report closes an order and its measure is written beside it
+  v_at := v_at + interval '1 day';
   update public.leads set registration_submitted_at = now() where id = v_stuck;
   v_r := public.fn_seat_reports_done(v_o_stuck, 'sales_engineer', 'Wrote to the probe supplier; he finished his registration.');
   if (select status from public.agent_actions where id = v_o_stuck) <> 'done' then v_fail := v_fail || 'the seat''s report did not close the order: ' || v_r::text || '; '; end if;
@@ -121,9 +122,14 @@ begin
     then v_fail := v_fail || 'the invitation order does not read the outbox''s sends: ' || coalesce((select detail->>'reading_now' from public.agent_actions where id = v_o_inv), '-') || '; '; end if;
   if (select status from public.agent_actions where id = v_o_held) <> 'pending' or not (select detail ? 'met_at' from public.agent_actions where id = v_o_held)
     then v_fail := v_fail || 'a met order was closed before the seat had a day to report, or its met time is not kept; '; end if;
+  -- an hour after it was met, still unreported: left to the seat
+  update public.agent_actions set detail = detail || jsonb_build_object('met_at', (now() - interval '1 hour')::text) where id = v_o_held;
+  delete from public.ceo_supply_decision where kind = 'run';
+  perform public.fn_ceo_grows_supply(v_at);
+  if (select status from public.agent_actions where id = v_o_held) <> 'pending' then v_fail := v_fail || 'a met order was closed an hour after it was met; '; end if;
   -- a day later, still unreported: closed by its measure, on the record
   update public.agent_actions set detail = detail || jsonb_build_object('met_at', (now() - interval '2 days')::text) where id = v_o_held;
-  delete from public.ceo_supply_decision where dedupe_key = 'run:' || v_day;
+  delete from public.ceo_supply_decision where kind = 'run';
   perform public.fn_ceo_grows_supply(v_at);
   if (select status || ' ' || coalesce(evidence->>'outcome', '') from public.agent_actions where id = v_o_held) is distinct from 'done met'
      or not exists (select 1 from public.ceo_supply_decision where handoff_id = v_o_held and kind = 'order_closed')
@@ -133,11 +139,10 @@ begin
   update public.agent_actions set status = 'done', decided_at = now(), evidence = jsonb_build_object('not_cited', jsonb_build_object('reason', 'probe', 'by', 'probe'))
    where id = v_o_inv;
   update public.app_secrets set value = 'false' where key = 'invite_enabled';
-  delete from public.ceo_supply_decision where decided_on = v_day and kind in ('run', 'no_order');
-  update public.ceo_supply_decision set dedupe_key = dedupe_key || ':old' where decided_on = v_day and kind = 'order';
+  v_at := v_at + interval '1 day';
   perform public.fn_ceo_grows_supply(v_at);
   if exists (select 1 from public.agent_actions where kind = 'handoff' and detail->>'type' = 'ceo.order' and detail->>'measure' = 'invitations' and status = 'pending')
-     or not exists (select 1 from public.ceo_supply_decision where decided_on = v_day and kind = 'no_order' and reason like 'invitations are switched off%')
+     or not exists (select 1 from public.ceo_supply_decision where decided_on = (v_at at time zone 'Asia/Dubai')::date and kind = 'no_order' and reason like 'invitations are switched off%')
     then v_fail := v_fail || 'an invitation order went out while invitations were off, or the reason is not recorded; '; end if;
 
   -- 6. THE CEO SETS A TARGET with a reason
