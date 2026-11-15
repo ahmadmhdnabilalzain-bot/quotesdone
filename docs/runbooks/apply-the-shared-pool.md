@@ -114,6 +114,12 @@ each probe PROBE OK both times).
    false); both refuse TRUNCATE and commitments are append-only (a probe clears its own day only as the table owner with
    `qd.limits_probe = 'rollback'`); a commitment or a limit change under REPEATABLE READ or SERIALIZABLE is refused; the
    three-argument `fn_agent_may_act` refuses money (refunds excepted) and points at the subject-aware form.
+   Since REVIEW_ceoplan (15 Nov): the three-argument form refuses money with no amount or zero too; an e-mail recipient named
+   only by an address meets the placement bar and its lead's opt-out; service_role loses INSERT/UPDATE/DELETE/TRUNCATE on
+   `ceo_standing_grant` and `decision_policy` (no edge function, script or site code writes either, READ; the writers are
+   SECURITY DEFINER routines, SELECT). Check: `select has_table_privilege('service_role','public.decision_policy','UPDATE')` is
+   false and `...'SELECT')` is true. The REVOKEs take no lock on either table (LOCAL). If a real limit change is waiting when
+   the probe runs, the probe checks that a second change is refused instead (it no longer fails on it).
 1. At a minute the money runbook's rule 2 read shows no transaction open longer than 5 s, apply the pool file:
    `node scripts/apply_sql.mjs scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql --apply --ddl --seat ceo`.
    On `55P03 lock timeout`: wait 30 s, read again, re-run; at most 3 times. Then delete
@@ -133,6 +139,14 @@ each probe PROBE OK both times).
    new tables at first apply only; ROW EXCLUSIVE on `decision_policy`, `seat_duty`, `model_policy` and `ceo_directive`. Check:
    `select kind, status from ceo_plan_week` shows the seed `asked`; `select count(*) from ceo_growth_channel` is 22. The seed is
    filed by the loop's first run (the hourly duty `ceo.planning_loop`, or the heartbeat), through the same checks as any plan.
+   Since REVIEW_ceoplan (15 Nov): `select count(*) from ceo_growth_channel` is 23 (`support_reply_within_1h` is customer_support's
+   own channel: a bet's seat must be the channel's owner); every watermark is apply + its lag (`select channel, measured_until
+   from ceo_growth_channel` shows apply + 7 days for founder_network, + 14 for the rest); `ceo_plan_week.world` is `real` for
+   the seed. The file also redefines `trg_high_stakes_review` (no lock on `seat_deliberation_turn`, LOCAL): an accountant's
+   agreement marks the CEO's pricing decision instead of e-mailing the founder. The probe keeps its own world (its own seed
+   copy, plans, orders and planted spend), so it passes after the hourly duty has filed the real seed, with real orders open,
+   real spend over the cap or a limit change waiting (LOCAL). File it BEFORE 17 Nov 02:00 UTC: the seed's reply bet is due
+   17 Nov 18:00 Dubai and a due date under 12 hours ahead is refused (by design; only that bet).
 2. Release rehearsal, once, by the release session:
    `QD_POOL_RELEASE_REHEARSAL=1 node --test scripts/checks/every_seat_reads_one_pool.test.mjs` must print `PROBE OK`.
    The probe writes ZZ DEMO rows (and two `storage.objects` rows under `zz-demo-pool-probe/`) only and always rolls back.

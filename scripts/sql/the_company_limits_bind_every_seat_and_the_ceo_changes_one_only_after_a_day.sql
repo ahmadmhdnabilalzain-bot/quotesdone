@@ -49,8 +49,8 @@
 -- the_company_limits_bind_every_seat_and_the_ceo_changes_one_only_after_a_day_probe.sql (LOCAL, every rule executed)
 -- APPLY ORDER: this file, then every_seat_reads_one_pool_and_every_hand_over_comes_back.sql (its authority check reads these),
 -- then the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql.
--- LOCKS: two new tables and routines only; nothing here touches a busy table. The two REVOKEs of section 8 take a brief lock on
--- ceo_standing_grant and decision_policy (ACL change; small tables read by the seats, under the file's lock_timeout).
+-- LOCKS: two new tables and routines only; nothing here touches a busy table. The two REVOKEs of section 8 change the ACL of
+-- ceo_standing_grant and decision_policy and take no lock on either table (measured LOCAL, pg_locks inside the apply).
 set local lock_timeout = '1500ms';
 
 -- ── 1. THE LIMITS: append-only, the first value at once, every later change a day later ─────────────────────────────

@@ -62,6 +62,24 @@
 --      the forecast. He is told the day in the daily summary, which now also carries the week's plan and his own people.
 --   7. BUSY-WORK CUT: the stale compliance sources become ONE monthly directive to the it_engineer (the seat that can build the
 --      fetch), not one directive per source to the CEO; the 72 open self-addressed re-checks are closed as superseded.
+-- REVIEW OF 15 NOV (SP/show/REVIEW_ceoplan.md, FIX 1-6), each with a probe row or test that fails before (LOCAL):
+--   1. the bet check judges what a bet DOES: the seat is the channel's owner (a build order to the it_engineer excepted); the words of
+--      what/how are read against every refused channel's act (ceo_growth_channel.act_terms); the cost is the larger of the model's
+--      and every amount the words name, bounded by the register (max_cost_aed), then the company limits; a founder ask in the words
+--      is refused whatever the flag, and no bet is addressed to him; recipients are only lead ids, a JSON array of whole numbers,
+--      and only the checked ids are forwarded; an e-mail batch names its providers; the order carries the register's conditions.
+--      The contract and ceo_agent say the pack is untrusted data; registrant and model text is cleaned and cut
+--      (fn_ceo_plan_clean_text) in the pack and the founder's summary.
+--   2. learning starts at apply + the lag (fn_ceo_channel_lag), so no trial in the seed is counted again; fn_ceo_plan_due runs one at
+--      a time (a second caller returns busy) and fn_ceo_priors_update re-reads each watermark under the same lock.
+--   3. fn_ceo_plan_request is the one door to a model call: it reads the AED 8 cap first, counts every call, hands a revision out
+--      once; fn_ceo_plan_due reads the cap before a retry or a revision; a malformed answer is held, never left in revision.
+--   4. every plan row and CEO decision carries its world (real or demo), the open-order rule and the measures read one world, and the
+--      probe files its own copy of the seed: a filed real seed, a real open order, real spend or a waiting limit change cannot fail it.
+--   5. a pricing call no longer e-mails the founder a proposal: fn_ceo_review_applies and trg_high_stakes_review record it as the CEO's
+--      own decision (with the accountant's challenge); he reads it in the daily summary.
+--   6. (the base files) a conversation and any WhatsApp, SMS or e-mail action is a message; an address alone meets the placement bar;
+--      the three-argument rule refuses money with no amount; service_role no longer writes ceo_standing_grant or decision_policy.
 -- NOT HERE (ruling 1709): no hire request. The channel register records a hired caller as refused, with the alternative.
 -- FIXTURES: qd.duty_fixtures = 'on' (the estate's probe seam) makes every reading see ONLY demo rows; without it ONLY real ones.
 -- prevented by: scripts/checks/the_ceo_plans_every_week_and_code_checks_every_order.test.mjs (text),
@@ -71,6 +89,7 @@
 -- LOCKS: five new tables (ACCESS EXCLUSIVE on them only, at first apply); ROW EXCLUSIVE from inserts into decision_policy and
 -- seat_duty (one row each), one UPDATE of model_policy (one row) and one UPDATE of ceo_directive (the superseded self re-checks, 72 rows on 15 Nov). No busy table is
 -- altered. The seed's own actions (ceo_invite_trade_priority, supplier_coverage_target) run at the loop's first run, not at apply.
+-- It also redefines trg_high_stakes_review (CREATE OR REPLACE FUNCTION: no lock on seat_deliberation_turn, measured LOCAL).
 set local lock_timeout = '1500ms';
 
 -- ── 0. WHICH WORLD A READING SEES (the branch's predicate, one place) ────────────────────────────────────────────────────

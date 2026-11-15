@@ -35,6 +35,20 @@ src/lib/firstTouch.ts and written to marketing_first_touch at registration).
   excepted); every recipient an authority action would reach (ask AND subject lead:N / email:x) passes the message gates on every
   path; coverage reads fn_supplier_target_by_trade_emirate and leads with the year-one milestone (one number); only the focus
   trades (decision_policy ceo_focus_trades) are confirmed.
+- REVIEW_ceoplan (15 Nov), fixed: never trust a model's LABEL. The bet check reads what a bet does: seat = the channel's owner
+  (a build order to it_engineer excepted); the words of what/how against every refused channel's act (ceo_growth_channel.act_terms,
+  no negation is read away: rules belong in `legal`); every AED amount in the words is a cost, bounded by max_cost_aed; any founder
+  ask in the words is refused and no bet is addressed to him; lead_ids only as a JSON array of whole numbers, and only the checked
+  array is forwarded; an e-mail batch names its providers. Registrant/model text is shown only through fn_ceo_plan_clean_text, and
+  the pack goes to the model labelled untrusted data.
+- Learning starts at apply + the lag (a watermark of now() re-reads the seed's own trials). fn_ceo_plan_due holds a try-lock (a
+  second caller is "busy"); fn_ceo_priors_update re-reads each watermark under the lock.
+- fn_ceo_plan_request is the one door to a model call: cap first, every call counted, a revision once; a malformed answer is held.
+- A probe must keep its own world: ceo_plan_week/ceo_own_decision carry `world`, planted spend is model_used 'zz-demo/...', the
+  probe files its own seed copy with dates from now, and reads the limits in force. Run the real-world scenario (seed filed, real
+  orders, real spend, a waiting limit change) before calling a probe isolated.
+- A pricing call is the CEO's own decision (ceo_own_decision); trg_high_stakes_review no longer mails the founder a proposal.
+- service_role cannot write ceo_standing_grant or decision_policy (a seat cannot grant itself authority or raise a cap).
 
 Related: [[the-ceo-decides-inside-limits-held-as-data]], [[the-llm-understands-code-only-checks]],
 [[whatsapp-supplier-invites-need-an-opt-in]].
