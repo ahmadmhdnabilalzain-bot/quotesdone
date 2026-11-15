@@ -1,4 +1,0 @@
-A PROBE, so it is never applied at all: it writes nothing and always raises at the end. Run after
-an_ampersand_in_a_licensing_authority_reads_as_and.sql is applied; it must print PROBE OK. It asks fn_licence_authority_class and
-fn_licence_authority_norm only, on spellings measured on production on 15 Nov 2026. This note stays for the life of the file.
-Seat: customer_support.

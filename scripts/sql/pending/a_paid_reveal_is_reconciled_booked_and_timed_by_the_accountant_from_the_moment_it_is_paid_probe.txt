@@ -1,3 +1,0 @@
-A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run with
-a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql in one rolled-back transaction (node scripts/ci/rehearse_sql.mjs <file> <probe>) and must print PROBE OK.
-It uses transaction 29ac49f5 (ZZ DEMO, Stripe test mode) and reaches nobody. This note stays for the life of the file. Seat: accountant.
