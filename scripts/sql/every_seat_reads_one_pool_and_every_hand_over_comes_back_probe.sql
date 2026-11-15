@@ -178,10 +178,10 @@ begin
   select id into v_hq2 from public.reasoning_held_question where dedupe_key = 'ceo.it_finding:' || v_f2 || ':1';
   if v_q is null or v_hq2 is null then v_fail := v_fail || 'B: the findings were not filed for the CEO (' || v_r::text || '); ';
   else
-    v_opts := (select (request->'decision'->'options')::text from public.reasoning_held_question where id = v_q);
+    v_opts := coalesce((select (request->'decision'->'options')::text from public.reasoning_held_question where id = v_q), '-');
     if v_opts not like '%fix_now:it_engineer%' or v_opts not like '%fix_now:sales_engineer%' or v_opts not like '%accept_risk%' or v_opts ~* 'founder'
       then v_fail := v_fail || 'B: the choices for a supplier fault are wrong (or name the founder): ' || v_opts || '; '; end if;
-    v_opts := (select (request->'decision'->'options')::text from public.reasoning_held_question where id = v_hq2);
+    v_opts := coalesce((select (request->'decision'->'options')::text from public.reasoning_held_question where id = v_hq2), '-');
     if v_opts like '%accept_risk%' or v_opts ~ 'fix_now:(marketing|sales_engineer|customer_support|accountant)' or v_opts not like '%fix_now:it_engineer%'
       then v_fail := v_fail || 'B: a critical security finding offers accept_risk or a seat whose duties do not cover it: ' || v_opts || '; '; end if;
     perform public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'held', 'reason', 'model_failed: no reply'));
@@ -212,7 +212,7 @@ begin
     -- the seat reports: the order closes, the report is on the CEO's decision, the finding's sender (IT) is filed its next step
     v_r := public.fn_seat_reports_done(v_o2, 'sales_engineer', 'Re-ran the catalogue sync for the probe supplier; it now completes.');
     if (select status from public.agent_actions where id = v_o2) <> 'done' then v_fail := v_fail || 'B: the report did not close the order: ' || v_r::text || '; '; end if;
-    if (select evidence->'ceo_decision'->>'reported_done' from public.agent_actions where id = v_f) not like 'sales_engineer reported it done%'
+    if coalesce((select evidence->'ceo_decision'->>'reported_done' from public.agent_actions where id = v_f), '') not like 'sales_engineer reported it done%'
       then v_fail := v_fail || 'B: the report is not on the CEO''s decision; '; end if;
     if not exists (select 1 from public.agent_actions where kind = 'handoff' and agent = 'it_engineer' and detail->>'type' = 'ceo.decision_closed'
                     and detail->>'finding_handoff_id' = v_f::text and detail->>'report' like 'Re-ran the catalogue sync%')
@@ -271,7 +271,33 @@ begin
           jsonb_build_object('type', 'knowledge.request', 'from', 'customer_support', 'to', 'ceo', 'subject_table', 'customers', 'subject_id', v_cust::text,
                              'summary', v_sum, 'awaiting', 'the CEO seat to answer'),
           'customers', 'knowledge.request:ceo:' || v_tag, now() - interval '59 days') returning id into v_c;
+  -- the seat named in "awaiting" owes it, in any case: the receiver here is the accountant, the awaiting names the sales engineer
+  insert into public.agent_actions (agent, kind, status, title, detail, target_table, target_id, created_at)
+  values ('accountant', 'handoff', 'pending', 'reveal.reconcile probe owing ' || v_tag,
+          jsonb_build_object('type', 'reveal.reconcile', 'from', 'sales_engineer', 'to', 'accountant', 'subject_table', 'transactions', 'subject_id', v_tx::text,
+                             'summary', v_sum, 'replied_at', now() - interval '59 days', 'awaiting', 'SALES_ENGINEER to confirm the receipt'),
+          'transactions', 'reveal.reconcile:owing:' || v_tag, now() - interval '59 days') returning id into v_hq2;
   perform public.fn_handoff_overdue_escalate();
+  if (select detail->'silence'->>'silent_seat' from public.agent_actions where id = v_hq2) is distinct from 'sales_engineer'
+    then v_fail := v_fail || 'C: the seat named in upper case in awaiting is not the one that owes it; '; end if;
+  update public.agent_actions set status = 'done', decided_at = now(),   -- out of the way of the lines read below
+         evidence = jsonb_build_object('not_cited', jsonb_build_object('reason', 'probe row', 'by', 'probe')) where id = v_hq2;
+  -- the SILENT seat's superior, on a reporting line where it is not the sender's (the probe's own edge, rolled back): the
+  -- accountant reports to marketing here, the sender is the sales engineer (who reports to the CEO)
+  delete from public.org_reporting_edge where child_role_id = 'accountant';
+  insert into public.org_reporting_edge (child_role_id, parent_role_id, established_by, reason) values ('accountant', 'marketing', 'probe', 'probe ' || v_tag);
+  insert into public.agent_actions (agent, kind, status, title, detail, target_table, target_id, created_at)
+  values ('accountant', 'handoff', 'pending', 'reveal.reconcile probe superior ' || v_tag,
+          jsonb_build_object('type', 'reveal.reconcile', 'from', 'sales_engineer', 'to', 'accountant', 'subject_table', 'transactions', 'subject_id', v_tx::text, 'summary', v_sum),
+          'transactions', 'reveal.reconcile:superior:' || v_tag, now() - interval '59 days') returning id into v_hq2;
+  perform public.fn_handoff_overdue_escalate();
+  if (select detail->'silence'->>'escalated_to' from public.agent_actions where id = v_hq2) is distinct from 'marketing'
+    then v_fail := v_fail || 'C: the escalation went to the sender''s superior, not the silent seat''s: '
+                 || coalesce((select detail->'silence'->>'escalated_to' from public.agent_actions where id = v_hq2), '-') || '; '; end if;
+  update public.agent_actions set status = 'done', decided_at = now(),
+         evidence = jsonb_build_object('not_cited', jsonb_build_object('reason', 'probe row', 'by', 'probe')) where id = v_hq2;
+  delete from public.org_reporting_edge where child_role_id = 'accountant';
+  insert into public.org_reporting_edge (child_role_id, parent_role_id, established_by, reason) values ('accountant', 'ceo', 'probe', 'probe ' || v_tag);
   if (select detail->'silence'->>'silent_seat' from public.agent_actions where id = v_o) is distinct from 'sales_engineer' then v_fail := v_fail || 'C: a "waiting" reply was taken as an answer (the sender blamed); '; end if;
   if (select detail->'silence'->>'escalated_to' from public.agent_actions where id = v_o) is distinct from 'ceo' then v_fail := v_fail || 'C: not escalated to the silent seat''s superior; '; end if;
   if (select detail->'silence'->>'escalated_to' from public.agent_actions where id = v_m) is distinct from 'ceo' then v_fail := v_fail || 'C: marketing silent was escalated to ' || coalesce((select detail->'silence'->>'escalated_to' from public.agent_actions where id = v_m), 'nobody') || ', not the CEO; '; end if;
@@ -311,11 +337,11 @@ begin
   select id into v_q from public.reasoning_held_question where dedupe_key = 'ceo.overdue_handoff:' || v_c || ':1';
   if v_q is null then v_fail := v_fail || 'R1: the CEO was not asked about his own late hand-over; ';
   else
-    v_opts := (select (request->'decision'->'options')::text from public.reasoning_held_question where id = v_q);
+    v_opts := coalesce((select (request->'decision'->'options')::text from public.reasoning_held_question where id = v_q), '-');
     if v_opts not like '%"answer"%' or v_opts not like '%"wait"%' or v_opts ~* '(founder|chase)' then v_fail := v_fail || 'R1: the CEO''s own late item offers ' || v_opts || '; '; end if;
     perform public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'model', 'stub/model',
       'answer', 'The probe customer is answered: the knowledge entry exists.', 'decision', jsonb_build_object('choice', 'answer')));
-    if (select evidence->>'reply' from public.agent_actions where id = v_c) not like 'The CEO answers: The probe customer is answered%'
+    if coalesce((select evidence->>'reply' from public.agent_actions where id = v_c), '') not like 'The CEO answers: The probe customer is answered%'
        or not (select detail ? 'replied_at' from public.agent_actions where id = v_c)
       then v_fail := v_fail || 'R1: the CEO''s answer is not his reply on the hand-over; '; end if;
   end if;
@@ -329,8 +355,8 @@ begin
   select id into v_q from public.reasoning_held_question where dedupe_key = 'ceo.authority:' || v_h || ':1';
   if v_q is null then v_fail := v_fail || '(d): the CEO was not asked; ';
   else
-    v_opts := (select (request->'decision'->'options')::text from public.reasoning_held_question where id = v_q);
-    if (select question from public.reasoning_held_question where id = v_q) not like 'The sales_engineer asks: skip the matching wait%Why: the customer is on site today%'
+    v_opts := coalesce((select (request->'decision'->'options')::text from public.reasoning_held_question where id = v_q), '-');
+    if coalesce((select question from public.reasoning_held_question where id = v_q), '') not like 'The sales_engineer asks: skip the matching wait%Why: the customer is on site today%'
        or v_opts not like '%allow_once%refuse%' or v_opts ~* 'founder'
       then v_fail := v_fail || '(d): the question does not carry who, what, why and the two answers (or names the founder): ' || v_opts || '; '; end if;
     -- a malformed answer grants nothing and is asked again (a day later)
@@ -367,7 +393,7 @@ begin
   perform public.fn_ceo_files_judgements();
   perform public.fn_reason_held_resolve((select id from public.reasoning_held_question where dedupe_key = 'ceo.authority:' || v_h || ':1'),
     jsonb_build_object('status', 'answered', 'model', 'stub/model', 'answer', 'No reclassification without the customer''s statement in hand.', 'decision', jsonb_build_object('choice', 'refuse')));
-  if (select status || ' ' || (evidence->>'reply') from public.agent_actions where id = v_h) not like 'done The CEO refuses: No reclassification%' then v_fail := v_fail || '(d): refuse is not written where the seat reads it; '; end if;
+  if coalesce((select status || ' ' || (evidence->>'reply') from public.agent_actions where id = v_h), '') not like 'done The CEO refuses: No reclassification%' then v_fail := v_fail || '(d): refuse is not written where the seat reads it; '; end if;
 
   -- R2. THE HARD LIMITS (company_limit_change, fn_company_spend_*). The probe's day is its own: today's commitments are removed
   -- inside this rolled-back transaction, so a production day already spent does not decide the outcome (review 3, item 9).
@@ -428,6 +454,17 @@ begin
     if coalesce((public.fn_agent_may_act('marketing', 'probe.ad_spend_' || v_tag, 1, 'campaign:probe' || v_tag || ':z')->>'may_act')::boolean, false)
       then v_fail := v_fail || 'R2: a spend passed a limit under AED 2; '; end if;
   end if;
+  -- a grant written with no amount is never a licence for an amount (review 3, item 1), whatever the action is called
+  delete from public.company_spend_commitment where dubai_day = (now() at time zone 'Asia/Dubai')::date;   -- room for AED 1
+  insert into public.ceo_grant_once (seat, action_class, subject, reason, expires_at)
+  values ('marketing', 'probe.post_' || v_tag, 'probe:' || v_tag || ':noamt', 'probe: a grant with no amount', now() + interval '1 hour');
+  if coalesce((public.fn_agent_may_act('marketing', 'probe.post_' || v_tag, greatest(least(v_amt, 1), 0.01), 'probe:' || v_tag || ':noamt')->>'may_act')::boolean, false)
+    then v_fail := v_fail || 'R2: a grant with no amount was honoured for an amount; '; end if;
+  -- a standing grant cannot carry a gate-weakening action past the check either
+  insert into public.ceo_standing_grant (grant_key, grantee_role_id, action_class, scope_note, issued_by)
+  values ('probe.unsuppress_standing_' || v_tag, 'customer_support', 'probe.unsuppress_standing_' || v_tag, 'probe', 'ceo');
+  if coalesce((public.fn_agent_may_act('customer_support', 'probe.unsuppress_standing_' || v_tag, null, 'probe:' || v_tag || ':gs')->>'may_act')::boolean, false)
+    then v_fail := v_fail || 'R2: a standing grant un-suppressed past the gates; '; end if;
   -- a message gate: weakening one, or a named recipient the suppression list holds, is refused unasked
   v_r := public.fn_agent_may_act('customer_support', 'probe.unsuppress_' || v_tag, null, 'probe:' || v_tag || ':g');
   if coalesce((v_r->>'may_act')::boolean, true) or coalesce((v_r->>'asked')::boolean, true) then v_fail := v_fail || 'R2: un-suppressing was not refused unasked; '; end if;

@@ -48,8 +48,8 @@ telling us?"): 323 on 19 Oct, 6 on 27 Oct, 5 on 1–2 Nov, none after. They were
 commit stopped them: the batches simply ended. The accountant's model path is also idle (0 judgements in the last 7 days).
 
 Now `fn_ceo_takes_it_finding` leaves the finding to the model. The `ceo.company_pool` duty (every 15 minutes) files at most
-5 a tick (a seat asking for authority first, then IT findings most severe and oldest first, then the hand-overs escalated to
-the CEO), under a daily cap held as data (`decision_policy.ceo_daily_judgements`: 30 questions and AED 0.50 a day). A question
+5 a tick (a seat asking for authority first, at most half of the room, then IT findings most severe and oldest first, then the
+hand-overs escalated to the CEO), under a daily cap held as data (`decision_policy.ceo_daily_judgements`: 30 questions and AED 0.50 a day). A question
 asked again after a refused or failed answer counts on the day it is asked again (`plan.rearmed_at`). Each is a held question
 that the existing replay reasons with think() on the CEO's routine route (model); everything after the answer is code.
 
@@ -57,20 +57,25 @@ that the existing replay reasons with think() on the CEO's routine route (model)
   IT engineer always; a security fault nobody else; the accountant for money; the sales engineer for suppliers, requests and
   quotations; customer support for customers and replies; marketing for invitations and campaigns; the owner of the duty that
   found it); `accept_risk` (14 days) only when the finding is not critical and touches neither security nor money
-  (`fn_ceo_finding_guard`); `duplicate_of:<id>` (same issue-key family or same title); `needs_founder:<money |
-  destructive_production_change | fact_only_he_holds>`. An answer counts only if it is one of the choices OFFERED and carries a
+  (`fn_ceo_finding_guard`); `duplicate_of:<id>` (same issue-key family or same title). Since 15 Nov (founder ledger 1696)
+  no choice names the founder: the CEO decides. An answer counts only if it is one of the choices OFFERED and carries a
   reason; otherwise nothing is decided and it is asked again a day later.
-- **Choices for `ceo.overdue_handoff`**: `chase` (only when the silent seat is a staff seat), `wait`, `needs_founder:<category>`.
+- **Choices for `ceo.overdue_handoff`**: `chase` (only when the silent seat is a staff seat and the late item is not itself an
+  order), `withdraw` (a late `ceo.order`: an order is never chased), `answer` (the CEO's OWN late hand-over: his answer is
+  the reply), and `wait`.
 - **The decision makes someone act** (`ceo.order`): `fix_now` and `chase` open an ORDER hand-over to the seat, due in 7 (fix) or
   2 (chase) days. It stays open in the seat's "Waiting on you" until the seat reports it done (`fn_seat_reports_done`, or any
   close through `fn_seat_handoff_complete`); past its date it is escalated like any hand-over (to the CEO). When it is reported,
   `fn_ceo_orders_reported` writes the report on the CEO's decision (`evidence.ceo_decision.reported_done`) and files the
   finding's sender, the it_engineer, its next step (`ceo.decision_closed`: re-verify). A chase closes itself when the late
-  hand-over is answered.
+  hand-over is answered; a fix order closes itself when its finding's hand-over is done. The seats report through their
+  doors: the accountant's and the sales engineer's `complete_handoff` and marketing's `report_order`
+  (`_shared/order_report.ts`).
 - **No bounce**: a row carrying the CEO's decision is not escalated before its own date (review or due), and the CEO's own
   decided findings never: his duty asks him again on the review date (accept_risk 14 days, fix_now 8 days, duplicate 7 days).
-- **What reaches the founder**: a needs_founder or ask_founder question and the CEO's own overdue items, in one deduplicated note a
-  day (`fn_notify_founder`, kind `ceo_needs_the_founder`; level high only when it carries a question).
+- **What reaches the founder** (15 Nov, ledger 1696): information only, once a day: the CEO's daily summary
+  (`fn_ceo_daily_summary_to_the_founder`, kind `ceo_daily_summary`): coverage against target, the funnel, every decision of the
+  day with its reason, the limits. Nothing waits on him; the CEO's own late items are in the CEO's own queue.
 - **Cost**: the CEO's routine call measured at AED 0.0106 (ai_cost_log, 30 days, 561 calls). A held question costs 1 to 3 calls
   (the author measured 1; the review of 13 Nov estimates 2–3 for think()'s plan and answer): AED 0.3–1.0 a day at the cap of 30.
   The money cap (`aed`) counts 1 call a question, so it is the count cap that binds.
@@ -84,16 +89,33 @@ ask)` answers the same, and when the refusal's route is `ceo_case_decision`:
 1. a single-use grant for exactly that seat, action and subject (`public.ceo_grant_once`), unexpired and unused, is honoured
    ONCE (`used_at` is stamped; route `ceo_allow_once`);
 2. otherwise it files a `ceo.authority` hand-over to the CEO (one per seat, action, subject and Dubai day) carrying who asks,
-   what, why, the facts and the refusal; the duty puts it to the CEO's model inside the same daily cap (surface `ceo.authority`):
-   `allow_once` (a grant row valid 24 hours), `refuse`, or `ask_founder` (the founder's daily note);
-3. money above the seat's standing limit, a real person's data (consent, unsubscribe, personal data) or a switch: `allow_once`
-   is not offered and, if answered anyway, not taken: `ask_founder` or `refuse` only;
+   what, why, the facts and the refusal; the duty puts it to the CEO's model inside the same daily cap (surface `ceo.authority`,
+   on his routine route): `allow_once` (a grant row valid 24 hours) or `refuse`;
+3. THE HARD LIMITS, in code and data, refuse BEFORE anyone is asked (the CEO could only refuse): a destructive production
+   change (a deploy: it keeps its release path); money with no amount, above the per-action limit or above what is left of
+   today's company limit (`company_limit_change`, `company_spend_commitment`); an action that weakens a message gate; a named
+   recipient the consent, suppression, opt-out or inbox-placement gates refuse. The limits are read again when the CEO's answer
+   lands, and a grant commits its amount when it is used. A grant with no amount is honoured only for a call with no amount.
+   A standing grant for money is held to the same limits. The CEO changes a limit with a reason; it takes effect 24 hours later;
 4. the answer is written on the hand-over (`evidence.reply`) and in the asking seat's pool block ("ANSWERED FOR YOU").
 
-What this covers: any seat code that calls the subject-aware form. What it does NOT cover: the callers in TS today
-(it_engineer's authority listing, the accountant's refund ceiling, the sales engineer's operator match) still call the
-three-argument form, so they are refused as before and file nothing; the 99 decision points named but unchecked stay unchecked
-(the founder has not decided to enforce them), and the 21 with no grant have no rule to refuse them.
+What this covers: any seat code that calls the subject-aware form; in TS, the sales engineer's `match`
+(`sales_engineer/lib/match_authority.ts`: 202 with the hand-over when it asked the CEO). What it does NOT cover, on purpose (third
+review, item 6): the it_engineer's authority listing and the accountant's grant listing only REPORT what a seat may do, the
+accountant's refund already asks the CEO through `fn_ceo_request_decision`, and the it_engineer's deploy keeps its release path;
+they call the three-argument form. The 99 decision points named but unchecked stay unchecked, and the 21 with no grant have no
+rule to refuse them.
+
+### The objective: enough suppliers to fulfil customers' requests (founder ledger 1701, 15 Nov 2026)
+
+`public.supplier_coverage_target` holds verified, active suppliers wanted per trade per emirate. The rows written at apply are a
+proposal read only from RECORDED demand (real inquiries by trade and emirate, the customer waitlist, the sales engineer's
+recruitment decisions in `supply_gap`), each saying where it comes from; the target is the company's own opening level
+(`trade_opening_rule.open_at_suppliers`). The CEO's daily loop (`fn_ceo_grows_supply`, duty `ceo.supply_coverage`) confirms new
+proposals with a reason, reads coverage (`fn_supplier_coverage`, the one routine), the funnel (`fn_supplier_funnel_reading`) and
+the seats' board, and ORDERS seats through the pool with a measured outcome, the leads and a date: the seat that owns the
+invitation duty (only while invitations are switched on), the sales engineer (half-finished registrations), customer support
+(held registrations). Every decision is a `ceo_supply_decision` row with its reason.
 
 ### Who verified: a customer or a supplier finished verifying
 
