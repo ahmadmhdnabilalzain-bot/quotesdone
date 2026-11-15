@@ -32,7 +32,8 @@
 // stops writers (SHARE, SHARE ROW EXCLUSIVE, EXCLUSIVE, ACCESS EXCLUSIVE) on ANY relation that exists on production is refused
 // before anything is sent, so the operator learns it in a second instead of after a 5 s stall. The existing relations are
 // read from pg_class with one light SELECT (relationCatalogue), never from a list. Quoted names are read as names; DO bodies
-// and their EXECUTE strings are read too. What it cannot see (DDL in a routine the file calls) is still cut at 5 s.
+// and their EXECUTE strings are read too, and (round 4) the body of every routine the file defines and calls. What it cannot
+// see (DDL in a routine the file calls but did not define) is still cut at 5 s.
 // ROUND 3 (15 Nov 2026, second independent review): the cut could be LIFTED by the file (a quoted SET, a DO block's EXECUTE, an
 // E'' set_config) and 16 lock-taking shapes passed the reading. Now the limits are read on the raw text (limitLifters), U&"..."
 // and three-part names and the file's search_path are read, CASCADE drops and ALTER DOMAIN count as an unknown table, and any
@@ -213,6 +214,55 @@ const HEADS = new Set(['alter', 'drop', 'create', 'truncate', 'lock', 'reindex',
 // in plpgsql a statement can follow these without a `;` of its own
 const BLOCK_WORDS = new Set(['begin', 'then', 'else', 'loop', 'declare']);
 
+// A ROUTINE THE FILE DEFINES AND THEN CALLS RUNS AS PART OF THE FILE (15 Nov 2026, third review, item 3). Its body is not run when
+// it is created, so the readings below skip it, which is right for a routine the file only defines; but `create function f() ...
+// execute 'set local transaction' || '_timeout = 0' ...; select f();` lifted both limits on a local Postgres 16, and `call p()` of a
+// procedure that ALTERs quotes took ACCESS EXCLUSIVE past the early refusal. So every routine (function or procedure) the file both
+// defines and calls (select / perform / call / any expression outside a GRANT, REVOKE, COMMENT, ALTER, DROP or CREATE statement,
+// at the top level or in a DO block, and transitively through the bodies of routines already called) is read as a DO block: its
+// body by statedLocks, dynamicSql and limitLifters, and its SET clause by limitLifters. A routine the file only defines is not.
+const NOT_A_CALL = new Set(['grant', 'revoke', 'comment', 'alter', 'drop', 'create', 'security']);
+const ROUTINE_LIMITS = new Set(['lock_timeout', 'statement_timeout', 'transaction_timeout']);
+export function calledRoutines(text) {
+  const s = String(text); const sts = statements(s); const defs = [];
+  for (const st of sts) {
+    if (!(st[0]?.v === 'create')) continue;
+    const k = st.findIndex((t, j) => j < 6 && t.t === 'word' && (t.v === 'function' || t.v === 'procedure'));
+    if (k < 0) continue;
+    const r = readName(st, k + 1); if (!r) continue;
+    let body = null;
+    for (let j = r.next; j < st.length; j++) if (st[j].t === 'word' && st[j].v === 'as' && (st[j + 1]?.t === 'body' || st[j + 1]?.t === 'str')) { body = st[j + 1].v; break; }
+    const sets = [];
+    for (let j = r.next; j < st.length; j++) {
+      const g = st[j + 1];
+      if (st[j].t === 'word' && st[j].v === 'set' && g && (g.t === 'word' || g.t === 'qid' || g.t === 'str') && ROUTINE_LIMITS.has(g.v.toLowerCase())) sets.push(g.v.toLowerCase());
+    }
+    defs.push({ name: r.name.split('.').pop().toLowerCase(), qualified: r.name, body, sets, line: s.slice(0, st[0].pos).split('\n').length, pos: st[0].pos });
+  }
+  if (!defs.length) return [];
+  const names = new Set(defs.map((d) => d.name));
+  const called = new Set();
+  const refs = (toks) => { for (let j = 0; j < toks.length; j++) { const t = toks[j]; if ((t.t === 'word' || t.t === 'qid') && names.has(t.v.toLowerCase()) && toks[j + 1]?.v === '(') called.add(t.v.toLowerCase()); } };
+  const fromStatements = (list, depth) => {
+    for (const st of list) {
+      const head = st[0]?.t === 'word' ? st[0].v : '';
+      if (NOT_A_CALL.has(head)) continue;
+      if (head === 'do') { const b = st.find((t) => t.t === 'body' || t.t === 'str'); if (b && depth < 4) fromStatements(statements(b.v), depth + 1); continue; }
+      refs(st);
+      if (depth > 0) for (const t of st) if ((t.t === 'str' || t.t === 'body') && depth < 4) fromStatements(statements(t.v), depth + 1);   // EXECUTE strings
+    }
+  };
+  fromStatements(sts, 0);
+  for (let grew = true; grew;) {
+    grew = false;
+    for (const d of defs) {
+      if (!called.has(d.name) || d.seen || !d.body) continue;
+      d.seen = true; const before = called.size; fromStatements(statements(d.body), 1); if (called.size > before) grew = true;
+    }
+  }
+  return defs.filter((d) => called.has(d.name)).map(({ seen: _s, ...d }) => d);
+}
+
 // THE SEARCH PATH A STATEMENT RUNS UNDER (review 2, item 3: `set local search_path = storage, public; alter table objects` passed,
 // because `objects` was read as public.objects). `set [local|session] search_path {=|to} a, b` (or set_config('search_path', 'a, b',
 // ...) with a literal) is followed, and an unqualified name after it is the first schema of that path that has it.
@@ -261,6 +311,7 @@ export function statedLocks(text) {
     }
   };
   scanText(s, null, false);
+  for (const r of calledRoutines(s)) if (r.body) { path = null; scanBody(r.body, r.line, false); }
   return out;
 }
 
@@ -287,6 +338,7 @@ export function dynamicSql(text) {
     const b = st.find((t) => t.t === 'body' || t.t === 'str');
     if (b) scan(lex(b.v), s.slice(0, st[0].pos).split('\n').length);
   }
+  for (const r of calledRoutines(s)) if (r.body) scan(lex(r.body), r.line);   // a routine the file calls runs as part of it
   return out;
 }
 
@@ -341,8 +393,9 @@ export function stallsLiveUsers(text, catalogue) {
 //   * a SET or RESET of those three inside a DO block or an EXECUTE string, and a top-level SET of one spelled as a quoted name;
 //   * RESET ALL.
 // An EXECUTE whose argument is not a literal is refused on production as dynamic SQL (dynamicSql, planReplay and apply_sql), so a
-// SET built at run time cannot reach the database either. A routine's own SET attribute is not a statement and is left alone, as
-// is a set_config inside a routine body: the transaction_timeout bounds whatever a called routine does.
+// SET built at run time cannot reach the database either. A routine the file only DEFINES is left alone (its SET clause and its
+// set_config run later, on its own); one it defines AND calls is read as a DO block, SET clause included (calledRoutines).
+// A routine the file calls but does not define is not read: the transaction_timeout, which the file cannot lift, bounds it.
 const SET_LOCK = /^\s*set\s+(?:local\s+|session\s+)?lock_timeout\s*(?:=|to)\s*'?\s*([a-z0-9.]+)\s*(ms|s|min)?\s*'?\s*$/i;
 const msOf = (v) => { const m = /^\s*(\d+(?:\.\d+)?)\s*(ms|s|min)?\s*$/i.exec(String(v)); if (!m) return null; const u = (m[2] || 'ms').toLowerCase(); return Number(m[1]) * (u === 'min' ? 60000 : u === 's' ? 1000 : 1); };
 const LIMITS = new Set(['lock_timeout', 'statement_timeout', 'transaction_timeout']);
@@ -374,6 +427,11 @@ export function limitLifters(text) {
     }
   };
   for (const st of statements(s)) { if (!isRoutine(st)) scan(st, false, 0, st[0]?.t === 'word' && st[0].v === 'do'); }
+  // a routine the file defines AND calls runs as part of it: its SET clause and its body are read as a DO block's (third review, item 3)
+  for (const r of calledRoutines(s)) {
+    for (const g of r.sets) found.push(`sets ${g} in the SET clause of ${r.qualified}, which the file calls`);
+    if (r.body) scan(lex(r.body), true, 1);
+  }
   return [...new Set(found)];
 }
 

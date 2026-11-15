@@ -149,21 +149,29 @@ test("a file's own limits are lowered on the same line, every way it can say the
   assert.throws(() => tightenLimits("SET Transaction_Timeout = '1h';"), /transaction_timeout/);
 });
 
-// 15 committed files (14 probes and replay_verify.sql; counted 15 Nov 2026) set statement_timeout inside a DO block, which is now
-// refused on production (review 2, item 2). They run on the local database, where no plan is applied (safe_replay.mjs replaySql),
-// and none is ever applied again. A new file is not added to this list: it says its limit at the top level, or not at all.
-export const STATEMENT_TIMEOUT_IN_A_DO_BLOCK = new Set(['a_supplier_describes_its_services_in_its_own_words_probe.sql',
-  'a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql', 'every_seat_reviews_itself_every_month_probe.sql',
-  'one_job_number_on_every_portal_document_and_notice_probe.sql', 'probe_the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql',
-  'replay_verify.sql', 'the_ceo_improvement_sweep_closes_before_it_proposes_and_settles_in_one_run_probe.sql',
-  'the_ceo_plans_every_day_and_directs_the_seats_probe.sql', 'the_ceo_tracks_the_supplier_target_by_trade_and_emirate_probe.sql',
-  'the_ceo_weekly_review_acts_on_every_missed_target_probe.sql', 'the_embedding_picker_orders_on_the_index.sql',
-  'the_nonresponse_charge_is_the_refund_plus_the_admin_fee_plus_lawful_interest_probe.sql',
-  'the_sanctions_screen_stops_opening_tasks_on_seats_that_do_not_exist.sql', 'the_seat_duty_jobs_are_spread_over_the_five_minutes_probe.sql',
-  'the_weekly_report_arrives_and_the_rules_decide_probe.sql']);
-test('every committed SQL file can be tightened (none lifts a limit of its own), but the 15 named that set statement_timeout in a DO block', () => {
+// HISTORICAL FILES THE GUARD NOW REFUSES ON PRODUCTION (counted 15 Nov 2026). 15 set statement_timeout inside a DO block (review 2,
+// item 2); 13 more define a routine that sets lock_timeout or statement_timeout (set_config, or its SET clause) and call it, which is
+// read as part of the file since the third review (item 3). All are applied already or are probes; they run on the local database,
+// where no plan is applied (safe_replay.mjs replaySql), and none is ever applied again. A new file is not added to this list: it
+// says its limit at the top level, or not at all.
+export const REFUSED_ON_PRODUCTION = new Set(['a_queue_filled_this_hour_is_not_a_stopped_queue.sql', 'a_silence_is_judged_against_the_rhythm_a_subject_still_keeps.sql',
+  'a_supplier_describes_its_services_in_its_own_words_probe.sql', 'a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql',
+  'a_surface_refusing_at_its_own_baseline_is_not_a_refusal_rate_finding.sql', 'every_seat_reviews_itself_every_month_probe.sql',
+  'one_job_number_on_every_portal_document_and_notice_probe.sql', 'one_slow_duty_never_wedges_the_seat_duty_tick.sql',
+  'probe_the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql', 'replay_verify.sql',
+  'the_ceo_improvement_sweep_closes_before_it_proposes_and_settles_in_one_run_probe.sql', 'the_ceo_plans_every_day_and_directs_the_seats_probe.sql',
+  'the_ceo_tracks_the_supplier_target_by_trade_and_emirate_probe.sql', 'the_ceo_weekly_review_acts_on_every_missed_target_probe.sql',
+  'the_embedding_picker_orders_on_the_index.sql', 'the_it_detector_evaluates_its_row_rules_as_sets_not_as_function_calls.sql',
+  'the_it_detector_fails_fast_on_a_lock_instead_of_dying_behind_one.sql', 'the_it_detector_reads_agent_runs_once_and_no_subject_can_flood_it.sql',
+  'the_nonresponse_charge_is_the_refund_plus_the_admin_fee_plus_lawful_interest_probe.sql', 'the_purge_cannot_take_the_database_down.sql',
+  'the_restore_drill_runs_until_it_passes_once_every_calendar_month.sql', 'the_sanctions_screen_stops_opening_tasks_on_seats_that_do_not_exist.sql',
+  'the_scheduler_was_never_down_and_the_queue_nobody_counted_was_fine.sql', 'the_schema_export_sorts_triggers_and_overloads_on_a_unique_key.sql',
+  'the_seat_duty_jobs_are_spread_over_the_five_minutes.sql', 'the_seat_duty_jobs_are_spread_over_the_five_minutes_probe.sql',
+  'the_unverified_bulk_and_the_duplicates_leave_kb_chunks_in_pages.sql', 'the_weekly_report_arrives_and_the_rules_decide_probe.sql']);
+test('every committed SQL file can be tightened (none lifts a limit of its own), but the 28 named historical files', () => {
+  assert.equal(REFUSED_ON_PRODUCTION.size, 28);
   for (const f of readdirSync(join(REPO, 'scripts/sql')).filter((x) => x.endsWith('.sql'))) {
-    if (STATEMENT_TIMEOUT_IN_A_DO_BLOCK.has(f)) assert.throws(() => tightenLimits(read(`scripts/sql/${f}`), f), /statement_timeout/, f);
+    if (REFUSED_ON_PRODUCTION.has(f)) assert.throws(() => tightenLimits(read(`scripts/sql/${f}`), f), /statement_timeout|lock_timeout/, f);
     else tightenLimits(read(`scripts/sql/${f}`), f);
   }
 });

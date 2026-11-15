@@ -59,8 +59,11 @@ npm run gate -- --pr <number>
   three-part names, the file's own search_path, DO blocks and literal EXECUTE strings, DROP FUNCTION/TYPE ... CASCADE and
   ALTER DOMAIN as an unknown table); any EXECUTE whose argument is not one literal (dynamic SQL); and anything that could move a
   limit (the word transaction_timeout anywhere, a set_config of lock/statement/transaction_timeout or with a computed name, a SET
-  of those inside a DO block or EXECUTE, RESET ALL). It CANNOT see a lock taken inside a routine the file calls: that is bounded
-  only by the 5 s cut. The local gate still needs production rows in some checks (a_ready_request: the trades and suppliers);
+  of those inside a DO block or EXECUTE, RESET ALL). It reads these in the top level, in DO blocks, and in the body and SET clause
+  of every function or procedure the file both defines and calls (select, perform, call, also through another called routine).
+  It does NOT read a routine the file only defines (it runs later, on its own, under its own limits), nor a routine the file
+  calls that it did not define (the database's own body is not read): a lock taken there is bounded only by the 5 s cut, which
+  the file can no longer lift. The local gate still needs production rows in some checks (a_ready_request: the trades and suppliers);
   that is not a reason to replay on production. Do not set it to make a red row green: a file that needs longer than
   5 s, or that ALTERs an existing table, is rehearsed locally and then applied with `apply_sql.mjs`. Never rehearse with a
   hand-made `begin; ...; rollback` sent to the management API: it holds the real change's locks.

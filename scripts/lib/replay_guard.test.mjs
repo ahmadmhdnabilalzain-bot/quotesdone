@@ -147,3 +147,47 @@ test('review 2, item 4: --lock-timeout below 1 ms is refused, and a fraction is 
   assert.equal(applyLockTimeout(['--lock-timeout=1.01']), '2ms');
   assert.equal(applyLockTimeout(['--lock-timeout=1500']), '1500ms');
 });
+
+// ---- third review, item 3: a routine the file defines AND calls is read as a DO block ----------------------------------------
+const CALLED = {
+  b01_fn_execute_concat_tt: "create function public.zz_lift() returns void language plpgsql as $$ begin execute 'set local transaction' || '_timeout = 0'; end $$;\nselect public.zz_lift();",
+  b02_fn_set_config_concat_tt: "create function public.zz_lift() returns void language plpgsql as $$ begin perform set_config('transaction' || '_timeout', '0', true); end $$;\nselect public.zz_lift();",
+  b03_fn_execute_concat_lock: "create function public.zz_lift() returns void language plpgsql as $$ begin execute 'set local lock' || '_timeout = 0'; end $$;\nselect public.zz_lift();",
+  b04_fn_set_clause_lock: 'create function public.zz_f() returns void language plpgsql set lock_timeout = 0 as $$ begin alter table public.quotes add column zz int; end $$;\nselect public.zz_f();',
+  b05_sql_fn_execute_format: "create function public.zz_lift(n text) returns void language plpgsql as $$ begin execute format('set local %s = 0', n); end $$;\nselect public.zz_lift('lock' || '_timeout');",
+  b06_fn_body_execute_ddl: "create function public.zz_f(t text) returns void language plpgsql as $$ begin execute 'alter table public.' || t || ' add column zz int'; end $$;\nselect public.zz_f('quotes');",
+  b07_procedure_call: 'create procedure public.zz_p() language plpgsql as $$ begin alter table public.quotes add column zz int; end $$;\ncall public.zz_p();',
+  b08_fn_set_local_lock_body: 'create function public.zz_lift() returns void language plpgsql as $$ begin set local lock_timeout = 0; end $$;\nselect public.zz_lift();',
+  called_in_a_do_block: 'create function zz_f() returns void language plpgsql as $$ begin alter table public.quotes add column zz int; end $$;\ndo $d$ begin perform zz_f(); end $d$;',
+  called_through_another: "create function public.zz_inner() returns void language plpgsql as $$ begin execute 'alter ' || 'table public.quotes add column z int'; end $$;\n"
+    + 'create function public.zz_outer() returns void language plpgsql as $$ begin perform public.zz_inner(); end $$;\nselect public.zz_outer();',
+  sql_language_body: "create function public.zz_s() returns void language sql as 'alter table public.quotes add column z int';\nselect public.zz_s();",
+};
+
+test('third review, item 3: the body and SET clause of a routine the file calls are read as a DO block, and each shape is refused', () => {
+  for (const [name, t] of Object.entries(CALLED)) {
+    assert.throws(() => plan(t), /SAFE REPLAY REFUSED/, name);
+    // an operator who accepts a stall still gets a plain lock (cut at 5 s, a cut the file can no longer lift); never a lift or dynamic SQL
+    if (!['b07_procedure_call', 'called_in_a_do_block', 'sql_language_body'].includes(name)) {
+      assert.throws(() => planReplay(t, { label: 'f.sql', catalogue: CATALOGUE, acceptStall: true }), /SAFE REPLAY REFUSED/, `${name} (stall accepted)`);
+    }
+  }
+  assert.ok(dynamicSql(CALLED.b06_fn_body_execute_ddl).length, 'the apply refuses it too');
+  assert.match(limitLifters(CALLED.b04_fn_set_clause_lock).join(' '), /SET clause of public\.zz_f, which the file calls/);
+  assert.deepEqual(stallsLiveUsers(CALLED.b07_procedure_call, CATALOGUE).map((l) => l.table), ['quotes']);
+});
+
+test('third review, item 3: a routine the file only defines, grants, comments on or drops is not run by the file and still passes', () => {
+  for (const t of [
+    "create function public.zz_rt(t text) returns void language plpgsql set lock_timeout = '3s' as $$ begin execute format('revoke all on %I from anon', t); end $$;\n"
+      + 'revoke execute on function public.zz_rt(text) from public, anon, authenticated;\ngrant execute on function public.zz_rt(text) to service_role;\n'
+      + "comment on function public.zz_rt(text) is 'runs later, on its own schedule';\nalter function public.zz_rt(text) owner to postgres;",
+    "create function public.zz_tf() returns trigger language plpgsql as $$ begin execute 'select ' || 1; return new; end $$;\ncreate table public.zz_tt (id int);\n"
+      + 'create trigger zz_t before insert on public.zz_tt for each row execute function public.zz_tf();',
+    "create function public.zz_cron() returns void language plpgsql as $$ begin execute format('select %s', 1); end $$;\nselect cron.schedule('zz', '* * * * *', 'select public.zz_cron()');",
+  ]) {
+    assert.deepEqual(dynamicSql(t), [], t);
+    assert.deepEqual(limitLifters(t), [], t);
+    assert.deepEqual(plan(t).stalls, [], t);
+  }
+});

@@ -41,11 +41,15 @@ missing. A list of what is dangerous is out of date the day it is written.
   the word transaction_timeout anywhere, any set_config of lock/statement/transaction_timeout or with a computed name, a SET of
   those inside a DO block or EXECUTE, a quoted top-level SET of one, and RESET ALL; only a top-level `set local lock_timeout =
   <ms>` is kept (lowered to the cap). Any EXECUTE of a non-literal is refused on production as dynamic SQL (replay and apply).
+  All of this is read in the top level, in DO blocks, and (since the third review, 15 Nov) in the body and SET clause of every
+  function or procedure the file both defines and calls: the third review lifted both limits from such a body
+  (`execute 'set local transaction' || '_timeout = 0'` in a function, then `select f()`), which the first wording of this rule
+  claimed was impossible. A routine the file only defines is not read (it runs later under its own limits).
 - **The early refusal reads what the text SAYS, not everything it does.** It refuses a lock stronger than ROW EXCLUSIVE on a
   relation pg_class has, read through quoted, `U&"..."` and three-part names, the file's own search_path, DO blocks and literal
   EXECUTE strings; DROP FUNCTION/TYPE/DOMAIN ... CASCADE, ALTER DOMAIN and a bare CLUSTER count as an unknown table. It does
-  NOT see a lock taken inside a routine the file calls (bounded only by the 5 s cut). Review 2 found 16 shapes it missed;
-  15 are now refused, the called routine is the one left to the cut.
+  NOT see a lock taken inside a routine the file calls but did not define in it (bounded only by the 5 s cut). Review 2 found
+  16 shapes it missed; 15 were refused in round 3, and a05 (DDL in a routine the file defines and calls) since round 4.
 - **The real apply** (scripts/apply_sql.mjs) sets lock_timeout 1500 ms (`--lock-timeout=<ms>` to change, 1-15000) and lowers
   the file's own to it, prints the limits it set, cuts a file that stops writers at 60 s, retries a lock not granted after a
   fixed 10 s, and NEVER re-sends after a 5xx: if its first copy is still on production after 2 minutes it says STILL RUNNING,
