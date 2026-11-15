@@ -250,7 +250,8 @@ export const CUSTOMER_QUESTION: Readonly<Record<string, CustomerQuestion>> = {
   spec_indoor_or_outdoor: { en: 'Will it be used indoors or outdoors?', ar: 'هل سيُستخدم داخل المبنى أم خارجه؟', options: [['Indoors', 'داخلي'], ['Outdoors', 'خارجي']] },
   spec_fault_description: {
     en: 'What is wrong with it? Tell us what you see or hear.', ar: 'ما المشكلة؟ أخبرنا بما تراه أو تسمعه.',
-    alt_en: 'A photo or a short video also helps.', alt_ar: 'صورة أو فيديو قصير يساعد أيضًا.',
+    // photos only: the request chat takes no video, and no customer file reaches a supplier unchecked (review REVIEW_plain item 5)
+    alt_en: 'A photo of it also helps.', alt_ar: 'وإرسال صورة له يساعد أيضًا.',
   },
   spec_layout_drawing: {
     en: 'Do you have a drawing or a plan of the space?', ar: 'هل لديك مخطط أو رسم للمكان؟',

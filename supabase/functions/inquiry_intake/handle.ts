@@ -2,7 +2,7 @@
 import { drawingNoteOf } from './attached_file.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
-import { interviewStep, orderFields, questionText, optionsOf, buildBrief } from './interview.ts';
+import { interviewStep, orderFields, questionText, questionsFor, optionsOf, buildBrief } from './interview.ts';
 import { explainTerms } from '../_shared/customer_questions.ts';
 import { stallOf, lastAskedKeys, phrasedOf, SENT_AS_IS, SALES_ENGINEER_WHATSAPP, settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, mergeRequirements, recordedRequirements, answerToQuestion, stampTurn, askedTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, tappedHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft, openSpecsBlock } from './slots.ts';
 import { emirateOf, isAlAin, detectUrgency, utilityText, SEVEN_EMIRATES, SEVEN_EMIRATES_AR } from './classify.ts';
@@ -920,8 +920,10 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       if (absent.length) {
         status = 'needs_info';
         out.status = 'needs_info';
-        out.missing = absent.map((f: any) => String(f.question || f.key));
-        out.questions = absent.slice(0, 4).map((f: any) => String(f.question || f.key));
+        // the customer reads each open spec in plain words in his language (interview.ts questionsFor), never its English label
+        // (review REVIEW_plain item 4: an Arabic chat got the English question here while the blocking gate below was plain)
+        out.missing = questionsFor(absent, slotLang);
+        out.questions = questionsFor(absent.slice(0, 4), slotLang);
         out.readiness = Math.min(Number(out.readiness) || 0, 80);
         // The model (or the slots) said 'ready' and the canonical gate did not agree: the reply is the state's.
         out.assistant_message = replyFromState('needs_info', out.questions[0] || null, slotLang);

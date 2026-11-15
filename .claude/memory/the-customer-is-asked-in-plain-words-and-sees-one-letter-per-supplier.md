@@ -29,3 +29,9 @@ Seat: sales_engineer. Branch `sales_engineer-the-customer-is-asked-in-plain-word
 - Coverage: every HVAC split-AC spec, every blocking HVAC spec, the most frequent blocking specs: 309 of 1,604 blocking
   specs. The rest show the model's own plain wording (`plain_question`) or the frame. Extending the table is the
   way to grow coverage; never word-match the customer (ruling 890): the model names asked-about words in `explain_terms`.
+- A tapped option is stored as its ENGLISH value on every path: `interview.ts tappedOption` (options + options_ar/optionAr,
+  card_options + card_options_ar) serves both interviewStep (model down) and slots.ts tappedHeldAnswer; Arabic "لست متأكداً"
+  is read as "Not sure".
+- Every gate asks through plain wording: the category_specs required gate uses `interview.ts questionsFor` (never `f.question`).
+- Questions ask for PHOTOS only: the request chat takes no video and there is no identity check for one (location metadata,
+  a voice saying a name or number). A test fails if NewRequest.tsx starts accepting video or a question asks for one.

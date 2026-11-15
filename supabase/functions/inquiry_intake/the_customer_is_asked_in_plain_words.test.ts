@@ -8,8 +8,9 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { invoke, loadFunction, type Stub } from '../_shared/twilio_free_harness.ts';
 import { checklistsOf as loaderRows } from '../../../scripts/kb/load_trade_spec_checklists.mjs';
-import { GLOSSARY, saysNotSureAr } from '../_shared/customer_questions.ts';
-import type { SpecField } from './interview.ts';
+import { CUSTOMER_QUESTION, GLOSSARY, optionAr, saysNotSureAr } from '../_shared/customer_questions.ts';
+import { interviewStep, optionsOf, questionsFor, tappedOption, type SpecField } from './interview.ts';
+import { tappedHeldAnswer } from './slots.ts';
 
 type Row = Record<string, unknown>;
 // production's category_specs row for hvac (journey_a_replay.test.ts's copy) with its question_plain_ar (SELECT, 15 Nov 2026)
@@ -210,4 +211,103 @@ Deno.test('"what does BTU mean?" in English: explained from the glossary, the sa
   assertEquals(ts[i].next?.key, 'spec_cooling_capacity');
   assert(ts[i].writer.includes(JSON.stringify(GLOSSARY.find((g) => g.terms.includes('btu'))!.en).slice(1, -1)));
   assert(ts[i].next?.text === ts[i - 1].next?.text, 'the rephrase is the same plain question');
+});
+
+// ── review REVIEW_plain items 3 and 4 (15 Nov 2026) ──────────────────────────────────────────────────────────────────────────
+
+/** One Arabic chat against the REAL handler: `model` is the stubbed interview reading for each turn (null: the model is down). */
+async function arabicTurns(says: string[], model: (n: number) => Row | null, category: string | null = null) {
+  const w = { intake: { id: 'ii-zz-plain-r', email: 'zz-demo-plain-r@example.invalid', status: 'needs_info', turns: [] as Row[], customer_id: 'c-zz-plain', category, brief: {} } as Row };
+  let n = 0;
+  const stub: Stub = {
+    user: { id: 'u-zz-plain', email: 'zz-demo-plain-r@example.invalid' },
+    rows: { customers: [{ id: 'c-zz-plain', locale: 'ar' }], category_specs: [{ category: 'hvac', label: 'Air conditioning', fields: HVAC }],
+      taxonomy_trade: [{ code: 'hvac', label: 'HVAC', label_ar: 'التكييف', group_code: 'mep_building_systems', authority_required: [] }], taxonomy_trade_service: [], trade_spec_checklist: hvacRows(), sales_knowledge: [] },
+    rpc: { rl_check: true },
+    handle: async (req, u) => {
+      if (u.pathname === '/functions/v1/ai_gateway') {
+        const b = await req.clone().json().catch(() => ({}));
+        if (!(typeof b.sys === 'string' && b.sys.includes('Return STRICT JSON only'))) return JA({ ok: false, error: 'down' }, 503);
+        const m = model(n);
+        return m ? JA({ ok: true, model: 'stub/model', content: JSON.stringify(m) }) : JA({ ok: false, error: 'openrouter down' }, 503);
+      }
+      const t = u.pathname.match(/^\/rest\/v1\/([^/]+)$/)?.[1];
+      if (t === 'inquiry_state' && req.method === 'GET') return JA([]);
+      if (t === 'inquiry_intake') {
+        if (req.method === 'GET') return JA([{ ...w.intake }]);
+        if (req.method === 'PATCH') { Object.assign(w.intake, await req.clone().json()); return JA([]); }
+      }
+      return undefined;
+    },
+  };
+  const h = await loadFunction('inquiry_intake', () => import('./index.ts'));
+  const out: Array<{ json: Row; details: Row }> = [];
+  for (n = 1; n <= says.length; n++) {
+    const r = await invoke(h, stub, { intake_id: w.intake.id, turn_id: `t-zz-plain-r-${n}`, lang: 'ar', text: says[n - 1] });
+    if (r.status !== 200) throw new Error(`turn ${n}: HTTP ${r.status} ${JSON.stringify(r.json).slice(0, 300)}`);
+    out.push({ json: r.json as Row, details: ((w.intake.brief as Row)?.details ?? {}) as Row });
+  }
+  return out;
+}
+
+Deno.test('item 3: an Arabic tap is stored as its English option, on the model-down path as on the held path', async () => {
+  const sys = HVAC.find((f) => f.key === 'system_type')!;
+  const ar = optionsOf(sys, 'ar')!;
+  const cassetteAr = optionAr('Cassette')!;
+  assert(cassetteAr && ar.includes(cassetteAr), 'the Arabic card does not offer Cassette: ' + JSON.stringify(ar));
+  // the code: the one reader, both paths
+  assertEquals(tappedOption(sys, cassetteAr), 'Cassette');
+  assertEquals(tappedHeldAnswer(HVAC, 'system_type', cassetteAr), 'Cassette');
+  const step = interviewStep(HVAC, { details: {}, asked_key: 'system_type' }, cassetteAr, cassetteAr, 'ar');
+  assertEquals(step.details.system_type, 'Cassette');
+  // a card option of a pack spec (customer_questions.ts) comes back as its English card value too
+  const card = { key: 'spec_unit_type', question: 'Unit type', card_options: ['On the wall (split)', 'Square, in the ceiling (cassette)'], card_options_ar: ['على الجدار (سبليت)', 'مربعة في السقف (كاسيت)'] } as SpecField;
+  assertEquals(interviewStep([{ ...card, required: true }], { details: {}, asked_key: 'spec_unit_type' }, 'مربعة في السقف (كاسيت)', '', 'ar').details.spec_unit_type, 'Square, in the ceiling (cassette)');
+  // Arabic "Not sure" is the field's own not-sure option, never the Arabic words
+  const elec = HVAC.find((f) => f.key === 'electrical_supply')!;
+  assertEquals(interviewStep(HVAC, { details: {}, asked_key: 'electrical_supply' }, 'لست متأكداً', '', 'ar').details.electrical_supply, 'Not sure');
+  assertEquals(elec.options!.includes('Not sure'), true);
+  // the REAL handler with the model down (the request already placed in hvac): the first card asks the AC type in Arabic;
+  // tapping its Arabic label stores "Cassette"
+  const ts = await arabicTurns(['السلام عليكم، أبي مكيفات للفيلا في دبي', cassetteAr], () => null, 'hvac');
+  const first = ts[0].json.next_question as { key: string; options: string[] } | null;
+  assertEquals(first?.key, 'system_type', 'the model-down interview did not ask the AC type first: ' + JSON.stringify(first));
+  assert(first!.options.includes(cassetteAr), 'the Arabic card does not offer ' + cassetteAr + ': ' + JSON.stringify(first!.options));
+  assertEquals(ts[1].details.system_type, 'Cassette', 'stored: ' + JSON.stringify(ts[1].details));
+});
+
+Deno.test('item 4: on an Arabic chat the category_specs required gate asks in Arabic, never the English label', () => {
+  // the gate's wording (interview.ts questionsFor): every required hvac field, in Arabic, is its plain Arabic question
+  const required = HVAC.filter((f) => f.required);
+  const ar = questionsFor(required, 'ar');
+  assertEquals(ar.length, required.length);
+  for (const [i, q] of ar.entries()) {
+    assert(/[\u0600-\u06FF]/.test(q) && !/[A-Za-z]{2,}/.test(q), 'an English question on an Arabic chat: ' + q);
+    assert(q !== required[i].question, 'the English label itself: ' + q);
+  }
+  // a field with no Arabic of its own still gets Arabic (the frame), never its label; English reads the plain English
+  assert(!/[A-Za-z]{2,}/.test(questionsFor([{ key: 'zz_odd', question: 'Odd technical label?' } as SpecField], 'ar')[0]));
+  assertEquals(questionsFor([required[0]], 'en')[0], required[0].question_plain_en);
+  // the gate itself asks through it. The offline handler could not be steered into this gate (the slots fill or settle every
+  // category_specs key before it in every scenario tried), so its block is read: between the absent list and requiredGate it
+  // must build both lists with questionsFor and never from the field's own label.
+  const src = Deno.readTextFileSync(new URL('./handle.ts', import.meta.url));
+  const block = src.slice(src.indexOf('const absent = required.filter(isAbsent);'), src.indexOf('requiredGate = { category, missing_keys'));
+  assert(block.length > 100, 'the required gate block was not found in handle.ts');
+  assert(/out\.missing = questionsFor\(absent, slotLang\)/.test(block) && /out\.questions = questionsFor\(absent\.slice\(0, 4\), slotLang\)/.test(block), 'the required gate does not ask through questionsFor');
+  assert(!/String\(f\.question \|\| f\.key\)/.test(block), 'the required gate reads the English label again');
+});
+
+Deno.test('item 5: no question asks for a file the request chat cannot take (a video), and none reaches a supplier unchecked', () => {
+  // The request chat's file input (src/components/me/NewRequest.tsx) is what the customer can send. A customer file goes to the
+  // drawing/photo readers before any supplier sees it; there is no check for a video (its location metadata, a voice saying a
+  // name or a number, a house number in frame), so the questions ask for photos only.
+  const tsx = Deno.readTextFileSync(new URL('../../../src/components/me/NewRequest.tsx', import.meta.url));
+  const accepts = [...tsx.matchAll(/accept="([^"]+)"/g)].map((m) => m[1]).join(',');
+  assert(accepts.length > 10, 'the file inputs were not found');
+  const takesVideo = /video\/|\.mp4|\.mov|\.webm|\.3gp/i.test(accepts);
+  assertEquals(takesVideo, false, 'the request chat now takes video: give it the identity checks a customer file needs, then this test may change');
+  const asks = Object.entries(CUSTOMER_QUESTION).flatMap(([k, q]) => [q.en, q.ar, q.eg_en, q.eg_ar, q.alt_en, q.alt_ar].filter(Boolean).map((t) => [k, String(t)] as const));
+  const video = asks.filter(([, t]) => /\bvideo|فيديو|مقطع مصوّر/i.test(t));
+  assertEquals(video, [], 'a question asks for a video the chat cannot take: ' + JSON.stringify(video));
 });

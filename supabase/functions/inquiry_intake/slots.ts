@@ -24,8 +24,7 @@
 // status differs from the status the model wrote its sentence for, the sentence is replaced by one
 // built from the state, so the customer is never told "ready" while the row says otherwise. No word of
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
-import { orderFields, questionText, modelText, optionsOf, parseAnswer, isUnknown, answersAnotherKind, type Lang, type SpecField, type UniversalKind } from './interview.ts';
-import { optionAr, sameArabic } from '../_shared/customer_questions.ts';
+import { orderFields, questionText, modelText, optionsOf, parseAnswer, isUnknown, answersAnotherKind, tappedOption, type Lang, type SpecField, type UniversalKind } from './interview.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import { surfaceEffort } from '../_shared/effort_policy.ts';
 import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
@@ -310,14 +309,8 @@ export function readHeldAnswer(checklist: SpecField[], askedKey: string | null |
  *  for a turn with no model reading. */
 export function tappedHeldAnswer(checklist: SpecField[], askedKey: string | null | undefined, text: string): string | null {
   const f = askedKey ? checklist.find((x) => x && String(x.key) === String(askedKey)) : null;
-  const t = String(text || '').replace(/\s+/g, ' ').trim().toLowerCase();
-  if (!f || !t || !Array.isArray(f.options)) return null;
-  const hit = f.options.find((o) => typeof o === 'string' && o.trim().toLowerCase() === t);
-  if (hit) return hit;
-  // the Arabic label of an option (an Arabic chat taps it: interview.ts optionsOf) is that English option
-  const i = f.options.findIndex((o, n) => typeof o === 'string' && [Array.isArray(f.options_ar) && f.options_ar.length === f.options!.length ? f.options_ar[n] : null, optionAr(o)]
-    .some((a) => !!a && sameArabic(String(a), t)));
-  return i >= 0 ? f.options[i] : null;
+  // the Arabic label of an option (an Arabic chat taps it: interview.ts optionsOf) is that English option (interview.ts tappedOption)
+  return f ? tappedOption(f, text) : null;
 }
 
 /** The spec the last reply asked (its stamped next_question key), so "I don't know" is read as the answer to THAT spec. */
