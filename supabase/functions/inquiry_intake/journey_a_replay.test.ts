@@ -141,9 +141,9 @@ import { checklistsOf as loaderRows } from '../../../scripts/kb/load_trade_spec_
 import { requirementQuestions } from '../_shared/intake_requirements.ts';
 
 const HVAC: SpecField[] = [
-  { key: 'system_type', type: 'select', options: ['Wall/floor split', 'Ducted (concealed) split', 'Cassette', 'VRF/VRV', 'Chiller (air/water-cooled)', 'Package unit', 'FAHU/AHU (fresh air)', 'Not sure - need site survey'], question: 'What type of AC system?', required: true, question_plain_en: 'What kind of air conditioning — wall split units, hidden ducted, ceiling cassettes, a central system, or should the supplier survey and advise?' },
+  { key: 'system_type', type: 'select', options: ['Wall/floor split', 'Ducted (concealed) split', 'Cassette', 'VRF/VRV', 'Chiller (air/water-cooled)', 'Package unit', 'FAHU/AHU (fresh air)', 'Not sure - need site survey'], question: 'What type of AC system?', required: true, question_plain_en: 'What kind of air conditioning — wall split units, hidden ducted, ceiling cassettes, a central system, or should the supplier survey and advise?', same_as: 'spec_unit_type' },
   { key: 'application_area', type: 'text', options: [], question: 'What is the space used for (office, villa, retail, restaurant, server room, warehouse), and roughly what area in m² and ceiling height?', required: true, question_plain_en: 'What is the space used for, and roughly how big is it?',
-    not_needed_when: { answered: ['spec_cooling_capacity'], text: "each unit's cooling capacity is stated (BTU/h, TR or kW), or the existing units are replaced like for like" },
+    not_needed_when: { answered: ['spec_cooling_capacity'], text: "each unit's cooling capacity is stated (BTU/h, TR or kW)" },
     same_as: 'spec_room_use_and_area_or_heat_load_calc' },
   { key: 'new_or_replace', type: 'select', options: ['New installation', 'Replacement of existing', 'Extension of existing', 'Service / repair / maintenance'], question: 'Is this new, replacement, or a service/repair?', required: true, question_plain_en: 'Is this a new installation, replacing old units, adding more, or a repair?' },
   { key: 'load_basis', type: 'select', options: ['Yes, I have heat-load calc / MEP drawings', 'No - supplier to size it'], question: 'Do you have a cooling-load calculation or MEP drawings?', required: false, question_plain_en: 'Do you have engineering drawings for the cooling, or should the supplier work out the size?' },
@@ -295,4 +295,105 @@ Deno.test('journey A of 15 Nov: the interview\'s system prompt is the same on ev
   assert(placed.length >= 5 && placed.every((t) => t.sys.length > 2000), 'the interview prompt was not captured');
   for (const t of placed.slice(1)) assertEquals(t.sys === placed[0].sys, true, `turn ${t.n}: the system prompt changed (the turn's records belong in the message)`);
   assert(!placed[0].sys.includes('OPEN SPECS NOW (required') && !placed[0].sys.includes('RECORDED (what the customer'), 'per-turn records are back in the system prompt');
+});
+
+// ── ROUND 2 (independent review of 15 Nov 2026, "INTAKE CHAT 1") ─────────────────────────────────────────────────────
+// The same real handler, a stand-in model scripted per turn: (1) "I don't know the capacity" never makes the room size
+// unnecessary; (2) no request is stuck: a customer who answers nothing, or a model that names an optional spec as the one it
+// asked, reaches the hold after STALL_TURNS (8) questions; (3) a changed answer is the customer telling us something; (4) the
+// hold never lists the AC type twice; (5) a question they ask on a held turn is still answered.
+import { STALL_TURNS } from './slots.ts';
+type Scripted = { text: string; details?: Record<string, [string, string]>; unknown?: string[]; req?: Record<string, unknown>; changed?: string[]; asked?: string[]; question?: string; answer?: string };
+async function scripted(name: string, lines: Scripted[], untilReady = true) {
+  type Row = Record<string, unknown>;
+  const acc = { details: {} as Record<string, string>, evidence: {} as Record<string, string>, unknown: [] as string[], req: {} as Row };
+  let now: Scripted = { text: '' };
+  const w = { writer: [] as string[], intake: { id: 'ii-zz-' + name, email: `zz-demo-${name}@example.invalid`, status: 'needs_info', turns: [] as Row[], customer_id: 'c-zz', category: null, brief: {} } as Row };
+  const stub: Stub = {
+    user: { id: 'u-zz-' + name, email: `zz-demo-${name}@example.invalid` },
+    rows: { customers: [{ id: 'c-zz', locale: 'en' }], category_specs: [{ category: 'hvac', label: 'Air conditioning', fields: HVAC }],
+      taxonomy_trade: [{ code: 'hvac', label: 'HVAC', group_code: 'mep_building_systems', authority_required: [] }], taxonomy_trade_service: [], trade_spec_checklist: hvacRows(), sales_knowledge: [] },
+    rpc: { rl_check: true },
+    handle: async (req, u) => {
+      if (u.pathname === '/functions/v1/ai_gateway') {
+        const b = await req.clone().json().catch(() => ({}));
+        if (!(typeof b.sys === 'string' && b.sys.includes('Return STRICT JSON only'))) { w.writer.push(JSON.stringify(b)); return JA({ ok: true, model: 'stub/model', content: JSON.stringify({ answer: 'ZZ DEMO voiced reply.' }) }); }
+        for (const [k, [v, ev]] of Object.entries(now.details ?? {})) { acc.details[k] = v; acc.evidence[k] = ev; }
+        for (const k of now.unknown ?? []) if (!acc.unknown.includes(k)) acc.unknown.push(k);
+        Object.assign(acc.req, now.req ?? {});
+        return JA({ ok: true, model: 'stub/model', content: JSON.stringify({ category: 'hvac', trades: ['hvac'], urgency: 'normal', status: 'needs_info',
+          assistant_message: 'ZZ DEMO stand-in reply' + (now.question ? ' ' + now.question : ''), claims_ready: false, questions: now.question ? [now.question] : [], readiness: 50, missing: [],
+          dialect: 'english', trade_codes: ['hvac'], service_keys: [], checklist_topics: ['hvac:spec-split-ac'], site_visit: [], condition: {}, problem: '', options_offered: [], chosen_option: '', budget: '',
+          requirements: { ...acc.req }, changed_answers: now.changed ?? [], answer_to_question: now.answer ?? '', spec_evidence: { ...acc.evidence }, unknown_keys: [...acc.unknown], not_needed: {}, asked_keys: now.asked ?? [],
+          brief: { summary: 'ZZ DEMO ' + name, category: 'hvac', scope: '', quantity: '', location: acc.details.location ?? '', site_location: '', emirate: 'Dubai', al_ain: false, timeline: '', budget: '', details: { ...acc.details } } }) });
+      }
+      const t = u.pathname.match(/^\/rest\/v1\/([^/]+)$/)?.[1];
+      if (t === 'inquiry_state' && req.method === 'GET') return JA([]);
+      if (t === 'inquiry_intake') {
+        if (req.method === 'GET') return JA([{ ...w.intake }]);
+        if (req.method === 'PATCH') { Object.assign(w.intake, await req.clone().json()); return JA([]); }
+      }
+      return undefined;
+    },
+  };
+  const h = await loadFunction('inquiry_intake', () => import('./index.ts'));
+  const out: { n: number; status: string; next: { key: string | null; text: string; options: string[] | null } | null; details: Row; writer: string }[] = [];
+  for (const [i, line] of lines.entries()) {
+    now = line; w.writer = [];
+    const r = await invoke(h, stub, { intake_id: w.intake.id, turn_id: `t-zz-${name}-${i + 1}`, lang: 'en', text: line.text });
+    if (r.status !== 200) throw new Error(`${name} turn ${i + 1}: HTTP ${r.status} ${JSON.stringify(r.json).slice(0, 300)}`);
+    out.push({ n: i + 1, status: String(r.json.status), next: r.json.next_question ?? null, details: { ...(((w.intake.brief ?? {}) as Row).details ?? {}) as Row }, writer: w.writer.join('\n') });
+    if (untilReady && r.json.status === 'ready') break;
+  }
+  return out;
+}
+const AC_FIRST = 'ZZ DEMO: I need 3 new split AC units installed in my villa in Dubai: master bedroom, second bedroom and the majlis.';
+const AC_READ: Record<string, [string, string]> = { location: ['A villa in Dubai', 'my villa in Dubai'], new_or_replace: ['New installation', '3 new split AC units installed'],
+  spec_number_of_units_per_type: ['3 wall splits', 'I need 3 new split AC units'], spec_unit_type: ['Wall split', '3 new split AC units'] };
+const ROOM_KEYS = ['application_area', 'spec_room_use_and_area_or_heat_load_calc'];
+const OFF = (extra: Partial<Scripted> = {}): Scripted => ({ text: 'ZZ DEMO: can you call me instead?', ...extra });
+
+Deno.test('round 2, item 1: "I don\'t know the capacity" never makes the room size unnecessary; it is asked, and nothing is ready without one of them', async () => {
+  const turns = await scripted('dk', [{ text: AC_FIRST, details: AC_READ, req: { 'material.ducting': 'not_needed' } },
+    { text: "ZZ DEMO: I don't know what capacity they should be.", unknown: ['spec_cooling_capacity'] }, ...Array.from({ length: 6 }, () => OFF())], false);
+  assertEquals(turns[1].next?.key, 'spec_room_use_and_area_or_heat_load_calc', 'the room size is the next question once the capacity is not known');
+  for (const t of turns) {
+    for (const k of ROOM_KEYS) assert(!String(t.details[k] ?? '').startsWith('Not needed'), `turn ${t.n}: ${k} recorded as not needed with no capacity`);
+    assert(t.status !== 'ready', `turn ${t.n}: ready with neither the capacity nor the room size`);
+  }
+});
+Deno.test(`round 2, item 2: a customer who answers nothing reaches the hold after ${STALL_TURNS} questions, never 30`, async () => {
+  const turns = await scripted('never', [{ text: AC_FIRST }, ...Array.from({ length: 14 }, () => OFF())], false);
+  const firstHeld = turns.find((t) => t.status === 'held')?.n;
+  assertEquals(firstHeld, STALL_TURNS + 1, turns.map((t) => t.status[0]).join(''));
+  assertEquals(turns.slice(firstHeld! - 1).every((t) => t.status === 'held'), true, 'it stays with the hold while nothing moves');
+  const asked = turns.slice(0, firstHeld! - 1).map((t) => t.next?.key).filter(Boolean);
+  assertEquals(new Set(asked).size, asked.length, 'each question before the hold is a different one');
+});
+Deno.test('round 2, item 2: a model that names an optional spec while asking something else no longer keeps a request at needs_info for ever', async () => {
+  const turns = await scripted('optional', [{ text: AC_FIRST, question: 'ZZ What colour is your car?', asked: ['load_basis'] },
+    ...Array.from({ length: 14 }, () => OFF({ question: 'ZZ What colour is your car?', asked: ['load_basis'] }))], false);
+  const firstHeld = turns.find((t) => t.status === 'held')?.n;
+  assert(firstHeld !== undefined && firstHeld <= STALL_TURNS + 1, 'never held: ' + turns.map((t) => t.status[0]).join(''));
+});
+Deno.test('round 2, item 3: "actually supply only" is the customer telling us something: the waiting question is not asked on that turn', async () => {
+  const turns = await scripted('mind', [
+    { text: AC_FIRST + ' Supply and installation please.', details: { ...AC_READ, scope: ['Supply and install', 'Supply and installation please.'] }, req: { 'material.ducting': 'not_needed', installation: 'yes' } },
+    { text: 'ZZ DEMO: two of 1.5 ton and one 2.5 ton, inverter.', details: { spec_cooling_capacity: ['2 x 1.5 TR, 1 x 2.5 TR', 'two of 1.5 ton and one 2.5 ton'], spec_inverter_or_fixed_speed: ['Inverter', 'inverter'] } },
+    { text: 'ZZ DEMO: actually supply only, my own technician will install them.', details: { scope: ['Supply only', 'actually supply only'] }, req: { installation: 'supply_only' }, changed: ['installation'] },
+  ], false);
+  assertEquals(turns[1].next?.key, 'spec_copper_pipe_length_included_per_unit');
+  assertEquals(turns[2].details.scope, 'Supply only', 'the change is recorded');
+  assertEquals(turns[2].next, null, 'the pipe length is asked again right after the customer changed an answer');
+});
+Deno.test('round 2, items 4 and 5: the hold lists the AC type once, and a question they ask on a held turn is still answered', async () => {
+  const lines = [{ text: AC_FIRST }, ...Array.from({ length: STALL_TURNS }, () => OFF())];
+  lines[STALL_TURNS] = OFF({ text: 'ZZ DEMO: what is your fee?', answer: 'ZZ DEMO: asking for quotes is free for you.' });
+  const turns = await scripted('heldq', lines, false);
+  const held = turns.find((t) => t.status === 'held')!;
+  assert(held, turns.map((t) => t.status[0]).join(''));
+  const facts = held.writer;
+  assert(facts.includes('This request is HELD'), 'the held reply was not written');
+  assert(!(facts.includes('Unit type (wall split') && facts.includes('What kind of air conditioning')), 'the AC type is listed twice under two keys');
+  assert(facts.includes('They asked us something; answer it first, in these words: ZZ DEMO: asking for quotes is free for you.'), 'their question on a held turn is dropped');
 });

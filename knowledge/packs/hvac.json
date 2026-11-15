@@ -351,7 +351,7 @@
             "answered": [
               "cooling capacity (BTU/h, TR or kW) per unit"
             ],
-            "text": "each unit's cooling capacity is stated (BTU/h, TR or kW), or the existing units are replaced like for like"
+            "text": "each unit's cooling capacity is stated (BTU/h, TR or kW)"
           }
         },
         {

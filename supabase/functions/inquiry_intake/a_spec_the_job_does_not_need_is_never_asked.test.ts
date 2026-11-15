@@ -20,7 +20,7 @@ import { checklistsOf, packFields, type TradeContext } from '../_shared/inquiry_
 import { expertFieldsOf } from '../../../scripts/kb/load_trade_spec_checklists.mjs';
 
 const CAP = 'spec_cooling_capacity', ROOM = 'spec_room_use_and_area_or_heat_load_calc';
-const NN = { answered: [CAP], text: "each unit's cooling capacity is stated, or the existing units are replaced like for like" };
+const NN = { answered: [CAP], text: "each unit's cooling capacity is stated" };
 const FIELDS: SpecField[] = [
   { key: CAP, question: 'Cooling capacity per unit', required: true },
   { key: ROOM, question: 'Room use and area or heat-load calc', required: true, not_needed_when: NN },
@@ -38,10 +38,21 @@ Deno.test('1. a named spec answered records the specs that need it no more as no
   assertEquals(s.details.application_area, s.details[ROOM], 'the same question takes the same answer');
   assertEquals(s.missingKeys, ['scope']);
 });
+Deno.test('1. only a REAL answer makes a spec unnecessary: not "does not know", not another not-needed value, not an unknown key (review, 15 Nov)', () => {
+  for (const [label, details, unknown] of [
+    ['supplier to advise', { [CAP]: 'Customer does not know: supplier to advise' }, []],
+    ['a not-needed value', { [CAP]: NOT_NEEDED_PREFIX + 'zz' }, []],
+    ['a key they said they do not know', { [CAP]: 'ZZ DEMO not sure' }, [CAP]],
+  ] as [string, Record<string, string>, string[]][]) {
+    const s = reconcileSlots(FIELDS, details, { brief: { details: {} } }, 'en', {}, unknown, SAID);
+    assertEquals(s.details[ROOM], undefined, label);
+    assert(s.askableKeys!.includes(ROOM), label + ': the room size is not asked');
+  }
+});
 Deno.test('1. the model judges the condition in words: recorded only with the customer\'s own words', () => {
-  const ok = read({}, { not_needed: { [ROOM]: 'The four splits are replaced like for like.' } });
+  const ok = read({}, { not_needed: { [ROOM]: 'two of 1.5 TR and two of 2.0 TR.' } });
   assert(ok.details[ROOM]?.startsWith(NOT_NEEDED_PREFIX), 'the model\'s judgement with their words is recorded');
-  assertEquals(ok.evidence?.[ROOM], 'The four splits are replaced like for like.', 'the words it came from are kept');
+  assertEquals(ok.evidence?.[ROOM], 'two of 1.5 TR and two of 2.0 TR.', 'the words it came from are kept');
   const invented = read({}, { not_needed: { [ROOM]: 'the customer has a heat-load calculation' } });
   assertEquals(invented.details[ROOM], undefined, 'words the customer never wrote record nothing');
   assert(invented.misfiled?.some((m) => m.key === ROOM && m.reason === 'no_customer_words'));

@@ -3,7 +3,7 @@ import { drawingNoteOf } from './attached_file.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, mergeRequirements, recordedRequirements, answerToQuestion, stampTurn, askedTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, tappedHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft, openSpecsBlock } from './slots.ts';
+import { stallOf, settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, mergeRequirements, recordedRequirements, answerToQuestion, stampTurn, askedTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, tappedHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft, openSpecsBlock } from './slots.ts';
 import { emirateOf, isAlAin, detectUrgency, utilityText, SEVEN_EMIRATES, SEVEN_EMIRATES_AR } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
@@ -682,9 +682,12 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       // Did this message answer anything outside the checklist (the four questions, a "does not know")? Then a waiting question
       // is not asked again on this turn (slots.ts reconcileSlots `waiting`).
       const reqPrev0: Answers = (draft.brief && typeof draft.brief === 'object' && draft.brief.req_answers && typeof draft.brief.req_answers === 'object') ? draft.brief.req_answers : {};
-      const reqNewNow = Object.keys(requirementsFromModel(String(out.category || category || ''), out.requirements)).some((k) => !reqPrev0[k]);
+      // a new answer, or one this message changed (the model's changed_answers: "actually supply only")
+      const reqChangedNamed = new Set(Array.isArray(out.changed_answers) ? out.changed_answers.map(String) : []);
+      const reqNewNow = Object.entries(requirementsFromModel(String(out.category || category || ''), out.requirements))
+        .some(([k, a]) => !reqPrev0[k] || (reqChangedNamed.has(k) && JSON.stringify(reqPrev0[k]) !== JSON.stringify(a)));
       const settled = settleModelTurn(checklist, prevDetAdvised, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), askedTurnsByKey(turns), slotUnknown, allText,
-        { recordedElsewhere: reqNewNow || modelUnknown.some((k: string) => !(st?.unknown ?? {})[k]) });
+        { recordedElsewhere: reqNewNow || modelUnknown.some((k: string) => !(st?.unknown ?? {})[k]), lastText: text, stall: stallOf(turns) });
       slotDetails = settled.details; slotMissingKeys = settled.missingKeys; slotExhausted = settled.held ? settled.exhausted : [];
       slotRecorded = settled.recorded ?? []; slotEvidence = settled.evidence ?? {};
       // The state's first askable question and its key: when that is the question asked, the key goes with it.
@@ -822,7 +825,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       // The one question asked is heldNext's (its buttons go with it), and the sales engineer is offered once per conversation.
       const settleOffered = turns.some((t: any) => t && t.role === 'assistant' && t.settle_offered === true);
       const hr = askAgain.length ? await heldReply(defaultDeps(admin, 'inquiry_intake'), checklist, askAgain, slotLang, text, turns, clock.replyDeadline(),
-          { ask: heldNext ? { text: heldNext.text, options: heldNext.options } : null, offerSettle: !settleOffered })
+          { ask: heldNext ? { text: heldNext.text, options: heldNext.options } : null, offerSettle: !settleOffered, answer: modelAnswer })
         : { text: '', outage: false, by: 'none' as const };
       if (askAgain.length && !settleOffered) settleOfferNow = true;
       // the model's held reply; the code list back means OpenRouter was down (1339); '' means the model is up but nothing
@@ -1259,8 +1262,10 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     // WHAT THIS REPLY ASKED (slots.ts askedTurnsByKey: a spec is held after three ASKS, and the next question is one not yet asked):
     // the question card's key; else, when the model's own sentence asks, the keys it names ("asked_keys", known specs only), or
     // the state's first open spec when it names none.
-    const knownKeys = new Set(checklist.map((f: any) => String(f?.key)));
-    const modelAskedKeys = out && llmParseOk && Array.isArray(out.asked_keys) ? out.asked_keys.map(String).filter((k: string) => knownKeys.has(k)) : [];
+    // Only an OPEN REQUIRED spec the model names counts as asked (review of 15 Nov 2026, item 2: a model naming an optional spec while
+    // asking something else accrued no ask on any required spec, and the request sat at needs_info for 45 turns); else the state's.
+    const openRequired = new Set(slotMissingKeys.filter((k) => !slotExhausted.includes(k)));
+    const modelAskedKeys = out && llmParseOk && Array.isArray(out.asked_keys) ? out.asked_keys.map(String).filter((k: string) => openRequired.has(k)) : [];
     const askedKeys: string[] = nextQuestion?.key ? [String(nextQuestion.key)]
       : status !== 'ready' && Array.isArray(out.questions) && out.questions.length ? (modelAskedKeys.length ? modelAskedKeys : slotAsk ? [slotAsk.key] : []) : [];
     stampTurn(turns, { status, details: (briefToSave as any).details || {}, req_answers: reqAnswers, missing: Array.isArray(out.missing) ? out.missing.map(String) : [], missing_keys: missingKeys,
