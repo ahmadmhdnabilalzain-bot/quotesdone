@@ -45,7 +45,9 @@ Deno.test('supplier_api accept_terms records through the same read-back as kyc, 
   const all = Deno.readTextFileSync(new URL('./actions/profile.ts', import.meta.url));
   const src = all.slice(all.indexOf("if (action === 'accept_terms')"), all.indexOf("if (action === 'settings')"));
   assert(src.includes("const w = await recordAcceptance(() => admin.from('leads').update(upd).eq('id', sup.id).select('id'));"));
-  assert(src.includes('if (!w.ok) return annotate(J({ ...TERMS_NOT_RECORDED }, w.blip ? 503 : 500)'));
+  assert(src.includes('return annotate(J({ ...TERMS_NOT_RECORDED }, w.blip ? 503 : 500)'));
+  // and a seat is told: the behaviour is a_terms_write_that_never_lands_tells_a_seat.test.ts (the handler, in memory)
+  assert(src.includes("tellItSeat('terms_not_recorded:supplier_portal'"));
   assert(!/const \{ error \} = await admin\.from\('leads'\)\.update\(upd\)/.test(src), 'the write whose blip answered a generic 500');
 });
 

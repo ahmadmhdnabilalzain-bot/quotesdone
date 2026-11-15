@@ -8,13 +8,13 @@
 import { clearerCopyAsk } from '../../_shared/clearer_copy.ts';
 import { SUPPLIER_LOCALE } from '../../_shared/registered_locale.ts';
 import { arDays } from '../../_shared/ar_days.ts';
-import { isFixtureLead } from '../../_shared/demo_identity.ts';
+import { isDemoEmail, isFixtureLead } from '../../_shared/demo_identity.ts';
 import { mandatorySixMissing, sixInWords } from '../../_shared/supplier_registration.ts';
 import { SERVICES_UNCONFIRMED, servicesHoldMail, pendingFounderSubject } from '../../_shared/services_hold_copy.ts';
 import { FULL_NAME_REQUIRED, acceptanceNeedsName, clientIp, supplierAcceptanceStands, supplierTermsRecord } from '../../_shared/supplier_terms.ts';
 import { recordAcceptance, TERMS_NOT_RECORDED } from '../../_shared/recorded_write.ts';
 import { annotate, maskContact } from '../../_shared/observe.ts';
-import { type ActionCtx, J, SUPA_URL, admin, cors, failed, logged, secretVal } from '../context.ts';
+import { type ActionCtx, J, SUPA_URL, admin, cors, failed, logged, secretVal, tellItSeat } from '../context.ts';
 import { PROFILE_COLS, clip, personName } from '../lib/fields.ts';
 import { phoneWrite } from '../lib/phone_change.ts';
 import { emirateList, leadColumnsFor, whereHeWorksWrite } from '../../_shared/where_he_works.ts';
@@ -82,7 +82,13 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
       // write that did not land answers the plain retryable sentence; the portal keeps him on the step (Agreement.tsx: err_generic).
       if (Object.keys(upd).length) {
         const w = await recordAcceptance(() => admin.from('leads').update(upd).eq('id', sup.id).select('id'));
-        if (!w.ok) return annotate(J({ ...TERMS_NOT_RECORDED }, w.blip ? 503 : 500), { terms_not_recorded: 1, cause_where: 'accept_terms', cause: maskContact(String(w.reason ?? '')).slice(0, 200) });
+        if (!w.ok) {
+          // ...AND A SEAT IS TOLD (15 Nov 2026, review 2 item 6): the same background finding kyc files, keyed on this door.
+          tellItSeat('terms_not_recorded:supplier_portal', "supplier_api accept_terms could not record a supplier's acceptance of the agreement",
+            'edge function supplier_api, action accept_terms', { kind: 'supplier', lead_id: sup.id, attempts: w.attempts, reason: maskContact(String(w.reason ?? '')).slice(0, 300),
+              fixture: isDemoEmail(email), told: 'the person was told it was not recorded and to press again (terms_not_recorded); nothing was let through' });
+          return annotate(J({ ...TERMS_NOT_RECORDED }, w.blip ? 503 : 500), { terms_not_recorded: 1, cause_where: 'accept_terms', cause: maskContact(String(w.reason ?? '')).slice(0, 200) });
+        }
       }
       return J({ ok: true, accepted_terms_version: (rec as { accepted_terms_version?: string }).accepted_terms_version ?? sup.accepted_terms_version, text_hash_stored: stands ? undefined : !!(rec as { accepted_terms_sha256?: string }).accepted_terms_sha256, already_accepted: stands || undefined });
     }
