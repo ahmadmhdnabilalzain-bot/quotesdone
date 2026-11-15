@@ -1,0 +1,230 @@
+QuotesDone Technologies
+DET Trader License No. 1633275 · TDRA NOL-26-100000665
+Bid tabulation and technical comparison
+Quote comparison report
+Replace 4 old wall split ACs with new inverter units (supply, install, remove old) and service
+3 ducted units in a villa in Dubai
+Reference Date Trade Emirate
+QD-166739-CMP 15 November 2026 HVAC / Air Dubai
+Quotes received Compared in detail Price range Recommended
+3 3 of 3 Supplier B
+AED
+12,279.00–18,854.85
+Executive summary
+1
+Cheapest quote is AED 12,279. Spread between highest and lowest is AED 6,575.85.
+Recommended: Supplier B
+One of your listed brands (premium Japanese brand), and it meets 11 of your 13 requirements, including
+the installation warranty you asked for. Catch: It costs AED 3,471 more than Supplier A, which fails your
+installation warranty: 1 year against the 2 years you asked for.
+All 3 quotes are listed in this report; the top 3 are compared in detail.
+Recommended
+# Supplier Why Catch
+1 Supplier B One of your listed brands (premium Japanese It costs AED 3,471 more than
+brand), and it meets 11 of your 13 requirements, Supplier A, which fails your
+including the installation warranty you asked for. installation warranty: 1 year
+against the 2 years you asked
+for.
+2 Supplier C It meets 11 of your 13 requirements; AED 3,104.85 —
+more than Supplier B.
+3 Supplier A It meets 9 of your 13 requirements; AED 3,471 less Fails your installation warranty: 1
+than Supplier B. year against the 2 years you
+asked for.
+# Supplier Price score Meets your request Done by your date Overall
+1 Supplier B 3.9 / 5 11 of 13 (4.6 / 5) Yes 4.3 / 5
+QuotesDone Technologies · DET Trader License No. 1633275 · TDRA NOL-26-100000665 Page 1 of 6
+Dubai, United Arab Emirates · management@quotesdone.com · WhatsApp +1 218 316 6814 · +971 56 791 8605 · quotesdone.ae
+QD-166739-CMP · v2.3 · Generated 15 November 2026 · Prepared by the QuotesDone sales engineer
+Quote comparison report · QD-166739-CMP
+# Supplier Price score Meets your request Done by your date Overall
+2 Supplier C 3.3 / 5 11 of 13 (4.6 / 5) Yes 4.0 / 5
+3 Supplier A 5.0 / 5 9 of 13 (4.0 / 5) Yes 4.5 / 5
+Price scores 5 × the lowest price ÷ this price, so the scores keep the real gaps between prices. "Meets your request" scores 5
+× the share of your requirements the quote meets; one it does not state counts half. Overall weighs price and your
+requirements equally. A quote that fails a requirement you stated is placed after every quote that meets them all.
+Method and scope of assessment
+2
+Prepared by the QuotesDone sales engineer from the 3 quotes submitted on your request. Each quote is
+measured against the 13 requirements you stated. Price counts for half, scored in proportion to the
+lowest price; how many of your requirements each quote meets counts for the other half. A quote that
+fails a requirement you stated is never placed above one that meets them all.
+Material specifications are compared line by line with your request, exactly as each supplier stated
+them: each value is marked as matching your request, differing from it, or not stated.
+Assessed Not assessed
+Each requirement you stated, price, Workmanship, supplier capacity, site
+completeness, lead time, installation, conditions, and anything a supplier did not
+warranty, payment terms, line-by-line state in writing
+material specification
+Technical comparison
+3
+What you asked for, quote by quote
+Each requirement you stated, from your request as our sales engineer recorded it, against what each
+supplier wrote. A brand is checked against the brands you named before the supplier's identity is
+hidden, so only whether it is one of yours, and its tier and origin, are shown.
+Requirement You asked for Supplier B Supplier C Supplier A
+Brand One of the 3 Yes: premium Yes: premium Yes: economy
+brands you Japanese brand Japanese brand Chinese brand
+named
+Inverter units Inverter Yes Yes Yes
+Refrigerant R32 or R410A R32 R32 R32
+Units and capacity 2 × 1.5 TR and 2 × 2 × 1.5 TR, 2 × 2.0 2 × 1.5 TR, 2 × 2.0 2 × 1.5 TR, 2 × 2.0
+2.0 TR TR TR TR
+Supply and Supply and install Yes Yes Yes
+installation
+Remove and All 4 old units Yes: 4 units Yes: 4 units Yes: 4 units
+dispose of the old
+units
+QuotesDone Technologies · DET Trader License No. 1633275 · TDRA NOL-26-100000665 Page 2 of 6
+Dubai, United Arab Emirates · management@quotesdone.com · WhatsApp +1 218 316 6814 · +971 56 791 8605 · quotesdone.ae
+QD-166739-CMP · v2.3 · Generated 15 November 2026 · Prepared by the QuotesDone sales engineer
+Quote comparison report · QD-166739-CMP
+Requirement You asked for Supplier B Supplier C Supplier A
+Service of the 3 units (3.0 TR): Yes: 3 units, every Yes: 3 units, every Yes: 3 units, every
+ducted units coils, filters, drain, item you listed item you listed item you listed
+gas check
+New copper pipe Reuse the 20 m priced 20 m priced 20 m priced
+allowance existing, or up to
+5 m new per unit
+(20 m)
+Connection to your Connect only; the Unclear: it Not stated Unclear: it
+existing isolators isolators are in excludes excludes
+place electrical works electrical works
+Done by your date By 15 December Yes: 10 days from Yes: 14 days from Yes: 5 days from
+2026 LPO LPO LPO
+Installation At least 2 years 2 years 2 years 1 year
+warranty
+Compressor At least 5 years 5 years 5 years Not stated
+warranty
+Ducting Galvanised steel Not stated Not stated Not stated
+(GI)
+Supplier A fails what you asked for: installation warranty, 1 year against the 2 years you asked for.
+Matches your request Differs from your request Not stated by the supplier Not stated (optional detail)
+N/A — does not apply
+Completeness: the four checks, side by side
+Check Supplier A Supplier B Supplier C
+Material specification, per All 6 you specified All 6 you specified All 6 you specified
+line match match match
+Delivery / lead time 5 days from LPO 10 days from LPO 14 days from LPO
+Installation Included — Included Included — Supply Included — Included
+as quoted and installation of as quoted
+four inverter wall split
+AC units (two 1.5 TR
+and two 2.0 TR);
+removal and dispos…
+Warranty — period and 1 year — 1 year on the 5 years — 5 years on 5 years — 5 years on
+coverage installation compressors; 2 years compressors, 2 years
+on the installation on the installation
+Line by line: stated specification against your request
+Specification You asked for Supplier A Supplier B Supplier C
+1. 1.5 TR units: you asked for 2
+Brand / One of the 3 economy Chinese premium Japanese premium Japanese
+manufacturer brands you brand (one you brand (one you brand (one you
+named named) named) named)
+QuotesDone Technologies · DET Trader License No. 1633275 · TDRA NOL-26-100000665 Page 3 of 6
+Dubai, United Arab Emirates · management@quotesdone.com · WhatsApp +1 218 316 6814 · +971 56 791 8605 · quotesdone.ae
+QD-166739-CMP · v2.3 · Generated 15 November 2026 · Prepared by the QuotesDone sales engineer
+Quote comparison report · QD-166739-CMP
+Specification You asked for Supplier A Supplier B Supplier C
+Model / — model stated (shown model stated (shown model stated (shown
+product code after reveal) after reveal) after reveal)
+Cooling 1.5 TR 1.5 TR 1.5 TR 1.5 TR
+capacity
+Refrigerant R32 or R410A R32 R32 R32
+Efficiency — ESMA 5-star ESMA 5-star ESMA 5-star
+(SEER / EER /
+ESMA stars)
+2. 2.0 TR units: you asked for 2
+Brand / One of the 3 economy Chinese premium Japanese premium Japanese
+manufacturer brands you brand (one you brand (one you brand (one you
+named named) named) named)
+Model / — model stated (shown model stated (shown model stated (shown
+product code after reveal) after reveal) after reveal)
+Cooling 2.0 TR 2.0 TR 2.0 TR 2.0 TR
+capacity
+Refrigerant R32 or R410A R32 R32 R32
+Efficiency — ESMA 5-star ESMA 5-star ESMA 5-star
+(SEER / EER /
+ESMA stars)
+4 service, removal, piping or testing lines carry no product specification and are not listed here; the scope they cover is
+compared under "What you asked for" above.
+Commercial comparison
+4
+Compare Supplier B Supplier C Supplier A
+Price (excluding VAT) AED 15,750 AED 18,854.85 AED 12,279
+VAT, as stated + VAT AED 787.50 (AED Excludes VAT + VAT AED 613.95 (AED
+16,537.50 with VAT) 12,892.95 with VAT)
+Delivery / lead time 10 days from LPO 14 days from LPO 5 days from LPO
+Installation Included — Supply and Included — Included as Included — Included as
+installation of four quoted quoted
+inverter wall split AC
+units (two 1.5 TR and
+two 2.0 TR); removal
+and dispos…
+Warranty 5 years — 5 years on 5 years — 5 years on 1 year — 1 year on the
+compressors; 2 years compressors, 2 years installation
+on the installation on the installation
+Payment terms 50% advance, 50% on 30% advance, 70% on 50% advance, 50% on
+completion completion completion
+Valid for 30 days 30 days 30 days
+QuotesDone Technologies · DET Trader License No. 1633275 · TDRA NOL-26-100000665 Page 4 of 6
+Dubai, United Arab Emirates · management@quotesdone.com · WhatsApp +1 218 316 6814 · +971 56 791 8605 · quotesdone.ae
+QD-166739-CMP · v2.3 · Generated 15 November 2026 · Prepared by the QuotesDone sales engineer
+Quote comparison report · QD-166739-CMP
+Compare Supplier B Supplier C Supplier A
+What you get AED 15,750 — itemised AED 18,854.85 — itemised AED 12,279 — itemised
+quote. quote. quote.
+Not included Civil works, electrical Civil works Electrical works
+works
+Watch out — — Fails your installation
+warranty: 1 year against the
+2 years you asked for
+Ranked on each supplier's final price after any discount it states, excluding VAT — the same figure our 3% fee is taken on; no
+card fee, no VAT on our fee.
+The suppliers' quotations, as stated
+The prices, discounts, VAT and terms on this page are exactly as the supplier stated them. QuotesDone is
+not responsible for the supplier's quotation details.
+All quotes received (3)
+5
+All 3 quotes on your request are listed here, and each one stays open to you: you can view or reveal any
+of them from your portal.
+Supplier Price Lead time Status
+Supplier A AED 12,279 5 days from LPO Shortlisted #3
+Supplier B AED 15,750 10 days from LPO Shortlisted #1
+Supplier C AED 18,854.85 14 days from LPO Shortlisted #2
+Every quote above stays open to you — the shortlist is advice, not a limit. You can choose any of them: open
+your QuotesDone portal to view or reveal it.
+Risks and clarifications by supplier
+6
+Supplier What to know before you choose
+Supplier B Nothing flagged from what the supplier stated.
+Supplier C Nothing flagged from what the supplier stated.
+Supplier A Fails your installation warranty: 1 year against the 2 years you asked for.
+Ask before you reveal
+7
+Each quotation leaves these points open. You can put them to the suppliers from your request in your
+QuotesDone portal before you reveal, with your identity hidden; once you reveal, have the supplier
+confirm them in writing before you sign.
+QuotesDone Technologies · DET Trader License No. 1633275 · TDRA NOL-26-100000665 Page 5 of 6
+Dubai, United Arab Emirates · management@quotesdone.com · WhatsApp +1 218 316 6814 · +971 56 791 8605 · quotesdone.ae
+QD-166739-CMP · v2.3 · Generated 15 November 2026 · Prepared by the QuotesDone sales engineer
+Quote comparison report · QD-166739-CMP
+Supplier Ask
+Supplier B Is this price final, or subject to the site visit your request mentions?
+It excludes electrical works. Is connecting the new units to your existing isolators
+included?
+Supplier C Is this price final, or subject to the site visit your request mentions?
+Supplier A Is this price final, or subject to the site visit your request mentions?
+It excludes electrical works. Is connecting the new units to your existing isolators
+included?
+What warranty does it give on the compressors? You asked for at least 5 years; the quote
+does not say.
+Advice and next steps
+8
+Quotes are compared on what each supplier stated in writing. A quote missing a required detail is held
+and we request it from the supplier; it joins this comparison once they answer.
+This is QuotesDone's impartial recommendation, prepared to make your decision easier. Every quote you received was
+measured against the requirements you stated and ranked on its price and on how well it meets them. You remain
+completely free to reveal and choose any supplier from your full list of quotes.
+QuotesDone Technologies · DET Trader License No. 1633275 · TDRA NOL-26-100000665 Page 6 of 6
+Dubai, United Arab Emirates · management@quotesdone.com · WhatsApp +1 218 316 6814 · +971 56 791 8605 · quotesdone.ae
+QD-166739-CMP · v2.3 · Generated 15 November 2026 · Prepared by the QuotesDone sales engineer
