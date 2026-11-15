@@ -8315,5 +8315,10 @@
   "257def7abd3e",
   "338535fdcf41",
   "997954a7b001"
+ ],
+ "scripts/sql/an_ampersand_in_a_licensing_authority_reads_as_and.sql": [
+  "055e0305039c",
+  "2b44f074e4b1",
+  "b0ae55accea2"
  ]
 }
