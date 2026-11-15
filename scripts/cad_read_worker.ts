@@ -325,7 +325,7 @@ async function runJob(job: Job, key: string): Promise<void> {
     // A late publish after the cut is never referenced: only this result's paths reach a supplier (supplier_api/site_photos_door.ts).
     const shot = typeof job.boq_in?.shot === 'string' ? job.boq_in.shot : null;
     const photo = await Promise.race([sitePhoto(job, key, bytes), new Promise<Record<string, unknown>>((res) => setTimeout(() => res(photoWithheld(shot, 'site_photo_time')), PHOTO_JOB_MS))])
-      .catch(async (e) => ({ ...(await photoWithheld(shot, 'site_photo_failed')), error_detail: String((e as Error)?.message || e).slice(0, 160) }));
+      .catch(async (e): Promise<Record<string, unknown>> => ({ ...(await photoWithheld(shot, 'site_photo_failed')), error_detail: String((e as Error)?.message || e).slice(0, 160) }));
     await sql(`update public.cad_read_jobs set status = 'done', finished_at = now(), error = null, result = ${lit(JSON.stringify({ boq: null, kind: 'site_photo', ms: Math.round(performance.now() - t0), ...photo }))}::jsonb where id = ${lit(job.id)}::uuid`);
     console.log(`job ${job.id}: site photo ${photo.redaction_complete ? 'published' : 'withheld (' + photo.held_reason + ')'}, ${Math.round(performance.now() - t0)} ms`);
     return;
