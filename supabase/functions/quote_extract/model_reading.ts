@@ -26,6 +26,28 @@
 import { statedPrice } from '../_shared/stated_price.ts';
 import type { Extracted } from '../_shared/doc_read/types.ts';
 import { quoteFromExtracted, quoteText, type Proposal, type QuoteLine } from './quote_from_document.ts';
+import { scrubIdentityText } from '../_shared/identity_text.ts';
+import { generaliseText, type GeneraliseCtx } from '../_shared/quote_generalise.ts';
+
+/** quote_extract's own scrub of whatever the model returned (moved here from index.ts unchanged, 13 Nov 2026, so the
+ *  careless-model corpus test drives the code the function runs rather than a copy). */
+export function scrubModelText(s: unknown): string {
+  let t = String(s == null ? '' : s);
+  // A start only where the address starts (13 Nov 2026: 50 KB of "Al-Al-…" with no "@" re-read itself for 2 s).
+  t = t.replace(/(?<![\w.+-])[\w.+-]{1,64}@[\w-]+\.[\w.-]+/g, '█');
+  t = t.replace(/https?:\/\/\S+|www\.[\w.-]+\.[a-z]{2,}/gi, '█');
+  t = t.replace(/(?:\+?\d[\d\s().-]{6,}\d)/g, (m) => (m.replace(/\D/g, '').length >= 7 ? '█' : m));
+  // 3 Nov 2026: the shared identity shapes too (_shared/identity_text.ts), whatever the model left in.
+  return scrubIdentityText(t, '█').trim();
+}
+/**
+ * THE MODEL'S MASKING IS CHECKED, NOT TRUSTED (10 Nov 2026, ledger 1589): the anonymiser every text field of the model's
+ * answer passes (scrubModelText, then the shared generaliser). Each term it takes out is added to `masked` (the answer's
+ * masked_terms), for the supplier's own review.
+ */
+export function modelAnonymiser(ctx: GeneraliseCtx, masked: string[]): (v: unknown) => string {
+  return (v: unknown) => { const r = generaliseText(scrubModelText(v), ctx); for (const t of r.replaced) if (!masked.includes(t.term)) masked.push(t.term); return r.text; };
+}
 
 /** What the model returns (quote_extract's SYS asks for exactly this). Every field may be missing or mistyped. */
 export type ModelAnswer = {
@@ -111,7 +133,10 @@ export function proposalFromModel(ai: ModelAnswer, gen: (v: unknown) => string):
     const unitPrice = fig(li.unit_price, `the rate of line ${i + 1}`);
     return {
       description: gen(li.description), qty: str(li.qty, 60), amount: fig(li.amount, `the amount of line ${i + 1}`),
-      ...(qtyN != null ? { quantity: qtyN } : {}), ...(str(li.unit) ? { unit: str(li.unit, 40) } : {}),
+      // 13 Nov 2026 (anonymity audit, REPORT_C L8): the unit bypassed `gen` and is printed raw on the customer's document,
+      // so a careless reading's "m2 (Falcon spec)" crossed. It is text the customer reads: it passes the anonymiser. The
+      // country of origin stays a country (the customer door cuts it to the country, countryOnly) and qty is a figure.
+      ...(qtyN != null ? { quantity: qtyN } : {}), ...(str(li.unit) ? { unit: gen(str(li.unit, 40)).slice(0, 40) } : {}),
       ...(unitPrice != null ? { unit_price: unitPrice } : {}),
       ...(Number.isInteger(opt) && opt >= 1 && opt <= 20 ? { option: opt } : {}),
       ...(str(li.country_of_origin) ? { country_of_origin: str(li.country_of_origin, 80) } : {}),
