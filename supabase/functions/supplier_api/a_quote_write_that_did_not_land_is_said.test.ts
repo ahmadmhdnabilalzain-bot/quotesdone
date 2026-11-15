@@ -129,7 +129,7 @@ Deno.test('B: submit_quote stops on lines that were not saved, before the gate, 
   const src = Deno.readTextFileSync(new URL('./actions/quotes.ts', import.meta.url));
   const s = src.slice(src.indexOf("if (action === 'submit_quote')"));
   const write = s.indexOf('linesW = await writeQuoteLines(qid, clean);');
-  const refuse = s.indexOf("return J({ ok: false, error: 'quote_not_saved', ...QUOTE_NOT_SAVED");
+  const refuse = s.indexOf("return J({ ok: false, error: 'quote_not_saved', ...QUOTE_NOT_SAVED, quote_id: qid");
   const gate = s.indexOf('const gctx: Ctx =');
   assert(write > 0 && refuse > write && gate > refuse, 'the refusal sits between the line write and the gate');
   assert(!/catch \(_e\) \{ \/\* \*\/ \}\n\s*\/\/ Preflight \(dry_run\)/.test(s), 'the silent catch around the line write is gone');

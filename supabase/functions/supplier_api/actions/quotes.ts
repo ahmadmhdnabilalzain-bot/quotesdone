@@ -32,7 +32,7 @@ import { maskContact } from '../../_shared/observe.ts';
 import type { Recorded } from '../../_shared/recorded_write.ts';
 import { CONCLUDED, UUID_RE, clip, numOrNull } from '../lib/fields.ts';
 import { NOT_MY_FILE, matchedInquiry, ownQuoteFile, sameVerdict, specChecklist } from '../lib/quote_gate.ts';
-import { QUOTE_NOT_SAVED, QUOTE_NOT_SENT, QUOTE_NOT_SENT_APPROVE, acceptForRelease, acceptLive, acceptRule, kickDelivery, notifyNewQuote, storeReviewNotes, supersedeQualityHold, supplierOf, writeQuoteLines } from '../lib/quote_acceptance.ts';
+import { QUOTE_NOT_SAVED, QUOTE_NOT_SENT, QUOTE_NOT_SENT_APPROVE, type QuoteSnapshot, acceptForRelease, acceptLive, acceptRule, kickDelivery, notifyNewQuote, restoreQuote, snapshotQuote, storeReviewNotes, supersedeQualityHold, supplierOf, writeQuoteLines } from '../lib/quote_acceptance.ts';
 import { regenRender } from '../lib/arabic_quotation.ts';
 
 export async function quoteActions(c: ActionCtx): Promise<Response | undefined> {
@@ -403,15 +403,13 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         // and put back below, and a snapshot we could not take refuses the check rather than risking it.
         const dryRun = body.dry_run === true;
         const snapCols = [...Object.keys(det), 'status', 'submittable'].join(',');
-        let snapRow: Record<string, unknown> | null = null;
-        let snapLines: Record<string, unknown>[] = [];
-        if (dryRun && prior) {
-          const [{ data: sr, error: se }, { data: sl, error: sle }] = await Promise.all([
-            admin.from('quotes').select(snapCols).eq('id', prior.id).maybeSingle(),
-            admin.from('quote_items').select('*').eq('quote_id', prior.id),
-          ]);
-          if (se || sle || !sr) return J({ error: 'preflight_unavailable', code: 'preflight_unavailable', message: 'We could not run the check just now. Please try again in a moment.' }, 503);
-          snapRow = sr as unknown as Record<string, unknown>; snapLines = (sl || []) as unknown as Record<string, unknown>[];
+        // EVERY prior quotation is snapshotted, not only a check's (third review, item 4): a re-sent quotation whose new lines cannot be
+        // written is put back as it stood, so the customer never sees its new header over no lines.
+        let snap: QuoteSnapshot | null = null;
+        if (prior) {
+          snap = await snapshotQuote(String(prior.id), snapCols);
+          if (!snap && dryRun) return J({ error: 'preflight_unavailable', code: 'preflight_unavailable', message: 'We could not run the check just now. Please try again in a moment.' }, 503);
+          if (!snap) return J({ ok: false, error: 'quote_not_saved', ...QUOTE_NOT_SAVED }, 503);   // nothing written yet
         }
         let qid: string;
         if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return failed(String(action), error); qid = String(prior.id); }
@@ -433,27 +431,24 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
           // retry after an insert whose answer was lost never doubles a line).
           linesW = await writeQuoteLines(qid, clean);
         } catch (e) { linesW = { ok: false, attempts: 1, reason: String((e as Error)?.message ?? e).slice(0, 300), blip: false }; }
-        // Put the row back exactly as it was before a check (dry_run): the snapshotted columns and the snapshotted lines (with their
-        // own ids, so anything that references a line still does). A row this check CREATED is removed.
+        // Put the row back exactly as it was (restoreQuote: the snapshotted columns and lines, with their own ids, so anything that
+        // references a line still does). A row a check CREATED is removed.
         const restore = async (): Promise<boolean> => {
+          if (snap) return await restoreQuote(qid, snap);
           try {
-            if (prior && snapRow) {
-              const u = await admin.from('quotes').update(snapRow).eq('id', qid);
-              const d = await admin.from('quote_items').delete().eq('quote_id', qid);
-              const i2 = snapLines.length ? await admin.from('quote_items').insert(snapLines) : { error: null };
-              return !u.error && !d.error && !i2.error;
-            }
             const d = await admin.from('quote_items').delete().eq('quote_id', qid);
             const dq = await admin.from('quotes').delete().eq('id', qid);
             return !d.error && !dq.error;
           } catch (_e) { return false; }
         };
         if (!linesW.ok) {
-          const restored = dryRun ? await restore() : null;
+          // a check is always undone; a submission over a prior quotation puts it back as it stood (its first submission stays a draft)
+          const restored = dryRun || snap ? await restore() : null;
           tellItSeat('quote_lines_not_saved', "supplier_api could not save a supplier's quotation lines, so the submission was refused",
             'edge function supplier_api, action submit_quote', { quote_id: qid, inquiry_id: inquiryId, option_no: p.option_no, prior_status: prior?.status ?? null,
               dry_run: dryRun, restored, attempts: linesW.attempts, reason: maskContact(linesW.reason).slice(0, 300),
-              told: dryRun ? 'the check was refused (preflight_unavailable)' : 'the supplier was told his quotation was not sent (quote_not_saved); nothing was let through' });
+              told: dryRun ? 'the check was refused (preflight_unavailable)' : 'the supplier was told his quotation was not sent (quote_not_saved); nothing was let through'
+                + (snap && !dryRun ? (restored ? '; the prior quotation was put back as it stood' : '; the prior quotation could NOT be put back: restore it from snapshot by hand') : '') });
           if (dryRun && !restored) return J({ error: 'preflight_restore_failed', code: 'preflight_restore_failed', quote_id: qid, message: 'The check could not be undone cleanly and we have raised it. Please do not resend until we confirm.' }, 500);
           if (dryRun) return J({ error: 'preflight_unavailable', code: 'preflight_unavailable', message: 'We could not run the check just now. Please try again in a moment.' }, 503);
           if (anyAccepted) await notifyNewQuote(String(inquiryId), anyAccepted);   // an earlier option of this submission did go live
@@ -481,7 +476,7 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
             console.error('submit_quote dry_run: could not restore quote', qid);
             try {
               await admin.from('agent_runs').insert({ agent: 'supplier_api', status: 'error', started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
-                counts: { signal: 'dry_run_restore_failed', quote_id: qid, supplier_id: sup.id, inquiry_id: inquiryId, had_prior: !!prior, lines: snapLines.length },
+                counts: { signal: 'dry_run_restore_failed', quote_id: qid, supplier_id: sup.id, inquiry_id: inquiryId, had_prior: !!prior, lines: snap?.lines.length ?? 0 },
                 note: ('submit_quote dry_run could not restore quote ' + qid + ' after the preflight. The row may hold the checked figures instead of the ones the supplier sent. Restore it from this row.').slice(0, 500) });
             } catch (_e) { /* the page must not be what breaks the response */ }
             return J({ error: 'preflight_restore_failed', code: 'preflight_restore_failed', quote_id: qid, message: 'The check could not be undone cleanly and we have raised it. Please do not resend until we confirm.' }, 500);

@@ -124,6 +124,31 @@ export const writeQuoteLines = (qid: string, rows: Record<string, unknown>[], sl
     const i = await admin.from('quote_items').insert(rows);
     return { data: i.error ? null : rows, error: i.error };
   }, [800], sleep, { budgetMs: 10_000 });
+/** A quotation as it stood before a submission rewrote it: the columns the submission writes (plus status and submittable) and
+ *  every line, with its own id. Null when either read failed: the caller then writes nothing. */
+export type QuoteSnapshot = { row: Record<string, unknown>; lines: Record<string, unknown>[] };
+export async function snapshotQuote(qid: string, cols: string): Promise<QuoteSnapshot | null> {
+  const [{ data: sr, error: se }, { data: sl, error: sle }] = await Promise.all([
+    admin.from('quotes').select(cols).eq('id', qid).maybeSingle(),
+    admin.from('quote_items').select('*').eq('quote_id', qid),
+  ]);
+  if (se || sle || !sr) return null;
+  return { row: sr as unknown as Record<string, unknown>, lines: (sl || []) as unknown as Record<string, unknown>[] };
+}
+/**
+ * PUT A QUOTATION BACK AS IT STOOD (15 Nov 2026, third review of the certificate branch, item 4). Used after a check (dry run), and
+ * after a re-sent quotation whose new lines could not be written: the header (amount, terms) was already overwritten, and if the
+ * retry's delete landed and its insert failed, a quotation the customer already sees showed with no lines while the supplier read
+ * "Nothing is lost". True only when the row and every line are back.
+ */
+export async function restoreQuote(qid: string, snap: QuoteSnapshot): Promise<boolean> {
+  try {
+    const u = await admin.from('quotes').update(snap.row).eq('id', qid);
+    const d = await admin.from('quote_items').delete().eq('quote_id', qid);
+    const i = snap.lines.length ? await admin.from('quote_items').insert(snap.lines) : { error: null };
+    return !u.error && !d.error && !i.error;
+  } catch (_e) { return false; }
+}
 /** Offer a quote that has cleared the hold gate to the accept rule; on pass it goes to the customer. */
 export async function acceptLive(qid: string, inquiryId: string, notifyCustomer: boolean) {
   // Quote quality is scored by structure in trg_quote_quality; the category aspects are no longer read by the
