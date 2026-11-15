@@ -210,7 +210,7 @@ const EMAIL_A = 'zz-demo-journey-a-15nov@example.invalid';
 
 async function replay15Nov() {
   type Row = Record<string, unknown>;
-  const w = { n: 0, writer: [] as Row[][], intake: { id: 'ii-zz-ja15', email: EMAIL_A, status: 'needs_info', turns: [] as Row[], customer_id: 'c-zz-ja15', category: null, brief: {} } as Row };
+  const w = { n: 0, writer: [] as Row[][], sys: [] as string[], intake: { id: 'ii-zz-ja15', email: EMAIL_A, status: 'needs_info', turns: [] as Row[], customer_id: 'c-zz-ja15', category: null, brief: {} } as Row };
   const rows = hvacRows();
   const stub: Stub = {
     user: { id: 'u-zz-ja15', email: EMAIL_A },
@@ -220,7 +220,7 @@ async function replay15Nov() {
     handle: async (req, u) => {
       if (u.pathname === '/functions/v1/ai_gateway') {
         const b = await req.clone().json().catch(() => ({}));
-        if (typeof b.sys === 'string' && b.sys.includes('Return STRICT JSON only')) return JA({ ok: true, model: 'stub/model', content: JSON.stringify(faithful(w.n)) });
+        if (typeof b.sys === 'string' && b.sys.includes('Return STRICT JSON only')) { w.sys[w.n - 1] = b.sys; return JA({ ok: true, model: 'stub/model', content: JSON.stringify(faithful(w.n)) }); }
         w.writer[w.n - 1].push(b);   // every other call this turn: the reply writer (and the exact-spec reader, which gets no usable answer)
         return JA({ ok: true, model: 'stub/model', content: JSON.stringify({ answer: 'ZZ DEMO voiced reply.' }) });
       }
@@ -234,13 +234,13 @@ async function replay15Nov() {
     },
   };
   const h = await loadFunction('inquiry_intake', () => import('./index.ts'));
-  const out: { n: number; status: string; next: { key: string | null; text: string; options: string[] | null } | null; message: string; details: Row; writer: Row[] }[] = [];
+  const out: { n: number; sys: string; status: string; next: { key: string | null; text: string; options: string[] | null } | null; message: string; details: Row; writer: Row[] }[] = [];
   for (const line of JOURNEY_A_15NOV) {
     w.n++; w.writer.push([]);
     const r = await invoke(h, stub, { intake_id: 'ii-zz-ja15', turn_id: 't-zz-ja15-' + w.n, lang: 'en', text: line });
     if (r.status !== 200) throw new Error(`turn ${w.n}: HTTP ${r.status} ${JSON.stringify(r.json).slice(0, 300)}`);
     const brief = (w.intake.brief ?? {}) as Row;
-    out.push({ n: w.n, status: String(r.json.status), next: r.json.next_question ?? null, message: String(r.json.assistant_message ?? ''), details: (brief.details ?? {}) as Row, writer: w.writer[w.n - 1] });
+    out.push({ n: w.n, sys: w.sys[w.n - 1] ?? '', status: String(r.json.status), next: r.json.next_question ?? null, message: String(r.json.assistant_message ?? ''), details: (brief.details ?? {}) as Row, writer: w.writer[w.n - 1] });
     if (r.json.status === 'ready') break;
   }
   return out;
@@ -286,4 +286,13 @@ Deno.test('journey A of 15 Nov: every message\'s buttons belong to the question 
     if (/sales engineer will help settle/i.test(written)) offers++;
   }
   assert(offers <= 1, `the sales engineer was offered on ${offers} turns`);
+});
+
+Deno.test('journey A of 15 Nov: the interview\'s system prompt is the same on every turn once the trade is placed, so the gateway\'s cache serves it', async () => {
+  // MEASURED live (ai_cost_log, SELECT): 13 interview calls, 0 cached tokens read, 9,128-13,685 written on every call.
+  const turns = await replay15Nov();
+  const placed = turns.filter((t) => t.n >= 2);
+  assert(placed.length >= 5 && placed.every((t) => t.sys.length > 2000), 'the interview prompt was not captured');
+  for (const t of placed.slice(1)) assertEquals(t.sys === placed[0].sys, true, `turn ${t.n}: the system prompt changed (the turn's records belong in the message)`);
+  assert(!placed[0].sys.includes('OPEN SPECS NOW (required') && !placed[0].sys.includes('RECORDED (what the customer'), 'per-turn records are back in the system prompt');
 });
