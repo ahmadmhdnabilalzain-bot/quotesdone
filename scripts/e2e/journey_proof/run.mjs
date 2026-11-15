@@ -6,6 +6,11 @@
 //   node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/e2e/journey_proof/run.mjs --dry --journeys A   models OFF, USD 0
 //   (the flag only silences Node's notice that it re-parsed _shared/not_reached.ts, a TypeScript module demo_factory imports)
 //   node scripts/e2e/journey_proof/run.mjs --journeys A --inputs <dir>        ONE paid journey, capped (scenarios.mjs cap_usd)
+//   node scripts/e2e/journey_proof/run.mjs --journeys A --persona villa_owner    the same journey played by PEOPLE: a model
+//            plays the customer from a hidden truth sheet (personas/customers.mjs) and five supplier personas answer
+//            (personas/suppliers.mjs: silent, asks first, a range subject to site visit, a handwritten photo, a proper PDF);
+//            the dossier gains "Would a real person have got through?" (personas/report.mjs). --fixture-suppliers keeps the
+//            journey's own quoting suppliers. Locally and for free first: node scripts/e2e/journey_proof/personas/dry_run.mjs
 //   options: --journeys A,B,B2,C  --inputs <dir with the auditors' files>  --out <dir>  --keep (no teardown)
 //            --clean-dropbox (remove this run's _sandbox folder after reading it back; default: left for the founder)
 //   env:     SUPABASE_ACCESS_TOKEN (the harness's database door), QD_SITE (default https://quotesdone.com),
@@ -65,6 +70,12 @@ import { SCENARIOS, SITE as JOB, SERVICE_WORDS, customerIdentity, supplierLetter
 import { scan } from './anonymity.mjs';
 import { clock, verdict, matcherVerdict, costByStep, secondsBetween, SECTION_TITLES } from './record.mjs';
 import { sheets } from './sheet.mjs';
+import { rasterise } from '../portal_raster.mjs';
+import { CUSTOMERS, personaProblems } from './personas/customers.mjs';
+import { SUPPLIERS, playSupplier } from './personas/suppliers.mjs';
+import { peopleSection } from './personas/report.mjs';
+import { nameplatePhoto } from './personas/artefacts.mjs';
+import { personaScenario, playerFor, liveSupplierDoors, supplierIdentity as personaSupplierIdentity } from './personas/live.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = resolve(HERE, '../../..');
@@ -77,6 +88,8 @@ const KEYS = (val('--journeys', 'A')).split(',').map((s) => s.trim().toUpperCase
 const INPUTS = val('--inputs', process.env.QD_JOURNEY_INPUTS || '');
 const OUT = resolve(val('--out', join(process.env.QD_EVIDENCE_OUT || '/tmp/qd-journey-proof', DRY ? 'dry' : 'real')));
 const VOICES = process.env.QD_PIPER_VOICES || '';
+const PERSONA = val('--persona');                                  // a customer persona plays the journey (personas/customers.mjs)
+const FIXTURE_SUPPLIERS = argv.includes('--fixture-suppliers');    // with --persona: keep the journey's own quoting suppliers
 process.env.QD_FIXTURES = '1';
 process.env.QD_CHROMIUM_ARGS = [process.env.QD_CHROMIUM_ARGS || '', '--autoplay-policy=no-user-gesture-required'].join(' ').trim();
 const q = (v) => `'${String(v).replace(/'/g, "''")}'`;
@@ -120,10 +133,10 @@ const STAND_INS = [
 
 // ── one journey ────────────────────────────────────────────────────────────────────────────────────────────────────
 async function journey(key) {
-  const sc = SCENARIOS[key]; const J = asEvidenceJourney(sc);
+  const sc = PERSONA ? personaScenario(SCENARIOS[key], CUSTOMERS[PERSONA]) : SCENARIOS[key]; const J = asEvidenceJourney(sc);
   const dir = join(OUT, sc.folder); for (const d of ['', 'screens', 'shared', 'quotations', 'messages', 'customer_files']) mkdirSync(join(dir, d), { recursive: true });
   const rec = { journey: { key, title: sc.title, short: sc.short, how_made: sc.how_made, site: SITE, started: now(), finished: null, mode: DRY ? 'dry (models off)' : 'live', cap_usd: sc.cap_usd, estimate_usd: sc.estimate_usd, run_tag: null },
-    sections: Object.fromEntries(Object.keys(SECTION_TITLES).map((k) => [k, { verdicts: [], gaps: [] }])), findings: [], stand_ins: [...STAND_INS], exhibits: [], steps: [] };
+    sections: Object.fromEntries(Object.keys(SECTION_TITLES).map((k) => [k, { verdicts: [], gaps: [] }])), findings: [], stand_ins: sc.persona ? STAND_INS.map(personaStandIn(sc.persona)).filter(Boolean) : [...STAND_INS], exhibits: [], steps: [] };
   const S = rec.sections; const C = clock(rec);
   const finding = (severity, step, text) => { rec.findings.push({ severity, step, text }); log('FINDING', severity, step, text); };
   const exhibit = (file, title, why, extra = {}) => { if (file && !rec.exhibits.some((e) => e.file === file)) rec.exhibits.push({ file, title, why, ...extra }); };
@@ -146,12 +159,13 @@ async function journey(key) {
     if (ctx.quotable) {
       await s3_shared(ctx); save();
       await s4_matching(ctx); save();
-      await s5_quotes(ctx); save();
+      if (sc.persona && !FIXTURE_SUPPLIERS) await s5_persona_quotes(ctx); else await s5_quotes(ctx); save();
       await s7_comparison(ctx); save();
       await s5_reverse_anonymity(ctx); save();
       await s8_reveal(ctx); save();
     } else finding('product', '2', 'The request was never sent to suppliers, so steps 3 to 8 could not happen.');
   } catch (e) { finding('harness', 'run', `the run stopped: ${String(e.stack || e.message).split('\n').slice(0, 3).join(' | ')}`); }
+  if (sc.persona) try { people(ctx); save(); } catch (e) { finding('harness', 'people', e.message); }
   try { await s6_notifications(ctx); } catch (e) { finding('harness', '6', e.message); }
   try { await co_company(ctx); } catch (e) { finding('harness', 'co', e.message); }
   try { await s9_filing(ctx); } catch (e) { finding('harness', '9', e.message); }
@@ -366,6 +380,12 @@ async function s2_chat(ctx) {
     const greet = (await page.locator('section[aria-label="New request"]').first().innerText().catch(() => '')).split('\n').find((l) => /sales engineer/i.test(l));
     sec.turns.push({ role: 'sales engineer', text: greet || '(the greeting)', at: now() });
     await sh.take(page, 'opened', 'He opens "New request"', { clean: true });
+    if (sc.persona) {
+      const { SERVICE } = await keys();
+      ctx.player = playerFor({ persona: sc.persona, dry: DRY, base: BASE, service: SERVICE, fnSecret: (await read(`select value from public.app_secrets where key = 'cred_fn_ai'`))[0]?.value,
+        e2eSecret: await internalCred(), runTag: ctx.run.tag, email: cust.email });
+      ctx.player.opener();
+    }
     if (sc.opener) j = await say(sc.opener);
     for (const a of sc.attach || []) {
       const file = await customerFile(ctx, a);
@@ -391,7 +411,8 @@ async function s2_chat(ctx) {
       ctx.exhibit(`customer_files/${vn.file || name + '.wav'}`, 'His voice note (audio)', 'The voice note exactly as played into the chat\'s microphone.', { attach: true });
     }
     const given = new Set(); let held = 0;
-    for (let turn = 0; turn < 12 && j && j.status !== 'ready'; turn++) {
+    if (ctx.player) j = await personaChat(ctx, { page, sh, say, pushSE, j });
+    else for (let turn = 0; turn < 12 && j && j.status !== 'ready'; turn++) {
       if (j.status === 'held' && !j.category && ++held > 2) break;
       let ans = nextAnswer(J, j, given);
       const opts = (j.next_question?.options || []).map((x) => typeof x === 'string' ? x : x?.text || x?.label || '').filter(Boolean);
@@ -434,6 +455,7 @@ async function s2_chat(ctx) {
   sec.sheets = sheetsInto(ctx, sh.list, 's2_sheet');
   // what the platform itself kept of the chat
   const it = (await read(`select id::text, status, readiness, category, jsonb_array_length(turns) n, (select count(*) from jsonb_array_elements(turns) t where t ? 'at' or t->'slots' ? 'at')::int timed, brief from public.inquiry_intake where customer_id = ${q(cust.customerId)} order by created_at desc limit 1`))[0];
+  ctx.finalDetails = it?.brief?.details || null;
   sec.stored = it ? `${it.n} turns in inquiry_intake.turns (status ${it.status}, readiness ${it.readiness}, trade ${it.category}); ${it.timed} of them carry a time.` : 'no inquiry_intake row was found for him';
   sec.gaps.push('A copy of this chat as a document. The platform keeps the chat only as data (inquiry_intake.turns), mostly without a time on each turn, and issues no transcript; the conversation archive holds e-mail, WhatsApp and notifications only. The transcript above was taken from the screen by the test, with the test\'s own clock.');
   if (sec.attachments.length) sec.gaps.push('A yes or no on whether the file the customer gave is enough to quote from. The platform reads the file and asks questions, but states no judgement of sufficiency.');
@@ -463,6 +485,87 @@ async function customerFile(ctx, a) {
   throw new Error('attachment with no file');
 }
 
+
+// ── PEOPLE, NOT A SCRIPT (founder, 15 Nov 2026: "Are they realistic?"): --persona ─────────────────────────────────────
+/** The common stand-ins, said for a persona journey: the customer's words are a model's playing of a person, not a script. */
+const personaStandIn = (persona) => (x) => /^The customer's words come from a script/.test(x)
+  ? `The customer is ${persona.label}, ${persona.short}: a model played him from a hidden truth sheet (personas/customers.mjs), answering only what the platform asked and saying "not sure" where the sheet says he does not know. His model calls go through ai_gateway under this run's tag (fn journey_persona_player) and are in the cost table. He leaves by his own patience rule (personas/abandon.mjs).`
+  : /^The suppliers are demo companies made by the test/.test(x) && !FIXTURE_SUPPLIERS
+    ? `${x.split('. They quoted')[0]}. Five of them were then played as people (personas/suppliers.mjs): one ignored the request, one asked a question first, one sent a price range subject to a site visit, one a phone photo of a handwritten quotation, one a typed PDF, each through supplier_api as the portal calls it.`
+    : x;
+
+/** The persona answers the platform until it is ready or he leaves. Each answer is typed (or tapped) in the clean page. */
+async function personaChat(ctx, { page, sh, say, pushSE, j }) {
+  const sec = ctx.S.s2; const P = ctx.player;
+  for (let turn = 0; turn < 24 && j && j.status !== 'ready'; turn++) {
+    const lastSE = sec.turns.filter((t) => t.role === 'sales engineer').at(-1);
+    const t = await P.turn({ message: j.assistant_message || '', question: j.next_question || null, latency_s: lastSE?.reply_s ?? null, status: j.status });
+    if (t.abandoned) { sec.turns.push({ role: 'customer', text: `(left the chat: ${t.abandoned.reason})`, at: now() }); await sh.take(page, 'left', `He leaves: ${t.abandoned.reason}`, { clean: true }); break; }
+    if (t.file) {
+      const f = `customer_files/${t.file}.jpg`; writeFileSync(join(ctx.dir, f), await nameplatePhoto());
+      ctx.exhibit(f, 'The photo he sent from his phone', 'A phone photo of the nameplate, sent instead of a capacity he did not know.', { attach: true, ours: false });
+      const t0 = now(); sec.turns.push({ role: 'customer', text: `(sent ${basename(f)})`, at: t0 });
+      const resP = page.waitForResponse((r) => r.url().includes('/functions/v1/customer_api') && (r.request().postData() || '').includes('analyze_drawing'), { timeout: 420000 }).catch(() => null);
+      const turnP = page.waitForResponse((r) => r.url().includes('/functions/v1/inquiry_intake') && !/poll_turn_id|carry_from/.test(r.request().postData() || ''), { timeout: 480000 }).catch(() => null);
+      await page.locator('input[type=file][aria-label="Attach a drawing, photo or quotation"]').setInputFiles(join(ctx.dir, f)).catch((e) => ctx.finding('harness', '2', `the photo could not be attached: ${e.message}`));
+      const res = await resP; const rj = res ? await res.json().catch(() => ({})) : {};
+      sec.attachments.push({ file: f, kind: 'photo', http: res?.status() ?? 0, reading: { summary: rj?.boq?.summary || rj?.message || rj?.error || 'nothing read', lines: (rj?.boq?.boq || []).map((l) => ({ description: l.description || l.item, qty: l.qty ?? null, unit: l.unit || null })), missing: rj?.boq?.missing_info || [] },
+        sufficient: 'The platform does not say whether the photo answers the question.' });
+      const tj = await turnP; const jj = tj ? await tj.json().catch(() => null) : null; if (jj) { pushSE(jj, t0); j = jj; }
+      await sh.take(page, `photo_${turn}`, 'After he sent the photo', { clean: true });
+      if (!t.reply) continue;
+    }
+    if (t.tap) {
+      const chip = page.locator('[role="group"] button').filter({ hasText: t.tap }).first();
+      if (await chip.isVisible().catch(() => false)) { const t0 = now(); sec.turns.push({ role: 'customer', text: `(tapped "${t.tap}")`, at: t0 }); j = await intakeTurn(page, () => chip.click()); pushSE(j, t0); await sh.take(page, `tap_${turn}`, `He taps "${t.tap}"`, { clean: true }); continue; }
+    }
+    j = await say(t.reply || t.tap);
+  }
+  return j;
+}
+
+/** Step 5 with supplier personas: each of the five right demo suppliers is played as a person, through the portal's doors. */
+async function s5_persona_quotes(ctx) {
+  const st = clockStart(ctx, 's5'); const { sc, dir, run, quotable, S } = ctx; const sec = S.s5; sec.quotes = []; ctx.supplierPersonas = [];
+  const asked = new Set((S.s4.verdict?.asked || []).map((a) => String(a.lead_id)));
+  const pool = ctx.fixtures.filter((f) => f.should === 'right' && f.trade === sc.trade);
+  const order = ['proper', 'handwritten', 'range', 'asker', 'silent'];
+  const chosen = [...pool.filter((f) => asked.has(String(f.lead_id))), ...pool.filter((f) => !asked.has(String(f.lead_id)))].slice(0, order.length);
+  if (chosen.length < order.length) ctx.finding('harness', '5', `only ${chosen.length} right demo suppliers for ${order.length} supplier personas`);
+  for (const [i, f] of chosen.entries()) {
+    const sp = SUPPLIERS[order[i]];
+    if (!asked.has(String(f.lead_id))) { await write(`insert into public.inquiry_matches (inquiry_id, supplier_id, match_reason) values (${q(quotable)}, ${Number(f.lead_id)}, 'journey proof: invited by the test') on conflict do nothing`, 'journey proof invitation'); if (!(ctx.added || []).some((a) => String(a.lead_id) === String(f.lead_id))) ctx.added = [...(ctx.added || []), { lead_id: f.lead_id, company: f.company }]; }
+    const doors = liveSupplierDoors({ call, read, rasterise, fx: f.fx, quotable, since: ctx.rec.journey.started });
+    const save = async (name, bytes) => { const fl = `quotations/${name}`; writeFileSync(join(dir, fl), bytes); ctx.exhibit(fl, `${sp.label}: what he sent, as he sent it`, `${sp.label} ${sp.behaviour.replace(/_/g, ' ')}: his own file, with his identity on it.`, { ours: false }); return fl; };
+    // the silent supplier is read last, after the others had their time: whatever the platform sent him meanwhile is the finding
+    const r = await playSupplier(sp, { doors, job: { rfq: quotable.slice(0, 8), lines: sc.defaultLines }, save });
+    r.lead_id = f.lead_id; ctx.supplierPersonas.push(r);
+    const own = r.files[0]?.file || null;
+    const qrec = { label: sp.letterhead, lead_id: f.lead_id, persona: sp.key, behaviour: r.behaviour_words, own_file: own, quote_id: r.quote_id, path: r.outcome, identity: personaSupplierIdentity(sp, f.fx, own ? basename(own) : null) };
+    if (r.quote_id) {
+      ctx.ids.quotes.add(String(r.quote_id)); run.ids.quotes.add(String(r.quote_id));
+      const cp = await call('customer_api', ctx.cust.jwt, { action: 'quote_pdf', quote_id: r.quote_id, lang: 'en' }, 180000);
+      if (cp.json?.url) { const b = await fetchBytes(cp.json.url); const fc = `quotations/${sp.letterhead} - as the customer sees it.pdf`; writeFileSync(join(dir, fc), b); qrec.customer_pdf = fc; qrec.customer_pdf_url_name = decodeURIComponent(new URL(cp.json.url).pathname.split('/').pop() || ''); ctx.exhibit(fc, `${sp.letterhead}: the quotation as the customer sees it`, 'customer_api quote_pdf, on our template, before the reveal.'); }
+    }
+    sec.quotes.push(qrec);
+  }
+  const live = await read(`select id::text, status from public.quotes where inquiry_id = ${q(quotable)}`);
+  sec.verdicts.push(verdict('real kinds of supplier each get through or are dealt with: a question answered, a range or a photo read or asked about, silence chased', ctx.supplierPersonas.map((x) => `${x.label}: ${x.outcome}`).join('; '), null));
+  sec.verdicts.push(verdict('every quotation that went live reaches the customer on our template', `${sec.quotes.filter((x) => x.customer_pdf).length} reached him; quotes on the request: ${live.map((x) => x.status).join(', ') || 'none'}`, sec.quotes.filter((x) => x.quote_id).every((x) => x.customer_pdf)));
+  clockEnd(st);
+}
+
+/** "Would a real person have got through?" (personas/report.mjs), from the chat and the supplier personas. */
+function people(ctx) {
+  const P = ctx.player; if (!P) return;
+  const outcome = P.abandoned ? 'abandoned' : ctx.S.s2.ready ? (ctx.quotable ? 'ready_and_sent' : 'ready') : 'not_ready';
+  ctx.S.people = peopleSection({ persona: ctx.sc.persona, turns: P.turns, abandoned: P.abandoned, outcome, final_details: ctx.finalDetails, suppliers: ctx.supplierPersonas || [],
+    mode: DRY ? 'dry run on the live site (models off): the stub person; the sales engineer cannot answer' : 'live: a model played the person; the platform answered for real', latency_source: 'measured by the run (the browser, from his message to the reply)', spend: P.spend });
+  for (const r of ctx.S.people.repeats) ctx.finding('product', 'people', `asked again at turn ${r.n} what ${ctx.sc.persona.label} had already answered (${r.why}${r.first_asked_at ? `, first at turn ${r.first_asked_at}` : ''}): "${r.question}"`);
+  for (const m of ctx.S.people.misunderstood) ctx.finding('looked_wrong', 'people', `turn ${m.n}: ${ctx.sc.persona.label} did not understand "${m.question}"`);
+  for (const x of ctx.S.people.problems) ctx.finding('harness', 'people', `the person, turn ${x.n}: ${x.text}`);
+  if (P.abandoned) ctx.finding('product', 'people', `${ctx.sc.persona.label} left at turn ${P.abandoned.at}: ${P.abandoned.reason}`);
+}
 
 /** DRY RUN ONLY: with the models off the sales engineer cannot answer, so the chat is held and nothing is sent. So the
  *  rest of the journey can still walk its doors for free, the test writes the request itself (demo_factory makeInquiry)
@@ -872,6 +975,7 @@ async function s10_close(ctx) {
 // ── the run ───────────────────────────────────────────────────────────────────────────────────────────────────────
 const MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (MAIN) {
+  if (PERSONA) { const pp = CUSTOMERS[PERSONA] ? personaProblems(CUSTOMERS[PERSONA]) : [`no persona ${PERSONA} (${Object.keys(CUSTOMERS).join(', ')})`]; if (pp.length) { console.error('REFUSED:', pp.join('; ')); process.exit(2); } for (const k of KEYS) try { personaScenario(SCENARIOS[k], CUSTOMERS[PERSONA]); } catch (e) { console.error(e.message); process.exit(2); } }
   for (const k of KEYS) { if (!SCENARIOS[k]) { console.error(`REFUSED: no journey ${k} (A, B, B2, C)`); process.exit(2); } const pr = scenarioProblems(SCENARIOS[k]); if (pr.length) { console.error('REFUSED:', pr.join('; ')); process.exit(2); } }
   for (const k of KEYS) for (const a of SCENARIOS[k].attach || []) if (a.from && (!INPUTS || !existsSync(join(INPUTS, a.from.file)))) { console.error(`REFUSED: journey ${k} needs "${a.from.file}" in --inputs`); process.exit(2); }
   const guards = (await read(`select tgname from pg_trigger where not tgisinternal and tgname in ('zzzz_notifications_demo_capture','a01_inquiry_match_demo_and_real_never_pair','a01_quote_demo_and_real_never_pair')`)).map((r) => r.tgname);
@@ -883,6 +987,6 @@ if (MAIN) {
   for (const sig of ['SIGINT', 'SIGTERM']) process.once(sig, () => { stopping = true; log(`${sig}: the journey in progress finishes its count and teardown, then the run stops`); });
   try { for (const k of KEYS) { if (stopping) break; done.push(await journey(k)); } }
   finally { await BROWSER.close().catch(() => {}); }
-  for (const r of done) log(`journey ${r.journey.key}: tag ${r.journey.run_tag}, ${r.findings.length} findings, USD ${r.cost?.total_usd ?? '?'}, dossier in ${join(OUT, SCENARIOS[r.journey.key].folder)}`);
+  for (const r of done) log(`journey ${r.journey.key}: tag ${r.journey.run_tag}, ${r.findings.length} findings, USD ${r.cost?.total_usd ?? '?'}, dossier in ${join(OUT, PERSONA ? personaScenario(SCENARIOS[r.journey.key], CUSTOMERS[PERSONA]).folder : SCENARIOS[r.journey.key].folder)}`);
   process.exit(0);
 }

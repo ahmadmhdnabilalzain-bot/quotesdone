@@ -234,3 +234,38 @@ test('the dry run plays the villa owner and the impatient customer against the R
     assert.equal(i.people.got_through, false); assert.ok(i.people.abandoned, 'the impatient customer leaves');
   } finally { rmSync(out, { recursive: true, force: true }); }
 });
+
+test('the live wiring: the portal\'s own supplier doors, the typed form where the reading left blanks, a persona journey from a base journey', async () => {
+  const { liveSupplierDoors, personaScenario, supplierIdentity, playerFor } = await import('./live.mjs');
+  const sent = [];
+  const call = async (fn, jwt, body) => {
+    sent.push([fn, jwt, body.action, body]);
+    if (body.action === 'review_start') return { status: 200, json: { state: 'open', messages: [{ role: 'sales_engineer', body_en: 'ZZ hello' }] } };
+    if (body.action === 'review_message') return { status: 200, json: { state: 'reviewing', messages: [{ role: 'sales_engineer', body_en: 'ZZ hello' }] } };
+    if (body.action === 'review_thread') return { status: 200, json: { state: 'open', messages: [{ role: 'sales_engineer', body_en: 'ZZ hello' }, { role: 'supplier', body: 'q' }, { role: 'sales_engineer', body_en: 'ZZ The outdoor units are on the roof.' }] } };
+    if (body.action === 'extract_quote') return { status: 200, json: { ok: true, proposal: { amount: null } } };
+    if (body.action === 'submit_quote') return { status: 200, json: { quote: { id: 'zz-q1' }, held: true, missing: [{ attr: 'model' }] } };
+    return { status: 404, json: {} };
+  };
+  const read = async (sql) => { sent.push(['read', sql]); return [{ at: 't1', channel: 'email', what: 'ZZ New request', status: 'suppressed' }]; };
+  const rasterise = async () => [{ mime: 'image/jpeg', data: 'AAAA' }];
+  const doors = liveSupplierDoors({ call, read, rasterise, fx: { jwt: 'zz-jwt', leadId: 42 }, quotable: 'inq-zz', since: '2026-11-15T10:00:00Z', sleep: async () => {} });
+  const m = await doors.message('ZZ is the roof reachable?');
+  assert.equal(m.said, 'ZZ The outdoor units are on the roof.', 'only what the engineer said after the question');
+  assert.deepEqual(sent.filter((x) => x[0] === 'supplier_api').map((x) => x[2]), ['review_start', 'review_message', 'review_thread']);
+  assert.ok(sent.every((x) => x[0] !== 'supplier_api' || x[1] === 'zz-jwt'), 'every door is called with the supplier\'s own session');
+  const u = await doors.upload({ b64: 'QQ==', filename: 'IMG.jpg', mime: 'image/jpeg', bytes: Buffer.from('A'), typed: { total: 9000, lead_time: '7 days', warranty: '1 year', payment_terms: '50%', validity: '15 days', notes: '' } });
+  const ex = sent.find((x) => x[2] === 'extract_quote')[3]; assert.deepEqual(ex.images, [{ mime: 'image/jpeg', data: 'QQ==' }], 'a photo is sent as the image it is');
+  const sub = sent.find((x) => x[2] === 'submit_quote')[3]; assert.equal(sub.amount, 9000); assert.equal(sub.lead_time, '7 days');
+  assert.deepEqual(u, { http: 200, extract_http: 200, read_amount: null, typed_by_supplier: true, quote_id: 'zz-q1', accepted: null, held: true, code: null, missing: ['model'] });
+  const after = await doors.afterSilence();
+  assert.deepEqual(after, [{ at: 't1', what: 'email "ZZ New request" (suppressed)' }]); assert.match(sent.at(-1)[1], /lead_id = 42 and created_at >= '2026-11-15T10:00:00Z'/);
+  // a persona journey keeps the base journey's machinery and takes the persona's words and job
+  const { SCENARIOS } = await import('../scenarios.mjs');
+  const sc = personaScenario(SCENARIOS.A, V);
+  assert.equal(sc.opener, V.opener); assert.deepEqual(sc.facts, []); assert.equal(sc.persona, V); assert.equal(sc.matching, SCENARIOS.A.matching); assert.notEqual(sc.folder, SCENARIOS.A.folder);
+  assert.throws(() => personaScenario({ ...SCENARIOS.A, trade: 'plumbing' }, V), /REFUSED/);
+  assert.deepEqual(supplierIdentity(SUPPLIERS.proper, { phone: '+971500000091', email: 'qd-zz@example.invalid' }, 'f.pdf').map((x) => x.kind), ['name', 'phone', 'email', 'text', 'phone', 'email', 'text']);
+  const dry = playerFor({ persona: V, dry: true }); dry.opener();
+  assert.equal((await dry.turn({ message: 'When?', question: q('required_by', 'When do you need it?'), latency_s: 1 })).model, 'stub/persona', '--dry never calls a model');
+});

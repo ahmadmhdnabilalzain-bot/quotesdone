@@ -36,6 +36,7 @@ export const BEHAVIOUR_WORDS = {
  * One supplier persona answers one request. `doors` (all async, all optional except what the behaviour uses):
  *   message(text)        -> { http, said, state }            the quotation chat (review_start, then review_message)
  *   upload(file)         -> { http, read_amount, quote_id, accepted, held, code, missing, typed_by_supplier }
+ *                           file: { b64, filename, mime, bytes, typed: what he types where the reading left a blank }
  *   afterSilence()       -> [{ at, what }]                   what the platform sent the silent supplier within the run
  * `job` is { rfq, lines } (the request's lines the supplier prices). `now` is a clock (tests pass a fixed one).
  * Returns { key, label, behaviour, steps: [{ at, door, http, outcome }], files: [{ name, mime, bytes }], quote_id, outcome }.
@@ -46,9 +47,12 @@ export async function playSupplier(sp, { doors, job, now = () => new Date().toIS
   const lines = pricedLines(job.lines, HVAC_RATE, sp.factor ?? 1);
   const ref = `ZZQ-${String(job.rfq || 'RFQ').slice(0, 8).toUpperCase()}-${sp.key.slice(0, 3).toUpperCase()}`;
   const keep = async (name, mime, bytes) => { const f = { name, mime, bytes: bytes.length }; rec.files.push(f); if (save) f.file = await save(name, bytes); return bytes; };
-  const upload = async (name, mime, bytes, what) => {
-    const r = await doors.upload({ b64: bytes.toString('base64'), filename: name, mime, bytes });
-    const read = r?.read_amount != null ? `the platform read AED ${r.read_amount}` : 'the platform read no amount';
+  // what he would type into the portal's form where the reading left a field blank: his own total and terms
+  const typed = { total: Math.round(lines.reduce((a, l) => a + l.amount, 0)), lead_time: sp.lead || '7 days', warranty: sp.warranty || '1 year', payment_terms: sp.payment || '50% advance, 50% on completion', validity: '15 days', notes: '' };
+  const upload = async (name, mime, bytes, what, over = {}) => {
+    const r = await doors.upload({ b64: bytes.toString('base64'), filename: name, mime, bytes, typed: { ...typed, ...over } });
+    const who = r?.reader || 'the platform';   // the dry run's stand-in reader names itself
+    const read = r?.read_amount != null ? `${who} read AED ${r.read_amount}` : `${who} read no amount`;
     const fate = r?.quote_id ? (r.accepted ? 'the quotation went live' : r.held ? `the quotation was held${r.missing?.length ? ` (asked for: ${r.missing.join(', ')})` : ''}` : 'the quotation was stored') : `no quotation was made${r?.code ? ` (${r.code})` : ''}`;
     step('upload', r, `${what}: ${read}${r?.typed_by_supplier ? ' (the supplier typed his total into the form)' : ''}; ${fate}`);
     rec.quote_id = r?.quote_id ?? null; return r;
@@ -77,7 +81,7 @@ export async function playSupplier(sp, { doors, job, now = () => new Date().toIS
     const sub = lines.reduce((a, l) => a + l.amount, 0); const low = Math.round(sub * sp.low / 100) * 100, high = Math.round(sub * sp.high / 100) * 100;
     rec.range = { low, high };
     const pdf = await keep(`${sp.letterhead} - Budget quotation ${ref}.pdf`, 'application/pdf', quotePdf({ supplier: sp, rfq: job.rfq, ref, lines, kind: 'range', low, high }));
-    const u = await upload(`${sp.letterhead} - Budget quotation ${ref}.pdf`, 'application/pdf', pdf, `sent AED ${low.toLocaleString('en-US')} to ${high.toLocaleString('en-US')} "subject to site visit"`);
+    const u = await upload(`${sp.letterhead} - Budget quotation ${ref}.pdf`, 'application/pdf', pdf, `sent AED ${low.toLocaleString('en-US')} to ${high.toLocaleString('en-US')} "subject to site visit"`, { total: low, notes: `Range AED ${low} to ${high}, subject to site visit`, validity: '15 days' });
     rec.outcome = `a range subject to site visit: ${u?.quote_id ? (u.accepted ? `went live as AED ${u.read_amount ?? '?'} with nothing telling the customer it is a range` : u.held ? 'held' : 'stored') : `no quotation made${u?.code ? ' (' + u.code + ')' : ''}`}`;
     rec.range_reached_customer_as = u?.accepted ? (u.read_amount != null ? `AED ${u.read_amount}` : 'an amount') : null;
     return rec;

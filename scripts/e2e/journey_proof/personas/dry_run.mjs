@@ -66,7 +66,7 @@ function dryDoors(dir) {
     message: async () => ({ http: null, said: null, not_run: true }),   // the quotation chat needs the platform: not claimed here
     upload: async ({ bytes, mime }) => {
       const amt = read(bytes, mime);
-      return { http: null, read_amount: amt, typed_by_supplier: amt == null, quote_id: null, code: 'dry run: nothing was submitted to the platform', accepted: null, held: null };
+      return { http: null, reader: 'pdftotext on this machine (not the platform)', read_amount: amt, typed_by_supplier: amt == null, quote_id: null, code: 'dry run: nothing was submitted to the platform', accepted: null, held: null };
     },
     afterSilence: async () => null,
   };
