@@ -23,10 +23,9 @@
 --        it_rerunnable_job   the idempotency fact the 9 Sep charter asked for before job_rerun could be granted: which reader
 --                            may be re-run, the routine, why running it twice is harmless, and its daily limit. Seeded with
 --                            the two registration readers whose own code proves it (see the rows).
---        it_route_plan_b     a registration task class's recorded plan B: a model the estate ALREADY routes extraction work
---                            to. Seeded only where one exists (json_extraction*: anthropic/claude-sonnet-5.5, the
---                            document_extraction fallback that reads licences today). document_extraction has none, so the
---                            family refuses for it until the CEO records one (never the seat's choice).
+--        it_route_plan_b     a registration task class's plan B, recorded by the CEO (never the seat's choice). Seeded for the
+--                            licence reader (document_extraction, document_extraction_multimodal: qwen/qwen3.8-flash) INACTIVE,
+--                            pending one licence-read eval on ZZ DEMO licences; the family refuses it until the eval passes.
 --        it_route_failover   each 1-hour failover, the fallback it replaced, and when it was put back.
 --   2. Seven family routines, each answering fixed / nothing_to_do / refused_by_guardrail / failed for fn_it_safe_fix_tick, which
 --      bounds them (max_runs_per_occurrence, max_per_tick) and parks a family after 2 failed runs in a day:
@@ -56,9 +55,14 @@
 -- approves, rejects or unbans a supplier, writes a licence value, touches money, credit or a cap, weakens a gate (the licence
 -- gate, the sanctions check, the OTP limits, the reply guard, suppression), changes a secret, deploys, or messages a suppressed
 -- or opted-out person (fn_customer_support_duty_send checks fn_email_sendable). The two writes outside the seat's own records
--- are named and bounded: licence_read_rerun sets the READER'S OWN schedule fields (licence_read_at, and licence_read_tries back
--- to 7 when the 8 tries were spent) so the one licence reader runs once more; route_failover sets model_policy.model_fallback to
--- the recorded plan B for one hour and puts the previous value back.
+-- are named and bounded: licence_read_rerun sets the READER'S OWN schedule field licence_read_at so the one licence reader runs
+-- once more, never its tries (8 is the reader's stop for a file a person must judge, and is refused); route_failover sets
+-- model_policy.model_fallback to the recorded, evaluated plan B for one hour and puts the previous value back.
+--
+-- REVIEW OF f79833d44 (show/REVIEW_selfheal.md, verdict FIX), each item now a row of the probe that drives the watch: FIX 1 a refusal
+-- spends no run budget (fn_it_safe_fix_tick); FIX 2 tries 8 is never reset; FIX 4 a burst gets a repair cycle before a P1 defect;
+-- FIX 5 the watch records a failing step and carries on; FIX 6 the classifier passes when it saw each condition; FIX 8 the plan B;
+-- FIX 9 the keyed phone hash, the certificate by id, the dispatch advisory lock, no playbook row from the watch.
 --
 -- Prevented by: scripts/checks/the_it_engineer_repairs_a_registration_and_learns.test.mjs (every family registered with a
 -- routine, a guardrail and ruling 1705; no family routine deletes, approves or writes a licence value; the local-database replay
@@ -891,7 +895,7 @@ revoke execute on function public.fn_it_registration_watch() from public, anon, 
 -- ── THE SEVEN FAMILIES (ruling 1705) ────────────────────────────────────────────────────────────────────────────────
 insert into public.it_safe_fix_family (family, issue_like, routine, guardrail, max_runs_per_occurrence, max_per_tick, approval_ruling, active, owner_file) values
   ('licence_read_rerun', 'reg:stall:licence\_read:%', 'fn_it_safe_fix_licence_read_rerun',
-   'makes a failed licence read due now and kicks the one licence reader, only once the licence routes are closed; at most 2 a licence a day; sets only the reader''s own schedule fields, never a licence value, never an approval', 2, 10, 1705, true,
+   'makes a failed licence read due now and kicks the one licence reader, only once the licence routes are closed and never for a licence the reader stopped on (tries 8: held for a person, a wrong document); at most 2 a licence a day; sets only licence_read_at, never the tries, a licence value or an approval', 2, 10, 1705, true,
    'scripts/sql/the_it_engineer_repairs_a_registration_and_learns.sql'),
   ('terms_certificate_retry', 'reg:stall:certificate:%', 'fn_it_safe_fix_terms_certificate_retry',
    'asks compliance_archive to sign the acceptance on record, only when one is on record; the acceptance row and its IP are never changed; at most 2 an occurrence', 2, 10, 1705, true,
@@ -909,7 +913,7 @@ insert into public.it_safe_fix_family (family, issue_like, routine, guardrail, m
    're-runs once a reader registered in it_rerunnable_job with its idempotency fact, within its daily limit; any other job is refused and stays a finding', 1, 5, 1705, true,
    'scripts/sql/the_it_engineer_repairs_a_registration_and_learns.sql'),
   ('route_failover', 'reg:circuit\_open:%', 'fn_it_safe_fix_route_failover',
-   'puts a registration class''s recorded plan B on its ladder for one hour and puts the previous fallback back; never a new provider or model, never past the paid-provider gate, never a cap or credit change; 2 a class a day', 1, 5, 1705, true,
+   'puts a registration class''s plan B, recorded by the CEO and active only after its eval passed, on its ladder for one hour and puts the previous fallback back; never a new provider or model, never past the paid-provider gate, never a cap or credit change; 2 a class a day', 1, 5, 1705, true,
    'scripts/sql/the_it_engineer_repairs_a_registration_and_learns.sql')
 on conflict (family) do update set issue_like = excluded.issue_like, routine = excluded.routine, guardrail = excluded.guardrail,
   max_runs_per_occurrence = excluded.max_runs_per_occurrence, max_per_tick = excluded.max_per_tick, approval_ruling = excluded.approval_ruling,

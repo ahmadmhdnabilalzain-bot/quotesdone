@@ -32,8 +32,19 @@ pending note until applied):**
 
 **How to apply it right.** The dispatcher skips demo findings, so a fixture run raises and closes but never repairs; test the
 families on a LOCAL database with non-demo planted rows (scripts/checks/the_it_engineer_repairs_a_registration_and_learns.test.mjs
-does). document_extraction has no recorded plan B: route_failover refuses for it until the CEO records one in it_route_plan_b
-(choosing a model is not the seat's). The engineer session's scheduled task needs the founder's yes before it is created.
+does), and drive them THROUGH fn_it_registration_watch: calling a family directly skips the dispatcher's budget, which is how
+the first probe missed review FIX 1. The licence reader's plan B is qwen/qwen3.8-flash, recorded by the CEO (rulings 1696, 1571)
+and INACTIVE until `scripts/eval/model_routing/eval_licence_plan_b.ts --record` passes on ZZ DEMO licences (no plan B for
+json_extraction*: the old sonnet seed was dead and would have reversed 1571). The engineer session's scheduled task needs a
+yes before it is created.
+
+**Rules the review of f79833d44 set (each is a probe row):** only fixed/failed runs spend max_runs_per_occurrence (a refusal is
+"not now", and an unchanged refusal is not rewritten); licence_read_tries 8 is the reader's deliberate stop (held for a person,
+wrong document; supplier_api documents.ts) and is never reset; one person hears one "fixed" an hour and one "being fixed" a day
+(fn_it_told_recently); a burst gets a 30-minute repair window before a P1 defect; affected_cases is a 200-ref sample beside
+affected_count; a verified defect reopens only on a condition seen after verified_at; only the live leaseholder advances a
+defect, one step at a time; the hourly tick and the watch share one advisory lock; it.escalation goes to the CEO (ruling
+1696), the founder informed, destructive deploys excluded.
 
 **Gotcha.** `_shared/support_reply.ts` supportReply() is imported by no live surface (READ, 15 Nov); the widget, WhatsApp and
 e-mail decide "it is broken" in the reasoned needs_a_person reading (site_fault), so a hand-over wired only into supportReply

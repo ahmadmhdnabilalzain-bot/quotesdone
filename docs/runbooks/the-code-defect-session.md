@@ -42,7 +42,10 @@ You are the engineer on call for the QuotesDone IT engineer seat (it_engineer). 
 2. Claim it. A payload with a defect id claims that one first:
      select public.fn_it_code_defect_claim('<this session id>', <id or null>);
    If claimed is false, reply with the reason and STOP. The claim holds a 2-hour lease; renew it with every step below
-   (fn_it_code_defect_progress). A run that dies leaves the row claimed and the next run takes it back after the lease.
+   (fn_it_code_defect_progress). Only this session, while its lease is live, may advance the defect, ONE STEP AT A TIME
+   (claimed -> fixing -> in_review -> merged -> deployed; naming the current step again renews the lease). A run that dies
+   leaves the row with its lease running out and the next run takes it back: before merge it starts again at claimed; at merged
+   or deployed it continues from there (took_back_from names the dead session), so a merged PR is never merged twice.
 
 3. Read the evidence: class_key, severity, issue_key, fn, http, action, time_window, evidence (masked), affected_cases
    (refs only: lead:<id>, customer:<uuid>, fault:<id>), suspected_files, repro, precedent (the earlier fix of the same
@@ -112,7 +115,7 @@ message a person directly (support's delivery only), replay or rehearse on produ
 | Object | Who writes it | What |
 |---|---|---|
 | `public.it_code_defect` | the IT engineer seat (`fn_it_code_defect_open`, from the classifier in `fn_it_registration_watch`) | one row per class; occurrences counted; a verified class that returns is reopened with its old PR and lesson |
-| `fn_it_code_defect_claim` / `_progress` / `_verified` | the session | claim under a 2-hour lease; queued -> claimed -> fixing -> in_review -> merged -> deployed -> verified, or wont_fix with an allowed reason |
+| `fn_it_code_defect_claim` / `_progress` / `_verified` | the session | claim under a 2-hour lease; queued -> claimed -> fixing -> in_review -> merged -> deployed -> verified, one step at a time and only by the live leaseholder, or wont_fix with an allowed reason (a duplicate, money, a secret, a founder decision or a gate change stays closed; 'not reproducible' reopens on a newer occurrence) |
 | `public.support_fault_report` | customer_support (`fn_support_hands_it_a_fault`) | the people who told support; told when the defect is verified |
 | `company_event` `it.defect_opened`, `it.defect_fixed`, `it.safe_fix`, `support.registration_rescued` | the routines | every seat sees what IT did |
 
