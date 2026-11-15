@@ -29,9 +29,12 @@ const TITLES: Record<string, string> = {
   co: 'Inside the company: who knew, and what they did',
   s9: 'Where every document of this journey is filed',
   s10: 'What went wrong, what it cost, and what was not the product',
+  people: 'Would a real person have got through?',
 };
 // The order the dossier prints (founder 1685: inside-the-company comes after the reveal); numbers follow it.
-export const ORDER = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 'co', 's9', 's10'];
+// 'people' (founder, 15 Nov 2026: "Are they realistic?") is printed last, and only when a persona played the journey
+// (personas/report.mjs builds it); its headline is also on page 1.
+export const ORDER = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 'co', 's9', 's10', 'people'];
 const NUM = (id: string) => ORDER.indexOf(id) + 1;
 const SEV: Record<string, string> = { leak: 'Anonymity leak', product: 'The product did not do it', looked_wrong: 'Looked wrong', needs_model: 'Could not happen with the models off (dry run)', harness: 'The test harness, not the product' };
 const SEV_ORDER: Record<string, number> = { leak: 0, product: 1, looked_wrong: 2, needs_model: 3, harness: 4 };
@@ -96,6 +99,7 @@ export function dossierBody(rec: Any, ctx: Ctx) {
   p(`This is the proof of one journey through QuotesDone, told in the order it happened: ${s(J.how_made)}. Each of the ten steps shows the evidence itself (the screens as the person saw them, the chat as it was said, the documents as they were issued) and one line that says what we expected and what happened. Where the platform does not produce something, the dossier says so and leaves the hole visible.`);
   p('Pictures marked "phone" were taken at iPhone size in a browser with no test tampering: no request was altered or added by the test while the picture was taken. The documents (the signed terms, the inquiry, each quotation, the comparison, the invoice) follow this report as exhibits, exactly as the platform issued them, unaltered.', { muted: true });
   kv([['Journey', J.title], ['Run tag (marks every demo record of this run)', J.run_tag], ['Site', J.site], ['Started (Dubai time)', dubai(J.started)], ['Finished (Dubai time)', dubai(J.finished)], ['Spending cap for this journey', J.cap_usd != null ? `USD ${J.cap_usd}` : '—']]);
+  if (S.people?.headline) callout('Would a real person have got through?', `${S.people.headline} (${s(S.people.persona?.label)}: ${s(S.people.persona?.short)}; section ${NUM('people')}.)`, S.people.got_through ? 'teal' : 'gold');
   if (leaks.total) callout(`${leaks.total} ANONYMITY LEAK${leaks.total > 1 ? 'S' : ''} FOUND`, `Identifying details reached the other party before the reveal. Each is printed in plain words in step ${leaks.where.join(' and ')}.`, 'gold');
 
   // ── 1 the customer ──
@@ -244,6 +248,32 @@ export function dossierBody(rec: Any, ctx: Ctx) {
   h3('What in this run was NOT the product');
   for (const x of rec.stand_ins || []) B.push({ t: 'li', text: String(x) });
   verdicts(s10); gaps(s10);
+
+  // ── would a real person have got through (a persona played the journey) ──
+  const P = S.people;
+  if (P) {
+    section(NUM('people'), 'people');
+    p(P.headline, { bold: true });
+    kv([['Who played the customer', `${s(P.persona?.label)}: ${s(P.persona?.short)}`], ['How', s(P.mode)], ['Reply times', s(P.latency_source, 'measured by the run')],
+      ['This person\'s patience', P.persona?.patience ? `leaves after ${s(P.persona.patience.max_slow, 'no number of')} replies slower than ${s(P.persona.patience.slow_s)} s, when ${s(P.persona.patience.abandon_on_repeat, 'any number of')} thing(s) are asked twice, or after ${s(P.persona.patience.max_questions, 'any number of')} questions` : '—'],
+      ['What this person knew', (P.persona?.knows || []).join('; ')], ['What this person did NOT know', (P.persona?.does_not_know || []).join('; ')], ['Files on their phone', (P.persona?.files || []).join('; ') || 'none']]);
+    if (P.abandoned) callout(`The person left at turn ${P.abandoned.at}`, String(P.abandoned.reason), 'gold');
+    if (P.turns?.length) table(['#', 'What the platform asked', 'Took', 'Repeat?', 'Got it?', 'What the person said'], P.turns.map((t: Any) => [String(t.n), t.question, t.latency_s != null ? `${t.latency_s} s` : '—', t.repeat ? 'YES, again' : 'no', t.understood === false ? 'NO' : t.understood === true ? 'yes' : '—', t.reply]), { widths: [0.05, 0.33, 0.09, 0.1, 0.1, 0.33], fs: 7.2 });
+    h3('Asked again what was already answered');
+    if (P.repeats?.length) table(['Turn', 'The question', 'First asked at', 'How we know it is the same'], P.repeats.map((r: Any) => [String(r.n), r.question, s(r.first_asked_at), s(r.why)]), { widths: [0.08, 0.56, 0.14, 0.22], fs: 7.6 });
+    else p('Nothing was asked twice.');
+    h3('The slowest replies');
+    if (P.slowest?.length) table(['Turn', 'Seconds', 'The question that came with it'], P.slowest.map((x: Any) => [String(x.n), String(x.seconds), x.question]), { widths: [0.1, 0.12, 0.78], fs: 7.6 });
+    else p('No reply was timed.');
+    h3('What the person could not answer, and what the platform did with each "not sure"');
+    if (P.not_sure?.length) table(['Turn', 'About', 'The person said', 'What the platform did next', 'What it recorded'], P.not_sure.map((x: Any) => [String(x.n), x.topic, `${x.said}${x.file ? ` (and sent ${x.file})` : ''}`, x.platform_did, s(x.recorded_as)]), { widths: [0.06, 0.2, 0.26, 0.28, 0.2], fs: 7.2 });
+    else p('The person was never unsure.');
+    if (P.misunderstood?.length) { h3('Questions the person did not understand'); table(['Turn', 'The question', 'The person said'], P.misunderstood.map((m: Any) => [String(m.n), m.question, m.said]), { widths: [0.08, 0.52, 0.4], fs: 7.6 }); }
+    if (P.suppliers?.length) { h3('The suppliers, played as people'); table(['Supplier (ZZ DEMO)', 'What he does', 'What happened'], P.suppliers.map((x: Any) => [x.label, x.behaviour, `${s(x.outcome)}${x.steps?.length ? '\n' + x.steps.join('\n') : ''}`]), { widths: [0.22, 0.22, 0.56], fs: 7.2 }); }
+    if (P.problems?.length) { h3('Where the test\'s person went wrong (the test, not the platform)'); for (const x of P.problems) B.push({ t: 'li', text: `turn ${x.n}: ${x.text}` }); }
+    if (P.spend) note(`The person's own model calls: ${P.spend.calls}, USD ${Number(P.spend.usd || 0).toFixed(4)}${P.spend.models?.length ? ` (${P.spend.models.join(', ')})` : ''}. They are in the cost table of section ${NUM('s10')} under journey_persona_player when live.`);
+    verdicts(P);
+  }
 
   // ── the exhibits ──
   if (rec.exhibits?.length) {
