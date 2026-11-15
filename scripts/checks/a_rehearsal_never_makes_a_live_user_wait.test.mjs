@@ -15,8 +15,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import {
-  APPLY_HOLD_LIMIT, APPLY_LOCK_CAP, CATALOGUE_SQL, applyLockTimeout, applyPrelude, LOCK_TIMEOUT, REPLAY_LIMIT, catalogueFrom, planReplay, settleVerdict,
-  stallsLiveUsers, tightenLimits,
+  APPLY_HOLD_LIMIT, APPLY_LOCK_CAP, CATALOGUE_SQL, applyLockTimeout, applyPrelude, LOCK_TIMEOUT, REPLAY_LIMIT, catalogueFrom, planReplay, settleOutcome,
+  settleVerdict, stallsLiveUsers, tightenLimits,
 } from '../lib/replay_guard.mjs';
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
@@ -119,36 +119,53 @@ test('not refused: routine bodies, new tables, comments, reads, writes, and lock
 
 test("a file's own limits are lowered on the same line, every way it can say them; what would lift one is refused", () => {
   const t = "-- set lock_timeout = '9s' in a comment stays\nset local lock_timeout = '5s';\nset lock_timeout to '15s';\nset local lock_timeout = '250ms';\n"
-    + "set lock_timeout to default;\nreset lock_timeout;\nset lock_timeout = 0;\nselect set_config('lock_timeout', '30s', true);\n"
-    + "do $d$ begin perform set_config('lock_timeout', '0', true); end $d$;\n"
+    + "set lock_timeout to default;\nreset lock_timeout;\nset lock_timeout = 0;\nset session lock_timeout = '30s';\n"
+    + "select set_config('qd.probe', 'x', true);\n"
     + "create function public.fn_y() returns int language sql set lock_timeout to '2s' as $f$ select 1 $f$;\n"
     + "create function public.fn_z() returns void language plpgsql as $f$ begin perform set_config('lock_timeout', v_prev, true); end $f$;\n";
   const out = tightenLimits(t);
   assert.equal(out.split('\n').length, t.split('\n').length, 'line numbers kept');
   assert.deepEqual(out.split('\n').slice(0, 9), ["-- set lock_timeout = '9s' in a comment stays", "set local lock_timeout = '1s';", "set local lock_timeout = '1s';",
     "set local lock_timeout = '250ms';", "set local lock_timeout = '1s';", "set local lock_timeout = '1s';", "set local lock_timeout = '1s';",
-    "select set_config('lock_timeout', '1s', true);", "do $d$ begin perform set_config('lock_timeout', '1s', true); end $d$;"]);
+    "set local lock_timeout = '1s';", "select set_config('qd.probe', 'x', true);"]);
   assert.match(out, /set lock_timeout to '2s' as \$f\$/, "a routine's own SET attribute is not a statement of the replay");
   assert.match(out, /perform set_config\('lock_timeout', v_prev, true\)/, 'nor is a set_config inside a routine body');
   assert.match(tightenLimits("set lock_timeout = '15s';", 'apply', { cap: APPLY_LOCK_CAP }), /^set local lock_timeout = '1500ms';$/);
   assert.throws(() => tightenLimits("set local transaction_timeout = '10min';"), /transaction_timeout/);
   assert.throws(() => tightenLimits("select set_config('transaction_timeout', '0', true);"), /transaction_timeout/);
   assert.throws(() => tightenLimits('reset all;'), /RESET ALL/);
-  assert.throws(() => tightenLimits("select set_config('lock_timeout', v, true) from t;"), /computes its lock_timeout/);
+  assert.throws(() => tightenLimits("select set_config('lock_timeout', v, true) from t;"), /changes lock_timeout through set_config/);
+  assert.throws(() => tightenLimits("select set_config(v_name, '0', true) from t;"), /computes the setting it changes in set_config/);
   // the spellings the review listed (item 9): case, spacing, SESSION/LOCAL, quoted and unquoted values, a statement over lines
   for (const v of ["SET LOCK_TIMEOUT = '15s';", 'set   lock_timeout   to   15000;', "set local lock_timeout='3s';", 'SET SESSION lock_timeout TO "15s";',
     'set lock_timeout=15s;', "set\nlock_timeout\n=\n'15s';", "set lock_timeout = '1 min';", 'RESET   LOCK_TIMEOUT;', 'Set Lock_Timeout To Default;']) {
     assert.equal(tightenLimits(v), `set local lock_timeout = '1s'${'\n'.repeat(v.split('\n').length - 1)};`, v);
   }
-  assert.equal(tightenLimits("select SET_CONFIG('LOCK_TIMEOUT','15s',true);"), "select SET_CONFIG('LOCK_TIMEOUT','1s',true);");
-  assert.equal(tightenLimits("SELECT pg_catalog.set_config( 'lock_timeout' , '9s' , true );"), "SELECT pg_catalog.set_config( 'lock_timeout' , '1s', true );");
+  // set_config of a limit is refused, however it is spelled (review 2, item 2): only the top-level SET form is lowered
+  for (const v of ["select SET_CONFIG('LOCK_TIMEOUT','15s',true);", "SELECT pg_catalog.set_config( 'lock_timeout' , '9s' , true );",
+    "select set_config('statement_timeout', '0', true);", "do $d$ begin perform set_config('lock_timeout', '0', true); end $d$;"]) assert.throws(() => tightenLimits(v), /through set_config/, v);
   assert.equal(tightenLimits("set lock_timeout = '500ms';"), "set lock_timeout = '500ms';", 'a tighter value is kept');
   assert.throws(() => tightenLimits('RESET  ALL;'), /RESET ALL/);
   assert.throws(() => tightenLimits("SET Transaction_Timeout = '1h';"), /transaction_timeout/);
 });
 
-test('every committed SQL file can be tightened (none lifts a limit of its own)', () => {
-  for (const f of readdirSync(join(REPO, 'scripts/sql')).filter((x) => x.endsWith('.sql'))) tightenLimits(read(`scripts/sql/${f}`), f);
+// 15 committed files (14 probes and replay_verify.sql; counted 15 Nov 2026) set statement_timeout inside a DO block, which is now
+// refused on production (review 2, item 2). They run on the local database, where no plan is applied (safe_replay.mjs replaySql),
+// and none is ever applied again. A new file is not added to this list: it says its limit at the top level, or not at all.
+export const STATEMENT_TIMEOUT_IN_A_DO_BLOCK = new Set(['a_supplier_describes_its_services_in_its_own_words_probe.sql',
+  'a_supplier_who_limits_its_emirates_is_matched_only_there_probe.sql', 'every_seat_reviews_itself_every_month_probe.sql',
+  'one_job_number_on_every_portal_document_and_notice_probe.sql', 'probe_the_invitation_batch_runs_on_its_own_clock_and_the_guard_takes_the_link_less_copy.sql',
+  'replay_verify.sql', 'the_ceo_improvement_sweep_closes_before_it_proposes_and_settles_in_one_run_probe.sql',
+  'the_ceo_plans_every_day_and_directs_the_seats_probe.sql', 'the_ceo_tracks_the_supplier_target_by_trade_and_emirate_probe.sql',
+  'the_ceo_weekly_review_acts_on_every_missed_target_probe.sql', 'the_embedding_picker_orders_on_the_index.sql',
+  'the_nonresponse_charge_is_the_refund_plus_the_admin_fee_plus_lawful_interest_probe.sql',
+  'the_sanctions_screen_stops_opening_tasks_on_seats_that_do_not_exist.sql', 'the_seat_duty_jobs_are_spread_over_the_five_minutes_probe.sql',
+  'the_weekly_report_arrives_and_the_rules_decide_probe.sql']);
+test('every committed SQL file can be tightened (none lifts a limit of its own), but the 15 named that set statement_timeout in a DO block', () => {
+  for (const f of readdirSync(join(REPO, 'scripts/sql')).filter((x) => x.endsWith('.sql'))) {
+    if (STATEMENT_TIMEOUT_IN_A_DO_BLOCK.has(f)) assert.throws(() => tightenLimits(read(`scripts/sql/${f}`), f), /statement_timeout/, f);
+    else tightenLimits(read(`scripts/sql/${f}`), f);
+  }
 });
 
 // ---- replaySql against a stubbed production ------------------------------------------------------------------------------
@@ -204,7 +221,9 @@ test('the real apply: lock_timeout 1500 ms (or --lock-timeout), printed; the fil
   assert.equal(applyLockTimeout(['--apply', '--lock-timeout=3000']), '3000ms');
   assert.equal(applyLockTimeout(['--lock-timeout', '800']), '800ms');
   assert.equal(applyLockTimeout(['--lock-timeout=2s']), '2000ms');
-  for (const bad of ['--lock-timeout=0', '--lock-timeout=60000', '--lock-timeout=soon', '--lock-timeout=']) assert.throws(() => applyLockTimeout([bad]), /refused/, bad);
+  for (const bad of ['--lock-timeout=0', '--lock-timeout=0.4', '--lock-timeout=0.99', '--lock-timeout=0.5ms', '--lock-timeout=60000', '--lock-timeout=soon', '--lock-timeout=']) assert.throws(() => applyLockTimeout([bad]), /refused/, bad);
+  assert.equal(applyLockTimeout(['--lock-timeout=1.2']), '2ms', 'rounded up, never down to no limit (review 2, item 4)');
+  assert.equal(applyLockTimeout(['--lock-timeout=1']), '1ms');
   // what is put in front of the file, and what is printed
   const plain = applyPrelude({ lockTimeout: '1500ms', holdsStrongLock: false, tag: 'qd-apply x' });
   assert.equal(plain.prelude, "set local lock_timeout = '1500ms'; set application_name = 'qd-apply x'; ");
@@ -223,12 +242,27 @@ test('the real apply: lock_timeout 1500 ms (or --lock-timeout), printed; the fil
   assert.doesNotMatch(apply, /r\.status >= 500\) && attempt/, 'a 5xx is never re-sent by the transport');
   // after a 5xx: committed -> read back; anything else -> it stops (exit 4 proven not committed, exit 5 unknown), never re-sent
   const unsettled = apply.slice(apply.indexOf('if (!mustRunAlone && e?.unsettled) {'), apply.indexOf('if (mustRunAlone || !LOCK_NOT_GRANTED'));
-  assert.match(unsettled, /process\.exit\(4\)/);
+  assert.match(unsettled, /const verdict = await settleUnknown\(e\);/);
   assert.doesNotMatch(unsettled, /continue;/, 'a 5xx is never followed by another send');
+  // review 2, item 5: a first copy still running is never judged, and the MANIFEST is read before anyone is told to re-run
+  const settle = apply.slice(apply.indexOf('async function settleUnknown(e) {'), apply.indexOf('let applied;'));
+  assert.match(settle, /stillRunning = false; break;/);
+  assert.match(settle, /guard\.settleOutcome\(\{ stillRunning, verdict, inManifest, file, tag: applyTag \}\)/);
+  assert.match(settle, /MANIFEST\.txt/);
+  assert.match(settle, /process\.exit\(out\.exit\)/);
   assert.equal(settleVerdict('a', 'b', false), 'committed');
   assert.equal(settleVerdict('a', 'a', true), 'not committed');
   assert.equal(settleVerdict('a', 'a', false), 'unknown');
-  assert.match(apply, /process\.exit\(5\)/, 'unknown is never re-sent: it stops');
+  const o = (a) => settleOutcome({ file: 'f.sql', tag: 'qd-apply t', ...a });
+  assert.equal(o({ stillRunning: true, verdict: 'not committed', inManifest: false }).exit, 5, 'still running: never judged');
+  assert.match(o({ stillRunning: true }).lines.join(' '), /STILL RUNNING[\s\S]*Do NOT re-run/);
+  assert.equal(o({ stillRunning: false, verdict: 'committed', inManifest: false }).exit, 0);
+  assert.equal(o({ stillRunning: false, verdict: 'not committed', inManifest: false }).exit, 4);
+  assert.match(o({ stillRunning: false, verdict: 'not committed', inManifest: false }).lines.join(' '), /run the same command again/);
+  assert.equal(o({ stillRunning: false, verdict: 'not committed', inManifest: true }).exit, 5, 'the MANIFEST lists it: nobody is told to re-run');
+  assert.doesNotMatch(o({ stillRunning: false, verdict: 'not committed', inManifest: true }).lines.join(' '), /run the same command again/);
+  assert.equal(o({ stillRunning: false, verdict: 'unknown', inManifest: false }).exit, 5, 'unknown is never re-sent: it stops');
+  assert.match(apply, /const dynamic = guard\.dynamicSql\(sql\);/, 'the apply refuses dynamic SQL');
 });
 
 test('every path that rehearses goes through the guard and none loosens it', () => {

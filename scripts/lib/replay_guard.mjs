@@ -67,10 +67,24 @@ export function lex(sql) {
       continue;
     }
     const at = i;
+    // U&"name" / U&'text' (review 2, item 3: `alter table U&"quotes"` passed as a name nobody has): the escapes are decoded, so the
+    // name is the relation it names. A UESCAPE clause is honoured; `u` marks the token so the limits can refuse it as a spelling.
+    if ((c === 'U' || c === 'u') && d === '&' && (s[i + 2] === '"' || s[i + 2] === "'") && !isId(s[i - 1])) {
+      const q = s[i + 2]; i += 3; let v = '';
+      while (i < n) { if (s[i] === q) { if (s[i + 1] === q) { v += q; i += 2; continue; } i++; break; } v += s[i++]; }
+      const ue = /^\s*uescape\s*'(.)'/i.exec(s.slice(i, i + 40)); const esc = ue ? ue[1] : '\\'; if (ue) i += ue[0].length;
+      let dec = ''; for (let k = 0; k < v.length; k++) {
+        if (v[k] !== esc) { dec += v[k]; continue; }
+        if (v[k + 1] === esc) { dec += esc; k++; continue; }
+        const m = v[k + 1] === '+' ? /^\+([0-9A-Fa-f]{6})/.exec(v.slice(k + 1)) : /^([0-9A-Fa-f]{4})/.exec(v.slice(k + 1));
+        if (m) { dec += String.fromCodePoint(parseInt(m[1], 16)); k += m[0].length; } else dec += v[k];
+      }
+      out.push({ t: q === '"' ? 'qid' : 'str', v: q === '"' ? dec : dec, pos: at, u: true }); continue;
+    }
     if ((c === 'E' || c === 'e') && d === "'" && !isId(s[i - 1])) {
       i += 2; let v = '';
       while (i < n) { if (s[i] === '\\') { v += s[i + 1] ?? ''; i += 2; continue; } if (s[i] === "'") { if (s[i + 1] === "'") { v += "'"; i += 2; continue; } i++; break; } v += s[i++]; }
-      out.push({ t: 'str', v, pos: at }); continue;
+      out.push({ t: 'str', v, pos: at, e: true }); continue;
     }
     if (c === "'") {
       i++; let v = '';
@@ -111,7 +125,10 @@ const NOT_A_NAME = new Set(['only', 'if', 'exists', 'not', 'table', 'on', 'casca
 // A relation name at toks[i]: word or "quoted", optionally schema-qualified. null when the token is not a name (a %I).
 function readName(toks, i) {
   const a = toks[i]; if (!a || !(a.t === 'word' || a.t === 'qid') || (a.t === 'word' && NOT_A_NAME.has(a.v))) return null;
-  if (toks[i + 1]?.v === '.' && (toks[i + 2]?.t === 'word' || toks[i + 2]?.t === 'qid')) return { name: `${a.v}.${toks[i + 2].v}`, next: i + 3 };
+  const part = (k) => toks[k]?.t === 'word' || toks[k]?.t === 'qid';
+  // database.schema.relation (review 2, item 3: `alter table postgres.public.quotes` passed): the database part is dropped
+  if (toks[i + 1]?.v === '.' && part(i + 2) && toks[i + 3]?.v === '.' && part(i + 4)) return { name: `${toks[i + 2].v}.${toks[i + 4].v}`, next: i + 5 };
+  if (toks[i + 1]?.v === '.' && part(i + 2)) return { name: `${a.v}.${toks[i + 2].v}`, next: i + 3 };
   return { name: a.v, next: i + 1 };
 }
 
@@ -128,6 +145,13 @@ function locksOf(toks, dynamic = false) {
   const at = (word, kind, mode) => { const k = after(word); if (k >= 0) { i = k + 1; add(name(), mode, kind); } return out; };
   const refs = () => { for (let k = i; k < toks.length; k++) if (w(k) === 'references') add(readName(toks, k + 1)?.name, 'SHARE ROW EXCLUSIVE', 'REFERENCES'); };
   const head = w(0);
+  // WHAT A NAME DOES NOT SAY (review 2, item 3). ALTER DOMAIN ... ADD CONSTRAINT checks, under SHARE, every table with a column of
+  // that domain; DROP FUNCTION/PROCEDURE/TYPE/DOMAIN ... CASCADE drops the triggers, columns and defaults that use it, under ACCESS
+  // EXCLUSIVE on their tables. Which tables is not in the text, so the relation is '?': refused on production, rehearsed locally.
+  const unknown = (mode, kind) => { out.push({ name: '?', mode, kind, dynamic: false }); return out; };
+  if (head === 'alter' && w(1) === 'domain') return unknown('SHARE', 'ALTER DOMAIN (every table with a column of that domain)');
+  if (head === 'drop' && ['function', 'procedure', 'routine', 'type', 'domain', 'aggregate', 'operator', 'extension', 'collation', 'conversion'].includes(w(1))
+      && toks.some((t) => t.t === 'word' && t.v === 'cascade')) return unknown('ACCESS EXCLUSIVE', `DROP ${toks[1].v.toUpperCase()} ... CASCADE (the tables whose triggers, columns or defaults use it)`);
   if (head === 'alter') {
     if (eat('table')) { if (w(i) === 'all') return out; eatIf(); add(name(), 'ACCESS EXCLUSIVE', 'ALTER TABLE'); refs(); return out; }
     if (eat('trigger', 'policy', 'rule')) return at('on', `ALTER ${toks[1].v.toUpperCase()}`, 'ACCESS EXCLUSIVE');
@@ -169,7 +193,14 @@ function locksOf(toks, dynamic = false) {
     if (eat('table', 'index') && !eat('concurrently')) add(name(), 'ACCESS EXCLUSIVE', 'REINDEX');
     return out;
   }
-  if (head === 'cluster') { if (toks[i]) add(name(), 'ACCESS EXCLUSIVE', 'CLUSTER'); return out; }
+  if (head === 'cluster') {
+    // CLUSTER VERBOSE t / CLUSTER (VERBOSE) t (review 2, item 3: `cluster verbose public.quotes` passed); a bare CLUSTER re-clusters every
+    // table that was clustered before: '?'
+    if (toks[i]?.v === '(') { while (i < toks.length && toks[i].v !== ')') i++; i++; }
+    eat('verbose');
+    if (toks[i]) add(name(), 'ACCESS EXCLUSIVE', 'CLUSTER'); else unknown('ACCESS EXCLUSIVE', 'CLUSTER (every table clustered before)');
+    return out;
+  }
   if (head === 'refresh' && w(1) === 'materialized' && w(2) === 'view') { i = 3; const conc = eat('concurrently'); add(name(), conc ? 'EXCLUSIVE' : 'ACCESS EXCLUSIVE', 'REFRESH MATERIALIZED VIEW'); }
   return out;
 }
@@ -178,13 +209,35 @@ const HEADS = new Set(['alter', 'drop', 'create', 'truncate', 'lock', 'reindex',
 // in plpgsql a statement can follow these without a `;` of its own
 const BLOCK_WORDS = new Set(['begin', 'then', 'else', 'loop', 'declare']);
 
+// THE SEARCH PATH A STATEMENT RUNS UNDER (review 2, item 3: `set local search_path = storage, public; alter table objects` passed,
+// because `objects` was read as public.objects). `set [local|session] search_path {=|to} a, b` (or set_config('search_path', 'a, b',
+// ...) with a literal) is followed, and an unqualified name after it is the first schema of that path that has it.
+function searchPathOf(st) {
+  const w = (k) => (st[k]?.t === 'word' ? st[k].v : null);
+  let k = 0;
+  if (w(0) === 'reset' && (st[1]?.v === 'search_path')) return { path: null };
+  if (w(0) === 'set') {
+    k = 1; if (w(k) === 'local' || w(k) === 'session') k++;
+    if (st[k]?.v !== 'search_path') return undefined;
+    k++; if (st[k]?.v === '=' || w(k) === 'to') k++;
+    if (w(k) === 'default') return { path: null };
+    return { path: st.slice(k).filter((t) => t.t !== 'p').map((t) => t.v).filter((v) => v && v !== '$user' && v !== 'pg_temp') };
+  }
+  const c = st.findIndex((t, j) => t.t === 'word' && t.v === 'set_config' && st[j + 1]?.v === '(' && st[j + 2]?.t === 'str' && st[j + 2].v.toLowerCase() === 'search_path');
+  if (c >= 0 && st[c + 4]?.t === 'str') return { path: st[c + 4].v.split(',').map((x) => x.trim().replace(/^"|"$/g, '')).filter((v) => v && v !== '$user' && v !== 'pg_temp') };
+  return undefined;
+}
+
 /** Every lock a text takes by what it says, top-level and inside DO blocks (with their EXECUTE strings), with its line. */
 export function statedLocks(text) {
   const s = String(text); const out = [];
+  let path = null;   // the search path the statements run under (null: the default, public)
+  const follow = (st) => { const sp = searchPathOf(st); if (sp) path = sp.path && sp.path.length ? sp.path : null; };
   const scanBody = (body, line, dynamic) => {
     for (const st of statements(body)) {
+      follow(st);
       const k = st.findIndex((t, j) => t.t === 'word' && HEADS.has(t.v) && (j === 0 || (st[j - 1].t === 'word' && BLOCK_WORDS.has(st[j - 1].v))));
-      if (k >= 0) for (const l of locksOf(st.slice(k), dynamic)) out.push({ ...l, line });
+      if (k >= 0) for (const l of locksOf(st.slice(k), dynamic)) out.push({ ...l, line, path });
       // EXECUTE 'sql' / EXECUTE format('sql %I', x): the strings are SQL, and a %I/%s where a name goes is a name built at run time
       if (st.some((t) => t.t === 'word' && t.v === 'execute')) {
         for (const t of st) if (t.t === 'str' || t.t === 'body') scanText(t.v.replace(/%[ILs]/g, ' % '), line, true);
@@ -194,15 +247,42 @@ export function statedLocks(text) {
   const scanText = (sql, lineOverride, dynamic) => {
     for (const st of statements(sql)) {
       const line = lineOverride ?? s.slice(0, st[0].pos).split('\n').length;
+      follow(st);
       if (st[0].t === 'word' && st[0].v === 'do') {
         const b = st.find((t) => t.t === 'body' || t.t === 'str');
         if (b) scanBody(b.v, line, dynamic);
         continue;
       }
-      for (const l of locksOf(st, dynamic)) out.push({ ...l, line });
+      for (const l of locksOf(st, dynamic)) out.push({ ...l, line, path });
     }
   };
   scanText(s, null, false);
+  return out;
+}
+
+// DYNAMIC SQL IS NOT SENT TO PRODUCTION (review 2, items 2 and 3). An EXECUTE whose argument is not one literal (a concatenation,
+// a variable, format(...)) builds its statement at run time: `execute 'alter ' || 'table public.quotes ...'`, `execute v_sql`,
+// `execute 'create index ... on public.' || t`, and `execute 'set local transaction' || '_timeout = 0'` all passed every reading.
+// Each EXECUTE in a DO block (what a replay or an apply runs) is listed here; a routine's body is not run by the text and is not.
+// `execute '<literal>'` (with USING/INTO) is read as the SQL it is, by statedLocks and tightenLimits.
+export function dynamicSql(text) {
+  const s = String(text); const out = [];
+  const scan = (toks, line) => {
+    for (let k = 0; k < toks.length; k++) {
+      if (!(toks[k].t === 'word' && toks[k].v === 'execute')) continue;
+      const prev = toks[k - 1];
+      if (prev && prev.t === 'word' && ['grant', 'revoke', 'on'].includes(prev.v)) continue;           // GRANT EXECUTE ON FUNCTION
+      if (toks[k + 1]?.t === 'word' && ['on', 'function', 'procedure'].includes(toks[k + 1].v)) continue;   // ... EXECUTE ON / EXECUTE FUNCTION f()
+      const a = toks[k + 1], b = toks[k + 2];
+      const literal = a && (a.t === 'str' || a.t === 'body') && !a.u && (!b || b.v === ';' || (b.t === 'word' && (b.v === 'using' || b.v === 'into')));
+      if (!literal) out.push({ line, what: toks.slice(k, k + 6).map((t) => (t.t === 'str' ? `'${t.v.slice(0, 20)}'` : t.v)).join(' ').slice(0, 80) });
+    }
+  };
+  for (const st of statements(s)) {
+    if (!(st[0]?.t === 'word' && st[0].v === 'do')) continue;
+    const b = st.find((t) => t.t === 'body' || t.t === 'str');
+    if (b) scan(lex(b.v), s.slice(0, st[0].pos).split('\n').length);
+  }
   return out;
 }
 
@@ -238,7 +318,7 @@ export function stallsLiveUsers(text, catalogue) {
   return statedLocks(text).filter((l) => STRONG_MODES.has(l.mode)).flatMap((l) => {
     if (l.schema) return catalogue.schemaHasAny(l.schema) ? [{ ...l, table: l.name }] : [];
     if (l.name === '?') return [{ ...l, table: '?' }];
-    const q = qualify(l.name);
+    const q = l.name.includes('.') || !l.path ? qualify(l.name) : (l.path.map((sc) => `${sc}.${l.name}`).find((c) => catalogue.has(c)) ?? qualify(l.name));
     return catalogue.has(q) ? [{ ...l, table: catalogue.tableOf(q).replace(/^public\./, '') }] : [];
   });
 }
@@ -246,30 +326,62 @@ export function stallsLiveUsers(text, catalogue) {
 // ---------------------------------------------------------------------------------------------------------------------------
 // A caller's text may tighten the limits, never loosen them: a later SET would override the guard's own line.
 // 41 committed scripts/sql files set their own lock_timeout (250 ms to 15 s, counted 13 Nov 2026) for their real apply, and the
-// gate replays them, so every way a statement can raise it is lowered to the cap, on the same line:
-//   set [local|session] lock_timeout {=|to} <above the cap | 0 | default>, reset lock_timeout,
-//   set_config('lock_timeout', '<above the cap | 0>', ...) anywhere (a value that is not a literal is refused).
-// RESET ALL, and anything that names transaction_timeout, would lift the guard's other limit: refused. A routine's own SET
-// attribute is not a statement and is left alone (the transaction_timeout still bounds it).
+// gate replays them, so the ONE plain form, a top-level `set [local|session] lock_timeout {=|to} <value>` (and `reset lock_timeout`),
+// is lowered to the cap on the same line when it is above it (or 0, or the default).
+// EVERYTHING ELSE THAT COULD MOVE A LIMIT IS REFUSED, read on the RAW text (review 2 of 13 Nov 2026, item 2: `set local
+// "lock_timeout" = 0`, `do $$ begin execute 'set local lock_timeout = 0'; end $$`, `select set_config(E'lock_timeout','0',true)` all
+// left lock_timeout at 0 on a local Postgres 16, and the same four shapes for transaction_timeout passed):
+//   * the word transaction_timeout anywhere: a comment, a string, a quoted name, a routine body (the guard owns that limit);
+//   * a set_config( outside a routine body whose first argument is not one plain '...' literal (E'', U&'', a concatenation, a
+//     variable), or whose literal names lock_timeout, statement_timeout or transaction_timeout;
+//   * a SET or RESET of those three inside a DO block or an EXECUTE string, and a top-level SET of one spelled as a quoted name;
+//   * RESET ALL.
+// An EXECUTE whose argument is not a literal is refused on production as dynamic SQL (dynamicSql, planReplay and apply_sql), so a
+// SET built at run time cannot reach the database either. A routine's own SET attribute is not a statement and is left alone, as
+// is a set_config inside a routine body: the transaction_timeout bounds whatever a called routine does.
 const SET_LOCK = /^\s*set\s+(?:local\s+|session\s+)?lock_timeout\s*(?:=|to)\s*'?\s*([a-z0-9.]+)\s*(ms|s|min)?\s*'?\s*$/i;
 const msOf = (v) => { const m = /^\s*(\d+(?:\.\d+)?)\s*(ms|s|min)?\s*$/i.exec(String(v)); if (!m) return null; const u = (m[2] || 'ms').toLowerCase(); return Number(m[1]) * (u === 'min' ? 60000 : u === 's' ? 1000 : 1); };
+const LIMITS = new Set(['lock_timeout', 'statement_timeout', 'transaction_timeout']);
+const isRoutine = (st) => st[0]?.v === 'create' && st.some((t, k) => k < 6 && t.t === 'word' && (t.v === 'function' || t.v === 'procedure'));
+
+/** What in a text could move a limit, other than the plain top-level SET lock_timeout form tightenLimits lowers: [reason]. */
+export function limitLifters(text) {
+  const s = String(text); const found = [];
+  if (/transaction_timeout/i.test(s)) found.push('sets its own transaction_timeout');
+  // set_config and SET read token by token, top level and inside DO bodies and their strings, never inside a routine body
+  // a DO block's body, and inside it every body and string (an EXECUTE's), is SQL that runs; a top-level string or a comment's $$ is not
+  const scan = (toks, inBlock, depth, isDo = false) => {
+    for (let k = 0; k < toks.length; k++) {
+      const t = toks[k];
+      if (((t.t === 'body' && (inBlock || isDo)) || (t.t === 'str' && inBlock)) && depth < 4) scan(lex(t.v), true, depth + 1);
+      if ((t.t === 'qid' || t.t === 'str') && t.u && /transaction_timeout/i.test(t.v)) found.push('sets its own transaction_timeout');
+      if (t.t === 'word' && t.v === 'set_config' && toks[k + 1]?.v === '(') {
+        const a = toks[k + 2], c = toks[k + 3];
+        if (!(a?.t === 'str' && !a.e && !a.u && c?.v === ',')) found.push(`computes the setting it changes in set_config (${toks.slice(k, k + 6).map((x) => x.v).join(' ').slice(0, 60)})`);
+        else if (LIMITS.has(a.v.toLowerCase())) found.push(`changes ${a.v.toLowerCase()} through set_config`);
+      }
+      const atStart = k === 0 || toks[k - 1].v === ';' || (toks[k - 1].t === 'word' && BLOCK_WORDS.has(toks[k - 1].v));
+      if (t.t === 'word' && (t.v === 'set' || t.v === 'reset') && atStart) {
+        let j = k + 1; if (toks[j]?.t === 'word' && (toks[j].v === 'local' || toks[j].v === 'session')) j++;
+        const g = toks[j]; const name = g && (g.t === 'word' || g.t === 'qid' || g.t === 'str') ? g.v.toLowerCase() : '';
+        if (LIMITS.has(name) && (inBlock || g.t !== 'word')) found.push(`${t.v === 'set' ? 'sets' : 'resets'} ${name} ${inBlock ? 'inside a DO block or an EXECUTE string' : 'spelled as a quoted name'}`);
+        if (t.v === 'reset' && name === 'all' && g.t === 'word') found.push('says RESET ALL, which would lift the lock_timeout and the transaction_timeout');
+      }
+    }
+  };
+  for (const st of statements(s)) { if (!isRoutine(st)) scan(st, false, 0, st[0]?.t === 'word' && st[0].v === 'do'); }
+  return [...new Set(found)];
+}
 
 /** The text with every lock_timeout above `cap` (or 0, or the default) lowered to it; throws on what would lift a limit. */
 export function tightenLimits(text, label = 'the replay', { cap = LOCK_TIMEOUT } = {}) {
   const capMs = msOf(cap);
-  const refuse = (what) => { throw new Error(`SAFE REPLAY REFUSED: ${label} ${what}; the guard owns that limit on production (scripts/lib/replay_guard.mjs). Remove the line.`); };
-  let s = String(text);
-  if (/\btransaction_timeout\b/i.test(maskSql(s)) || /set_config\s*\(\s*'transaction_timeout'/i.test(s)) refuse('sets its own transaction_timeout');
-  if (/(^|;)\s*reset\s+all\b/i.test(maskSql(s))) refuse('says RESET ALL, which would lift the lock_timeout and the transaction_timeout');
-  // a routine's body is not run by the replay (it runs when called, inside the 5 s): its set_config is left alone
-  const routineBodies = statements(s).filter((st) => st[0]?.v === 'create' && st.some((t, k) => k < 5 && (t.v === 'function' || t.v === 'procedure')))
-    .flatMap((st) => st.filter((t) => t.t === 'body').map((t) => [t.pos, t.end]));
-  s = s.replace(/set_config\s*\(\s*'lock_timeout'\s*,\s*([^,)]+)/gi, (all, arg, at) => {
-    if (routineBodies.some(([a, b]) => at > a && at < b)) return all;
-    const lit = /^\s*'([^']*)'\s*$/.exec(arg);
-    if (!lit) refuse(`computes its lock_timeout in set_config (${all.slice(0, 60)})`);
-    const ms = msOf(lit[1]); return ms === null || ms === 0 || ms > capMs ? all.replace(arg, `'${cap}'`) : all;
-  });
+  const lifters = limitLifters(text);
+  if (lifters.length) {
+    throw new Error(`SAFE REPLAY REFUSED: ${label} ${lifters.slice(0, 3).join('; ')}; the guard owns those limits on production `
+      + `(scripts/lib/replay_guard.mjs). Remove the line; a file may only say \`set local lock_timeout = '<ms>'\` at the top level.`);
+  }
+  const s = String(text);
   const mask = maskSql(s); let out = ''; let from = 0;
   for (let at = 0; at <= mask.length; at++) {
     if (at < mask.length && mask[at] !== ';') continue;
@@ -296,10 +408,11 @@ export function applyLockTimeout(argv = []) {
   if (!arg) return APPLY_LOCK_CAP;
   const v = arg.includes('=') ? arg.slice(arg.indexOf('=') + 1) : argv[argv.indexOf(arg) + 1];
   const ms = msOf(/^\d+(\.\d+)?$/.test(String(v ?? '').trim()) ? `${v}ms` : v);
-  if (ms === null || !(ms > 0) || ms > APPLY_LOCK_MAX_MS) {
+  // below 1 ms is refused (review 2, item 4: `--lock-timeout=0.4` passed `ms > 0`, then Math.round made it 0, which is NO limit)
+  if (ms === null || !(ms >= 1) || ms > APPLY_LOCK_MAX_MS) {
     throw new Error(`--lock-timeout=${v ?? ''} is refused: give milliseconds between 1 and ${APPLY_LOCK_MAX_MS} (default ${APPLY_LOCK_CAP})`);
   }
-  return `${Math.round(ms)}ms`;
+  return `${Math.ceil(ms)}ms`;
 }
 
 /** What a real apply puts in front of the file (one line, so line numbers match) and the sentence it prints about it. */
@@ -332,6 +445,12 @@ export function planReplay(text, { label = 'the replay', acceptStall = false, ca
       + `Rehearse it on the local database: ${LOCAL_COMMAND}, then the same command. Only if a stall of at most ${REPLAY_LIMIT} is `
       + `acceptable now: QD_REPLAY_ACCEPT_STALL=1 (every production replay is cut at ${REPLAY_LIMIT} either way).`);
   }
+  const dynamic = dynamicSql(text);
+  if (dynamic.length) {
+    throw new Error(`SAFE REPLAY REFUSED: ${label} runs dynamic SQL: ${dynamic.slice(0, 4).map((d) => `line ${d.line} ${d.what}`).join('; ')}. `
+      + 'What an EXECUTE builds at run time cannot be read before it is sent (a lock, a limit), so it is never sent to production, '
+      + `QD_REPLAY_ACCEPT_STALL or not. Rehearse it on the local database: ${LOCAL_COMMAND}, then the same command.`);
+  }
   return { prelude: guardPrelude(), text: tightened, stalls };
 }
 
@@ -352,4 +471,37 @@ export function cutError(label, cause) {
 export function settleVerdict(before, after, wouldChange) {
   if (before !== after) return 'committed';
   return wouldChange ? 'not committed' : 'unknown';
+}
+
+// WHAT THE APPLIER SAYS AFTER A 5xx (review 2 of 13 Nov 2026, item 5). The wait for the tagged session used to end after 40 x 3 s
+// whether or not it had gone, and the state was compared anyway: a data file with no strong lock (so no transaction_timeout) still
+// running behind a gateway 5xx was judged "not committed", and the operator was told to run the same command, i.e. a second copy
+// that can commit too. Now:
+//   * the first copy still present after the wait  -> exit 5, STILL RUNNING: do NOT re-run; watch pg_stat_activity for the tag;
+//   * committed                                      -> exit 0: go on to the read-back;
+//   * proven not committed, and the MANIFEST does not list the file -> exit 4: the same command may be run again;
+//   * proven not committed, but the MANIFEST already lists it (it was applied before; a re-apply's routines matched) -> exit 5;
+//   * unknown                                        -> exit 5: check by hand.
+export function settleOutcome({ stillRunning, verdict, inManifest, file = 'the file', tag = '' }) {
+  if (stillRunning) {
+    return { exit: 5, verdict: 'running', lines: [
+      `STILL RUNNING: ${file} got a 5xx, and after 2 minutes its first copy is still running on production (application_name '${tag}').`,
+      'Do NOT re-run it: a second copy could commit too. Watch pg_stat_activity for that application_name; once it has gone, read',
+      `routine_change_log and the objects the file writes to learn whether it committed, and only then decide.`] };
+  }
+  if (verdict === 'committed') return { exit: 0, verdict, lines: [] };
+  if (verdict === 'not committed' && !inManifest) {
+    return { exit: 4, verdict, lines: [
+      `STOPPED: ${file} did not commit (all or nothing, and what it changes is unchanged; its first copy has ended). It was NOT`,
+      're-sent automatically: run the same command again once production answers normally.'] };
+  }
+  if (verdict === 'not committed') {
+    return { exit: 5, verdict, lines: [
+      `STOPPED: ${file} did not commit this time, but scripts/sql/MANIFEST.txt already lists it: it was applied before. Do NOT re-run it`,
+      'before reading why (routine_change_log, the MANIFEST line\'s commit): a re-apply is the reviewer\'s decision, not the 5xx\'s.'] };
+  }
+  return { exit: 5, verdict: 'unknown', lines: [
+    `STOPPED: ${file} got a 5xx and the applier cannot tell whether it committed: nothing it can read changed, and nothing it can`,
+    `read was going to change. It was NOT re-sent. Check the rows or objects the file writes by hand (routine_change_log,`,
+    `application_name '${tag}'), then re-run the apply only if they are absent.`] };
 }

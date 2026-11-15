@@ -246,8 +246,15 @@ if (!APPLY) {
   if (DDL) console.log('  --ddl: also carries schema changes');
   console.log('  applied for the seat: ' + seat);
   // the limits the apply will set (guard fix round, item 4): the flag is read and checked here too, so a bad one fails the dry run
-  try { console.log(`  --apply will set lock_timeout = ${(await import('./lib/replay_guard.mjs')).applyLockTimeout(process.argv.slice(3))} (the file's own lowered to it), and transaction_timeout = 60s if it takes a lock that stops writers`); }
-  catch (e) { console.error('REFUSED: ' + e.message); process.exit(2); }
+  // ... and what --apply would refuse is refused here too (review 2, items 2-3): a limit the file moves, dynamic SQL
+  try {
+    const g = await import('./lib/replay_guard.mjs');
+    const lt = g.applyLockTimeout(process.argv.slice(3));
+    g.tightenLimits(sql, file, { cap: lt });
+    const dyn = g.dynamicSql(sql);
+    if (dyn.length) throw new Error(`${file} runs dynamic SQL in a DO block (${dyn.slice(0, 3).map((d) => `line ${d.line} ${d.what}`).join('; ')}); --apply would refuse it`);
+    console.log(`  --apply will set lock_timeout = ${lt} (the file's own lowered to it), and transaction_timeout = 60s if it takes a lock that stops writers`);
+  } catch (e) { console.error('REFUSED: ' + e.message); process.exit(2); }
   console.log('\nGuards passed. Re-run with --apply to write it.');
   process.exit(0);
 }
@@ -289,6 +296,11 @@ let text; let lockTimeout;
 try {
   lockTimeout = guard.applyLockTimeout(process.argv.slice(3));
   text = guard.tightenLimits(sql, file, { cap: lockTimeout });
+  // DYNAMIC SQL IS NOT APPLIED (review 2 of 13 Nov 2026, items 2-3): what an EXECUTE builds at run time cannot be read before it is
+  // sent, neither its locks nor a limit it sets. Write the statements out (every overload of a revoke by its signature).
+  const dynamic = guard.dynamicSql(sql);
+  if (dynamic.length) throw new Error(`${file} runs dynamic SQL in a DO block (${dynamic.slice(0, 3).map((d) => `line ${d.line} ${d.what}`).join('; ')}): `
+    + 'an EXECUTE whose argument is not one literal is never sent to production. Write the statements out, then apply.');
 } catch (e) { console.error('REFUSED: ' + e.message); process.exit(2); }
 const strongLocks = mustRunAlone ? [] : guard.stallsLiveUsers(sql, await guard.relationCatalogue((q) => readProd(PROD_REF, q)));
 if (strongLocks.length) {
@@ -326,19 +338,24 @@ const before = mustRunAlone ? null : await stateNow();
 // a retry can double a held lock); the operator re-runs the command. 4) Otherwise (a re-apply of identical routines, DDL whose
 // effect is not in the shape digest, data only) the applier cannot tell, so it does not guess: it stops, exit 5, and says how
 // to check by hand. A file is never re-sent on the hope that it is idempotent.
+// 5) The first copy still there after the wait: exit 5, STILL RUNNING, never judged (review 2, item 5). 6) Before anyone is told to
+// re-run, the MANIFEST is read: a file it already lists was applied before, and a re-run is not the 5xx's decision.
 async function settleUnknown(e) {
+  let stillRunning = true;
   for (let i = 0; i < 40; i++) {
     const rows = await readProd(PROD_REF, `select count(*)::int as n from pg_stat_activity where application_name = '${applyTag}'`);
-    if (!rows?.[0]?.n) break;
+    if (!rows?.[0]?.n) { stillRunning = false; break; }
     console.log(`  the first copy is still running on production; waiting (${i + 1}/40)`);
     await new Promise((res) => setTimeout(res, 3000));
   }
-  const verdict = guard.settleVerdict(sameState(before, await stateNow()) ? 'same' : 'changed', 'same', differsFromFile(before));
-  if (verdict !== 'unknown') return verdict;
-  console.error(`STOPPED: ${file} got "${String(e.message).slice(0, 200)}" and the applier cannot tell whether it committed: nothing it`);
-  console.error('can read changed, and nothing it can read was going to change. It was NOT re-sent. Check the rows or objects the file');
-  console.error(`writes by hand (routine_change_log, application_name like '%${nonce}%'), then re-run the apply only if they are absent.`);
-  process.exit(5);
+  const verdict = stillRunning ? 'running' : guard.settleVerdict(sameState(before, await stateNow()) ? 'same' : 'changed', 'same', differsFromFile(before));
+  let inManifest = true;   // unreadable: never tell anyone to re-run
+  try { inManifest = readFileSync(new URL('./sql/MANIFEST.txt', import.meta.url), 'utf8').split('\n').some((l) => l.trim() === `scripts/sql/${base(file)}`); } catch { /* kept true */ }
+  const out = guard.settleOutcome({ stillRunning, verdict, inManifest, file, tag: applyTag });
+  if (out.exit === 0) return 'committed';
+  console.error(`  (${String(e.message).slice(0, 200)})`);
+  for (const l of out.lines) console.error(l);
+  process.exit(out.exit);
 }
 
 let applied;
@@ -356,12 +373,9 @@ for (let attempt = 1; ; attempt++) {
     }
     if (!mustRunAlone && e?.unsettled) {
       const verdict = await settleUnknown(e);
-      if (verdict === 'committed') { console.log(`  ${msg.slice(0, 120)}: it COMMITTED behind the error; reading it back`); applied = []; verdictLost = true; break; }
       // NEVER RE-SENT AFTER A 5xx (decided 13 Nov 2026, guard fix round, item 5): a second copy sent while the first may still be
-      // ending doubles a held lock. Proven not committed, it stops and says so; the operator re-runs the same command.
-      console.error(`STOPPED: ${file} got "${msg.slice(0, 200)}". Nothing of it committed (all or nothing, and what it changes is`);
-      console.error('unchanged). It was NOT re-sent automatically: run the same command again once production answers normally.');
-      process.exit(4);
+      // ending doubles a held lock. settleUnknown has already stopped (exit 4 or 5) unless it committed.
+      if (verdict === 'committed') { console.log(`  ${msg.slice(0, 120)}: it COMMITTED behind the error; reading it back`); applied = []; verdictLost = true; break; }
     }
     if (mustRunAlone || !LOCK_NOT_GRANTED.test(msg) || attempt >= 6) throw e;
     console.log(`  a lock was not granted within ${lockTimeout}; nothing was applied; retrying in 10s (attempt ${attempt}/5)`);
