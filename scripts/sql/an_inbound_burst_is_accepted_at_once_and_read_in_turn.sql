@@ -80,6 +80,15 @@ create policy inbound_mail_queue_service_role_only on public.inbound_mail_queue
   as permissive for all to public using (false) with check (false);
 revoke all on public.inbound_mail_queue from anon, authenticated;
 revoke all on sequence public.inbound_mail_queue_id_seq from anon, authenticated;
+comment on table public.inbound_mail_queue is
+  'One row per inbound e-mail resend_inbound accepted (unique provider_email_id), holding the verified delivery until its reader '
+  'reads it; done rows are deleted after 30 days, dead rows (handed to their seat) are kept. it_engineer, 15 Nov 2026.';
+
+-- A dead row holds an e-mail nobody has read, so the table is exported beside inbound_messages.
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('inbound_mail_queue', true, 'conversation', 'inbound e-mail accepted by resend_inbound and waiting to be read; a dead row is mail no reader could read, handed to its seat (15 Nov 2026)', 'it_engineer')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
 
 update public.internal_credential set scope = scope || array['resend_inbound']
  where context = 'db.internal' and active and not ('resend_inbound' = any (scope));

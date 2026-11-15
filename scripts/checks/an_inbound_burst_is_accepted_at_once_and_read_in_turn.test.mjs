@@ -79,7 +79,7 @@ test('every routine is revoked and pinned; the table is service-role only; no st
   assert.match(SQL, /create policy inbound_mail_queue_service_role_only on public\.inbound_mail_queue\s+as permissive for all to public using \(false\) with check \(false\);/);
   assert.match(SQL, /revoke all on public\.inbound_mail_queue from anon, authenticated;/);
   const prod = catalogueFrom({ relations: ['public.internal_credential', 'public.cron_registry', 'public.writer_seat', 'public.agent_actions',
-    'public.app_secrets', 'public.inbound_messages', 'cron.job'].join(',') });
+    'public.app_secrets', 'public.inbound_messages', 'public.table_export_registry', 'cron.job'].join(',') });
   assert.deepEqual(stallsLiveUsers(SQL, prod), []);
   const manifest = read('scripts/sql/MANIFEST.txt').split('\n').map((l) => l.trim());
   const pending = (() => { try { return read(`scripts/sql/pending/${NAME}.txt`).trim(); } catch { return ''; } })();
