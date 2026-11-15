@@ -1312,7 +1312,7 @@ begin
   elsif v_choice = 'answer' then
     -- his own late hand-over: the answer is his reply, and the sender closes it as for any answered hand-over
     update public.agent_actions
-       set evidence = coalesce(evidence, '{}'::jsonb) || jsonb_build_object('reply', 'The CEO answers: ' || left(v_reason, 500), 'ceo_decision', v_dec),
+       set evidence = coalesce(evidence, '{}'::jsonb) || jsonb_build_object('reply', 'The CEO answers: ' || left(v_reason, 500), 'ceo_answered_at', now()),
            detail = detail || jsonb_build_object('replied_at', now(), 'awaiting', coalesce(h.detail->>'from', 'the sender') || ' closes it')
      where id = h.id;
   end if;
