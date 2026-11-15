@@ -45,14 +45,16 @@ Deno.test('a letter once given never changes: each later quote, cheaper or not, 
 });
 
 Deno.test('journey A replay: two suppliers get two letters, never "Supplier A" twice', () => {
-  // Arabian quoted first; Cool Breeze later and cheaper. The price rank made each PDF "A" at its own moment.
-  const arabian = { id: 'q-ara', supplier_id: 1, created_at: T(12) };
-  const breeze = { id: 'q-cb', supplier_id: 2, created_at: T(14) };
-  const pdfArabian = labelQuotes([arabian]).get('q-ara')!.letter;               // made when Arabian's was the only quote
-  const pdfBreeze = labelQuotes([breeze, arabian]).get('q-cb')!.letter;         // made after Cool Breeze, the cheapest, arrived
-  const compare = labelQuotes([breeze, arabian]);                               // the comparison, cheapest first
-  assertEquals([pdfArabian, pdfBreeze], ['A', 'B']);
-  assertEquals([compare.get('q-ara')!.letter, compare.get('q-cb')!.letter], [pdfArabian, pdfBreeze]);
+  // Journey A (record.json s5): Cool Breeze quoted first (AED 15,750), Arabian later and cheaper (AED 12,279), Polar Tech last.
+  // The price rank made each quotation PDF "A" at its own moment (QD-166739-A twice) and the comparison B and A.
+  const breeze = { id: 'q-cb', supplier_id: 1, created_at: T(12) };
+  const arabian = { id: 'q-ara', supplier_id: 2, created_at: T(14) };
+  const polar = { id: 'q-pt', supplier_id: 3, created_at: T(16) };
+  const pdfBreeze = labelQuotes([breeze]).get('q-cb')!.letter;                  // made when Cool Breeze's was the only quote
+  const pdfArabian = labelQuotes([arabian, breeze]).get('q-ara')!.letter;       // made after Arabian, the cheapest, arrived
+  const compare = labelQuotes([arabian, breeze, polar]);                        // the comparison, cheapest first
+  assertEquals([pdfBreeze, pdfArabian], ['A', 'B']);
+  assertEquals([compare.get('q-cb')!.letter, compare.get('q-ara')!.letter, compare.get('q-pt')!.letter], ['A', 'B', 'C']);
 });
 
 Deno.test('a quote held or released later never moves another supplier\'s letter', () => {
