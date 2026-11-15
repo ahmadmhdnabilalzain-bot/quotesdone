@@ -1426,7 +1426,9 @@ revoke execute on function public.fn_refund_amount_is_the_fee_paid() from public
 --     An overcharge return carries transaction_id, so the first read took it as the customer's open case: a customer whose
 --     supplier went silent heard "Your refund case QD-RF-13 is already open ... you do not need to do anything else", and
 --     no fee case existed (LOCAL, SP/prf/s_over2.sql); the second would have called it "AED 38.77 already refunded";
---   * the case, and the amount the confirmation names, are total_charged less the overcharge returned (what a00 expects).
+--   * the case, and the amount the confirmation names, are total_charged less the overcharge returned (what a00 expects);
+--     after a return the confirmation says what is still owed, what was paid and what was returned (round 8);
+--   * the "already declined" read skips a rejected overcharge return as well (round 8).
 -- prevented by: scripts/sql/a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid_probe.sql (O)
 CREATE OR REPLACE FUNCTION public.fn_refund_open_from_customer(p_transaction_id uuid, p_requested_by text, p_reason_note text DEFAULT NULL::text)
  RETURNS jsonb
@@ -1437,6 +1439,7 @@ AS $function$
 declare
   t public.transactions; c record; v_id bigint; v_open bigint; v_locale text; v_code text; v_en text; v_ar text;
   v_later boolean := false; v_paid text; v_decide text; v_req bigint; v_amt numeric; v_out bigint; v_over bigint;
+  v_what_en text; v_what_ar text; v_short_en text; v_short_ar text;
 begin
   select * into t from public.transactions where id = p_transaction_id;
   if not found then
@@ -1451,6 +1454,21 @@ begin
               where o.reason_code = 'overcharge_return' and o.status not in ('failed', 'rejected', 'cancelled')
                 and (o.transaction_id = t.id or (coalesce(btrim(t.payment_ref), '') <> '' and o.stripe_payment_intent = t.payment_ref)));
   v_amt := round((round(coalesce(t.total_charged, t.reveal_fee, 0) * 100) - v_over) / 100.0, 2);
+  -- WHAT THE CONFIRMATION PROMISES (15 Nov 2026, round 8): after a return, "everything you paid (AED 1978.80)" was not
+  -- what the customer paid (AED 2017.57); it names what is still owed, what was paid and what was already returned.
+  if v_over > 0 then
+    v_what_en := 'everything still owed to you (AED ' || v_amt || ' of the AED ' || round(coalesce(t.total_charged, t.reveal_fee, 0), 2)
+                 || ' you paid; the other AED ' || round(v_over / 100.0, 2) || ' has already been returned to you)';
+    v_what_ar := 'كامل المبلغ المستحق لكم (' || v_amt || ' درهم من أصل ' || round(coalesce(t.total_charged, t.reveal_fee, 0), 2)
+                 || ' درهم دفعتموها، إذ سبق أن رددنا إليكم ' || round(v_over / 100.0, 2) || ' درهم)';
+    v_short_en := 'everything still owed to you (AED ' || v_amt || ') is refunded';
+    v_short_ar := 'فسيُردّ إليكم كامل المبلغ المستحق (' || v_amt || ' درهم)';
+  else
+    v_what_en := 'everything you paid (AED ' || v_amt || ')';
+    v_what_ar := 'كامل ما دفعتموه (' || v_amt || ' درهم)';
+    v_short_en := 'everything you paid is refunded';
+    v_short_ar := 'فسيُردّ إليكم كامل ما دفعتموه';
+  end if;
   v_paid := to_char(t.revealed_at at time zone 'Asia/Dubai', 'DD Mon YYYY');
   v_decide := to_char(t.refund_deadline at time zone 'Asia/Dubai', 'DD Mon YYYY');
 
@@ -1497,7 +1515,8 @@ begin
     v_en := 'AED ' || round(v_out / 100.0, 2) || ' of this payment has already been refunded to your original payment method, so a new refund case cannot be opened for it. Banks take 7 to 14 working days to show it. If you think more is owed, write to us from your portal and we will check the record.';
     v_ar := 'سبق أن استُردّ ' || round(v_out / 100.0, 2) || ' درهم من هذه الدفعة إلى وسيلة الدفع الأصلية، لذا لا يمكن فتح حالة استرداد جديدة لها. وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهار المبلغ. وإن رأيتم أن هناك مبلغًا آخر مستحقًا، فيُرجى مراسلتنا من بوابتكم لنراجع السجل.';
   elsif exists (select 1 from public.refunds r where r.transaction_id = t.id and r.status = 'rejected'
-                  and lower(coalesce(r.requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe')) then
+                  and lower(coalesce(r.requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe')
+                  and r.reason_code is distinct from 'overcharge_return') then   -- a refused overcharge return is not a decided fee case (15 Nov 2026, round 8)
     v_code := 'already_declined';
     v_en := 'Our chief executive has already decided this case and declined it; the reason is shown on your refund case. Under section 5 of the Terms a decided case is not reopened by a new request. If you think the record is wrong, reply to the decision email.';
     v_ar := 'سبق أن بتّ رئيسنا التنفيذي في هذه الحالة ورفضها، والسبب مبيّن في حالة الاسترداد. ووفق البند 5 من الشروط، لا يُعاد فتح حالة بُتّ فيها بطلب جديد. وإن رأيتم أن السجل غير صحيح، فيُرجى الرد على رسالة القرار.';
@@ -1545,19 +1564,19 @@ begin
     'We have opened refund case QD-RF-' || v_id || ' for the supplier you revealed on ' || coalesce(v_paid, 'your payment date') || '. You do not need to do anything else.' || E'\n\n'
       || 'The supplier has until ' || coalesce(v_decide, 'the fifth working day after your payment') || ' to respond. We chase them on the third working day and copy you. '
       || 'If there is still no response, our chief executive makes a final call and then decides your case on the record. '
-      || 'If the refund is due, everything you paid (AED ' || v_amt || ') is returned to your original payment method; banks take 7 to 14 working days to show it.',
+      || 'If the refund is due, ' || v_what_en || ' is returned to your original payment method; banks take 7 to 14 working days to show it.',
     'فتحنا حالة الاسترداد QD-RF-' || v_id,
     'فتحنا حالة الاسترداد QD-RF-' || v_id || ' بشأن المورّد الذي كشفتم عنه في ' || coalesce(v_paid, 'تاريخ الدفع') || '. لا يلزمكم أي إجراء آخر.' || E'\n\n'
       || 'أمام المورّد حتى ' || coalesce(v_decide, 'يوم العمل الخامس بعد الدفع') || ' للرد، وسنتابعه في يوم العمل الثالث مع نسخة إليكم، '
       || 'فإن لم يردّ، فسيوجّه إليه رئيسنا التنفيذي نداءً أخيرًا ثم يبتّ في حالتكم استنادًا إلى السجل. '
-      || 'وإن ثبت استحقاق الاسترداد، فسيُردّ إليكم كامل ما دفعتموه (' || v_amt || ' درهم) إلى وسيلة الدفع الأصلية، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهاره.',
+      || 'وإن ثبت استحقاق الاسترداد، فسيُردّ إليكم ' || v_what_ar || ' إلى وسيلة الدفع الأصلية، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهاره.',
     '{}', 'refund_request_received:' || t.id, null,
     jsonb_build_object('step', 'customer_request', 'transaction_id', t.id, 'refund_id', v_id));
 
   return jsonb_build_object('ok', true, 'refund_id', v_id, 'status', 'requested', 'locale', v_locale,
     'decision_after', t.refund_deadline, 'delivery_request', v_req,
-    'message_en', 'Refund case QD-RF-' || v_id || ' is open. Our chief executive decides it after ' || coalesce(v_decide, 'the fifth working day') || ', and if it is due everything you paid is refunded. We have emailed you the details.',
-    'message_ar', 'فتحنا حالة الاسترداد QD-RF-' || v_id || '، وسيبتّ فيها رئيسنا التنفيذي بعد ' || coalesce(v_decide, 'يوم العمل الخامس') || '، وإن ثبت استحقاق الاسترداد فسيُردّ إليكم كامل ما دفعتموه. وقد أرسلنا إليكم التفاصيل بالبريد الإلكتروني.');
+    'message_en', 'Refund case QD-RF-' || v_id || ' is open. Our chief executive decides it after ' || coalesce(v_decide, 'the fifth working day') || ', and if it is due ' || v_short_en || '. We have emailed you the details.',
+    'message_ar', 'فتحنا حالة الاسترداد QD-RF-' || v_id || '، وسيبتّ فيها رئيسنا التنفيذي بعد ' || coalesce(v_decide, 'يوم العمل الخامس') || '، وإن ثبت استحقاق الاسترداد ' || v_short_ar || '. وقد أرسلنا إليكم التفاصيل بالبريد الإلكتروني.');
 end $function$;
 -- CREATE OR REPLACE keeps the ACL; restated so the file says who may run it.
 revoke execute on function public.fn_refund_open_from_customer(uuid,text,text) from public, anon, authenticated;

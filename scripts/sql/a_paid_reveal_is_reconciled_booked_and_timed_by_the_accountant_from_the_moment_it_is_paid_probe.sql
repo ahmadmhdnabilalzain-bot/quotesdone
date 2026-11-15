@@ -48,6 +48,8 @@
 --   O (item 1): AED 38.77 charged above the fee is returned through the CEO's check and settles; the supplier then goes
 --      silent and the customer asks for the fee back: a NEW case opens, for exactly the fee (total_charged less the
 --      return), nothing refused; the customer asking again gets that case, not the return; the whole charge is refused.
+--   O+ (round 8): the CEO DECLINES an overcharge return; the customer then asks for the fee: a case opens for what was
+--      paid (nothing was returned), never "already declined"; after a return the confirmation says what is still owed.
 --   R (item 4): the fee then refunded in full, the month's revenue is what it was before the sale (the sale counts 0),
 --      and while the fee was still kept it counted the fee and not the overcharge.
 do $probe$
@@ -62,6 +64,7 @@ declare
   v_q6 uuid; v_q7 uuid; v_tx6 uuid; v_tx7 uuid; v_task1 bigint; v_round int; v_h bigint; v_held bigint; v_g text := 'not run'; v_i text := 'not run';
   v_rev0 numeric; v_rev1 numeric; v_st jsonb; v_due bigint; v_k2 text := 'not run';
   v_q8 uuid; v_tx8 uuid; v_o jsonb; v_o2 jsonb; v_rid8 bigint; v_rev8a numeric; v_rev8b numeric; v_rev8c numeric; v_o_txt text := 'not run';
+  v_q9 uuid; v_tx9 uuid; v_rid9 bigint; v_o9 jsonb; v_o9_txt text := 'not run';
 begin
   select revealed_at into v_rev from public.transactions where id = c_tx;
   if v_rev is null then raise exception 'CHK<<%>>', jsonb_build_object('verdict', 'PROBE FAILED: transaction 29ac49f5 is not in production'); end if;
@@ -661,6 +664,11 @@ begin
       v_bad := v_bad || ('O: the whole-charge case was refused for another reason: ' || left(sqlerrm, 200))::text;
     end if;
   end;
+  -- the confirmation after a return names what is still owed, not "everything you paid" (round 8)
+  if coalesce(v_o2->>'message_en', '') !~ ('still owed to you \(AED ' || round(v_fee / 100.0, 2))
+     or coalesce(v_o2->>'message_ar', '') !~ 'المبلغ المستحق' then
+    v_bad := v_bad || ('O (round 8): after a return the confirmation does not say what is still owed: ' || left(coalesce(v_o2->>'message_en', '-'), 200))::text;
+  end if;
   -- ── R. THE FEE REFUNDED IN FULL AFTER THE RETURN: THE SALE COUNTS 0 IN THE MONTH (final review, item 4) ─────────────
   perform public.fn_refund_settle('re_zz_probe_w1_overfee', 'succeeded', v_fee, 'pi_zz_probe_w1_over', null, null, 'webhook_event', 'evt_zz_probe_w1_overfee');
   select revenue_aed into v_rev8c from public.fn_reveal_month_revenue(now());
@@ -673,11 +681,39 @@ begin
       || v_rev8a || ', fee kept ' || v_rev8b || ' (expected +' || round(v_fee / 100.0, 2) || '), fee refunded in full ' || v_rev8c || ' (expected ' || v_rev8a || ')')::text;
   end if;
 
+  -- ── O+. A DECLINED OVERCHARGE RETURN IS NOT A DECLINED FEE CASE (round 8, follow-up 1) ───────────────────────────────
+  execute format('insert into public.quotes (' || v_cols || ') select ' || replace(v_sel, '18 + %s', '13') || ' from public.quotes where id = %L returning id', c_q2) into v_q9;
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, app_fee, total_charged, processing_fee,
+         customer_price, paid_by, payment_ref, fee_status, livemode, paid_at, stripe_fee_fils, stripe_amount_received_fils, stripe_bt_amount_fils, stripe_bt_currency)
+  select q.id, q.inquiry_id, q.supplier_id, v_cust, q.quote_amount, v_fee / 100.0, v_fee / 100.0, (v_fee + 3877) / 100.0, 0,
+         q.quote_amount, 'customer', 'pi_zz_probe_w1_over_declined', 'paid', true, now() - interval '1 minute', 6000, v_fee + 3877, v_fee + 3877, 'aed'
+    from public.quotes q where q.id = v_q9
+  returning id into v_tx9;
+  v_o9 := public.fn_refund_request(3877, 'overcharge_return', 'ceo', null, null, null, null, 'pi_zz_probe_w1_over_declined', null, 'probe O+: the return the CEO declines', v_tx9);
+  v_rid9 := nullif(v_o9->>'refund_id', '')::bigint;
+  begin
+    v_o9 := public.fn_refund_decide(v_rid9, false, 'ceo', 'probe O+: declined');
+  exception when others then v_o9 := jsonb_build_object('raised', sqlerrm);
+  end;
+  if not exists (select 1 from public.refunds where id = v_rid9 and reason_code = 'overcharge_return' and status = 'rejected') then
+    update public.refunds set status = 'rejected' where id = v_rid9;   -- the fixture is the declined row, however the decision path names it
+  end if;
+  begin
+    v_o9 := public.fn_refund_open_from_customer(v_tx9, 'customer', 'probe O+: the supplier has not responded');
+  exception when others then v_o9 := jsonb_build_object('ok', false, 'raised', sqlerrm);
+  end;
+  v_o9_txt := v_o9::text;
+  if not coalesce((v_o9->>'ok')::boolean, false) or v_o9->>'code' = 'already_declined' or coalesce((v_o9->>'duplicate')::boolean, false)
+     or not exists (select 1 from public.refunds where id = (v_o9->>'refund_id')::bigint and transaction_id = v_tx9 and amount_fils = v_fee + 3877
+                       and reason_code = 'supplier_unresponsive' and status = 'requested') then
+    v_bad := v_bad || ('O+ (round 8): after a DECLINED overcharge return the customer''s fee case did not open for what was paid: ' || left(v_o9_txt, 300))::text;
+  end if;
+
   select last_value + case when is_called then 0 else -1 end into v_seq1 from public.reveal_invoice_no_seq;
   if v_seq1 is distinct from v_seq0 then v_bad := v_bad || ('the probe took a real invoice number: ' || v_seq0 || ' -> ' || v_seq1)::text; end if;
 
   raise exception 'CHK<<%>>', jsonb_build_object(
     'verdict', case when cardinality(v_bad) = 0 then 'PROBE OK' else 'PROBE FAILED: ' || array_to_string(v_bad, '; ') end,
     'owner_fn_seat_handoff', v_owner, 'shadow_steps', v_steps, 'journal_debits', v_dr, 'journal_credits', v_cr, 'memo', v_memo,
-    'settle', v_settle, 'gl_b', v_gl, 'return', v_ret, 'return_e', v_ret2, 'e', v_e, 'sweep', v_sweep, 'g', v_g, 'i', v_i, 'k', v_k2, 'o', v_o_txt);
+    'settle', v_settle, 'gl_b', v_gl, 'return', v_ret, 'return_e', v_ret2, 'e', v_e, 'sweep', v_sweep, 'g', v_g, 'i', v_i, 'k', v_k2, 'o', v_o_txt, 'o9', v_o9_txt);
 end $probe$;
