@@ -318,6 +318,15 @@ export function tappedAnswer(q: ReqQuestion, text: string, now = new Date(), sho
   return shown && shown.labels.some((l) => l === raw || l.toLowerCase() === lo) ? shown.answer : null;
 }
 
+/** The answer "I don't know" gives question `q` (re-check of 15 Nov 2026, item 3): the material to the supplier's standard, installation and
+ *  warranty "not sure", the date flexible. Recorded only for the question just asked (inquiry_intake/handle.ts), as a "does not know"
+ *  is for a checklist spec, so a customer who knows none of them still reaches Send. */
+export function notSureAnswer(q: ReqQuestion): Ans {
+  if (q.kind === 'material') return { v: NO_PREFERENCE.v, note: 'Not sure: supplier to propose the standard specification' };
+  if (q.kind === 'installation') return { v: 'not_sure' };
+  if (q.kind === 'warranty') return { v: 'not_sure', min_months: null };
+  return { v: 'flexible', date: null, text: 'Not sure: flexible' };
+}
 /** A stored or carried answer that is not a valid answer to `q` today (e.g. version 1's 'no') is not an answer. */
 export function isValidAnswer(q: ReqQuestion, v: Ans | undefined): boolean {
   if (!v) return false;

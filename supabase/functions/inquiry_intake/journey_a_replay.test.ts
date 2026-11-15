@@ -449,3 +449,13 @@ Deno.test('round 3, item 3: a customer who says "I don\'t know" to every remaini
   assert(last.writer.includes('so you can send it as it is') && last.writer.includes('WhatsApp at +1 218 316 6814'), 'the ready reply does not say it goes as it is, or name the WhatsApp line');
   assert(!turns.some((t) => t.status === 'held' && t.next && !t.next.key), 'a held card with no key');
 });
+Deno.test('round 3, item 3: "I don\'t know" to one of the four questions is its not-sure answer even when the model does not file it', async () => {
+  const all: Record<string, [string, string]> = { ...AC_READ, system_type: ['Wall/floor split', '3 new split AC units'], spec_cooling_capacity: ['2 x 1.5 TR, 1 x 2.5 TR', 'two of 1.5 ton and one 2.5 ton'],
+    spec_inverter_or_fixed_speed: ['Inverter', 'inverter'], spec_copper_pipe_length_included_per_unit: ['4 m per unit', '4 metres of pipe'], scope: ['Supply and install', 'supply and install'] };
+  const first = AC_FIRST + ' Two of 1.5 ton and one 2.5 ton, inverter, 4 metres of pipe, supply and install.';
+  const turns = await scripted('dkcode', [{ text: first, details: all }, ...Array.from({ length: 8 }, () => ({ text: "ZZ DEMO: I don't know." }))]);
+  const log = turns.map((t) => t.n + t.status[0] + ':' + (t.next?.key ?? '-')).join(' ');
+  assertEquals(turns.at(-1)!.status, 'ready', log);
+  const asks = turns.filter((t) => t.next?.key).map((t) => String(t.next!.key));
+  assertEquals(asks.filter((k, i) => asks.indexOf(k) !== i), [], 'a four-question asked again after "I don\'t know": ' + log);
+});

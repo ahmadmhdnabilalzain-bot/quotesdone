@@ -6,7 +6,7 @@ import { interviewStep, orderFields, questionText, buildBrief } from './intervie
 import { stallOf, lastAskedKeys, SENT_AS_IS, SALES_ENGINEER_WHATSAPP, settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, mergeRequirements, recordedRequirements, answerToQuestion, stampTurn, askedTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, tappedHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft, openSpecsBlock } from './slots.ts';
 import { emirateOf, isAlAin, detectUrgency, utilityText, SEVEN_EMIRATES, SEVEN_EMIRATES_AR } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
-import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
+import { ACTOR, notSureAnswer, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 import { stateServiceKeys as stateKeysInVocab } from '../_shared/profile_services.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
@@ -970,6 +970,12 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     // each one the customer's message changes; only those (or the question this message answers) are replaced. Nothing here
     // reads the customer's words: it is the model's own declaration (slots.ts mergeRequirements).
     if (out && llmParseOk && category) reqAnswers = mergeRequirements(reqAnswers, requirementsFromModel(category, out.requirements), out.changed_answers, prevBrief.req_asked || null);
+    // "I don't know" to the one of the four questions just asked is its not-sure answer, as it is "does not know" for a checklist spec
+    // (unknownNow above; re-check of 15 Nov 2026, item 3): it was asked again for ever whenever the model did not file it.
+    if (placed === 'added' && category && prevBrief.req_asked && text && saysDontKnow(text)) {
+      const q = requirementQuestions(category).find((x) => x.key === prevBrief.req_asked);
+      if (q && !reqAnswers[q.key]) reqAnswers = { ...reqAnswers, [q.key]: notSureAnswer(q) };
+    }
     let reqAsked: string | null = null;
     // "6 LEFT" while the category questions still run counted every sales-engineer question as open,
     // including the three the customer had already stated (measured 21 Sep 2026, customer audit,
