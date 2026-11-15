@@ -1,0 +1,10 @@
+Committed, not applied. Assigned: marketing (agent: marketing seat builder), 15 Nov 2026 (founder rulings 1701, 1705, 1709).
+
+Why it waits: this branch was built without production writes (session rule of 15 Nov). It adds two tables, three routines
+and the daily duty marketing.measurement_kpis; it redefines nothing.
+
+What moves it: review, then at merge, BEFORE deploying the marketing function (its duty search_console writes the tables):
+  node scripts/apply_sql.mjs scripts/sql/the_marketing_seat_measures_search_registrations_and_cost_per_supplier_every_day.sql --apply --ddl
+then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit, and run once:
+  select public.fn_marketing_measurement_tick();
+Proved on a local Postgres 16 with its probe (PROBE OK twice).
