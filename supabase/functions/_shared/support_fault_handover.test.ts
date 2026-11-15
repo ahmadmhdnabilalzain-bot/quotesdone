@@ -1,5 +1,5 @@
 // "It is broken" reaches the IT engineer as a real hand-over (ruling 1705). Stubbed model and database: no network, no paid call.
-import { assert, assertEquals, assertMatch } from 'jsr:@std/assert';
+import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import type { LlmReply, Phase, ThinkDeps } from './think.ts';
 import { caseKeyOf, handFaultToIt, maskedTurns } from './support_fault_handover.ts';
 import { needsAPerson, NEEDS_PERSON_OPTIONS } from './reasoned_decisions.ts';

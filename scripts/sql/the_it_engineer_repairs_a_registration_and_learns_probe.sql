@@ -139,6 +139,9 @@ begin
   select count(*) into n from public.customer_support_voice_owed where stage = 'it.repair.dup_mobile';
   if n <> 2 then v_fail := v_fail || ('D: ' || n || ' owners told, not 2'); end if;
   if not exists (select 1 from public.it_engineer_finding where issue_key like 'reg:dup\_mobile:%' and evidence->>'owner_seat' = 'ceo') then v_fail := v_fail || 'D: the data decision is not the CEO''s'; end if;
+  if not exists (select 1 from public.agent_actions where kind = 'handoff' and agent = 'ceo' and detail->>'type' = 'it.finding' and detail->>'issue_key' like 'reg:dup\_mobile:%') then
+    v_fail := v_fail || ('D: the CEO was not handed the data decision: ' || coalesce((select result::text from public.it_safe_fix_run where family = 'duplicate_mobile_guide' limit 1), 'no run'));
+  end if;
   select count(*) into n from public.it_safe_fix_run where family = 'code_resend_assist' and outcome = 'fixed';
   if n <> 1 then v_fail := v_fail || ('E: the code was resent ' || n || ' times, not once: ' || coalesce((select string_agg(coalesce(result->>'why', error, outcome), ' | ') from public.it_safe_fix_run where family = 'code_resend_assist'), 'no run')); end if;
   select count(*) into n from public.it_safe_fix_run where family = 'stuck_job_rerun' and issue_key = 'reg:job_stalled:agreement_resign' and outcome = 'fixed';

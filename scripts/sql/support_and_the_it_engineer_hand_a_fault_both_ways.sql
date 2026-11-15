@@ -139,7 +139,7 @@ begin
 
   perform public.fn_it_engineer_finding_upsert(v_key,
     'A person told support something is broken (' || p_channel || ')',
-    'customer_support -> it_engineer (support.root_cause, live_fault)', 'agent_facing', 1,
+    'customer_support -> it_engineer (support.root_cause, live_fault)', 'internal', 1,
     jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'support', 'duty', 'support_fault', 'report_id', r.id, 'channel', p_channel,
                        'lead_id', v_lead, 'customer_id', v_cust, 'can_tell', v_email is not null, 'turns', v_turns, 'demo', v_fx),
     '{}'::text[], array['which fault the person hit: the IT engineer reads their account and the telemetry of the hour'], 'customer_support');

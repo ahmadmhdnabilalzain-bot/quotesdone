@@ -167,7 +167,10 @@ begin
       'DONE: ' || case when p_what = 'licence_read' then 'their trade licence has been read' else 'their signed agreement certificate has been produced' end
         || chr(10) || 'WHAT THEY CAN DO NOW: carry on with the registration', '');
   end if;
-  v_faults := case when p_lead_id is not null then public.fn_support_fault_fixed(null, p_lead_id, p_observed) else '{}'::jsonb end;
+  -- a person who told support hears "fixed" only when nothing else on their registration is still stalled
+  v_faults := case when p_lead_id is not null and not exists (select 1 from public.it_engineer_finding x where x.closed_at is null
+                      and x.issue_key ~ ('^reg:stall:[a-z_]+:' || p_lead_id || '$') and x.issue_key <> p_issue_key)
+                   then public.fn_support_fault_fixed(null, p_lead_id, p_observed) else '{}'::jsonb end;
   perform public.fn_emit('support.registration_rescued', case when p_lead_id is not null then 'leads' else 'customers' end,
     coalesce(p_lead_id::text, p_customer::text), 'it_engineer',
     jsonb_build_object('supplier_id', p_lead_id, 'customer_id', p_customer, 'issue_key', p_issue_key, 'what', p_what, 'told', v_told,
@@ -208,7 +211,7 @@ end $fn$;
 create or replace function public.fn_it_safe_fix_terms_certificate_retry(p_issue_key text)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_lead bigint := nullif(substring(p_issue_key from '^reg:stall:certificate:([0-9]+)$'), '')::bigint;
-  v_cust uuid := case when p_issue_key ~ '^reg:stall:certificate:c:[0-9a-f-]{36}$' then substring(p_issue_key from 24)::uuid end;
+  v_cust uuid := case when p_issue_key ~ '^reg:stall:certificate:c:[0-9a-f-]{36}$' then substring(p_issue_key from 25)::uuid end;
   l public.leads; c public.customers; v_kind text; v_email text; v_accepted timestamptz; v_signed timestamptz; v_secret text; v_ref text; v_req bigint;
   v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
 begin
@@ -305,7 +308,7 @@ end $fn$;
 -- (5) duplicate_mobile_guide: each account owner is told to sign in by e-mail; the data decision is the CEO's
 create or replace function public.fn_it_safe_fix_duplicate_mobile_guide(p_issue_key text)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare v_hash text := substring(p_issue_key from '^reg:dup_mobile:([0-9a-f]{12})$'); a record; n_told int := 0; n int := 0;
+declare v_hash text := substring(p_issue_key from '^reg:dup_mobile:([0-9a-f]{12})$'); a record; n_told int := 0; n int := 0; v_h bigint; v_err text;
   v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
 begin
   if v_hash is null then return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'not a duplicate-mobile finding'); end if;
@@ -329,7 +332,9 @@ begin
   update public.it_engineer_finding set evidence = evidence || jsonb_build_object('owner_seat', 'ceo', 'decision_needed',
            'which account keeps this mobile: the data decision is the CEO''s; the IT engineer never merges or deletes an account')
    where issue_key = p_issue_key;
-  return jsonb_build_object('outcome', 'fixed', 'accounts', n, 'told', n_told, 'data_decision', 'ceo');
+  -- the data decision goes to the CEO now, as an it.finding hand-over (fn_it_loop_open resolves the owner from the evidence)
+  begin v_h := public.fn_it_loop_open(p_issue_key); exception when others then v_h := null; v_err := left(sqlerrm, 200); end;
+  return jsonb_build_object('outcome', 'fixed', 'accounts', n, 'told', n_told, 'data_decision', 'ceo', 'ceo_handoff', v_h, 'handoff_error', v_err);
 end $fn$;
 
 -- (6) stuck_job_rerun: a registered idempotent reader, once
@@ -458,6 +463,9 @@ begin
 end $fn$;
 revoke execute on function public.fn_it_safe_fix_tick() from public, anon, authenticated;
 
+-- THE BLAST OF THESE FINDINGS IS 'internal' ON PURPOSE: the seat repairs within minutes and a code defect goes to the engineer
+-- session, so the it.finding hand-over loop (fn_it_open_findings: severity above warn) opens only for a finding still open after
+-- 6 hours (fn_it_engineer_severity), and the founder is not paged for what the seat is already repairing.
 -- ── 3. THE WATCH: DETECT, CLOSE, CLASSIFY ───────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_it_registration_watch()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -485,7 +493,7 @@ begin
       v_cleared := l.id is null or l.licence_read_state is distinct from 'ours_failed' or coalesce(l.approval_status, '') = 'approved' or coalesce(l.banned, false);
       v_obs := 'licence_read_state ' || coalesce(l.licence_read_state, 'null');
     elsif f.issue_key like 'reg:stall:certificate:c:%' then
-      v_cust := substring(f.issue_key from 24)::uuid; v_what := 'certificate';
+      v_cust := substring(f.issue_key from 25)::uuid; v_what := 'certificate';
       select * into l from public.customers where id = v_cust;
       v_cleared := l.id is null or l.tos_accepted_at is null or (l.signed_terms_path is not null and l.signed_terms_at >= l.tos_accepted_at);
       v_obs := 'signed_terms_at ' || coalesce(l.signed_terms_at::text, 'null');
@@ -501,13 +509,15 @@ begin
       v_obs := 'licence_gate_reason ' || coalesce(l.licence_gate_reason, 'cleared');
     elsif f.issue_key like 'reg:job\_stalled:supplier\_doc\_reread' then
       v_cleared := not exists (select 1 from public.leads x where x.licence_read_state = 'ours_failed' and x.license_doc_path is not null
-                                 and x.claimed_by is not null and x.licence_read_tries < 8
+                                 and x.claimed_by is not null and x.licence_read_tries < 8 and not coalesce(x.banned, false)
+                                 and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
                                  and coalesce(x.licence_read_at, '-infinity'::timestamptz) + make_interval(mins => 10 * (2 ^ x.licence_read_tries)::int) < now() - interval '30 minutes');
       v_obs := 'no licence read waits 30 minutes past its due time';
     elsif f.issue_key like 'reg:job\_stalled:agreement\_resign' then
       v_cleared := not exists (select 1 from public.leads x where x.accepted_terms_at is not null and x.claimed_by is not null and not coalesce(x.banned, false)
                                  and (x.signed_terms_path is null or x.signed_terms_at < x.accepted_terms_at) and x.accepted_terms_at < now() - interval '30 minutes'
-                                 and x.accepted_terms_at > now() - interval '14 days');
+                                 and x.accepted_terms_at > now() - interval '14 days'
+                                 and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx);
       v_obs := 'no acceptance waits 30 minutes for its certificate';
     elsif f.issue_key like 'reg:circuit\_open:%' then
       v_cleared := not v_routes_open; v_obs := 'the licence routes are closed';
@@ -532,6 +542,10 @@ begin
     elsif v_fixed and f.issue_key like 'support:code\_unused:%' and r.id is not null then
       perform public.fn_support_fault_fixed(r.issue_key, null, 'a new sign-in code was sent and used');
       n_rescued := n_rescued + 1;
+    elsif v_lead is not null and f.issue_key like 'reg:stall:%'
+          and not exists (select 1 from public.it_engineer_finding x where x.closed_at is null and x.issue_key ~ ('^reg:stall:[a-z_]+:' || v_lead || '$')) then
+      -- cleared without a repair (the person sent the page, the reader caught up): a person who told support still hears it is done
+      perform public.fn_support_fault_fixed(null, v_lead, 'cleared: ' || v_obs);
     end if;
   end loop;
 
@@ -549,7 +563,7 @@ begin
                                               coalesce(l.signed_terms_at, '-infinity'), coalesce(l.created_at, '-infinity')) > now() - interval '30 minutes';
     if l.licence_read_state = 'ours_failed' then
       perform public.fn_it_engineer_finding_upsert('reg:stall:licence_read:' || l.id, 'A registering supplier''s licence read failed and is waiting',
-        'supplier_api process_docs (the licence reader)', 'agent_facing', 1,
+        'supplier_api process_docs (the licence reader)', 'internal', 1,
         jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'supplier_api', 'duty', 'registration_watch', 'lead_id', l.id, 'cause', 'licence_read',
                            'tries', l.licence_read_tries, 'routes_open', v_routes_open, 'told_support', l.reported, 'demo', v_fx),
         '{}'::text[], '{}'::text[], 'it_engineer');
@@ -558,7 +572,7 @@ begin
     if l.accepted_terms_at is not null and (l.signed_terms_path is null or l.signed_terms_at is null or l.signed_terms_at < l.accepted_terms_at)
        and l.accepted_terms_at < now() - interval '10 minutes' then
       perform public.fn_it_engineer_finding_upsert('reg:stall:certificate:' || l.id, 'A registering supplier accepted the agreement and no signed certificate landed',
-        'kyc accept_terms -> compliance_archive sign', 'agent_facing', 1,
+        'kyc accept_terms -> compliance_archive sign', 'internal', 1,
         jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'compliance_archive', 'duty', 'registration_watch', 'lead_id', l.id, 'cause', 'certificate',
                            'told_support', l.reported, 'demo', v_fx),
         '{}'::text[], '{}'::text[], 'it_engineer');
@@ -566,7 +580,7 @@ begin
     end if;
     if l.licence_gate_reason is not null then
       perform public.fn_it_engineer_finding_upsert('reg:stall:held:' || l.id, 'A registering supplier is held at the licence gate',
-        'the licence gate (licence_gate_reason)', 'agent_facing', 1,
+        'the licence gate (licence_gate_reason)', 'internal', 1,
         jsonb_build_object('owner_seat', 'customer_support', 'subject', 'supplier_api', 'duty', 'registration_watch', 'lead_id', l.id, 'cause', 'held',
                            'reason', l.licence_gate_reason, 'told_support', l.reported, 'demo', v_fx),
         '{}'::text[], '{}'::text[], 'it_engineer');
@@ -579,7 +593,7 @@ begin
               and (c.signed_terms_path is null or c.signed_terms_at is null or c.signed_terms_at < c.tos_accepted_at)
               and not coalesce(c.banned, false) and coalesce(c.is_demo, false) = v_fx limit 50 loop
     perform public.fn_it_engineer_finding_upsert('reg:stall:certificate:c:' || l.id, 'A customer accepted the terms and no signed certificate landed',
-      'kyc accept_terms -> compliance_archive sign', 'agent_facing', 1,
+      'kyc accept_terms -> compliance_archive sign', 'internal', 1,
       jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'compliance_archive', 'duty', 'registration_watch', 'customer_id', l.id, 'cause', 'certificate', 'demo', v_fx),
       '{}'::text[], '{}'::text[], 'it_engineer');
     n_raised := n_raised + 1;
@@ -591,8 +605,9 @@ begin
               and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
             group by 1 having count(*) > 1 and max(coalesce(x.portal_updated_at, x.created_at)) > now() - interval '14 days' loop
     perform public.fn_it_engineer_finding_upsert('reg:dup_mobile:' || r.h, 'A mobile number is on more than one account, so SMS sign-in cannot select one',
-      'login_otp (ambiguous_phone)', 'agent_facing', r.n::int,
-      jsonb_build_object('owner_seat', 'customer_support', 'subject', 'login_otp', 'duty', 'registration_watch', 'accounts', r.n, 'demo', v_fx),
+      'login_otp (ambiguous_phone)', 'internal', r.n::int,
+      jsonb_build_object('owner_seat', 'ceo', 'subject', 'login_otp', 'duty', 'registration_watch', 'accounts', r.n, 'demo', v_fx,
+                         'decision_needed', 'which account keeps this mobile: the CEO''s data decision'),
       '{}'::text[], array['which account keeps the mobile: the CEO''s data decision'], 'it_engineer');
     n_raised := n_raised + 1;
   end loop;
@@ -603,7 +618,7 @@ begin
                and (coalesce(x.is_demo, false) or public.fn_is_demo_email(x.claimed_by)) = v_fx
                and coalesce(x.licence_read_at, '-infinity'::timestamptz) + make_interval(mins => 10 * (2 ^ x.licence_read_tries)::int) < now() - interval '30 minutes') then
     perform public.fn_it_engineer_finding_upsert('reg:job_stalled:supplier_doc_reread', 'A due licence re-read has waited 30 minutes past its time',
-      'pg_cron supplier_doc_reread_5min -> supplier_api docs_reread', 'agent_facing', 1,
+      'pg_cron supplier_doc_reread_5min -> supplier_api docs_reread', 'internal', 1,
       jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'supplier_api', 'duty', 'registration_watch', 'job', 'supplier_doc_reread', 'demo', v_fx),
       '{}'::text[], '{}'::text[], 'it_engineer');
     n_raised := n_raised + 1;
@@ -617,7 +632,7 @@ begin
                and (select count(*) from public.agent_actions a where a.agent = 'sales_engineer' and a.kind = 'supplier_agreement_resign'
                       and a.target_id = x.id::text and a.status = 'auto_done') < 3) then
     perform public.fn_it_engineer_finding_upsert('reg:job_stalled:agreement_resign', 'An acceptance has waited 30 minutes with no certificate and no re-sign',
-      'fn_sales_engineer_resigns_unsigned_agreements (the minute sweep)', 'agent_facing', 1,
+      'fn_sales_engineer_resigns_unsigned_agreements (the minute sweep)', 'internal', 1,
       jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'compliance_archive', 'duty', 'registration_watch', 'job', 'agreement_resign', 'demo', v_fx),
       '{}'::text[], '{}'::text[], 'it_engineer');
     n_raised := n_raised + 1;
@@ -626,7 +641,7 @@ begin
   if v_routes_open then
     for r in select b.task_class from public.it_route_plan_b b where b.active loop
       perform public.fn_it_engineer_finding_upsert('reg:circuit_open:' || r.task_class, 'Every licence-reading route is open-circuit',
-        'ai_gateway (llm_route_health)', 'agent_facing', 1,
+        'ai_gateway (llm_route_health)', 'internal', 1,
         jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'ai_gateway', 'duty', 'registration_watch', 'task_class', r.task_class, 'demo', v_fx),
         '{}'::text[], '{}'::text[], 'it_engineer');
       n_raised := n_raised + 1;
@@ -643,7 +658,7 @@ begin
               and not exists (select 1 from public.email_verifications e where lower(e.email) = s.email and e.created_at > s.reported_at - interval '2 hours'
                                 and (e.used_at is not null or e.verified_at is not null)) loop
     perform public.fn_it_engineer_finding_upsert('support:code_unused:' || r.id, 'A person told support a sign-in code never came, and it was never used',
-      'login_otp send (e-mail)', 'agent_facing', 1,
+      'login_otp send (e-mail)', 'internal', 1,
       jsonb_build_object('owner_seat', 'customer_support', 'subject', 'login_otp', 'duty', 'registration_watch', 'report_id', r.id, 'demo', v_fx),
       '{}'::text[], '{}'::text[], 'it_engineer');
     n_raised := n_raised + 1;
@@ -665,7 +680,7 @@ begin
               where s.reported_at > now() - interval '15 minutes' and s.fixture = v_fx) z
             group by cause having count(distinct who) >= 3 loop
     perform public.fn_it_engineer_finding_upsert('reg:burst:' || r.cause, 'The same registration fault reached ' || cardinality(r.people) || ' people in 15 minutes',
-      'registration (' || r.cause || ')', 'customer_facing', cardinality(r.people),
+      'registration (' || r.cause || ')', 'internal', cardinality(r.people),
       jsonb_build_object('owner_seat', 'it_engineer', 'subject', 'registration', 'duty', 'registration_watch', 'cause', r.cause, 'people', cardinality(r.people), 'demo', v_fx),
       '{}'::text[], array['the code path all of them hit'], 'it_engineer');
     perform public.fn_it_code_defect_open('burst.' || r.cause, 'P1', 'reg:burst:' || r.cause,
