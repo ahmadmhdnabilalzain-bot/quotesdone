@@ -45,7 +45,7 @@ begin
     insert into public.invite_variant_assignment (lead_id, variant_key) values (v_id, v_k);
     perform pg_temp.probe_send(v_id, now() - interval '20 days', false);
     if (v_k = 'a' and i <= 5) or (v_k = 'b' and i between 151 and 156) or (v_k = 'c' and i between 301 and 305) then
-      update public.leads set registration_submitted_at = now() - interval '10 days' where id = v_id;
+      update public.leads set invite_clicked_at = now() - interval '10 days' where id = v_id;
     end if;
   end loop;
   r := public.fn_marketing_decides_the_invite_copy(now());
@@ -53,10 +53,10 @@ begin
   select (e->>'engaged')::int into v_b from jsonb_array_elements(r->'readout'->'variants') e where e->>'variant' = 'b';
   if v_b <> 6 then v_p := v_p || ('the readout counts ' || coalesce(v_b::text, 'null') || ' engaged for b, not 6'); end if;
 
-  -- 3. a clear leader is promoted automatically: b gains 9 more registrations (15 of 150 against 5 and 5)
-  update public.leads set registration_submitted_at = now() - interval '5 days'
+  -- 3. a clear leader is promoted automatically: b gains 9 more clicks (15 of 150 against 5 and 5)
+  update public.leads set invite_clicked_at = now() - interval '5 days'
    where id in (select a.lead_id from public.invite_variant_assignment a join public.leads l on l.id = a.lead_id
-                 where a.variant_key = 'b' and l.email like '%@' || v_dom and l.registration_submitted_at is null order by a.lead_id limit 9);
+                 where a.variant_key = 'b' and l.email like '%@' || v_dom and l.invite_clicked_at is null order by a.lead_id limit 9);
   r := public.fn_marketing_decides_the_invite_copy(now());
   if not coalesce((r->>'decided')::boolean, false) or (select status from public.invite_variant where variant_key = 'b') <> 'winner' then
     v_p := v_p || ('a clear leader was not promoted: ' || r::text); end if;
