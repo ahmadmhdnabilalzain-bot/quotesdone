@@ -75,7 +75,14 @@ test('the file waits for the release with its note and its probe, and writes no 
 
 test('submit_quote records the printed date only when it is read for certain, and no edge function writes an expiry on a quote', () => {
   const q = read('supabase/functions/supplier_api/actions/quotes.ts');
-  assert.match(q, /quotation_date: quotationDateOf\(body\.quotation_date\)/);
+  // written only with a date, and a write refused because the column is not applied yet is tried once without it (deploy order)
+  assert.match(q, /const qDate = quotationDateOf\(body\.quotation_date\);/);
+  assert.match(q, /\.\.\.\(qDate \? \{ quotation_date: qDate \} : \{\}\)/);
+  assert.doesNotMatch(q, /quotation_date: quotationDateOf\(/, 'the key is never written as null');
+  assert.doesNotMatch(q, /admin\.from\('quotes'\)\.(?:update\(det\)|insert\(\{ \.\.\.det)/, 'a quotes write that bypasses writeQuoteRow');
+  const lib = read('supabase/functions/supplier_api/lib/quote_acceptance.ts');
+  assert.match(lib, /PENDING_QUOTE_COLUMNS = \['quotation_date'\]/);
+  assert.match(lib, /COLUMN_NOT_APPLIED = new Set\(\['PGRST204', '42703'\]\)/);
   const walk = (d, out = []) => { for (const n of readdirSync(join(ROOT, d))) { const p = d + '/' + n; if (statSync(join(ROOT, p)).isDirectory()) walk(p, out); else if (/\.ts$/.test(p) && !/\.test\.ts$/.test(p)) out.push(p); } return out; };
   const bad = walk('supabase/functions').filter((p) => /from\('quotes'\)\.(?:insert|update|upsert)\([^)]*expires_at/.test(read(p)));
   assert.deepEqual(bad, []);

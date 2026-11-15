@@ -126,14 +126,37 @@ export const writeQuoteLines = (qid: string, rows: Record<string, unknown>[], sl
   }, [800], sleep, { budgetMs: 10_000 });
 /** A quotation as it stood before a submission rewrote it: the columns the submission writes (plus status and submittable) and
  *  every line, with its own id. Null when either read failed: the caller then writes nothing. */
-export type QuoteSnapshot = { row: Record<string, unknown>; lines: Record<string, unknown>[] };
+export type QuoteSnapshot = { row: Record<string, unknown>; lines: Record<string, unknown>[]; dropped?: string[] };
+/** Columns a release adds to quotes that this code may write before the SQL that adds them is applied: quotation_date (ledger
+ *  1697, a_quotation_is_valid_for_the_period_the_supplier_states_and_for_no_period_we_choose.sql). */
+export const PENDING_QUOTE_COLUMNS = ['quotation_date'];
+/** PostgREST / Postgres codes for a column the database does not have yet: the schema-cache miss (PGRST204) and an undefined column
+ *  (42703); the same codes _shared/marketing_channels.ts SCHEMA_NOT_APPLIED treats as "the SQL is not applied". */
+const COLUMN_NOT_APPLIED = new Set(['PGRST204', '42703']);
+export const columnNotApplied = (e: { code?: string } | null | undefined): boolean => !!e && COLUMN_NOT_APPLIED.has(String(e.code || ''));
+/**
+ * WRITE A QUOTATION'S ROW EVEN WHEN ITS NEWEST COLUMN IS NOT APPLIED YET (15 Nov 2026, review of ledger 1697, item 1). submit_quote
+ * writes quotes.quotation_date; deployed before the SQL that adds the column, every insert and update failed with PGRST204, so every
+ * quotation was refused. A write refused for a pending column it carries is tried ONCE more without that column (the quotation's
+ * stated validity is then counted from the day received, as it always was); any other refusal is returned as it came.
+ */
+export async function writeQuoteRow<R extends { error: { code?: string } | null }>(det: Record<string, unknown>, write: (d: Record<string, unknown>) => PromiseLike<R>): Promise<R> {
+  const first = await write(det);
+  const carried = PENDING_QUOTE_COLUMNS.filter((c) => c in det);
+  if (!first.error || !carried.length || !columnNotApplied(first.error)) return first;
+  for (const c of carried) delete det[c];
+  return await write(det);
+}
 export async function snapshotQuote(qid: string, cols: string): Promise<QuoteSnapshot | null> {
-  const [{ data: sr, error: se }, { data: sl, error: sle }] = await Promise.all([
-    admin.from('quotes').select(cols).eq('id', qid).maybeSingle(),
-    admin.from('quote_items').select('*').eq('quote_id', qid),
-  ]);
+  const read = (c: string) => admin.from('quotes').select(c).eq('id', qid).maybeSingle();
+  const [first, { data: sl, error: sle }] = await Promise.all([read(cols), admin.from('quote_items').select('*').eq('quote_id', qid)]);
+  let { data: sr, error: se } = first;
+  // a pending column (not applied yet) is left out of the snapshot, and the caller leaves it out of the write (dropped)
+  const all = cols.split(','), dropped = PENDING_QUOTE_COLUMNS.filter((c) => all.includes(c));
+  if (se && dropped.length && columnNotApplied(se)) ({ data: sr, error: se } = await read(all.filter((c) => !dropped.includes(c)).join(',')));
+  else dropped.length = 0;
   if (se || sle || !sr) return null;
-  return { row: sr as unknown as Record<string, unknown>, lines: (sl || []) as unknown as Record<string, unknown>[] };
+  return { row: sr as unknown as Record<string, unknown>, lines: (sl || []) as unknown as Record<string, unknown>[], ...(dropped.length ? { dropped } : {}) };
 }
 /**
  * PUT A QUOTATION BACK AS IT STOOD (15 Nov 2026, third review of the certificate branch, item 4). Used after a check (dry run), and

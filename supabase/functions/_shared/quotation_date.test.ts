@@ -21,6 +21,11 @@ Deno.test('a date it cannot read for certain, or one in the future, is no date a
   }
 });
 
+Deno.test('a printed date more than about six months before the day received is not trusted (no date stored)', () => {
+  assertEquals(quotationDateOf('16/05/2026', NOW), '2026-05-16');   // 183 days before 15 Nov: still trusted
+  for (const raw of ['15/05/2026', '1 Jan 2026', '12/11/2025', '2019-03-04']) assertEquals(quotationDateOf(raw, NOW), null, raw);
+});
+
 Deno.test('the Dubai day is the UTC day four hours on', () => {
   assertEquals(dubaiDay(new Date('2026-11-15T19:59:00Z')), '2026-11-15');
   assertEquals(dubaiDay(new Date('2026-11-15T20:00:00Z')), '2026-11-16');
