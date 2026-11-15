@@ -35,8 +35,8 @@
 --      demo rules as for every held question) reasons it, and fn_reason_apply_ceo__it_finding writes the decision on the
 --      hand-over where the it_engineer reads it and files the it_engineer's next step as a hand-over (ceo.decision_closed).
 --   2. ESCALATION IS WORK: a hand-over past its window (due in the WHERE) is escalated once; to the CEO as a held question
---      on surface ceo.overdue_handoff (chase / wait / needs the founder), to the founder (the CEO's own) by one deduplicated
---      e-mail a day through fn_notify_founder. The silent seat is the one that owes the next move.
+--      on surface ceo.overdue_handoff (chase / wait; round 4: withdraw for an order, answer for the CEO's own, and nothing to
+--      the founder). The silent seat is the one that owes the next move.
 --   3. ONE SUBJECT RESOLVER (fn_pool_keys): a hand-over or an event is linked to every subject it is about (transaction ->
 --      request, customer, supplier; quote -> request, supplier; support_case -> its party; notification -> its person ...)
 --      in public.subject_link, filled by triggers and back-filled in batches. The timeline reads it; an external reader sees
@@ -46,9 +46,29 @@
 --   5. THE SEED: owners are the seats that PRODUCE each type; every type has an audience or "nobody: <reason>"; a re-run
 --      never overwrites a row someone edited; request.step_failed and supplier.applied file a hand-over (event.act).
 --   6. A REVIEWED DELIBERATION closes only on an agreeing verdict; a revise or reject goes back to its author as work.
+--
+-- FOURTH ROUND (15 Nov 2026: the third review's findings, and founder ledger 1696 "CEO is having full authority ... He
+-- doesnt rely on me in anything"):
+--   R1. NOBODY WAITS ON THE FOUNDER. ask_founder and needs_founder:* are gone from every question; the CEO decides, records
+--       the reason, and the founder reads it in the CEO's daily summary (information, not approval; the summary is sent by
+--       the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql). The CEO's OWN late hand-over goes to the CEO's
+--       own queue (answer or wait), not to the founder. The IT engineer's questions go to the CEO too.
+--   R2. HARD LIMITS IN CODE, not in a prompt (the_company_limits_bind_every_seat_and_the_ceo_changes_one_only_after_a_day.sql,
+--       applied BEFORE this file): an allow_once is never offered or taken above the per-action limit or what is left of
+--       today's company limit; a money action without an amount is refused unasked (review 3, item 1: a NULL-amount grant was
+--       unlimited money); a grant with an amount is honoured only for a call that names an amount within it, and the amount
+--       is committed against today's limit at use; a recipient the consent, suppression, opt-out or inbox-placement gates
+--       refuse, or an action that would weaken a gate, is refused (review 3, item 2); a destructive production change (a
+--       deploy) is never asked through this check, by any seat (settled 15 Nov: it keeps its release path).
+--   R3. A FIX ORDER CLOSES when its finding's hand-over is done, and a ceo.order is never offered "chase" (review 3, item 3:
+--       the chase of an order made an order about an order, 9 questions for 2 orders by +15 days). Its overdue choices are
+--       wait or withdraw.
+--   R4. Authority questions take at most half of the day's room (review 3, item 5: 30 authority questions starved the IT
+--       findings on day 3), and run on the CEO's routine route (routing.ts EASY_DUTY_SURFACE, review 3, item 4).
+--   R5. Two refusals at the same instant: the second session's duplicate hand-over is caught and the existing one is read
+--       back (review 3, item 7).
 -- WHAT THIS DOES NOT CHANGE: fn_seat_handoff and the IT loop (owned by the money-side branch), so an it.finding is still
--- CLOSED by the it_engineer (its originator) when its fault clears; fn_founder_brief (the same branch: the two lines it
--- should add are in docs/runbooks/apply-the-shared-pool.md).
+-- CLOSED by the it_engineer (its originator) when its fault clears.
 -- prevented by: scripts/checks/every_seat_reads_one_pool.test.mjs, scripts/checks/every_report_and_handoff_comes_back.test.mjs,
 -- supabase/functions/_shared/seat_pool.test.ts, supabase/functions/_shared/ceo_judges_it_findings.test.ts
 --
@@ -751,11 +771,10 @@ revoke execute on function public.fn_seat_takes_event_act(bigint) from public, a
 -- and AED 2.3 to clear the backlog, then AED 0.10-0.30 a day.
 insert into public.decision_policy (key, value, description) values
   ('ceo_daily_judgements', '{"items": 30, "aed": 0.5, "per_tick": 5, "unit_aed_default": 0.0106}'::jsonb,
-   'The CEO''s model triage of IT findings and overdue hand-overs (ceo.it_finding, ceo.overdue_handoff): at most items questions and aed AED a day, per_tick a tick. every_seat_reads_one_pool_and_every_hand_over_comes_back.sql')
+   'The CEO''s model triage of IT findings, overdue hand-overs and seats'' questions of authority (ceo.it_finding, ceo.overdue_handoff, ceo.authority): at most items questions and aed AED a day, per_tick a tick; authority questions at most half of the room. every_seat_reads_one_pool_and_every_hand_over_comes_back.sql')
 on conflict (key) do nothing;
-insert into public.founder_mail_policy (kind, allowed_to_email, reason, owner_role) values
-  ('ceo_needs_the_founder', true, 'Once a day, deduplicated: what only the founder can decide (money, a destructive production change, a fact only he holds) and the CEO''s own overdue hand-overs, which have no superior but him (founder ledger 1688).', 'ceo')
-on conflict (kind) do nothing;
+-- (round 4, ruling 1696: no founder_mail_policy kind for "the CEO needs the founder": nothing waits on him. The CEO's daily
+-- summary to the founder, information only, is kind ceo_daily_summary in the coverage file.)
 
 insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file) values
   ('event.act', 'sales_engineer', 'sales_engineer', 'An event the sales engineer owns needs his action (a failed step of a paid request, a supplier application): event_subscription delivery ''handover''.', 'fn_seat_takes_event_act', interval '1 day', false, 'scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql'),
@@ -775,7 +794,7 @@ begin
   if not found or a.detail->>'type' <> 'it.finding' then raise exception 'fn_ceo_takes_it_finding: % is not an it.finding hand-over', p_id; end if;
   -- no acknowledgement that decides nothing: the CEO's model decides it (ceo.it_finding), the decision is the answer
   return jsonb_build_object('waiting', 'ceo judgement', 'seat', 'ceo',
-    'reply', 'Queued for the CEO''s decision (surface ceo.it_finding): fix now, accept the risk, a duplicate, or the founder.');
+    'reply', 'Queued for the CEO''s decision (surface ceo.it_finding): fix now, accept the risk, or a duplicate.');
 end $fn$;
 revoke execute on function public.fn_ceo_takes_it_finding(bigint) from public, anon, authenticated;
 update public.seat_handoff_kind set handler = 'fn_ceo_takes_it_finding'
@@ -783,21 +802,24 @@ update public.seat_handoff_kind set handler = 'fn_ceo_takes_it_finding'
 
 -- THE CEO'S DECISION MAKES SOMEONE ACT (review of 13 Nov, items 1-3; founder 1688 "how is the authority given from one and
 -- approvals from 1 to 2. It's a loop"). Two conversations the CEO starts or answers:
---   ceo.order      the CEO -> a seat: fix it (fix_now), or answer the hand-over you are late on (chase). It stays OPEN in
---                  the seat's "Waiting on you" until the seat reports it done (fn_seat_reports_done, or any close of the
---                  row through fn_seat_handoff_complete); past its due date it is escalated like any hand-over. When it is
---                  reported, fn_ceo_orders_reported writes the report on the CEO's decision and files the finding's sender
---                  (the it_engineer) its next step: re-verify.
+--   ceo.order      the CEO -> a seat: fix it (fix_now), answer the hand-over you are late on (chase), or move a coverage
+--                  number (the coverage file). It stays OPEN in the seat's "Waiting on you" until the seat reports it done
+--                  (fn_seat_reports_done, or any close of the row through fn_seat_handoff_complete), or, for a fix, until
+--                  the finding's own hand-over is done (round 4, R3); past its due date it is escalated like any hand-over,
+--                  and the CEO's choices on a late order are wait or withdraw, never chase. When it is reported,
+--                  fn_ceo_orders_reported writes the report on the CEO's decision and files the finding's sender (the
+--                  it_engineer) its next step: re-verify.
 --   ceo.authority  a seat -> the CEO: the standing rule refused it (fn_agent_may_act route ceo_case_decision); the CEO's
---                  model answers allow_once / refuse / ask_founder (surface ceo.authority, the same judged path and daily cap
---                  as an IT finding); allow_once writes ONE single-use grant (public.ceo_grant_once, 24 hours) that the
---                  subject-aware fn_agent_may_act honours once for that exact action and subject.
+--                  model answers allow_once / refuse (surface ceo.authority, the same judged path and daily cap as an IT
+--                  finding, at most half of the room); allow_once writes ONE single-use grant (public.ceo_grant_once,
+--                  24 hours) that the subject-aware fn_agent_may_act honours once for that exact action and subject, within
+--                  the company limits (round 4, R2). Nothing is asked of the founder (ledger 1696).
 insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
-select 'ceo.order', 'ceo', s, 'The CEO''s order to the seat (fix a finding, or answer a hand-over it is late on), by detail.due_at: open until the seat reports it done.',
+select 'ceo.order', 'ceo', s, 'The CEO''s order to the seat (fix a finding, answer a hand-over it is late on, or move a coverage number), by detail.due_at: open until the seat reports it done.',
        'fn_seat_takes_ceo_order', interval '1 hour', false, 'scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql'
   from unnest(array['sales_engineer', 'customer_support', 'accountant', 'marketing', 'it_engineer']) s
 union all
-select 'ceo.authority', s, 'ceo', 'The seat asks the CEO for an action its standing grant does not cover (fn_agent_may_act route ceo_case_decision); the CEO''s model answers allow_once, refuse or ask_founder.',
+select 'ceo.authority', s, 'ceo', 'The seat asks the CEO for an action its standing grant does not cover (fn_agent_may_act route ceo_case_decision); the CEO''s model answers allow_once or refuse, within the company limits (founder ledger 1696).',
        'fn_ceo_takes_authority_question', interval '1 day', false, 'scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql'
   from unnest(array['sales_engineer', 'customer_support', 'accountant', 'marketing', 'it_engineer']) s
 on conflict (type, from_seat, to_seat) do update set meaning = excluded.meaning, handler = excluded.handler,
@@ -863,15 +885,7 @@ begin
 end $fn$;
 revoke execute on function public.fn_ceo_ask(text, bigint, int, text, jsonb, jsonb) from public, anon, authenticated;
 
-create or replace function public.fn_ceo_founder_options()
-returns jsonb language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  -- the founder decides only money, a destructive production change, or a fact only he holds (it_founder_decision_class)
-  select jsonb_build_array(
-    jsonb_build_object('id', 'needs_founder:money', 'meaning', 'only the founder can decide it because it commits money; your answer is the one-sentence question to him'),
-    jsonb_build_object('id', 'needs_founder:destructive_production_change', 'meaning', 'only the founder can decide it because it destroys or rewrites production data; your answer is the one-sentence question to him'),
-    jsonb_build_object('id', 'needs_founder:fact_only_he_holds', 'meaning', 'only the founder holds the fact that decides it; your answer is the one-sentence question to him'))
-$fn$;
-revoke execute on function public.fn_ceo_founder_options() from public, anon, authenticated;
+-- (round 4, ledger 1696: fn_ceo_founder_options is gone. No question offers "the founder": the CEO decides.)
 
 -- WHO MAY BE ORDERED TO FIX A FINDING: the seats whose duties cover its subject (review of 13 Nov evening, item 7: a
 -- critical security fault was offered to marketing). The IT engineer always (code and configuration); a security fault to
@@ -907,8 +921,9 @@ revoke execute on function public.fn_ceo_finding_guard(text, text, text) from pu
 -- "APPROVALS FROM 1 TO 2" (founder 1688). Before: fn_agent_may_act refused an uncovered action with route
 -- 'ceo_case_decision' and nothing filed it (review of 13 Nov evening, test (d)). Now a seat that calls the SUBJECT-AWARE
 -- form below is asked for by the rule itself: the CEO's model answers, and an allow_once is a single-use, time-limited row
--- here that the same form honours once for that exact action and subject. The three-argument rule is unchanged: the 99
--- grants named but unchecked stay unchecked until the founder decides it.
+-- here that the same form honours once for that exact action and subject, inside the company limits (round 4). The
+-- three-argument rule is unchanged: its callers keep their own ceilings. A row with seat 'ceo' is the CEO acting on his own
+-- authority (ledger 1696): written used, with his reason, so it is on the record and in the founder's daily summary.
 create table if not exists public.ceo_grant_once (
   id bigserial primary key,
   seat text not null,
@@ -938,58 +953,136 @@ end $guard$;
 revoke all on public.ceo_grant_once from anon, authenticated;
 revoke all on sequence public.ceo_grant_once_id_seq from anon, authenticated;
 
--- What the CEO may NOT allow once (ask_founder only): money above the seat's standing limit, a real person's data, a switch.
+-- WHAT NO DECISION MAY ALLOW (round 4, R2; ledger 1696: the CEO decides everything else). Read from data and code, never from
+-- a prompt: a destructive production change; money with no amount, above the per-action limit or above what is left of
+-- today's company limit (fn_company_spend_fits); an action that would weaken a message gate; a named recipient the consent,
+-- suppression, opt-out or inbox-placement gates refuse (fn_company_message_gates). Empty = the CEO may allow it once.
+-- p_ask may name the recipient: {channel, email, lead_id} or the same inside facts.
 create or replace function public.fn_ceo_authority_guard(p_seat text, p_action_class text, p_amount_aed numeric, p_ask jsonb)
-returns text[] language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  select array_remove(array[
-    case when coalesce(p_amount_aed, 0) > 0
-          and coalesce((select g.max_amount_aed from public.ceo_standing_grant g
-                         where g.grantee_role_id = p_seat and g.action_class = p_action_class and g.active
-                           and (g.expires_at is null or g.expires_at > now()) order by g.issued_at desc limit 1), 0) < p_amount_aed
-         then 'money above the seat''s standing limit' end,
-    case when coalesce((p_ask->>'personal_data')::boolean, false)
-           or p_action_class ~* '(consent|unsubscribe|personal|pdpl|privacy|person|contact|identity|kyc|erase|export)'
-         then 'a real person''s data' end,
-    case when coalesce((p_ask->>'switch')::boolean, false) or p_action_class ~* '(switch|golive|go_live|toggle|enable|disable|flag|kill)'
-         then 'a switch' end], null)
-$fn$;
+returns text[] language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare a jsonb := case when jsonb_typeof(p_ask) = 'object' then p_ask else '{}'::jsonb end; v_out text[] := '{}'; v_fit jsonb;
+        v_ch text; v_email text; v_lead text;
+begin
+  if public.fn_action_is_destructive_production_change(p_action_class) then
+    v_out := v_out || 'a destructive production change keeps its release path'::text;
+  end if;
+  if public.fn_action_is_money(p_action_class) or coalesce(p_amount_aed, 0) > 0 then
+    v_fit := public.fn_company_spend_fits(p_amount_aed);
+    if not (v_fit->>'fits')::boolean then v_out := v_out || ('money: ' || (v_fit->>'why')); end if;
+  end if;
+  if public.fn_action_weakens_a_message_gate(p_action_class, a) then
+    v_out := v_out || 'it would message a person outside the consent, suppression, opt-out or inbox-placement gates, or weaken one'::text;
+  end if;
+  v_email := coalesce(a->>'email', a->'facts'->>'email'); v_lead := coalesce(a->>'lead_id', a->'facts'->>'lead_id');
+  if v_email is not null or v_lead is not null then
+    v_ch := lower(coalesce(a->>'channel', a->'facts'->>'channel',
+                           case when lower(p_action_class) ~ '(whatsapp|\mwa\M)' then 'whatsapp' else 'email' end));
+    v_out := v_out || coalesce((select array_agg('message gate: ' || g)
+                                  from unnest(public.fn_company_message_gates(v_ch, v_email, case when v_lead ~ '^\d+$' then v_lead::bigint end)) g), '{}'::text[]);
+  end if;
+  return v_out;
+end $fn$;
 revoke execute on function public.fn_ceo_authority_guard(text, text, numeric, jsonb) from public, anon, authenticated;
 
--- The subject-aware authority rule. Same answer as the three-argument rule when it permits or refuses on another route;
--- when it refuses with route 'ceo_case_decision': a single-use grant for exactly (seat, action, subject), unexpired and
--- unused, is honoured ONCE; otherwise the question is FILED to the CEO (one per seat, action, subject and Dubai day) and the
--- answer lands on that hand-over and in the seat's pool block. p_ask: {what, why, facts, personal_data, switch}.
+-- The subject-aware authority rule. Same answer as the three-argument rule when it refuses on another route; a permit for a
+-- money action is still inside the company limits and is committed now. When it refuses with route 'ceo_case_decision':
+-- a single-use grant for exactly (seat, action, subject, an amount within the grant's), unexpired and unused, is honoured
+-- ONCE and its amount committed; otherwise, unless a hard limit refuses it outright (nothing is asked then: the CEO could
+-- only refuse), the question is FILED to the CEO (one per seat, action, subject and Dubai day) and the answer lands on that
+-- hand-over and in the seat's pool block. p_ask: {what, why, facts, channel, email, lead_id}. The CEO's own call is his own
+-- authority within the limits, with a reason (ledger 1696). Round 4, R2 and R5.
 create or replace function public.fn_agent_may_act(p_grantee_role_id text, p_action_class text, p_amount_aed numeric, p_subject text, p_ask jsonb default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v jsonb := public.fn_agent_may_act(p_grantee_role_id, p_action_class, p_amount_aed);
         v_subject text := nullif(btrim(coalesce(p_subject, '')), ''); g public.ceo_grant_once; v_h bigint; h public.agent_actions;
-        a jsonb := case when jsonb_typeof(p_ask) = 'object' then p_ask else '{}'::jsonb end; v_guard text[];
+        a jsonb := case when jsonb_typeof(p_ask) = 'object' then p_ask else '{}'::jsonb end; v_guard text[]; v_c jsonb;
+        v_money boolean := public.fn_action_is_money(p_action_class) or coalesce(p_amount_aed, 0) > 0; v_key text;
 begin
-  if coalesce((v->>'may_act')::boolean, false) or v->>'route' is distinct from 'ceo_case_decision' then return v; end if;
+  -- never through this check, whoever asks (round 4, R2)
+  if public.fn_action_is_destructive_production_change(p_action_class) then
+    return jsonb_build_object('may_act', false, 'route', 'release_path', 'asked', false,
+      'reason', 'A destructive production change (' || p_action_class || ') keeps its release path; the authority check never decides it (founder ledger 1696 as settled 15 Nov 2026).');
+  end if;
+  if public.fn_action_weakens_a_message_gate(p_action_class, a) then
+    return jsonb_build_object('may_act', false, 'route', 'hard_limit', 'asked', false,
+      'reason', 'No seat and no CEO decision messages a person outside the consent, suppression, opt-out and inbox-placement gates, or weakens one.');
+  end if;
+  if v_money and (p_amount_aed is null or p_amount_aed <= 0) then
+    return jsonb_build_object('may_act', false, 'route', 'hard_limit', 'asked', false,
+      'reason', 'A money action names its amount in AED (' || p_action_class || '); nothing is asked or allowed without one.');
+  end if;
+  -- the standing rule permits it: money still fits the company limits, and is committed now
+  if coalesce((v->>'may_act')::boolean, false) then
+    if not v_money then return v; end if;
+    v_c := public.fn_company_spend_commit(p_grantee_role_id, p_action_class, coalesce(v_subject, '-'), p_amount_aed, 'standing_grant', null);
+    if not (v_c->>'committed')::boolean then
+      return jsonb_build_object('may_act', false, 'route', 'hard_limit', 'asked', false, 'limits', v_c,
+        'reason', 'The standing grant allows it; the company limit does not: ' || (v_c->>'why'));
+    end if;
+    return v || jsonb_build_object('committed', v_c);
+  end if;
+  if v->>'route' is distinct from 'ceo_case_decision' then return v; end if;
   if v_subject is null then
     return v || jsonb_build_object('asked', false, 'not_asked_because', 'no subject: a single decision is about one exact subject');
   end if;
-  update public.ceo_grant_once set used_at = now()
-   where id = (select o.id from public.ceo_grant_once o
-                where o.seat = p_grantee_role_id and o.action_class = p_action_class and o.subject = v_subject
-                  and o.used_at is null and o.expires_at > now()
-                  and (o.amount_aed is null or (p_amount_aed is not null and p_amount_aed <= o.amount_aed))
-                order by o.id limit 1 for update skip locked)
-  returning * into g;
+  -- a single-use grant: this seat, action and subject; no amount with no amount, else an amount within the grant's (review 3,
+  -- item 1: "o.amount_aed is null or" made a grant with no amount unlimited money)
+  select o.* into g from public.ceo_grant_once o
+   where o.seat = p_grantee_role_id and o.action_class = p_action_class and o.subject = v_subject
+     and o.used_at is null and o.expires_at > now()
+     and ((o.amount_aed is null and p_amount_aed is null)
+          or (o.amount_aed is not null and p_amount_aed is not null and p_amount_aed <= o.amount_aed))
+   order by o.id limit 1 for update skip locked;
   if found then
+    if v_money then
+      v_c := public.fn_company_spend_commit(p_grantee_role_id, p_action_class, v_subject, p_amount_aed, 'ceo_allow_once', g.id);
+      if not (v_c->>'committed')::boolean then   -- the grant stays unused: today's limit came first
+        return jsonb_build_object('may_act', false, 'route', 'hard_limit', 'asked', false, 'grant_once', g.id, 'limits', v_c,
+          'reason', 'The CEO allowed it once; the company limit does not, today: ' || (v_c->>'why'));
+      end if;
+    end if;
+    update public.ceo_grant_once set used_at = now() where id = g.id returning * into g;
     return jsonb_build_object('may_act', true, 'route', 'ceo_allow_once', 'grant_once', g.id, 'handoff_id', g.handoff_id,
-      'reason', 'The CEO allowed this once for ' || v_subject || ': ' || g.reason, 'used_at', g.used_at);
-  end if;
-  if not exists (select 1 from public.org_role r where r.role_id = p_grantee_role_id and r.status = 'active' and r.role_id <> 'ceo') then
-    return v || jsonb_build_object('asked', false, 'not_asked_because', 'only a seat that reports to the CEO asks him; the CEO''s own authority is the founder''s');
+      'reason', 'The CEO allowed this once for ' || v_subject || ': ' || g.reason, 'used_at', g.used_at, 'committed', v_c,
+      'gates', 'every message still passes the consent, suppression, opt-out and inbox-placement gates at send time');
   end if;
   v_guard := public.fn_ceo_authority_guard(p_grantee_role_id, p_action_class, p_amount_aed, a);
-  v_h := public.fn_seat_handoff(p_grantee_role_id, 'ceo', 'ceo.authority', 'ceo_grant_once',
-           p_action_class || ':' || v_subject || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD'),
-           jsonb_build_object('action_class', p_action_class, 'subject', v_subject, 'amount_aed', p_amount_aed,
-             'what', left(coalesce(nullif(a->>'what', ''), p_action_class || ' on ' || v_subject), 300),
-             'why', left(coalesce(a->>'why', 'not given'), 600), 'facts', coalesce(a->'facts', '{}'::jsonb),
-             'refusal', v->>'reason', 'guarded', to_jsonb(v_guard), 'asked_by', p_grantee_role_id));
+  if cardinality(v_guard) > 0 then   -- a hard limit refuses it; asking the CEO could only end in a refusal
+    return v || jsonb_build_object('may_act', false, 'route', 'hard_limit', 'asked', false, 'guarded', to_jsonb(v_guard),
+      'not_asked_because', 'a company limit refuses it: ' || array_to_string(v_guard, '; '));
+  end if;
+  -- THE CEO HIMSELF (ledger 1696): his own authority, inside the same limits, with his reason on the record
+  if p_grantee_role_id = 'ceo' then
+    if length(btrim(coalesce(a->>'why', ''))) < 12 then
+      return v || jsonb_build_object('may_act', false, 'route', 'ceo_own_authority', 'asked', false, 'not_asked_because', 'the CEO decides his own action with a reason (why, 12 characters or more)');
+    end if;
+    insert into public.ceo_grant_once (seat, action_class, subject, amount_aed, reason, expires_at, used_at)
+    values ('ceo', p_action_class, v_subject, p_amount_aed, left(btrim(a->>'why'), 600), now() + interval '1 minute', now()) returning * into g;
+    if v_money then
+      v_c := public.fn_company_spend_commit('ceo', p_action_class, v_subject, p_amount_aed, 'ceo_own_authority', g.id);
+      if not (v_c->>'committed')::boolean then
+        raise exception 'fn_agent_may_act: the company limit refused the CEO''s own commitment: %', v_c->>'why';
+      end if;
+    end if;
+    return jsonb_build_object('may_act', true, 'route', 'ceo_own_authority', 'grant_once', g.id, 'committed', v_c,
+      'reason', 'The CEO decided it on his own authority (founder ledger 1696): ' || g.reason);
+  end if;
+  if not exists (select 1 from public.org_role r where r.role_id = p_grantee_role_id and r.status = 'active') then
+    return v || jsonb_build_object('asked', false, 'not_asked_because', 'only a seat of the company asks the CEO');
+  end if;
+  v_key := p_action_class || ':' || v_subject || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD');
+  begin
+    v_h := public.fn_seat_handoff(p_grantee_role_id, 'ceo', 'ceo.authority', 'ceo_grant_once', v_key,
+             jsonb_build_object('action_class', p_action_class, 'subject', v_subject, 'amount_aed', p_amount_aed,
+               'what', left(coalesce(nullif(a->>'what', ''), p_action_class || ' on ' || v_subject), 300),
+               'why', left(coalesce(a->>'why', 'not given'), 600), 'facts', coalesce(a->'facts', '{}'::jsonb),
+               'ask', a - 'what' - 'why' - 'facts', 'refusal', v->>'reason', 'asked_by', p_grantee_role_id));
+  exception when unique_violation then
+    -- review 3, item 7: a second refusal in the same instant hit agent_actions_dedupe and aborted its caller's transaction;
+    -- the hand-over the first one filed is the answer for both
+    select id into v_h from public.agent_actions
+     where kind = 'handoff' and agent = 'ceo' and target_id = 'ceo.authority:' || v_key and status <> 'failed' order by id limit 1;
+  end;
   select * into h from public.agent_actions where id = v_h;
   return v || jsonb_build_object('asked', v_h is not null, 'handoff_id', v_h, 'status', h.status,
     'answer', case when h.evidence ? 'ceo_decision' then h.evidence->>'reply' end,
@@ -1005,42 +1098,42 @@ begin
   select * into a from public.agent_actions where id = p_id and kind = 'handoff';
   if not found or a.detail->>'type' <> 'ceo.authority' then raise exception 'fn_ceo_takes_authority_question: % is not a ceo.authority hand-over', p_id; end if;
   return jsonb_build_object('waiting', 'ceo judgement', 'seat', 'ceo',
-    'reply', 'Queued for the CEO''s decision (surface ceo.authority): allow once, refuse, or ask the founder.');
+    'reply', 'Queued for the CEO''s decision (surface ceo.authority): allow once or refuse, inside the company limits.');
 end $fn$;
 revoke execute on function public.fn_ceo_takes_authority_question(bigint) from public, anon, authenticated;
 
--- The duty step, inside the daily cap: a seat asking for authority first (it is blocked now), then the CEO's open
--- it.findings, most severe and oldest first, then the hand-overs escalated to him.
+-- The duty step, inside the daily cap: a seat asking for authority first (it is blocked now) but AT MOST HALF of the room
+-- (round 4, R4: with 40 pending, day 3 of review 3 asked 30 authority questions and 0 IT findings), then the CEO's open
+-- it.findings, most severe and oldest first, then the hand-overs escalated to him. No choice names the founder (ledger 1696).
 create or replace function public.fn_ceo_files_judgements()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_room jsonb := public.fn_ceo_judgement_room(); n int := (v_room->>'room')::int; r record; v_opts jsonb; v_case jsonb;
-        n_a int := 0; n_f int := 0; n_o int := 0; v_round int; v_id bigint; v_seats text[]; v_guard text; v_text text;
+        n_a int := 0; n_f int := 0; n_o int := 0; v_round int; v_id bigint; v_seats text[]; v_guard text; v_text text; v_limits jsonb;
+        v_auth_room int;
 begin
   if n <= 0 then return v_room || jsonb_build_object('filed', 0); end if;
+  -- half of the room (one when the room is one): the IT findings and the late hand-overs keep the other half
+  v_auth_room := case when n <= 1 then n else n / 2 end;
+  v_limits := public.fn_company_limits();
   for r in select a.* from public.agent_actions a
             where a.kind = 'handoff' and a.agent = 'ceo' and a.status = 'pending' and a.detail->>'type' = 'ceo.authority'
               and not (a.evidence ? 'ceo_decision') and not coalesce((a.detail->>'demo')::boolean, false)
               and not exists (select 1 from public.reasoning_held_question q
                                where q.dedupe_key = 'ceo.authority:' || a.id || ':1'
                                  and (q.status = 'held' or coalesce(q.last_attempt_at, q.created_at) > now() - interval '24 hours'))
-            order by a.created_at limit n loop
-    v_opts := case when jsonb_array_length(coalesce(r.detail->'guarded', '[]'::jsonb)) = 0
-                   then jsonb_build_array(jsonb_build_object('id', 'allow_once', 'meaning', 'let ' || (r.detail->>'from') || ' do exactly this, once, within 24 hours; your answer is the reason it may'))
-                   else '[]'::jsonb end
-      || jsonb_build_array(
-           jsonb_build_object('id', 'refuse', 'meaning', 'refuse it; your answer is the reason ' || (r.detail->>'from') || ' reads'),
-           jsonb_build_object('id', 'ask_founder', 'meaning', 'only the founder can decide it (money above the limit, a real person''s data, a switch, or a fact only he holds); your answer is the one-sentence question to him'));
+            order by a.created_at limit v_auth_room loop
     v_id := public.fn_ceo_ask('ceo.authority', r.id, 1,
       'The ' || (r.detail->>'from') || ' asks: ' || (r.detail->>'what') || ' (' || (r.detail->>'action_class') || ' on ' || (r.detail->>'subject')
         || coalesce(', AED ' || (r.detail->>'amount_aed'), '') || '). Why: ' || coalesce(r.detail->>'why', 'not given') || '. The standing rule refused it: '
-        || coalesce(r.detail->>'refusal', '?')
-        || case when jsonb_array_length(coalesce(r.detail->'guarded', '[]'::jsonb)) > 0
-                then ' It touches ' || (select string_agg(x, ', ') from jsonb_array_elements_text(r.detail->'guarded') x) || ', so you may not allow it yourself.' else '' end
-        || ' As CEO, decide and give the reason in one or two sentences.',
+        || coalesce(r.detail->>'refusal', '?') || ' The company limits allow it (per action AED ' || coalesce(v_limits->>'per_action_aed', '?')
+        || ', AED ' || coalesce(v_limits->>'spent_today_aed', '?') || ' of AED ' || coalesce(v_limits->>'daily_spend_aed', '?')
+        || ' committed today), and every message still passes the consent, suppression, opt-out and inbox-placement gates. As CEO you decide alone (founder ledger 1696): decide and give the reason in one or two sentences.',
       jsonb_build_object('handoff_id', r.id, 'asked_by', r.detail->>'from', 'action_class', r.detail->>'action_class', 'subject', r.detail->>'subject',
                          'amount_aed', r.detail->'amount_aed', 'what', r.detail->>'what', 'why', r.detail->>'why', 'facts', r.detail->'facts',
-                         'refusal', r.detail->>'refusal', 'guarded', r.detail->'guarded'),
-      v_opts);
+                         'refusal', r.detail->>'refusal', 'limits', v_limits),
+      jsonb_build_array(
+        jsonb_build_object('id', 'allow_once', 'meaning', 'let ' || (r.detail->>'from') || ' do exactly this, once, within 24 hours; your answer is the reason it may'),
+        jsonb_build_object('id', 'refuse', 'meaning', 'refuse it; your answer is the reason ' || (r.detail->>'from') || ' reads')));
     if v_id is not null then n_a := n_a + 1; end if;
   end loop;
   n := n - n_a;
@@ -1064,7 +1157,7 @@ begin
     v_seats := public.fn_ceo_fix_seats(v_text, coalesce(r.fblast, r.detail->>'blast'), r.detail->>'duty');
     v_guard := public.fn_ceo_finding_guard(r.detail->>'severity', coalesce(r.fblast, r.detail->>'blast'), v_text);
     v_opts := coalesce((select jsonb_agg(jsonb_build_object('id', 'fix_now:' || s, 'meaning',
-                          case when s = 'it_engineer' then 'the IT engineer prepares the code or configuration change within 7 days'
+                          case when s = 'it_engineer' then 'the IT engineer prepares the code or configuration change within 7 days (a deploy keeps its release path)'
                                else replace(s, '_', ' ') || ' fixes it within 7 days (its duties cover this subject)' end) order by s)
                           from unnest(v_seats) s), '[]'::jsonb)
       || case when v_guard is null
@@ -1076,8 +1169,7 @@ begin
                               and (split_part(x.detail->>'issue_key', ':', 1) || ':' || split_part(x.detail->>'issue_key', ':', 2)
                                      = split_part(r.detail->>'issue_key', ':', 1) || ':' || split_part(r.detail->>'issue_key', ':', 2)
                                    or (nullif(x.detail->>'title', '') is not null and x.detail->>'title' = r.detail->>'title'))
-                            order by x.id limit 3) d), '[]'::jsonb)
-      || public.fn_ceo_founder_options();
+                            order by x.id limit 3) d), '[]'::jsonb);
     v_case := jsonb_build_object('handoff_id', r.id, 'issue_key', r.detail->>'issue_key', 'title', coalesce(r.ftitle, r.detail->>'title'),
       'severity', r.detail->>'severity', 'blast', coalesce(r.fblast, r.detail->>'blast'), 'where', coalesce(r.where_it_is, r.detail->>'where_it_is'), 'duty', r.detail->>'duty',
       'open_since', r.fstart, 'last_seen', r.last_seen_at, 'seen_count', r.seen_count, 'affected', r.affected,
@@ -1104,22 +1196,27 @@ begin
         || (r.detail->'silence'->>'silent_seat') || ' owes ' || (r.detail->'silence'->>'owes') || ' since '
         || to_char((r.detail->'silence'->>'since')::timestamptz at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || '. As CEO, decide and give the reason.',
       jsonb_build_object('handoff_id', r.id, 'type', r.detail->>'type', 'from', r.detail->>'from', 'to', r.agent, 'silence', r.detail->'silence',
-                         'awaiting', r.detail->>'awaiting', 'summary', r.detail->'summary', 'reply', left(coalesce(r.evidence::text, ''), 600)),
-      case when r.detail->'silence'->>'silent_seat' in (select role_id from public.org_role where status = 'active' and role_id <> 'ceo')
+                         'awaiting', r.detail->>'awaiting', 'summary', r.detail->'summary', 'what', r.detail->>'what', 'reply', left(coalesce(r.evidence::text, ''), 600)),
+      -- round 4, R3: an ORDER is never chased (that made an order about an order, which closed only when the first did:
+      -- never); the CEO waits for it or withdraws it. His OWN late hand-over he answers or waits on (R1: not the founder).
+      case when r.detail->>'type' = 'ceo.order'
+           then jsonb_build_array(jsonb_build_object('id', 'withdraw', 'meaning', 'withdraw the order: it is no longer needed or cannot be done; your answer is the reason ' || r.agent || ' reads'))
+           when r.detail->'silence'->>'silent_seat' = 'ceo'
+           then jsonb_build_array(jsonb_build_object('id', 'answer', 'meaning', 'answer it now: your answer is the reply ' || coalesce(r.detail->>'from', 'the sender') || ' reads'))
+           when r.detail->'silence'->>'silent_seat' in (select role_id from public.org_role where status = 'active' and role_id <> 'ceo')
            then jsonb_build_array(jsonb_build_object('id', 'chase', 'meaning', 'order ' || (r.detail->'silence'->>'silent_seat') || ' to do it within 2 days; your answer says what is owed'))
            else '[]'::jsonb end
-      || jsonb_build_array(jsonb_build_object('id', 'wait', 'meaning', 'accept the delay for 7 days; your answer is the reason'))
-      || public.fn_ceo_founder_options());
+      || jsonb_build_array(jsonb_build_object('id', 'wait', 'meaning', 'accept the delay for 7 days; your answer is the reason')));
     if v_id is not null then n_o := n_o + 1; end if;
   end loop;
-  return v_room || jsonb_build_object('filed_authority', n_a, 'filed_it_findings', n_f, 'filed_overdue', n_o);
+  return v_room || jsonb_build_object('authority_room', v_auth_room, 'filed_authority', n_a, 'filed_it_findings', n_f, 'filed_overdue', n_o);
 end $fn$;
 revoke execute on function public.fn_ceo_files_judgements() from public, anon, authenticated;
 
 -- The CEO's answer counts only if it is one of the choices he was OFFERED (the options on the held question) and carries a
--- reason: a fix handed to a seat whose duties do not cover it, accept_risk on a guarded finding, allow_once on money above
--- the limit, a person's data or a switch, or a made-up choice decides nothing (detail.ceo_judgement_refused), and the
--- question is asked again a day later.
+-- reason: a fix handed to a seat whose duties do not cover it, accept_risk on a guarded finding, or a made-up choice decides
+-- nothing (detail.ceo_judgement_refused), and the question is asked again a day later. An allow_once a company limit refuses
+-- by the time it lands is refused by the limit, not re-asked (fn_reason_apply_ceo__authority).
 create or replace function public.fn_ceo_answer_is_offered(q public.reasoning_held_question, p_result jsonb)
 returns boolean language sql stable set search_path to 'public', 'pg_temp' as $fn$
   select length(btrim(coalesce(p_result->>'answer', ''))) >= 12
@@ -1139,7 +1236,7 @@ begin
   select * into h from public.agent_actions where id = (q.subject->>'handoff_id')::bigint and kind = 'handoff' for update;
   if not found or h.status <> 'pending' then return jsonb_build_object('skipped', 'the hand-over is no longer open'); end if;
   v_base := split_part(coalesce(v_choice, ''), ':', 1); v_arg := nullif(split_part(coalesce(v_choice, ''), ':', 2), '');
-  if not public.fn_ceo_answer_is_offered(q, p_result) or (v_base in ('fix_now', 'duplicate_of', 'needs_founder') and v_arg is null) then
+  if not public.fn_ceo_answer_is_offered(q, p_result) or (v_base in ('fix_now', 'duplicate_of') and v_arg is null) then
     update public.agent_actions set detail = detail || jsonb_build_object('ceo_judgement_refused',
       jsonb_build_object('held_id', p_id, 'choice', v_choice, 'at', now(), 'why', 'not one of the offered choices, or no reason')) where id = h.id;
     return null;
@@ -1150,7 +1247,7 @@ begin
            || case v_base when 'accept_risk' then jsonb_build_object('review_at', now() + interval '14 days')
                           when 'fix_now' then jsonb_build_object('seat', v_arg, 'due_at', v_due, 'review_at', v_due + interval '1 day')
                           when 'duplicate_of' then jsonb_build_object('duplicate_of', v_arg, 'review_at', now() + interval '7 days')
-                          else jsonb_build_object('founder_category', v_arg, 'founder_question', left(v_reason, 400)) end;
+                          else '{}'::jsonb end;
   if v_base = 'fix_now' then
     -- THE ORDER: open in the seat's queue until it reports the fix done (not a notice closed in 0 s)
     v_order := public.fn_seat_handoff('ceo', v_arg, 'ceo.order', 'agent_actions', h.id || ':' || v_round,
@@ -1164,7 +1261,7 @@ begin
                         || to_char(v_due at time zone 'Asia/Dubai', 'DD Mon') || ' (order #' || coalesce(v_order::text, '?') || ')'
     when 'accept_risk' then 'keep watching; the CEO reviews it again on ' || to_char((now() + interval '14 days') at time zone 'Asia/Dubai', 'DD Mon')
     when 'duplicate_of' then 'close it as the same fault as #' || v_arg || ' when you re-verify'
-    else 'keep it open; the founder is asked once, in the CEO''s daily note' end;
+    else 'keep re-checking' end;
   update public.agent_actions
      set evidence = coalesce(evidence, '{}'::jsonb) || jsonb_build_object('ceo_decision', v_dec,
            'reply', 'The CEO decided ' || v_choice || ': ' || left(v_reason, 300)),
@@ -1184,18 +1281,21 @@ revoke execute on function public.fn_reason_apply_ceo__it_finding(bigint, jsonb)
 create or replace function public.fn_reason_apply_ceo__overdue_handoff(p_id bigint, p_result jsonb)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare q public.reasoning_held_question; h public.agent_actions; v_choice text := p_result->'decision'->>'choice';
-        v_base text; v_arg text; v_reason text := btrim(coalesce(p_result->>'answer', '')); v_dec jsonb; v_silent text; v_round int; v_h bigint;
+        v_reason text := btrim(coalesce(p_result->>'answer', '')); v_dec jsonb; v_silent text; v_round int; v_h bigint;
 begin
   select * into q from public.reasoning_held_question where id = p_id;
   select * into h from public.agent_actions where id = (q.subject->>'handoff_id')::bigint and kind = 'handoff' for update;
   if not found or h.status <> 'pending' then return jsonb_build_object('skipped', 'the hand-over is no longer open'); end if;
-  v_base := split_part(coalesce(v_choice, ''), ':', 1); v_arg := nullif(split_part(coalesce(v_choice, ''), ':', 2), '');
-  if not public.fn_ceo_answer_is_offered(q, p_result) or (v_base = 'needs_founder' and v_arg is null) then return null; end if;
+  if not public.fn_ceo_answer_is_offered(q, p_result) then
+    update public.agent_actions set detail = detail || jsonb_build_object('ceo_judgement_refused',
+      jsonb_build_object('held_id', p_id, 'choice', v_choice, 'at', now(), 'why', 'not one of the offered choices, or no reason')) where id = h.id;
+    return null;
+  end if;
   v_silent := h.detail->'silence'->>'silent_seat'; v_round := coalesce((q.subject->>'round')::int, 1);
-  v_dec := jsonb_build_object('choice', v_choice, 'reason', left(v_reason, 600), 'held_id', p_id, 'decided_at', now(), 'round', v_round,
-             'review_at', now() + case v_base when 'chase' then interval '3 days' else interval '7 days' end)
-           || case when v_base = 'needs_founder' then jsonb_build_object('founder_category', v_arg, 'founder_question', left(v_reason, 400)) else '{}'::jsonb end;
-  if v_base = 'chase' then
+  v_dec := jsonb_build_object('choice', v_choice, 'reason', left(v_reason, 600), 'model', p_result->>'model', 'held_id', p_id, 'decided_at', now(),
+             'round', v_round, 'by', 'ceo (model, surface ceo.overdue_handoff)',
+             'review_at', now() + case v_choice when 'chase' then interval '3 days' else interval '7 days' end);
+  if v_choice = 'chase' then
     -- THE ORDER: the silent seat owes it within 2 days; it closes itself when the late hand-over is answered
     v_h := public.fn_seat_handoff('ceo', v_silent, 'ceo.order', 'agent_actions', h.id || ':chase:' || v_round,
       jsonb_build_object('decision', 'chase', 'reasons', left(v_reason, 600), 'overdue_handoff_id', h.id,
@@ -1205,22 +1305,32 @@ begin
   end if;
   update public.agent_actions set detail = jsonb_set(detail, '{silence}', coalesce(detail->'silence', '{}'::jsonb) || jsonb_build_object('ceo_decision', v_dec))
    where id = h.id;
+  if v_choice = 'withdraw' then
+    -- the order is closed with the CEO's reason; the seat reads it as the outcome of its order
+    perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('outcome', 'withdrawn', 'reply', 'The CEO withdrew this order: ' || left(v_reason, 300),
+      'ceo_decision', v_dec, 'not_cited', jsonb_build_object('reason', 'withdrawn by the CEO', 'by', 'ceo')));
+  elsif v_choice = 'answer' then
+    -- his own late hand-over: the answer is his reply, and the sender closes it as for any answered hand-over
+    update public.agent_actions
+       set evidence = coalesce(evidence, '{}'::jsonb) || jsonb_build_object('reply', 'The CEO answers: ' || left(v_reason, 500), 'ceo_decision', v_dec),
+           detail = detail || jsonb_build_object('replied_at', now(), 'awaiting', coalesce(h.detail->>'from', 'the sender') || ' closes it')
+     where id = h.id;
+  end if;
   return jsonb_build_object('decided', v_choice, 'handoff_id', h.id, 'order_handoff', v_h);
 end $fn$;
 revoke execute on function public.fn_reason_apply_ceo__overdue_handoff(bigint, jsonb) from public, anon, authenticated;
 
--- Applied when the CEO's model answered a seat's question of authority (surface ceo.authority).
+-- Applied when the CEO's model answered a seat's question of authority (surface ceo.authority): allow_once or refuse.
 create or replace function public.fn_reason_apply_ceo__authority(p_id bigint, p_result jsonb)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare q public.reasoning_held_question; h public.agent_actions; v_choice text := p_result->'decision'->>'choice';
         v_reason text := btrim(coalesce(p_result->>'answer', '')); v_dec jsonb; v_reply text; v_g bigint; v_exp timestamptz := now() + interval '24 hours';
+        v_guard text[];
 begin
   select * into q from public.reasoning_held_question where id = p_id;
   select * into h from public.agent_actions where id = (q.subject->>'handoff_id')::bigint and kind = 'handoff' and detail->>'type' = 'ceo.authority' for update;
   if not found or h.status <> 'pending' or h.evidence ? 'ceo_decision' then return jsonb_build_object('skipped', 'the question is no longer open'); end if;
-  -- allow_once is refused here too when the request is guarded, whatever the options said: belt and braces on the founder's rule
-  if not public.fn_ceo_answer_is_offered(q, p_result)
-     or (v_choice = 'allow_once' and jsonb_array_length(coalesce(h.detail->'guarded', '[]'::jsonb)) > 0) then
+  if not public.fn_ceo_answer_is_offered(q, p_result) or v_choice not in ('allow_once', 'refuse') then
     update public.agent_actions set detail = detail || jsonb_build_object('ceo_judgement_refused',
       jsonb_build_object('held_id', p_id, 'choice', v_choice, 'at', now(), 'why', 'not one of the offered choices, or no reason; nothing granted')) where id = h.id;
     return null;
@@ -1228,33 +1338,39 @@ begin
   v_dec := jsonb_build_object('choice', v_choice, 'reason', left(v_reason, 600), 'model', p_result->>'model', 'held_id', p_id,
                               'decided_at', now(), 'by', 'ceo (model, surface ceo.authority)');
   if v_choice = 'allow_once' then
+    -- THE LIMITS ARE READ AGAIN NOW, whatever the question offered (round 4, R2): the day may have filled since it was asked,
+    -- or the question was altered. A limit that refuses it now closes the question with the limit's reason: final, not re-asked.
+    v_guard := public.fn_ceo_authority_guard(h.detail->>'from', h.detail->>'action_class', nullif(h.detail->>'amount_aed', '')::numeric,
+                                             coalesce(h.detail->'ask', '{}'::jsonb) || jsonb_build_object('facts', coalesce(h.detail->'facts', '{}'::jsonb)));
+    if cardinality(v_guard) > 0 then
+      v_dec := v_dec || jsonb_build_object('refused_by_limit', to_jsonb(v_guard));
+      v_reply := 'The CEO would allow it, but a company limit refuses it: ' || array_to_string(v_guard, '; ');
+      perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('ceo_decision', v_dec, 'reply', v_reply, 'outcome', 'refused_by_limit',
+        'not_cited', jsonb_build_object('reason', 'a company limit', 'by', 'ceo')));
+      return jsonb_build_object('decided', 'refused_by_limit', 'handoff_id', h.id, 'guard', to_jsonb(v_guard));
+    end if;
     insert into public.ceo_grant_once (seat, action_class, subject, amount_aed, handoff_id, held_id, reason, expires_at)
     values (h.detail->>'from', h.detail->>'action_class', h.detail->>'subject', nullif(h.detail->>'amount_aed', '')::numeric, h.id, p_id, left(v_reason, 600), v_exp)
     returning id into v_g;
     v_dec := v_dec || jsonb_build_object('grant_once_id', v_g, 'expires_at', v_exp);
     v_reply := 'The CEO allows it ONCE, until ' || to_char(v_exp at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ': ' || left(v_reason, 300);
-  elsif v_choice = 'refuse' then
-    v_reply := 'The CEO refuses: ' || left(v_reason, 300);
   else
-    v_dec := v_dec || jsonb_build_object('founder_question', left(v_reason, 400));
-    v_reply := 'The CEO asked the founder: ' || left(v_reason, 300);
-    update public.agent_actions
-       set evidence = coalesce(evidence, '{}'::jsonb) || jsonb_build_object('ceo_decision', v_dec, 'reply', v_reply),
-           detail = detail || jsonb_build_object('awaiting', 'the founder''s answer, asked by the ceo', 'replied_at', now())
-     where id = h.id;
-    return jsonb_build_object('decided', v_choice, 'handoff_id', h.id);
+    v_reply := 'The CEO refuses: ' || left(v_reason, 300);
   end if;
-  perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('ceo_decision', v_dec, 'reply', v_reply, 'outcome', v_choice));
+  perform public.fn_seat_handoff_complete(h.id, jsonb_build_object('ceo_decision', v_dec, 'reply', v_reply, 'outcome', v_choice,
+    'not_cited', jsonb_build_object('reason', 'the CEO''s decision', 'by', 'ceo')));
   return jsonb_build_object('decided', v_choice, 'handoff_id', h.id, 'grant_once', v_g);
 end $fn$;
 revoke execute on function public.fn_reason_apply_ceo__authority(bigint, jsonb) from public, anon, authenticated;
 
 -- WHEN THE SEAT REPORTS: the order is done (closed by the seat through fn_seat_handoff_complete or fn_seat_reports_done);
 -- its report is written on the CEO's decision, the finding's sender (the it_engineer) is filed its next step, re-verify,
--- and an order to answer a late hand-over closes itself once that hand-over is answered. Run by the pool tick.
+-- an order to answer a late hand-over closes itself once that hand-over is answered, and a FIX order closes itself once its
+-- finding's hand-over is done (round 4, R3: IT re-verified finding #69 cleared and order #71 stayed open; at +8 days it was
+-- escalated and chased, 9 questions for 2 orders by +15 days). Run by the pool tick.
 create or replace function public.fn_ceo_orders_reported()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare o record; v_report text; v_round text; n_rep int := 0; n_self int := 0; v_it bigint;
+declare o record; v_report text; v_round text; n_rep int := 0; n_self int := 0; n_fix int := 0; v_it bigint;
 begin
   for o in select a.* from public.agent_actions a
             where a.kind = 'handoff' and a.detail->>'type' = 'ceo.order' and a.detail->>'from' = 'ceo' and a.status = 'done'
@@ -1290,7 +1406,18 @@ begin
     perform public.fn_seat_handoff_complete(o.id, jsonb_build_object('outcome', 'done', 'reply', 'the late hand-over #' || (o.detail->>'overdue_handoff_id') || ' was answered'));
     n_self := n_self + 1;
   end loop;
-  return jsonb_build_object('reported', n_rep, 'closed_with_the_late_hand_over', n_self);
+  for o in select a.id, a.detail, x.status as fstatus from public.agent_actions a
+            join public.agent_actions x on x.id = case when a.detail->>'finding_handoff_id' ~ '^\d+$' then (a.detail->>'finding_handoff_id')::bigint end
+            where a.kind = 'handoff' and a.detail->>'type' = 'ceo.order' and a.status = 'pending' and x.status <> 'pending'
+            order by a.id limit 100 loop
+    perform public.fn_seat_handoff_complete(o.id, jsonb_build_object('outcome', 'done', 'reported_at', now(),
+      'reply', 'the finding''s hand-over #' || (o.detail->>'finding_handoff_id') || ' is ' || o.fstatus || ': nothing is left to fix',
+      'not_cited', jsonb_build_object('reason', 'closed with its finding', 'by', 'ceo')));
+    update public.agent_actions set detail = detail || jsonb_build_object('reported_at', now(), 'reported_to', 'closed with its finding')
+     where id = o.id;
+    n_fix := n_fix + 1;
+  end loop;
+  return jsonb_build_object('reported', n_rep, 'closed_with_the_late_hand_over', n_self, 'closed_with_the_finding', n_fix);
 end $fn$;
 revoke execute on function public.fn_ceo_orders_reported() from public, anon, authenticated;
 
@@ -1308,68 +1435,24 @@ end $fn$;
 revoke execute on function public.fn_seat_reports_done(bigint, text, text) from public, anon, authenticated;
 grant execute on function public.fn_seat_reports_done(bigint, text, text) to service_role;
 
--- What only the founder can answer, and the CEO's own overdue hand-overs, once a day, deduplicated, through the founder
--- channel (fn_notify_founder, kind ceo_needs_the_founder). Until fn_founder_brief prints fn_founder_brief_overdue_handoffs
--- (the money-side branch owns that brief), this is how those lines reach him.
-create or replace function public.fn_founder_brief_overdue_handoffs(p_limit integer default 8)
-returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  with x as (
-    select a.id, coalesce(a.evidence->'ceo_decision'->>'decided_at', a.detail->'silence'->>'since') as at,
-           case when a.evidence->'ceo_decision'->>'choice' like 'needs_founder:%'
-                then 'The CEO asks (' || replace(split_part(a.evidence->'ceo_decision'->>'choice', ':', 2), '_', ' ') || ', IT finding #' || a.id || '): '
-                     || (a.evidence->'ceo_decision'->>'founder_question')
-                when a.detail->'silence'->'ceo_decision'->>'choice' like 'needs_founder:%'
-                then 'The CEO asks (hand-over #' || a.id || '): ' || (a.detail->'silence'->'ceo_decision'->>'founder_question')
-                when a.evidence->'ceo_decision'->>'choice' = 'ask_founder'
-                then 'The CEO asks (authority, ' || (a.detail->>'from') || ' wants to ' || left(coalesce(a.detail->>'what', '?'), 120) || ', #' || a.id || '): '
-                     || (a.evidence->'ceo_decision'->>'founder_question')
-                else 'The CEO is late: ' || (a.detail->>'type') || ' to ' || a.agent || ' (#' || a.id || '), '
-                     || (a.detail->'silence'->>'silent_seat') || ' owes ' || (a.detail->'silence'->>'owes') || ' since '
-                     || to_char((a.detail->'silence'->>'since')::timestamptz at time zone 'Asia/Dubai', 'DD Mon') end as line
-      from public.agent_actions a
-     where a.kind = 'handoff' and a.status = 'pending'
-       and (a.detail->'silence'->>'escalated_to' = 'founder'
-            or a.evidence->'ceo_decision'->>'choice' like 'needs_founder:%'
-            or a.evidence->'ceo_decision'->>'choice' = 'ask_founder'
-            or a.detail->'silence'->'ceo_decision'->>'choice' like 'needs_founder:%'))
-  select jsonb_build_object('count', (select count(*) from x),
-    'lines', coalesce((select jsonb_agg(line order by at) from (select * from x order by at limit greatest(coalesce(p_limit, 8), 1)) y), '[]'::jsonb),
-    'ids', coalesce((select jsonb_agg(id) from x), '[]'::jsonb))
-$fn$;
-revoke execute on function public.fn_founder_brief_overdue_handoffs(integer) from public, anon, authenticated;
-
-create or replace function public.fn_ceo_tells_the_founder_daily()
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare v jsonb := public.fn_founder_brief_overdue_handoffs(10);
-        v_key text := 'ceo_needs_the_founder:' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD'); v_r jsonb;
-begin
-  if (v->>'count')::int = 0 then return jsonb_build_object('told', false, 'reason', 'nothing for the founder'); end if;
-  if exists (select 1 from public.founder_alerts f where f.dedupe_key = v_key) then
-    return jsonb_build_object('told', false, 'reason', 'already told today');
-  end if;
-  v_r := public.fn_notify_founder('The CEO needs you on ' || (v->>'count') || ' item(s)',
-           (select string_agg('- ' || l, E'\n') from jsonb_array_elements_text(v->'lines') l)
-             || case when (v->>'count')::int > 10 then E'\n(+' || ((v->>'count')::int - 10) || ' more)' else '' end,
-           -- a question only he can answer is 'high'; a list of late items alone is 'info' (no WhatsApp for a reminder)
-           case when exists (select 1 from jsonb_array_elements_text(v->'lines') l where l like 'The CEO asks%') then 'high' else 'info' end,
-           'ceo_needs_the_founder', v_key, 'ceo');
-  return jsonb_build_object('told', true, 'count', v->>'count', 'result', v_r);
-end $fn$;
-revoke execute on function public.fn_ceo_tells_the_founder_daily() from public, anon, authenticated;
+-- (round 4, ledger 1696: fn_founder_brief_overdue_handoffs and fn_ceo_tells_the_founder_daily are gone. Nothing is asked of
+-- the founder; the CEO's decisions, his late hand-overs and the company's numbers reach him once a day as information, in
+-- fn_ceo_daily_summary_to_the_founder (the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql).)
 
 -- ── 9. A HAND-OVER PAST ITS WINDOW IS ESCALATED ONCE, AS WORK ─────────────────────────────────────────────────────
 -- Due is in the WHERE (the first version took the first 100 ids and skipped the ones not yet due: starvation). The silent
 -- seat is the one that owes the next move (fn_handoff_owing_seat): the seat its "awaiting" names, case-insensitively, else
 -- the RECEIVER, never the sender by default. The escalation goes to the SILENT seat's superior (org_reporting_edge): the
--- CEO for his staff, a held question his duty decides (ceo.overdue_handoff); the founder ONLY when the CEO himself is the
--- silent one, in the daily note (review of 13 Nov, item 3: "ceo.revise to marketing" went to the founder because the
--- SENDER's superior was asked). ONCE: escalated and detail.silence are set together, and rows another loop escalated
+-- CEO for his staff, a held question his duty decides (ceo.overdue_handoff); when the CEO himself is the silent one, his OWN
+-- queue (round 4, R1, ledger 1696: he answers it or waits; the founder reads it in the daily summary, never as a question).
+-- (Review of 13 Nov, item 3: "ceo.revise to marketing" went to the founder because the SENDER's superior was asked.)
+-- ONCE: escalated and detail.silence are set together, and rows another loop escalated
 -- (escalated_report_id, fn_ceo_queue_work's flag) are not escalated again. A row carrying the CEO's decision is not
 -- escalated before the decision's own date (its review_at or due_at), and the CEO's own decided rows never: his duty asks
 -- him again on the review date (review of 13 Nov, item 2: three decided findings bounced back to him 15 minutes later).
 create or replace function public.fn_handoff_overdue_escalate()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare h record; v_sup text; v_silent text; v_since timestamptz; n_seat int := 0; n_founder int := 0; v_ids bigint[] := '{}';
+declare h record; v_sup text; v_silent text; v_since timestamptz; n_seat int := 0; n_own int := 0; v_ids bigint[] := '{}';
 begin
   for h in select * from (
              select a.id, a.agent, a.detail, a.created_at, a.evidence,
@@ -1394,13 +1477,13 @@ begin
                     then (h.detail->>'replied_at')::timestamptz else h.created_at end;
     v_sup := null;
     if v_silent = 'ceo' then
-      v_sup := 'founder';
+      v_sup := 'ceo';      -- his own queue: nothing waits on the founder (ledger 1696)
     else
       select e.parent_role_id into v_sup from public.org_reporting_edge e
         join public.org_role r on r.role_id = e.parent_role_id and r.status = 'active'
        where e.child_role_id = v_silent
        order by (e.parent_role_id = 'ceo') desc limit 1;
-      v_sup := coalesce(v_sup, 'ceo');   -- a seat with no superior on file is the CEO's: the founder is asked only about the CEO
+      v_sup := coalesce(v_sup, 'ceo');   -- a seat with no superior on file is the CEO's
     end if;
     update public.agent_actions
        set escalated = true,
@@ -1420,10 +1503,10 @@ begin
                                'subject_table', h.detail->>'subject_table', 'subject_id', h.detail->>'subject_id'),
             'handoff.overdue.escalated:' || h.id)
     on conflict (dedupe_key) where dedupe_key is not null do nothing;
-    if v_sup = 'founder' then n_founder := n_founder + 1; else n_seat := n_seat + 1; end if;
+    if v_silent = 'ceo' then n_own := n_own + 1; else n_seat := n_seat + 1; end if;
     v_ids := v_ids || h.id;
   end loop;
-  return jsonb_build_object('escalated_to_a_seat', n_seat, 'escalated_to_the_founder', n_founder, 'ids', to_jsonb(v_ids));
+  return jsonb_build_object('escalated_to_a_seat', n_seat, 'the_ceos_own', n_own, 'ids', to_jsonb(v_ids));
 end $fn$;
 revoke execute on function public.fn_handoff_overdue_escalate() from public, anon, authenticated;
 
@@ -1500,15 +1583,13 @@ begin
   exception when others then v := v || jsonb_build_object('orders_error', left(sqlerrm, 300)); end;
   begin v := v || jsonb_build_object('deliberations', public.fn_authors_close_reviewed_deliberations());
   exception when others then v := v || jsonb_build_object('deliberations_error', left(sqlerrm, 300)); end;
-  begin v := v || jsonb_build_object('founder', public.fn_ceo_tells_the_founder_daily());
-  exception when others then v := v || jsonb_build_object('founder_error', left(sqlerrm, 300)); end;
   return v;
 end $fn$;
 revoke execute on function public.fn_company_pool_tick() from public, anon, authenticated;
 
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
   ('ceo.company_pool', 'ceo', interval '15 minutes', 'fn_company_pool_tick',
-   'The shared pool and the CEO''s judgement: link new rows to their subjects, rebuild each seat''s company-today digest, file the hand-overs event_subscription asks for, escalate once every hand-over past its window, file the CEO''s held questions under the daily cap, send deliberations back on revise, and tell the founder once a day.',
+   'The shared pool and the CEO''s judgement: link new rows to their subjects, rebuild each seat''s company-today digest, file the hand-overs event_subscription asks for, escalate once every hand-over past its window, file the CEO''s held questions under the daily cap, send deliberations back on revise, and close the orders their findings or reports closed (the founder''s daily summary is the coverage duty''s).',
    'scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql')
 on conflict (duty) do update set every = excluded.every, routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file;
 
