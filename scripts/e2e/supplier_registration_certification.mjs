@@ -225,11 +225,14 @@ async function journey(run, J, runNo) {
     const t0 = Date.now(); let ackAt = null;
     const ackP = ack ? ack.first().waitFor({ timeout: 30000 }).then(() => { ackAt = ackAt ?? Date.now(); }).catch(() => {}) : null;
     await action();
-    const ok = await done.first().waitFor({ timeout: 240000 }).then(() => true).catch(() => false);
+    // A wait that ends in an error other than its own timeout is recorded with that error (15 Nov 2026: run 5f6672bc J11 ended
+    // false after 22.6 s with no reason kept, so a correct answer on screen was scored as a failure nobody could explain).
+    let waitError = null;
+    const ok = await done.first().waitFor({ timeout: 240000 }).then(() => true).catch((e) => { waitError = String(e?.message || e).split('\n')[0].slice(0, 200); return false; });
     const end = Date.now(); if (ok && ackAt == null) ackAt = end;
     if (ackP) await Promise.race([ackP, sleep(10)]);
     lastWindow = { t0, end };
-    return { ok, ms: end - t0, ackMs: ackAt ? ackAt - t0 : null };
+    return { ok, ms: end - t0, ackMs: ackAt ? ackAt - t0 : null, waitError };
   };
   const t0 = Date.now(); let harnessMs = 0, leadId = null, tok = null;
   try {
@@ -397,7 +400,7 @@ async function journey(run, J, runNo) {
       // THE TRADE LICENCE, READ, AND WHAT WAS READ SHOWN BACK: the first file input after the "Trade licence" heading
       const licInput = M.locator('h3', { hasText: /^Trade licence/ }).first().locator('xpath=following::input[@type="file"][1]');
       const r6 = await timed(() => licInput.setInputFiles(fixturePath(L.file)),
-        M.locator('[role=status]').filter({ hasText: /Read your licence|Licence uploaded|being read|not finished reading|could not/i }).or(M.locator('[role=alert]')),
+        M.locator('[role=status]').filter({ hasText: /Read your licence|Licence uploaded|being read|not finished reading|could not|looks like|is not a trade licence|This file has \d+ pages/i }).or(M.locator('[role=alert]')),
         M.getByText(/^Reading (your )?licence/));   // copy.ts reading_lic: "Reading your licence…"; the old pattern never matched, so the ack time was the end time
       await sleep(800);
       // A READING THAT LANDS AFTER THE ANSWER (final audit R2, 12 Nov 2026): the form reads the row again and fills the fields itself
@@ -415,7 +418,7 @@ async function journey(run, J, runNo) {
       const shown = await shownFields(); row = await readRow();
       R.licence_row = row; R.licence_shown = shown;
       step('the licence is read and the screen answers', r6.ok, { kind: 'licence_read', ms: r6.ms == null ? null : r6.ms + 800 + R.licence_shown_after_ms, ackMs: r6.ackMs, deferred: R.licence_deferred,
-        detail: `shown: ${shown.note} | number shown "${shown.licence_no || ''}" | authority shown "${shown.authority || ''}" | read state ${row.licence_read_state} | shown ${R.licence_shown_after_ms} ms after the answer settled` });
+        detail: `shown: ${shown.note} | number shown "${shown.licence_no || ''}" | authority shown "${shown.authority || ''}" | read state ${row.licence_read_state} | shown ${R.licence_shown_after_ms} ms after the answer settled${r6.waitError ? ` | the wait ended in: ${r6.waitError}` : ''}` });
       if (L.not_a_licence) {
         // A FILE THAT IS NOT A LICENCE IS NAMED, AND NOTHING OF IT IS READ AS ONE (founder ruling 1668). Only the model can tell, so a
         // free run marks it NOT RUN; a paid run judges the sentence on screen, the row and the standing.
