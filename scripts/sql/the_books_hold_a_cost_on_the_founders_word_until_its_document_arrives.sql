@@ -36,6 +36,25 @@
 --        the held entry (same date), the awaiting row is closed the same way.
 --   4. 'Bank charges' maps to 6300 General & Administrative in gl_expense_map (memory: bank fees are not software).
 --
+-- REVIEW FIXES (15 Nov 2026, evening; SP/show/REVIEW_books.md items 1, 2, 3 and 6). Each has a probe row that failed before.
+--   1. A statement line attaches to the OLDEST held fee of the same bank and amount dated no more than 7 days after the
+--      line, with NO upper date limit: Mashreq takes the fee when the account has money (the July fee went on 19 Aug, the
+--      day the first AED 1,000 arrived), so the 1 Nov line may come weeks late. A bank-charge line that attaches to
+--      nothing while a fee of that bank still waits for its statement is AMBIGUOUS (the fee and its VAT taken as one line,
+--      a different amount): it is not posted; it is the accountant seat's finding (duty bank_charges) until resolved.
+--   2. A receipt folds only into an entry waiting for a RECEIPT. A document that matches a fee waiting for its BANK
+--      STATEMENT (a Mashreq advice email) is neither folded nor posted: it is the accountant's finding, because posting it
+--      and then attaching the statement line to the held fee would book the fee twice.
+--   3. The action's guards: a cost waiting for a bank statement must be in AED (statement lines are AED); the VAT on a
+--      cost booked on his word goes to the cost account, never 1150, whether or not the 1150 file is applied (the company
+--      is not VAT-registered, ledger 1687); vendors match by fn_expense_same_vendor (normalised, at least 3 characters,
+--      equal or a whole-word prefix; never a bare LIKE, so '' or 'a' matches nothing); the duplicate check compares the
+--      AED equivalent within 10% (card FX and fees: USD 200 = AED 734.50 at the book rate, charged as up to ~AED 800) for
+--      the same vendor in the same month or within 7 days, across currencies.
+--   6. invoice.received: the expense insert trigger emits nothing for a receipt row that will fold into a held entry (the
+--      row is deleted by the merge); the merge emits it for the surviving held entry. receipts.ts and the accountant's
+--      sweep re-read the surviving row by its message key before filing doc_backups (_shared/expense_mailbox.ts).
+--
 -- WHAT IT DOES NOT DO: it books nothing. The Mashreq fee of 1 Nov 2026 is booked by
 -- scripts/sql/the_mashreq_fee_of_1_november_2026_is_booked_on_the_founders_word.sql (dry run first).
 -- APPLY ORDER: this file BEFORE the_company_recovers_no_input_vat_so_1150_is_moved_into_cost.sql, which redefines
@@ -68,6 +87,48 @@ revoke all on public.expense_awaiting_document from anon, authenticated;
 insert into public.gl_expense_map (category, account_code) values ('Bank charges', '6300') on conflict (category) do nothing;
 
 -- ---------------------------------------------------------------------------------------------------------------
+-- 1b. SAME VENDOR: lower case, every run of non-letters/digits a single space, trimmed; both at least 3 characters; equal,
+--     or one is the other followed by a word ('mashreq' / 'mashreq bank', 'vercel' / 'vercel inc'). No LIKE: '%' and '_'
+--     are characters here, and an empty or one-letter vendor matches nothing.
+create or replace function public.fn_expense_same_vendor(p_a text, p_b text)
+returns boolean
+language sql
+immutable
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select length(a) >= 3 and length(b) >= 3 and (a = b or starts_with(a, b || ' ') or starts_with(b, a || ' '))
+    from (select btrim(regexp_replace(lower(coalesce(p_a, '')), '[^a-z0-9]+', ' ', 'g')) as a,
+                 btrim(regexp_replace(lower(coalesce(p_b, '')), '[^a-z0-9]+', ' ', 'g')) as b) z;
+$fn$;
+revoke execute on function public.fn_expense_same_vendor(text, text) from public, anon, authenticated;
+
+-- 1c. THE HELD ENTRY A DOCUMENT ROW BELONGS TO, for one kind of awaited document: the same vendor, currency and amount,
+--     within 7 days. Only a document row (never a founder statement, never a held entry itself) that is not posted yet.
+--     p_awaiting_only = false also finds a held entry already attached (a statement-held fee stays a fee after its line came).
+create or replace function public.fn_expense_held_entry_for(p_entry_id bigint, p_awaits text, p_awaiting_only boolean default true)
+returns bigint
+language sql
+stable
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+  select x.expense_entry_id
+    from public.expense_entries d
+    join public.expense_awaiting_document x on x.awaits = p_awaits and (x.state = 'awaiting' or not p_awaiting_only)
+    join public.expense_entries e on e.id = x.expense_entry_id
+   where d.id = p_entry_id
+     and d.source is distinct from 'founder_reported'
+     and not exists (select 1 from public.expense_awaiting_document y where y.expense_entry_id = d.id)
+     and not exists (select 1 from public.gl_journal g where g.source = 'expense' and g.source_ref = d.id::text)
+     and upper(coalesce(e.currency, 'AED')) = upper(coalesce(d.currency, 'AED')) and e.amount = d.amount
+     and abs(e.charged_on - coalesce(d.charged_on, d.created_at::date)) <= 7
+     and public.fn_expense_same_vendor(d.vendor, e.vendor)
+   order by abs(e.charged_on - coalesce(d.charged_on, d.created_at::date)), e.id
+   limit 1;
+$fn$;
+revoke execute on function public.fn_expense_held_entry_for(bigint, text, boolean) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------------------------------------------
 -- 2. THE ACTION
 create or replace function public.fn_accountant_expense_on_founder_word(
   p_vendor text, p_charged_on date, p_amount numeric, p_currency text, p_vat_amount numeric, p_category text,
@@ -98,6 +159,13 @@ begin
   if p_awaits is null or p_awaits not in ('bank_statement', 'receipt') then
     raise exception 'fn_accountant_expense_on_founder_word: awaits is bank_statement or receipt, not %', p_awaits;
   end if;
+  -- a statement line is in AED: a cost in another currency could never attach to it and would wait for ever
+  if p_awaits = 'bank_statement' and v_cur <> 'AED' then
+    raise exception 'fn_accountant_expense_on_founder_word: a cost waiting for a bank statement is in AED (statement lines are AED), not %', v_cur;
+  end if;
+  if length(btrim(regexp_replace(lower(v_vendor), '[^a-z0-9]+', ' ', 'g'))) < 3 then
+    raise exception 'fn_accountant_expense_on_founder_word: the vendor % is too short to match its document (3 letters or digits at least)', v_vendor;
+  end if;
   if not exists (select 1 from public.founder_instruction where id = p_founder_instruction_id) then
     raise exception 'fn_accountant_expense_on_founder_word: founder ledger entry % does not exist; a cost on his word names the entry', p_founder_instruction_id;
   end if;
@@ -115,14 +183,20 @@ begin
   if v_dup.id is not null then
     return jsonb_build_object('booked', false, 'already', true, 'entry_id', v_dup.id, 'journal_id', v_dup.jid, 'key', v_key);
   end if;
-  -- a document already books this cost: refuse rather than count it twice
-  select e.id, e.charged_on, e.source into v_dup from public.expense_entries e
-   where (lower(btrim(e.vendor)) like lower(v_vendor) || '%' or lower(v_vendor) like lower(btrim(e.vendor)) || '%')
-     and e.amount = p_amount and upper(e.currency) = v_cur and abs(e.charged_on - p_charged_on) <= 7
-   order by abs(e.charged_on - p_charged_on) limit 1;
+  -- a document already books this cost: refuse rather than count it twice. The same vendor in the same month (or within
+  -- 7 days across a month end), in ANY currency, whose AED equivalent is within 10% of this one (card FX and fees).
+  select e.id, e.charged_on, e.source, e.amount, e.currency, x.aed into v_dup
+    from public.expense_entries e
+    cross join lateral (select round(e.amount * case when upper(coalesce(e.currency, 'AED')) = 'USD' then coalesce(v_fx, 3.6725) else 1 end, 2) as aed) x
+   where public.fn_expense_same_vendor(e.vendor, v_vendor)
+     and upper(coalesce(e.currency, 'AED')) in ('AED', 'USD')
+     and (date_trunc('month', e.charged_on) = date_trunc('month', p_charged_on) or abs(e.charged_on - p_charged_on) <= 7)
+     and abs(x.aed - v_aed) <= greatest(0.10 * greatest(x.aed, v_aed), 0.01)
+   order by abs(x.aed - v_aed), abs(e.charged_on - p_charged_on) limit 1;
   if v_dup.id is not null then
     return jsonb_build_object('booked', false, 'refused', 'already_booked', 'key', v_key,
-      'reason', 'expense #' || v_dup.id || ' (' || v_dup.source || ', ' || v_dup.charged_on || ') already books ' || v_vendor || ' ' || p_amount || ' ' || v_cur || ' within 7 days');
+      'reason', 'expense #' || v_dup.id || ' (' || v_dup.source || ', ' || v_dup.charged_on || ', ' || v_dup.amount || ' ' || v_dup.currency
+                || ' = AED ' || v_dup.aed || ') already books ' || v_vendor || ' in that month within 10% of AED ' || v_aed);
   end if;
   if p_awaits = 'bank_statement' then
     select b.id, b.value_date into v_line from public.bank_statement_line b
@@ -135,7 +209,8 @@ begin
   end if;
 
   v_note := 'Booked on the founder''s word (ledger ' || p_founder_instruction_id || '), awaiting the '
-            || case when p_awaits = 'bank_statement' then 'bank statement' else 'receipt' end || ': ' || btrim(p_reason);
+            || case when p_awaits = 'bank_statement' then 'bank statement' else 'receipt' end || ': ' || btrim(p_reason)
+            || case when coalesce(p_vat_amount, 0) > 0 then ' (VAT ' || p_vat_amount || ' ' || v_cur || ' is part of the cost: the company is not VAT-registered)' else '' end;
   if p_dry_run then
     return jsonb_build_object('booked', false, 'dry_run', true, 'key', v_key,
       'would_book', jsonb_build_object('vendor', v_vendor, 'category', v_cat, 'account', v_acct, 'amount', p_amount, 'currency', v_cur,
@@ -168,10 +243,11 @@ begin
   select * into d from public.expense_entries where id = p_entry_id;
   if not found then return null; end if;
 
-  -- the held entry itself: the intake filed its document onto it (same vendor, date, amount)
+  -- the held entry itself: the intake filed its document onto it (same vendor, date, amount). Only an entry waiting for a
+  -- RECEIPT is closed this way; one waiting for its bank statement keeps waiting for the statement line (review item 2).
   select * into a from public.expense_awaiting_document where expense_entry_id = d.id for update;
   if found then
-    if a.state = 'awaiting' and (coalesce(btrim(d.doc_path), '') <> '' or d.source_msg_id is distinct from a.stated_key) then
+    if a.state = 'awaiting' and a.awaits = 'receipt' and (coalesce(btrim(d.doc_path), '') <> '' or d.source_msg_id is distinct from a.stated_key) then
       update public.expense_awaiting_document
          set state = 'attached', attached_kind = 'expense_entry', attached_ref = coalesce(d.source_msg_id, d.doc_path), attached_at = now(),
              attached_detail = jsonb_build_object('how', 'the document was filed onto the held entry', 'doc_path', d.doc_path, 'doc_kind', d.doc_kind)
@@ -181,15 +257,10 @@ begin
   end if;
 
   -- a separate document row: only a document (never another founder statement), only before it is posted
-  if d.source = 'founder_reported' then return null; end if;
-  if exists (select 1 from public.gl_journal g where g.source = 'expense' and g.source_ref = d.id::text) then return null; end if;
-  select x.* into a from public.expense_awaiting_document x join public.expense_entries e on e.id = x.expense_entry_id
-   where x.state = 'awaiting' and upper(e.currency) = upper(d.currency) and e.amount = d.amount
-     and abs(e.charged_on - d.charged_on) <= 7
-     and (lower(btrim(d.vendor)) like lower(btrim(e.vendor)) || '%' or lower(btrim(e.vendor)) like lower(btrim(d.vendor)) || '%')
-   order by abs(e.charged_on - d.charged_on), e.id
-   limit 1
-   for update of x;
+  -- (fn_expense_held_entry_for: same vendor, currency, amount, within 7 days, an entry waiting for a RECEIPT only)
+  select x.* into a from public.expense_awaiting_document x
+   where x.expense_entry_id = public.fn_expense_held_entry_for(d.id, 'receipt', true) and x.state = 'awaiting'
+   for update;
   if not found then return null; end if;
   select * into h from public.expense_entries where id = a.expense_entry_id for update;
 
@@ -215,9 +286,41 @@ begin
    where expense_entry_id = h.id;
   select g.id into v_jid from public.gl_journal g where g.source = 'expense' and g.source_ref = h.id::text limit 1;
   if v_jid is null then v_jid := public.fn_expense_post_to_gl(h.id); end if;
+  -- the invoice arrived for the SURVIVING entry; the document row's insert emitted nothing (it was going to be folded)
+  perform public.fn_emit('invoice.received', 'expense_entry', h.id::text, coalesce(nullif(d.source, ''), 'expenses_inbox'),
+    jsonb_build_object('vendor', h.vendor, 'amount', h.amount, 'currency', h.currency, 'charged_on', h.charged_on, 'category', h.category,
+      'note', left(coalesce(h.note, ''), 300), 'doc_path', d.doc_path, 'source', d.source,
+      'held_on_founder_word', true, 'document_entry_folded', d.id));
   return v_jid;
 end $fn$;
 revoke execute on function public.fn_expense_held_document_merge(bigint) from public, anon, authenticated;
+
+-- 3a'. A DOCUMENT FOR A FEE WAITING FOR ITS BANK STATEMENT is neither folded nor posted (review item 2): the statement line
+--      is that fee's document, so posting this row and attaching the line would book the fee twice. It is the accountant's
+--      finding (re-raised by fn_accountant_book_bank_charges until the row is removed or booked by hand). True = held out.
+create or replace function public.fn_expense_document_waits_for_statement(p_entry_id bigint)
+returns boolean
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_held bigint; d public.expense_entries;
+begin
+  v_held := public.fn_expense_held_entry_for(p_entry_id, 'bank_statement', false);
+  if v_held is null then return false; end if;
+  select * into d from public.expense_entries where id = p_entry_id;
+  perform public.fn_it_engineer_finding_upsert('acct:bank_charges:held_fee_document:' || p_entry_id,
+    'Expense #' || p_entry_id || ' (' || coalesce(d.vendor, '?') || ' ' || d.amount || ' ' || coalesce(d.currency, 'AED') || ', ' || d.charged_on
+      || ') matches the fee #' || v_held || ' booked on the founder''s word and waiting for its bank statement; it was NOT posted. '
+      || 'The bank statement books bank fees: its line attaches to #' || v_held || ', and a genuine second charge books from its own statement line. '
+      || 'Move this row''s file onto #' || v_held || ' as evidence and remove the row.',
+    'Accountant duty: bank_charges', 'agent_facing', 1,
+    jsonb_build_object('expense_entry_id', p_entry_id, 'held_entry_id', v_held, 'duty', 'bank_charges', 'owner_seat', 'accountant',
+                       'subject', 'expense_entries', 'raised_by_seat', 'accountant'),
+    '{}'::text[], '{}'::text[], 'accountant.bank_charges');
+  return true;
+end $fn$;
+revoke execute on function public.fn_expense_document_waits_for_statement(bigint) from public, anon, authenticated;
 
 -- 3b. fn_expense_post_to_gl: the live body (supabase/schema/full_schema/05_functions_fn_d_to_fn_h.sql), plus the merge call.
 CREATE OR REPLACE FUNCTION public.fn_expense_post_to_gl(p_entry_id bigint)
@@ -241,6 +344,8 @@ begin
   -- (scripts/sql/the_books_hold_a_cost_on_the_founders_word_until_its_document_arrives.sql)
   jid := public.fn_expense_held_document_merge(e.id);
   if jid is not null or not exists (select 1 from public.expense_entries x where x.id = e.id) then return jid; end if;
+  -- a document for a fee waiting for its bank statement is not posted: the statement line books the fee (review item 2)
+  if public.fn_expense_document_waits_for_statement(e.id) then return null; end if;
 
   -- already posted (by this routine or by fn_gl_sync_business): return it, never post twice
   select g.id into jid from public.gl_journal g
@@ -265,6 +370,9 @@ begin
   amt_aed := round(e.amount * case when e.cur='USD' then fx else 1 end, 2);
   vat_aed := round(coalesce(e.vat_amount,0) * case when e.cur='USD' then fx else 1 end, 2);
   if vat_aed <= 0 or vat_aed >= amt_aed then vat_aed := 0; end if;
+  -- a cost booked on the founder's word: its VAT is part of the cost, never 1150, whether or not the 1150 file is applied
+  -- (the company is not VAT-registered, ledger 1687; review item 3)
+  if exists (select 1 from public.expense_awaiting_document x where x.expense_entry_id = e.id) then vat_aed := 0; end if;
   net_aed := amt_aed - vat_aed;
 
   acct := coalesce((select m.account_code from public.gl_expense_map m where m.category = e.category), '6300');
@@ -301,14 +409,16 @@ begin
   if exists (select 1 from public.expense_bank_match m where m.bank_line_id = l.id) then
     return (select m.expense_entry_id from public.expense_bank_match m where m.bank_line_id = l.id);
   end if;
+  -- the OLDEST held fee of this bank and amount that the line can be: dated at most 7 days after the line, and NO upper
+  -- limit on how late the line comes (Mashreq takes the fee when the account has money; review item 1)
   select e.id, e.amount, e.charged_on into h
     from public.expense_awaiting_document x join public.expense_entries e on e.id = x.expense_entry_id
    where x.state = 'awaiting' and x.awaits = 'bank_statement'
      and upper(e.currency) = 'AED' and e.amount = -l.amount_aed
-     and abs(e.charged_on - l.value_date) <= 7
+     and e.charged_on <= l.value_date + 7
      and lower(split_part(btrim(e.vendor), ' ', 1)) = lower(l.account)
      and not exists (select 1 from public.expense_bank_match m where m.expense_entry_id = e.id)
-   order by abs(e.charged_on - l.value_date), e.id
+   order by e.charged_on, e.id
    limit 1
    for update of x;
   if h.id is null then return null; end if;
@@ -334,15 +444,37 @@ AS $function$
 declare
   v_hold boolean := coalesce((select num_value from public.gl_settings where key = 'bank_booking_on_hold'), 1) <> 0;
   l record; v_lines jsonb; v_memo text; n_posted int := 0; n_draft int := 0; n_failed int := 0; n_attached int := 0; v_items jsonb := '[]'::jsonb;
+  n_ambiguous int := 0; v_wait record; d record;
 begin
+  -- PASS 1: every line a fee held on the founder's word (expense_awaiting_document) can take attaches first, oldest
+  -- line to oldest held fee, so a line of another amount is judged only against the fees still waiting
   for l in select * from public.bank_statement_line b
             where b.amount_aed < 0 and b.kind = 'bank_charge'
               and not exists (select 1 from public.gl_journal g where g.source = 'bank_charge' and g.source_ref = b.id::text)
               and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = b.id)
             order by b.value_date, b.id loop
-    -- a fee already booked on the founder's word (expense_awaiting_document) takes this line as its document
-    if public.fn_accountant_attach_statement_line(l.id) is not null then
-      n_attached := n_attached + 1;
+    if public.fn_accountant_attach_statement_line(l.id) is not null then n_attached := n_attached + 1; end if;
+  end loop;
+  -- PASS 2: book the rest, except a line that may be a held fee at another amount (review item 1)
+  for l in select * from public.bank_statement_line b
+            where b.amount_aed < 0 and b.kind = 'bank_charge'
+              and not exists (select 1 from public.gl_journal g where g.source = 'bank_charge' and g.source_ref = b.id::text)
+              and not exists (select 1 from public.expense_bank_match m where m.bank_line_id = b.id)
+            order by b.value_date, b.id loop
+    select e.id, e.amount, e.charged_on into v_wait
+      from public.expense_awaiting_document x join public.expense_entries e on e.id = x.expense_entry_id
+     where x.state = 'awaiting' and x.awaits = 'bank_statement'
+       and lower(split_part(btrim(e.vendor), ' ', 1)) = lower(l.account) and e.charged_on <= l.value_date + 7
+     order by e.charged_on, e.id limit 1;
+    if v_wait.id is not null then
+      n_ambiguous := n_ambiguous + 1;
+      v_items := v_items || jsonb_build_object('item', 'held_fee_ambiguous:line:' || l.id, 'owner_seat', 'accountant', 'subject', 'bank_statement_line',
+        'title', 'The bank charge of AED ' || abs(l.amount_aed) || ' on ' || l.value_date || ' (statement line ' || l.id || ') was NOT booked: the fee #'
+                 || v_wait.id || ' of AED ' || v_wait.amount || ' (' || v_wait.charged_on || ') booked on the founder''s word still waits for its statement line, '
+                 || 'and this line may be that fee at another amount. Attach it (expense_bank_match) or correct the held fee; booking it as well would count the fee twice.',
+        'blast', 'agent_facing', 'affected', 1, 'demo', l.account = 'zz_demo',
+        'evidence', jsonb_build_object('line_id', l.id, 'source_ref', l.source_ref, 'amount_aed', l.amount_aed, 'value_date', l.value_date,
+                                       'held_entry_id', v_wait.id, 'held_amount', v_wait.amount, 'held_charged_on', v_wait.charged_on));
       continue;
     end if;
     v_lines := jsonb_build_array(jsonb_build_object('account', '6300', 'debit', abs(l.amount_aed)),
@@ -364,8 +496,24 @@ begin
         'evidence', jsonb_build_object('line_id', l.id, 'source_ref', l.source_ref, 'error', left(sqlerrm, 600)));
     end;
   end loop;
+  -- a document row matching a fee held for its statement stays unposted and stays this duty's finding (review item 2)
+  for d in select e.id, e.vendor, e.amount, e.currency, e.charged_on, public.fn_expense_held_entry_for(e.id, 'bank_statement', false) as held
+             from public.expense_entries e
+            where e.source is distinct from 'founder_reported'
+              and e.charged_on > (now() at time zone 'Asia/Dubai')::date - 400
+              and exists (select 1 from public.expense_awaiting_document x where x.awaits = 'bank_statement')
+              and not exists (select 1 from public.gl_journal g where g.source = 'expense' and g.source_ref = e.id::text) loop
+    continue when d.held is null;
+    v_items := v_items || jsonb_build_object('item', 'held_fee_document:' || d.id, 'owner_seat', 'accountant', 'subject', 'expense_entries',
+      'title', 'Expense #' || d.id || ' (' || coalesce(d.vendor, '?') || ' ' || d.amount || ' ' || coalesce(d.currency, 'AED') || ', ' || d.charged_on
+               || ') matches the fee #' || d.held || ' booked on the founder''s word and waiting for its bank statement; it was NOT posted. '
+               || 'The bank statement books bank fees: its line attaches to #' || d.held || ', and a genuine second charge books from its own statement line. '
+               || 'Move this row''s file onto #' || d.held || ' as evidence and remove the row.',
+      'blast', 'agent_facing', 'affected', 1,
+      'evidence', jsonb_build_object('expense_entry_id', d.id, 'held_entry_id', d.held));
+  end loop;
   return jsonb_build_object('posted', n_posted, 'drafted', n_draft, 'failed', n_failed, 'hold', v_hold,
-    'attached_to_founder_word', n_attached,
+    'attached_to_founder_word', n_attached, 'not_booked_may_be_a_held_fee', n_ambiguous,
     'awaiting_statement', (select count(*) from public.expense_awaiting_document where state = 'awaiting' and awaits = 'bank_statement'),
     'drafts_waiting', (select count(*) from public.gl_journal where source = 'bank_charge' and status = 'draft'),
     'drafts_waiting_aed', (select coalesce(sum(jl.debit), 0) from public.gl_journal g join public.gl_journal_lines jl on jl.journal_id = g.id
@@ -373,7 +521,8 @@ begin
     'findings', public.fn_accountant_duty_settle('bank_charges', v_items),
     'basis', case when v_hold then 'gl_settings.bank_booking_on_hold = 1 (the founder''s 9 Sep 2026 instruction): bank charges are prepared as drafts and reported, not posted.'
                   else 'bank_booking_on_hold = 0: bank charges posted to 6300 against 1000.' end
-             || ' A charge line matching a fee held on the founder''s word is linked to that expense (expense_bank_match) and books no second journal.');
+             || ' A charge line matching a fee held on the founder''s word is linked to that expense (expense_bank_match) and books no second journal;'
+             || ' a line that may be a held fee at another amount is not booked and is this duty''s finding.');
 end $function$;
 revoke execute on function public.fn_accountant_book_bank_charges() from public, anon, authenticated;
 
@@ -426,3 +575,29 @@ begin
                    then jsonb_array_length(v_unbooked) || ' line(s) of the statement are not booked yet' end);
 end $function$;
 revoke execute on function public.fn_accountant_statement_booked(date) from public, anon, authenticated;
+
+-- 3f. fn_emit_invoice_received_from_expense (trigger trg_emit_invoice_received_expense, after insert on expense_entries):
+--     the live body, plus one rule (review item 6): a receipt row that will fold into an entry held on the founder's word
+--     emits nothing, because the merge deletes it; fn_expense_held_document_merge emits invoice.received for the surviving
+--     held entry instead. Not SECURITY DEFINER (as live), so the lookup is guarded: a caller without rights to the helper
+--     emits as before.
+CREATE OR REPLACE FUNCTION public.fn_emit_invoice_received_from_expense()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_held bigint;
+begin
+  begin
+    v_held := public.fn_expense_held_entry_for(new.id, 'receipt', true);
+  exception when insufficient_privilege then v_held := null;
+  end;
+  if v_held is not null then return new; end if;
+  perform public.fn_emit('invoice.received', 'expense_entry', new.id::text,
+    coalesce(nullif(new.source, ''), 'expenses_inbox'),
+    jsonb_build_object('vendor', new.vendor, 'amount', new.amount, 'currency', new.currency,
+      'charged_on', new.charged_on, 'category', new.category, 'note', left(coalesce(new.note, ''), 300),
+      'doc_path', new.doc_path, 'source', new.source));
+  return new;
+end $function$;
+revoke execute on function public.fn_emit_invoice_received_from_expense() from public, anon, authenticated;

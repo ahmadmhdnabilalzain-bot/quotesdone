@@ -110,6 +110,121 @@ begin
     v_fail := v_fail || ' plain-not-posted;';
   end if;
 
+  -- 9. invoice.received (review item 6): none for the receipt row the merge deleted; one for the surviving held entry
+  if exists (select 1 from public.company_event where event_type = 'invoice.received' and entity_type = 'expense_entry' and entity_id = v_rcpt::text) then
+    v_fail := v_fail || ' event-for-deleted-row;';
+  end if;
+  if not exists (select 1 from public.company_event where event_type = 'invoice.received' and entity_type = 'expense_entry' and entity_id = v_h2::text
+                    and (payload->>'document_entry_folded')::bigint = v_rcpt) then
+    v_fail := v_fail || ' no-event-for-survivor;';
+  end if;
+
+  -- REVIEW FIXES (15 Nov 2026, evening). Each block below failed on the file before the fixes.
+  declare
+    v_a bigint; v_b_old bigint; v_b_new bigint; v_l55 bigint; v_l44 bigint; v_l33 bigint; v_c bigint; v_cl bigint; v_doc bigint;
+    v_s bigint; v_short bigint; v_sdoc bigint; v_vat bigint; v_usd bigint; v_ok boolean;
+  begin
+    -- 10. item 1: a statement line weeks late still attaches; the OLDEST held fee of that amount takes it; a line of another
+    --     amount while a fee still waits is not booked and is the accountant's finding
+    r := public.fn_accountant_expense_on_founder_word('Mashreq', v_d - 40, 55.55, 'AED', null, null, 'probe late fee', v_fi, 'bank_statement', false);
+    v_a := (r->>'entry_id')::bigint;
+    r := public.fn_accountant_expense_on_founder_word('Mashreq', v_d - 70, 44.44, 'AED', null, null, 'probe old fee', v_fi, 'bank_statement', false);
+    v_b_old := (r->>'entry_id')::bigint;
+    r := public.fn_accountant_expense_on_founder_word('Mashreq', v_d - 35, 44.44, 'AED', null, null, 'probe newer fee', v_fi, 'bank_statement', false);
+    v_b_new := (r->>'entry_id')::bigint;
+    if v_a is null or v_b_old is null or v_b_new is null then v_fail := v_fail || ' late-setup:' || r::text || ';'; end if;
+    insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash, kind)
+    values ('mashreq', 'probe:held-document', v_d - 2, 'Monthly Maintenance Fee probe late', -55.55, md5('probe-held-55-' || clock_timestamp()), 'bank_charge')
+    returning id into v_l55;
+    insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash, kind)
+    values ('mashreq', 'probe:held-document', v_d - 1, 'Monthly Maintenance Fee probe 44', -44.44, md5('probe-held-44-' || clock_timestamp()), 'bank_charge')
+    returning id into v_l44;
+    insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash, kind)
+    values ('mashreq', 'probe:held-document', v_d - 1, 'Fee probe of another amount', -33.33, md5('probe-held-33-' || clock_timestamp()), 'bank_charge')
+    returning id into v_l33;
+    r := public.fn_accountant_book_bank_charges();
+    if exists (select 1 from public.gl_journal where source = 'bank_charge' and source_ref = v_l55::text)
+       or not exists (select 1 from public.expense_bank_match where expense_entry_id = v_a and bank_line_id = v_l55) then
+      v_fail := v_fail || ' late-line-double-booked:' || r::text || ';';
+    end if;
+    if not exists (select 1 from public.expense_bank_match where expense_entry_id = v_b_old and bank_line_id = v_l44)
+       or not exists (select 1 from public.expense_awaiting_document where expense_entry_id = v_b_new and state = 'awaiting') then
+      v_fail := v_fail || ' oldest-held-not-first;';
+    end if;
+    if exists (select 1 from public.gl_journal where source = 'bank_charge' and source_ref = v_l33::text)
+       or not exists (select 1 from public.it_engineer_finding where issue_key = 'acct:bank_charges:held_fee_ambiguous:line:' || v_l33 and closed_at is null) then
+      v_fail := v_fail || ' ambiguous-line-posted:' || r::text || ';';
+    end if;
+
+    -- 11. item 2: a receipt never folds into a fee waiting for its BANK STATEMENT; it is not posted, it is a finding,
+    --     and the statement line still attaches to the held fee
+    r := public.fn_accountant_expense_on_founder_word('Mashreq', v_d - 3, 22.22, 'AED', null, null, 'probe advised fee', v_fi, 'bank_statement', false);
+    v_c := (r->>'entry_id')::bigint;
+    insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, doc_path, doc_name, doc_kind, source_msg_id, note)
+    values ('Mashreq Bank', 'Bank charges', 22.22, 'AED', v_d - 2, 'receipt', 'receipts/probe-advice.pdf', 'advice.pdf', 'vendor_document', 'probe:msg:advice', 'probe advice')
+    returning id into v_doc;
+    v_j := public.fn_expense_post_to_gl(v_doc);
+    if v_j is not null or not exists (select 1 from public.expense_entries where id = v_doc)
+       or not exists (select 1 from public.expense_awaiting_document where expense_entry_id = v_c and state = 'awaiting')
+       or not exists (select 1 from public.it_engineer_finding where issue_key = 'acct:bank_charges:held_fee_document:' || v_doc and closed_at is null) then
+      v_fail := v_fail || ' receipt-folded-into-statement-fee:' || coalesce(v_j::text, 'null') || ';';
+    end if;
+    insert into public.bank_statement_line (account, source_ref, value_date, description, amount_aed, line_hash, kind)
+    values ('mashreq', 'probe:held-document', v_d - 1, 'Monthly Maintenance Fee probe 22', -22.22, md5('probe-held-22-' || clock_timestamp()), 'bank_charge')
+    returning id into v_cl;
+    r := public.fn_accountant_book_bank_charges();
+    if not exists (select 1 from public.expense_bank_match where expense_entry_id = v_c and bank_line_id = v_cl)
+       or exists (select 1 from public.gl_journal where source = 'expense' and source_ref = v_doc::text)
+       or not exists (select 1 from public.it_engineer_finding where issue_key = 'acct:bank_charges:held_fee_document:' || v_doc and closed_at is null) then
+      v_fail := v_fail || ' statement-after-advice:' || r::text || ';';
+    end if;
+    --     the intake filing a document straight onto a statement-held fee leaves it waiting for the statement
+    r := public.fn_accountant_expense_on_founder_word('Mashreq', v_d - 6, 11.11, 'AED', null, null, 'probe same-day advice', v_fi, 'bank_statement', false);
+    v_s := (r->>'entry_id')::bigint;
+    update public.expense_entries set doc_path = 'receipts/probe-advice2.pdf', doc_kind = 'vendor_document', source_msg_id = 'probe:msg:advice2' where id = v_s;
+    perform public.fn_expense_post_to_gl(v_s);
+    if not exists (select 1 from public.expense_awaiting_document where expense_entry_id = v_s and state = 'awaiting') then
+      v_fail := v_fail || ' same-day-closed-statement-fee;';
+    end if;
+
+    -- 12. item 3: the action's guards
+    begin   -- a cost waiting for a bank statement is in AED
+      perform public.fn_accountant_expense_on_founder_word('Mashreq', v_d - 2, 10.00, 'USD', null, null, 'probe usd fee', v_fi, 'bank_statement', false);
+      v_fail := v_fail || ' usd-statement-cost-accepted;';
+    exception when others then null; end;
+    begin   -- a vendor too short to match
+      perform public.fn_accountant_expense_on_founder_word('Ab', v_d - 2, 10.00, 'AED', null, null, 'probe short', v_fi, 'receipt', true);
+      v_fail := v_fail || ' short-vendor-accepted;';
+    exception when others then null; end;
+    if public.fn_expense_same_vendor('', 'Mashreq') or public.fn_expense_same_vendor('Pr', 'Probeshort') or public.fn_expense_same_vendor('Git_ub', 'GitHub')
+       or not public.fn_expense_same_vendor('Vercel Inc.', 'vercel') or public.fn_expense_same_vendor('Mash', 'Mashreq') then
+      v_fail := v_fail || ' same-vendor;';
+    end if;
+    --     a document whose vendor is too short never folds into a held receipt entry (the old LIKE matched it)
+    r := public.fn_accountant_expense_on_founder_word('Probeshort', v_d - 3, 17.00, 'AED', null, 'Subscription', 'probe short match', v_fi, 'receipt', false);
+    v_short := (r->>'entry_id')::bigint;
+    insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, source_msg_id, note)
+    values ('Pr', 'Usage', 17.00, 'AED', v_d - 2, 'receipt', 'probe:msg:short', 'probe short receipt') returning id into v_sdoc;
+    v_j := public.fn_expense_post_to_gl(v_sdoc);
+    if not exists (select 1 from public.expense_entries where id = v_sdoc)
+       or not exists (select 1 from public.expense_awaiting_document where expense_entry_id = v_short and state = 'awaiting') then
+      v_fail := v_fail || ' short-vendor-folded;';
+    end if;
+    --     VAT on a cost on his word is part of the cost, never 1150 (this run does NOT apply the 1150 file)
+    r := public.fn_accountant_expense_on_founder_word('Probevat', v_d - 2, 105.00, 'AED', 5.00, 'Subscription', 'probe vat', v_fi, 'receipt', false);
+    v_vat := (r->>'journal_id')::bigint;
+    if v_vat is null or exists (select 1 from public.gl_journal_lines where journal_id = v_vat and account_code = '1150')
+       or (select sum(debit) from public.gl_journal_lines where journal_id = v_vat and account_code <> '1000') <> 105.00 then
+      v_fail := v_fail || ' vat-to-1150:' || r::text || ';';
+    end if;
+    --     a duplicate in another currency, same vendor and month, within 10% in AED, is refused
+    insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, source_msg_id, note)
+    values ('Probeanthropic, PBC', 'Subscription', 200.00, 'USD', v_d - 3, 'receipt', 'probe:msg:usd200', 'probe usd 200') returning id into v_usd;
+    perform public.fn_expense_post_to_gl(v_usd);
+    r := public.fn_accountant_expense_on_founder_word('Probeanthropic', v_d - 3, 799.00, 'AED', null, 'Subscription', 'probe aed 799', v_fi, 'receipt', false);
+    if r->>'refused' is distinct from 'already_booked' then v_fail := v_fail || ' cross-currency-duplicate:' || r::text || ';'; end if;
+  end;
+
   raise exception 'CHK<<%>>', case when v_fail = '' then 'PROBE OK: held on the founder''s word, joined by its statement line and by its receipt, never booked twice'
                                      else 'PROBE FAILED:' || v_fail end;
 end $probe$;
