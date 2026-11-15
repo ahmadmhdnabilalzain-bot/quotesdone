@@ -29,6 +29,7 @@
 // scripts/checks/run.mjs does not discover it. Run it by hand:
 //     node --test scripts/it/a_paid_reveal_is_known_to_every_seat_with_a_step.gaps.mjs
 //     REVEAL_TX=<uuid> node --test scripts/it/a_paid_reveal_is_known_to_every_seat_with_a_step.gaps.mjs
+//     REVEAL_REHEARSAL=scripts/fixtures/zz_demo_paid_reveal_rehearsal_<date>.json node --test scripts/it/a_paid_reveal_is_known_to_every_seat_with_a_step.gaps.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
@@ -80,8 +81,15 @@ async function liveTrace(tx) {
 }
 
 const LIVE = process.env.REVEAL_TX ? (token() ? process.env.REVEAL_TX : null) : null;
-const TRACE = LIVE ? await liveTrace(LIVE) : JSON.parse(read(FIXTURE));
-const SOURCE = LIVE ? `production transaction ${LIVE} (read-only)` : FIXTURE;
+// 4. A REHEARSAL (sales_engineer, 13 Nov 2026): REVEAL_REHEARSAL=<fixture written by scripts/it/rehearse_a_paid_reveal_trace.mjs>,
+//    the same trace produced by the code ON A BRANCH (its pending SQL applied inside one rolled-back request on production).
+//    The 21 Sep capture can never change, so a gap judged on its rows stays red whatever is built until a real reveal is paid
+//    on applied code; a rehearsal judges the branch. The routines are then read from the rehearsed SQL files first (the
+//    mirror holds only what production runs), and the same assertions apply unchanged.
+const REHEARSAL = !LIVE && process.env.REVEAL_REHEARSAL ? process.env.REVEAL_REHEARSAL : null;
+const TRACE = LIVE ? await liveTrace(LIVE) : JSON.parse(read(REHEARSAL || FIXTURE));
+const SOURCE = LIVE ? `production transaction ${LIVE} (read-only)` : REHEARSAL ? `rehearsal ${REHEARSAL}` : FIXTURE;
+const REHEARSED_SQL = REHEARSAL && Array.isArray(TRACE.rehearsed_sql) ? TRACE.rehearsed_sql : [];
 
 // ── helpers ──────────────────────────────────────────────────────────────────────────────────────
 const tx = TRACE.transaction;
@@ -96,7 +104,20 @@ const has = (re, text, msg = '') => assert.ok(re.test(String(text)), `${msg || '
 const lacks = (re, text, msg = '') => assert.ok(!re.test(String(text)), `${msg || 'unexpected'} ${re}`);
 const ddMon = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Dubai' });
 
+/** A routine as the rehearsed SQL defines it (rehearsal mode only), or null. */
+function rehearsedFn(name) {
+  for (const f of [...REHEARSED_SQL].reverse()) {
+    if (!existsSync(join(ROOT, f))) continue;   // another branch's pending file: judged by its own branch
+    const s = read(f); const at = s.search(new RegExp(`create or replace function public\\.${name}\\(`, 'i'));
+    if (at < 0) continue;
+    const open = s.slice(at).match(/as \$(\w*)\$/i); if (!open) continue;
+    const tag = `$${open[1]}$`; const body = s.indexOf(tag, at) + tag.length;
+    return s.slice(at, s.indexOf(tag, body) + tag.length);
+  }
+  return null;
+}
 function mirrorFn(name) {
+  const own = rehearsedFn(name); if (own) return own;
   const dir = 'supabase/schema/full_schema';
   for (const f of readdirSync(join(ROOT, dir)).filter((x) => x.endsWith('.sql')).sort()) {
     const s = read(join(dir, f)); const at = s.indexOf(`CREATE OR REPLACE FUNCTION public.${name}(`);
@@ -108,7 +129,18 @@ function mirrorFn(name) {
 }
 const HANDOFFS = read('supabase/functions/_shared/payment_handoffs.ts');
 const kinds = [...HANDOFFS.matchAll(/\{\s*type:\s*'([^']+)',\s*from:\s*'([^']+)',\s*to:\s*'([^']+)'\s*\}/g)].map((m) => ({ type: m[1], from: m[2], to: m[3] }));
-const revealPaidBranch = (() => { const s = mirrorFn('fn_sales_engineer_acts_on_handoff'); const a = s.indexOf("if t = 'reveal.paid' then"); return s.slice(a, s.indexOf('elsif t =', a)); })();
+// The reveal.paid branch of the sales engineer's handler, followed into the sales-engineer routines it actually CALLS (two
+// levels; the branch must name them, so a routine that exists but is not on the path never counts): the behaviour is judged
+// where the code path puts it, by the same pattern (review of W2, 13 Nov 2026).
+const optFn = (n) => { try { return mirrorFn(n); } catch { return ''; } };
+const calledBy = (text) => [...new Set([...text.matchAll(/public\.(fn_sales_engineer_\w+)\(/g)].map((m) => m[1]))]
+  .filter((n) => n !== 'fn_sales_engineer_writes' && n !== 'fn_sales_engineer_acts_on_handoff');
+const revealPaidBranch = (() => {
+  const s = mirrorFn('fn_sales_engineer_acts_on_handoff'); const a = s.indexOf("if t = 'reveal.paid' then");
+  const branch = s.slice(a, s.indexOf('elsif t =', a));
+  const one = calledBy(branch).map(optFn).join('\n');
+  return branch + one + calledBy(one).map(optFn).join('\n');
+})();
 const GL = mirrorFn('fn_gl_sync_business');
 const glReveal = GL.slice(GL.indexOf('-- 1) Reveal-fee revenue'), GL.indexOf('-- 1b)'));
 
