@@ -90,6 +90,13 @@ begin
      or (v_r->'milestone'->>'verified') is distinct from (public.fn_ceo_supplier_target_status(now(), true)->>'verified')
      or not (v_r ? 'gate_1004')
     then v_fail := v_fail || 'coverage is a second count beside the objective''s owner: ' || v_r::text || '; '; end if;
+  -- ... and where he does not work: a target in another emirate reads the owner's 0, never a count that ignores the emirate
+  insert into public.supplier_coverage_target (trade, emirate, target_suppliers, status, source, confirmed_at, confirmed_by)
+  values (v_t1, 'Abu Dhabi', 10, 'confirmed', 'probe: a target where the probe supplier does not work', now(), 'ceo');
+  if (select (g->>'verified')::int from jsonb_array_elements(public.fn_supplier_coverage(10)->'gaps') g where g->>'trade' = v_t1 and g->>'emirate' = 'Abu Dhabi')
+       is distinct from (select o.verified from public.fn_supplier_target_by_trade_emirate(true) o where o.trade = v_t1 and o.emirate = 'Abu Dhabi')
+    then v_fail := v_fail || 'a supplier was counted in an emirate he does not serve; '; end if;
+  delete from public.supplier_coverage_target where trade = v_t1 and emirate = 'Abu Dhabi';
   v_seat := public.fn_ceo_invitation_seat();
   select id into v_o_inv from public.agent_actions where kind = 'handoff' and agent = v_seat and detail->>'type' = 'ceo.order' and detail->>'measure' = 'invitations' and status = 'pending';
   select id into v_o_stuck from public.agent_actions where kind = 'handoff' and agent = 'sales_engineer' and detail->>'type' = 'ceo.order' and detail->>'measure' = 'stuck_followed_up' and status = 'pending';
@@ -170,7 +177,7 @@ begin
                              'not_cited', jsonb_build_object('reason', 'probe', 'by', 'probe')), now(), 'ceo');
   v_txt := public.fn_ceo_daily_summary_text(now() - interval '1 day');
   if v_txt not like 'VERIFIED SUPPLIERS (the year-one plan, ceo.supplier_target): ' || (public.fn_ceo_supplier_target_status(now(), true)->>'verified') || '%'
-     or v_txt not like '%FOCUS TRADES (' || v_t1 || '): 1 of 10 verified toward opening%' or v_txt like '%SUPPLIER COVERAGE%'
+     or v_txt not like '%FOCUS TRADES (' || v_t1 || '): 1 of 12 verified toward opening%' or v_txt like '%SUPPLIER COVERAGE%'
      or v_txt not like '%FUNNEL, 30 days:%' or v_txt not like '%COMPANY LIMITS: AED%'
      or v_txt not like '%marketing asked boost the probe post ' || v_tag || ': refuse - The probe post has no audience yet ' || v_tag || '%'
      or v_txt not like '%supply confirm_targets%' or v_txt not like '%supply set_target%' or v_txt not like '%Nothing here waits on you.'

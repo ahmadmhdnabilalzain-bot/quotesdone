@@ -151,7 +151,7 @@ test('8. review 4 of the base branch holds in the text (each item also has a pro
   assert.match(LIM, /before truncate on public\.company_spend_commitment/);
   assert.match(LIM, /before update or delete on public\.company_spend_commitment/);
   assert.match(LIM, /new\.effective_at := clock_timestamp\(\) \+ interval '24 hours'/);
-  assert.doesNotMatch(LIM, /new\.effective_at := now\(\)/);
+  assert.doesNotMatch(LIM, /new\.effective_at := now\(\) \+/, 'a CHANGE waits a day from the clock (the first value is in force at once)');
   // 2. the race holds only under READ COMMITTED, so anything else is refused; one waiting change per limit under a lock
   const commit = LIM.slice(LIM.indexOf('create or replace function public.fn_company_spend_commit('));
   assert.ok(commit.indexOf("current_setting('transaction_isolation') <> 'read committed'") > 0

@@ -81,12 +81,12 @@ begin
 
   -- commitments: refused with no amount, above the per-action limit, above what is left of today; written when it fits
   delete from public.company_spend_commitment where dubai_day = (now() at time zone 'Asia/Dubai')::date;   -- the probe's own day
+  select count(*) into v_locks from pg_locks where locktype = 'advisory' and pid = pg_backend_pid();
   if coalesce((public.fn_company_spend_commit('marketing', 'probe.spend', 'probe:' || v_tag, null, 'probe')->>'committed')::boolean, true)
     then v_fail := v_fail || 'a commitment with no amount was written; '; end if;
   if coalesce((public.fn_company_spend_commit('marketing', 'probe.spend', 'probe:' || v_tag, v_per + 1, 'probe')->>'committed')::boolean, true)
     then v_fail := v_fail || 'a commitment above the per-action limit was written; '; end if;
   if least(v_per, v_day) >= 1 then
-    select count(*) into v_locks from pg_locks where locktype = 'advisory' and pid = pg_backend_pid();
     v_r := public.fn_company_spend_commit('marketing', 'probe.spend', 'probe:' || v_tag, least(v_per, v_day), 'probe');
     if not coalesce((v_r->>'committed')::boolean, false) then v_fail := v_fail || 'a commitment that fits was refused: ' || v_r::text || '; '; end if;
     -- review 4, item 2: the day's total is read and written under one company-wide lock, held to the end of the transaction

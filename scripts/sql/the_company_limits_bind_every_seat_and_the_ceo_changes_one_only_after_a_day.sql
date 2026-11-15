@@ -84,7 +84,7 @@ begin
     end if;
     new.effective_at := clock_timestamp() + interval '24 hours';   -- whatever the writer asked: a change waits a day
   else
-    new.effective_at := clock_timestamp();                          -- the first value of a limit is in force at once
+    new.effective_at := now();   -- the first value of a limit is in force at once (now(): also inside the transaction that wrote it)
   end if;
   return new;
 end $fn$;
