@@ -35,6 +35,7 @@ import { decideOpenReviews } from '../_shared/review_decide.ts';
 import { liveReviewIO } from '../_shared/review_request.ts';
 import { precedentBlock, recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { seatPool } from '../_shared/seat_pool.ts';
+import { COVERAGE_ACTIONS, coverageAction } from './coverage.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -432,7 +433,14 @@ Deno.serve(observe('ceo_agent', async (req) => {
     // legitimately touch ceo_task — the CEO working it, the founder unblocking or cancelling work
     // his own command created. A `who !== 'ceo' && who !== 'founder'` check here would be a
     // condition that cannot occur, which reads as protection and provides none.
-    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'review_refund', 'accept', 'judgement'] }, 400);
+    // ── THE OBJECTIVE AND THE LIMITS (15 Nov 2026, founder ledger 1701 and 1696; coverage.ts): coverage against target,
+    // the funnel and the limits for the founder and the CEO to read; the CEO alone changes a limit or a target, with a reason.
+    const cov = await coverageAction({ rpc: (fn, args) => admin.rpc(fn, args),
+      recentDecisions: (limit) => admin.from('ceo_supply_decision').select('decided_on,kind,subject,reason,handoff_id,created_at').order('id', { ascending: false }).limit(limit) },
+      who, action, body);
+    if (cov) return J(cov.body, cov.status);
+
+    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'review_refund', 'accept', 'judgement', ...COVERAGE_ACTIONS] }, 400);
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }

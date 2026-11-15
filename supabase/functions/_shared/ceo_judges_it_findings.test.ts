@@ -27,7 +27,8 @@ function deps(reply: () => LlmReply) {
 }
 
 Deno.test('the CEO triage surfaces are the seat\'s routine duty, on its routine route', () => {
-  for (const s of ['ceo.it_finding', 'ceo.overdue_handoff']) { assert(EASY_DUTY_SURFACE.test(s), s); assert(INTERNAL_DUTY_SURFACE.test(s), s); }
+  // ceo.authority too (third review, item 4: it ran on the Opus route at ~AED 0.42 a call against a cap priced at AED 0.0106)
+  for (const s of ['ceo.it_finding', 'ceo.overdue_handoff', 'ceo.authority']) { assert(EASY_DUTY_SURFACE.test(s), s); assert(INTERNAL_DUTY_SURFACE.test(s), s); }
   assert(!EASY_DUTY_SURFACE.test('ceo.management_review'), 'the hard reviews keep the CEO\'s own route');
 });
 
@@ -49,4 +50,16 @@ Deno.test('an invalid answer and no answer decide nothing: the question is held,
     assertEquals(r.status, 'held', JSON.stringify(r.decision));
     assert(!r.decision?.choice, 'no choice may come back');
   }
+});
+
+Deno.test('a question of authority is two choices on the routine route; no founder option exists to choose', async () => {
+  const m = deps(() => ({ content: JSON.stringify({ answer: 'One request, a customer on site: let it through once.', reasoning: [], cited: [], asked_back: null, confidence: 0.8, decision: { choice: 'allow_once' } }), model: 'stub/routine' }));
+  const req: ThinkRequest = { ...request(), surface: 'ceo.authority', question: 'The sales_engineer asks: match request 41 (matching on inquiry:41). As CEO you decide alone.',
+    decision: { name: 'ceo.authority', options: [{ id: 'allow_once', meaning: 'once' }, { id: 'refuse', meaning: 'no' }] },
+    easy: EASY_DUTY_SURFACE.test('ceo.authority'), internalDuty: INTERNAL_DUTY_SURFACE.test('ceo.authority') };
+  const r = await think(m.d, req);
+  assertEquals(r.decision?.choice, 'allow_once');
+  assert(m.classes.length > 0 && m.classes.every((c) => c !== 'internal_judgement'), 'routine route only: ' + m.classes.join(','));
+  const asked = await think(deps(() => ({ content: JSON.stringify({ answer: 'Ask the founder about it.', reasoning: [], cited: [], asked_back: null, decision: { choice: 'ask_founder' } }), model: 'stub' })).d, req);
+  assertEquals(asked.status, 'held', 'ask_founder is not a choice: nothing is decided');
 });
