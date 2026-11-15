@@ -33,6 +33,10 @@
 // before anything is sent, so the operator learns it in a second instead of after a 5 s stall. The existing relations are
 // read from pg_class with one light SELECT (relationCatalogue), never from a list. Quoted names are read as names; DO bodies
 // and their EXECUTE strings are read too. What it cannot see (DDL in a routine the file calls) is still cut at 5 s.
+// ROUND 3 (15 Nov 2026, second independent review): the cut could be LIFTED by the file (a quoted SET, a DO block's EXECUTE, an
+// E'' set_config) and 16 lock-taking shapes passed the reading. Now the limits are read on the raw text (limitLifters), U&"..."
+// and three-part names and the file's search_path are read, CASCADE drops and ALTER DOMAIN count as an unknown table, and any
+// EXECUTE of a non-literal is refused on production as dynamic SQL (dynamicSql). Tests: scripts/lib/replay_guard.test.mjs.
 // SHARE UPDATE EXCLUSIVE (COMMENT ON, CREATE STATISTICS) is not refused: it conflicts with neither a reader nor a writer.
 //
 // Row locks taken by a routine replay are a different subject: scripts/lib/replay_locks.mjs.

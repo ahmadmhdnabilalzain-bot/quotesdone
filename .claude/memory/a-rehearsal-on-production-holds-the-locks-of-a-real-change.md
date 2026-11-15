@@ -3,7 +3,7 @@ name: a-rehearsal-on-production-holds-the-locks-of-a-real-change
 description: "13 Nov 2026: a rolled-back rehearsal on production takes and HOLDS the same locks as the real change. 28 rehearsals (whole DDL files + a 12-15 s probe, one transaction) queued 103 live requests and 11 cron jobs; the live role's 8 s statement_timeout cancelled a supplier's certificate write, a quotation's approval and a customer's acceptance. Rule: local first; a production replay is never the default and is cut at 5 s; the real apply uses lock_timeout 1500 ms and a quiet minute."
 metadata:
   type: feedback
-  modified: 2026-11-13
+  modified: 2026-11-15
 ---
 
 **What happened (13 Nov 2026, measured in the production postgres log, 05:30-09:29 UTC).** This session's agents rehearsed SQL
@@ -34,19 +34,31 @@ missing. A list of what is dangerous is out of date the day it is written.
   `target: 'production'` or the operator sets `QD_REPLAY_ON_PRODUCTION=1`; with neither and no local URL it sends nothing and
   says how to start the local database. `npm test` and `npm run gate` follow the same rule.
 - **A production replay is cut at 5 s** (`transaction_timeout`, Postgres 17; plus `lock_timeout` 1 s and one replay at a time)
-  whatever it locks and however it says it; it is sent once, never re-sent after a 5xx. Measured (review, local): a live reader
-  behind a replay cut at 5 s waited 4.65 s and answered (8.04 s and cancelled without the cut). The static reading (a lock stronger than
-  ROW EXCLUSIVE on any relation pg_class has) is only an early, friendly refusal.
+  whatever it locks; it is sent once, never re-sent after a 5xx. Measured (review, local): a live reader behind a replay cut at
+  5 s waited 4.65 s and answered (8.04 s and cancelled without the cut). The cut holds only because the file cannot lift it:
+  the second review (13 Nov) lifted lock_timeout with `set local "lock_timeout" = 0`, a DO block's EXECUTE and
+  `set_config(E'lock_timeout', ...)`, and transaction_timeout the same four ways. Since 15 Nov the guard refuses, on the raw text,
+  the word transaction_timeout anywhere, any set_config of lock/statement/transaction_timeout or with a computed name, a SET of
+  those inside a DO block or EXECUTE, a quoted top-level SET of one, and RESET ALL; only a top-level `set local lock_timeout =
+  <ms>` is kept (lowered to the cap). Any EXECUTE of a non-literal is refused on production as dynamic SQL (replay and apply).
+- **The early refusal reads what the text SAYS, not everything it does.** It refuses a lock stronger than ROW EXCLUSIVE on a
+  relation pg_class has, read through quoted, `U&"..."` and three-part names, the file's own search_path, DO blocks and literal
+  EXECUTE strings; DROP FUNCTION/TYPE/DOMAIN ... CASCADE, ALTER DOMAIN and a bare CLUSTER count as an unknown table. It does
+  NOT see a lock taken inside a routine the file calls (bounded only by the 5 s cut). Review 2 found 16 shapes it missed;
+  15 are now refused, the called routine is the one left to the cut.
 - **The real apply** (scripts/apply_sql.mjs) sets lock_timeout 1500 ms (`--lock-timeout=<ms>` to change, 1-15000) and lowers
   the file's own to it, prints the limits it set, cuts a file that stops writers at 60 s, retries a lock not granted after a
-  fixed 10 s, and NEVER re-sends after a 5xx: it reads whether the file committed and stops either way (exit 4 or 5). Apply a
-  file that locks a busy table in a quiet minute, and split a backfill.
+  fixed 10 s, and NEVER re-sends after a 5xx: if its first copy is still on production after 2 minutes it says STILL RUNNING,
+  do not re-run (exit 5); it says "run the same command again" (exit 4) only when it proved nothing committed and the MANIFEST
+  does not list the file; anything else is exit 5, check by hand. `--lock-timeout` below 1 ms is refused (0.4 used to round to
+  0, no limit). Apply a file that locks a busy table in a quiet minute, and split a backfill.
 - Before blaming code for a statement timeout, read the postgres log at that second for "still waiting for" and the holder's
   `application_name` (`mgmt-api` = one of our sessions).
 - A write a person depends on is read back and a blip retried within the page's budget (`_shared/recorded_write.ts`); a
   failure is said to the person (`terms_not_recorded`) and raised to the it_engineer seat in the background.
 
-Prevented by: `scripts/checks/a_rehearsal_never_makes_a_live_user_wait.test.mjs` (40 evasions),
+Prevented by: `scripts/checks/a_rehearsal_never_makes_a_live_user_wait.test.mjs` (40 evasions), `scripts/lib/replay_guard.test.mjs`
+(review 2's lifts and missed shapes, and the 15 files that must pass),
 `scripts/checks/no_script_sends_ddl_to_production_except_through_the_guard.test.mjs`,
 `scripts/checks/a_recorded_acceptance_always_gets_its_certificate_and_nobody_works_without_one.test.mjs`,
 `supabase/functions/kyc/a_terms_write_that_never_lands_is_said.test.ts`, `src/components/me/auth/acceptTerms.test.mjs`,

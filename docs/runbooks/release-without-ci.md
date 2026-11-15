@@ -54,8 +54,14 @@ npm run gate -- --pr <number>
   Before `npm run gate`, start it: `node scripts/db/local_pg16.mjs start && export QD_LOCAL_DB_URL="$(node scripts/db/local_pg16.mjs url)"`
   (Postgres 16 from the schema mirror, about 20 s; `node scripts/db/local_pg16.mjs stop` afterwards). Without it the
   replaying steps stop with "SAFE REPLAY HAS NO DATABASE" and send nothing. `QD_REPLAY_ON_PRODUCTION=1` sends them to
-  production behind a 5 s `transaction_timeout` and a 1 s `lock_timeout`, and refuses any file that takes a lock stronger
-  than ROW EXCLUSIVE on a relation production has. Do not set it to make a red row green: a file that needs longer than
+  production behind a 5 s `transaction_timeout` and a 1 s `lock_timeout`. Before sending, it refuses (scripts/lib/replay_guard.mjs):
+  a statement it can READ as taking a lock stronger than ROW EXCLUSIVE on a relation production has (quoted, `U&"..."` and
+  three-part names, the file's own search_path, DO blocks and literal EXECUTE strings, DROP FUNCTION/TYPE ... CASCADE and
+  ALTER DOMAIN as an unknown table); any EXECUTE whose argument is not one literal (dynamic SQL); and anything that could move a
+  limit (the word transaction_timeout anywhere, a set_config of lock/statement/transaction_timeout or with a computed name, a SET
+  of those inside a DO block or EXECUTE, RESET ALL). It CANNOT see a lock taken inside a routine the file calls: that is bounded
+  only by the 5 s cut. The local gate still needs production rows in some checks (a_ready_request: the trades and suppliers);
+  that is not a reason to replay on production. Do not set it to make a red row green: a file that needs longer than
   5 s, or that ALTERs an existing table, is rehearsed locally and then applied with `apply_sql.mjs`. Never rehearse with a
   hand-made `begin; ...; rollback` sent to the management API: it holds the real change's locks.
 - The OTP race needs a throwaway Postgres: set `QD_OTP_RACE_PG`, or start Docker so the gate can run `postgres:16`
@@ -129,8 +135,11 @@ does it from an up-to-date main checkout, right after the merge:
 ```
 git fetch origin main && git checkout --detach origin/main
 # 1. SQL the PR added: rehearsed on the LOCAL database first (section 1), then applied at merge, never before.
-#    The apply sets lock_timeout 1500 ms (--lock-timeout=<ms> to change, max 15000) and prints the limits it set; a file
-#    that ALTERs a busy table goes in a quiet minute. After a 5xx it is never re-sent: it says whether it committed and stops.
+#    The apply sets lock_timeout 1500 ms (--lock-timeout=<ms> to change, 1-15000; a fraction is rounded up) and prints the
+#    limits it set; a file that ALTERs a busy table goes in a quiet minute. It refuses dynamic SQL in a DO block and anything
+#    that moves a limit (the dry run says so first). After a 5xx it is never re-sent: exit 5 STILL RUNNING if its first copy
+#    is still on production after 2 minutes (do NOT re-run), exit 4 only when proven not committed AND the MANIFEST does not
+#    list the file (then run the same command again), exit 5 otherwise (check by hand).
 node scripts/apply_sql.mjs scripts/sql/<file>.sql --apply --ddl
 #    delete scripts/sql/pending/<file>.txt, append the file as the LAST line of scripts/sql/MANIFEST.txt
 node scripts/checks/canonical_routine_manifest.mjs            # 0 findings
