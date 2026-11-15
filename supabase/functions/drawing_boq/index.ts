@@ -10,7 +10,8 @@ import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { observe } from '../_shared/observe.ts';
 import { scrubIdentityText } from '../_shared/identity_text.ts';
-import { pdfPages } from '../_shared/pdf_text_positions.ts';
+import { linesFromRuns, pdfPages } from '../_shared/pdf_text_positions.ts';
+import { isQuotationReading, pricedKind, quotationGate, quotationTerms, termsToKeep } from './quotation_gate.ts';
 import { boqFromPages } from './boq_from_text.ts';
 import { boqFromDrawingSet, lengthsForSet, mergeLengths, setBeforeModel, type ScheduleTable } from './drawing_set.ts';
 import { boqFromSheet } from './boq_from_sheet.ts';
@@ -93,7 +94,14 @@ function scrub(s: unknown){ let t = String(s == null ? '' : s); t = t.replace(/[
 
 const CATS = 'civil_construction, fit_out_interior, mep_electrical, mep_plumbing, mep_hvac, joinery_carpentry, flooring_tiling, painting_finishes, aluminium_glass, false_ceiling_partitions, steel_fabrication, waterproofing, landscaping, signage, cleaning_facilities, swimming_pools';
 
-const SYS = `You are a UAE quantity surveyor. You read CONSTRUCTION / FIT-OUT / MEP / architectural drawings (floor plans, elevations, sections, layouts, schedules, single-line diagrams) and produce a DRAFT Bill of Quantities (BOQ) that a contractor could price.\n\nPRIVACY (CRITICAL): your output is shown to competing suppliers who must NOT be able to identify the client or project. NEVER read out, copy or include ANY identifying information from the drawing. Specifically ignore and never repeat: the title block's company / consultant / architect / contractor names, client or owner names, any person names, phone numbers, emails, websites, the project name or title, drawing or project numbers, plot / parcel / makani numbers, and the site or project address. You MAY use the title block ONLY for scale, drawing type and dimensions. Output ONLY generic technical scope. If any text field (summary, descriptions, basis, keywords, assumptions, missing_info) would contain a name, company, phone, email or address, leave it out or generalise it (e.g. say 'a villa', not the address; 'ground floor', not the project name).\n\nRead EVERY drawing page. Use the title block, scale bar, stated dimensions, room/area labels, schedules (door/window/finish/fixture schedules), legends and symbol counts. Where a scale or explicit dimensions are given, compute areas (sqm), lengths (m) and counts (nos). Where you must assume, say so and lower the confidence.\n\nMETHOD (measure as a quantity surveyor, NRM2 / POMI conventions): count every TAGGED item (e.g. FD-1, WC-1, FCU-1, SD) once for each time it is drawn on a PLAN view - never in a legend, schedule, key, note or title block; give each tag its own line whose description starts with the tag exactly as printed (\"FD-1 - floor drain\"); counts in nos, lengths in m along centre-lines at the printed scale, areas in sqm net as drawn. If a text layer is supplied, use it to read tags exactly and still count only what sits on the plan.\n\nProduce measurable BOQ line items grouped into sections (e.g. Demolition, Blockwork, Flooring, Painting, Doors, Electrical points, Plumbing fixtures, HVAC, Ceiling). For each item give: a clear generic description, quantity, unit (sqm / m / nos / lot), the dimensions or basis used, and a per-item confidence. Keep to the most relevant items (aim for under 40). Be concise in every text field.\n\nIMPORTANT: this is an AI ESTIMATE for guidance and supplier matching, NOT a certified take-off. Be honest. Never invent quantities you cannot see. Flag everything you assumed and everything you could not determine.\n\nOutput ONLY the JSON object, no markdown, no prose before or after:\n{\"drawing_type\":string,\"category\":one of [${CATS}] or \"\",\"summary\":string,\"scale_detected\":string,\"total_area_sqm\":number|null,\"boq\":[{\"section\":string,\"description\":string,\"qty\":number|null,\"unit\":string,\"basis\":string,\"confidence\":\"low\"|\"medium\"|\"high\"}],\"keywords\":[string],\"assumptions\":[string],\"missing_info\":[string],\"confidence\":\"low\"|\"medium\"|\"high\"}\ncategory = best single match from the list for supplier matching. keywords = 4-10 short terms describing the trades/materials shown (for matching). If you cannot read the drawing at all, return confidence \"low\", empty boq, and explain in missing_info.`;
+// 13 Nov 2026 (sales_engineer; founder ruling 1683; anonymity audit A, L2): the reading FIRST says what the attached file IS
+// (document_kind) and whether a supplier of that trade could quote from it alone (sufficiency), because a customer's existing
+// quotation reached this prompt as a "drawing" and nothing here told the model it was another supplier's priced offer. The
+// customer_api route acts on document_kind (a quotation is rebuilt as our inquiry and never pictured, quotation_gate.ts) and
+// the intake asks for what `sufficiency.missing` names. Code backstops both: quotation_gate on the text, looksPriced on the
+// text layer.
+const KIND_RULES = `FIRST set document_kind: \"drawing\", \"boq\" (items, no prices), \"quotation\" (any priced offer, proforma, estimate or invoice from a supplier or contractor), \"photo\" or \"other\". For a quotation give only its items: description, qty, unit and any make, model, standard, warranty or origin it specifies (make in brackets); never a price, rate, amount, total, VAT, payment term, name, contact, address, project or reference number; basis \"as listed in the customer's document\". Then sufficiency: verdict \"sufficient\" if a supplier of this trade could price every line from the file alone, else \"not_yet\" with missing: what that supplier still needs, in plain words.\n\n`;
+const SYS = `You are a UAE quantity surveyor. ${KIND_RULES}You read CONSTRUCTION / FIT-OUT / MEP / architectural drawings (floor plans, elevations, sections, layouts, schedules, single-line diagrams) and produce a DRAFT Bill of Quantities (BOQ) that a contractor could price.\n\nPRIVACY (CRITICAL): your output is shown to competing suppliers who must NOT be able to identify the client or project. NEVER read out, copy or include ANY identifying information from the drawing. Specifically ignore and never repeat: the title block's company / consultant / architect / contractor names, client or owner names, any person names, phone numbers, emails, websites, the project name or title, drawing or project numbers, plot / parcel / makani numbers, and the site or project address. You MAY use the title block ONLY for scale, drawing type and dimensions. Output ONLY generic technical scope. If any text field (summary, descriptions, basis, keywords, assumptions, missing_info) would contain a name, company, phone, email or address, leave it out or generalise it (e.g. say 'a villa', not the address; 'ground floor', not the project name).\n\nRead EVERY drawing page. Use the title block, scale bar, stated dimensions, room/area labels, schedules (door/window/finish/fixture schedules), legends and symbol counts. Where a scale or explicit dimensions are given, compute areas (sqm), lengths (m) and counts (nos). Where you must assume, say so and lower the confidence.\n\nMETHOD (measure as a quantity surveyor, NRM2 / POMI conventions): count every TAGGED item (e.g. FD-1, WC-1, FCU-1, SD) once for each time it is drawn on a PLAN view - never in a legend, schedule, key, note or title block; give each tag its own line whose description starts with the tag exactly as printed (\"FD-1 - floor drain\"); counts in nos, lengths in m along centre-lines at the printed scale, areas in sqm net as drawn. If a text layer is supplied, use it to read tags exactly and still count only what sits on the plan.\n\nProduce measurable BOQ line items grouped into sections (e.g. Demolition, Blockwork, Flooring, Painting, Doors, Electrical points, Plumbing fixtures, HVAC, Ceiling). For each item give: a clear generic description, quantity, unit (sqm / m / nos / lot), the dimensions or basis used, and a per-item confidence. Keep to the most relevant items (aim for under 40). Be concise in every text field.\n\nIMPORTANT: this is an AI ESTIMATE for guidance and supplier matching, NOT a certified take-off. Be honest. Never invent quantities you cannot see. Flag everything you assumed and everything you could not determine.\n\nOutput ONLY the JSON object, no markdown, no prose before or after:\n{\"document_kind\":\"drawing\"|\"boq\"|\"quotation\"|\"photo\"|\"other\",\"sufficiency\":{\"verdict\":\"sufficient\"|\"not_yet\",\"missing\":[string]},\"drawing_type\":string,\"category\":one of [${CATS}] or \"\",\"summary\":string,\"scale_detected\":string,\"total_area_sqm\":number|null,\"boq\":[{\"section\":string,\"description\":string,\"qty\":number|null,\"unit\":string,\"basis\":string,\"confidence\":\"low\"|\"medium\"|\"high\"}],\"keywords\":[string],\"assumptions\":[string],\"missing_info\":[string],\"confidence\":\"low\"|\"medium\"|\"high\"}\ncategory = best single match from the list for supplier matching. keywords = 4-10 short terms describing the trades/materials shown (for matching). If you cannot read the drawing at all, return confidence \"low\", empty boq, and explain in missing_info.`;
 
 Deno.serve(observe('drawing_boq', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -195,7 +203,12 @@ Deno.serve(observe('drawing_boq', async (req) => {
         if (a.status !== 'read') return J({ ok: false, error: 'document_unreadable', detail: String(a.reason || '').slice(0, 200), held: 'unreadable_after_model' }, 422);
         seen = a.text;
       }
-      const boq = boqFromExtracted(r, hint, seen, drawing);
+      const boq0 = boqFromExtracted(r, hint, seen, drawing);
+      // A PRICED DOCUMENT read by code (QUOTATION_NOTE) passes the quotation gate with the terms its own text states
+      // (quotation_gate.ts, 13 Nov 2026): measured on the audit's ZZ DEMO quotation, the code reading kept the old supplier's
+      // detail code "FT-SD-04" beside its reference "FT/Q/2026/0412"; the gate removes a code that shares the reference's prefix.
+      const qt = isQuotationReading(boq0) ? quotationTerms(String(r.text || seen || '').split('\n')) : null;
+      const boq = qt ? { ...quotationGate(boq0, qt), old_supplier_terms: termsToKeep(qt) } : boq0;
       // 23 Sep 2026 (founder 696/698/701/703): a DRAWING's take-off (DXF, DWG, PDF) is redacted
       // with the terms the file states about itself, then RE-READ; a line still naming a party is dropped and
       // identity left anywhere else withholds the take-off. See _shared/drawing_identity_gate.ts.
@@ -284,13 +297,14 @@ Deno.serve(observe('drawing_boq', async (req) => {
     };
     // deno-lint-ignore no-explicit-any
     const withRead = (boq: any) => (boq && typeof boq === 'object' && !Array.isArray(boq) && modelRead ? { ...boq, model_read: modelRead } : boq);
-    let codeSet: any = null, pdfText = '', idTerms: string[] = [];
+    let codeSet: any = null, pdfText = '', idTerms: string[] = [], pdfLines: string[] = [];
     if (pdfB64 && body.deterministic !== true) {
       try {
         const bytes = Uint8Array.from(atob(pdfB64.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
         const sched = Array.isArray(body.schedule_tables) ? (body.schedule_tables as ScheduleTable[]).slice(0, 40).filter((t) => t && Array.isArray(t.rows)) : [];
         const pages = await pdfPages(bytes, undefined, { layers: false });
         pdfText = pages.map((p) => p.runs.map((r) => r.text).join(' ')).join('\n').slice(0, 12_000);
+        pdfLines = linesFromRuns(pages).split('\n').map((l) => l.trim()).filter(Boolean);
         const set = setBeforeModel(pages, hint, sched);
         // The terms first: a set is never merged without them (a throw here leaves the model drafting alone). Read for
         // every PDF since 10 Nov 2026: the model's reading alone is gated with them too (the last return below).
@@ -361,6 +375,15 @@ Deno.serve(observe('drawing_boq', async (req) => {
     ai.scale_detected = scrub(ai.scale_detected||'');
     if (!['low','medium','high'].includes(ai.confidence)) ai.confidence = 'low';
     ai.author_model = authorModel;
+    // What the file IS and whether it is enough to quote: the model's word, checked for shape only.
+    ai.document_kind = ['drawing', 'boq', 'quotation', 'photo', 'other'].includes(ai.document_kind) ? ai.document_kind : 'drawing';
+    ai.sufficiency = ai.sufficiency && typeof ai.sufficiency === 'object' && ['sufficient', 'not_yet'].includes(ai.sufficiency.verdict)
+      ? { verdict: ai.sufficiency.verdict, missing: Array.isArray(ai.sufficiency.missing) ? ai.sufficiency.missing.map((m: any) => scrub(m)).filter(Boolean).slice(0, 8) : [] } : null;
+    // A priced document (the model's word, or money on the text layer) is rebuilt as our inquiry before anything else reads it.
+    const pk = pdfLines.length ? pricedKind(pdfLines.join('\n')) : null;
+    if (ai.document_kind !== 'quotation' && pk === 'quotation') ai.document_kind = 'quotation';
+    if (isQuotationReading(ai)) ai = quotationGate(ai, quotationTerms(pdfLines));
+    else if (pk === 'priced') ai = quotationGate(ai, { parties: [], refs: [], prefixes: [] }, 'priced');
     if (codeSet) {
       // The model read it; code's complete count of the same text layer cross-checks it (cross_check.ts mergeReading). A
       // reply with no line (prose, truncated, empty) leaves the coded set answering unchanged; the merged take-off passes

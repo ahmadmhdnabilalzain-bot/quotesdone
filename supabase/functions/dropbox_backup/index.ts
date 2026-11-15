@@ -49,17 +49,17 @@ import { compareListing, dailyRoots, fileSlices, listTree, type Expected } from 
 import { dropboxExportAllowed } from '../_shared/backup_prune_allow.ts';
 import { classifyDropboxFailure, isTransientDbError } from './health.ts';
 import { J } from '../_shared/json_response.ts';
+import { deadline, inRequest, t0 } from './request_clock.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-const T0 = Date.now();
-const DEADLINE = T0 + 110_000;           // leave room under the 150 s edge limit to record the result
+// the clock is per request (request_clock.ts): a module-level start time made every request to a warm isolate late
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SELF = SUPABASE_URL + '/functions/v1/dropbox_backup';
 const errText = (e: unknown) => String((e as Error)?.message || e);
 
 async function logRun(status: string, counts: Record<string, unknown>, note: string) {
   const { error } = await admin.from('agent_runs').insert({ agent: 'dropbox_backup', status, counts,
-    note: String(note || '').slice(0, 500), started_at: new Date(T0).toISOString(), finished_at: new Date().toISOString() });
+    note: String(note || '').slice(0, 500), started_at: new Date(t0()).toISOString(), finished_at: new Date().toISOString() });
   if (error) console.error('agent_runs insert failed:', error.message);
 }
 async function logThrottled(signal: string, minutes: number, status: string, counts: Record<string, unknown>, note: string) {
@@ -102,7 +102,7 @@ function client(): DropboxClient {
   return new DropboxClient(new TokenCache(tokenStore, async () => {
     const [rt, key, secret] = await Promise.all([sec('dropbox_refresh_token'), sec('dropbox_app_key'), sec('dropbox_app_secret')]);
     return refreshAccessToken(rt, key, secret);
-  }, { deadline: DEADLINE }));
+  }, { deadline: deadline() }));
 }
 
 // THE DAILY CHECK (it_engineer). v6/v7: the sample (new, unverified rows; a weekly random sample).
@@ -133,7 +133,7 @@ async function reconcile(dbx: DropboxClient, n: number, ids?: number[]) {
   let listing: Record<string, unknown> | null = null;
   if (!ids?.length) {
     try {
-      const l = await listingCheck(dbx, await dailyRoots(dbx), T0 + LISTING_BUDGET_MS, true);
+      const l = await listingCheck(dbx, await dailyRoots(dbx), t0() + LISTING_BUDGET_MS, true);
       const seen = new Set(results.map((r) => Number(r.id)));
       for (const f of l.findings) if (!seen.has(Number(f.id))) results.push(f);
       listing = l.summary;
@@ -192,15 +192,16 @@ const SANDBOX_TAG = /^[A-Za-z0-9-]{6,40}$/;
 const sandboxRoot = (tag: string) => '/QuotesDone Backup/_sandbox/' + tag;
 async function sandboxUpload(tag: string, failIds: number[]) {
   const dbx = await client();
-  const run = `dropbox_sandbox:${tag}:${T0}`;
+  // 'moves1': this worker can render a quotation and MOVE a re-filed file; the claim routines give those rows only to it (review of #1997, D1)
+  const run = `dropbox_sandbox:${tag}:moves1:${t0()}`;
   const out: Record<string, unknown>[] = []; let failed = 0, done = 0;
-  for (let pass = 0; pass < 10 && Date.now() < DEADLINE; pass++) {
+  for (let pass = 0; pass < 10 && Date.now() < deadline(); pass++) {
     const { data: rows, error } = await admin.rpc('fn_doc_backups_sandbox_next', { p_tag: tag, p_limit: 25, p_run: run });
     if (error) throw new Error('fn_doc_backups_sandbox_next: ' + error.message);
     // deno-lint-ignore no-explicit-any
     const claimed = (rows || []) as any[];
     if (!claimed.length) break;
-    const d = await drainClaim(claimed, { deadline: DEADLINE,
+    const d = await drainClaim(claimed, { deadline: deadline(),
       fail: async (row, msg) => {
         await admin.from('doc_backups').update({ status: 'error', claimed_at: null, claimed_by: null, error: msg, attempts: row.attempts + 1, last_attempt_at: new Date().toISOString(), upload_state: null }).eq('id', row.id).eq('status', 'processing');
         out.push({ id: row.id, error: msg.slice(0, 160) });
@@ -209,7 +210,7 @@ async function sandboxUpload(tag: string, failIds: number[]) {
       release: async (ids) => { const { data } = await admin.from('doc_backups').update({ status: 'pending', claimed_at: null, claimed_by: null }).in('id', ids).eq('claimed_by', run).select('id'); return data?.length ?? 0; },
       process: async (row) => {
         // the retry test: a named row fails on its FIRST attempt only, as a provider outage would
-        const r = await backupRow(admin, dbx, row, { supabaseUrl: SUPABASE_URL, deadline: DEADLINE, release: { claimed_at: null, claimed_by: null },
+        const r = await backupRow(admin, dbx, row, { supabaseUrl: SUPABASE_URL, deadline: deadline(), release: { claimed_at: null, claimed_by: null },
           simulateFailure: failIds.includes(Number(row.id)) && Number(row.attempts) === 0, logRun });
         if ('done' in r) done++;
         out.push({ id: row.id, ...r });
@@ -302,7 +303,7 @@ async function selftestLarge(mb: number) {
 
 // it_engineer (retention): delete the claimed rows' dropbox_path. A path already gone is an answer.
 async function prune() {
-  const run = `dropbox_prune:${T0}:${crypto.randomUUID().slice(0, 8)}`;
+  const run = `dropbox_prune:${t0()}:${crypto.randomUUID().slice(0, 8)}`;
   const { data: rows, error } = await admin.rpc('fn_doc_backups_prune_next', { p_limit: 25, p_run: run });
   if (error) throw new Error('fn_doc_backups_prune_next: ' + error.message);
   if (!rows?.length) return { claimed: 0 };
@@ -310,7 +311,7 @@ async function prune() {
   const results: Record<string, unknown>[] = [];
   // deno-lint-ignore no-explicit-any
   for (const row of rows as any[]) {
-    if (Date.now() >= DEADLINE) { results.push({ id: row.id, ok: false, error: 'deadline' }); continue; }
+    if (Date.now() >= deadline()) { results.push({ id: row.id, ok: false, error: 'deadline' }); continue; }
     // the allow-list again, here: only a table-export file is ever deleted from Dropbox (counted as a
     // failure, so five refusals become an it_engineer finding)
     if (!dropboxExportAllowed(row)) { results.push({ id: row.id, ok: false, error: 'refused by the allow-list: not a table-export file' }); continue; }
@@ -337,7 +338,7 @@ async function purgeUnfinishedSignups(dbx: DropboxClient) {
   const { data: copies } = await admin.from('signup_purge_dropbox').select('id,doc_backup_id,dropbox_file,attempts').is('done_at', null)
     .lt('attempts', 5).lt('listed_at', new Date(Date.now() - 15 * 60_000).toISOString()).order('attempts').order('id').limit(25);
   for (const c of copies || []) {
-    if (Date.now() >= DEADLINE) break;
+    if (Date.now() >= deadline()) break;
     if (!signupPurgeDeleteAllowed(String(c.dropbox_file)) && !demoPurgeDeleteAllowed(String(c.dropbox_file))) {
       out.dropbox_refused++;
       await admin.from('signup_purge_dropbox').update({ error: 'refused: not a file of the entity tree', attempts: 5 }).eq('id', c.id);
@@ -374,7 +375,7 @@ async function purgeUnfinishedSignups(dbx: DropboxClient) {
   return out;
 }
 
-Deno.serve(observe('dropbox_backup', async (req) => {
+async function handle(req: Request): Promise<Response> {
   // deno-lint-ignore no-explicit-any
   let body: Record<string, any> = {}; let authed = false;
   try {
@@ -449,7 +450,8 @@ Deno.serve(observe('dropbox_backup', async (req) => {
     // an unfinished sign-up's files (founder ruling 1181): its listed Dropbox copies, records and storage objects deleted
     let unfinished: Record<string, number> | null = null;
     if (!chain) { try { unfinished = await purgeUnfinishedSignups(dbx); } catch (e) { console.error('unfinished sign-up purge failed:', errText(e)); } }
-    const run = `dropbox_backup:${T0}:${crypto.randomUUID().slice(0, 8)}`;
+    // 'moves1': this worker can render a quotation and MOVE a re-filed file; fn_doc_backups_next gives those rows only to it (D1)
+    const run = `dropbox_backup:moves1:${t0()}:${crypto.randomUUID().slice(0, 8)}`;
     const { data: rows, error: qerr } = await admin.rpc('fn_doc_backups_next', { p_limit: limit, p_run: run });
     if (qerr) throw new Error('fn_doc_backups_next: ' + qerr.message);
 
@@ -460,7 +462,7 @@ Deno.serve(observe('dropbox_backup', async (req) => {
     const claimed = (rows || []) as any[];
     // drain.ts: a run that stops early (deadline, token endpoint unavailable, no_dropbox_auth) hands the
     // rows it never reached back to pending at once, instead of after the 10-minute claim expiry.
-    const d = await drainClaim(claimed, { deadline: DEADLINE,
+    const d = await drainClaim(claimed, { deadline: deadline(),
       fail: async (row, msg) => {
         await admin.from('doc_backups').update({ status: 'error', ...release, error: msg, attempts: row.attempts + 1, last_attempt_at: now(), upload_state: null }).eq('id', row.id).eq('status', 'processing');
         results.push({ id: row.id, error: msg.slice(0, 160) });
@@ -479,7 +481,7 @@ Deno.serve(observe('dropbox_backup', async (req) => {
         return rel?.length ?? 0;
       },
       process: async (row) => {
-        const r = await backupRow(admin, dbx, row, { supabaseUrl: SUPABASE_URL, deadline: DEADLINE, release, logRun });
+        const r = await backupRow(admin, dbx, row, { supabaseUrl: SUPABASE_URL, deadline: deadline(), release, logRun });
         if ('resuming' in r) resumed++;
         if ('done' in r) done++;
         results.push({ id: row.id, ...r });
@@ -521,4 +523,6 @@ Deno.serve(observe('dropbox_backup', async (req) => {
     }
     return J({ error: msg }, 500);
   }
-}));
+}
+
+Deno.serve(observe('dropbox_backup', (req: Request) => inRequest(() => handle(req))));

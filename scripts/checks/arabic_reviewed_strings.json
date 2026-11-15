@@ -5072,6 +5072,7 @@
   "be7e9511d0c5",
   "bf30e6681178",
   "c53573dbd067",
+  "c79e61611457",
   "ca6e4a374008",
   "dca3f034d6c8",
   "dea375ede3bd",
@@ -5375,6 +5376,7 @@
   "2a3428474f37",
   "73958d3fd08e",
   "73ebfe9c3c29",
+  "8ab0308e73c3",
   "9b4935c41229",
   "ad34a32b50c4",
   "afc98c2db272",
@@ -6911,7 +6913,9 @@
  "supabase/functions/customer_api/actions/inquiry_lifecycle.ts": [
   "06ed97856972",
   "4e23e528e11c",
-  "820bc3b3178c"
+  "820bc3b3178c",
+  "acaeeb1b0b29",
+  "d3bce80b9bcb"
  ],
  "supabase/functions/customer_api/actions/reports.ts": [
   "0183560e12a8",
@@ -8282,5 +8286,35 @@
   "f76f0cc6b1eb",
   "f92220c3cd10",
   "f9f9e432edfa"
+ ],
+ "supabase/functions/_shared/site_location.ts": [
+  "20aec7784753",
+  "31ae6e707e26",
+  "38445d04f3e4",
+  "5780d06a9a66",
+  "8713a4ed6522",
+  "9c13ce81c9fb",
+  "a387752e9c67",
+  "a84ed6d78943",
+  "b383ca1cfb1e",
+  "e481c2d8832e",
+  "e9030e48c643",
+  "ebab9ccc7e52",
+  "ff56a7ccc3da"
+ ],
+ "supabase/functions/customer_api/lib/what_was_understood.ts": [
+  "10f3365d0020",
+  "1a555415fdee",
+  "27249761ce99",
+  "3aa530d0b1d2",
+  "4758126e7970",
+  "5eb696d54b26",
+  "8c81dc8d7d56"
+ ],
+ "supabase/functions/customer_api/lib/edit_summary.ts": [
+  "0fc094ee0d02",
+  "257def7abd3e",
+  "338535fdcf41",
+  "997954a7b001"
  ]
 }

@@ -28,6 +28,8 @@ const UNIT: [string, RegExp][] = [
   ['kg', /^kg$/i], ['ton', /^(?:tons?|t)$/i], ['lot', /^(?:lot|ls|l\.s\.)$/i], ['kw', /^kw$/i], ['tr', /^tr$/i],
 ];
 const unitOf = (s: string) => { for (const [u, re] of UNIT) if (re.test(s)) return u; return null; };
+/** The units this reader knows, as one alternation (quotation_gate.ts: a figure followed by one is a quantity, never money). */
+export const UNIT_ALTERNATION = UNIT.map(([, re]) => re.source.replace(/^\^\(\?:/, '').replace(/\)\$$/, '').replace(/^\^/, '').replace(/\$$/, '')).join('|');
 
 /** An e-mail address, matched only where a local part can begin (see scrubIdentity). */
 export const EMAIL_RE = /(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;

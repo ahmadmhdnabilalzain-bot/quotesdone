@@ -44,7 +44,11 @@ async function revealedPartyName(q: any): Promise<string | null> {
     return l?.company_name ? String(l.company_name) : null;
   } catch (_e) { return null; }
 }
-export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
+// `target` (the Dropbox backup only, ruling 1680): where pdf_native stores the file; the portal download leaves it out (agent-docs, dated
+// folder). `target.request`: the request text to print and to check against INSTEAD of the stored one - the supplier's filed copy passes
+// the request as the supplier inbox shows it before a reveal (quotation_for_backup.ts, review of #1997); the portal never passes it.
+export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar', target?: { bucket: string; folder: string; request?: { summary: unknown; spec: unknown; boq: unknown } }) {
+  const override = target?.request;
   const partyName = await revealedPartyName(q);
   const letter = await letterOf(q);
   // The supplier's OWN priced breakdown lives in quote_items; the customer's requested BOQ is only
@@ -60,7 +64,8 @@ export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   // audit 21 Sep 2026, finding 4) — the same reader that approved the quote, so the page cannot
   // contradict the review. The intake answers are read for the checks only.
   let inqSpec: unknown = null;
-  try { const { data: s } = await admin.from('inquiries').select('spec').eq('id', String(q.inquiry_id)).maybeSingle(); inqSpec = s?.spec ?? null; } catch (_e) { /* the checks then apply the trade's standard alone */ }
+  if (override) inqSpec = override.spec ?? null;
+  else try { const { data: s } = await admin.from('inquiries').select('spec').eq('id', String(q.inquiry_id)).maybeSingle(); inqSpec = s?.spec ?? null; } catch (_e) { /* the checks then apply the trade's standard alone */ }
   const done = completenessOf(q, items, inq?.category ?? null, inqSpec);
   items = done.items;
   // BEFORE THE REVEAL THE PAGE NAMES NO BRAND, MODEL OR PRODUCT LINE (founder ledger 1589, 10 Nov 2026). specText printed
@@ -69,7 +74,7 @@ export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   let reviewNotesForDoc: { en: string; ar: string; severity: string }[] | null = null;
   try {
     const { data: rawLines } = await admin.from('quote_items').select('line_no,description,brand,model,specification,qty,unit,unit_price,amount,country_of_origin,notes,spec').eq('quote_id', String(q.id)).order('line_no', { ascending: true }).limit(60);
-    const { data: inqFull } = await admin.from('inquiries').select('summary,spec,boq').eq('id', String(q.inquiry_id)).maybeSingle();
+    const { data: inqFull } = override ? { data: override } : await admin.from('inquiries').select('summary,spec,boq').eq('id', String(q.inquiry_id)).maybeSingle();
     reviewNotesForDoc = reviewNotes({ request: requestOf(inqFull || inq), quote: q, lines: rawLines || [] }).map((n) => ({ en: n.en, ar: n.ar, severity: n.severity }));
   } catch (_e) { reviewNotesForDoc = null; }
   const unrevealed = !partyName;
@@ -90,7 +95,7 @@ export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar') {
   if (!doc.doc) return { j: ARABIC_HELD, ref: quoteRef(inq, letter) };
   const { body, ref } = doc.doc;
   const secret = await getSecret('cred_fn_customer_api');
-  const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, __secret: secret }) });
+  const r = await fetch(`${SUPABASE_URL}/functions/v1/pdf_native`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...body, ...(target ? { bucket: target.bucket, folder: target.folder } : {}), __secret: secret }) });
   const j = await r.json();
   return { j, ref };
 }
@@ -187,9 +192,13 @@ export const ARABIC_COMPARE_BUDGET_MS = 90_000;
 // deadline (epoch ms): past it a missing line is FILED for the replay, never reasoned. compare_pdf passes its start
 // + ARABIC_COMPARE_BUDGET_MS; the replay's finisher (compare_arabic.ts) passes Date.now(), so it never calls a model.
 // A held Arabic report records its waiter, and the replay sends it to the customer once its lines exist.
+/** Every quoting supplier's identities for one request: what the comparison (PDF and CSV) masks before the reveal. */
+export async function compareMaskNames(inquiryId: string): Promise<string[]> {
+  const { data: sq } = await admin.from('quotes').select('supplier_id').eq('inquiry_id', inquiryId);
+  return supplierIdentities((sq || []).map((r: any) => r.supplier_id));
+}
 export async function buildComparePdf(a: any, inq: any, lang: 'en' | 'ar', deadline: number) {
-  const { data: sq } = await admin.from('quotes').select('supplier_id').eq('inquiry_id', inq.id);
-  const maskNames = await supplierIdentities((sq || []).map((r: any) => r.supplier_id));
+  const maskNames = await compareMaskNames(inq.id);
   const portalUrl = portalLink(lang, inq.id);
   const doc = await nativeArabic(defaultDeps(admin, 'customer_api'), (arTexts) => compareDocument({ analysis: a, inquiry: inq, lang, maskNames, portalUrl, linkFor: (qid) => portalLink(lang, inq.id, qid), arTexts }), { subject: { inquiry_id: inq.id }, deadline });
   if (!doc.doc) {
