@@ -50,6 +50,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Never ask about campaign go or subscriptions](do-not-ask-about-campaign-go-or-subscriptions.md) — 22 Sep: he decides go; WhatsApp templates + deliverability tests are Claude's
 - [Launch only when perfect; test in a sandbox](launch-only-when-perfect-sandbox.md)
 - [Launch governance loop closed](launch-governance-loop-closed.md) + [All approvals are the CEO's, refunds included](refunds-belong-to-the-ceo.md) — 8 Sep: nothing goes to the founder
+- [The CEO decides inside limits held as data (15 Nov)](the-ceo-decides-inside-limits-held-as-data.md) — ledger 1696/1701: full authority, nothing waits on the founder (daily summary is information); AED limits append-only with a 24-hour wait; profit first via supplier coverage per trade per emirate, the CEO orders seats with measured outcomes
 - [The only hard rules + operating doctrine](the-only-hard-rules-and-operating-doctrine.md) — 3% reveal, top-3, non-response 3%, AED 20k/5× (was 15k/3×); ~95/5 deterministic
 - [Autonomous company is the standard](autonomous-company-is-the-standard.md) — AED 1M by Aug 2027
 - [Surfaces are held for future agents](payments-are-held-for-the-accountant-agent.md) — delete only what no agent will own
