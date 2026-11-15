@@ -18,6 +18,7 @@ const DOCS_BEING_READ = 'we are still reading your company profile or catalogue;
 // workspace header no longer prints this as a nine-line red paragraph (Dashboard.tsx RegistrationReceived), it is the reason a
 // refused action gives (not_verified below).
 const SERVICES_UNCONFIRMED = 'one step is left: confirm your services. Open the Services tab, check what we read from your company profile and press Confirm my services. Everything else is in order; you are verified as soon as you confirm';
+const DISPOSABLE = 'This e-mail address is a temporary inbox, and a supplier account needs a permanent one. Please sign out and create your account with your company e-mail, or write to management@quotesdone.com.';
 const LICENCE_BEING_READ = 'our document reader has not finished reading your trade licence yet. That is on our side, not yours: we read it again automatically and tell you if anything is needed';
 const READING_NOW = 'We are reading your company profile or catalogue now. This page updates by itself when the read finishes; you can keep working meanwhile.';
 const NO_ANSWER = 'We did not get an answer from QuotesDone. Please check your internet connection and try again.';
@@ -634,6 +635,9 @@ const COPY: Record<string, Entry> = {
   email_already_registered: s('This e-mail already has an account — sign in instead.', 'لهذا البريد الإلكتروني حساب مسجّل مسبقًا — يُرجى تسجيل الدخول بدلًا من ذلك.'),
   verify_email_first: s('Please verify your work e-mail with the 6-digit code we send you, then register your company.', 'يُرجى تأكيد بريدكم الإلكتروني بالرمز المكوّن من 6 أرقام الذي نرسله إليكم، ثم تسجيل شركتكم.'),
   register_failed: s('We could not register your company. Please try again, or write to management@quotesdone.com.', 'تعذّر تسجيل شركتكم. يُرجى المحاولة مرة أخرى، أو مراسلتنا على management@quotesdone.com.'),
+  // 15 Nov 2026 (customer_support): the leads trigger refused a temporary inbox; create_company.ts DISPOSABLE_EMAIL, word for word.
+  // English only (ruling 1008).
+  disposable_email: s(DISPOSABLE, DISPOSABLE),
   enter_company: s('Enter your company name.', 'أدخلوا اسم شركتكم.'),
   terms_not_accepted: s('Accept the supplier terms first (Profile tab).', 'يُرجى الموافقة على شروط المورّد أولًا (من تبويب الملف).'),
   // 10 Nov 2026 (customer_support): the hold reason's own words say what to do. "Upload a clear licence" was appended to every
