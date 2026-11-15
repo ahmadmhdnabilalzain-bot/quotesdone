@@ -13,7 +13,8 @@
 // so no letter was ever stable. THE RULE NOW: a supplier's letter is the order in which its first quote reached the customer
 // (`live_since`: when a quality hold released it, else created_at; ties by quote id), counted over EVERY live quote of the
 // request, including one held for missing details or from a sanctioned supplier, so hiding or releasing a quote never moves
-// another's letter. A later quote, cheaper or not, takes the next letter; an earlier supplier's letter never changes.
+// another's letter. A later quote, cheaper or not, takes the next letter; an earlier supplier's letter never changes. A supplier
+// the customer first met through its question in the request's thread (messages_api) has its letter from that moment.
 // customerQuoteLabels is the one read every customer surface uses (portal cards, quote PDF and its file name, comparison,
 // reveal invoice, the sales engineer's chat); none of them computes a letter of its own.
 // prevented by: supabase/functions/_shared/quote_labels.test.ts (three quotes arriving in every order)
@@ -38,20 +39,35 @@ export function jobAlias(order: Array<number | string>, supplierId: number | str
 
 export function letter(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
 
-/** The labels, by arrival (above). A caller that passes no times keeps the order it passed (the rule before 15 Nov). */
-export function labelQuotes(quotes: LabelInput[]): Map<string, QuoteLabel> {
+/** The request's suppliers in the order each first reached the customer: its earliest quote (time, then id) or, from `seen`,
+ *  the first time the customer saw it otherwise (its first question in the request's thread, messages_api). A caller that
+ *  passes no times keeps the order it passed (the rule before 15 Nov). */
+function supplierOrder(quotes: LabelInput[], seen: ReadonlyMap<string, number> = new Map()): string[] {
   const at = (q: LabelInput) => { const t = Date.parse(String(q.live_since ?? q.created_at ?? '')); return Number.isFinite(t) ? t : Infinity; };
-  const keyOf = (q: LabelInput) => String(q.supplier_id ?? 'q:' + q.id);
-  // each supplier's first arrival: its earliest quote (time, then id), and where that quote stood in the input
-  const first = new Map<string, { t: number; id: string; i: number }>(); const count = new Map<string, number>();
+  const first = new Map<string, { t: number; id: string; i: number }>();
   quotes.forEach((q, i) => {
     const k = keyOf(q), t = at(q), id = String(q.id), f = first.get(k);
     if (!f) first.set(k, { t, id, i });
     else if (t < f.t || (t === f.t && t !== Infinity && id < f.id)) first.set(k, { t, id, i: f.i });
-    count.set(k, (count.get(k) ?? 0) + 1);
   });
-  const order = [...first.entries()].sort(([, a], [, b]) => (a.t - b.t) || (a.t !== Infinity && a.id !== b.id ? (a.id < b.id ? -1 : 1) : 0) || (a.i - b.i)).map(([k]) => k);
-  const letterOf = new Map<string, string>(order.map((k, i) => [k, letter(i)]));
+  for (const [k, t] of seen) {
+    if (!Number.isFinite(t)) continue;
+    const f = first.get(k);
+    if (!f) first.set(k, { t, id: '\uffff', i: Infinity });
+    else if (t < f.t) first.set(k, { ...f, t });
+  }
+  return [...first.entries()].sort(([, a], [, b]) => (a.t - b.t) || (a.t !== Infinity && a.id !== b.id ? (a.id < b.id ? -1 : 1) : 0) || (a.i - b.i)).map(([k]) => k);
+}
+const keyOf = (q: LabelInput) => String(q.supplier_id ?? 'q:' + q.id);
+/** Each supplier's letter (by supplier id), the same letter its quotes carry. */
+export function supplierLetters(quotes: LabelInput[], seen: ReadonlyMap<string, number> = new Map()): Map<string, string> {
+  return new Map(supplierOrder(quotes, seen).map((k, i) => [k, letter(i)]));
+}
+/** The labels, by arrival (above). */
+export function labelQuotes(quotes: LabelInput[], seen: ReadonlyMap<string, number> = new Map()): Map<string, QuoteLabel> {
+  const letterOf = supplierLetters(quotes, seen);
+  const count = new Map<string, number>();
+  for (const q of quotes) count.set(keyOf(q), (count.get(keyOf(q)) ?? 0) + 1);
   const out = new Map<string, QuoteLabel>();
   for (const q of quotes) {
     const k = keyOf(q); const L = letterOf.get(k)!; const n = Number(q.option_no) || 1; const multi = (count.get(k) ?? 1) > 1;
@@ -74,28 +90,48 @@ export function arrivals(quotes: Array<{ id: unknown; supplier_id: number | stri
     created_at: q.created_at ?? null, live_since: released.get(String(q.id)) ?? null }));
 }
 
-/** THE ONE READ (above), for one or many requests: every live quote of each and the quality and spec holds that released any of
- *  them (three reads in parallel), labelled per request. A request whose quotes cannot be read gets no entry, and its caller
- *  says "Supplier" with no letter rather than a guessed one; a hold table that cannot be read leaves created_at to decide. */
+/** THE ONE READ (above), for one or many requests: every live quote of each, the quality and spec holds that released any of
+ *  them, and the first question each supplier asked in the request's thread (a supplier the customer met there keeps that
+ *  letter when it quotes); four reads in parallel. A request whose quotes cannot be read gets no entry, and its caller says
+ *  "Supplier" with no letter rather than a guessed one; a hold or thread table that cannot be read leaves the rest to decide. */
 // deno-lint-ignore no-explicit-any
-export async function customerQuoteLabelsByInquiry(admin: any, inquiryIds: string[]): Promise<Map<string, Map<string, QuoteLabel>>> {
-  const out = new Map<string, Map<string, QuoteLabel>>();
+export async function customerLettersByInquiry(admin: any, inquiryIds: string[]): Promise<Map<string, { quotes: Map<string, QuoteLabel>; suppliers: Map<string, string> }>> {
+  const out = new Map<string, { quotes: Map<string, QuoteLabel>; suppliers: Map<string, string> }>();
   const ids = [...new Set(inquiryIds.map(String).filter(Boolean))];
   if (!ids.length) return out;
   try {
     // deno-lint-ignore no-explicit-any
-    const holdsOf = async (table: string): Promise<any[]> => { try { const { data, error } = await admin.from(table).select('quote_id,released_at').in('inquiry_id', ids).not('released_at', 'is', null); return !error && Array.isArray(data) ? data : []; } catch (_e) { return []; } };
-    const [qr, quality, spec] = await Promise.all([
+    const rowsOf = async (table: string, cols: string, notNull: string): Promise<any[]> => { try { const { data, error } = await admin.from(table).select(cols).in('inquiry_id', ids).not(notNull, 'is', null); return !error && Array.isArray(data) ? data : []; } catch (_e) { return []; } };
+    const [qr, quality, spec, asked] = await Promise.all([
       admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,created_at,status').in('inquiry_id', ids).not('status', 'in', NOT_LIVE_QUOTE_IN).limit(2000),
-      holdsOf('quote_quality_hold'), holdsOf('quote_spec_hold'),
+      rowsOf('quote_quality_hold', 'quote_id,released_at', 'released_at'), rowsOf('quote_spec_hold', 'quote_id,released_at', 'released_at'),
+      rowsOf('rfq_clarification', 'inquiry_id,supplier_id,asked_at', 'supplier_id'),
     ]);
     if (qr?.error || !Array.isArray(qr?.data)) return out;
     const holds = [...quality, ...spec];
-    for (const iid of ids) out.set(iid, labelQuotes(arrivals(qr.data.filter((q: { inquiry_id: unknown }) => String(q.inquiry_id) === iid), holds)));
+    for (const iid of ids) {
+      const seen = new Map<string, number>();
+      for (const a of asked) {
+        if (String(a.inquiry_id) !== iid) continue;
+        const t = Date.parse(String(a.asked_at ?? '')), k = String(a.supplier_id);
+        if (Number.isFinite(t) && (!seen.has(k) || t < seen.get(k)!)) seen.set(k, t);
+      }
+      const qs = arrivals(qr.data.filter((q: { inquiry_id: unknown }) => String(q.inquiry_id) === iid), holds);
+      out.set(iid, { quotes: labelQuotes(qs, seen), suppliers: supplierLetters(qs, seen) });
+    }
     return out;
   } catch (_e) { return out; }
 }
 // deno-lint-ignore no-explicit-any
+export async function customerQuoteLabelsByInquiry(admin: any, inquiryIds: string[]): Promise<Map<string, Map<string, QuoteLabel>>> {
+  return new Map([...(await customerLettersByInquiry(admin, inquiryIds))].map(([k, v]) => [k, v.quotes]));
+}
+// deno-lint-ignore no-explicit-any
 export async function customerQuoteLabels(admin: any, inquiryId: string): Promise<Map<string, QuoteLabel>> {
-  return (await customerQuoteLabelsByInquiry(admin, [String(inquiryId)])).get(String(inquiryId)) ?? new Map();
+  return (await customerLettersByInquiry(admin, [String(inquiryId)])).get(String(inquiryId))?.quotes ?? new Map();
+}
+/** Each supplier's letter on this request as the CUSTOMER sees it (the question thread, its e-mail), by supplier id. */
+// deno-lint-ignore no-explicit-any
+export async function customerSupplierLetters(admin: any, inquiryId: string): Promise<Map<string, string>> {
+  return (await customerLettersByInquiry(admin, [String(inquiryId)])).get(String(inquiryId))?.suppliers ?? new Map();
 }

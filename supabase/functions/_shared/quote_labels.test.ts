@@ -3,7 +3,7 @@
 // a supplier's letter is the order its first quote reached the customer, so three quotes arriving in any order, at any price,
 // read and re-read at any moment, keep the letters they were first given.
 import { assertEquals } from 'jsr:@std/assert@1';
-import { arrivals, customerQuoteLabels, customerQuoteLabelsByInquiry, labelQuotes, type LabelInput } from './quote_labels.ts';
+import { arrivals, customerQuoteLabels, customerQuoteLabelsByInquiry, customerSupplierLetters, labelQuotes, supplierLetters, type LabelInput } from './quote_labels.ts';
 
 // Three suppliers, three prices that do NOT follow arrival: the cheapest arrives last.
 const T = (h: number) => `2026-11-15T${String(h).padStart(2, '0')}:00:00Z`;
@@ -109,4 +109,28 @@ Deno.test('the one read: card, PDF and comparison get the same letters from cust
   // a read that fails gives no letter at all, never a guessed one
   const broken = { from: () => { throw new Error('down'); } };
   assertEquals((await customerQuoteLabels(broken, 'inq-1')).size, 0);
+});
+
+Deno.test('a supplier the customer first met by its question keeps that letter when it quotes, in the thread and on its quote', async () => {
+  // Polar asked a question at 08:00 (the customer read "Supplier A asked..."); Breeze quoted at 09:00, Polar at 11:00
+  const seen = new Map([['33', Date.parse(T(8))]]);
+  const qs = [{ id: 'q-breeze', supplier_id: 11, created_at: T(9) }, { id: 'q-polar', supplier_id: 33, created_at: T(11) }];
+  assertEquals([labelQuotes(qs, seen).get('q-polar')!.letter, labelQuotes(qs, seen).get('q-breeze')!.letter], ['A', 'B']);
+  assertEquals(supplierLetters(qs, seen).get('33'), 'A');
+  // a supplier who only asked still holds its letter, so a later quote from another never takes it
+  assertEquals([...supplierLetters([qs[0]], new Map([['44', Date.parse(T(7))]]))], [['44', 'A'], ['11', 'B']]);
+  // the one read gives the thread the same letters as the quotes
+  const tables: Record<string, unknown[]> = {
+    quotes: qs.map((q) => ({ ...q, inquiry_id: 'inq-1', option_no: 1, status: 'submitted' })),
+    rfq_clarification: [{ inquiry_id: 'inq-1', supplier_id: 33, asked_at: T(8) }, { inquiry_id: 'inq-1', supplier_id: 33, asked_at: T(10) }],
+  };
+  const chain = (table: string) => {
+    const b: Record<string, unknown> = {};
+    for (const m of ['select', 'eq', 'not', 'limit', 'order', 'in']) b[m] = () => b;
+    b.then = (ok: (v: unknown) => unknown) => Promise.resolve({ data: tables[table] ?? [], error: null }).then(ok);
+    return b;
+  };
+  const admin = { from: (t: string) => chain(t) };
+  assertEquals((await customerQuoteLabels(admin, 'inq-1')).get('q-polar')!.en, 'Supplier A');
+  assertEquals([...(await customerSupplierLetters(admin, 'inq-1'))].sort(), [['11', 'B'], ['33', 'A']]);
 });
