@@ -106,7 +106,14 @@ export const PROFILES = [
     projects: ['MEP package, G+4 residential building, Al Barsha, Dubai (2025)', 'HVAC and plumbing for a 22-villa community, Dubai South (2024)', 'Electrical fit-out of a 1,800 m2 office floor, Business Bay (2024)'] },
   { id: 'P2', file: 'P2_joinery.pdf', licence: 'L2', format: 'pdf', lang: 'en', trade: 'joinery', role: /^Contractor$|Manufacturer/i, code_readable: true,
     services_must: ['joinery.kitchens', 'joinery.wardrobes', 'joinery.wood_panelling', 'doors.wooden_doors'], services_never: ['doors.automatic_doors', 'doors.shutters'],
-    expect: ['joinery', 'doors'], accept: ['interior_fitout', 'home_furniture', 'office_furniture', 'hotel_furniture', 'flooring'],
+    // furniture_repair is ACCEPTABLE, not absurd (15 Nov 2026, customer_support; paid certification run 2 J2 judged it absurd). The
+    // profile's own line, which the reading quoted for furniture_repair.furniture_polishing ("Furniture polishing and lacquering"):
+    //   "Site installation, repairs and polishing of wooden works"
+    // with "built-in furniture for offices" above it, and its licence L2's activity "Wooden Furniture Fixing". The catalogue's joinery
+    // trade has no polishing service, so polishing wooden works is that key's work; the neighbouring furniture trades were already
+    // acceptable here on less ("built-in furniture for offices" -> office_furniture). Its other services (office chair repair, hotel
+    // FF&E refurbishment) are not stated, and the supplier ticks only what he does.
+    expect: ['joinery', 'doors'], accept: ['interior_fitout', 'home_furniture', 'office_furniture', 'hotel_furniture', 'flooring', 'furniture_repair'],
     title: 'joinery and carpentry', services: ['Custom joinery: kitchen cabinets, wardrobes and vanity units', 'Solid wood and veneered doors, frames and architraves', 'Wall panelling, reception counters and built-in furniture for offices', 'Site installation, repairs and polishing of wooden works'],
     projects: ['Kitchens and wardrobes for 40 apartments, Al Reem Island (2025)', 'Fire-rated timber doors for a school, Khalifa City (2024)', 'Reception desk and wall panelling, ADGM office (2024)'] },
   { id: 'P3', file: 'P3_building_materials_trader.docx', licence: 'L3', format: 'docx', lang: 'en', trade: 'building_materials', role: /Supplier|Trader|Distributor/i, code_readable: true,
