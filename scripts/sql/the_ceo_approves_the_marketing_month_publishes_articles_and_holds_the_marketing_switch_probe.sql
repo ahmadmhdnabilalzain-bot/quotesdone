@@ -1,5 +1,5 @@
 -- PROBE of the_ceo_approves_the_marketing_month_publishes_articles_and_holds_the_marketing_switch.sql. LOCAL only (a Postgres
--- 16 built from the schema mirror). Always raises CHK<<...>>, so every plan, campaign, post, decision and switch rolls back.
+-- 16 built from the schema mirror, service_role given BYPASSRLS and the default table grants as on Supabase). Always raises CHK<<...>>, so every plan, campaign, post, decision and switch rolls back.
 do $probe$
 declare
   v_p text[] := '{}'; r jsonb; v_cid bigint; v_key text := 'probe-' || md5(random()::text); v_month date := date '2031-02-01';
@@ -76,6 +76,39 @@ begin
     update public.marketing_ceo_decision set reason = 'rewritten history, never allowed' where subject_kind = 'month_plan';
     v_p := v_p || 'a CEO decision was rewritten'::text;
   exception when raise_exception then null; end;
+
+  -- 6. THE EMERGENCY STOP AT RELEASE TIME (review item 6): the first article has a CEO publish decision written while the stop was
+  --    off; with the stop now on, the weekly release does not release it; with the stop off again, it does. Inside this rolled-back
+  --    transaction every day is a working day and no article is released this week, whatever day the probe runs.
+  execute 'create or replace ' || 'function public.fn_is_working_day(p_date date) returns boolean language sql stable as $f$ select true $f$';
+  update public.marketing_article set released_at = null, status = case when status = 'released' then 'approved' else status end where released_at is not null;
+  update public.marketing_article set status = 'approved' where slug = v_key || '-article';
+  update public.marketing_article set approved_at = now() - interval '30 days' where slug = v_key || '-article';
+  r := public.fn_marketing_article_release_due();
+  if r->>'released' is not null or (select status from public.marketing_article where slug = v_key || '-article') = 'released' then
+    v_p := v_p || ('an article was released while the founder''s emergency stop is on: ' || r::text); end if;
+  update public.app_secrets set value = 'true' where key = 'marketing_publishing_enabled';
+  r := public.fn_marketing_article_release_due();
+  if r->>'released' is distinct from v_key || '-article' then v_p := v_p || ('the CEO''s publish decision did not release the article once the stop was off: ' || r::text); end if;
+
+  -- 7. the decisions are written only by the CEO's routines (review item 3): service_role neither writes nor truncates them
+  begin
+    set local role service_role;
+    insert into public.marketing_ceo_decision (subject_kind, subject_ref, decision, reason) values ('article', 'forged', 'publish', 'a forged publish decision row');
+    v_p := v_p || 'service_role wrote a CEO marketing decision'::text;
+    raise exception using errcode = 'P0099';
+  exception when insufficient_privilege then null; when sqlstate 'P0099' then null; end;
+  begin
+    set local role service_role;
+    truncate public.marketing_ceo_decision;
+    v_p := v_p || 'service_role truncated marketing_ceo_decision'::text;
+    raise exception using errcode = 'P0099';
+  exception when insufficient_privilege then null; when sqlstate 'P0099' then null; end;
+  begin
+    truncate public.marketing_ceo_decision;
+    v_p := v_p || 'the owner truncated marketing_ceo_decision'::text;
+    raise exception using errcode = 'P0099';
+  exception when raise_exception then null; when sqlstate 'P0099' then null; end;
 
   raise exception 'CHK<<%>>', jsonb_build_object('verdict', case when cardinality(v_p) = 0 then 'PROBE OK' else 'PROBE FAILED' end, 'problems', to_jsonb(v_p));
 end $probe$;

@@ -3,7 +3,7 @@ name: a-bounce-is-judged-by-its-kind-and-a-sample-that-means-something
 description: "15 Nov 2026, rulings 1696/1705: the supplier-invitation brake judges hard/policy/soft/complaint per provider class and list segment on the Wilson 95% lower bound over 14 days; the CEO restarts within a limit held as data; the ramp steps up on the same judgement; replies owed an answer go back to the model; the CEO, not the founder, accepts the marketing month and holds marketing_golive"
 metadata:
   type: project
-  modified: 2026-11-15
+  modified: 2026-11-15 (review fixes)
 ---
 
 **What happened.** On 13 Nov 05:00 the batch's brake read 2 bounces of 32 over 3 days (6.3% > 5%) and switched invitations
@@ -32,3 +32,21 @@ unchecked ones 8 of 38. One 3-day number mixed both (the lesson of 12 Aug, again
 - `scripts/checks/the_invitations_leave_on_their_own_subdomain.test.mjs` reads the newest `fn_invite_ramp` only in the
   lowercase `$fn$` spelling, so it still judges an August file; definitions copied from `pg_get_functiondef` (uppercase,
   `$function$`) are invisible to it, as the 3 Nov ramp already was.
+
+**Review of the same day (REVIEW_growth, items 1-7), fixed on the branch:**
+- ANY complaint in the 14-day window, on ANY supplier campaign mail (`fn_invite_campaign_types`: the invitation and its nudges;
+  the last note is a nudge), stops the company. Never a lower bound for a complaint: 1 in 74 sends passed it. The same-hour
+  trigger stops on a complaint from a lead mailed in the window. A lead's bounced/complained mark counts once, on its last send.
+- A limit table is written only by its SECURITY DEFINER routines: revoke INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER from
+  service_role (Supabase's default ACL gives it all), a BEFORE TRUNCATE trigger, an advisory lock around "a change already
+  waits", `clock_timestamp()` in the stamping trigger. A local probe needs `alter role service_role bypassrls` and the default
+  grants to show the hole at all.
+- What is queued obeys the live switches: `fn_invite_campaign_pause` cancels nudges too; send_outbox asks
+  `fn_invite_campaign_send_check` per run (cancel when stopped, hold to tomorrow when the class is held or closed, hold 30 min when
+  unreadable). Deploy send_outbox first, then the SQL.
+- Policy refusals (5.7.x) hold a provider class on 2 in the window (a count, not a rate).
+- The last note to a parked lead is `supplier_invite_nudge` with kind `invite_final_touch`: lane, cap, copy lint, opt-out and
+  judgement all apply; no link of any kind (ruling 1301; the claim link only in the model's answer to a reply).
+- Copy-test "engaged" = an interested or question reply (`fn_supplier_reply_kind`, not an auto-reply or machine sender), a click
+  or a registration. `m365CopyLint` refuses "we will set up your page" (ledger 1401) and "buyers post requests" without "not started".
+- The article release reads the founder's emergency stop at release time; the founder is never told to reply "approve".

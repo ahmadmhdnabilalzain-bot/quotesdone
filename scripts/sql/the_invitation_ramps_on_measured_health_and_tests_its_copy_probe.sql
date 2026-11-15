@@ -53,6 +53,27 @@ begin
   select (e->>'engaged')::int into v_b from jsonb_array_elements(r->'readout'->'variants') e where e->>'variant' = 'b';
   if v_b <> 6 then v_p := v_p || ('the readout counts ' || coalesce(v_b::text, 'null') || ' engaged for b, not 6'); end if;
 
+  -- 2b. ENGAGED IS AN INTERESTED REPLY OR A QUESTION (review item 7): six replies from six unclicked 'c' leads after their send, of
+  --     which only the question counts; a stop, a decline, "later", an out-of-office and a machine sender's mail never do.
+  i := 0;
+  for v_id in select a.lead_id from public.invite_variant_assignment a join public.leads l on l.id = a.lead_id
+               where a.variant_key = 'c' and l.email like '%@' || v_dom and l.invite_clicked_at is null order by a.lead_id limit 6 loop
+    i := i + 1;
+    insert into public.inbound_messages (lead_id, from_email, to_email, subject, body, created_at)
+    values (v_id, case when i = 6 then 'noreply@' || v_dom else (select email from public.leads where id = v_id) end, 'supplier@quotesdone.com',
+            case i when 4 then 'Automatic reply: A question' else 'Re: A question' end,
+            case i when 1 then 'STOP' when 2 then 'Not interested, thank you.' when 3 then 'Maybe next month, we are busy.'
+                   when 4 then 'I am currently out of the office and will reply on my return.' when 5 then 'Yes please, how do we join?'
+                   else 'We are interested.' end,
+            now() - interval '15 days');
+  end loop;
+  r := public.fn_invite_copy_readout(now());
+  select (e->>'engaged')::int, (e->>'replied')::int into v_c, v_a from jsonb_array_elements(r->'variants') e where e->>'variant' = 'c';
+  if v_c <> 6 or v_a <> 1 then v_p := v_p || ('the readout counts ' || coalesce(v_a::text, 'null') || ' replies and ' || coalesce(v_c::text, 'null')
+                                           || ' engaged for c: only the question may count (5 clicks + 1 question = 6)'); end if;
+  delete from public.inbound_messages where lead_id in (select id from public.leads where email like '%@' || v_dom);
+  v_a := 0; v_c := 0;
+
   -- 3. a clear leader is promoted automatically: b gains 9 more clicks (15 of 150 against 5 and 5)
   update public.leads set invite_clicked_at = now() - interval '5 days'
    where id in (select a.lead_id from public.invite_variant_assignment a join public.leads l on l.id = a.lead_id
@@ -133,6 +154,19 @@ begin
   if exists (select 1 from public.notifications n where n.type = 'supplier_invite' and n.status = 'queued' and n.to_email like '%@qd-probe-b%'
               and n.kind is distinct from 'invite_variant:' || public.fn_invite_variant_for_lead(n.lead_id)) then
     v_p := v_p || 'a row''s variant differs from the lead''s deterministic variant'::text; end if;
+
+  -- 9. ONE COMPLAINT STOPS THE RAMP'S COMPANY with a brake row (review item 2; it paused only on 2 in 48 hours, with no brake row)
+  update public.app_secrets set value = 'false' where key = 'invite_enabled';
+  update public.invite_brake set resumed_at = coalesce(resumed_at, now()) where resumed_at is null;
+  v_id := pg_temp.probe_lead(v_dom, 999);
+  perform pg_temp.probe_send(v_id, now() - interval '2 hours', false);
+  update public.leads set invite_status = 'complained' where id = v_id;
+  update public.app_secrets set value = 'true' where key = 'invite_enabled';
+  v_cap := public.fn_invite_ramp();
+  if (select value from public.app_secrets where key = 'invite_enabled') <> 'false'
+     or not exists (select 1 from public.invite_brake b join public.invite_brake_decision d on d.brake_id = b.id
+                     where b.resumed_at is null and d.decision = 'brake' and d.reason like '%PAUSED ON COMPLAINTS%') then
+    v_p := v_p || ('one complaint did not stop the company through a brake row: ' || coalesce((select note from public.agent_runs where agent = 'invite_ramp' order by id desc limit 1), '')); end if;
 
   raise exception 'CHK<<%>>', jsonb_build_object('verdict', case when cardinality(v_p) = 0 then 'PROBE OK' else 'PROBE FAILED' end, 'problems', to_jsonb(v_p));
 end $probe$;
