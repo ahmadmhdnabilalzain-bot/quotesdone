@@ -201,7 +201,7 @@ export type PixelCrop = (jpgB64: string, tile: Tile, mark: string) => Promise<st
 export type PixelBudget = { left: () => number; spend: (usd: number) => void };
 
 export type PixelOutcome =
-  | { ok: true; jpgB64: string; calls: number; usd: number; painted: number; firstLookClean: boolean; detail: { calls: number; usd: number; boxes_added: number; tiles: number } }
+  | { ok: true; jpgB64: string; calls: number; usd: number; painted: number; firstLookClean: boolean; boxes: Box[]; detail: { calls: number; usd: number; boxes_added: number; tiles: number } }
   | { ok: false; held: 'pixels_unverified' | 'pixels_not_clean' | 'pixels_budget'; calls: number; usd: number; detail: Record<string, unknown> };
 
 /** Map a box found in `t` back to page fractions. */
@@ -226,6 +226,9 @@ export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint
   const cost = (t: Tile) => look ? callUsd(t.outW, t.outH + TILING.markPx) : PIXEL_CALL_USD;
   let img = jpgB64, calls = 0, usd = 0, added = 0, pending = views;
   const seen: string[] = [];
+  // Every box the checker named and that was painted, in page fractions (round 4: drawing_code_floor.unreadTextHold asks
+  // whether each area of text code cannot read lies under SOME painted box, the checker's included).
+  const boxes: Box[] = [];
   for (let round = 0; round <= PIXEL_MAX_RECHECKS; round++) {
     const due = pending.reduce((s, t) => s + cost(t), 0);
     if (budget.left() < due) return { ok: false, held: 'pixels_budget', calls, usd, detail: { calls, usd, boxes_added: added, round, due } };
@@ -245,14 +248,14 @@ export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint
     const unread = answers.filter((a) => !a.read).length;
     if (unread) return { ok: false, held: 'pixels_unverified', calls, usd, detail: { calls, usd, boxes_added: added, round, unread } };
     const dirty = answers.filter((a) => !a.v!.clean);
-    if (!dirty.length) return { ok: true, jpgB64: img, calls, usd, painted: added, firstLookClean: round === 0, detail: { calls, usd, boxes_added: added, tiles: views.length } };
+    if (!dirty.length) return { ok: true, jpgB64: img, calls, usd, painted: added, firstLookClean: round === 0, boxes, detail: { calls, usd, boxes_added: added, tiles: views.length } };
     const blind = dirty.find((a) => !a.v!.regions.length);
     if (blind) return { ok: false, held: 'pixels_not_clean', calls, usd, detail: { calls, usd, boxes_added: added, unsure: blind.v!.unsure, addressed: blind.v!.addressed } };
     const found = dirty.flatMap((a) => a.v!.regions.map((r) => toPage(a.t, r)));
     seen.push(...dirty.flatMap((a) => a.v!.regions.map((r) => r.what || 'unnamed')));
     if (round === PIXEL_MAX_RECHECKS) break;
     img = await paint(img, found);
-    added += found.length;
+    added += found.length; boxes.push(...found);
     pending = dirty.map((a) => a.t);
   }
   return { ok: false, held: 'pixels_not_clean', calls, usd, detail: { calls, usd, boxes_added: added, still: seen.slice(-8) } };

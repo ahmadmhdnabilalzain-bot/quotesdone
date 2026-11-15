@@ -136,7 +136,7 @@ Deno.test('a LAZY whole-page answer does not clear the page while a tile still s
 });
 
 Deno.test('a FILE is released only when it was clean on the first look (index.ts asks fileMayBeShared on both file routes)', () => {
-  const ok = (first: boolean): PixelOutcome => ({ ok: true, jpgB64: 'x', calls: 13, usd: 0.07, painted: first ? 0 : 1, firstLookClean: first, detail: { calls: 13, usd: 0.07, boxes_added: first ? 0 : 1, tiles: 12 } });
+  const ok = (first: boolean): PixelOutcome => ({ ok: true, jpgB64: 'x', calls: 13, usd: 0.07, painted: first ? 0 : 1, firstLookClean: first, boxes: [], detail: { calls: 13, usd: 0.07, boxes_added: first ? 0 : 1, tiles: 12 } });
   assertEquals([fileMayBeShared(ok(true)), fileMayBeShared(ok(false)), fileMayBeShared({ ok: false, held: 'pixels_not_clean', calls: 3, usd: 0, detail: {} })], [true, false, false]);
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   const branch = (mode: string) => { const a = src.indexOf(`if (body.mode === '${mode}')`); return src.slice(a, src.indexOf('\n    }\n', a)); };

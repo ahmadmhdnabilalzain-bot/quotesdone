@@ -70,28 +70,44 @@ Deno.test('the prompt asks for the mark, the parser keeps only its digits, and t
 });
 
 // LAZY (reads every view, copies its mark, reports nothing): the code floor holds what it covers; what code cannot read
-// it now KNOWS is there, and a page with such text that no model named anything on is HELD (drawing_code_floor.ts).
+// it now KNOWS is there, and a page with such text that no painted box covers is HELD (drawing_code_floor.ts).
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
-import { unreadAreas, unreadTextHold } from '../_shared/drawing_code_floor.ts';
+import { padded, unreadAreas, unreadTextHold } from '../_shared/drawing_code_floor.ts';
 const fixture = async (f: string) => await pdfPages(await Deno.readFile(new URL(`../_shared/testdata/${f}`, import.meta.url)), undefined, { layers: false });
 
-Deno.test('LAZY: text code cannot read (outlines v01, a Type3 font v12) that no model named HOLDS; the ordinary sheets have none', async () => {
+Deno.test('LAZY and TITLE-ONLY: text code cannot read (outlines v01, a Type3 font v12, an inset n06) under no painted box HOLDS; the ordinary sheets have none', async () => {
   const v01 = (await fixture('review_f3/v01_outlined_site_labels.pdf'))[0], v12 = (await fixture('review_f3/v12_type3_obfuscated.pdf'))[0];
+  const n06 = (await fixture('review_f3/n06_location_inset.pdf'))[0];
   assertEquals(unreadAreas(v01, []).length, 7, 'v01: the outlined AL BARSHA 2 / VILLA 15 / owner rows outside the title-block boxes');
   assertEquals(unreadAreas(v12, []).length, 1, 'v12: the run in a Type3 font with no ToUnicode');
+  assertEquals(unreadAreas(n06, []).length, 2, 'n06: the location inset\'s outlined "AL KHAIL" rows');
   assert(v12.runs.some((r) => r.unread), 'the reader flags the run it cannot decode');
-  for (const p of [v01, v12]) {
-    assertEquals(unreadTextHold(p, [], 0, true), 'unread_text_unclaimed', 'both models silent: held');
-    assertEquals(unreadTextHold(p, [], 2, true), null, 'the find model boxed something');
-    assertEquals(unreadTextHold(p, [], 0, false), null, 'the checker named something on its first look');
+  // The third review's TITLE-ONLY find model: one box over the right-hand strip, painted at the model margin.
+  const titleOnly = [padded({ x: 0.78, y: 0, w: 0.22, h: 1 }, 0.03)];
+  for (const p of [v01, v12, n06]) {
+    assertEquals(unreadTextHold(p, [], []), 'unread_text_unclaimed', 'both models silent: held');
+    assertEquals(unreadTextHold(p, [], titleOnly), 'unread_text_unclaimed', 'a box over the title strip does not vouch for the site labels: held');
+    const all = unreadAreas(p, []);
+    assertEquals(unreadTextHold(p, [], all.map((b) => padded(b, 0.01))), null, 'every unread area under a painted box (a faithful model, or the checker\'s boxes): published');
+    assertEquals(unreadTextHold(p, [], all.slice(1)), 'unread_text_unclaimed', 'one area left bare (the others boxed exactly): held');
   }
   // No false hold: the control sheet, the outlined title block the floor bands (v02), the pool fixtures (12 rows, all in
-  // the title-block band). The reviewer's 20 ordinary sheets give 0 too (the round-3 driver).
+  // the title-block band). The reviewers' 35 ordinary sheets give 0 too (the round-4 driver, SP/f3fix4).
   for (const f of ['review_f3/v00_control.pdf', 'review_f3/v02_outlined_title_block.pdf', 'zz_pool_b1_embedded_font.pdf', 'zz_pool_b1_ascii85_flate.pdf']) {
-    for (const p of await fixture(f)) { assertEquals(unreadAreas(p, []).length, 0, f); assertEquals(unreadTextHold(p, [], 0, true), null, f); }
+    for (const p of await fixture(f)) { assertEquals(unreadAreas(p, []).length, 0, f); assertEquals(unreadTextHold(p, [], []), null, f); }
   }
-  // Both drawing_redact routes ask it after the gate and before any upload.
+  // Both drawing_redact routes ask it after the gate and before any upload, with every box that was painted.
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
-  assertMatch(src, /const unreadHeld = gate\.ok \? unreadTextHold\(pp, seeds, regions\.length, gate\.firstLookClean\) : null;\n\s*if \(unreadHeld\) \{ skipped\+\+;[^\n]*continue; \}[\s\S]{0,400}storage\.from\('drawing-files'\)\.upload\(path, jpg/);
-  assertMatch(src, /const unreadHeld = unreadTextHold\(pp, \[\], cleanBoxes\(body\.manual_boxes\[i\]\)\?\.length \?\? 0, g\.firstLookClean\);\n\s*if \(unreadHeld\) \{ skipped\+\+;[^\n]*continue; \}\n\s*const path = /);
+  assertMatch(src, /const painted = \[\.\.\.\[\.\.\.regions, \.\.\.textBoxes\(i\)\.boxes, \.\.\.instructingRuns\([^\n]*\.\.\.floor\.map\([^\n]*gate\.boxes\.map[^\n]*\n\s*const unreadHeld = gate\.ok \? unreadTextHold\(pp, seeds, painted\) : null;\n\s*if \(unreadHeld\) \{ skipped\+\+;[^\n]*continue; \}[\s\S]{0,400}storage\.from\('drawing-files'\)\.upload\(path, jpg/);
+  assertMatch(src, /const unreadHeld = unreadTextHold\(pp, \[\], \[\.\.\.\(r\.painted \?\? \[\]\), \.\.\.g\.boxes\.map\([^\n]*\);\n\s*if \(unreadHeld\) \{ skipped\+\+;[^\n]*continue; \}\n\s*const path = /);
+});
+
+Deno.test('the gate hands back every box the checker named and had painted, in page fractions (the unread rule counts them)', async () => {
+  let round = 0;
+  const ask = async (_b: string) => JSON.stringify(round++ === 0 ? { clean: false, addressed: false, regions: [{ x: 0.5, y: 0.4, w: 0.1, h: 0.05, what: 'outlined label' }] } : { clean: true, addressed: false, regions: [] });
+  const g = await pixelGate('page', ask, async (b) => b + '+painted');
+  assert(g.ok && !g.firstLookClean);
+  if (g.ok) { assertEquals(g.boxes.length, 1); assertEquals(g.boxes[0].x, 0.5); assertEquals(g.boxes[0].w, 0.1); }
+  const clean = await pixelGate('page', async () => JSON.stringify({ clean: true, addressed: false, regions: [] }), async (b) => b);
+  assert(clean.ok && clean.boxes.length === 0);
 });

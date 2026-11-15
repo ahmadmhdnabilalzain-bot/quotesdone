@@ -123,7 +123,8 @@ export function supplierPagePrefix(callerPrefix: unknown): string {
   return `${ns}/${crypto.randomUUID()}/page`;
 }
 
-export type PageOut = { ok: true; jpg: Uint8Array; image: Image; detail: Record<string, unknown> } | { ok: false; skipped: string };
+// painted: every box blackened on the page, page fractions, with the margin it was painted at (drawing_code_floor.unreadTextHold).
+export type PageOut = { ok: true; jpg: Uint8Array; image: Image; detail: Record<string, unknown>; painted?: Box[] } | { ok: false; skipped: string };
 
 /**
  * One portal raster of a PDF page, painted with the server's boxes and the text layer's identity boxes.
@@ -141,7 +142,8 @@ export async function serverBoxedPage(raster: Uint8Array, pdf: PdfPage[], pageIn
   paintBoxes(img, [...boxes, ...tl.boxes]);
   // Re-encoded from pixels: no text layer, no annotation, no /Info metadata and no EXIF survive into it.
   const jpg = await img.encodeJPEG(quality);
-  return { ok: true, jpg, image: img, detail: { manual_boxes: boxes.length, text_layer_boxes: tl.boxes.length } };
+  const painted = [...boxes, ...tl.boxes].map((b) => ({ x: b.x - SERVER_MARGIN, y: b.y - SERVER_MARGIN, w: b.w + 2 * SERVER_MARGIN, h: b.h + 2 * SERVER_MARGIN }));
+  return { ok: true, jpg, image: img, detail: { manual_boxes: boxes.length, text_layer_boxes: tl.boxes.length }, painted };
 }
 
 export type CadOut =

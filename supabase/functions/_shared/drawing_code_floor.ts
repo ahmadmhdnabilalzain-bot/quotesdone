@@ -37,15 +37,25 @@ export function unreadAreas(page: PdfPage | undefined, seeds: string[]): Box[] {
   const left = [...(page.glyphRows ?? []), ...page.runs.filter((r) => r.unread)].filter((g) => !tb.some((b) => centreIn(b, g)));
   return left.map((g) => ({ x: g.x, y: g.y, w: g.w, h: g.h }));
 }
+/** A box grown by `m` on every side (what paintBoxes and the model path's paint() actually blacken). */
+export const padded = (b: Box, m: number): Box => ({ x: b.x - m, y: b.y - m, w: b.w + 2 * m, h: b.h + 2 * m });
+/** The unread areas whose centre lies under NO painted box. */
+export function unpaintedUnread(page: PdfPage | undefined, seeds: string[], painted: Box[]): Box[] {
+  const centreIn = (b: Box, r: Box) => r.x + r.w / 2 >= b.x && r.x + r.w / 2 <= b.x + b.w && r.y + r.h / 2 >= b.y && r.y + r.h / 2 <= b.y + b.h;
+  return unreadAreas(page, seeds).filter((a) => !painted.some((b) => centreIn(b, a)));
+}
 /**
- * The rule: a page on which code sees text it cannot read is published only when a model NAMED something on it - the
- * find model boxed a region, or the checker of another family was not clean on its first look. A sheet code cannot read
- * that both models call free of any identity (no title block, no name, nothing) is not believed: HELD, and said. A
- * faithful model names the title block every real sheet has, so this holds only a model that reported nothing.
- * Returns the reason to hold, or null.
+ * The rule (round 4, 15 Nov 2026, sales_engineer; brief f3_fix4 item 1): a page on which code sees text it cannot read is
+ * published only when EVERY such area lies under a painted box - the find model's regions, the code floor, the text
+ * layer's boxes, the customer's or the server's boxes, and the boxes the checker named and had painted - judged by the
+ * area's centre. One area left bare: HELD, and said.
+ * WHY NOT A COUNT ANY MORE (third review, ANONYMITY F3 DRAWINGS 3, fix 1): round 3 skipped the hold as soon as the find
+ * model boxed ANY region or the checker was not clean on its first look. A model that boxes only the title strip
+ * (the reviewer's TITLE-ONLY stub: one box over the right 22%) therefore published v01 ("AL BARSHA 2", "VILLA 15", drawn
+ * as outlines), v12 (a Type3 font: "AL BARSHA 2 VILLA 15") and n06 (a location inset: "AL KHAIL"). A faithful model boxes
+ * the outlined labels themselves, so their centres are covered and the page goes; a model that names something else
+ * does not vouch for text it did not cover. Returns the reason to hold, or null.
  */
-export function unreadTextHold(page: PdfPage | undefined, seeds: string[], findRegions: number, firstLookClean: boolean): string | null {
-  if (findRegions > 0 || !firstLookClean) return null;
-  const n = unreadAreas(page, seeds).length;
-  return n ? 'unread_text_unclaimed' : null;
+export function unreadTextHold(page: PdfPage | undefined, seeds: string[], painted: Box[]): string | null {
+  return unpaintedUnread(page, seeds, painted).length ? 'unread_text_unclaimed' : null;
 }

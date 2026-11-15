@@ -28,12 +28,12 @@ import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages, pdfRedactionView, type PdfPage } from '../_shared/pdf_text_positions.ts';
 import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
-import { MAXW, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintBoxes, repaintJpeg, serverBoxedPage, stripB64, supplierPagePrefix, tileJpeg } from '../_shared/drawing_redact_page.ts';
+import { MAXW, SERVER_MARGIN, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintBoxes, repaintJpeg, serverBoxedPage, stripB64, supplierPagePrefix, tileJpeg } from '../_shared/drawing_redact_page.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
 import { readerAgrees } from '../_shared/pdf_vector_redact.ts';
 import { notReached } from '../_shared/not_reached.ts';
-import { codeFloorBoxes, unreadAreas, unreadTextHold } from '../_shared/drawing_code_floor.ts';
+import { codeFloorBoxes, padded, unpaintedUnread, unreadTextHold } from '../_shared/drawing_code_floor.ts';
 import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelGate, planTiles, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
 import { readCadStrings, readingHandedOn, type StringsReading } from '../_shared/drawing_string_reading.ts';
 import { INK_GRID, aspectMatches, expectedInk, imageDenseEnough, inkAgrees, pageCountHolds, pxNeeded } from '../_shared/released_file_pages.ts';
@@ -74,6 +74,8 @@ function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/
 // on 22 Sep 2026 the edge killed 4-page calls (546, 8 of 8 pages lost), so customer_api sends ONE page per call.
 // MARGIN pads a MODEL's region (a guess); the server's own boxes get SERVER_MARGIN (see the shared module).
 const MARGIN = 0.03;
+// The margin mode 'repaint' (verify:false) paints the checker's boxes at: paintElsewhere below.
+const REPAINT_MARGIN = 0.01;
 
 const SYS = `You are a privacy redaction assistant for construction / architectural / MEP drawings that will be shared with COMPETING suppliers. For EACH page image, find EVERY area containing information that could identify the client, the project, or the firms involved — so a supplier cannot identify or contact them.\nCover: the title block (usually a vertical strip on the right edge or a horizontal strip along the bottom), and any consultant / architect / engineer / contractor / developer / owner / client names, company logos, stamps, signatures, addresses, plot / parcel / makani numbers, project name or number, BUILDING or TOWER or VILLA name, COMMUNITY / DISTRICT / AREA name, drawing number or reference, revision number, phone numbers, emails and websites — wherever they appear (including next to the legend).\nALSO cover the NAMES OF INDIVIDUALS anywhere on the sheet: "Drawn by", "Checked by", "Approved by", "Prepared by", "Reviewed by" and any personal name beside a signature or a stamp. A draughtsman's or an approving engineer's name identifies the project to anyone in the trade as surely as the firm's does. (The text masker missed exactly these two on the one real drawing this platform has processed, which is why they are named here explicitly.)\nDo NOT cover the technical drawing, dimensions, room/space names, grid bubbles, north arrow, or the legend's SYMBOL EXPLANATIONS themselves — only the identifying text/logos. The distinction matters and is deliberate: the founder's instruction is that the legend must not show PROJECT DETAILS, not that the symbol key should be destroyed. A supplier who cannot read "◻ = single socket outlet" cannot price the job, and a drawing nobody can quote from is not anonymised, it is wasted.\nBe GENEROUS: if unsure whether a block is identifying, INCLUDE it. It is far better to over-cover than to leak.\nReturn STRICT JSON ONLY: {\"pages\":[{\"i\":0,\"has_identity\":true,\"regions\":[{\"x\":0.80,\"y\":0.0,\"w\":0.20,\"h\":1.0}]}]} — x,y,w,h are fractions 0..1 of the page (x,y = top-left corner of the box). One object per page, in the SAME order as the images. If a page truly has no identifying info, set has_identity=false and regions=[].`;
 
@@ -385,7 +387,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
       if (!regions.length) return J({ ok: false, error: 'regions_required' }, 400);
       const key = await sec('cred_fn_ai');
       if (!key) return J({ ok: false, error: 'no_ai_key' }, 200);
-      const jpg = await repaintJpeg(b64ToBytes(body.jpg_b64), regions, body.verify === false ? 0.01 : MARGIN);
+      const jpg = await repaintJpeg(b64ToBytes(body.jpg_b64), regions, body.verify === false ? REPAINT_MARGIN : MARGIN);
       const b64 = bytesToB64(jpg);
       if (body.verify === false) return J({ ok: true, jpg_b64: b64 });
       const vr = await verifyPage(key, b64, String(body.authors || 'unknown'));
@@ -642,9 +644,9 @@ Deno.serve(observe('drawing_redact', async (req) => {
           const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(r.jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined);
           pixelCalls += g.calls; pixelUsd += g.usd;
           if (!g.ok) { skipped++; detail.push({ page: i, skipped: g.held, ...g.detail }); continue; }
-          // The same rule as the model path (drawing_code_floor.unreadTextHold): the boxes that came with the page count
-          // as named regions; text code cannot read with no box and a checker clean on its first look is HELD.
-          const unreadHeld = unreadTextHold(pp, [], cleanBoxes(body.manual_boxes[i])?.length ?? 0, g.firstLookClean);
+          // The same rule as the model path (drawing_code_floor.unreadTextHold, round 4): every area of text code cannot read
+          // must lie under a painted box - the boxes that came with the page, the text layer's, or the checker's - or HELD.
+          const unreadHeld = unreadTextHold(pp, [], [...(r.painted ?? []), ...g.boxes.map((b) => padded(b, REPAINT_MARGIN))]);
           if (unreadHeld) { skipped++; detail.push({ page: i, skipped: unreadHeld }); continue; }
           const path = `${prefix}_p${i}.jpg`;
           const up = await admin.storage.from('drawing-files').upload(path, b64ToBytes(g.jpgB64), { contentType: 'image/jpeg', upsert: true });
@@ -755,8 +757,10 @@ Deno.serve(observe('drawing_redact', async (req) => {
         if (!vr.clean) { verifyFailed++; skipped++; verifyDetail.push({ page: i, attempts: attempt, found: vr.found }); continue; }
         // TEXT CODE CANNOT READ (round 3; drawing_code_floor.unreadTextHold): outlined or undecodable text that neither
         // model named anything on is not believed free of identity. HELD, never published on a silent answer.
-        const unreadHeld = gate.ok ? unreadTextHold(pp, seeds, regions.length, gate.firstLookClean) : null;
-        if (unreadHeld) { skipped++; verifyDetail.push({ page: i, skipped: unreadHeld, areas: unreadAreas(pp, seeds).length }); continue; }
+        // Round 4: judged by WHERE - every unread area's centre under some painted box (find, floor, text layer, checker).
+        const painted = [...[...regions, ...textBoxes(i).boxes, ...instructingRuns(pp?.runs ?? [])].map((b) => padded(b, MARGIN)), ...floor.map((b) => padded(b, SERVER_MARGIN)), ...(gate.ok ? gate.boxes.map((b) => padded(b, REPAINT_MARGIN)) : [])];
+        const unreadHeld = gate.ok ? unreadTextHold(pp, seeds, painted) : null;
+        if (unreadHeld) { skipped++; verifyDetail.push({ page: i, skipped: unreadHeld, areas: unpaintedUnread(pp, seeds, painted).length }); continue; }
         if (attempt > 1) verifyDetail.push({ page: i, attempts: attempt, recovered: true });
         verified++;
         const path = `${prefix}_p${i}.jpg`;
