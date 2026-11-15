@@ -19,9 +19,9 @@ override list in the areas file), so a routine is found by its subject even thou
 | [Accounting](accounting.md) | 175 | 51 | 19 | 10 | 1 |
 | [Marketing](marketing.md) | 173 | 75 | 4 | 9 | 7 |
 | [Knowledge](knowledge.md) | 128 | 69 | 8 | 2 | 3 |
-| [IT, operations and monitoring](it-ops-monitoring.md) | 378 | 116 | 16 | 23 | 6 |
+| [IT, operations and monitoring](it-ops-monitoring.md) | 378 | 116 | 16 | 23 | 7 |
 | [Seats, agents and duties](seats-agents-duties.md) | 582 | 232 | 17 | 25 | 3 |
-| **total** | **2165** | **809** | **88** | **110** | **78** |
+| **total** | **2165** | **809** | **88** | **110** | **79** |
 
 ## How to read a routine row
 
@@ -39,7 +39,7 @@ override list in the areas file), so a routine is found by its subject even thou
   rule. **name / category** are the job's `cron_registry` row.
 - A cron job is filed with the routine it runs.
 
-Counts measured from the mirror at generation. 420 further routine names have a canonical file but are not in
+Counts measured from the mirror at generation. 431 further routine names have a canonical file but are not in
 the mirror (dropped from production on purpose, recorded in `scripts/sql/DROPPED.txt`, or applied after the mirror was
 taken); they are not listed here.
 
