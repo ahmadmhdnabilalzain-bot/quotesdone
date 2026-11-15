@@ -94,7 +94,8 @@ async function proveGuard() {
   // real recipient still has to come back 'held' or the rehearsal still refuses to arm.
   let real = null, invalid = null;
   try {
-    await q(`do $$
+    const { replaySql } = await import('../lib/safe_replay.mjs');
+    await replaySql(`do $$
       declare a text; b text;
       begin
         update public.decision_policy set value='true'::jsonb where key='demo_rehearsal_active';

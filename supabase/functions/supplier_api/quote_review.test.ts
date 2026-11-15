@@ -52,7 +52,8 @@ const CASES: { name: string; inq?: Partial<SafeInquiry>; w: Partial<Working>; co
   { name: 'lines that do not add up to the total', w: { amount: 12000, price_ex_vat: 12000 }, code: 'total_mismatch', kind: 'clarification' },
   { name: 'a price in another currency', w: { foreign_currency: 'USD' }, code: 'currency_not_aed', kind: 'adjustment' },
   { name: 'no VAT basis', w: { vat_treatment: 'not_stated', price_ex_vat: null, notes: '' }, code: 'vat_basis', kind: 'adjustment' },
-  { name: 'VAT included with no VAT amount', w: { vat_treatment: 'inclusive', price_ex_vat: null, notes: 'Prices include VAT' }, code: 'vat_ex_price', kind: 'adjustment' },
+  // 13 Nov 2026: asked as the one three-answer question ("including 5% VAT, before VAT, not registered"), not as a typed number
+  { name: 'VAT included with no VAT amount', w: { vat_treatment: 'inclusive', price_ex_vat: null, notes: 'Prices include VAT' }, code: 'vat_basis', kind: 'adjustment' },
   { name: 'no validity', w: { validity: '' }, code: 'validity', kind: 'adjustment' },
   { name: 'a vague validity', w: { validity: 'as per standard terms' }, code: 'validity', kind: 'adjustment' },
   { name: 'a validity of zero days', w: { validity: '0 days' }, code: 'validity', kind: 'adjustment' },

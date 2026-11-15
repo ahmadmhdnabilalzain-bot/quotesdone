@@ -26,12 +26,20 @@ import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { observe } from '../_shared/observe.ts';
-import { pdfPages, type PdfPage } from '../_shared/pdf_text_positions.ts';
+import { pdfPages, pdfRedactionView, type PdfPage } from '../_shared/pdf_text_positions.ts';
 import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
-import { MAXW, b64ToBytes, bytesToB64, cadPage, cleanBoxes, repaintJpeg, serverBoxedPage, stripB64, supplierPagePrefix } from '../_shared/drawing_redact_page.ts';
+import { MAXW, SERVER_MARGIN, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintBoxes, repaintJpeg, serverBoxedPage, stripB64, supplierPagePrefix, tileJpeg } from '../_shared/drawing_redact_page.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
+import { readerAgrees } from '../_shared/pdf_vector_redact.ts';
 import { notReached } from '../_shared/not_reached.ts';
+import { codeFloorBoxes, padded, unpaintedUnread, unreadTextHold, vocabularyVet, type Vet } from '../_shared/drawing_code_floor.ts';
+import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelGate, planTiles, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
+import { readCadStrings, readingHandedOn, type StringsReading } from '../_shared/drawing_string_reading.ts';
+import { INK_GRID, aspectMatches, expectedInk, imageDenseEnough, inkAgrees, pageCountHolds, pxNeeded } from '../_shared/released_file_pages.ts';
+import { asciiDxfOf } from '../_shared/cad_file_redact.ts';
+import { TIME_HELD, callTimeoutMs, deadlinesFrom } from '../_shared/drawing_deadline.ts';
+
 import { instructingRuns, verifyVerdict } from './verify_verdict.ts';
 
 // ── DETERMINISTIC REDACTION, 14 Sep 2026 ─────────────────────────────────────────────────────────
@@ -67,6 +75,8 @@ function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/
 // on 22 Sep 2026 the edge killed 4-page calls (546, 8 of 8 pages lost), so customer_api sends ONE page per call.
 // MARGIN pads a MODEL's region (a guess); the server's own boxes get SERVER_MARGIN (see the shared module).
 const MARGIN = 0.03;
+// The margin mode 'repaint' (verify:false) paints the checker's boxes at: paintElsewhere below.
+const REPAINT_MARGIN = 0.01;
 
 const SYS = `You are a privacy redaction assistant for construction / architectural / MEP drawings that will be shared with COMPETING suppliers. For EACH page image, find EVERY area containing information that could identify the client, the project, or the firms involved — so a supplier cannot identify or contact them.\nCover: the title block (usually a vertical strip on the right edge or a horizontal strip along the bottom), and any consultant / architect / engineer / contractor / developer / owner / client names, company logos, stamps, signatures, addresses, plot / parcel / makani numbers, project name or number, BUILDING or TOWER or VILLA name, COMMUNITY / DISTRICT / AREA name, drawing number or reference, revision number, phone numbers, emails and websites — wherever they appear (including next to the legend).\nALSO cover the NAMES OF INDIVIDUALS anywhere on the sheet: "Drawn by", "Checked by", "Approved by", "Prepared by", "Reviewed by" and any personal name beside a signature or a stamp. A draughtsman's or an approving engineer's name identifies the project to anyone in the trade as surely as the firm's does. (The text masker missed exactly these two on the one real drawing this platform has processed, which is why they are named here explicitly.)\nDo NOT cover the technical drawing, dimensions, room/space names, grid bubbles, north arrow, or the legend's SYMBOL EXPLANATIONS themselves — only the identifying text/logos. The distinction matters and is deliberate: the founder's instruction is that the legend must not show PROJECT DETAILS, not that the symbol key should be destroyed. A supplier who cannot read "◻ = single socket outlet" cannot price the job, and a drawing nobody can quote from is not anonymised, it is wasted.\nBe GENEROUS: if unsure whether a block is identifying, INCLUDE it. It is far better to over-cover than to leak.\nReturn STRICT JSON ONLY: {\"pages\":[{\"i\":0,\"has_identity\":true,\"regions\":[{\"x\":0.80,\"y\":0.0,\"w\":0.20,\"h\":1.0}]}]} — x,y,w,h are fractions 0..1 of the page (x,y = top-left corner of the box). One object per page, in the SAME order as the images. If a page truly has no identifying info, set has_identity=false and regions=[].`;
 
@@ -77,6 +87,7 @@ const SYS = `You are a privacy redaction assistant for construction / architectu
 // first pass claimed. Anything it flags is refused, not published. Uncertainty counts as dirty.
 const VERIFY_SYS = `You are the final check before a REDACTED construction drawing is shared with COMPETING suppliers. You are looking at the page EXACTLY as the supplier will see it.
 Report ANY remaining information that could identify the client, the project, or the firms involved: company names, logos, stamps, signatures, addresses, plot/parcel/makani numbers, project names or numbers, BUILDING / TOWER / VILLA names, COMMUNITY / DISTRICT / AREA names, drawing numbers or references, phone numbers, emails, websites, or personal names — including a name beside "Drawn by", "Checked by" or "Approved by". Text inside a black box is covered and does not count - only report what is still LEGIBLE.
+Look in particular, because each has reached a supplier before (anonymity audit, 13 Nov 2026): a KEY PLAN, LOCATION PLAN, VICINITY MAP or any map or satellite picture (street names, a community name, a pin) - report it even if you cannot read its words, a map is identity by its nature; a WATERMARK or a diagonal line of text across the sheet naming a firm; text turned 90 degrees along the sheet EDGE or the border; ARABIC lines (an owner "\u0627\u0644\u0645\u0627\u0644\u0643", a villa "\u0641\u064a\u0644\u0627", an area such as "\u0627\u0644\u0628\u0631\u0634\u0627\u0621"); a site plan's street, villa or plot labels; a scale bar or a note naming a surveyor; a paragraph giving a phone number or an e-mail. The emirate alone ("Dubai") is not identity; the area, community, street, villa, plot or unit is.
 Do not report the technical drawing, dimensions, room names, grid bubbles, north arrow or legend symbols.
 Do not report headings that describe the SHEET'S OWN CONTENT rather than a party: "GENERAL NOTES", "MECHANICAL GENERAL NOTES", "ABBREVIATIONS", "LEGEND", "KEYED NOTES", "SCHEDULE", "DEMOLITION NOTES" and the like are not identifying, and neither are equipment tags (AHU-3, VAV-2-1, EF-1), specification clause numbers, or the note text itself. Report a heading ONLY if it names or locates a person, a company or a project.
 A VIEW TITLE IS NOT AN IDENTITY. "MECHANICAL DEMOLITION - LOWER LEVEL", "MECHANICAL NEW WORK UPPER LEVEL", "PLAN", "SECTION A-A" and any scale notation ("1/8\\" = 1'-0\\"", "1:100") describe what is drawn and are exactly what a supplier needs in order to quote; never report them. A REVISIONS block is not an identity either: revision numbers, dates and descriptions are drawing history. Report a revision entry ONLY when it carries a person's name or initials, or a firm's name.
@@ -160,37 +171,15 @@ If you cannot read the image, or you are unsure, answer {"clean": false, "addres
 // second look at ONE page with the verifier's own findings as its brief, and covers those. Bounded
 // to a single extra attempt per refused page, so a drawing costs at most one extra detect and one
 // extra verify per page that actually failed.
-const RETRY_SYS = `You are re-redacting ONE page of a construction drawing that has already been redacted once and REFUSED by an independent checker. You are given the page exactly as it stands now, and the checker's own list of what is STILL visible.
-Your job is to cover EXACTLY what the checker named, and nothing else. Work out where each named item is on the page and return a box over it, generously sized — a box slightly too big is free, a box slightly too small means the page is refused again.
-Do NOT cover the technical drawing, dimensions, room names, grid bubbles, north arrow, legend symbols, view titles, scale notations or note text. Those are what the supplier needs in order to quote, and the checker has been told not to report them.
-Areas already filled solid black are done; do not box them again.
-Return STRICT JSON ONLY: {"regions":[{"x":0.80,"y":0.88,"w":0.20,"h":0.12}]} — x,y,w,h are fractions 0..1 of the page (x,y = top-left corner). If you genuinely cannot locate any of the named items, return {"regions":[]}.`;
+// RETRY_SYS and the find-model retry were replaced on 13 Nov 2026 by the pixel gate's own re-check (drawing_pixel_gate.ts):
+// the checker that sees what is left names WHERE it is, so a second model guessing the place is no longer needed.
 
 // A FAILED MEASUREMENT IS NOT A LEAK. The verifier is instructed to answer "uncertain" when it
 // cannot read the image, and this function's own error paths emit verify_truncated /
 // verify_unparseable / verify_exception. Those four say NOTHING about whether the page is clean —
 // they say the check did not run. Masking more of the page in response is aiming at nothing; the
 // right answer is to ask again. A page that stays unreadable is still refused, so the gate holds.
-const NO_ANSWER = new Set(['uncertain', 'verify_truncated', 'verify_unparseable', 'verify_exception']);
-const isNoAnswer = (found: string[]) => found.length > 0 && found.every((f) => NO_ANSWER.has(String(f).trim()));
 
-async function retryRegions(key: string, jpgB64: string, found: string[]): Promise<{ regions: Array<{x:number;y:number;w:number;h:number}>; model: string | null }> {
-  try {
-    const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: key, fn: 'drawing_redact', response_format: { type: 'json_object' }, temperature: 0, sys: RETRY_SYS,
-        input: [{ role: 'user', content: [
-          { type: 'text', text: 'The checker refused this page. It reported, verbatim:\n- ' + found.join('\n- ') + '\n\nCover exactly those. Return the JSON.' },
-          { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + jpgB64 } }] }] }) });
-    const jd = await r.json();
-    const model = typeof jd?.model === 'string' && jd.model ? jd.model : null;
-    if (jd?.truncated === true || jd?.finish_reason === 'length') return { regions: [], model };
-    const parsed = parseJson(jd?.content || '');
-    const regions = Array.isArray(parsed?.regions) ? parsed.regions : [];
-    return { model, regions: regions
-      .map((g: any) => ({ x: Number(g.x) || 0, y: Number(g.y) || 0, w: Number(g.w) || 0, h: Number(g.h) || 0 }))
-      .filter((g: any) => g.w > 0 && g.h > 0) };
-  } catch (_e) { return { regions: [], model: null }; }
-}
 
 // THE VERIFY IS NEVER THE FIND'S FAMILY (founder instruction ~891, 23 Sep 2026). `authors` names every model that
 // boxed this page (the find, and the retry when it ran); ai_gateway routes identity_redaction_verify through
@@ -236,18 +225,103 @@ async function verifyPage(key: string, jpgB64: string, authors: string): Promise
 // with it, so the child is authorised exactly as the parent was. A relay refusal no worker served is asked once more
 // (_shared/not_reached.ts); anything else that is not a verdict comes back as ok:false and the page is refused.
 const SELF = Deno.env.get('SUPABASE_URL')! + '/functions/v1/drawing_redact';
-async function repaintElsewhere(secret: string, jpgB64: string, regions: Array<{x:number;y:number;w:number;h:number}>, authors: string):
-  Promise<{ ok: true; clean: boolean; found: string[]; jpg_b64: string } | { ok: false; error: string }> {
+
+// ── THE PIXEL GATE AND THE STRING READING (13 Nov 2026, design changes A and B; _shared/drawing_pixel_gate.ts,
+// _shared/drawing_string_reading.ts). Both are model calls through ai_gateway; neither is ever skipped: no key, the
+// model hold, a refusal or an unparseable answer is a HELD page or an unattached file.
+async function askPixels(key: string, authors: string, jpgB64: string, stopAt?: number): Promise<string | null> {
   try {
-    const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ __secret: secret, mode: 'repaint', jpg_b64: jpgB64, regions, authors }), signal: AbortSignal.timeout(90_000) });
-    let r = await ask();
-    if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
-    const j = await r.json().catch(() => null);
-    if (!r.ok || j?.ok !== true || typeof j.jpg_b64 !== 'string' || typeof j.clean !== 'boolean') return { ok: false, error: 'http_' + r.status + (j?.error ? ':' + String(j.error).slice(0, 80) : '') };
-    return { ok: true, clean: j.clean, found: Array.isArray(j.found) ? j.found.map(String).slice(0, 8) : [], jpg_b64: j.jpg_b64 };
-  } catch (e) { return { ok: false, error: String((e as Error)?.name || e).slice(0, 80) }; }
+    // Cut at the stop plus a grace (round 5; drawing_deadline.callTimeoutMs); the gateway is told how long we wait.
+    const ms = callTimeoutMs(stopAt, 55_000);
+    const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(ms),
+      body: JSON.stringify({ __secret: key, fn: 'drawing_redact_verify', counterpart_model: authors, client_timeout_ms: ms, response_format: { type: 'json_object' }, temperature: 0, sys: PIXEL_VERIFY_SYS,
+        input: [{ role: 'user', content: [{ type: 'text', text: 'Check this page as the supplier will see it. Return the JSON.' }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + jpgB64 } }] }] }) });
+    const jd = await r.json().catch(() => null);
+    if (!r.ok || !jd || jd.truncated === true || jd.finish_reason === 'length' || typeof jd.content !== 'string') return null;
+    return jd.content;
+  } catch (_e) { return null; }
 }
+async function askStrings(key: string, sys: string, user: string): Promise<string | null> {
+  try {
+    const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ __secret: key, fn: 'drawing_redact', response_format: { type: 'json_object' }, temperature: 0, sys, input: [{ role: 'user', content: user }] }) });
+    const jd = await r.json().catch(() => null);
+    if (!r.ok || !jd || jd.truncated === true || jd.finish_reason === 'length' || typeof jd.content !== 'string') return null;
+    return jd.content;
+  } catch (_e) { return null; }
+}
+/** Paint verifier boxes in a fresh worker (one decode and one encode per worker, repaintJpeg's measurement). */
+async function paintElsewhere(secret: string, jpgB64: string, regions: Array<{x:number;y:number;w:number;h:number}>, stopAt?: number): Promise<string> {
+  const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'repaint', verify: false, jpg_b64: jpgB64, regions }), signal: AbortSignal.timeout(callTimeoutMs(stopAt, 90_000)) });
+  let r = await ask();
+  if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
+  const j = await r.json().catch(() => null);
+  if (!r.ok || j?.ok !== true || typeof j.jpg_b64 !== 'string') throw new Error('repaint_failed');
+  return j.jpg_b64;
+}
+/** Cut one view of the page for the model in a fresh worker (mode 'tile': one decode, one encode). */
+async function cropElsewhere(secret: string, jpgB64: string, tile: Tile, mark: string, stopAt?: number): Promise<string> {
+  const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'tile', jpg_b64: jpgB64, tile, mark }), signal: AbortSignal.timeout(callTimeoutMs(stopAt, 60_000)) });
+  let r = await ask();
+  if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
+  const j = await r.json().catch(() => null);
+  if (!r.ok || j?.ok !== true || typeof j.jpg_b64 !== 'string') throw new Error('tile_failed');
+  return j.jpg_b64;
+}
+/** Where a page image shows ink, read in a fresh worker (mode 'ink': one decode, no encode). null = not read. */
+async function inkElsewhere(secret: string, jpgB64: string): Promise<{ cells: boolean[]; w: number; h: number } | null> {
+  try {
+    const r = await fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'ink', jpg_b64: jpgB64 }), signal: AbortSignal.timeout(60_000) });
+    const j = await r.json().catch(() => null);
+    return r.ok && j?.ok === true && Array.isArray(j.cells) ? { cells: j.cells.map(Boolean), w: Number(j.w) || 0, h: Number(j.h) || 0 } : null;
+  } catch (_e) { return null; }
+}
+/** The set's budget in USD: what the runs recorded today for this source file spent (pixel_usd, or pixel_calls at
+ *  PIXEL_CALL_USD for a run recorded before tiling, plus strings_usd), against PIXEL_SET_BUDGET_USD. */
+async function pixelBudgetFor(sourcePath: unknown): Promise<PixelBudget> {
+  let used = 0;
+  if (typeof sourcePath === 'string' && sourcePath) {
+    try {
+      const { data } = await admin.from('drawing_redaction_runs').select('verify_detail').eq('source_path', sourcePath).gte('created_at', new Date(Date.now() - 86_400_000).toISOString());
+      for (const r of data || []) { const d = (r as any)?.verify_detail || {}; used += (Number(d.pixel_usd) || (Number(d.pixel_calls) || 0) * PIXEL_CALL_USD) + (Number(d.strings_usd) || 0); }
+    } catch (_e) { used = Infinity; }
+  }
+  let left = PIXEL_SET_BUDGET_USD - used;
+  return { left: () => left, spend: (u: number) => { left -= u; } };
+}
+/** The set's budget less what the CAD worker already spent on this job and has not recorded yet (round 3, 13 Nov 2026:
+ *  the worker records a job's spend only on the run it publishes, so each of its 'gate' and 'read_strings' calls saw the
+ *  whole budget again and a 20-page job could spend it 20 times). Only a caller holding the internal credential reaches
+ *  these modes, and a negative or missing figure counts as nothing spent. */
+async function budgetInFlight(sourcePath: unknown, spentUsd: unknown): Promise<PixelBudget> {
+  const b = await pixelBudgetFor(sourcePath);
+  b.spend(Math.max(0, Number(spentUsd) || 0));
+  return b;
+}
+/** The page's physical size turned to the image's orientation (a MediaBox is unrotated; the image is as displayed). */
+function oriented(size: PageSize, jpgB64: string): PageSize {
+  const px = jpegSize(b64ToBytes(jpgB64));
+  if (!px) return size;
+  return (px.w >= px.h) === (size.wMm >= size.hMm) ? size : { ...size, wMm: size.hMm, hMm: size.wMm };
+}
+/** The size a page with no better measure is checked at: the larger of A1 and what its pixels imply. */
+function sizeOfPixels(jpgB64: string): PageSize { const px = jpegSize(b64ToBytes(jpgB64)); return pageSizeFromPixels(px?.w ?? 2600, px?.h ?? 1838); }
+/** One page through the gate, TILED to its physical size; the answer carries the calls and USD it spent. */
+async function gatePage(key: string | undefined, held: boolean, secret: string, authors: string, jpgB64: string, budget: PixelBudget, size?: PageSize, stopAt?: number, vet?: Vet): Promise<PixelOutcome> {
+  if (held || !key) return { ok: false, held: 'pixels_unverified', calls: 0, usd: 0, detail: { reason: held ? 'model_hold' : 'no_ai_key' } };
+  const plan = planTiles(oriented(size ?? sizeOfPixels(jpgB64), jpgB64));
+  // stopAt (drawing_deadline.ts): past it no view is asked and the page is held for time.
+  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b, stopAt), (b, regions) => paintElsewhere(secret, b, regions, stopAt), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m, stopAt), stopAt, vet });
+}
+/** Checker boxes left unpainted because they cover drawing vocabulary only (drawing_code_floor.vocabularyVet): logged and
+ *  recorded on the run, so an over-eager checker is visible rather than silent. */
+function ignoredSaid(g: PixelOutcome): Record<string, unknown> {
+  if (!g.ok || !g.detail.ignored) return {};
+  console.log(`drawing_redact: ${g.detail.ignored} checker box(es) over drawing vocabulary only were not painted: ${JSON.stringify(g.detail.ignored_what ?? [])}`);
+  return { checker_boxes_ignored: g.detail.ignored, checker_ignored_what: g.detail.ignored_what ?? [] };
+}
+/** What the customer is told when the set is past its budget (plain words), or nothing. */
+const budgetSaid = (held: string | undefined) => held === 'pixels_budget' ? { customer_message: PIXEL_BUDGET_MESSAGE } : {};
 
 // REDACTION PROVENANCE 2 Aug 2026 (external security review). WHY: suppliers are served the paths
 // this function returns as SIGNED URLs before any reveal fee is paid, and supplier_api will sign
@@ -300,8 +374,12 @@ async function publish(id: string, body: any, o: Parameters<typeof recordRun>[2]
 
 Deno.serve(observe('drawing_redact', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
+  // THE CLOCK (round 4, drawing_deadline.ts): no page is started after clock.startBy, and a page under way is abandoned at
+  // clock.stopAt; either is HELD for time and said. A caller (customer_api) may bring both earlier, never later.
+  const startedAt = Date.now();
   try {
     const body = await req.json().catch(() => ({} as any));
+    const clock = deadlinesFrom(body, startedAt);
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'drawing_redact');
@@ -324,10 +402,48 @@ Deno.serve(observe('drawing_redact', async (req) => {
       if (!regions.length) return J({ ok: false, error: 'regions_required' }, 400);
       const key = await sec('cred_fn_ai');
       if (!key) return J({ ok: false, error: 'no_ai_key' }, 200);
-      const jpg = await repaintJpeg(b64ToBytes(body.jpg_b64), regions, MARGIN);
+      const jpg = await repaintJpeg(b64ToBytes(body.jpg_b64), regions, body.verify === false ? REPAINT_MARGIN : MARGIN);
       const b64 = bytesToB64(jpg);
+      if (body.verify === false) return J({ ok: true, jpg_b64: b64 });
       const vr = await verifyPage(key, b64, String(body.authors || 'unknown'));
       return J({ ok: true, clean: vr.clean, found: vr.found, jpg_b64: b64 });
+    }
+
+    // ── ONE VIEW OF A PAGE FOR THE PIXEL GATE (second review, 13 Nov 2026): a tile cut and scaled (planTiles), or where a
+    // page image shows ink (verify_file's cross-check). Each in its own worker; neither records or uploads anything.
+    if (body.mode === 'tile') {
+      // The reading mark is required: a view without it could only ever be an unread answer (drawing_pixel_gate.newMark).
+      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !body.tile || !/^\d{6}$/.test(String(body.mark ?? ''))) return J({ ok: false, error: 'jpg_b64_tile_and_mark_required' }, 400);
+      const t = body.tile, n = (v: unknown) => Math.max(0, Math.min(1, Number(v) || 0));
+      const ow = Math.min(2000, Math.max(1, Number(t.outW) || 0)), oh = Math.min(2000, Math.max(1, Number(t.outH) || 0));
+      const jpg = await tileJpeg(b64ToBytes(body.jpg_b64), { x: n(t.x), y: n(t.y), w: n(t.w) || 1, h: n(t.h) || 1, outW: ow, outH: oh }, 85, String(body.mark));
+      return J({ ok: true, jpg_b64: bytesToB64(jpg) });
+    }
+    if (body.mode === 'ink') {
+      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64) return J({ ok: false, error: 'jpg_b64_required' }, 400);
+      const k = await inkCells(b64ToBytes(body.jpg_b64), INK_GRID);
+      return J({ ok: true, ...k });
+    }
+
+    // ── FOR THE CAD WORKER (13 Nov 2026, design changes A and B): the worker draws what the edge cannot (a DWG past the
+    // edge ceiling, a scanned sheet), but it publishes nothing a model has not looked at. 'gate' runs one drawn page
+    // through the pixel gate and returns the page as it may be published (or held); 'read_strings' reads every string
+    // of a DXF in one call and returns what the model marked (or held). Neither records or uploads anything.
+    if (body.mode === 'gate') {
+      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64) return J({ ok: false, error: 'jpg_b64_required' }, 400);
+      const held = await modelHeld(admin); const key = held ? undefined : await sec('cred_fn_ai');
+      // The worker sends the sheet's size when it knows it (page_mm: a CAD drawing's, from its text heights); a scan is
+      // checked as the larger of A1 and what its pixels imply.
+      const pm = body.page_mm, size = pm && Number(pm.w) > 0 && Number(pm.h) > 0 ? { wMm: Number(pm.w), hMm: Number(pm.h), from: 'cad' as const } : undefined;
+      const g = await gatePage(key, held, String(body.__secret || ''), String(body.authors || 'deterministic'), stripB64(body.jpg_b64), await budgetInFlight(body.source_path, body.spent_usd), size, clock.stopAt);
+      return J(g.ok ? { ok: true, jpg_b64: g.jpgB64, pixel_calls: g.calls, pixel_usd: g.usd, first_look_clean: fileMayBeShared(g) } : { ok: true, held: g.held, pixel_calls: g.calls, pixel_usd: g.usd, detail: g.detail, ...budgetSaid(g.held) });
+    }
+    if (body.mode === 'read_strings') {
+      if (typeof body.dxf_text !== 'string' || !body.dxf_text) return J({ ok: false, error: 'dxf_text_required' }, 400);
+      const held = await modelHeld(admin); const key = held ? undefined : await sec('cred_fn_ai');
+      if (!key) return J({ ok: true, held: held ? 'model_hold' : 'no_ai_key' });
+      const rd = await readCadStrings(body.dxf_text, (sy, us) => askStrings(key, sy, us), await budgetInFlight(body.source_path, body.spent_usd));
+      return J(rd ? { ok: true, identity: [...rd.identity], strings_calls: rd.calls, strings_usd: rd.usd } : { ok: true, held: 'strings_not_read' });
     }
 
     const job_id = crypto.randomUUID();
@@ -358,18 +474,109 @@ Deno.serve(observe('drawing_redact', async (req) => {
     if (body.mode === 'file') {
       if (typeof body.original_b64 !== 'string' || !body.original_b64) return J({ ok: false, error: 'original_b64_required' }, 400);
       const seeds = Array.isArray(body.seed_terms) ? body.seed_terms.map((x: unknown) => String(x)).filter(Boolean).slice(0, 200) : [];
-      const f = await anonymisedDrawingFile(b64ToBytes(body.original_b64), seeds);
+      const original = b64ToBytes(body.original_b64);
+      // What this run spent is recorded at the top of verify_detail, held or not: the set's budget sums it.
+      const spent = { pixel_usd: 0, strings_usd: 0 };
       const hold = async (why: string, detail: unknown) => {
-        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'file', held: why, detail } });
-        return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'file', held_reason: why, redaction_complete: false });
+        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'file', held: why, detail, ...spent } });
+        return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'file', held_reason: why, redaction_complete: false, ...budgetSaid(why) });
       };
+      const isPdfFile = new TextDecoder('latin1').decode(original.subarray(0, 5)) === '%PDF-';
+      const held = await modelHeld(admin); const key = held ? undefined : await sec('cred_fn_ai');
+      // B: every string of a CAD file is read by a model first; no reading, no file.
+      let identity: Set<string> | null = null, stringsUsd = 0;
+      const budget = await pixelBudgetFor(body.source_path);
+      if (!isPdfFile) {
+        if (!key) return await hold('strings_not_read', held ? 'model_hold' : 'no_ai_key');
+        const src = await asciiDxfOf(original);
+        if (!src.ok) return await hold('cad_' + src.held, src.detail ?? null);
+        // READ ONCE (second review, item 8): mode 'cad' already read this file's strings for the preview and handed the
+        // reading back; it is taken only for the SAME text (its SHA-256), else the strings are read here.
+        const handed = await readingHandedOn(body.strings_reading, src.dxf);
+        if (handed) identity = handed;
+        else {
+          const rd = await readCadStrings(src.dxf, (sys, user) => askStrings(key, sys, user), budget);
+          if (!rd) return await hold('strings_not_read', 'the model gave no usable reading of the strings (or the set is past its budget)');
+          identity = rd.identity; stringsUsd = rd.usd; spent.strings_usd = rd.usd;
+        }
+      }
+      const f = await anonymisedDrawingFile(original, seeds, { identity });
       if (!f.ok) return await hold(f.held, f.detail ?? null);
       const path = `${prefix}_drawing.${f.ext}`;
       const up = await admin.storage.from('drawing-files').upload(path, f.bytes, { contentType: f.mime, upsert: true });
       if (up.error) return await hold('upload_failed', up.error.message);
-      const detail = { method: 'file', kind: f.kind, ...f.proof };
+      // A: the released file's own pixels are checked before it is attached. A DXF is drawn here from its own bytes; a
+      // PDF cannot be rendered on the edge, so its pages come back rendered from THESE bytes (mode 'verify_file': the
+      // portal renders the released file with pdf.js, annotations off) and only then is the path recorded as shareable.
+      if (isPdfFile) {
+        const recorded = await publish(job_id, body, { status: 'awaiting_pixels', paths: [], pages_in: 1, pages_out: 0, skipped: 0, verify_detail: { method: 'file', kind: f.kind, pending_path: path, ...f.proof } });
+        return J({ ok: true, job_id, recorded, paths: [], pending_path: recorded ? path : null, status: 'awaiting_pixels', method: 'file', redaction_complete: false, needs_pixels: true });
+      }
+      const page = await cadPage(f.bytes, seeds).catch(() => null);
+      if (!page || !page.ok) { await admin.storage.from('drawing-files').remove([path]).catch(() => {}); return await hold('released_file_not_drawn', page && !page.ok ? page.skipped : 'exception'); }
+      const g = await gatePage(key, held, String(body.__secret || ''), 'deterministic', bytesToB64(page.jpg), budget, pageSizeFromCad(Number(page.detail.width), Number(page.detail.height), Number(page.detail.text_px_p10)), clock.stopAt);
+      spent.pixel_usd = g.usd;
+      // A file the model boxes anything on is not cut again here: it is not shared (the preview, painted, still goes).
+      if (!fileMayBeShared(g)) { await admin.storage.from('drawing-files').remove([path]).catch(() => {}); return await hold(g.ok ? 'pixels_found_identity' : g.held, { pixel_calls: g.calls, pixel_usd: g.usd, strings_usd: stringsUsd, ...g.detail }); }
+      const detail = { method: 'file', kind: f.kind, ...f.proof, pixel_calls: g.calls, pixel_usd: g.usd, strings_usd: stringsUsd };
       const recorded = await publish(job_id, body, { status: 'complete', paths: [path], pages_in: 1, pages_out: 1, skipped: 0, pages_verified: 1, verify_failed: 0, verify_detail: detail });
       return J({ ok: true, job_id, recorded, paths: recorded ? [path] : [], pages_in: 1, pages_out: recorded ? 1 : 0, skipped: 0, status: recorded ? 'complete' : 'unrecorded', method: 'file', verify_detail: detail, redaction_complete: recorded });
+    }
+
+    // ── THE RELEASED PDF, RENDERED FROM ITS OWN BYTES, CHECKED BY A MODEL (13 Nov 2026, design change A) ────────────
+    // `run_id` names the 'awaiting_pixels' file run this caller's own redaction recorded; `images` are that released
+    // file's pages rendered (pdf.js, annotations off). THE SERVER DOES NOT TRUST THE BROWSER (second review, item 1):
+    // there is no PDF rasteriser in the edge runtime, so it reads the pending file itself and requires exactly one image
+    // per page, each with the page's shape, the pixels the tiles need (a file can be zoomed) and its ink where the file
+    // draws (_shared/released_file_pages.ts); then
+    // every page passes the pixel gate, tiled to its MediaBox, on its FIRST look (fileMayBeShared). Only then is a new
+    // run recorded naming the path, which is what makes it signable (drawing_pages.recordedPaths).
+    if (body.mode === 'verify_file') {
+      const runId = typeof body.run_id === 'string' && UUID_RE.test(body.run_id) ? body.run_id : null;
+      const imgs: any[] = Array.isArray(body.images) ? body.images : [];
+      if (!runId || !imgs.length) return J({ ok: false, error: 'run_id_and_images_required' }, 400);
+      const { data: run } = await admin.from('drawing_redaction_runs').select('id,customer_id,owner_email,source_path,status,verify_detail').eq('id', runId).maybeSingle();
+      const pending = (run as any)?.verify_detail?.pending_path;
+      const owner = typeof body.owner_customer_id === 'string' && body.owner_customer_id === (run as any)?.customer_id;
+      if (!run || (run as any).status !== 'awaiting_pixels' || typeof pending !== 'string' || !owner) return J({ ok: false, error: 'no_such_pending_file' }, 404);
+      const runBody = { ...body, source_path: (run as any).source_path, owner_email: (run as any).owner_email };
+      let calls = 0, usd = 0;
+      const refuse = async (why: string, page: number | null, extra: Record<string, unknown> = {}) => {
+        const recorded = await publish(job_id, runBody, { status: 'failed', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length, verify_detail: { method: 'verify_file', file_run: runId, page, held: why, pixel_calls: calls, pixel_usd: usd, ...extra } });
+        return J({ ok: true, job_id, recorded, paths: [], status: 'failed', held_reason: why, redaction_complete: false, ...budgetSaid(why) });
+      };
+      // The server's own reading of the pending file: its pages, their shapes, where each draws.
+      let pages: PdfPage[] = [];
+      try {
+        const dl = await admin.storage.from('drawing-files').download(pending);
+        if (dl.error || !dl.data) return await refuse('pending_file_unreadable', null);
+        // The redaction view reads every painted path too (a diagonal, a curve, a hatch), not only axis-aligned edges.
+        const view = await pdfRedactionView(new Uint8Array(await dl.data.arrayBuffer()));
+        if (!view) return await refuse('pending_file_unreadable', null);
+        pages = view.pages.map((x) => x.page);
+      } catch (_e) { return await refuse('pending_file_unreadable', null); }
+      const countWrong = pageCountHolds(pages.length, imgs.length, PIXEL_PAGE_CAP);
+      if (countWrong) return await refuse(countWrong, null, { pages: pages.length, images: imgs.length });
+      const shown: string[] = imgs.map((im) => stripB64(String((im && (im.b64 || im.data)) || im)));
+      for (let i = 0; i < pages.length; i++) {
+        const px = jpegSize(b64ToBytes(shown[i]));
+        if (!px || !aspectMatches(pages[i], px.w, px.h)) return await refuse('image_is_not_this_page', i, { check: 'aspect', image: px });
+        // A file can be zoomed: its image must carry the pixels the tiles ask for (released_file_pages 4. DENSITY).
+        if (!imageDenseEnough(pages[i], px.w, px.h)) return await refuse('image_too_coarse', i, { check: 'density', image: px, needed_long_px: pxNeeded(pages[i]) });
+        const ink = await inkElsewhere(String(body.__secret || ''), shown[i]);
+        const agree = ink ? inkAgrees(expectedInk(pages[i]), ink.cells) : null;
+        if (!agree || !agree.ok) return await refuse('image_is_not_this_page', i, { check: 'ink', cover: agree?.cover ?? null, precision: agree?.precision ?? null });
+      }
+      const held = await modelHeld(admin); const key = held ? undefined : await sec('cred_fn_ai');
+      const budget = await pixelBudgetFor((run as any).source_path);
+      for (let i = 0; i < pages.length; i++) {
+        const p = pages[i];
+        const g = await gatePage(key, held, String(body.__secret || ''), 'deterministic', shown[i], budget, Math.abs(p.rotate || 0) % 180 === 90 ? pageSizeFromMediaBox(p.height, p.width) : pageSizeFromMediaBox(p.width, p.height), clock.stopAt);
+        calls += g.calls; usd += g.usd;
+        if (!fileMayBeShared(g)) return await refuse(g.ok ? 'pixels_found_identity' : g.held, i);
+      }
+      const recorded = await publish(job_id, runBody, { status: 'complete', paths: [pending], pages_in: imgs.length, pages_out: 1, skipped: 0, pages_verified: imgs.length, verify_failed: 0, verify_detail: { method: 'verify_file', file_run: runId, pixel_calls: calls, pixel_usd: usd, pages: pages.length } });
+      return J({ ok: true, job_id, recorded, paths: recorded ? [pending] : [], status: recorded ? 'complete' : 'unrecorded', method: 'verify_file', redaction_complete: recorded });
     }
 
     // ── CAD PATH (24 Sep 2026): the drawing is drawn from its own entities with its identity left out ──
@@ -380,21 +587,38 @@ Deno.serve(observe('drawing_redact', async (req) => {
     if (body.mode === 'cad') {
       if (typeof body.original_b64 !== 'string' || !body.original_b64) { const recorded = await publish(job_id, body, { status: 'empty', paths: [], pages_in: 0, pages_out: 0, skipped: 0 }); return J({ ok: true, job_id, recorded, paths: [], pages_in: 0, pages_out: 0, method: 'cad_render' }); }
       const seeds = Array.isArray(body.seed_terms) ? body.seed_terms.map((x: unknown) => String(x)).filter(Boolean).slice(0, 200) : [];
+      // B for the preview too: the drawing's strings are read by a model, and what it marks is not drawn (with the deny
+      // floor). No reading = no preview (the pixel gate below would hold it anyway).
+      const heldM = await modelHeld(admin); const keyM = heldM ? undefined : await sec('cred_fn_ai');
+      let identity: Set<string> | undefined, reading: StringsReading | null = null;
+      const budgetM = await pixelBudgetFor(body.source_path);
+      if (keyM) { const src = await asciiDxfOf(b64ToBytes(body.original_b64)); if (src.ok) { reading = await readCadStrings(src.dxf, (sy, us) => askStrings(keyM, sy, us), budgetM); if (reading) identity = reading.identity; } }
+      // The reading goes back with the answer so mode 'file' does not read the same strings again (second review, item 8):
+      // bound to the file by its SHA-256, and only to a caller that holds the internal credential.
+      const handedOn = reading ? { strings_reading: { sha: reading.sha, identity: [...reading.identity] } } : {};
+      const spentM = { strings_usd: reading?.usd ?? 0, pixel_usd: 0 };
       let out: Awaited<ReturnType<typeof cadPage>>;
-      try { out = await cadPage(b64ToBytes(body.original_b64), seeds); } catch (e) { out = { ok: false, skipped: 'cad_render_exception', detail: String((e as Error)?.message || e).slice(0, 160) }; }
+      if (!identity) out = { ok: false, skipped: heldM ? 'held_model_off' : 'strings_not_read' };
+      else { try { out = await cadPage(b64ToBytes(body.original_b64), seeds, { identity }); } catch (e) { out = { ok: false, skipped: 'cad_render_exception', detail: String((e as Error)?.message || e).slice(0, 160) }; } }
+      if (out.ok) {
+        const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(out.jpg), budgetM, pageSizeFromCad(out.image.width, out.image.height, Number(out.detail.text_px_p10)), clock.stopAt);
+        spentM.pixel_usd = g.usd;
+        if (!g.ok) out = { ok: false, skipped: g.held, detail: JSON.stringify(g.detail).slice(0, 160) };
+        else { out = { ...out, jpg: b64ToBytes(g.jpgB64), detail: { ...out.detail, pixel_calls: g.calls, pixel_usd: g.usd, pixel_boxes: g.detail.boxes_added } }; }
+      }
       if (!out.ok) {
-        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'cad_render', pages: [{ page: 0, skipped: out.skipped, detail: out.detail ?? null }] } });
-        return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'cad_render', held_reason: out.skipped, redaction_complete: false });
+        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'cad_render', pages: [{ page: 0, skipped: out.skipped, detail: out.detail ?? null }], ...spentM } });
+        return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'cad_render', held_reason: out.skipped, redaction_complete: false, ...budgetSaid(out.skipped) });
       }
       const path = `${prefix}_p0.jpg`;
       const up = await admin.storage.from('drawing-files').upload(path, out.jpg, { contentType: 'image/jpeg', upsert: true });
       if (up.error) {
-        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'cad_render', pages: [{ page: 0, skipped: 'upload_failed' }] } });
+        const recorded = await publish(job_id, body, { status: 'failed', paths: [], pages_in: 1, pages_out: 0, skipped: 1, verify_detail: { method: 'cad_render', pages: [{ page: 0, skipped: 'upload_failed' }], ...spentM } });
         return J({ ok: true, job_id, recorded, paths: [], pages_in: 1, pages_out: 0, skipped: 1, status: 'failed', method: 'cad_render', held_reason: 'upload_failed', redaction_complete: false });
       }
-      const detail = { method: 'cad_render', pages: [{ page: 0, ...out.detail }] };
+      const detail = { method: 'cad_render', pages: [{ page: 0, ...out.detail }], ...spentM };
       const recorded = await publish(job_id, body, { status: 'complete', paths: [path], pages_in: 1, pages_out: 1, skipped: 0, pages_verified: 1, verify_failed: 0, verify_detail: detail });
-      return J({ ok: true, job_id, recorded, paths: recorded ? [path] : [], pages_in: 1, pages_out: recorded ? 1 : 0, skipped: 0, pages_verified: 1, verify_failed: 0, status: recorded ? 'complete' : 'unrecorded', method: 'cad_render', verify_detail: detail.pages, redaction_complete: recorded });
+      return J({ ok: true, job_id, recorded, paths: recorded ? [path] : [], pages_in: 1, pages_out: recorded ? 1 : 0, skipped: 0, pages_verified: 1, verify_failed: 0, status: recorded ? 'complete' : 'unrecorded', method: 'cad_render', verify_detail: detail.pages, redaction_complete: recorded, ...handedOn });
     }
 
     const imgs: any[] = Array.isArray(body.images) ? body.images.slice(0, 8) : [];
@@ -414,7 +638,16 @@ Deno.serve(observe('drawing_redact', async (req) => {
     // ── MANUAL PATH: the customer's own boxes, no model involved ──────────────────────────────────
     if (Array.isArray(body.manual_boxes)) {
       const paths: string[] = []; let skipped = 0; let textHits = 0; const detail: any[] = [];
+      // A (13 Nov 2026): every page passes the pixel gate before it is shared; review item 4: the reader must agree with
+      // pdf-lib on what the page draws, or its boxes are not trusted.
+      const heldM = await modelHeld(admin); const keyM = heldM ? undefined : await sec('cred_fn_ai');
+      const budget = await pixelBudgetFor(body.source_path);
+      const agrees = body.original_b64 ? await readerAgrees(b64ToBytes(body.original_b64), [pageOffset, pageOffset + imgs.length]) : false;
+      let pixelCalls = 0, pixelUsd = 0;
+      const timePages: number[] = [];
       for (let i = 0; i < imgs.length; i++) {
+        if (Date.now() >= clock.startBy) { skipped++; timePages.push(i); detail.push({ page: i, skipped: TIME_HELD }); continue; }
+        if (!agrees) { skipped++; detail.push({ page: i, skipped: 'reader_disagrees_with_pdf' }); continue; }
         // FAIL CLOSED (founder, 14 Sep 2026: nothing that identifies the customer may reach a supplier). The
         // steps live in _shared/drawing_redact_page.ts serverBoxedPage: a page the server cannot read (a scan,
         // a photo) is HELD whatever boxes came with it; a readable one is painted with the boxes plus the
@@ -424,15 +657,23 @@ Deno.serve(observe('drawing_redact', async (req) => {
           const r = await serverBoxedPage(b64ToBytes(String(b)), pdf, pageOffset + i, cleanBoxes(body.manual_boxes[i]));
           if (!r.ok) { skipped++; detail.push({ page: i, skipped: r.skipped }); continue; }
           textHits += Number(r.detail.text_layer_boxes) || 0;
+          const pp = pdf[pageOffset + i];
+          const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(r.jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt, vocabularyVet(pp, []));
+          pixelCalls += g.calls; pixelUsd += g.usd;
+          if (!g.ok) { skipped++; if (g.held === TIME_HELD) timePages.push(i); detail.push({ page: i, skipped: g.held, ...g.detail }); continue; }
+          // The same rule as the model path (drawing_code_floor.unreadTextHold, round 4): every area of text code cannot read
+          // must lie under a painted box - the boxes that came with the page, the text layer's, or the checker's - or HELD.
+          const unreadHeld = unreadTextHold(pp, [], [...(r.painted ?? []), ...g.boxes.map((b) => padded(b, REPAINT_MARGIN))]);
+          if (unreadHeld) { skipped++; detail.push({ page: i, skipped: unreadHeld }); continue; }
           const path = `${prefix}_p${i}.jpg`;
-          const up = await admin.storage.from('drawing-files').upload(path, r.jpg, { contentType: 'image/jpeg', upsert: true });
+          const up = await admin.storage.from('drawing-files').upload(path, b64ToBytes(g.jpgB64), { contentType: 'image/jpeg', upsert: true });
           if (up.error) { skipped++; detail.push({ page: i, skipped: 'upload_failed' }); continue; }
-          paths.push(path); detail.push({ page: i, ...r.detail });
+          paths.push(path); detail.push({ page: i, ...r.detail, ...ignoredSaid(g) });
         } catch (_e) { skipped++; detail.push({ page: i, skipped: 'decode_failed' }); }
       }
       const status = paths.length === 0 ? 'failed' : (paths.length < imgs.length ? 'partial' : 'complete');
-      const recorded = await publish(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: 0, verify_failed: 0, verify_detail: { method: 'manual', pages: detail } });
-      return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: 0, verify_failed: 0, verify_detail: detail, status, method: 'manual', text_layer_hits: textHits, redaction_complete: recorded && paths.length === imgs.length });
+      const recorded = await publish(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: paths.length, verify_failed: 0, verify_detail: { method: 'manual', pages: detail, pixel_calls: pixelCalls, pixel_usd: pixelUsd } });
+      return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: 0, verify_failed: 0, verify_detail: detail, status, method: 'manual', text_layer_hits: textHits, time_held: timePages.length, time_held_pages: timePages, redaction_complete: recorded && paths.length === imgs.length, ...budgetSaid(detail.some((d: any) => d.skipped === 'pixels_budget') ? 'pixels_budget' : undefined) });
     }
 
     // THE MODEL IS HELD: SAY SO, DO NOT ASK (24 Sep 2026). Under the OpenRouter hold every find call failed and
@@ -473,7 +714,14 @@ Deno.serve(observe('drawing_redact', async (req) => {
     } catch (_e) { const recorded = await publish(job_id, body, { status: 'detect_exception', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_exception', job_id, recorded, needs_manual_boxes: true, redaction_complete: false }, 200); }
 
     const paths: string[] = []; let skipped = 0; let verified = 0; let verifyFailed = 0; const verifyDetail: any[] = [];
+    const budget = await pixelBudgetFor(body.source_path); let pixelCalls = 0, pixelUsd = 0;
+    const seeds: string[] = Array.isArray(body.seed_terms) ? body.seed_terms.map((x: unknown) => String(x)).filter(Boolean).slice(0, 200) : [];
+    // Boxes code adds under the models' answer (see THE CODE FLOOR below; drawing_redact_page.codeFloorBoxes); null = no
+    // reading of this page exists.
+    const codeFloor = (i: number) => codeFloorBoxes(pdf[pageOffset + i], seeds);
+    const timePages: number[] = [];
     for (let i = 0; i < imgs.length; i++) {
+      if (Date.now() >= clock.startBy) { skipped++; timePages.push(i); verifyDetail.push({ page: i, skipped: TIME_HELD }); continue; }
       try {
         const regions = regionsByPage[i] || [];
         const hasId = identityByPage[i] !== false;
@@ -497,50 +745,44 @@ Deno.serve(observe('drawing_redact', async (req) => {
             target.composite(new Image(w, h).fill(0x000000ff), x, y);
           }
         };
-        // Identity the text layer locates is boxed as well as what the model named; the verifier
-        // below still decides whether the page is published. So is text-layer text that instructs the checker
-        // (verify_verdict.ts instructingRuns): covered before any model reads the page.
+        // THE CODE FLOOR (13 Nov 2026, sales_engineer; anonymity audit B finding I1). The model names the regions and a model
+        // of another family checks the result; MEASURED with a stand-in "title strip only" answer on the auditor's scan B2,
+        // the area, the villa, the street, the watermark firm, the rotated edge text, the Arabic owner line and the contact
+        // paragraph all stayed readable, so the second model was the only thing that could catch them. Now code covers,
+        // whatever either model answered: on a PDF page, the server's own title-block boxes (strip, key plans, every picture
+        // outside the strip) and every run that names a party, a place below the emirate or a seed. A page with no text
+        // layer is not published from here at all: it is held, and the scan route (_shared/scan_redact.ts) takes it
+        // (drawing_redact_page.codeFloorBoxes says why one pass of OCR is not a floor).
+        // A page with a text layer gets the code floor (what code can prove); a scan or a photo has none, and since 13 Nov
+        // 2026 (design change A) it is published here only through the pixel gate - a model of another family than the
+        // find, asked of the final page in tiles, up to twice more after painting what it named. (The scan route's worker,
+        // scripts/cad_read_worker.ts, also runs: as the scheduled routine "QuotesDone - CAD read worker (every 2 h)", not
+        // GitHub Actions; an earlier comment here said it did not run while Actions is off, which was wrong.)
+        const floor = codeFloor(i) ?? [];
+        // Identity the text layer locates is boxed as well as what the model named; so is text-layer text that instructs
+        // the checker (verify_verdict.ts instructingRuns): covered before any model reads the page.
         paint(img, [...regions, ...textBoxes(i).boxes, ...instructingRuns(pdf[pageOffset + i]?.runs ?? [])]);
+        paintBoxes(img, floor);   // the code floor, at the server's own margin (its boxes are measured, not guessed)
         let jpg = await img.encodeJPEG(82);
-        // One base64 per page version: the verify, the retry and the repaint all read the same string.
-        let jpgB64 = bytesToB64(jpg);
-        // Adversarial second pass over what the supplier will actually see. Fails closed.
-        //
-        // A BLANKET TITLE-BLOCK FALLBACK WAS TRIED HERE AND REMOVED (13 Aug 2026). Masking the
-        // right 22% and bottom 12% of any page the verifier refused, then re-checking once, was
-        // measured on the same real 6-sheet mechanical set across three runs: the yield stayed at
-        // 4 of 6 with it and without it. It cost an extra vision call per failing page and blacked
-        // out a third of a drawing for no measured gain, so it is not here. What the verifier
-        // actually still reports on the two refused pages is a logo in a corner and a REVISIONS
-        // block — not the title strip. Anything that replaces this should be aimed there.
-        let vr = await verifyPage(key, jpgB64, findModel);
-        let attempt = 1;
-        if (!vr.clean) {
-          // ONE more attempt, and its shape depends on what the refusal actually was.
-          if (isNoAnswer(vr.found)) {
-            // The check did not run. Re-ask the same image; nothing about the page is known to be
-            // wrong, so masking more of it would be aiming at nothing.
-            attempt = 2;
-            vr = await verifyPage(key, jpgB64, findModel);
-          } else {
-            // The check ran and named what is left. Cover exactly that, then re-verify - IN A FRESH WORKER (2 Nov
-            // 2026): a second encode in this one is what put the page past the 2 s CPU cap (repaintJpeg's header).
-            // A repaint that does not come back is a page not verified, so it is refused: fail closed.
-            const retry = await retryRegions(key, jpgB64, vr.found);
-            const extra = retry.regions;
-            if (extra.length) {
-              attempt = 2;
-              const rp = await repaintElsewhere(String(body.__secret || ''), jpgB64, extra, [findModel, retry.model ?? 'unknown'].join(','));
-              if (rp.ok) { jpgB64 = rp.jpg_b64; jpg = b64ToBytes(jpgB64); }
-              vr = rp.ok ? { clean: rp.clean, found: rp.found } : { clean: false, found: ['repaint_failed: ' + rp.error] };
-            }
-          }
-        }
+        const pp = pdf[pageOffset + i];
+        const gate = await gatePage(key, false, String(body.__secret || ''), findModel, bytesToB64(jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt, vocabularyVet(pp, seeds));
+        if (!gate.ok && gate.held === TIME_HELD) { skipped++; timePages.push(i); verifyDetail.push({ page: i, skipped: TIME_HELD, calls: gate.calls }); pixelCalls += gate.calls; pixelUsd += gate.usd; continue; }
+        pixelCalls += gate.calls; pixelUsd += gate.usd;
+        const attempt = gate.ok ? (gate.firstLookClean ? 1 : 2) : gate.calls;
+        const vr = gate.ok ? { clean: true, found: [] as string[] } : { clean: false, found: [gate.held, ...((gate.detail as any).still ?? [])] };
+        if (gate.ok) jpg = b64ToBytes(gate.jpgB64);
         // Still refused after the second attempt: unchanged behaviour, the page is not published.
         // The ledger now records which attempt decided it, so "the retry never helps" is a query
         // rather than an opinion the next session has to take on trust.
         if (!vr.clean) { verifyFailed++; skipped++; verifyDetail.push({ page: i, attempts: attempt, found: vr.found }); continue; }
+        // TEXT CODE CANNOT READ (round 3; drawing_code_floor.unreadTextHold): outlined or undecodable text that neither
+        // model named anything on is not believed free of identity. HELD, never published on a silent answer.
+        // Round 4: judged by WHERE - every unread area's centre under some painted box (find, floor, text layer, checker).
+        const painted = [...[...regions, ...textBoxes(i).boxes, ...instructingRuns(pp?.runs ?? [])].map((b) => padded(b, MARGIN)), ...floor.map((b) => padded(b, SERVER_MARGIN)), ...(gate.ok ? gate.boxes.map((b) => padded(b, REPAINT_MARGIN)) : [])];
+        const unreadHeld = gate.ok ? unreadTextHold(pp, seeds, painted) : null;
+        if (unreadHeld) { skipped++; verifyDetail.push({ page: i, skipped: unreadHeld, areas: unpaintedUnread(pp, seeds, painted).length }); continue; }
         if (attempt > 1) verifyDetail.push({ page: i, attempts: attempt, recovered: true });
+        if (gate.ok && gate.detail.ignored) verifyDetail.push({ page: i, ...ignoredSaid(gate) });
         verified++;
         const path = `${prefix}_p${i}.jpg`;
         const up = await admin.storage.from('drawing-files').upload(path, jpg, { contentType: 'image/jpeg', upsert: true });
@@ -551,7 +793,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
       } catch (_e) { skipped++; verifyDetail.push({ page: i, skipped: 'exception' }); continue; }
     }
     const status = paths.length === 0 ? 'failed' : (paths.length < imgs.length ? 'partial' : 'complete');
-    const recorded = await publish(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: verifyDetail.length ? verifyDetail : null });
-    return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: verifyDetail, status, method: 'model', redaction_complete: recorded && paths.length === imgs.length });
+    const recorded = await publish(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: { method: 'model', pages: verifyDetail, pixel_calls: pixelCalls, pixel_usd: pixelUsd } });
+    return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: verifyDetail, status, method: 'model', time_held: timePages.length, time_held_pages: timePages, redaction_complete: recorded && paths.length === imgs.length });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));

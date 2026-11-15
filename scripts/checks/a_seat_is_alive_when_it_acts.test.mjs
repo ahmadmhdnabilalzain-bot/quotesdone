@@ -14,6 +14,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SRC = readFileSync(join(REPO, 'scripts/sql/a_seat_is_alive_when_it_acts_not_when_it_logs_a_run.sql'), 'utf8');
@@ -38,7 +39,7 @@ if (!SKIP) {
 test('production: every active seat has a verdict; a ZZ DEMO seat with overdue work and no act is stopped, then behind', { skip: SKIP }, async () => {
   let out;
   try {
-    await sql(`do $p$
+    await replaySql(`do $p$
       declare v1 text; v2 text; v3 text; n_seats int; n_rows int; v_act bigint;
         -- Since #1578 (every_handoff_note_states_context_decision_open_asks_and_deadline_and_its_receiver_cites_it.sql,
         -- founder ledger 1013) a handoff row states context, decision, open asks and deadline, or the a01 trigger and

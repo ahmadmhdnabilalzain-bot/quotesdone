@@ -49,14 +49,18 @@ Deno.test('a conditional discount is a payment term, never a cut in the fee base
 Deno.test('storedPrice: quote_amount (the column revealCharge reads) is the after-discount ex-VAT price', () => {
   const s = storedPrice(statedPrice({ amount: 1785, subtotal: 2000, discount_amount: 300, vat_amount: 85 }), 1785);
   assertEquals([s.quote_amount, s.price_ex_vat, s.gross_amount, s.discount_amount, s.amount_as_stated], [1700, 1700, 2000, 300, 1785]);
-  // VAT basis not stated: held for it, and still never the gross
+  // VAT basis not stated: held for it, NO fee base stored (13 Nov 2026), the supplier's after-discount total kept as stated
   const h = storedPrice(statedPrice({ amount: 2000, text: 'Total AED 2,000. Discount AED 300.' }), 2000);
-  assertEquals([h.price_ex_vat, h.quote_amount], [null, 1700]);
+  assertEquals([h.price_ex_vat, h.quote_amount, h.amount_as_stated], [null, null, 1700]);
 });
 Deno.test('a quote stored with no ex-VAT figure is HELD: never ranked, shown or revealable (reveal_guard -> assess.ts price_ex_vat)', () => {
-  // VAT-inclusive total, VAT amount not stated: no ex-VAT figure, quote_amount falls back to the total as stated.
+  // VAT-inclusive total, VAT amount not stated: no ex-VAT figure, so NO fee base (quote_amount NULL); the total stays as stated.
   const s = storedPrice(statedPrice({ amount: 2100, text: 'Total AED 2,100 inclusive of VAT' }), 2100);
-  assertEquals([s.price_ex_vat, s.quote_amount], [null, 2100]);
+  assertEquals([s.price_ex_vat, s.quote_amount, s.amount_as_stated], [null, null, 2100]);
+  // and no page computes a fee from the gross: feeBaseOf answers nothing until the basis is settled
+  assertEquals(feeBaseOf({ quote_amount: 2100, vat_treatment: 'inclusive' }), null);
+  assertEquals(feeBaseOf({ quote_amount: 2100, vat_treatment: 'not_stated' }), null);
+  assertEquals(feeBaseOf({ quote_amount: 2000, price_ex_vat: 2000, vat_treatment: 'inclusive' }), 2000);
   const q = { id: 'zz-held', lead_time: '21 days', warranty: '2 years on workmanship', scope: 'Supply and installation of wardrobes by our team',
     terms_spec: { installation: { included: 'yes', detail: 'by our team', source: 'reasoned' }, warranty: { period: '2 years', coverage: 'workmanship', source: 'reasoned' } } };
   const item = { line_no: 1, description: 'Wardrobes 18mm MR MDF, HPL finish', amount: 2000,

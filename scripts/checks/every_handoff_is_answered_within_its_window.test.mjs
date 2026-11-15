@@ -23,6 +23,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { sql } from '../lib/db.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const FILE = 'scripts/sql/every_handoff_is_answered_within_its_window.sql';
@@ -61,7 +62,7 @@ test('the digest hold ends at the first 19:00 Dubai a day after the request, plu
 // Runs a block that must end in `raise exception 'CHK<<json>>'` and returns the parsed json.
 async function probe(block) {
   try {
-    await sql(`select set_config('qd.probe_files_demo_handoff', 'on', true); do $p$ ${block} $p$;`);
+    await replaySql(`select set_config('qd.probe_files_demo_handoff', 'on', true); do $p$ ${block} $p$;`, { label: 'the handoff window probe' });
   } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (m) return JSON.parse(m[1].replace(/\\"/g, '"'));

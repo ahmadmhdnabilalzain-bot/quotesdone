@@ -1,3 +1,4 @@
+import { knownNameRe } from '../identity_text.ts';
 import { priceStated, vatShort, type PriceRow } from '../stated_price.ts';
 import { type SpecFlag, type TechTerm, type TechnicalComparison, arrOf, clipCell } from './rows.ts';
 import { type ArTexts, type Cell, type Kit, flagged, kit } from './kit.ts';
@@ -84,7 +85,8 @@ function commercialRowsOf(a: any, k: Kit, every = false): { head: Cell[]; rows: 
   push(T('Warranty', 'الضمان'), (q) => term(terms?.warranty, q, k.dur(q.warranty) || '—'));
   push(T('Payment terms', 'شروط الدفع'), (q) => k.pay(q.payment_terms));
   push(T('Valid for', 'مدة الصلاحية'), (q) => k.dur(q.validity) || '—');
-  push(T('What you get', 'ما ستحصل عليه'), (q) => k.sentence(clipCell(q.getting, 240)) || '—');
+  // Masked like every other supplier-written cell (13 Nov 2026: a raw "getting" sentence crossed with the supplier's name).
+  push(T('What you get', 'ما ستحصل عليه'), (q) => k.sentence(clipCell(q.getting == null ? q.getting : k.mask(q.getting), 240)) || '—');
   push(T('Included', 'مشمول'), (q) => list(q.includes, 240));
   push(T('Not included', 'غير مشمول'), (q) => list(q.excludes, 200));
   push(T('Missing from your request', 'ناقص مما طلبت'), (q) => list(q.missing_from_request, 200));
@@ -101,11 +103,18 @@ function commercialRowsOf(a: any, k: Kit, every = false): { head: Cell[]; rows: 
 const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', optional: '○', na: '' };
 /** The commercial comparison as text rows: what compare_csv exports. Same rows as the report. */
 // deno-lint-ignore no-explicit-any
-export function compareTable(a: any, ar: boolean, arTexts: ArTexts = {}): { head: string[]; rows: string[][]; untranslated: string[] } | null {
+// 13 Nov 2026 (anonymity audit, REPORT_C L7): the CSV was the comparison's rows WITHOUT the supplier names the PDF masks
+// (commercialRows was given []), so "balance on completion - Desert Brush team" crossed in the CSV after the PDF hid it.
+// `maskNames` is the same list compareDocument receives (customer_api lib/pdfs.ts compareMaskNames).
+export function compareTable(a: any, ar: boolean, arTexts: ArTexts = {}, maskNames: string[] = []): { head: string[]; rows: string[][]; untranslated: string[] } | null {
   const sink = new Set<string>();
-  const r = commercialRows(a, ar ? 'ar' : 'en', [], arTexts, sink, true);
+  const r = commercialRows(a, ar ? 'ar' : 'en', maskNames, arTexts, sink, true);
   if (!r) return null;
-  const txt = (c: Cell) => { if (typeof c === 'string') return c; const m = c.flag ? MARK[c.flag] : ''; return (m && c.text !== '—' ? m + ' ' : '') + c.text; };
+  const txt0 = (c: Cell) => { if (typeof c === 'string') return c; const m = c.flag ? MARK[c.flag] : ''; return (m && c.text !== '—' ? m + ' ' : '') + c.text; };
+  // The supplier's name as he writes it ("balance on completion - Desert Brush team", REPORT_C L1), not only whole: the
+  // name with its fragments, as quote_compare's last gate already does (second review of 13 Nov 2026).
+  const frags = maskNames.map((n) => knownNameRe(n, { fragments: true })).filter(Boolean) as RegExp[];
+  const txt = (c: Cell) => { let t = txt0(c); for (const re of frags) t = t.replace(re, ar ? 'المورّد' : 'the supplier'); return t; };
   return { head: r.head.map(cellText), rows: r.rows.map((row) => row.map(txt)), untranslated: [...sink] };
 }
 /** RFC 4180 cells, plus a leading apostrophe on anything a spreadsheet would run as a formula. */

@@ -4,6 +4,7 @@
 // `if (action === …)` reads exactly as it did and the checks that locate a handler by that line still find it.
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here from index.ts on 9 Nov 2026 (sales_engineer: the 791-line index.ts split into modules, a pure move).
+import { jobNumbersOf, opportunitiesBeforeReveal, recommendBeforeReveal, revealedBy } from '../before_reveal.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 import { productsAsked } from '../../_shared/reasoned_matching.ts';
 import { type ActionCtx, J, loadFailed, admin } from '../context.ts';
@@ -27,7 +28,8 @@ export async function marketActions(c: ActionCtx): Promise<Response | undefined>
       const { data: rec, error } = await admin.rpc('fn_supplier_quote_recommend',
         { p_lead_id: supId, p_inquiry_id: inqId });
       if (error) return loadFailed(String(action), error);
-      return J({ ok: true, ...rec });
+      const { data: qi } = await admin.from('inquiries').select('id,rfq_no,category,emirate').eq('id', inqId).maybeSingle();
+      return J({ ok: true, ...recommendBeforeReveal(rec as Record<string, unknown>, (await revealedBy(admin, supId)).has(inqId), qi) });
     }
 
     // ROW #5 §16 §4 — WHAT EACH DOCUMENT IS EARNING, AND WHAT THE MISSING ONE IS COSTING.
@@ -120,7 +122,8 @@ export async function marketActions(c: ActionCtx): Promise<Response | undefined>
     if (action === 'opportunities') {
       const { data: opps, error } = await admin.rpc('fn_supplier_opportunities', { p_lead_id: supId });
       if (error) return loadFailed(String(action), error);
-      return J({ ok: true, ...opps });
+      const ol = ((opps as { opportunities?: { inquiry_id?: string }[] })?.opportunities || []).map((o) => o.inquiry_id);
+      return J({ ok: true, ...opportunitiesBeforeReveal(opps as Record<string, unknown>, await revealedBy(admin, supId), await jobNumbersOf(admin, ol)) });
     }
 
     if (action === 'advisor') {

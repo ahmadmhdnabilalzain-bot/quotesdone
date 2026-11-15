@@ -1,0 +1,41 @@
+diff --git a/supabase/functions/_shared/identity_text.ts b/supabase/functions/_shared/identity_text.ts
+index b630511c3..caf0deac6 100644
+--- a/supabase/functions/_shared/identity_text.ts
++++ b/supabase/functions/_shared/identity_text.ts
+@@ -38,7 +38,7 @@ const NO_GROUP_BEFORE = `(?<![0-9٠-٩۰-۹][${SEPC}]?)(?<![0-9٠-٩۰-۹])`;
+  * digit after a space, so "Call 050 123 4567 9am to 6pm" and "Mob: 050 123 4567 24/7" kept the whole number. "03 120 4500
+  * 54000" (a BOQ row) is still refused by its 54000.
+  */
+-const NO_GROUP_AFTER = `(?!${D})(?![${SEPC}]{1,2}(?![0٠۰])${D}{3})(?![${SEPC}]?${D}{1,2}[.,]${D})`;
++const NO_GROUP_AFTER = `(?!${D})(?:(?=\\t)|(?![${SEPC}]{1,2}(?![0٠۰])${D}{3})(?![${SEPC}]?${D}{1,2}[.,]${D}))`;
+ /** One or two separator characters ("050  123  4567" has two spaces). */
+ const S1 = `[${SEPC}]{0,2}`;
+ const Z = '[0٠۰]';
+diff --git a/supabase/functions/drawing_boq/quotation_gate.ts b/supabase/functions/drawing_boq/quotation_gate.ts
+index f07cf314f..a88c27e95 100644
+--- a/supabase/functions/drawing_boq/quotation_gate.ts
++++ b/supabase/functions/drawing_boq/quotation_gate.ts
+@@ -29,8 +29,8 @@ import { UNIT_ALTERNATION } from './boq_from_text.ts';
+ 
+ export const QUOTATION_BASIS = 'As listed in the customer\'s document';
+ 
+-const CUR = '(?:AED|Dhs?\\.?|DH|د\\.?\\s?إ\\.?|درهم|USD|US\\$|\\$|€|£|EUR|GBP|SAR|ريال)';
+-const NUM = '\\d[\\d,]*(?:\\.\\d+)?';
++const CUR = '(?:AED|[Dd]irhams?|Dhs?\\.?|DH|د\\.?\\s?إ\\.?|درهم|USD|US\\$|\\$|€|£|EUR|GBP|SAR|ريال)';
++const NUM = '[\\d٠-٩۰-۹][\\d٠-٩۰-۹,٬]*(?:[.٫][\\d٠-٩۰-۹]+)?';
+ const UNIT_AFTER = '(?:\\s*(?:/\\s*)?(?:m2|m²|sqm|sq\\.?\\s?m|m3|lm|rm|m|mm|cm|kg|kw|kva|tr|nos?|pcs|sets?|each|ea|lot|ls|month|months|hr|hrs|hour|day|days))?';
+ // A figure followed by a unit, a size or a percentage is a QUANTITY, never money (review of 13 Nov 2026, item 6a: "2,400.00 m2"
+ // came out ".00 m2" because the figure backtracked to "2,400" and ".00 m2" was not a unit). The BOQ reader's own unit table
+diff --git a/supabase/functions/supplier_api/what_a_supplier_receives.ts b/supabase/functions/supplier_api/what_a_supplier_receives.ts
+index 351570d1f..1ddd206ef 100644
+--- a/supabase/functions/supplier_api/what_a_supplier_receives.ts
++++ b/supabase/functions/supplier_api/what_a_supplier_receives.ts
+@@ -59,7 +59,7 @@ export type Buyer = { name: string | null; email?: string | null; phone?: string
+ export function requestSeeds(buyer: Buyer, spec: unknown): string[] {
+   const base = seedTerms({ name: buyer.name || '', email: buyer.email || '', phone: buyer.phone || '', project: buyer.project || '' });
+   // the old supplier's names and references a customer's quotation carried (customer-only key, quotation_gate termsToKeep)
+-  const old = spec && typeof spec === 'object' && Array.isArray((spec as Record<string, unknown>).old_supplier_terms) ? ((spec as Record<string, unknown>).old_supplier_terms as unknown[]).map((t) => norm(String(t ?? ''))).filter((t) => t.length >= 4) : [];
++  const old = spec && typeof spec === 'object' && Array.isArray((spec as Record<string, unknown>).old_supplier_terms) ? ((spec as Record<string, unknown>).old_supplier_terms as unknown[]).flatMap((t) => { const n = norm(String(t ?? '')); const bare = n.replace(/(?:\s+(?:l\s?l\s?c|fze|fzco|fz\s?llc|est|establishment|co|company|trading|ltd|limited|wll|plc))+$/, '').trim(); return bare !== n && bare.split(' ').length >= 2 ? [n, bare] : [n]; }).filter((t) => t.length >= 4) : [];
+   return [...new Set([...base, ...siteSeeds(spec), ...old])].sort((a, b) => b.length - a.length);
+ }
+ 

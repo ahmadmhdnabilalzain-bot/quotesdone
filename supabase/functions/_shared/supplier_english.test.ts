@@ -42,7 +42,9 @@ function fakeAdmin(row: Record<string, unknown> | null) {
     const self: any = {
       select: () => self, eq: () => self, not: () => self, in: () => self, is: () => self,
       update: (v: Record<string, unknown>) => { updates.push(v); return self; },
-      maybeSingle: () => Promise.resolve({ data: table === 'rfq_clarification' ? row : table === 'inquiries' ? { category: 'joinery', emirate: 'Dubai' } : null, error: null }),
+      // 13 Nov 2026: the replay reads the request's owner for the supplier gate (what_a_supplier_receives.ts readOwner)
+      maybeSingle: () => Promise.resolve({ data: table === 'rfq_clarification' ? row : table === 'inquiries' ? { category: 'joinery', emirate: 'Dubai', customer_id: 'c1', spec: { site_location: 'Villa 15, Al Barsha 2' } }
+        : table === 'customers' ? { full_name: 'ZZ DEMO Test Customer', email: 'zz.test@example.invalid', phone: '+971500000001' } : null, error: null }),
       then: (res: (v: unknown) => unknown) => res(
         table === 'inquiry_matches' ? { data: [{ supplier_id: 7 }, { supplier_id: 8 }], error: null }
         : table === 'leads' ? { data: [{ id: 7, email: 'z7@example.invalid' }, { id: 8, claimed_by: 'z8@example.invalid', banned: true }], error: null }
@@ -85,6 +87,14 @@ Deno.test('the replay stores the English and e-mails every unbanned matched supp
   const sent = f.rpcs.find(([fn]) => fn === 'fn_customer_support_takes_delivery')![1].p_rows;
   assertEquals(sent.map((x: any) => x.to_email), ['z7@example.invalid']);
   for (const x of sent) assertEquals(hasArabic(x.subject) || hasArabic(x.body), false);
+});
+
+Deno.test('the replay\'s English passes the supplier gate: the customer\'s site never goes out', async () => {
+  const f = fakeAdmin({ id: 44, inquiry_id: 'zz', kind: 'question', question: 'Where is the site?', english_held_at: '2026-10-05' });
+  const r = await finishEnglish(f.admin, 44, 'It is Villa 15, Al Barsha 2.');
+  assertEquals(r.ok, true);
+  const all = JSON.stringify([f.updates, f.rpcs]);
+  assertEquals(/Barsha|Villa 15/.test(all), false, all);
 });
 
 Deno.test('a clarification already finished is never mailed twice', async () => {

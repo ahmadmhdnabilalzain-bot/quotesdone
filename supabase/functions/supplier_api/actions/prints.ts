@@ -118,7 +118,7 @@ export async function printActions(c: ActionCtx): Promise<Response | undefined> 
         if (!i) return J({ error: 'not_found', code: 'not_found' }, 404);
         const d = inquiryDocuments(i);
         const row: InquiryDocRow = { id: String(i.id), rfq_no: i.rfq_no ?? null, category: i.category ?? null, emirate: i.emirate ?? null, summary: i.summary ?? null, budget: i.budget ?? null,
-          scope_type: i.scope_type ?? null, created_at: i.created_at ?? null, spec: i.spec ?? null, boq: i.boq ?? null, boq_withheld: !!i.boq_withheld,
+          scope_type: i.scope_type ?? null, created_at: i.created_at ?? null, brief_source: i.brief_source ?? null, spec: i.spec ?? null, boq: i.boq ?? null, boq_withheld: !!i.boq_withheld,
           documents: d.documents.map((x: any) => ({ kind: x.kind, name: x.name, lines: x.lines })), drawing_pages_failed: d.drawing_pages_failed };
         const ref = quoteRef(row, 'RFQ');
         // The signed drawing URLs are not on the row, so the hash is stable across signings.

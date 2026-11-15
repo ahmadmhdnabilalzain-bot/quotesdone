@@ -196,7 +196,7 @@ const finite = (b: BBox) => Number.isFinite(b.x0) && Number.isFinite(b.x1) && Nu
  * Draw a CAD drawing for a supplier. `input` is DXF bytes (ASCII or binary) or ASCII DXF text (a DWG's
  * entities as dwg.ts writes them). `seeds` are the customer's own terms (anonymise.seedTerms).
  */
-export function renderCadForSupplierSync(input: Uint8Array | string, opts: { seeds?: string[]; longEdge?: number; maxSegments?: number } = {}): CadRenderResult {
+export function renderCadForSupplierSync(input: Uint8Array | string, opts: { seeds?: string[]; longEdge?: number; maxSegments?: number; textsOnly?: boolean; identity?: Set<string> } = {}): CadRenderResult {
   let src: string;
   let parsed: ParsedDxf;
   try { src = asciiOf(input); if (!src.slice(0, 4000).includes('SECTION')) return { ok: false, reason: 'unreadable', detail: 'not a DXF' }; parsed = parseDxf(src); }
@@ -373,7 +373,10 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   }
   // THE DEFAULT IS WITHHOLD (drawing_text_policy.ts): a word is drawn only when it reads as drawing content -
   // numbers, dimensions, codes from a closed list, the trade's vocabulary - and names no seed, even fuzzily.
-  const textLeaks = (x: string) => !isDrawingContent(x) || !!seedHit(x, seeds) || residualScan(x, seeds).length > 0 || namesParty(x);
+  // The strings a model marked as identity (drawing_string_reading.ts, design change B, 13 Nov 2026), matched whole and
+  // line by line, are never drawn; with the deny floor (isDrawingContent: only what code can prove is a party or a place).
+  const marked = new Set([...(opts.identity ?? [])].map((x) => x.replace(/\s+/g, ' ').trim().toUpperCase()).filter(Boolean));
+  const textLeaks = (x: string) => marked.has(x.replace(/\s+/g, ' ').trim().toUpperCase()) || !isDrawingContent(x) || !!seedHit(x, seeds) || residualScan(x, seeds).length > 0 || namesParty(x);
   const identity = (t: TextItem) => t.frame || partyTag(t.tag) || textLeaks(t.s);
   const out = new Set<TextItem>();
   for (const t of texts) if (identity(t)) out.add(t);
@@ -508,6 +511,9 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   const keptGroups = baselineGroups(kept);
   const leak = keptGroups.filter(lineLeaks).length + stackedPairs(keptGroups).filter(([up, lo]) => stackLeaks(up.text, lo.text)).length;
   if (leak) return { ok: false, reason: 'residual', detail: `${leak} drawn line(s) still read as identity` };
+  // THE TEXTS ALONE (13 Nov 2026, anonymity audit B finding L1): the anonymised CAD FILE keeps exactly the words this
+  // preview draws (cad_file_redact.ts), so its redactor asks for the decision without paying for the pixels.
+  if (opts.textsOnly) return { ok: true, rgba: new Uint8ClampedArray(0), width: 0, height: 0, drawn_texts: drawnTexts, withheld: { texts: out.size, regions: 0, samples_redacted: withheldBoxes.length }, counts, notes, regions_px: [] };
   for (const t of kept) counts.unknown_glyphs += t.unknown;
   if (counts.unknown_glyphs) notes.push(`${counts.unknown_glyphs} character(s) outside the Latin stroke font (for example Arabic) are drawn as boxes; the take-off still reads them.`);
   if (counts.paper_space_skipped) notes.push(`${counts.paper_space_skipped} paper-space entities (sheet layouts, where title blocks live) are not drawn.`);
@@ -566,6 +572,10 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
   for (const t of kept) { for (const st of t.strokes) poly(st.flat()); if (segs > maxSeg) break; }
   if (segs > maxSeg) return { ok: false, reason: 'too_dense', detail: `more than ${maxSeg} segments` };
   counts.segments = segs;
+  // The drawn height of the smaller texts (10th percentile, px): the pixel gate tiles the page so that text reaches the
+  // model at 12 px (drawing_pixel_gate.pageSizeFromCad). A text's height is the short side of its box.
+  const th = kept.map((t) => Math.min(t.box.x1 - t.box.x0, t.box.y1 - t.box.y0) * s).filter((h) => h > 0).sort((a, b) => a - b);
+  if (th.length) counts.text_px_p10 = Math.round(th[Math.floor(th.length * 0.1)] * 10) / 10;
   const regionsPx: { kind: 'title' | 'text'; x: number; y: number; w: number; h: number }[] = [];
   const black = (b: BBox, padPx: number, kind: 'title' | 'text') => {
     const x = Math.max(0, Math.floor(px(b.x0)) - padPx), y = Math.max(0, Math.floor(py(b.y1)) - padPx);
@@ -580,5 +590,5 @@ export function renderCadForSupplierSync(input: Uint8Array | string, opts: { see
 }
 
 /** The same, as a promise (callers await it; the work is synchronous CPU). */
-export const renderCadForSupplier = (input: Uint8Array | string, opts: { seeds?: string[]; longEdge?: number; maxSegments?: number } = {}): Promise<CadRenderResult> =>
+export const renderCadForSupplier = (input: Uint8Array | string, opts: { seeds?: string[]; longEdge?: number; maxSegments?: number; textsOnly?: boolean; identity?: Set<string> } = {}): Promise<CadRenderResult> =>
   Promise.resolve().then(() => renderCadForSupplierSync(input, opts));

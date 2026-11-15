@@ -28,14 +28,21 @@ const UNIT: [string, RegExp][] = [
   ['kg', /^kg$/i], ['ton', /^(?:tons?|t)$/i], ['lot', /^(?:lot|ls|l\.s\.)$/i], ['kw', /^kw$/i], ['tr', /^tr$/i],
 ];
 const unitOf = (s: string) => { for (const [u, re] of UNIT) if (re.test(s)) return u; return null; };
+/** The units this reader knows, as one alternation (quotation_gate.ts: a figure followed by one is a quantity, never money). */
+export const UNIT_ALTERNATION = UNIT.map(([, re]) => re.source.replace(/^\^\(\?:/, '').replace(/\)\$$/, '').replace(/^\^/, '').replace(/\$$/, '')).join('|');
 
+/** An e-mail address, matched only where a local part can begin (see scrubIdentity). */
+export const EMAIL_RE = /(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 export function scrubIdentity(s: string): string {
   // Non-UAE phones, bare web hosts, street addresses and city/ZIP lines first (identity_contacts.ts,
   // 21 Sep 2026): a US consultant's title block matched none of the patterns below.
   // 3 Nov 2026: and every shape in the shared list (_shared/identity_text.ts) first: Arabic-Indic and bracketed
   // phones, IBAN, P.O. Box, "TL 273158", addresses, Arabic / Latin firm names, a person after a label.
+  // The e-mail pattern starts only where a local part can start (second review, 13 Nov 2026): without the lookbehind it
+  // retried from every character of a run like "Al-Al-Al-..." and took 1.6 s on 50 KB (0.5 ms with it). No length bound:
+  // a 70-character local part is still removed whole (a {1,64} bound would have left it).
   return scrubContacts(scrubIdentityText(String(s || '')))
-    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '')
+    .replace(EMAIL_RE, '')
     .replace(/\b(?:https?:\/\/|www\.)\S+/gi, '')
     // The UAE phone and firm-suffix patterns that lived here went with the review of #1838 (3 Nov 2026): the phone one
     // took "03 120 4500" out of a BOQ row, the firm one took "Approved by MEP Consultants" whole. The shared list

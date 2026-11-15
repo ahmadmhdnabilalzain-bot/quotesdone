@@ -9,16 +9,20 @@ import { SAFE_UPLOAD, SAFE_SHEET, SAFE_DOCS } from '../../_shared/attachment.ts'
 import { seedTerms, titleBlockBoxes } from '../../_shared/anonymise.ts';
 import { supplierBoxes } from '../../_shared/supplier_copy.ts';
 import { cadSupplierBoq, dxfTextOf } from '../../_shared/cad_identity.ts';
-import { cadNote, fileHeldNote, drawingHandoff, heldRun } from '../drawing_hold.ts';
+import { PDF_PREVIEWS_ONLY, budgetNote, cadNote, cutByClock, fileHeldNote, drawingHandoff, heldRun, pagesHeldForTime, timeNote } from '../drawing_hold.ts';
+import { DRAWING_DEADLINE, eachPageInTime } from '../../_shared/drawing_deadline.ts';
 import { isPhotoOrScan, visionCountBody, applyVisionCounts } from '../vision_count_wire.ts';
 import { documentLocale } from '../../_shared/registered_locale.ts';
-import { pdfPages } from '../../_shared/pdf_text_positions.ts';
+import { linesFromRuns, pdfPages } from '../../_shared/pdf_text_positions.ts';
+import { isQuotationReading, looksPriced } from '../../drawing_boq/quotation_gate.ts';
+import { pricedRoute } from '../lib/priced_document.ts';
+import { understoodMessage } from '../lib/what_was_understood.ts';
 import { LENGTHS_FAILED_NOTE, LENGTHS_QUEUED_NOTE } from '../../drawing_boq/length_notes.ts';
 import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../../_shared/drawing_format.ts';
 import { cadJobNeedsRedispatch, claimCadDispatch } from '../cad_dispatch.ts';
 import { type ActionCtx, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
-import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, queueCadRead, recordHeld, redactCad, redactFile, scheduleTables, storeOriginal } from '../lib/drawings.ts';
+import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, queueCadRead, recordHeld, redactCad, scheduleTables, storeOriginal } from '../lib/drawings.ts';
 
 /** analyze_drawing answers inside this (ms from its request), 10 s before the 150 s edge wall. See the action below. */
 export const ANALYZE_DRAWING_BUDGET_MS = 140_000;
@@ -121,7 +125,10 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // shared; since 24 Sep 2026 a DRAWING of it is, with its identity left out (redactCad), and when that
       // cannot be drawn the drawing is held and the customer is told so, as analyze_drawing does.
       const cad = /\.(dxf|dwg)$/i.test(name) || /dxf|dwg/i.test(mime);
-      if (!cad) return J({ ok: true, boq: jd.boq, kind: jd.kind || null, needs: jd.needs || null, drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path });
+      // A priced document read by the code reader (quotation_parties QUOTATION_NOTE) is said to be one (13 Nov 2026), so the
+      // portal sends it as 'quotation' and the customer sees what was understood.
+      if (!cad) { const q = isQuotationReading(jd.boq); const seen = understoodMessage(jd.boq, q ? 'quotation' : null);
+        return J({ ok: true, boq: q ? { ...jd.boq, document_kind: 'quotation' } : jd.boq, kind: jd.kind || null, needs: jd.needs || null, ...(q ? { brief_source: 'quotation', document_kind: 'quotation' } : {}), ...(seen ? { understood_message: seen.en, understood_message_ar: seen.ar } : {}), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path }); }
       const red = path ? await redactCad({ secret, b64, custId: cust.id, email, path, seeds: seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }) }) : null;
       const hand = red ? drawingHandoff(red.meta, path, red.redacted) : { drawing_redacted_paths: [], drawing_held: false };
       if (red && hand.drawing_held && path) await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: red.meta, reason: String(red.reason) }));
@@ -156,7 +163,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // the CAD worker, like a DWG past the edge's ceiling; the customer's screen polls it (cad_queued).
       const denseJob = cadRed?.reason === 'cad_render_too_dense' && path
         ? await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64).length, why: 'over_edge_ceiling' }) : null;
-      const cadOut = { ...(cadRed ? cadRed.meta : {}), ...cadHand, ...cadNote(true, cadHand), ...(denseJob ? { note: 'cad_queued' as const, cad_job_id: denseJob } : {}) };
+      const cadOut = { ...(cadRed ? cadRed.meta : {}), ...cadHand, ...cadNote(true, cadHand), ...budgetNote(cadRed?.reason === 'pixels_budget'), ...(denseJob ? { note: 'cad_queued' as const, cad_job_id: denseJob } : {}) };
       // WHY THE NOTE IS SPECIFIC NOW (11 Aug 2026). Spec #7 §3 names "a customer uploads a ZIP file
       // instead of a PDF" and "a PDF is corrupted" as two of its sixteen exception scenarios.
       // Measured before changing anything: neither crashed — both fell through to the single note
@@ -228,20 +235,40 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // title block it did not find, a residual it could not cover — no boxes are sent at all, and
         // drawing_redact holds every page. Fail closed.
         let serverBoxes: { x: number; y: number; w: number; h: number }[][] | null = null;
+        // THE CODE FLOOR'S SEEDS (round 3 of the anonymity fix, 13 Nov 2026). drawing_redact's model path paints
+        // codeFloorBoxes(page, body.seed_terms) under whatever the models answer, and this route sent NO seed_terms: the floor
+        // ran without the customer's name, e-mail and phone, and without what sheet 1's strip names (measured on the
+        // reviewer's v11: page 2's consultant stamp "ZZ DEMO CORAL POOLS", named in page 1's strip, was left to the models).
+        let floorSeeds: string[] = seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] });
         // Words on the PDF's own text layer; 0 means a scan (see SCANNED PAGES below). -1: not a PDF / unread.
         let pdfWords = -1;
+        // The PDF's own text lines: the party terms of a priced document are read from them (drawing_boq/quotation_gate.ts).
+        let pdfLines: string[] = [];
         if (/pdf/i.test(mime) && body.original_b64) {
           try {
             const bytes = Uint8Array.from(atob(String(body.original_b64).replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
             const pp = await pdfPages(bytes, undefined, { layers: false });
             pdfWords = pp.reduce((n, pg) => n + pg.runs.length, 0);
+            pdfLines = linesFromRuns(pp).split('\n').map((l) => l.trim()).filter(Boolean);
             const tb = titleBlockBoxes(pp, seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }));
-            serverBoxes = supplierBoxes(tb, manualBoxes, images.length);
+            serverBoxes = supplierBoxes(tb, manualBoxes, images.length); floorSeeds = [...new Set([...floorSeeds, ...tb.setSeeds])];
           } catch (_e) { serverBoxes = null; }
         }
         manualBoxes = serverBoxes;
+        // A PRICED DOCUMENT IS NEVER PICTURED FOR A SUPPLIER (13 Nov 2026, sales_engineer; anonymity audit A, L2; founder ruling
+        // 1683). MEASURED: a customer's existing quotation sent through this route had its pages redacted with the drawing
+        // prompt (which never mentions prices), so a passing verifier would have signed the competitor's own page, prices and
+        // layout, to every matched supplier, and its vector PDF beside it. The model decides what the file IS (drawing_boq SYS
+        // document_kind, read below); code that already sees money on the text layer three times, a total row or a rate and an
+        // amount column (looksPriced) does not wait for it: no page is redacted, no file is made, nothing is queued for OCR.
+        const pricedByCode = !isCad && pdfLines.length > 0 && looksPriced(pdfLines.join('\n'));
+        // THE REDACTION'S CLOCK (round 4; _shared/drawing_deadline.ts): no page is started after redStartBy, a page under way
+        // is abandoned at redStopAt; either is held for time, counted below and said (drawing_hold.timeNote).
+        const redStartBy = analyzeAt + DRAWING_DEADLINE.startByMs, redStopAt = analyzeAt + DRAWING_DEADLINE.stopAtMs;
         const redactBatch = async (slice: any[], from: number) => {
-          const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path, page_offset: from, original_b64: body.original_b64 || null, ...(manualBoxes ? { manual_boxes: manualBoxes.slice(from, from + slice.length) } : {}) }) });
+          // The request's own clock goes with every call (drawing_deadline.ts): drawing_redact starts no page after deadline_at
+          // and abandons one at stop_at, both measured from THIS request's start, so analyze_drawing answers inside its budget.
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path, page_offset: from, seed_terms: floorSeeds, original_b64: body.original_b64 || null, deadline_at: redStartBy, stop_at: redStopAt, ...(manualBoxes ? { manual_boxes: manualBoxes.slice(from, from + slice.length) } : {}) }), signal: AbortSignal.timeout(Math.max(5_000, analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now())) });
           return await r.json();
         };
         // original_b64 lets drawing_boq read a PDF's own text layer with no model — the hold-proof path.
@@ -258,42 +285,57 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // drawing_redact says needs_manual_boxes when its automatic detection could not run (no model
         // under the hold) — the portal opens the customer's box editor on exactly that signal.
         let needsManual = false;
+        // A page held because the set is past what the model check may spend is said to the customer (budgetNote).
+        let budgetHit = false;
+        // Pages held for time: never started (past redStartBy) or abandoned by drawing_redact (time_held). Never lost.
+        // pages_abandoned (round 5, fourth review fix 2): the set's page numbers drawing_redact held for time, or whose call the
+        // clock cut; pages_not_started: never sent. Both go on the held row and back to the customer.
+        let timeHeld = 0; let notReached: number[] = []; const abandoned: number[] = [];
         // Only pass paths back to the client once drawing_redact has RECORDED the run server-side
         // (drawing_redaction_runs). An unrecorded run cannot be verified at create_inquiry, so its
         // paths are unusable — dropping them here lands on the existing total-failure behaviour
         // (inquiry goes out with no drawing) instead of a confusing rejection later.
-        for (let i = 0; i < images.length; i += REDACT_BATCH) {
-          const slice = images.slice(i, i + REDACT_BATCH);
+        const batches = pricedByCode ? 0 : Math.ceil(images.length / REDACT_BATCH);
+        const ran = await eachPageInTime(batches, async (b) => {
+          const i = b * REDACT_BATCH, slice = images.slice(i, i + REDACT_BATCH);
           try {
             const rj = await redactBatch(slice, i);
             const inN = Number(rj?.pages_in || 0);
             if (rj?.needs_manual_boxes === true) needsManual = true;
+            if (rj?.customer_message) budgetHit = true;
+            const cut = pagesHeldForTime(rj, i, slice.length); timeHeld += cut.length; abandoned.push(...cut);
             // A 546 answers JSON too - {code:'WORKER_RESOURCE_LIMIT'} with no pages_in - so an
             // isolate death is counted as pages LOST rather than as a batch that carried no pages.
-            if (!inN && !rj?.ok) { redDied += slice.length; redIn += slice.length; continue; }
+            // One that answers after the stop is the clock's doing (round 6): held for time, not a dead redactor.
+            if (!inN && !rj?.ok) { redIn += slice.length; if (!cut.length && cutByClock(null, Date.now(), redStopAt)) { timeHeld += slice.length; abandoned.push(...slice.map((_x, k) => i + k)); } else if (!cut.length) redDied += slice.length; return; }
             redIn += inN; redOut += Number(rj?.pages_out || 0);
             if (rj?.ok && rj?.recorded && rj?.job_id && Array.isArray(rj.paths)) { redacted = redacted.concat(rj.paths.map((x: any) => String(x))); redJobs.push(String(rj.job_id)); }
-          } catch (_e) { redDied += slice.length; redIn += slice.length; }
-        }
+          } catch (e) {
+            // A call the clock cut (its signal ends at the answer budget) is held for TIME, not lost to a dead redactor.
+            redIn += slice.length;
+            if (cutByClock(e, Date.now(), redStopAt)) { timeHeld += slice.length; abandoned.push(...slice.map((_x, k) => i + k)); } else redDied += slice.length;
+          }
+        }, redStartBy);
+        // A page never started is a page sent and not verified: it counts in redIn, so the set is held, and it is recorded.
+        notReached = ran.notReached.flatMap((b) => images.slice(b * REDACT_BATCH, (b + 1) * REDACT_BATCH).map((_x, k) => b * REDACT_BATCH + k));
+        redIn += notReached.length; timeHeld += notReached.length;
         const boqRes = await Promise.allSettled([boqP]).then((a) => a[0]);
         // redaction_complete compared redOut >= redIn, and both are 0 when the redactor dies before
         // it can report anything - so total failure read as "complete". It now requires that pages
         // were sent AND that every one of them came back.
-        const redMeta = { redaction_job_id: redJobs[0] || null, redaction_job_ids: redJobs, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_pages_lost: redDied, redaction_complete: redIn > 0 && redOut === redIn, needs_manual_boxes: false /* the customer's boxes no longer make a page shareable (trust boundary, 14 Sep 2026), so they are not asked for */ };
+        const redMeta = { redaction_job_id: redJobs[0] || null, redaction_job_ids: redJobs, redaction_pages_in: redIn, redaction_pages_out: redOut, redaction_pages_lost: redDied, redaction_complete: redIn > 0 && redOut === redIn, needs_manual_boxes: false /* the customer's boxes no longer make a page shareable (trust boundary, 14 Sep 2026), so they are not asked for */, ...budgetNote(budgetHit) /* a budget hold is said (drawing_hold.budgetNote) */, ...timeNote(timeHeld, [...abandoned, ...notReached]) /* so is a hold for time, with the sheets (drawing_hold.timeNote) */ };
         // THE HOLD IS DECIDED AND RECORDED HERE (audit 21 Sep 2026, finding 9; ./drawing_hold.ts).
         // Anything short of every page verified hands back NO redacted paths and share_redacted:false,
         // and writes one 'held' row against the stored original so the unshared drawing is visible.
-        // A fully redacted PDF also goes out as the anonymised VECTOR PDF (redactFile), beside its page previews.
+        // A fully redacted PDF goes out as its checked PREVIEWS only (round 4, drawing_hold.PDF_PREVIEWS_ONLY): the anonymised
+        // vector file (redactFile, drawing_redact mode 'file') waits for verifyReleasedFile, which nothing calls yet, so it is
+        // not attempted, and the customer is told what suppliers see.
         let fileHeld: string | null = null;
-        if (redMeta.redaction_complete && path && !isCad && body.original_b64 && /^JVBERi0/.test(String(body.original_b64).replace(/^data:[^;]+;base64,/, ''))) {
-          const f = await redactFile({ secret, b64: String(body.original_b64), custId: cust.id, email, path, seeds: seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }) });
-          if (f && 'path' in f) { redacted.push(f.path); redJobs.push(f.job); }
-          else if (f && 'held' in f) fileHeld = f.held;
-        }
+        if (!pricedByCode && redMeta.redaction_complete && path && !isCad && body.original_b64 && /^JVBERi0/.test(String(body.original_b64).replace(/^data:[^;]+;base64,/, ''))) fileHeld = PDF_PREVIEWS_ONLY;
         const hand = drawingHandoff(redMeta, path, redacted);
-        if (hand.drawing_held && path) {
-          const reason = serverBoxes ? 'server_boxes_sent_pages_refused' : (needsManual ? 'no_server_boxes_and_model_refused' : (redDied ? 'redactor_died' : 'pages_not_verified'));
-          await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: redMeta, reason }));
+        if (hand.drawing_held && path && !pricedByCode) {
+          const reason = timeHeld ? 'time' : (serverBoxes ? 'server_boxes_sent_pages_refused' : (needsManual ? 'no_server_boxes_and_model_refused' : (redDied ? 'redactor_died' : 'pages_not_verified')));
+          await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: redMeta, reason, detail: timeHeld ? { pages_held_for_time: timeHeld, pages_abandoned: abandoned, pages_not_started: notReached } : undefined }));
         }
         // SCANNED PAGES ARE READ BY OCR OFF THE REQUEST PATH (24 Sep 2026, sales_engineer; founder instruction 579:
         // "OCR for scanned drawings"). A photo or a PDF with no text layer gives the server no words to box, so the
@@ -301,7 +343,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // stored like any original, and the CAD worker OCRs, boxes, re-reads and publishes them only when clean
         // (_shared/scan_redact.ts). If the store or the queue fails, the drawing simply stays held.
         let scanJob: string | null = null;
-        if (hand.drawing_held && path && !isCad && images.length && (/^image\//i.test(mime) || pdfWords === 0)) {
+        if (!pricedByCode && hand.drawing_held && path && !isCad && images.length && (/^image\//i.test(mime) || pdfWords === 0)) {
           const pagePaths: string[] = [];
           for (let i = 0; i < images.length; i++) {
             const im = images[i];
@@ -331,6 +373,13 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // (review of #642: it used to run in parallel and could see the original page). drawing_boq
         // re-reads the run by id and uses its recorded redacted page, or marks the lines unconfirmed.
         // A CAD take-off loses the file's own names here (cad_identity, 22 Sep 2026); a PDF's is gated below.
+        // THE MODEL READ FIRST AND SAID WHAT THE FILE IS (ruling 1663). A quotation, a proforma or any priced offer (its word,
+        // or code seeing money on the text layer) goes no further down the drawing route: it is rebuilt as our inquiry
+        // (quotation_gate: no money, no reference, no party term read from the document's own letterhead and signature),
+        // nothing of its pages is shared, and the customer is shown what was understood before he sends it.
+        const priced = pricedRoute({ isCad, pdfLines, reading: jd.boq || null });
+        if (priced) return J({ ok: true, ...priced, drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords,
+                               redaction_job_id: null, redaction_job_ids: [], redaction_pages_in: 0, redaction_pages_out: 0, redaction_pages_lost: 0, redaction_complete: false, needs_manual_boxes: false });
         const boqOut = isCad && jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(String(body.original_b64 || ''))) : jd.boq;
         let lengthsJob: string | null = null;
         // THE LENGTHS (22 Sep 2026): a drawing set read from a PDF gets its duct and pipe lengths from a SECOND
@@ -364,12 +413,16 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         }
         if (boqOut && Array.isArray(boqOut.boq) && boqOut.boq.length) {
           try {
-            const cr = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'confirm', boq: boqOut.boq, author_model: typeof boqOut.author_model === 'string' ? boqOut.author_model : 'unknown', redaction_job_id: redMeta.redaction_complete ? redJobs[0] : null }) });
+            // Bounded by what is left of the answer budget (round 4): the redaction may have used most of it.
+            const confirmLeft = analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now();
+            if (confirmLeft < 3_000) throw new Error('no time left to confirm');
+            const cr = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'confirm', boq: boqOut.boq, author_model: typeof boqOut.author_model === 'string' ? boqOut.author_model : 'unknown', redaction_job_id: redMeta.redaction_complete ? redJobs[0] : null }), signal: AbortSignal.timeout(confirmLeft) });
             const cj = await cr.json();
             if (cj?.ok && Array.isArray(cj.boq)) { boqOut.boq = cj.boq; boqOut.confirm = cj.confirm; if (cj.confirm_detail) boqOut.confirm_detail = cj.confirm_detail; }
           } catch (_e) { /* the coded result stands */ }
         }
-        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords, ...redMeta, ...hand, ...cadNote(isCad && !!body.original_b64, hand), ...fileHeldNote(fileHeld), ...scanNote, ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
+        const seen = understoodMessage(boqOut, boqOut?.document_kind ? String(boqOut.document_kind) : 'drawing');
+        return J({ ok: true, boq: boqOut, drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords, ...redMeta, ...hand, document_kind: boqOut?.document_kind || 'drawing', ...(seen ? { understood_message: seen.en, understood_message_ar: seen.ar } : {}), ...cadNote(isCad && !!body.original_b64, hand), ...fileHeldNote(fileHeld), ...scanNote, ...(lengthsJob ? { note: 'lengths_queued', cad_job_id: lengthsJob } : {}) });
       } catch (e) { return J({ ok: false, error: 'analysis_exception', detail: String((e as Error)?.message || e), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], drawing_held: !!path, share_redacted: false }, 200); }
     }
 }

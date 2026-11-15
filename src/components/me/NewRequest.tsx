@@ -226,7 +226,10 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   // is untrusted input: the server parses it, strips prices, and scrubs identity like any other text.
   const ocr = async (images) => { try { const { ocrImages } = await import('./ocrClient'); return (await ocrImages(images)).text || ''; } catch (_e) { return ''; } };
   // source 'boq' when the customer attached a BOQ (sheet or PDF): create_inquiry tells suppliers so.
-  const adopt = (res, name, source = 'drawing') => {
+  // The server's reading says what the file IS (13 Nov 2026): a customer's existing quotation comes back brief_source
+  // 'quotation' whichever button sent it, and is adopted as one, so create_inquiry tells suppliers what it really is.
+  const adopt = (res, name, source0 = 'drawing') => {
+    const source = res && (res.brief_source === 'quotation' || res.note === 'priced_rates_withheld') ? res.brief_source : source0;
     // A HELD DRAWING (audit 21 Sep 2026, finding 9). customer_api says drawing_held when not every page
     // came back verified; nothing of the drawing is then offered for suppliers (no paths, and
     // share_redacted:false, which create_inquiry honours), and the card above Send says so.
@@ -346,7 +349,10 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       } else {
         text = t(lang, 'nr_not_prepared');
       }
-      push({ role: 'assistant', text });
+      // WHAT WAS UNDERSTOOD, SHOWN BEFORE ANYTHING IS SENT (13 Nov 2026, founder ruling 1683): the reading's own account of
+      // the file (a quotation is said to be one, its items listed, prices and names gone) and whether it is enough to quote.
+      const understood = res && (ar ? res.understood_message_ar : res.understood_message);
+      push({ role: 'assistant', text: res && (res.note === 'quotation_rebuilt' || res.note === 'priced_rates_withheld') && understood ? understood + t(lang, 'nr_add_or_send') : (understood ? text + '\n\n' + understood : text) });
       // drawing_redact's contract (intake engine, 14 Sep): needs_manual_boxes is the one signal that
       // automatic detection could not run, so the editor opens on exactly that and nothing else.
       if (res && res.needs_manual_boxes === true && p.images.length) setEditor(true);
@@ -385,7 +391,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       else if (!rows.length) push({ role: 'assistant', text: t(lang, 'nr_boq_sheet_empty') });
       else {
         const adopted = adopt(res, file.name, 'boq');
-        push({ role: 'assistant', text: tf(lang, rows.length === 1 ? 'nr_boq_sheet_one' : 'nr_boq_sheet_many', { n: rows.length, c: countPhrase(lang, rows.length, 'line', { oblique: true }) }) + t(lang, 'nr_add_or_send') });
+        const understood = ar ? res.understood_message_ar : res.understood_message;
+        push({ role: 'assistant', text: res.brief_source === 'quotation' && understood ? understood + t(lang, 'nr_add_or_send') : tf(lang, rows.length === 1 ? 'nr_boq_sheet_one' : 'nr_boq_sheet_many', { n: rows.length, c: countPhrase(lang, rows.length, 'line', { oblique: true }) }) + t(lang, 'nr_add_or_send') });
         await runIntake('', adopted);
       }
     } catch (_e) { push({ role: 'assistant', text: t(lang, 'nr_boq_err_generic') }); }

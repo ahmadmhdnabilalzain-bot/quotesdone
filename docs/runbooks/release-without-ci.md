@@ -47,6 +47,26 @@ npm run gate -- --pr <number>
   `gh api repos/<owner>/<repo>/pulls/<n>`). A posted PASS therefore always certifies the PR's own code.
 - The production steps need `SUPABASE_ACCESS_TOKEN` or `~/.supabase/access-token`. Without one they **FAIL**. A
   check that cannot reach its subject has not passed.
+- **A rehearsal never runs on production by default (13 Nov 2026).** That morning rolled-back rehearsals of whole DDL files
+  held quotes and inquiries for 12-15 s and 103 live requests were cancelled behind them
+  (`.claude/memory/a-rehearsal-on-production-holds-the-locks-of-a-real-change.md`). Every replay in the gate (`npm test`'s
+  `rehearseChain` and probe checks, `rehearse_sql.mjs`, `rehearse_this_prs_manifest_lines.mjs`) runs on the local database.
+  Before `npm run gate`, start it: `node scripts/db/local_pg16.mjs start && export QD_LOCAL_DB_URL="$(node scripts/db/local_pg16.mjs url)"`
+  (Postgres 16 from the schema mirror, about 20 s; `node scripts/db/local_pg16.mjs stop` afterwards). Without it the
+  replaying steps stop with "SAFE REPLAY HAS NO DATABASE" and send nothing. `QD_REPLAY_ON_PRODUCTION=1` sends them to
+  production behind a 5 s `transaction_timeout` and a 1 s `lock_timeout`. Before sending, it refuses (scripts/lib/replay_guard.mjs):
+  a statement it can READ as taking a lock stronger than ROW EXCLUSIVE on a relation production has (quoted, `U&"..."` and
+  three-part names, the file's own search_path, DO blocks and literal EXECUTE strings, DROP FUNCTION/TYPE ... CASCADE and
+  ALTER DOMAIN as an unknown table); any EXECUTE whose argument is not one literal (dynamic SQL); and anything that could move a
+  limit (the word transaction_timeout anywhere, a set_config of lock/statement/transaction_timeout or with a computed name, a SET
+  of those inside a DO block or EXECUTE, RESET ALL). It reads these in the top level, in DO blocks, and in the body and SET clause
+  of every function or procedure the file both defines and calls (select, perform, call, also through another called routine).
+  It does NOT read a routine the file only defines (it runs later, on its own, under its own limits), nor a routine the file
+  calls that it did not define (the database's own body is not read): a lock taken there is bounded only by the 5 s cut, which
+  the file can no longer lift. The local gate still needs production rows in some checks (a_ready_request: the trades and suppliers);
+  that is not a reason to replay on production. Do not set it to make a red row green: a file that needs longer than
+  5 s, or that ALTERs an existing table, is rehearsed locally and then applied with `apply_sql.mjs`. Never rehearse with a
+  hand-made `begin; ...; rollback` sent to the management API: it holds the real change's locks.
 - The OTP race needs a throwaway Postgres: set `QD_OTP_RACE_PG`, or start Docker so the gate can run `postgres:16`
   itself. It never uses production.
 - `--skip=<id,...>` leaves out the steps you name, and they show as SKIPPED in the table. Name a step only when it
@@ -117,7 +137,12 @@ does it from an up-to-date main checkout, right after the merge:
 
 ```
 git fetch origin main && git checkout --detach origin/main
-# 1. SQL the PR added: apply each pending file at merge, never before
+# 1. SQL the PR added: rehearsed on the LOCAL database first (section 1), then applied at merge, never before.
+#    The apply sets lock_timeout 1500 ms (--lock-timeout=<ms> to change, 1-15000; a fraction is rounded up) and prints the
+#    limits it set; a file that ALTERs a busy table goes in a quiet minute. It refuses dynamic SQL in a DO block and anything
+#    that moves a limit (the dry run says so first). After a 5xx it is never re-sent: exit 5 STILL RUNNING if its first copy
+#    is still on production after 2 minutes (do NOT re-run), exit 4 only when proven not committed AND the MANIFEST does not
+#    list the file (then run the same command again), exit 5 otherwise (check by hand).
 node scripts/apply_sql.mjs scripts/sql/<file>.sql --apply --ddl
 #    delete scripts/sql/pending/<file>.txt, append the file as the LAST line of scripts/sql/MANIFEST.txt
 node scripts/checks/canonical_routine_manifest.mjs            # 0 findings

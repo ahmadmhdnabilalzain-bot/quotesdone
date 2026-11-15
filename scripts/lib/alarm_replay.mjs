@@ -130,12 +130,14 @@ export async function replay(sql, name, entry, at, stage = '', pending = null) {
     assert.ok(calleeDefs[c], `${name}: its callee ${c} is not in production`);
   }
   let message = '';
-  // A LIVE routine's replay is retried on 429/5xx like any read: it is seconds long, writes only temp objects and
-  // rows the raise rolls back, so a second copy cannot deadlock the first. A PENDING routine's replay is NOT retried:
-  // its prelude is the whole pending file - ALTER TABLE, DROP/CREATE TRIGGER, routine replacements and any at-apply
-  // step - all rolled back by the same raise, but DDL taking table locks, which is the replay hazard db.mjs names.
-  try { await sql(replaySql(name, def, entry, at, stage, pending?.file ?? '', calleeDefs), { retry: !pending }); message = 'the replay returned without raising, so it did not roll back'; }
-  catch (e) { message = String(e.message); }
+  // THROUGH THE ONE DOOR (13 Nov 2026, scripts/lib/safe_replay.mjs + replay_guard.mjs). This sent its text straight to the
+  // management API with db.mjs's sql(): a PENDING routine's prelude is its whole pending file (ALTER TABLE, DROP/CREATE
+  // TRIGGER, routine replacements) held until the final raise, with no lock_timeout and no time limit, which is the shape that
+  // held quotes and inquiries on 13 Nov. It now runs on the local database, or on production only with QD_REPLAY_ON_PRODUCTION=1
+  // behind the 5 s guard, sent once.
+  const { replaySql: guarded } = await import('./safe_replay.mjs');
+  try { await guarded(replaySql(name, def, entry, at, stage, pending?.file ?? '', calleeDefs), { label: `the alarm replay of ${name} at ${at}` }); message = 'the replay returned without raising, so it did not roll back'; }
+  catch (e) { message = String(e?.body ?? e?.message ?? e); }
   const chk = message.match(/CHK<<([\s\S]*?)>>/);
   assert.ok(chk, `${name} at ${at}: ${message.slice(0, 1500)}`);
   return JSON.parse(chk[1].replace(/\\"/g, '"'));

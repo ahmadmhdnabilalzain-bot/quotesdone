@@ -31,6 +31,7 @@
 import { readFileSync, readdirSync, writeFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 export const TOP = 5;
 export const K_RETRIEVE = 6;          // what think() passes
@@ -151,7 +152,7 @@ async function main() {
         const block = `do $qdexam$ declare o jsonb := '[]'::jsonb; begin\n${part.map((it) => `o := o || jsonb_build_array(${topExpr(x.seat, it.vec)});`).join('\n')}\nraise exception 'CHK<<%>>', o::text; end $qdexam$;`;
         // A 429 from the management API ran nothing; the block always aborts, so sending it again is safe.
         const probe = async (tries = 6) => {
-          try { await sql(withSql + '\n' + upsertSql(SEAT_TABLE[x.seat], [...stage.values()]) + block, { retry: false }); }
+          try { await replaySql(withSql + '\n' + upsertSql(SEAT_TABLE[x.seat], [...stage.values()]) + block, { label: `the ${x.seat} exam retrieval probe` }); }
           catch (e) { if (tries > 1 && /HTTP 429/.test(String(e.message))) { await new Promise((r) => setTimeout(r, 15000)); return probe(tries - 1); } throw e; }
         };
         try { await probe(); throw new Error('the probe committed instead of rolling back'); }

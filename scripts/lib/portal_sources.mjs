@@ -27,6 +27,7 @@ export const CUSTOMER_PORTAL_FILES = [
   'src/components/me/auth/Login.tsx',
   'src/components/me/auth/Authed.tsx',
   'src/components/me/auth/ProfileGate.tsx',
+  'src/components/me/auth/acceptTerms.ts',
   'src/components/me/dashboard/Dashboard.tsx',
   'src/components/me/requests/InquiryCard.tsx',
   'src/components/me/requests/Comparison.tsx',

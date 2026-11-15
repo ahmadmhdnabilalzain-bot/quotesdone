@@ -25,6 +25,14 @@ import { saysDontKnow } from '../_shared/inquiry_state.ts';
 export type SpecField = {
   key?: string; question?: string; required?: boolean; type?: string; options?: string[];
   question_plain_en?: string; question_plain_ar?: string;
+  /** WHEN THE JOB DOES NOT NEED THIS SPEC (15 Nov 2026, journey A; slots.ts notNeededOf). Data on the trade's own spec, never an
+   *  if-statement: `answered` names specs whose answer makes this one unnecessary (code checks only that one of them holds an
+   *  answer; it reads no words), `text` is the condition in plain words, which the model may judge holds from what the
+   *  customer said (its "not_needed", with their words). Either way the spec is recorded as not needed and never asked. */
+  not_needed_when?: { answered?: string[]; text: string } | null;
+  /** The same question as another spec of the job (a slug's field that a placed trade's checklist also asks, e.g. hvac
+   *  application_area and spec_room_use_and_area_or_heat_load_calc): asked once, as that spec, and answered by its answer. */
+  same_as?: string | null;
 };
 export type Lang = 'en' | 'ar';
 export type NextQuestion = { key: string; text: string; options: string[] | null };

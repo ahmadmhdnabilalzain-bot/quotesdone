@@ -1,11 +1,12 @@
 // inquiry_intake/handle.ts — the intake turn: one request, one conversation turn. Moved verbatim from index.ts (9 Nov 2026).
+import { drawingNoteOf } from './attached_file.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, mergeRequirements, recordedRequirements, answerToQuestion, stampTurn, openTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, readHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft } from './slots.ts';
+import { stallOf, lastAskedKeys, SENT_AS_IS, SALES_ENGINEER_WHATSAPP, settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, mergeRequirements, recordedRequirements, answerToQuestion, stampTurn, askedTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, tappedHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft, openSpecsBlock } from './slots.ts';
 import { emirateOf, isAlAin, detectUrgency, utilityText, SEVEN_EMIRATES, SEVEN_EMIRATES_AR } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
-import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
+import { ACTOR, notSureAnswer, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
 import { stateServiceKeys as stateKeysInVocab } from '../_shared/profile_services.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
@@ -20,7 +21,7 @@ import { accountKey, loadTranscript } from '../_shared/chat_history.ts';
 import { capRule, capStage, carriedTurns, carryState, intakeKey, mergeState, openPortalEpisode, readState, registerPatch, saysDontKnow,
   stateSummary, statusOfStage, type Dialect, type InquiryState, type StatePatch } from '../_shared/inquiry_state.ts';
 import { ADVISE_RULE, heldProblem, problemIndex, problemsFor, readSolution, serviceKeysOfChoice, solutionPatch, solutionsBlock, solutionStateText, stateServiceKeys } from '../_shared/solution_catalogue.ts';
-import { adviseUnknown, packFields, placeTrades, slugOfTrade, withUniversal, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, universalAnswers, validCodes, validServiceKeys, validTopics,
+import { SUPPLIER_TO_ADVISE, adviseUnknown, packFields, placeTrades, slugOfTrade, withUniversal, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, universalAnswers, validCodes, validServiceKeys, validTopics,
   type Placement, type TradeContext } from '../_shared/inquiry_trades.ts';
 import { blockingGate, briefConditions, recordedSpecs, withPack } from './blocking_gate.ts';
 
@@ -296,7 +297,10 @@ export async function handle(req: Request): Promise<Response> {
     const multiTrade = perTradeChecklists.length > 1;
     // The key is rendered because rule 3b makes it a contract: dispatch is gated on these exact
     // keys, and a brief that answers under a different name scores as not answering at all.
-    const fmtFields = (fields: any[]) => fields.map((f: any) => `- [${f.key}] ${f.question}${f.required ? ' (REQUIRED)' : ' (optional)'}${f.options ? ' [options: ' + f.options.join(', ') + ']' : ''}`).join('\n');
+    // A spec's own not_needed_when and same_as ride with it (15 Nov 2026, journey A): the model never asks what the job does not need.
+    const fmtFields = (fields: any[]) => fields.map((f: any) => `- [${f.key}] ${f.question}${f.required ? ' (REQUIRED)' : ' (optional)'}${f.options ? ' [options: ' + f.options.join(', ') + ']' : ''}`
+      + (f.not_needed_when?.text ? ` NOT NEEDED (never ask it; put its key in "not_needed" with their words) when: ${f.not_needed_when.text}` : '')
+      + (f.same_as ? ` (the same question as [${f.same_as}]: ask it once, as that one)` : '')).join('\n');
     const checklistText = multiTrade
       ? perTradeChecklists.map((c) => `Trade \"${c.slug}\" (${c.label}) — essentials its suppliers need:\n${fmtFields((c.fields || []).filter((f: any) => f.required))}`).join('\n\n')
       : (checklist.length ? fmtFields(checklist) : '(no fixed checklist for this category — use professional judgement for what a supplier needs to quote accurately)');
@@ -381,7 +385,16 @@ export async function handle(req: Request): Promise<Response> {
     const taxonomyText = taxonomy && !(st?.trade_codes?.length) ? taxonomyBlock(taxonomy) : '';
     const solutionState = solutionStateText(st, ar ? 'ar' : 'en');
     const stageRule = capRule(stage, replyNo);
-    const drawingNote = drawingBoq && drawingBoq.boq ? `\nThe customer also attached a drawing/quotation from which we read ${drawingBoq.boq.length} line items. Treat quantities/specs from it as already provided.` : '';
+    // OPEN SPECS NOW (15 Nov 2026, journey A; rule 18): the required specs this request does not hold yet, how often each was asked,
+    // and when the job does not need it, so the model reads every message against all of them, not only the last one asked.
+    const askedSoFar = askedTurnsByKey(turns);
+    const openSpecsText = openSpecsBlock(checklist, (draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {}, askedSoFar, ar ? 'ar' : 'en');
+    // WHAT THE FILE IS AND WHETHER IT IS ENOUGH (13 Nov 2026, sales_engineer; founder ruling 1683: "Did the sales engineer
+    // actually verify that quotation is actually sufficient to be shared with the suppliers?"). The reading names the kind
+    // and a sufficiency verdict with what a supplier of the trade still needs (drawing_boq SYS); this turn ASKS for those, in
+    // plain words, one or two at a time, framed by this trade's checklist above, instead of sending a thin inquiry. "Send it
+    // as it is" is an answer: what was not given is recorded in unknown_keys and the suppliers are told it is not known.
+    const drawingNote = drawingBoq && drawingBoq.boq ? drawingNoteOf(drawingBoq) : '';
     const slugList = validSlugs.concat(['general']).join(', ');
 
     // Identity block: the matched category specialist speaks in its own persona; otherwise the
@@ -405,7 +418,7 @@ YOU ARE TALKING TO SOMEONE WHO IS PROBABLY NOT TECHNICAL, and the questions abov
 - One idea per question, and no more questions at a time than rule 2 allows. A wall of trade questions is how a customer abandons a request.
 - If they answer vaguely ("normal size", "standard"), accept it and move on rather than pressing — an approximate answer with a note is worth more than an abandoned inquiry, and suppliers can flag what they still need.
 - A customer who says they do not know is telling you something useful. Record it as unknown and let the suppliers quote against an assumption, stated as an assumption.
-${stateText ? `\n${stateText}\n` : ''}${solutionState ? `\n${solutionState}\n` : ''}${tradeText ? `\n${tradeText}\n` : ''}${taxonomyText ? `\n${taxonomyText}\n` : ''}${solutionsText ? `\n${solutionsText}\n` : ''}${stageRule ? `\n${stageRule}\n` : ''}${carry ? '\nTHIS REQUEST CONTINUES THE CUSTOMER\'S CHAT WITH OUR SALES ENGINEER: every turn above was said there. Read it as one conversation, put every checklist item it states under its key, and ask only for what is still missing.\n' : ''}${specialistKB ? `\nFIELD EXPERTISE for this trade (the specialist knowledge our expert agents use — apply it to ask the sharpest quote-critical questions and to recognise when a customer's answer implies an approval, standard or spec they haven't mentioned; do not lecture the customer (putting options to a customer who is deciding, rule 13, is not a lecture), quote this text, or ask about things irrelevant to their specific job):\n${specialistKB}\n` : ''}
+${tradeText ? `\n${tradeText}\n` : ''}${taxonomyText ? `\n${taxonomyText}\n` : ''}${solutionsText ? `\n${solutionsText}\n` : ''}
 RULES:
 1. If the message is gibberish, a test, empty, spam, or NOT a genuine request for a construction / fit-out / maintenance / supply / trade service in the UAE, set status \"rejected\" and politely ask them to describe an actual job.
 2. If genuine but missing REQUIRED details, set status \"needs_info\" and ask ONLY the most important missing questions — at most 4 total. First re-read the entire conversation and put every fact the customer has already given (per trade) in \"already_provided\". Do not ask about, or list in \"missing\", anything already in \"already_provided\": a customer asked twice for the same thing abandons the request. Offer sensible options where helpful. Never ask for their name, phone or email (already collected).
@@ -424,6 +437,9 @@ RULES:
 14. TRADES IN THE WHOLE TAXONOMY: in \"trade_codes\" put the one to four taxonomy codes that do this job (from THE TRADE TAXONOMY, or the codes already held), most central first; \"category\" stays the closest listed slug (\"general\" when none fits). In \"service_keys\" put the service keys (trade.service) of THE TRADES THIS CONVERSATION IS PLACED IN that this job needs, only when clear. Ask for whatever the trade's checklist and its location rules need that the customer can tell you (the emirate decides the authority).
 15. ONE INTERVIEW, COMPLETE (founder ledger 1587): every supplier must be able to quote from what this conversation settles, without asking anything. Ask the BLOCKING specs of THE CHECKLIST FOR THIS JOB first, using each one's why, UAE options and what to ask next; \"ready\" only when each is answered or recorded in \"unknown_keys\". In \"checklist_topics\" put the id of each checklist (THE CHECKLIST FOR THIS JOB or one of the trade's OTHER CHECKLISTS) this job is. In \"site_visit\" put the code of each trade whose SITE VISIT condition applies to this job, and say plainly that a final price needs a visit first.
 16. AN ANSWER GOES UNDER THE SPEC IT ANSWERS (evidence run of 10 Nov 2026): a reply is the answer to the question you asked ONLY when it addresses that question. \"We need it finished by 15 December\" answers the date, never \"MEP scope\"; \"at least 2 years warranty\" answers the warranty, never \"authority approvals\". File such a reply under what it answers, leave the asked spec open, and ask it again in plain words. In \"spec_evidence\" put, for EVERY key in brief.details, the customer's own exact words that answer it (copied from their messages, never your summary); a key you cannot cite is not answered.
+17. SITE (founder ruling 1683): ask where the job is when the checklist needs it, but summary, scope, location and every details value name the EMIRATE only (\"a villa in Dubai\"), never an area, community, street, building, villa/unit/plot number, Makani or landmark; the kind of site and the floor may stay. Put the exact place, in the customer's words, only in brief.site_location.
+18. EVERY MESSAGE AGAINST EVERY OPEN SPEC (15 Nov 2026): read the customer's LAST message against EVERY spec in OPEN SPECS NOW and the four questions in "requirements", not only the one you asked last. One message can answer several, or something other than what you asked: record each answer under its key in brief.details, with their exact words in "spec_evidence", on the turn they say it. A spec that is answered, or recorded as not needed or not known, is never asked again. When the condition of a spec's NOT NEEDED holds, put its key in "not_needed" with the customer's own words that show it, and never ask it. In "asked_keys" put the key of each spec your assistant_message asks.
+19. ONE QUESTION, NOT A REPEAT: ask the most important open spec they have NOT been asked yet. A spec you already asked that they have not answered is not asked again on a turn where they told you something else: take what they said and ask the next one not yet asked, or nothing.
 
 Return STRICT JSON only, no prose, with this shape:
 {
@@ -445,6 +461,8 @@ Return STRICT JSON only, no prose, with this shape:
   \"service_keys\": [\"<trade.service>\"],
   \"checklist_topics\": [\"<checklist id>\"],
   \"spec_evidence\": { \"<brief.details key>\": \"<the customer's exact words that answer it>\" },
+  \"not_needed\": { \"<key of a spec whose NOT NEEDED condition holds>\": \"<the customer's exact words that show it>\" },
+  \"asked_keys\": [\"<key of each spec assistant_message asks>\"],
   \"site_visit\": [\"<trade code whose site-visit condition applies>\"],
   \"condition\": { \"object\": \"\", \"material\": \"\", \"condition\": \"\", \"location\": \"\", \"use\": \"\", \"constraint\": \"\" },
   \"problem\": \"<reference situation key or empty>\",
@@ -459,7 +477,8 @@ Return STRICT JSON only, no prose, with this shape:
     \"category\": \"<slug>\",
     \"scope\": \"<supply/install scope>\",
     \"quantity\": \"<qty or area if known>\",
-    \"location\": \"<area + emirate if known>\",
+    \"location\": \"<the emirate only>\",
+    \"site_location\": \"<the exact site as the customer gave it, or empty (rule 17)>\",
     \"emirate\": \"<the emirate the job is in, as a person who knows the UAE places it: an area, community or city that lies in one emirate IS that emirate (JLT, Al Barsha, Dubai Marina: Dubai; Khalifa City, Al Ain: Abu Dhabi; Al Majaz: Sharjah). Exactly one of ${SEVEN_EMIRATES.join(', ')}, spelled so; empty when they named no place, or named places in two emirates. Never read from a person's or a company's name.>\",
     \"al_ain\": <true when the job is in the city of Al Ain (its emirate is Abu Dhabi; Al Ain has its own utility, AADC); else false>,
     \"timeline\": \"<timeline or empty>\",
@@ -470,10 +489,23 @@ Return STRICT JSON only, no prose, with this shape:
 Only include \"questions\" when status is needs_info or rejected. ALWAYS return \"brief\" (never null, on every status): \"brief\".\"details\" holds every checklist item the customer has stated ANYWHERE in the conversation so far, under its canonical key (rule 3b) — including on the very first message — because the request's state is built from it; the summary fields may be left empty until status is ready. Never tell the customer the request is ready, complete or about to be shared unless status is \"ready\".
 \"requirements\" holds, on every status, each of these that the customer has ANSWERED anywhere in the conversation (omit a key they have not addressed; never guess one), as exactly one of the values listed:
 ${requirementsContract(category)}
-${recordedRequirements(category, (draft.brief && typeof draft.brief === 'object' ? draft.brief.req_answers : null))}
+RECORDED: the answers already recorded are the RECORDED line under THIS TURN, in the message.
 Read each answer as the customer meant it, in English, Arabic of any dialect, a mix, or a voice transcript: one message can answer several of these at once. Gulf examples: \"أبي تركيب\" / \"ركبوها\" is installation \"yes\"; \"بس توريد\" is \"supply_only\"; \"ضمان سنتين\" is warranty {\"months\": 24}; \"ما أبي ضمان\" is \"not_needed\"; \"خلال أسبوعين\" is required_by {\"days\": 14}; \"أي ماركة زينة\" is a material \"no_preference\". A RECORDED answer stays exactly as recorded (return it unchanged, the same date) unless the customer's LAST message changes it; then return the new value and put its key in \"changed_answers\". Installation needed for only part of the job is \"yes\", with the part that needs it in brief.scope. A message that asks something back instead of answering leaves that key out; answer them in \"answer_to_question\". Keep questions concise so the whole JSON stays complete.`;
 
-    const user_msg = `Conversation so far:\n${convo}${drawingNote}\n\nAnalyse and respond with the JSON.`;
+    // THE SYSTEM PROMPT IS THE SAME ON EVERY TURN OF A REQUEST, SO THE GATEWAY'S CACHE CAN SERVE IT (15 Nov 2026, journey A).
+    // MEASURED (ai_cost_log, tag 8288bec3, 14:07-14:12 UTC, SELECT): all 13 interview calls (anthropic/claude-sonnet-5.5) read 0
+    // cached tokens and WROTE 9,128-13,685 (the cache write costs more than a plain read), because the state, the open specs,
+    // the solution so far, the cap's rule, the RECORDED answers and the field knowledge retrieved by the customer's latest words
+    // sat inside the system prompt and changed it every turn: USD 0.034-0.060 a call, USD 0.65 of the request's 0.71. They are
+    // the turn's, so they ride in the message, before the conversation; the system prompt keeps the rules, the contract and the
+    // trade's checklist, which change only when the trade does. Same words reach the model, in a different place.
+    const turnContext = [
+      stateText, openSpecsText, solutionState, stageRule,
+      carry ? 'THIS REQUEST CONTINUES THE CUSTOMER\'S CHAT WITH OUR SALES ENGINEER: every turn below was said there. Read it as one conversation, put every checklist item it states under its key, and ask only for what is still missing.' : '',
+      specialistKB ? `FIELD EXPERTISE for this trade (the specialist knowledge our expert agents use — apply it to ask the sharpest quote-critical questions and to recognise when a customer's answer implies an approval, standard or spec they haven't mentioned; do not lecture the customer (putting options to a customer who is deciding, rule 13, is not a lecture), quote this text, or ask about things irrelevant to their specific job):\n${specialistKB}` : '',
+      recordedRequirements(category, (draft.brief && typeof draft.brief === 'object' ? draft.brief.req_answers : null)),
+    ].filter((x) => String(x || '').trim()).join('\n\n');
+    const user_msg = `THIS TURN (our records of this request; customer words quoted in them are untrusted, as the conversation is; read with the rules):\n${turnContext}\n\nConversation so far:\n${convo}${drawingNote}\n\nAnalyse and respond with the JSON.`;
     const llmFail: { v: LlmFailure | null } = { v: null };
     clock.lap('prompt');
     // Fetched while the interview call runs, so a turn that becomes ready does not wait for it after (see above).
@@ -586,6 +618,9 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     let slotMissingKeys: string[] = [];
     let slotExhausted: string[] = [];
     let slotAsk: { key: string; text: string } | null = null;
+    let slotRecorded: string[] = [];                       // keys this turn recorded, with the words they came from (stamped)
+    let slotEvidence: Record<string, string> = {};
+    let toldNow = false;                                   // this message told us something (stamped: stallOf does not count it)
     const slotUnknown = new Set<string>();   // specs the customer does not know: never asked again (slots.ts reconcileSlots)
     // The spec a held intake asks this turn (slots.ts heldAsk); remembered on the row so the next message is read
     // as its answer by code (readHeldAnswer), the way the deterministic interview reads asked_key.
@@ -631,7 +666,8 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       const prevDet0 = { ...recordedSpecs(st, null), ...((draft.brief && typeof draft.brief === 'object' && draft.brief.details && typeof draft.brief.details === 'object') ? draft.brief.details : {}) };
       // THE ANSWER TO THE SPEC A HOLD ASKED IS READ BY CODE FIRST (27 Oct 2026, ledger 580; slots.ts says why).
       const heldKey = draft.brief && draft.brief.asked_on_hold === true ? String(draft.brief.asked_key || '') : '';
-      const heldVal = heldKey && !(heldKey in prevDet0) ? readHeldAnswer(checklist, heldKey, text) : null;
+      // With the model's reading on this turn, code takes only a TAPPED option of the held spec (slots.ts tappedHeldAnswer).
+      const heldVal = heldKey && !(heldKey in prevDet0) ? tappedHeldAnswer(checklist, heldKey, text) : null;
       const prevDet = heldVal ? { ...prevDet0, [heldKey]: heldVal } : prevDet0;
       const firstUser0 = String(turns.find((t: any) => t.role === 'user')?.text || allText);
       // NEVER ASKED AGAIN (ledger 1572): what the state holds as "does not know" (any turn, the portal chat included), what
@@ -644,8 +680,18 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       const packNow = packFields(tradeCtx, topicsNow);
       const prevDetAdvised = adviseUnknown(withUniversal(prevDet, packNow, universalAnswers({ specs: { ...(st?.specs ?? {}), ...prevDet }, emirate })), packNow, unknownKeys);
       // The customer's own words, so a detail the model cites is checked against what they actually wrote (rule 16, finding b2).
-      const settled = settleModelTurn(checklist, prevDetAdvised, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), openTurnsByKey(turns), slotUnknown, allText);
+      // Did this message answer anything outside the checklist (the four questions, a "does not know")? Then a waiting question
+      // is not asked again on this turn (slots.ts reconcileSlots `waiting`).
+      const reqPrev0: Answers = (draft.brief && typeof draft.brief === 'object' && draft.brief.req_answers && typeof draft.brief.req_answers === 'object') ? draft.brief.req_answers : {};
+      // a new answer, or one this message changed (the model's changed_answers: "actually supply only")
+      const reqChangedNamed = new Set(Array.isArray(out.changed_answers) ? out.changed_answers.map(String) : []);
+      const reqNewNow = Object.entries(requirementsFromModel(String(out.category || category || ''), out.requirements))
+        .some(([k, a]) => !reqPrev0[k] || (reqChangedNamed.has(k) && JSON.stringify(reqPrev0[k]) !== JSON.stringify(a)));
+      const settled = settleModelTurn(checklist, prevDetAdvised, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), askedTurnsByKey(turns), slotUnknown, allText,
+        { recordedElsewhere: reqNewNow || modelUnknown.some((k: string) => !(st?.unknown ?? {})[k]), lastText: text, stall: stallOf(turns), lastAsked: lastAskedKeys(turns) });
       slotDetails = settled.details; slotMissingKeys = settled.missingKeys; slotExhausted = settled.held ? settled.exhausted : [];
+      slotRecorded = settled.recorded ?? []; slotEvidence = settled.evidence ?? {};
+      toldNow = slotRecorded.length > 0 || reqNewNow || modelUnknown.some((k: string) => !(st?.unknown ?? {})[k]) || Object.keys(unknownNow).length > 0;
       // The state's first askable question and its key: when that is the question asked, the key goes with it.
       slotAsk = slotAskOf(settled);
     }
@@ -758,6 +804,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     if (placedSlug) cat = placedSlug;
     category = cat;
     let status = ['rejected', 'needs_info', 'ready', 'held'].includes(out.status) ? out.status : 'needs_info';
+    let settleOfferNow = false;   // this reply offers the sales engineer's help (said once per conversation; stamped on the turn)
     // HELD FOR SPECS (slots.ts MAX_OPEN_TURNS): only questions the customer has not answered in three turns are
     // left. The request is not ready and goes to no supplier; the sales engineer gets the same handoff the
     // not-sure path opens (kind spec.not_sure, registered), subject this intake. One per intake (fn_seat_handoff).
@@ -777,12 +824,16 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       // The customer is told WHICH questions are still open, by the model, in the inquiry language (slots.ts heldReply).
       // On the turn's clock (it had its own 40 s), but a reply always gets a real model attempt (turn_clock.ts
       // replyDeadline, the founder's ruling of 27 Oct): the open questions are listed by code only if the model fails.
-      const hr = askAgain.length ? await heldReply(defaultDeps(admin, 'inquiry_intake'), checklist, askAgain, slotLang, text, turns, clock.replyDeadline())
+      // The one question asked is heldNext's (its buttons go with it), and the sales engineer is offered once per conversation.
+      const settleOffered = turns.some((t: any) => t && t.role === 'assistant' && t.settle_offered === true);
+      const hr = askAgain.length ? await heldReply(defaultDeps(admin, 'inquiry_intake'), checklist, askAgain, slotLang, text, turns, clock.replyDeadline(),
+          { ask: heldNext ? { text: heldNext.text, options: heldNext.options } : null, offerSettle: !settleOffered, answer: modelAnswer })
         : { text: '', outage: false, by: 'none' as const };
+      if (askAgain.length && !settleOffered) settleOfferNow = true;
       // the model's held reply; the code list back means OpenRouter was down (1339); '' means the model is up but nothing
       // it wrote passed, so it is asked again below (intakeVoice) with the hold as its draft
       if (hr.by === 'outage_fallback') llmDown = true; else if (hr.by === 'model') modelWrote = hr.text;
-      out.assistant_message = hr.text || (askAgain.length ? heldDraftOf(checklist, askAgain, slotLang) : unknownHeldDraft(checklist, slotExhausted, slotLang));
+      out.assistant_message = hr.text || (askAgain.length ? heldDraftOf(checklist, askAgain, slotLang, settleOfferNow) : unknownHeldDraft(checklist, slotExhausted, slotLang));
       clock.lap('held_reply');
     }
     // Stamp the answering agent on the turn so the next turn knows the specialist has already introduced itself.
@@ -823,7 +874,12 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       const det = (b.details && typeof b.details === 'object') ? b.details : {};
       if (!b.details || typeof b.details !== 'object') b.details = det;
       if (slotDetails) for (const [k, v] of Object.entries(slotDetails)) if (det[k] === undefined) det[k] = v;
-      const isAbsent = (f: any) => { const v = b[f.key] ?? det[f.key]; return v === undefined || v === null || String(v).trim() === ''; };
+      // THE ANSWER UNDER ITS KEY IN details COUNTS, WHATEVER THE SUMMARY FIELD BESIDE IT SAYS (15 Nov 2026, journey A). This read
+      // the brief's top-level field first (b.scope ?? det.scope): the summary's "scope" is '' until a request is ready (the prompt
+      // lets it be), and '' is not null, so a scope recorded in details read as absent and "Supply and install?" was asked
+      // again after the customer said it. Either place counts; an empty one never hides the other.
+      const has = (v: unknown) => v !== undefined && v !== null && String(typeof v === 'object' ? JSON.stringify(v) : v).trim() !== '';
+      const isAbsent = (f: any) => !has(det[f.key]) && !has(b[f.key]);
       // EXACT SPEC BY REASONING (23 Sep 2026, founder_instruction 886-903). fn_rfq_required_check used to
       // count a required spec as answered when a 4-letter token of any of its option labels appeared
       // anywhere in the text ("no preference on the frame" answered frame_material). That scan is gone
@@ -914,6 +970,12 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     // each one the customer's message changes; only those (or the question this message answers) are replaced. Nothing here
     // reads the customer's words: it is the model's own declaration (slots.ts mergeRequirements).
     if (out && llmParseOk && category) reqAnswers = mergeRequirements(reqAnswers, requirementsFromModel(category, out.requirements), out.changed_answers, prevBrief.req_asked || null);
+    // "I don't know" to the one of the four questions just asked is its not-sure answer, as it is "does not know" for a checklist spec
+    // (unknownNow above; re-check of 15 Nov 2026, item 3): it was asked again for ever whenever the model did not file it.
+    if (placed === 'added' && category && prevBrief.req_asked && text && saysDontKnow(text)) {
+      const q = requirementQuestions(category).find((x) => x.key === prevBrief.req_asked);
+      if (q && !reqAnswers[q.key]) reqAnswers = { ...reqAnswers, [q.key]: notSureAnswer(q) };
+    }
     let reqAsked: string | null = null;
     // "6 LEFT" while the category questions still run counted every sales-engineer question as open,
     // including the three the customer had already stated (measured 21 Sep 2026, customer audit,
@@ -937,7 +999,9 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     }
     if (status === 'ready' && category) {
       const known = { ...((interview && interview.details) || prevBrief.details || {}), ...((out.brief && out.brief.details) || {}) };
-      const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date(), allText, { modelRead: llmParseOk });
+      const reqAskedCounts = askedTurnsByKey(turns);
+      const rs = requirementsStep(category, reqAnswers, prevBrief.req_asked || null, text, known, reqLang, new Date(), allText,
+        { modelRead: llmParseOk, asked: reqAskedCounts, recordedNow: slotRecorded.length > 0 || Object.keys(reqAnswers).some((k) => !(prevBrief.req_answers ?? {})[k]) });
       reqAnswers = rs.answers; reqRemaining = rs.remaining; reqProgress = { filled: rs.filled, total: rs.total };
       if (!rs.complete && rs.next) {
         const lead = rs.retry
@@ -955,6 +1019,12 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
         // customer tapping it records it (founder, 14 Sep 2026: "we don't assume stuff").
         nextQuestion = { key: rs.next.key, text: rs.next.text, options: rs.next.options, suggested: rs.next.suggested };
         reqAsked = rs.next.key;
+      } else if (!rs.complete) {
+        // every open question is already waiting for its answer and this message answered something: noted, nothing asked
+        status = 'needs_info'; out.status = 'needs_info';
+        out.assistant_message = replyFromState('needs_info', null, slotLang, true);
+        out.questions = []; out.missing = rs.remaining;
+        reqAsked = prevBrief.req_asked || null;
       }
     }
 
@@ -1110,10 +1180,17 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     if (!readinessFields) readinessFields = { filled: status === 'ready' ? reqCount : Math.max(0, reqCount - (requiredGate ? requiredGate.missing_keys.length : (Array.isArray(out.missing) ? out.missing.length : reqCount))), required: reqCount };
     // The drawing's confirm question is the one question allowed beside a ready request (above).
     if (status === 'ready') { if (!nextQuestion || nextQuestion.key !== 'boq_check') nextQuestion = null; readinessFields = { filled: readinessFields.required, required: readinessFields.required }; }
-    else if (!nextQuestion && Array.isArray(out.questions) && out.questions.length) nextQuestion = { key: requiredGate ? requiredGate.missing_keys[0] || null
-      // Before a ready the gate is null; the slot state's key is named only when its question is the one asked
-      // (a question the model wrote in its own words has no key we can vouch for). Run 321d13ae: key was always null.
-      : slotKeyFor(slotAsk, String(out.questions[0])), text: String(out.questions[0]), options: null };
+    else if (!nextQuestion && Array.isArray(out.questions) && out.questions.length) {
+      const key = requiredGate ? requiredGate.missing_keys[0] || null
+        // Before a ready the gate is null; the slot state's key is named only when its question is the one asked
+        // (a question the model wrote in its own words has no key we can vouch for). Run 321d13ae: key was always null.
+        : slotKeyFor(slotAsk, String(out.questions[0]));
+      // ITS OWN BUTTONS, AND ONLY ITS OWN (15 Nov 2026, journey A): a spec code asks, by its key, carries that spec's options; a
+      // question with no key we can vouch for (the model's own words) carries none.
+      const f = key ? checklist.find((x: any) => x && String(x.key) === key) : null;
+      const opts = f && Array.isArray(f.options) ? f.options.filter((o: unknown) => typeof o === 'string' && o) : [];
+      nextQuestion = { key, text: String(out.questions[0]), options: opts.length && slotKeyFor(slotAsk, String(out.questions[0])) === key ? opts : null };
+    }
     // The readiness bar counts the sales engineer's questions from the first turn, so it never reads
     // 100% while something is still going to be asked, and remaining_questions lists every open
     // question in the customer's language, so the composer can show exactly what is left.
@@ -1167,6 +1244,10 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       out.assistant_message = modelAnswer + ' ' + String(out.assistant_message || '');
     }
     {
+      // SENT AS IT IS (re-check of 15 Nov 2026, item 3): a ready request carrying a "supplier to advise" says so, and names the sales
+      // engineer's WhatsApp line, so a customer who did not know some details is never left at a dead end.
+      if (status === 'ready' && brief && brief.details && Object.values(brief.details).some((v) => v === SUPPLIER_TO_ADVISE)
+          && !String(out.assistant_message || '').includes(SENT_AS_IS[slotLang])) out.assistant_message = `${String(out.assistant_message || '').trim()} ${SENT_AS_IS[slotLang]} ${SALES_ENGINEER_WHATSAPP[slotLang]}`;
       const draftMsg = String(out.assistant_message || '').trim();
       if (draftMsg && draftMsg !== String(modelWrote ?? '').trim()) out.assistant_message = await voice(draftMsg);
     }
@@ -1188,9 +1269,19 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     const reaskTid = !String(out.assistant_message || '').trim() && replyBy === 'none'
       ? await fileReask(voiced.draft + (nextQuestion ? '\nTHE ONE QUESTION TO ASK NOW: ' + nextQuestion.text : '\nAsk no question unless the message above asks one.'), voiced.problems)
       : null;
-    for (let i = turns.length - 1; i >= 0; i--) if (turns[i] && turns[i].role === 'assistant') { turns[i].text = out.assistant_message || ''; if (reaskTid) turns[i].reask_pending = reaskTid; break; }
+    for (let i = turns.length - 1; i >= 0; i--) if (turns[i] && turns[i].role === 'assistant') { turns[i].text = out.assistant_message || ''; if (reaskTid) turns[i].reask_pending = reaskTid; if (settleOfferNow) turns[i].settle_offered = true; break; }
     const missingKeys: string[] = status === 'ready' ? [] : (requiredGate ? requiredGate.missing_keys : slotMissingKeys);
+    // WHAT THIS REPLY ASKED (slots.ts askedTurnsByKey: a spec is held after three ASKS, and the next question is one not yet asked):
+    // the question card's key; else, when the model's own sentence asks, the keys it names ("asked_keys", known specs only), or
+    // the state's first open spec when it names none.
+    // Only an OPEN REQUIRED spec the model names counts as asked (review of 15 Nov 2026, item 2: a model naming an optional spec while
+    // asking something else accrued no ask on any required spec, and the request sat at needs_info for 45 turns); else the state's.
+    const openRequired = new Set(slotMissingKeys.filter((k) => !slotExhausted.includes(k)));
+    const modelAskedKeys = out && llmParseOk && Array.isArray(out.asked_keys) ? out.asked_keys.map(String).filter((k: string) => openRequired.has(k)) : [];
+    const askedKeys: string[] = nextQuestion?.key ? [String(nextQuestion.key)]
+      : status !== 'ready' && Array.isArray(out.questions) && out.questions.length ? (modelAskedKeys.length ? modelAskedKeys : slotAsk ? [slotAsk.key] : []) : [];
     stampTurn(turns, { status, details: (briefToSave as any).details || {}, req_answers: reqAnswers, missing: Array.isArray(out.missing) ? out.missing.map(String) : [], missing_keys: missingKeys,
+      asked_keys: askedKeys, ...(slotRecorded.length ? { recorded: slotRecorded, evidence: slotEvidence } : {}), ...(toldNow ? { told: true } : {}),
       reply: { next_question: nextQuestion, remaining_questions: remainingQuestions, readiness: readinessFields } });
     const { error: saveErr } = await admin.from('inquiry_intake').update({ category, status, raw_input: allText.slice(0, 4000), turns, brief: briefToSave, readiness: Math.max(0, Math.min(100, Number(out.readiness) || 0)), missing: out.missing || [], updated_at: new Date().toISOString() }).eq('id', draft.id);
     clock.lap('saved');
@@ -1245,3 +1336,4 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       agent: ACTOR, agent_name: ar ? 'مهندس مبيعات QuotesDone' : 'QuotesDone sales engineer' });
   } catch (e) { await logRun('error', { unhandled_exception: 1, intake_saved: 0 }, 'inquiry_intake threw an unhandled exception and returned 500: ' + String((e as Error)?.message || e) + ' — the customer\'s RFQ was not captured or not updated, so it will never be routed to suppliers.'); return J({ error: String((e as Error)?.message || e) }, 500); }
 }
+

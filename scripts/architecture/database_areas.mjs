@@ -122,6 +122,7 @@ export const OVERRIDES = {
   compliance_archive: 'customers-inquiries',    // signed terms certificates and the customer register
   extract_text: 'knowledge',                    // reads an attachment's text through ai_gateway
   kyc: 'customers-inquiries',                   // account completion: mobile, email, date of birth, signed terms
+  my_data_pdf: 'it-ops-monitoring',             // "Download my data": the person's own PDPL data copy as a PDF
   oauth_connect: 'it-ops-monitoring',           // the founder grants provider consents
   pdf_native: 'customers-inquiries',            // renders the platform's PDF documents
   public_site: 'marketing',                     // the no-sign-in endpoints behind the public website

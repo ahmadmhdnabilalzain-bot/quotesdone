@@ -17,6 +17,7 @@ import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { functionSource } from '../lib/function_sources.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -94,7 +95,7 @@ test('production: a failure backs off, doubles, and after the last attempt goes 
   if (!live.applied) { t.skip('a_failed_spec_check_backs_off_instead_of_retrying_every_tick.sql is not applied yet'); return; }
   let out = null;
   const parse = (s) => { try { return JSON.parse(s); } catch { return JSON.parse(s.replace(/\\\\/g, '\\').replace(/\\"/g, '"')); } };
-  try { await sql(PROBE); } catch (e) { const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
+  try { await replaySql(PROBE, { label: 'the spec-check back-off probe' }); } catch (e) { const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
   assert.ok(out, 'the probe did not report');
   if (out.skipped) { t.skip(out.skipped); return; }
   assert.equal(out.quote_live, 'submitted', 'the fixture quote is live once the quality hold has released it');

@@ -88,6 +88,20 @@ const LEAKED: [string, string][] = [
   ['Plot 597-123, DIP, Dubai', '597'],
   // the final 480-trial run on these fixes: 1 of 180 Q&A messages kept a bracketed address with a long ending
   ['email info [at] zzcrescentbluegd8.example.invalid', 'zzcrescentbluegd8'], ['ahmed (at) alnoor (dot) construction', 'alnoor'],
+  // ── the anonymity audit of 13 Nov 2026 (REPORT_A L1/L4, REPORT_C L2): every one passed every scrubber ──
+  ['Villa 15, Al Barsha 2, Dubai', 'Barsha'], ['Villa 15, Al Barsha 2, Dubai', 'Villa 15'], ['Site is Villa 15 Al Barsha 2', 'Barsha'], ['Site is Villa 15 Al Barsha 2', '15'],
+  ['The house is in Al Barsha 2 near Mall of the Emirates', 'Mall of'], ['The house is in Al Barsha 2 near Mall of the Emirates', 'Barsha'],
+  ['الفيلا في البرشاء 2 قرب مول الإمارات، فيلا رقم 15', 'البرشاء'], ['الفيلا في البرشاء 2 قرب مول الإمارات، فيلا رقم 15', '15'], ['الفيلا في البرشاء 2 قرب مول الإمارات، فيلا رقم 15', 'مول'],
+  ['Plot No. 373-4512 in Al Barsha South', '4512'], ['Makani 12345 67890', '67890'], ['Makani number: 1234567890', '1234567890'], ['Makani 3061295475', '3061295475'],
+  ['Apartment 1204, Marina Gate 2 tower, Dubai Marina', '1204'], ['Apartment 1204, Marina Gate 2 tower, Dubai Marina', 'Marina'], ['Location 25.1123, 55.2001', '25.1123'],
+  ['what3words ///filled.count.soap', 'filled.count'], ['visit our showroom in Al Quoz', 'Quoz'], ['from our Al Quoz warehouse', 'Quoz'], ['Emirates NBD, Al Quoz branch', 'Quoz'],
+  ['Emirates NBD, Al Quoz branch', 'NBD'], ['Bank: Mashreq, account name on request', 'Mashreq'], ['Interior painting in Al Nahda, Sharjah', 'Nahda'], ['Villa in Khalifa City A', 'Khalifa'],
+  ['near Sheikh Zayed Road opposite Lulu Hypermarket', 'Zayed'], ['call zero five five, zero zero zero, zero four nine nine', 'zero four nine'],
+  ['zero five zero one two three four five six seven', 'zero five zero'], ['my number is 055 000 then 0499', '0499'], ['call 050 123 / then 4567', '4567'],
+  ['رقمي صفر خمسة خمسة صفر صفر صفر صفر أربعة تسعة تسعة', 'تسعة'], ['mail omar.haddad @ zz-mail.example.invalid', 'haddad'], ['write to omarhaddad at gmail dot com', 'omarhaddad'],
+  ['Contact: Rashid Khan for details', 'Rashid'], ['Regards, Rashid', 'Rashid'], ['Consultant is Eng. Rami Khoury', 'Khoury'], ['ask for Rashid Khan at the gate', 'Rashid'],
+  ['Quotation No. FT-Q-2026-0457', 'FT-Q'], ['Ref FT/Q/2026/0457 attached', 'FT/Q'], ['Sales Manager. Signed and stamped', 'stamped'], ['Sales Manager. Signed and stamped', 'Sales Manager'],
+  ['[company stamp: FALCON TRADING LLC - DUBAI]', 'stamp'],
 ];
 /** What a residual scan must flag on the RAW text (a drawing page holding these is held, never shared). */
 const residualOf = (s: string) => residualScan(s, ['zz demo']);
@@ -123,10 +137,9 @@ const KEEP = ['Supply and install 2 TR ducted split unit 6 nos 4200.00 25200.00'
   '01 25 450.00 11250.00', '03 120 4500 54000', 'Item 02 6 nos 1250.00 7500.00', 'Rev 02 dated 05.11.2026 10:30',
   'Dated 01.12.2026 1200 hrs', 'Price AED 971,500.00', 'Total 0 971 500 000', '050 mm thick insulation',
   'Project Manager Full Time On Site', 'Attention: Please note prices exclude VAT', 'Approved by MEP Consultants prior to install', 'Section 4 General Contracting works',
-  'Project Duration Est. 6 Weeks', 'Delivery from Jebel Ali Industrial Area 2 warehouse', 'All works on behalf of Main Contractor Dubai Hills',
-  'Unit 12, Block B, Dubai', 'Mr. Client to provide power', 'From: Ground Floor To Roof',
+  'Project Duration Est. 6 Weeks', 'Mr. Client to provide power', 'From: Ground Floor To Roof',
   'مكتب خشبي مقاس ١٢٠×٦٠ سم عدد ١٠', 'تشطيب مكتب الإدارة بالكامل', 'خرسانة جاهزة من مصنع معتمد C40', 'يتم الاستلام من قبل المهندس المشرف على المشروع',
-  'المسؤول عن التركيب المقاول الرئيسي', 'تجديد مكتب في دبي مارينا مساحة ٢٠٠ متر مربع', 'شركة التأمين تتحمل التكاليف',
+  'المسؤول عن التركيب المقاول الرئيسي', 'شركة التأمين تتحمل التكاليف',
   'Contact: Site Office for access', 'Regards, Supply Chain Team',
   // ── second independent review of #1838 (3 Nov 2026): trade text the loosened list still ate ──
   'Acoustic Consultants approval required', 'Third Party Consultants to witness testing', 'Fire Alarm Engineering Consultants approval',
@@ -161,7 +174,29 @@ const KEEP = ['Supply and install 2 TR ducted split unit 6 nos 4200.00 25200.00'
   'Duct 800 600 1200 mm', 'WhatsApp group for site updates', 'مجموعة المضخات ٢ عدد', 'Qty 6 @AED50', 'Thanks\nPlease find attached', 'Box 12 nos',
   'تم تسليم المخطط للمقاولات العامة', 'مكتب الموقع للمهندس المشرف',
   // the reviewer's own input set, re-run after the fixes above
-  'Inspection 05-04-2026 14 30 hrs', 'Price excludes VAT.Info on request', 'Marble Trading Co. not included', 'ص ب 100 لتر'];
+  'Inspection 05-04-2026 14 30 hrs', 'Price excludes VAT.Info on request', 'Marble Trading Co. not included', 'ص ب 100 لتر',
+  // ── the anonymity fix round of 13 Nov 2026: what the new place, phone-word, name, bank and document-number rules must
+  // leave alone (the brief's over-redaction list, and the trade words beside each new rule) ──
+  'Marina blue emulsion 2 coats', 'Jumeirah collection wallpaper 10 rolls', 'Dubai Municipality approved', 'Sharjah-made concrete blocks', 'DEWA connection by others',
+  '3-bedroom villa', '2 villas', 'villa has two floors', 'Unit 6, 2 TR', 'plot area 500 m2', 'Villa 4 bedrooms', 'Office 1 nos', 'Steel Tower 2 nos', 'Access Road paving 200 m2',
+  'next to DB-01', 'near the main door', 'JVC TV 55 inch', 'DIP switch 8 way', 'Supply Of Steel For Tower', 'Level 3 slab', 'SHALLOW END FFL -1.20',
+  'two coats then one coat of sealer', 'Qty 50, 120, 4500', 'Ref CT-1 cooling tower', 'FAB shop drawings by contractor', 'CBD tiles 600x600',
+  'Call Centre support 24/7', 'Contact Details on request', 'Regards, Team', 'call Monday morning', 'Coordinate with Main Contractor', 'Made in Germany',
+  '5 years warranty on workmanship', 'Warranty 10 years by manufacturer', 'مع الشكر للتعاون', 'Interior painting in Dubai'];
+/**
+ * REDUCED, NOT KEPT (13 Nov 2026, founder ledger 1683: "Dubai in general is okay … Al Barsha and Villa 15 need to be
+ * hidden"). These four were MUST-KEEP rows of #1838, written when only firm names and contacts were identity; a community,
+ * a district or a unit number below the emirate is identity now, so each crosses as its emirate and nothing else.
+ */
+const REDUCED: [string, string][] = [
+  ['Delivery from Jebel Ali Industrial Area 2 warehouse', 'Delivery from Dubai warehouse'],
+  ['All works on behalf of Main Contractor Dubai Hills', 'All works on behalf of Main Contractor Dubai'],
+  ['Unit 12, Block B, Dubai', 'Dubai'],
+  ['تجديد مكتب في دبي مارينا مساحة ٢٠٠ متر مربع', 'تجديد مكتب في دبي مساحة ٢٠٠ متر مربع'],
+];
+Deno.test('REDUCED: a place below the emirate crosses as its emirate (ruling 1683), through the shared list', () => {
+  for (const [s, want] of REDUCED) assertEquals(scrubIdentityText(s, '[X]'), want, s);
+});
 // stripContact writes Arabic-Indic digits as Latin ones before it reads numbers; that is the same figure, not damage.
 const latin = (s: string) => s.replace(/[٠-٩]/g, (c) => String(c.charCodeAt(0) - 0x660)).replace(/\s+/g, ' ').trim();
 const kept = (s: string, out: string) => latin(out) === latin(s);
@@ -225,4 +260,73 @@ Deno.test('MUST-KEEP: a REVEALED quotation names its supplier on the party chip 
       assertEquals(party?.chip, name, `${lang} ${name}`);
     }
   }
+});
+
+// ── the anonymity audit of 13 Nov 2026 (REPORT_A L4, REPORT_C L1/L3/L4): known names in their other forms ──
+Deno.test('a known name in the other script, without its demo prefix, without its trade words, and its initials in its own quotation register', () => {
+  const gone = (out: string, needle: string, what: string) => assert(!out.toLowerCase().includes(needle.toLowerCase()), `${what}: ${out}`);
+  // the customer's name in Arabic when stored in Latin, and the reverse (every door: the e-mail scrub and the answer scrub)
+  gone(supplierScrub('أنا عمر حداد وأحتاج إلى تبليط ثلاثة حمامات.', 'ZZ DEMO Omar Haddad', []) ?? '', 'حداد', 'Arabic of a Latin name');
+  gone(stripContact('أنا عمر حداد وأحتاج إلى تبليط', ['ZZ DEMO Omar Haddad']), 'حداد', 'Arabic of a Latin name (answer)');
+  gone(supplierScrub('Hi, I am Omar Haddad from Dubai', 'عمر حداد', []) ?? '', 'Haddad', 'Latin of an Arabic name');
+  gone(supplierScrub('فالكون للدهانات - الدفع بشيك', 'Falcon Trading LLC', []) ?? '', 'فالكون', 'an Arabic firm with no legal form');
+  // a demo account's name is tested like a real one (REPORT_C L3)
+  gone(supplierScrub('Falcon premium paint, 2 coats', 'ZZ DEMO Falcon Trading LLC', []) ?? '', 'Falcon', 'demo prefix');
+  // the supplier's own short name once the trade word is dropped (REPORT_C L1)
+  for (const [n, t, needle] of [['Desert Brush Painting LLC', 'balance on completion - Desert Brush team', 'Desert Brush'], ['Gulf Shield Waterproofing LLC', 'Gulf Shield warranty 10 years', 'Gulf Shield'],
+    ['Al Noor Building Materials Trading LLC', 'Delivered by Al Noor trucks', 'Al Noor'],
+    ['ZZ DEMO Desert Brush Painting LLC', 'We are Desert Brush, since 2012', 'Desert Brush']] as const) gone(supplierScrub(t, n, []) ?? '', needle, n);
+  // initials before a code or a team, and a house brand on the name's root
+  gone(supplierScrub('Our ref FT/QTN/2026/0412 and FT-2026-118', 'Falcon Trading LLC', []) ?? '', 'FT', 'initials as a quotation register');
+  // SECOND READER (independent review of 13 Nov 2026): a short name that is only common words ("Emirates Steel"), initials
+  // anywhere else ("FT team") and a house brand ("Falcolux") match ordinary trade words too often ("ST-37", "UPS",
+  // "Electrical" of Electra): the code layer leaves them to the model-based second reader.
+  for (const [n, t] of [['Emirates Steel Fabrication LLC', 'Emirates Steel workshop warranty'], ['Falcon Trading LLC', 'Falcolux premium emulsion'], ['Falcon Trading LLC', 'by FT team'],
+    ['Steel Tech LLC', 'ST-37 steel'], ['Unique Power Systems LLC', 'UPS warranty 2 years'], ['Electra Electromechanical LLC', 'Electrical works'], ['Dubai Cable Company', 'DC-12V driver']] as const)
+    assertEquals(supplierScrub(t, n, []), t, `${n}: ${t}`);
+  // ...and what each of those must leave: "10 ft", a lower-case trade phrase, another word
+  assertEquals(supplierScrub('Ceiling height 10 FT, 2 FT x 4 FT tiles', 'Falcon Trading LLC', []), 'Ceiling height 10 FT, 2 FT x 4 FT tiles');
+  assertEquals(supplierScrub('Steel works to structural drawings; gulf steel sections', 'Gulf Steel Works LLC', []), 'Steel works to structural drawings; gulf steel sections');
+  assertEquals(supplierScrub('Emirates NBD is not our bank; supply to United Arab Emirates standards', 'Emirates Steel Fabrication LLC', []), '[removed] is not our bank; supply to United Arab Emirates standards');
+});
+Deno.test('the warranty a supplier gave survives the removal of his name (REPORT_C L4: "5 years warranty by Falcon Trading LLC" was saved as "5 █")', () => {
+  for (const out of [supplierScrub('5 years warranty by Falcon Trading LLC on workmanship', 'Falcon Trading LLC', []) ?? '', scrubIdentityText('5 years warranty by Falcon Trading LLC on workmanship', '[X]'),
+    maskContacts('5 years warranty by Falcon Trading LLC on workmanship', ['Falcon Trading LLC'], 'en'), stripContact('5 years warranty by Falcon Trading LLC on workmanship', ['Falcon Trading LLC'])]) {
+    assert(out.startsWith('5 years warranty by '), out); assert(!out.includes('Falcon'), out); assert(out.endsWith('on workmanship'), out);
+  }
+  // a stranger's firm in the same shape (no known name): the shared list alone keeps the period
+  assertEquals(scrubIdentityText('5 years warranty by Gulf Pipes LLC', '[X]'), '5 years warranty by [X]');
+});
+
+// FOR THE SECOND READER: these still cross the code layer (second review of 13 Nov 2026). The planted strings the first
+// version closed with rules that also took trade words ("Manual Call Point", "Contact Adhesive", "Mashreq tower fit-out");
+// they stay planted, asserted to LEAK, so the day a second reader or a precise rule closes one, this test fails and says so.
+const SECOND_READER_TEXT: [string, string][] = [
+  ['Contact Rashid Khan for details', 'Rashid'], ['ask for Rashid at the gate', 'Rashid'], ['call Rashid on Monday', 'Rashid'], ['Payment by transfer to Mashreq', 'Mashreq'],
+];
+Deno.test('FOR THE SECOND READER: the unlabelled forms still cross the code layer (each one closed must move to LEAKED)', () => {
+  const closed = SECOND_READER_TEXT.filter(([t, n]) => !scrubIdentityText(t, '[X]').includes(n) || !(supplierScrub(t, NAME, []) ?? '').includes(n));
+  assertEquals(closed, []);
+});
+
+// THIRD REVIEW of 13 Nov 2026: collapsing a column gap to ONE space reopened this phone (the phone shapes refuse a number
+// followed by one space and digits, a BOQ row). Blank runs are capped at two; a line's indent is kept.
+Deno.test('a phone in column-spaced text is removed on every door; an indent and a two-space table survive', () => {
+  for (const t of ['Sales contact    050 123 4567    12,500.00', 'Sales contact\t\t\t050 123 4567\t\t\t12,500.00']) {
+    for (const out of [scrubIdentityText(t, '[X]'), supplierScrub(t, NAME, []) ?? '', maskContacts(t, [NAME], 'en'), stripContact(t, [NAME])]) assert(!out.includes('4567'), out);
+  }
+  assertEquals(scrubIdentityText('    Line two indented', '[X]'), '    Line two indented');
+  // FINAL REVIEW of the combined release, 13 Nov 2026 (item 3): ONE tab between the cells (the commonest paste, from a
+  // spreadsheet) kept the phone: a tab ends a number, so the price in the next cell no longer reads as its next group.
+  for (const t of ['Sales contact\t050 123 4567\t12,500.00', 'Mob\t+971 50 123 4567\t450']) {
+    for (const out of [scrubIdentityText(t, '[X]'), supplierScrub(t, NAME, []) ?? '', maskContacts(t, [NAME], 'en'), stripContact(t, [NAME])]) assert(!out.includes('4567'), out);
+  }
+  // a tab-separated BOQ row of plain figures is no phone
+  assertEquals(scrubIdentityText('Item 3\t120\t4500\t54000', '[X]').replace(/\s+/g, ' '), 'Item 3 120 4500 54000');
+  // an item number, a quantity, a rate and an amount in four cells are not the landline 03 120 4500: a tab never joins a number
+  // (check of the five fixes: the mobile shape's own separator still took a tab, so "05<tab>4<tab>250<tab>1000<tab>50.00" came out "[removed]<tab>50.00")
+  for (const t of ['03\t120\t4500\t54000', '2\t04\t333\t1200', '1\t600 600 10\t86\t85.00\t7310.00', '05\t4\t250\t1000\t50.00', '5\t05\t0\t1234567\t12']) {
+    for (const out of [scrubIdentityText(t, '[X]'), supplierScrub(t, NAME, []) ?? '']) assertEquals(out, t);
+  }
+  assertEquals(scrubIdentityText('Item 1    Ceramic tiles    10 nos    450.00', '[X]'), 'Item 1  Ceramic tiles  10 nos  450.00');
 });

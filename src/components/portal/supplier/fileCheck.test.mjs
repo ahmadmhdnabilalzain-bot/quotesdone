@@ -4,7 +4,7 @@
 // "14.6 MB", and a 4032x3024 phone photo went to the server whole. Each is decided in the browser now, in a true sentence.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fileKind, licenceFileProblem, paperFileProblem, shrinkSize, jpegName, mbText, keptAsSent, PHOTO_MAX_EDGE, HEIC_SENTENCE } from './fileCheck.ts';
+import { fileKind, licenceFileProblem, paperFileProblem, shrinkSize, jpegName, mbText, keptAsSent, PHOTO_MAX_EDGE, HEIC_SENTENCE, LICENCE_ACCEPT, PAPER_ACCEPT } from './fileCheck.ts';
 
 const f = (name, type, size) => ({ name, type, size });
 
@@ -51,4 +51,18 @@ test('a file of 3 MB or less is sent as his own bytes; a larger photo is drawn w
   assert.equal(jpegName('IMG_0001.HEIC'), 'IMG_0001.jpg');
   assert.equal(jpegName('licence.png'), 'licence.jpg');
   assert.equal(fileKind(f('a.PDF', '', 1)), 'pdf');
+});
+
+// AN IPHONE PHOTO ARRIVES AS A JPEG ONLY WHILE THE PICKER DOES NOT ASK FOR HEIC (15 Nov 2026, customer_support; Monday checklist,
+// founder ledger 1692). An iPhone saves photos as HEIC. iOS Safari hands a photo-library pick to the page as a JPEG unless the
+// file input's accept list names HEIC itself (image/heic, image/heif, .heic, .heif): then the HEIC goes through as it is, and
+// only Safari's own decoder (upload.ts preparePhoto) stands between the supplier and HEIC_SENTENCE on every other browser. Both
+// pickers a registering supplier meets ask for image/* and nothing HEIC. NOT proven here: what iOS really hands over, which only
+// the founder's own iPhone shows (docs/release/monday-16-nov-invitation-checklist.md, "What only the founder can check").
+test('the licence and profile pickers never name HEIC, so iOS converts a library photo to JPEG before the page sees it', () => {
+  for (const [what, accept] of [['licence', LICENCE_ACCEPT], ['profile and catalogue', PAPER_ACCEPT]]) {
+    assert.doesNotMatch(accept, /hei[cf]/i, `${what}: listing HEIC turns iOS's JPEG conversion off`);
+    assert.match(accept, /(^|,)image\/\*(,|$)/, `${what}: image/* keeps the camera and the photo library on the phone`);
+  }
+  assert.match(LICENCE_ACCEPT, /application\/pdf/, 'a scanned licence PDF can be picked');
 });

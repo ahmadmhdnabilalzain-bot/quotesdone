@@ -16,12 +16,14 @@
 // sliding window over the squashed text, so "ORBITAL" hit the seed "Orbit" and "CEILING HEIGHT" hit "Marina
 // Heights"; it now matches whole tokens (several adjacent tokens may run together), after a transliteration fold
 // so "RASHEED KARIM" is "Rashid Kareem", and never on a seed word that is itself a trade word.
-import { ID_LABEL, ID_TEXT } from './drawing_identity_text.ts';
+import { ID_LABEL, ID_TEXT, honorificPerson } from './drawing_identity_text.ts';
 import { PARTY_TAG } from './cad_identity.ts';
-import { tradeWord } from './drawing_vocabulary.ts';
+import { tradeOnly, tradeWord } from './drawing_vocabulary.ts';
+import { drawingLocation } from './drawing_location.ts';
+export { drawingLocation };
 
 /** Company suffixes and firm words, English and Arabic: a text carrying one names a party. */
-export const COMPANY = /\b(?:L\.?\s?L\.?\s?C|F\.?Z\.?E|FZ-?LLC|FZCO|EST\.?|ESTABLISHMENT|CO\.|COMPANY|CORP(?:ORATION)?|INC\.?|LTD\.?|LIMITED|GROUP|HOLDINGS?|ENGINEERING|ENGINEERS|CONSULTANTS?|CONSULTING|CONSULTANCY|CONTRACTING|CONTRACTORS?|DEVELOPMENTS?|DEVELOPERS?|REAL\s+ESTATE|PROPERTIES|PROPERTY|ARCHITECTS?|INTERIORS|ASSOCIATES|PARTNERS|TRADING|INDUSTRIES|ENTERPRISES?|SERVICES)\b|\u0630\.?\s?\u0645\.?\s?\u0645|\u0645\u0624\u0633\u0633\u0629|\u0634\u0631\u0643\u0629|\u0645\u0643\u062a\u0628\s+\u0647\u0646\u062f\u0633\u064a|\u0644\u0644\u0645\u0642\u0627\u0648\u0644\u0627\u062a|\u0644\u0644\u0627\u0633\u062a\u0634\u0627\u0631\u0627\u062a|\u0627\u0644\u0639\u0642\u0627\u0631\u064a\u0629/i;
+export const COMPANY = /\b(?:L\.?\s?L\.?\s?C|F\.?Z\.?E|FZ-?LLC|FZCO|EST\.?|ESTABLISHMENT|CO\.|COMPANY|CORP(?:ORATION)?|INC\.?|LTD\.?|LIMITED|GROUP|HOLDINGS?|ENGINEERING|ENGINEERS|CONSULTANTS?|CONSULTING|CONSULTANCY|CONTRACTING|CONTRACTORS?|DEVELOPMENTS?|DEVELOPERS?|REAL\s+ESTATE|PROPERTIES|PROPERTY|ARCHITECTS?|SURVEYORS?|SURVEYING|INTERIORS|ASSOCIATES|PARTNERS|TRADING|INDUSTRIES|ENTERPRISES?|SERVICES)\b|\u0630\.?\s?\u0645\.?\s?\u0645|\u0645\u0624\u0633\u0633\u0629|\u0634\u0631\u0643\u0629|\u0645\u0643\u062a\u0628\s+\u0647\u0646\u062f\u0633\u064a|\u0644\u0644\u0645\u0642\u0627\u0648\u0644\u0627\u062a|\u0644\u0644\u0627\u0633\u062a\u0634\u0627\u0631\u0627\u062a|\u0627\u0644\u0639\u0642\u0627\u0631\u064a\u0629/i;
 /** A licence, permit, registration, plot, Makani, TRN, PO box or DM number: letters then digits. */
 export const LICENCE = /\b(?:LIC(?:EN[CS]E)?|TRADE\s+LIC|DM|DEWA|RERA|TRN|VAT|PERMIT|PLOT|PARCEL|MAKANI|P\.?\s?O\.?\s?BOX|POB|CR|REG(?:ISTRATION)?|PROJECT|JOB|DWG|DRG|DRAWING)\.?\s*(?:NO\.?|NUMBER|#|:)?\s*[A-Z]{0,3}[-\s]?\d{3,}/i;
 /** An ATTRIB tag of a party, the job or the sheet: every value of an INSERT carrying one is withheld. */
@@ -49,37 +51,67 @@ function tokenOk(w: string): boolean {
 }
 
 /**
+ * THE VOCABULARY GATE, kept for the one reader no model checks: the OCR scan route on the CAD worker
+ * (scan_redact.ts), where an unread word cannot be shown to a model. Everywhere else see isDrawingContent below.
  * True when a text reads as drawing content a supplier needs; false means withhold it. FAIL CLOSED: anything
  * carrying a company word, a licence number, a contact or a party label is not content; nor is Arabic (not in
  * the vocabulary yet), any other non-Latin letter, letter-spaced text, or a lone letter (a name split one glyph
  * per TEXT). Otherwise EVERY token must be a number, a size or device code, or a trade word; a short word passes
  * only if it is in the closed list (drawing_vocabulary CODES) - "DAR", "WSP", "ORB" do not.
  */
-export function isDrawingContent(text: string): boolean {
+export function isVocabularyContent(text: string): boolean {
   const t0 = String(text || '').replace(/\s+/g, ' ').trim();
   if (!t0) return false;
   const t = t0.replace(INSTRUCTION, ' ').replace(/\s+/g, ' ').trim();
   if (!t) return true;
   if (COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t) || ID_LABEL.test(t)) return false;
+  if (drawingLocation(t0)) return false;                              // a place below the emirate (ruling 1683)
   if (/[\u0600-\u06ff]/.test(t) || FOREIGN.test(t) || MAILISH.test(t)) return false;
   if (/(?:\b\p{L}\b[\s.\-]*){4,}/u.test(t)) return false;          // letter-spaced text
-  const toks = t.split(/[^A-Za-z0-9]+/).filter(Boolean);
+  // A device tag written with a dash ("P-1", "MD-1", "UWL-3") is one code, as "P1" is (13 Nov 2026: the B1 schedule's tags).
+  const toks = t.replace(/\b([A-Za-z]{1,4})-(\d{1,3}[A-Za-z]?)\b/g, '$1$2').split(/[^A-Za-z0-9]+/).filter(Boolean);
   if (!toks.length) return !/[@#]/.test(t);                          // bare punctuation: "<>", "-", "="
   if (toks.length === 1 && /^[A-Za-z]$/.test(toks[0])) return false; // a lone letter
   return toks.every(tokenOk);
+}
+
+/**
+ * THE CODE FLOOR'S RULE (13 Nov 2026, coordinator's design change C, independent review item 10): false only when
+ * code can PROVE the text names a party or a place below the emirate - a company word, a licence number, a contact, a
+ * party label, a villa / plot / street number, coordinates, a phone- or Makani-shaped number, a gazetteer place, an
+ * e-mail fragment, letter-spaced text. A word the vocabulary does not know is no longer withheld for that alone: that
+ * cost the CAD file 25 of 83 quoting strings ("BS 7671", "IEC 61439", "LOAD SCHEDULE", "TOTAL CONNECTED LOAD 45.6 KW",
+ * "FLAT ROOF", "TOWER CRANE", "PAINT JOTUN FENOMASTIC", "N"). What only a reader can tell - a name with no company word,
+ * a community no list knows - is read by a model: every CAD string (drawing_string_reading.ts) and every page's pixels
+ * (drawing_pixel_gate.ts).
+ */
+export function isDrawingContent(text: string): boolean {
+  const t0 = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!t0) return false;
+  const t = t0.replace(INSTRUCTION, ' ').replace(/\s+/g, ' ').trim();
+  if (!t) return true;
+  if (COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t)) return false;
+  // A party label is identity when it LABELS something ("PLOT NO: 345", "OWNER MR X"); a label word inside a phrase of
+  // the trade's own words is not ("PLOT BOUNDARY", "PROJECT NORTH"): review item 10 lost "PLOT BOUNDARY" to it.
+  const lm = ID_LABEL.exec(t);
+  if (lm) { if (lm[1]) return false; const rest = (t.slice(0, lm.index) + ' ' + t.slice(lm.index + lm[0].length)).trim(); if (rest ? (/[:#]/.test(t) || !tradeOnly(rest)) : /[:#]\s*\S/.test(t)) return false; }
+  if (drawingLocation(t0)) return false;
+  if (MAILISH.test(t) || /\b[A-Za-z0-9-]{2,}\.(?:ae|com|net|org|co|io)\b/i.test(t)) return false;   // an address or a domain
+  if (/(?:\b\p{L}\b[\s.\-]*){4,}/u.test(t)) return false;          // letter-spaced text
+  return true;
 }
 
 /** Letters and digits only, lower case: "Z Z  D-E-M-O" -> "zzdemo". */
 export const squash = (s: string) => String(s || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9\u0600-\u06ff]/g, '');
 
 /** Company words that give a party away even with every space removed ("ZZORBITENGINEERING"). */
-export const SQUASHED_COMPANY = /engineering|engineers|consultan|consulting|contracting|holdings|properties|developers|developments|architects|interiors|associates|partners|trading|industries|enterprise|establishment|corporation|limited|fzllc|fzco/;
+export const SQUASHED_COMPANY = /engineering|engineers|consultan|consulting|contracting|holdings|properties|developers|developments|architects|surveyors|interiors|associates|partners|trading|industries|enterprise|establishment|corporation|limited|fzllc|fzco/;
 
 /** A company word (also with the spaces squashed out), a licence number or a contact, in a text read as it stands
  *  or with its runs joined; an instruction to the contractor is not a party. */
 export const namesParty = (text: string) => {
   const t = String(text || '').replace(INSTRUCTION, ' ');
-  return COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t) || SQUASHED_COMPANY.test(squash(t));
+  return COMPANY.test(t) || LICENCE.test(t) || ID_TEXT.test(t) || honorificPerson(t) || SQUASHED_COMPANY.test(squash(t)) || !!drawingLocation(t);
 };
 
 // Transliteration fold: the same Arabic name in the spellings a drawing, an OCR and a customer use. "Rashid Kareem",

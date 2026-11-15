@@ -33,6 +33,7 @@ import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 import { advisoryCount } from '../it/open_dependency_patch_pr.mjs';
 import { functionSource } from '../lib/function_sources.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILES = [
@@ -97,7 +98,9 @@ test('the table drill\'s due-check waits at most 250 ms for a lock and then says
 });
 
 test('the tag apply_sql.mjs writes is the tag the guard reads as signed', () => {
-  assert.match(read('scripts/apply_sql.mjs'), /const tag = `qd-apply \$\{rev\} \$\{seat\} \$\{base\(process\.cwd\(\)\)\} \$\{base\(file\)\}`/);
+  // 13 Nov 2026: a nonce after the seat, so a 5xx can find this apply's own session (apply_sql.mjs settleUnknown)
+  assert.match(read('scripts/apply_sql.mjs'), /const applyTag = `qd-apply \$\{rev\} \$\{seat\} \$\{nonce\} \$\{base\(process\.cwd\(\)\)\} \$\{base\(file\)\}`/);
+  assert.equal('qd-apply 133aa12 it_engineer 3f9a1c qd-it19 x.sql'.match(/^qd-apply ([0-9a-f]{7,40}) /)?.[1], '133aa12', 'the nonce after the seat must not break the guard');
   const guard = /^qd-apply ([0-9a-f]{7,40}) /;   // the pattern in trg_it_judge_routine_change
   assert.equal('qd-apply 133aa12 it_engineer qd-it19 x.sql'.match(guard)?.[1], '133aa12', 'the seat after the revision must not break the guard');
   assert.equal('qd-apply 133aa12 qd-it19 x.sql'.match(guard)?.[1], '133aa12');
@@ -165,7 +168,7 @@ if (!OVERDUE_SKIP) {
 }
 
 async function probe(body) {
-  try { await sql(`select set_config('qd.probe_files_demo_handoff', 'on', true); do $p$ ${body} $p$;`); } catch (e) {
+  try { await replaySql(`select set_config('qd.probe_files_demo_handoff', 'on', true); do $p$ ${body} $p$;`, { label: 'an it_engineer duty probe' }); } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     // The payload arrives JSON-escaped inside the error text: unescape it as one JSON string first, so a
     // nested value that itself carries quotes survives (the crude \" replace broke on fn_it_usage_watch's

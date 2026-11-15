@@ -55,7 +55,7 @@ async function turn(o: { prev: Answers; asked: string; text: string; model: Row 
       if (u.pathname === '/functions/v1/ai_gateway') {
         const b = await req.clone().json();
         const interview = typeof b.sys === 'string' && b.sys.includes('Return STRICT JSON only');
-        if (interview) w.sys = b.sys;
+        if (interview) w.sys = String(b.sys) + '\n' + (Array.isArray(b.input) ? b.input : []).map((m: { content?: unknown }) => typeof m?.content === 'string' ? m.content : JSON.stringify(m?.content ?? '')).join('\n');   // the whole prompt: the turn's records ride in the message (15 Nov 2026)
         if (interview) return o.model ? J({ ok: true, model: 'stub/model', content: JSON.stringify(o.model) }) : J({ error: 'stub_down' }, 502);
         w.drafts.push(JSON.stringify(b));   // the reply writer: what code asked it to say
         return J({ ok: true, model: 'stub/model', content: JSON.stringify({ answer: 'ZZ DEMO voiced reply.' }) });

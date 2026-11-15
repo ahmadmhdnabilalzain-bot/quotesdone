@@ -13,7 +13,7 @@ export type DrawingFile =
 const isPdf = (b: Uint8Array) => new TextDecoder('latin1').decode(b.subarray(0, 5)) === '%PDF-';
 
 /** `maxDwgBytes`: dwg.ts's edge ceiling on the edge (default), Infinity on the CAD worker. */
-export async function anonymisedDrawingFile(bytes: Uint8Array, seeds: string[], opts: { maxDwgBytes?: number } = {}): Promise<DrawingFile> {
+export async function anonymisedDrawingFile(bytes: Uint8Array, seeds: string[], opts: { maxDwgBytes?: number; identity?: Set<string> | null } = {}): Promise<DrawingFile> {
   try {
     if (isPdf(bytes)) {
       const r = await redactPdfVector(bytes, seeds);
@@ -25,10 +25,10 @@ export async function anonymisedDrawingFile(bytes: Uint8Array, seeds: string[], 
     }
     const r = await redactCadFile(bytes, seeds, opts);
     if (!r.ok) return { ok: false, held: 'cad_' + r.held, detail: r.detail };
-    const v = await verifyCadRedaction(r.before_dxf, r.dxf, seeds, r);
+    const v = await verifyCadRedaction(r.before_dxf, r.dxf, seeds, r, [], r.removed);
     if (!v.ok) return { ok: false, held: 'cad_not_verified', detail: v.problems.slice(0, 8) };
     return { ok: true, kind: r.source, bytes: r.bytes, ext: 'dxf', mime: 'image/vnd.dxf',
-      proof: { source: r.source, entities: v.entities, geometry_pairs: v.geometry_pairs, counts: v.counts, values_changed: r.changed } };
+      proof: { source: r.source, entities: v.entities, geometry_pairs: v.geometry_pairs, counts: v.counts, values_changed: r.changed, strings_removed: r.removed.length } };
   } catch (e) {
     return { ok: false, held: 'exception', detail: String((e as Error)?.message || e).slice(0, 160) };
   }

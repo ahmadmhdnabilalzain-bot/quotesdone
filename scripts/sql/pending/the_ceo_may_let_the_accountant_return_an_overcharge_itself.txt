@@ -1,0 +1,7 @@
+Committed, not applied. Assigned: ceo. 13 Nov 2026 (coordinator ruling R4).
+
+Why it waits: it grants the accountant standing authority to return an overcharge without a CEO decision each time. The
+founder reserved refund authority on 9 Sep 2026, so this is his to grant. Apply only on his yes, after
+a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql:
+  node scripts/apply_sql.mjs scripts/sql/the_ceo_may_let_the_accountant_return_an_overcharge_itself.sql --apply
+then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.

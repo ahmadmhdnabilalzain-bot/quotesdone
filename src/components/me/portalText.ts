@@ -277,7 +277,7 @@ Object.assign(T.en, {
   nr_boq_assumptions: 'Assumptions', nr_boq_missing: 'Missing information', nr_boq_overall: 'Overall reading confidence: {c}',
   nr_boq_read_one: 'Got it — I read 1 line item from your file{cat}.', nr_boq_read_many: 'Got it — I read {c} from your file{cat}.',
   nr_partial_none: ' I could not hide everything that identifies you on the drawing, so the drawing is held and will not go to suppliers — the details below still will.',
-  nr_drawing_held: 'Drawing held: {name} will not be sent to suppliers, because I could not hide everything that identifies you on it. Your request goes without it — or press Cancel above.',
+  nr_drawing_held: 'Drawing held: {name} will not be sent to suppliers, because I could not hide everything that identifies you on it. Suppliers are told a drawing exists and can ask you about it here. To share it, send the CAD file (DWG or DXF) or a PDF exported from the drawing program, or a sharper scan. Your request can go without it — or press Cancel above.',
   // 22 Sep 2026: the file is held but its quantities were read — suppliers get those lines (names removed), not the file.
   nr_drawing_held_boq: 'Drawing held: {name} itself will not be sent to suppliers, because I could not hide everything that identifies you on it. They receive only the quantities I read from it, with every name removed — or press Cancel above.',
   nr_add_or_send: ' Add anything else, or tap Send to suppliers below.',
@@ -370,6 +370,8 @@ Object.assign(T.en, {
   // transactions.refund_status, said in words. An unknown value falls back to the raw code rather
   // than to a guess (RevealGuarantee.tsx); only 'requested' is written by customer_api today.
   refund_st_requested: 'requested', refund_st_approved: 'approved', refund_st_refunded: 'refunded', refund_st_rejected: 'declined', refund_st_processing: 'being processed',
+  // review 5, item 1 (15 Nov 2026): some, not all, of the payment has gone back (fn_refund_rolls_up_to_its_sale).
+  refund_st_partly_refunded: 'partly refunded',
   rcpt_title: 'Payment received', rcpt_body: "{fee} charged to your card (the reveal fee; no card fee). The supplier's contact is unlocked on the request below and your Reveal Guarantee clock has started.",
   rcpt_cancelled: 'Payment cancelled — nothing was charged. You can reveal the supplier whenever you are ready.',
   signup_email_reserved: 'That email domain is reserved for examples and testing and cannot receive mail, so no code can reach it. Please use your real email address.', err_need_email: 'Please enter your email address first.', err_need_id: 'Please enter your email or mobile number first.',
@@ -448,7 +450,7 @@ Object.assign(T.ar, {
   nr_boq_assumptions: 'الافتراضات', nr_boq_missing: 'معلومات ناقصة', nr_boq_overall: 'دقة القراءة الإجمالية: {c}',
   nr_boq_read_one: 'تم — قرأتُ بندًا واحدًا من ملفك{cat}.', nr_boq_read_many: 'تم — قرأتُ {c} من ملفك{cat}.',
   nr_partial_none: ' لم أتمكن من إخفاء كل ما يدل عليك في المخطط، لذلك المخطط محجوز ولن يصل إلى الموردين — أما التفاصيل أدناه فستصل كاملة.',
-  nr_drawing_held: 'المخطط محجوز: لن يُرسل {name} إلى الموردين لأني لم أتمكن من إخفاء كل ما يدل عليك فيه. سيُرسل طلبك من دونه — أو اضغط «إلغاء» في الأعلى.',
+  nr_drawing_held: 'المخطط محجوز: لن يُرسل {name} إلى الموردين لأني لم أتمكن من إخفاء كل ما يدل عليك فيه. سيعلم الموردون أن هناك مخططاً ويمكنهم سؤالك عنه هنا. لمشاركته أرسل ملف الأوتوكاد (DWG أو DXF) أو ملف PDF مُصدَّراً من برنامج الرسم، أو نسخة ممسوحة أوضح. يمكن إرسال طلبك من دونه — أو اضغط «إلغاء» في الأعلى.',
   nr_drawing_held_boq: 'المخطط محجوز: لن يُرسل الملف {name} نفسه إلى الموردين لأني لم أتمكن من إخفاء كل ما يدل عليك فيه. سيصلهم فقط جدول الكميات الذي استخرجته منه بعد حذف جميع الأسماء — أو اضغط «إلغاء» في الأعلى.',
   nr_add_or_send: ' أضف أي شيء آخر، أو اضغط «أرسل إلى الموردين» أدناه.',
   nr_markup_caption: 'هذا عدّنا مرقّمًا على مخططك؛ ألقِ عليه نظرة، ولا حاجة إلى أن تعدّ بنفسك.',
@@ -539,6 +541,7 @@ Object.assign(T.ar, {
   g_ph_waiting: 'تم إبلاغ المورّد.', g_ph_chased: 'مرحلة رسالة المتابعة — بانتظار ردّ المورّد.', g_ph_final: 'بلغنا الإنذار الأخير — يجري التحقق من استردادك بناءً على السجل.',
   g_ph_ack: 'أكّد المورّد استلام طلب الكشف.', g_ph_refund: 'حالة الاسترداد: {status}.',
   refund_st_requested: 'مطلوب', refund_st_approved: 'تمت الموافقة عليه', refund_st_refunded: 'تم ردّ المبلغ', refund_st_rejected: 'مرفوض', refund_st_processing: 'قيد التنفيذ',
+  refund_st_partly_refunded: 'تم ردّ جزء من المبلغ',
   rcpt_title: 'تم استلام الدفع', rcpt_body: 'خُصم {fee} من بطاقتك (رسوم الكشف فقط، دون رسوم على البطاقة). بيانات تواصل المورّد مفتوحة في الطلب أدناه، وبدأ عدّاد ضمان الكشف.',
   rcpt_cancelled: 'أُلغي الدفع — لم يُخصم أي مبلغ. يمكنك كشف المورّد متى شئت.',
   signup_email_reserved: 'نطاق هذا البريد محجوز للأمثلة والاختبار ولا يستقبل الرسائل، فلن يصله أي رمز. يُرجى استخدام بريدك الإلكتروني الحقيقي.', err_need_email: 'يُرجى إدخال بريدك الإلكتروني أولًا.', err_need_id: 'يُرجى إدخال بريدك الإلكتروني أو رقم جوالك أولًا.',

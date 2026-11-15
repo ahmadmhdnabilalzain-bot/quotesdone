@@ -18,6 +18,7 @@ import { textLayerBoxes } from './drawing_identity_text.ts';
 import { supplierPageReadable } from './supplier_copy.ts';
 import { renderCadForSupplier } from './cad_render.ts';
 import { readDwg } from './doc_read/dwg.ts';
+import { TILING, markCells } from './drawing_pixel_gate.ts';
 
 export type Box = { x: number; y: number; w: number; h: number };
 
@@ -60,11 +61,56 @@ export async function repaintJpeg(jpg: Uint8Array, regions: Box[], pad: number, 
   return await img.encodeJPEG(quality);
 }
 
-/** Customer boxes arrive as untrusted JSON: clamp to 0..1, drop empty ones, at most 60. */
+/** One view the pixel gate shows the model (drawing_pixel_gate.planTiles): `tile` cut from the page and scaled to
+ *  tile.outW x tile.outH (UP when the page was drawn smaller), one decode and one encode in its own worker. */
+export async function tileJpeg(jpg: Uint8Array, tile: { x: number; y: number; w: number; h: number; outW: number; outH: number }, quality = 85, mark?: string): Promise<Uint8Array> {
+  let img = await Image.decode(jpg) as Image;
+  const x = Math.max(0, Math.min(img.width - 1, Math.floor(tile.x * img.width))), y = Math.max(0, Math.min(img.height - 1, Math.floor(tile.y * img.height)));
+  const w = Math.max(1, Math.min(img.width - x, Math.ceil(tile.w * img.width))), h = Math.max(1, Math.min(img.height - y, Math.ceil(tile.h * img.height)));
+  if (x || y || w !== img.width || h !== img.height) img = img.crop(x, y, w, h);
+  const ow = Math.max(1, Math.round(tile.outW || w)), oh = Math.max(1, Math.round(tile.outH || h));
+  if (ow !== img.width || oh !== img.height) img = img.resize(ow, oh);
+  if (mark) img = withMarkBand(img, mark);
+  return await img.encodeJPEG(quality);
+}
+
+// ── THE READING MARK (round 3, 13 Nov 2026, sales_engineer; brief f3_finish: an ALWAYS-CLEAN model, one that answers
+// "clean" without looking, published every page the code floor left identity on - the reviewer's v01 and v12 - because
+// nothing showed whether a tile had been read). Every view the pixel gate shows the model carries, in a white band BELOW
+// the drawing (never over it), a number of drawing_pixel_gate.MARK_DIGITS digits the gate drew at random for that one
+// call, in drawing_pixel_gate.MARK_FONT at MARK_SCALE: 7 x 2 = 14 px tall, above the 12 px the tiling promises for 6 pt text. The model
+// must copy it into its answer ("mark" in PIXEL_VERIFY_SYS); an answer without the right number is no reading and the
+// page is HELD. A model that answers without reading the tile cannot know the number.
+/** `img` with a white band of TILING.markPx under it carrying `mark` (drawing_pixel_gate.markCells: digits only). */
+export function withMarkBand(img: Image, mark: string): Image {
+  const out = new Image(img.width, img.height + TILING.markPx).fill(0xffffffff);
+  out.composite(img, 0, 0);
+  for (const c of markCells(mark, img.height)) out.drawBox(c.x + 1, c.y + 1, c.w, c.h, 0x000000ff);   // drawBox is 1-based
+  return out;
+}
+
+/** Where an image shows ink, on an n x n grid (row-major): a cell with more than `minDark` of its pixels dark. Decode
+ *  only (released_file_pages.inkAgrees compares it with the file's own reading). */
+export async function inkCells(jpg: Uint8Array, n: number, minDark = 0.002): Promise<{ cells: boolean[]; w: number; h: number }> {
+  const img = await Image.decode(jpg) as Image;
+  const W = img.width, H = img.height, bm = img.bitmap, dark = new Array(n * n).fill(0), all = new Array(n * n).fill(0);
+  const step = Math.max(1, Math.floor(Math.min(W, H) / 800));      // a 2600 px page is sampled every 2-3 px
+  for (let y = 0; y < H; y += step) { const r = Math.min(n - 1, Math.floor(y * n / H)); for (let x = 0; x < W; x += step) {
+    const k = (y * W + x) * 4, c = r * n + Math.min(n - 1, Math.floor(x * n / W));
+    all[c]++; if (bm[k] * 0.3 + bm[k + 1] * 0.59 + bm[k + 2] * 0.11 < 160) dark[c]++;
+  } }
+  return { cells: dark.map((d, i) => all[i] > 0 && d / all[i] > minDark), w: W, h: H };
+}
+
+/** Boxes arrive as JSON: clamp to 0..1, drop empty ones, at most MAX_BOXES. Boxes only ever ADD black, so the cap
+ *  guards memory, not trust. It was 60 until 13 Nov 2026: the server's own boxes now include a staircase of up to 160
+ *  slices along a tilted run (anonymise.runCover), and a cap that silently dropped the rest would have published the
+ *  tail of a watermark or a key plan's box. */
+export const MAX_BOXES = 1200;
 export function cleanBoxes(mb: unknown): Box[] | null {
   if (!Array.isArray(mb)) return null;
   const c = (v: unknown) => Math.max(0, Math.min(1, Number(v) || 0));
-  return mb.slice(0, 60).map((g: any) => ({ x: c(g?.x), y: c(g?.y), w: c(g?.w), h: c(g?.h) })).filter((g) => g.w > 0 && g.h > 0);
+  return mb.slice(0, MAX_BOXES).map((g: any) => ({ x: c(g?.x), y: c(g?.y), w: c(g?.w), h: c(g?.h) })).filter((g) => g.w > 0 && g.h > 0);
 }
 
 /**
@@ -77,7 +123,8 @@ export function supplierPagePrefix(callerPrefix: unknown): string {
   return `${ns}/${crypto.randomUUID()}/page`;
 }
 
-export type PageOut = { ok: true; jpg: Uint8Array; image: Image; detail: Record<string, unknown> } | { ok: false; skipped: string };
+// painted: every box blackened on the page, page fractions, with the margin it was painted at (drawing_code_floor.unreadTextHold).
+export type PageOut = { ok: true; jpg: Uint8Array; image: Image; detail: Record<string, unknown>; painted?: Box[] } | { ok: false; skipped: string };
 
 /**
  * One portal raster of a PDF page, painted with the server's boxes and the text layer's identity boxes.
@@ -95,7 +142,8 @@ export async function serverBoxedPage(raster: Uint8Array, pdf: PdfPage[], pageIn
   paintBoxes(img, [...boxes, ...tl.boxes]);
   // Re-encoded from pixels: no text layer, no annotation, no /Info metadata and no EXIF survive into it.
   const jpg = await img.encodeJPEG(quality);
-  return { ok: true, jpg, image: img, detail: { manual_boxes: boxes.length, text_layer_boxes: tl.boxes.length } };
+  const painted = [...boxes, ...tl.boxes].map((b) => ({ x: b.x - SERVER_MARGIN, y: b.y - SERVER_MARGIN, w: b.w + 2 * SERVER_MARGIN, h: b.h + 2 * SERVER_MARGIN }));
+  return { ok: true, jpg, image: img, detail: { manual_boxes: boxes.length, text_layer_boxes: tl.boxes.length }, painted };
 }
 
 export type CadOut =
@@ -108,7 +156,7 @@ const isDwg = (b: Uint8Array) => /^AC10\d\d$/.test(new TextDecoder('latin1').dec
  * A CAD original drawn for a supplier with its identity left out. `maxDwgBytes` is dwg.ts's edge ceiling on
  * the edge and Infinity on the CAD worker; `maxSegments` likewise (the worker has no CPU cap).
  */
-export async function cadPage(original: Uint8Array, seeds: string[], opts: { maxDwgBytes?: number; maxSegments?: number } = {}): Promise<CadOut> {
+export async function cadPage(original: Uint8Array, seeds: string[], opts: { maxDwgBytes?: number; maxSegments?: number; identity?: Set<string> } = {}): Promise<CadOut> {
   let input: Uint8Array | string = original;
   if (isDwg(original)) {
     const r = await readDwg(original, { filename: 'drawing.dwg', depth: 0 }, opts.maxDwgBytes);
@@ -116,7 +164,7 @@ export async function cadPage(original: Uint8Array, seeds: string[], opts: { max
     if (!r.dxf_text) return { ok: false, skipped: 'dwg_not_read_on_edge', detail: r.notes.join(' ').slice(0, 200) };
     input = r.dxf_text;
   }
-  const g = await renderCadForSupplier(input, { seeds, maxSegments: opts.maxSegments });
+  const g = await renderCadForSupplier(input, { seeds, maxSegments: opts.maxSegments, identity: opts.identity });
   if (!g.ok) return { ok: false, skipped: 'cad_render_' + g.reason, detail: g.detail };
   const image = new Image(g.width, g.height);
   image.bitmap.set(g.rgba);

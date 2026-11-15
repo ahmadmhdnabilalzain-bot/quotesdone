@@ -3,7 +3,7 @@
 import { requestDelivery } from '../../_shared/deliver.ts';
 import { supplierAddress } from '../../_shared/supplier_address.ts';
 import { sanctionedLeads } from '../../_shared/sanctioned.ts';
-import { scrubIdentity } from '../../supplier_api/identity_scrub.ts';
+import { awardedOtherBody, newInquiryBody, readOwner, type OwnerRead } from '../../supplier_api/what_a_supplier_receives.ts';
 import { withoutPartnerWhy } from '../../_shared/partner_match.ts';
 import { SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
 import { failedState, matcherFindingKey, rematchSchedule, type RematchState } from './rematch.ts';
@@ -52,6 +52,15 @@ export async function buyerNameOf(inquiryId: string): Promise<BuyerName> {
     return { resolved: true, name: n.length >= 3 ? n : null };
   } catch (_e) { return { resolved: false }; }
 }
+// THE NEW-INQUIRY E-MAIL IS GATED AS THE PORTAL IS (13 Nov 2026, sales_engineer; anonymity audit A, L3). This e-mail ran
+// scrubIdentity with the buyer's name only, so the project name, "Haddad Family Office", "Plot No. 373-4512", "Makani
+// 12345 67890" and "Apartment 1204" reached every matched supplier's inbox while the portal withheld them. The owner is
+// now read whole (name, e-mail, phone, project, and the stated site from the request's own brief) and the body is built
+// by supplier_api/what_a_supplier_receives.ts newInquiryBody, the portal's gate. A failed read is resolved:false: the
+// e-mail then carries the trade and the emirate only, as before.
+export type BuyerRead = OwnerRead;
+/** The owner as the gate needs him; one reader for every door (supplier_api/what_a_supplier_receives.ts readOwner). */
+export const buyerOf = (inquiryId: string): Promise<BuyerRead> => readOwner(admin, inquiryId);
 export async function notifyLosers(inquiryId: string, summary: string | null, winnerId: number | null) {
   try {
     let qb = admin.from('quotes').select('supplier_id').eq('inquiry_id', inquiryId);
@@ -68,14 +77,13 @@ export async function notifyLosers(inquiryId: string, summary: string | null, wi
     // AUDIT 1.5: the losing suppliers never paid for a reveal, so this is a pre-reveal surface even
     // though it is sent after the award. If the owner could not be read we quote nothing back at
     // them - the generic phrase below is already the correct fallback.
-    const bn = await buyerNameOf(inquiryId);
-    const scrubbedJob = (bn.resolved && summary && summary.trim()) ? (scrubIdentity(summary.trim(), bn.name, []) || '') : '';
-    const job = scrubbedJob ? '“' + scrubbedJob + '”' : 'a recent job you quoted';
+    // 13 Nov 2026: the portal's gate, with the seeds and the stated site (what_a_supplier_receives.ts), as the new-inquiry e-mail.
+    const body = awardedOtherBody(summary, await buyerOf(inquiryId));
     // the address the supplier signs in with, not the listing's (_shared/supplier_address.ts, #1909 item 4)
     const rows = (ls || []).filter((s: any) => supplierAddress(s)).map((s: any) => ({
       type: 'job_awarded_other', to_email: supplierAddress(s), to_role: 'supplier', lead_id: s.id, inquiry_id: inquiryId,
       subject: 'Update on a job you quoted — QuotesDone',
-      body: 'Thank you for taking the time to quote on ' + job + '. On this occasion the customer has chosen to proceed with another supplier. We genuinely appreciate the effort you put into your quote, and it was great having you compete for the work. New matching opportunities come through QuotesDone regularly — please keep an eye on your supplier inbox, and we wish you the very best of luck on the next one.'
+      body,
     }));
     await queueNotifications(rows);
   } catch (_e) { /* */ }
@@ -254,14 +262,13 @@ export async function matchAndNotify(inqId: string, opts: { category: string; em
   // the supplier is told the trade and emirate only - enough to log in and look, nothing authored by
   // the buyer. A supplier who receives less detail can still quote; a buyer whose name was emailed
   // to eight strangers cannot be un-emailed.
-  const bn = await buyerNameOf(inqId);
-  const cust = (t: string | null | undefined) => (bn.resolved && t) ? (scrubIdentity(String(t), bn.name, []) || '') : '';
-  const headline = cust(summary) || category;
+  const br = await buyerOf(inqId);
+  const body = newInquiryBody({ resolved: br.resolved, buyer: br.resolved ? br.buyer : { name: null }, spec: br.resolved ? br.spec : null, summary, budget, extra, category, emirate: br.resolved ? (br.emirate ?? emirate) : emirate, briefSource: br.resolved ? br.briefSource : null });
   // K05. NOTIFY THE SUPPLIERS WHOSE MATCH ACTUALLY LANDED, not the ones we tried to match. This
   // read matchRows, so a supplier the eligibility gate had just refused — banned, matching-blocked,
   // permanently closed, expired licence — was still emailed the job. landedIds is what the database
   // accepted.
-  const notifs = landedIds.map((sid) => supById.get(Number(sid))).filter((s: any) => s && supplierAddress(s)).map((s: any) => ({ type: 'new_inquiry', to_email: supplierAddress(s), to_role: 'supplier', lead_id: s.id, inquiry_id: inqId, subject: 'New job request on QuotesDone', body: 'A customer is requesting quotes for: ' + headline + (emirate ? ' (' + emirate + ')' : '') + (cust(budget) ? ' — budget ' + cust(budget) : '') + '.' + cust(extra) + ' Log in to your QuotesDone supplier portal to quote.' }));
+  const notifs = landedIds.map((sid) => supById.get(Number(sid))).filter((s: any) => s && supplierAddress(s)).map((s: any) => ({ type: 'new_inquiry', to_email: supplierAddress(s), to_role: 'supplier', lead_id: s.id, inquiry_id: inqId, subject: 'New job request on QuotesDone', body }));
   await queueNotifications(notifs);
   return { matches: landedIds.length, routing };
 }

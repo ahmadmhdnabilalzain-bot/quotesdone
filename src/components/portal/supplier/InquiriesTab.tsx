@@ -20,7 +20,7 @@ import { ws } from './workspaceCopy';
 import DocActions from '../DocActions';
 import { BoqTable, ClarifyThread, DrawingGallery, RequestedTerms, WithheldCustomer } from './RfqParts';
 import { failed, openPdf, qr, saveInline, REVIEW_STATE, type InquiryDetail, type InquiryDocuments, type InquiryListItem, type Lang } from './quoteReviewApi';
-import { aed } from './money';
+import { quotedAmount } from './money';
 import { AR_NOUN, arCount } from '@/lib/countedNoun';
 import { Ltr } from '@/lib/Ltr';
 
@@ -154,7 +154,7 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
       {/* A question stays possible after a quote exists (audit 21 Sep 2026, finding 30): the answer reaches every
           matched supplier and a supplier revises its quote on it. Only a concluded or revealed job closes it. */}
       <ClarifyThread inquiryId={d.id} token={token} lang={lang} canAsk={canQuote} />
-      {q ? <p className="mt-4 text-[13px] text-foreground">{t.quoted}: <span className="font-mono tabular-nums"><Ltr>{aed(lang, q.quote_amount)}</Ltr></span></p> : null}
+      {q ? <p className="mt-4 text-[13px] text-foreground">{t.quoted}: <span className="font-mono tabular-nums"><Ltr>{quotedAmount(lang, q)}</Ltr></span></p> : null}
       {canQuote ? (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <Button onClick={() => onQuote(d.id)}>{t.quote}</Button>
@@ -219,7 +219,7 @@ export function InquiriesTab({ token, lang, focus = null, onFocused, onQuote, re
                 </span>
                 <span className="flex flex-col items-end gap-1">
                   {i.you_won ? <Badge variant="ok">{t.won}</Badge> : i.concluded ? <Badge variant="secondary">{lang === 'ar' ? 'منتهٍ' : 'Concluded'}</Badge> : null}
-                  {st ? <Badge variant={st.tone}>{lang === 'ar' ? st.ar : st.en}</Badge> : q ? <span className="font-mono text-[12px] tabular-nums text-foreground"><Ltr>{aed(lang, q.quote_amount)}</Ltr></span> : null}
+                  {st ? <Badge variant={st.tone}>{lang === 'ar' ? st.ar : st.en}</Badge> : q ? <span className="font-mono text-[12px] tabular-nums text-foreground"><Ltr>{quotedAmount(lang, q)}</Ltr></span> : null}
                   <span aria-hidden className="text-[11.5px] text-muted-foreground">{on ? t.close : t.open}</span>
                 </span>
               </button>
