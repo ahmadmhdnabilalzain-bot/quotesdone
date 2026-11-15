@@ -289,11 +289,16 @@ export function m365Subject(who: Who = {}, variant: InviteVariant = 'a'): string
 export function m365InvitationText(who: Who = {}, variant: InviteVariant = 'a'): string {
   const c = companyName(who.company); const t = tradeLabel(who.trade);
   const hello = c ? `Hi ${c} team,` : 'Hello,';
+  // VARIANT B, MADE TRUE (15 Nov 2026, review of the funnel branch, item 1). It used to say "Companies in the UAE post their
+  // requests for quotation with us" (they have not started) and "If you reply with them, we will set up your company page for
+  // you": nothing performs that (ledger 1401, email_triage/account_facts.ts NO_SETUP_FOR_THEM forbids the model to offer it),
+  // so a supplier who replied would have been told to do the steps himself. What a reply does get is true: email_triage
+  // answers it with the company's own claim link (withClaimLink), and only the supplier can verify, upload and accept.
   if (variant === 'b') {
     return [
       hello,
-      "I'm Ahmad, founder of QuotesDone in Dubai. Companies in the UAE post their requests for quotation with us, and each request goes only to suppliers in that exact trade.",
-      'Which trades does your company cover? If you reply with them, we will set up your company page for you.',
+      "I'm Ahmad, founder of QuotesDone in Dubai. Companies in the UAE will post their requests for quotation with us, and each request will go only to suppliers in that exact trade. Buyers have not started sending requests yet: we are putting the supplier list together first.",
+      "Which trades does your company cover? If you reply with them, I will send you your company's own sign-up link, so you can add your company and those trades yourself.",
       SIGNATURE,
       STOP_LINE,
     ].join('\n\n');
@@ -312,6 +317,35 @@ export function m365InvitationText(who: Who = {}, variant: InviteVariant = 'a'):
     "I'm Ahmad, founder of QuotesDone in Dubai. QuotesDone is a platform where companies in the UAE post requests for quotation, and each request goes only to suppliers who work in that exact trade.",
     `We are putting together our list of ${t ? t + ' ' : ''}suppliers now, before buyers start sending requests. ` +
       `Would your company like to receive ${t ? t + ' requests' : 'the requests that match your trade'} when they come in?`,
+    SIGNATURE,
+    STOP_LINE,
+  ].join('\n\n');
+}
+// THE ONE LAST NOTE TO A PARKED LEAD (15 Nov 2026, sales_engineer; review of the funnel branch, item 5). It was queued as a
+// supplier_registration_reminder, which senderFor sends through Resend from supplier@ (not the Microsoft 365 lane whose GlockApps
+// verdict its gate read), with a wa.me link and a registration link (against the no-link rule of 27 Oct 2026, founder_instruction
+// 1301: the campaign mail carries no link; the claim link goes only in the model's answer to a supplier who wrote back), outside
+// m365CopyLint and invite_daily_cap. Now it is the last nudge: type supplier_invite_nudge, kind FINAL_TOUCH_KIND, so it is a lane
+// type (INVITE_LANE_TYPES) on the lane the placement gate measured, inside the one daily cap (LANE_CAPPED_TYPES), stopped by an
+// opt-out (OPT_OUT_TYPES), counted by the bounce judgement, and its words pass the same copy rules. No link: a reply is the way in,
+// and the reply is answered by the model with the company's own sign-up link (email_triage withClaimLink).
+// scripts/sql/every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql queues it.
+export const FINAL_TOUCH_KIND = 'invite_final_touch';
+export function isFinalTouch(row: { type?: unknown; kind?: unknown }): boolean {
+  return row.type === 'supplier_invite_nudge' && row.kind === FINAL_TOUCH_KIND;
+}
+export function m365FinalTouchSubject(who: Who = {}): string {
+  const t = tradeLabel(who.trade);
+  return t ? `One last note about ${t} requests` : 'One last note from QuotesDone';
+}
+export function m365FinalTouchText(who: Who = {}): string {
+  const c = companyName(who.company); const t = tradeLabel(who.trade);
+  return [
+    c ? `Hi ${c} team,` : 'Hello,',
+    `I'm Ahmad, founder of QuotesDone in Dubai. I wrote to you a few weeks ago about the list of ${t ? t + ' ' : ''}suppliers we are putting together ` +
+      'before buyers start sending requests for quotation; each request will go only to suppliers who work in that exact trade.',
+    'This is the last time I will write about it. If your company would like to receive ' + (t ? t + ' requests' : 'the requests that match your trade') +
+      ", reply to this email and I will send you your company's own sign-up link.",
     SIGNATURE,
     STOP_LINE,
   ].join('\n\n');
@@ -346,10 +380,11 @@ export function seedMarker(body: string): string {
 
 /** The body this lane sends: the founder's text for the invitation, its nudge and the seed alike, whatever the row
  *  stored. A seed row (kind M365_SEED_KIND) keeps its trailing inbox-test ID line as the last line. */
-export function m365Body(_type: unknown, rowBody: string, kind?: unknown, who: Who = {}): string {
+export function m365Body(type: unknown, rowBody: string, kind?: unknown, who: Who = {}): string {
   const marker = kind === M365_SEED_KIND ? seedMarker(rowBody) : '';
   const own = marker ? String(rowBody).trimEnd().slice(0, -marker.length).trimEnd() : (rowBody || '');
-  const built = m365InvitationText({ company: who.company ?? companyFromBody(own), trade: who.trade }, variantOfKind(kind));
+  const w = { company: who.company ?? companyFromBody(own), trade: who.trade };
+  const built = isFinalTouch({ type, kind }) ? m365FinalTouchText(w) : m365InvitationText(w, variantOfKind(kind));
   return marker ? built + '\n\n' + marker : built;
 }
 
@@ -362,7 +397,8 @@ export function campaignMail(row: { type?: unknown; body?: unknown; subject?: un
   const body = String(row.body || '');
   const company = who.company ?? companyFromBody(body);
   const text = m365Body(row.type, body, row.kind, { ...who, company });
-  const subject = withPlacementRef(m365Subject({ company, trade: who.trade }, variantOfKind(row.kind)), row);
+  const subject = withPlacementRef(isFinalTouch(row) ? m365FinalTouchSubject({ company, trade: who.trade })
+                                                    : m365Subject({ company, trade: who.trade }, variantOfKind(row.kind)), row);
   // THE RULES READ OUR COPY, NOT THE SUPPLIER'S OWN NAME (27 Oct 2026, review of #1614). Measured that day: 11 of
   // 17,401 eligible leads were held because their registered name tripped a copy rule meant for our wording:
   // "Eastlake Dec.Design" and "... CARPETS & NOV TRADING" read as month names next to the 1,000 offer, "2003 ALUMINIUM
@@ -379,6 +415,17 @@ export function campaignMail(row: { type?: unknown; body?: unknown; subject?: un
 }
 
 const DATED = /\b(?:20\d\d|jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|deadline|until|expires?|limited time)\b/i;
+// THE TWO FALSE CLAIMS (15 Nov 2026, review of the funnel branch, item 1). Variant B said both and the test of the day missed them
+// (it looked only for "buyers are sending"): "we will set up your company page for you" (nothing performs it, ledger 1401) and
+// "Companies in the UAE post their requests for quotation with us" with no word that buyers have not started. A sentence about
+// buyers posting is honest only beside one saying they have not started (variant A: "before buyers start sending requests").
+export const PROMISE_WE_DO_NOT_KEEP = /\b(?:we|i|our team)(?:\s+(?:will|can|would|shall)|'ll)?\s+(?:then\s+)?(?:set\s*up|create|build|make|register|complete|fill\s+in|publish|list)\b[^.?!]{0,60}\b(?:page|profile|account|listing|registration|for\s+you)\b/i;
+export const BUYERS_ARE_SENDING = /\b(?:buyers|customers|companies|clients)\s+are\s+(?:already\s+)?(?:sending|posting|submitting)\b/i;
+export const BUYERS_POST = /\b(?:companies|buyers|customers|clients)\b[^.?!]{0,40}\b(?:post|send|submit|share)s?\b[^.?!]{0,30}\brequests?\b/i;
+export const NOT_STARTED = /\bbefore\s+(?:buyers|companies|customers)\s+start|\b(?:have|has)\s+not\s+started|\b(?:haven't|hasn't)\s+started|\bnot\s+started\s+yet/i;
+export function claimsBuyersExist(body: string): boolean {
+  return BUYERS_ARE_SENDING.test(body) || (BUYERS_POST.test(body) && !NOT_STARTED.test(body));
+}
 const UP_TO_THREE = /\b(?:up to|only|maximum of|max(?:imum)?)\s+(?:three|3)\s+(?:suppliers|quotes|quotations)\b/i;
 
 /** Every rule the lane's body must pass before it leaves. Any failure holds the row. */
@@ -406,6 +453,10 @@ export function m365CopyLint(o: { subject: string; body: string; preheader?: str
     { rule: 'no HTML in a plain-text invitation', ok: !/<\/?[a-z][^>]*>/i.test(o.body), detail: 'markup found' },
     { rule: '"free for the first 1,000 suppliers" carries no date', ok: !/1,000/.test(o.body) || !DATED.test(o.body), detail: 'a date or deadline word next to the offer' },
     { rule: 'never a cap on how many suppliers quote: any number may quote, top 3 is only the report', ok: !UP_TO_THREE.test(o.body + ' ' + o.subject), detail: 'the forbidden wrong form' },
+    { rule: 'never promises to set up their page or do a step for them (ledger 1401: nothing performs it; only they verify, upload and accept)',
+      ok: !PROMISE_WE_DO_NOT_KEEP.test(o.body), detail: String(o.body.match(PROMISE_WE_DO_NOT_KEEP)?.[0] || '') },
+    { rule: 'never says buyers already send requests (they have not started: a sentence about buyers posting is paired with "not started")',
+      ok: !claimsBuyersExist(o.body), detail: String(o.body.match(BUYERS_ARE_SENDING)?.[0] || o.body.match(BUYERS_POST)?.[0] || '') },
   ];
 }
 

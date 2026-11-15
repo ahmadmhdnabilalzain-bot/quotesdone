@@ -49,6 +49,28 @@
 --      batch of at most 10, fn_invite_restart_cap). fn_ceo_reviews_the_invite_brake (seat duty ceo.invite_brake_review, hourly):
 --      the CEO seat decides a brake the seat may not lift, by the judgement: it restarts when the brake would not fire on the
 --      judgement of today, or after 7 days of rest with no complaint; otherwise it records why it holds (once a Dubai day).
+-- REVIEW OF 15 NOV 2026 (scratchpad REVIEW_growth, items 2, 3, 4), fixed here:
+--   * ANY COMPLAINT STOPS THE COMPANY. The complaint rule read the Wilson lower bound: one complaint breached at 73 sends and not
+--     at 74, 100 or 700 (LOCAL), the same-day trigger counted only complaints on today's sends, and the judgement read only
+--     type 'supplier_invite'. Now a complaint in the window on ANY supplier campaign mail (fn_invite_campaign_types: the
+--     invitation and its nudges, the last note to a parked lead is a nudge) stops the company, whatever the sample, and the
+--     trigger stops it the hour a complaint arrives on a lead mailed in the window. Bounces are read on every campaign type too;
+--     a lead's bounced/complained mark counts once, on its last campaign send.
+--   * THE LIMITS ARE LOCKED. As service_role (Supabase's default ACL gives it arwdDxtm on every public table) TRUNCATE
+--     invite_brake_decision erased the CEO's counted restarts, and TRUNCATE growth_limit_change plus an insert put a limit at
+--     1000 at once (LOCAL). Now INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES and TRIGGER are revoked from service_role on both
+--     tables (and on marketing_ceo_decision, the_ceo_approves_the_marketing_month_...sql); only these SECURITY DEFINER routines
+--     write them; a BEFORE TRUNCATE trigger refuses a truncate by anyone; fn_ceo_sets_growth_limit takes a per-limit advisory
+--     lock, so two calls cannot leave two waiting changes; the trigger stamps clock_timestamp(), so a long transaction cannot
+--     backdate a change's day of waiting.
+--   * WHAT IS QUEUED OBEYS THE LIVE SWITCHES. fn_invite_campaign_pause cancels every queued campaign row (it missed the nudges);
+--     fn_invite_campaign_send_check answers send_outbox at send time (invite_lane.ts campaignStep): cancel when the company is
+--     stopped, hold to tomorrow when the recipient's provider class is held or closed.
+--   * POLICY REFUSALS HOLD A CLASS ON TWO. A rate needed 4 refusals of 50 before a hold. A 5.7.x refusal is the provider refusing
+--     us (reputation, authentication, policy), not a fact about the list, and providers escalate from refusing to blocking; two
+--     refusals by the same provider class in 14 days is the pattern, one can be a single misconfigured server. A hold costs
+--     only that class, and it lifts by itself when the window no longer shows two. So policy_limit is 0 (any lower bound) and
+--     policy_min 2: a count rule.
 -- WHAT THIS DOES NOT CHANGE: the placement gate (fn_invite_placement_open_providers; never Microsoft or Yahoo/AOL, founder
 -- instruction 1537), suppression, the founder's supplier_outreach_golive, the complaint pause of fn_invite_ramp.
 -- prevented by: scripts/checks/the_supplier_funnel_runs_itself.test.mjs (text) and
@@ -74,21 +96,27 @@ comment on table public.growth_limit_change is 'The CEO''s growth limits (founde
 create or replace function public.trg_growth_limit_change_waits_a_day()
 returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 begin
-  if tg_op <> 'INSERT' then
+  if tg_op <> 'INSERT' then   -- UPDATE, DELETE and TRUNCATE (the statement trigger below) alike
     raise exception 'growth_limit_change is append-only: a limit is changed by a new row (fn_ceo_sets_growth_limit), never edited';
   end if;
-  new.set_at := now();
+  -- the wall clock, not the transaction's start: a transaction held open cannot backdate a change's day of waiting
+  new.set_at := clock_timestamp();
   if exists (select 1 from public.growth_limit_change c where c.limit_key = new.limit_key) then
     if new.set_by <> 'ceo' then raise exception 'only the CEO changes a growth limit once it exists'; end if;
-    new.effective_at := now() + interval '24 hours';   -- whatever the writer asked: a change waits a day
+    if exists (select 1 from public.growth_limit_change c where c.limit_key = new.limit_key and c.effective_at > clock_timestamp()) then
+      raise exception 'a change of % already waits; it takes effect first', new.limit_key;
+    end if;
+    new.effective_at := clock_timestamp() + interval '24 hours';   -- whatever the writer asked: a change waits a day
   else
-    new.effective_at := now();                          -- the first value of a limit is in force at once
+    new.effective_at := now();                                      -- the first value of a limit is in force at once
   end if;
   return new;
 end $fn$;
 revoke execute on function public.trg_growth_limit_change_waits_a_day() from public, anon, authenticated;
 create or replace trigger trg_growth_limit_change_waits_a_day before insert or update or delete on public.growth_limit_change
   for each row execute function public.trg_growth_limit_change_waits_a_day();
+create or replace trigger trg_growth_limit_change_never_truncated before truncate on public.growth_limit_change
+  for each statement execute function public.trg_growth_limit_change_waits_a_day();
 
 create table if not exists public.invite_brake_decision (
   id bigserial primary key,
@@ -110,6 +138,8 @@ end $fn$;
 revoke execute on function public.trg_invite_brake_decision_is_history() from public, anon, authenticated;
 create or replace trigger trg_invite_brake_decision_is_history before update or delete on public.invite_brake_decision
   for each row execute function public.trg_invite_brake_decision_is_history();
+create or replace trigger trg_invite_brake_decision_never_truncated before truncate on public.invite_brake_decision
+  for each statement execute function public.trg_invite_brake_decision_is_history();
 
 do $guard$
 begin
@@ -130,6 +160,12 @@ revoke all on public.growth_limit_change from anon, authenticated;
 revoke all on public.invite_brake_decision from anon, authenticated;
 revoke all on sequence public.growth_limit_change_id_seq from anon, authenticated;
 revoke all on sequence public.invite_brake_decision_id_seq from anon, authenticated;
+-- THE LIMITS ARE WRITTEN ONLY BY THEIR ROUTINES (review item 3; the CEO review's item 1). service_role keeps SELECT (the seat
+-- boards read it); every write goes through the SECURITY DEFINER routines below, which run as the owner.
+revoke insert, update, delete, truncate, references, trigger on public.growth_limit_change from service_role;
+revoke insert, update, delete, truncate, references, trigger on public.invite_brake_decision from service_role;
+revoke usage, update on sequence public.growth_limit_change_id_seq from service_role;
+revoke usage, update on sequence public.invite_brake_decision_id_seq from service_role;
 
 -- who restarted, and the judgement a brake read (nullable: the 47 rows before this file keep restarted_by_seat as they were)
 alter table public.invite_brake add column if not exists restarted_by text;
@@ -150,7 +186,10 @@ begin
   if p_key not in ('ceo_invite_restarts_per_30d') then return jsonb_build_object('ok', false, 'reason', 'no such limit: ceo_invite_restarts_per_30d'); end if;
   if p_value is null or p_value < 0 or p_value > 1000 then return jsonb_build_object('ok', false, 'reason', 'a limit is a number from 0 to 1000'); end if;
   if length(btrim(coalesce(p_reason, ''))) < 20 then return jsonb_build_object('ok', false, 'reason', 'say why, in a sentence (20 characters or more)'); end if;
-  if exists (select 1 from public.growth_limit_change x where x.limit_key = p_key and x.effective_at > now()) then
+  -- ONE WAITING CHANGE PER LIMIT: the second of two concurrent calls waits here, then sees the first one's row (READ COMMITTED
+  -- takes a new snapshot for the next statement), so it is refused instead of writing a second waiting change
+  perform pg_advisory_xact_lock(hashtext('growth_limit_change:' || p_key));
+  if exists (select 1 from public.growth_limit_change x where x.limit_key = p_key and x.effective_at > clock_timestamp()) then
     return jsonb_build_object('ok', false, 'reason', 'a change of ' || p_key || ' already waits; it takes effect first');
   end if;
   insert into public.growth_limit_change (limit_key, value, reason, set_by, effective_at)
@@ -171,10 +210,10 @@ select 'ceo_invite_restarts_per_30d', 2,
 insert into public.app_secrets (key, value) values ('invite_bounce_judge', jsonb_build_object(
   'window_days', 14, 'z', 1.645,
   'hard_limit', 0.03, 'hard_min', 2,
-  'policy_limit', 0.03, 'policy_min', 2,
-  'complaint_limit', 0.003, 'complaint_min', 1,
+  'policy_limit', 0, 'policy_min', 2,
+  'complaint_limit', 0, 'complaint_min', 1,
   'soft_hold_limit', 0.15,
-  'note', 'Wilson 95% one-sided lower bounds. hard 3%: between the ESP warning line (2%) and review line (5%); policy 3% per provider class; complaint 0.3% (Google/Yahoo bulk-sender rule) on one event; soft never brakes. Seeded 15 Nov 2026 by the_bounce_brake_judges_each_bounce_by_kind_provider_and_sample_and_the_ceo_restarts_within_a_limit.sql.')::text)
+  'note', 'Wilson 95% one-sided lower bounds. hard 3%: between the ESP warning line (2%) and review line (5%); policy: 2 refusals by one provider class in the window hold that class (a count: a 5.7.x refusal is the provider refusing us); complaint: ANY complaint on any supplier campaign mail stops the company, whatever the sample (fn_invite_bounce_judgement does not read this key for it); soft never brakes. Seeded 15 Nov 2026 by the_bounce_brake_judges_each_bounce_by_kind_provider_and_sample_and_the_ceo_restarts_within_a_limit.sql.')::text)
 on conflict (key) do nothing;
 
 -- ── 2. THE KIND OF A BOUNCE, AND THE LOWER BOUND OF A RATE ────────────────────────────────────────────────────────
@@ -226,6 +265,15 @@ begin
 end $fn$;
 revoke execute on function public.fn_invite_judge_cell(integer, integer, integer, integer, integer, jsonb) from public, anon, authenticated;
 
+-- THE SUPPLIER CAMPAIGN MAIL (review item 2): the invitation and its day-3/7/14 nudges; the last note to a parked lead is a nudge
+-- of kind 'invite_final_touch'. The same list as send_outbox/invite_lane.ts LANE_CAPPED_TYPES (scripts/checks/
+-- the_supplier_funnel_runs_itself.test.mjs fails if the two differ). Every bounce and complaint on any of them is judged.
+create or replace function public.fn_invite_campaign_types()
+returns text[] language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select array['supplier_invite', 'supplier_invite_nudge']::text[]
+$fn$;
+revoke execute on function public.fn_invite_campaign_types() from public, anon, authenticated;
+
 -- ── 3. THE JUDGEMENT ──────────────────────────────────────────────────────────────────────────────────────────────
 -- p_since overrides the window (a probation reads only the sends since its restart). A segment is 'checked' when the lead's
 -- mailbox was proven (email_verified verified/true/maps/social: the set invite_reachable_only sends to), else 'unchecked'.
@@ -239,16 +287,25 @@ declare
   v_cells jsonb := '{}'::jsonb; v_today jsonb := '{}'::jsonb; v_all jsonb; v_today_all jsonb; r record;
   v_company text; v_held text[] := '{}'; v_why text; v_sent_segments text[]; v_rows jsonb; v_segall jsonb;
 begin
-  -- the sends being judged, read once into one array (a STABLE routine: no temporary table)
+  -- the sends being judged, read once into one array (a STABLE routine: no temporary table): EVERY supplier campaign mail
+  -- (fn_invite_campaign_types), not only the invitation. The send's own provider code is read on each; the lead's mark
+  -- (bounced / complained, written by the webhook with no code) is read only on the lead's LAST campaign send, so one mark
+  -- is one event, not one per mail the lead received.
   select coalesce(jsonb_agg(jsonb_build_object(
-           'c', coalesce(public.fn_mail_provider_of_email(n.to_email), 'other'),
-           's', case when l.email_verified in ('verified', 'true', 'maps', 'social') then 'checked' else 'unchecked' end,
-           'k', public.fn_invite_bounce_kind(n.provider_error_code, n.provider_status, l.invite_status),
-           't', n.sent_at >= v_day)), '[]'::jsonb)
+           'c', coalesce(public.fn_mail_provider_of_email(x.to_email), 'other'),
+           's', x.seg,
+           'k', public.fn_invite_bounce_kind(x.provider_error_code, x.provider_status, case when x.last_send then x.invite_status end),
+           't', x.sent_at >= v_day)), '[]'::jsonb)
     into v_rows
-    from public.notifications n join public.leads l on l.id = n.lead_id
-   where n.type = 'supplier_invite' and n.sent_at is not null and n.sent_at > v_from and n.sent_at <= p_now
-     and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email);
+    from (select n.to_email, n.provider_error_code, n.provider_status, n.sent_at, l.invite_status,
+                 case when l.email_verified in ('verified', 'true', 'maps', 'social') then 'checked' else 'unchecked' end as seg,
+                 n.id = (select n2.id from public.notifications n2
+                          where n2.lead_id = n.lead_id and n2.type = any (public.fn_invite_campaign_types())
+                            and n2.sent_at is not null and n2.sent_at <= p_now
+                          order by n2.sent_at desc, n2.id desc limit 1) as last_send
+            from public.notifications n join public.leads l on l.id = n.lead_id
+           where n.type = any (public.fn_invite_campaign_types()) and n.sent_at is not null and n.sent_at > v_from and n.sent_at <= p_now
+             and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(n.to_email)) x;
 
   for r in select x.c as cls, x.s as seg, count(*)::int sent, (count(*) filter (where x.k = 'hard'))::int hard, (count(*) filter (where x.k = 'policy'))::int pol,
                   (count(*) filter (where x.k = 'soft'))::int soft, (count(*) filter (where x.k = 'complaint'))::int compl
@@ -272,12 +329,12 @@ begin
   -- the segments the company sends now: checked only while invite_reachable_only is on
   v_sent_segments := case when v_reach then array['checked'] else array['checked', 'unchecked'] end;
 
-  -- A COMPLAINT stops the company whatever its segment or class (a person pressed spam: never noise)
-  if (v_all->>'complaint')::int > 0 and v_all->>'breach' = 'complaint' then
-    v_company := 'complaint'; v_why := (v_all->>'complaint') || ' spam complaint(s) on ' || (v_all->>'sent') || ' invitation(s) in the window (95% lower bound '
-      || round((v_all->>'complaint_lb')::numeric * 100, 2) || '% > ' || round(coalesce((v_cfg->>'complaint_limit')::numeric, 0.003) * 100, 2) || '%)';
-  elsif (v_today_all->>'complaint')::int > 0 and v_today_all->>'breach' = 'complaint' then
-    v_company := 'complaint'; v_why := (v_today_all->>'complaint') || ' spam complaint(s) on ' || (v_today_all->>'sent') || ' invitation(s) today';
+  -- ANY COMPLAINT stops the company, whatever its segment, class or sample (review item 2: a person pressed spam; never noise,
+  -- and never a matter of how many others were mailed: the lower bound let one complaint pass at 74 sends). Not read from the
+  -- config, so no seat can relax it there.
+  if coalesce((v_all->>'complaint')::int, 0) > 0 then
+    v_company := 'complaint'; v_why := (v_all->>'complaint') || ' spam complaint(s) on ' || (v_all->>'sent') || ' supplier campaign e-mail(s) in the '
+      || coalesce((v_cfg->>'window_days')::int, 14) || '-day window: any complaint stops the company';
   end if;
 
   -- HARD or POLICY in a sent segment: that provider class is held. Hard over every sent segment together: the company stops.
@@ -318,6 +375,29 @@ end $fn$;
 revoke execute on function public.fn_invite_bounce_judgement(timestamptz, timestamptz) from public, anon, authenticated;
 
 -- ── 4. A JUDGEMENT BECOMES A BRAKE HERE, AND ONLY HERE ────────────────────────────────────────────────────────────
+-- The company stop itself, written once: the brake row, the pause (which cancels every queued campaign row), the decision and
+-- the founder's information-only alert. fn_invite_judge_and_brake, the same-hour complaint trigger and the ramp call it.
+create or replace function public.fn_invite_brake_company(p_source text, p_why text, p_evidence jsonb)
+returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_bid bigint;
+begin
+  insert into public.invite_brake (source, why, evidence) values (coalesce(p_source, 'invite_bounce_judge'), p_why, p_evidence)
+  on conflict do nothing returning id into v_bid;
+  perform public.fn_invite_campaign_pause(coalesce(p_source, 'invite_bounce_judge'), p_why, jsonb_build_object('judgement', p_evidence, 'called_by', p_source),
+    jsonb_build_object('company_reason', p_evidence->>'company_reason'));
+  v_bid := coalesce(v_bid, (select id from public.invite_brake where resumed_at is null order by id desc limit 1));
+  insert into public.invite_brake_decision (brake_id, decision, actor, reason, evidence)
+  values (v_bid, 'brake', 'judge', 'Supplier invitations stopped: ' || p_why, coalesce(p_evidence, '{}'::jsonb));
+  -- the CEO reads it in his own review (ceo.invite_brake_review); the founder is informed, never asked (ruling 1696)
+  if not exists (select 1 from public.founder_alerts where event = 'invite_paused_bounce' and created_at > now() - interval '24 hours') then
+    insert into public.founder_alerts (level, event, detail, channel)
+    values ('warn', 'invite_paused_bounce', 'Supplier invitations stopped: ' || p_why
+            || '. The sales engineer restarts after the cooldown; a second stop is the CEO''s to decide within his limit; a complaint is never restarted over while it is in the window. Information only.', 'system');
+  end if;
+  return v_bid;
+end $fn$;
+revoke execute on function public.fn_invite_brake_company(text, text, jsonb) from public, anon, authenticated;
+
 create or replace function public.fn_invite_judge_and_brake(p_source text)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare j jsonb := public.fn_invite_bounce_judgement(now()); v_bid bigint; c text;
@@ -335,53 +415,133 @@ begin
   if not (j->>'company_brake')::boolean or not v_on then
     return jsonb_build_object('braked', false, 'held_classes', j->'held_classes', 'judgement', j);
   end if;
-  insert into public.invite_brake (source, why, evidence) values (coalesce(p_source, 'invite_bounce_judge'), j->>'why', j)
-  on conflict do nothing returning id into v_bid;
-  perform public.fn_invite_campaign_pause('invite_bounce_judge', j->>'why', jsonb_build_object('judgement', j, 'called_by', p_source),
-    jsonb_build_object('company_reason', j->>'company_reason'));
-  insert into public.invite_brake_decision (brake_id, decision, actor, reason, evidence)
-  values (coalesce(v_bid, (select id from public.invite_brake where resumed_at is null order by id desc limit 1)), 'brake', 'judge',
-          'Supplier invitations stopped: ' || (j->>'why'), j);
-  -- the CEO reads it in his own review (ceo.invite_brake_review); the founder is informed, never asked (ruling 1696)
-  if not exists (select 1 from public.founder_alerts where event = 'invite_paused_bounce' and created_at > now() - interval '24 hours') then
-    insert into public.founder_alerts (level, event, detail, channel)
-    values ('warn', 'invite_paused_bounce', 'Supplier invitations stopped by the bounce judgement: ' || (j->>'why')
-            || '. The sales engineer restarts after the cooldown; a second stop is the CEO''s to decide within his limit. Information only.', 'system');
-  end if;
+  -- the source stays 'invite_bounce_judge' on the pause (the restart rules read paused_by), the caller is in the evidence
+  v_bid := public.fn_invite_brake_company('invite_bounce_judge', j->>'why', j || jsonb_build_object('called_by', p_source));
   return jsonb_build_object('braked', true, 'brake_id', v_bid, 'why', j->>'why', 'judgement', j);
 end $fn$;
 revoke execute on function public.fn_invite_judge_and_brake(text) from public, anon, authenticated;
 
--- ── 5. THE SAME-DAY BRAKE: a complaint stops at once; a bounce asks the judgement ─────────────────────────────────
+-- ── 5. THE SAME-HOUR BRAKE: a complaint stops at once; a bounce asks the judgement ────────────────────────────────
+-- z80_invite_same_day_brake fires AFTER UPDATE OF invite_status ON leads when a lead becomes bounced or complained. A complaint
+-- on a lead that received ANY supplier campaign mail in the judgement window stops the company this hour (review item 2: it
+-- used to count only complaints on today's invitations, at 0.3% of today's sends). A bounce asks the judgement.
 create or replace function public.fn_invite_same_day_brake()
 returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
-  c jsonb := coalesce((select nullif(value,'')::jsonb from app_secrets where key = 'invite_warmup'), '{}'::jsonb);
-  v_cr_max numeric := coalesce((c->>'pause_complaint_rate')::numeric, 0.003);
-  v_c_min  int     := coalesce((c->>'same_day_pause_min_complaints')::int, 1);
-  v_day date := (now() at time zone 'Asia/Dubai')::date;
-  v_sent int; v_b int; v_c int; v_why text;
+  v_cfg jsonb := coalesce((select nullif(value, '')::jsonb from public.app_secrets where key = 'invite_bounce_judge'), '{}'::jsonb);
+  v_days int := coalesce((v_cfg->>'window_days')::int, 14);
+  v_n record; v_why text;
 begin
   if coalesce((select value from app_secrets where key = 'invite_enabled'), 'false') <> 'true' then
-    return null;  -- already stopped; nothing more to stop
+    return null;  -- already stopped; nothing more to stop (the restarts refuse while a complaint is in the window)
   end if;
-  select h.sent, h.bounced, h.complained into v_sent, v_b, v_c
-    from public.fn_invite_send_health(v_day::timestamp at time zone 'Asia/Dubai') h;
-  if v_c >= v_c_min and v_c::numeric / greatest(v_sent, 1) >= v_cr_max then
-    -- a person pressed spam: the campaign stops this hour, as before
-    v_why := v_c || ' spam complaint(s) on ' || v_sent || ' invitation(s) today';
-    perform public.fn_invite_campaign_pause('invite_same_day_brake', v_why,
-      jsonb_build_object('dubai_day', v_day, 'sent', v_sent, 'bounced', v_b, 'complained', v_c),
-      jsonb_build_object('sent_today', v_sent, 'bounced_today', v_b, 'complained_today', v_c));
-    insert into public.invite_brake_decision (decision, actor, reason, evidence)
-    values ('brake', 'judge', 'Supplier invitations stopped the same hour: ' || v_why, jsonb_build_object('dubai_day', v_day, 'sent', v_sent, 'complained', v_c));
-    return null;
+  if new.invite_status = 'complained' and not coalesce(new.is_demo, false) and not public.fn_is_demo_email(new.email) then
+    select n.id, n.type, n.kind, n.sent_at into v_n from public.notifications n
+     where n.lead_id = new.id and n.type = any (public.fn_invite_campaign_types()) and n.sent_at is not null
+       and n.sent_at > now() - make_interval(days => v_days)
+     order by n.sent_at desc limit 1;
+    if found then
+      -- a person pressed spam on our campaign mail: the company stops this hour, whatever else was sent
+      v_why := 'a spam complaint from lead ' || new.id || ' on a supplier campaign e-mail (' || v_n.type || coalesce(' ' || v_n.kind, '')
+               || ', sent ' || to_char(v_n.sent_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI') || 'Z): any complaint stops the company';
+      perform public.fn_invite_brake_company('invite_same_day_brake', v_why,
+        jsonb_build_object('company_reason', 'complaint', 'lead_id', new.id, 'notification_id', v_n.id, 'type', v_n.type, 'kind', v_n.kind));
+      return null;
+    end if;
   end if;
-  -- a bounce: the judgement decides by kind, provider and a sample that means something (today's sends and the window)
+  -- a bounce (or a complaint on mail outside the window): the judgement decides by kind, provider and sample
   perform public.fn_invite_judge_and_brake('invite_same_day_brake');
   return null;
 end $fn$;
 revoke execute on function public.fn_invite_same_day_brake() from public, anon, authenticated;
+
+-- ── 5b. A PAUSE STOPS WHAT IS QUEUED, AND SEND TIME ASKS THE LIVE SWITCHES (review item 4) ─────────────────────────
+-- fn_invite_campaign_pause: the live definition of 15 Nov 2026 (pg_get_functiondef, SELECT; identical to the mirror), changed only
+-- where marked: it cancelled queued 'supplier_invite' rows and left the nudges, queued at 04:01 for 09:00, to go out after a pause.
+CREATE OR REPLACE FUNCTION public.fn_invite_campaign_pause(p_source text, p_why text, p_evidence jsonb, p_counts jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare v_cancelled int;
+begin
+  if coalesce(btrim(p_source), '') = '' or coalesce(btrim(p_why), '') = '' then
+    raise exception 'fn_invite_campaign_pause(source, why, evidence, counts): a source and a reason are required';
+  end if;
+  update app_secrets set value = 'false' where key = 'invite_enabled';
+  -- 15 Nov 2026: every queued supplier campaign row (the invitation, its nudges and the last note), with the reason on the row
+  update notifications set status = 'cancelled', last_error = left('cancelled: the supplier campaign was paused by ' || p_source || ': ' || p_why, 500)
+   where type = any (public.fn_invite_campaign_types()) and status = 'queued';
+  get diagnostics v_cancelled = row_count;
+
+  insert into it_watch_finding(detector_key, detector, subject, state, severity, title, evidence)
+  values ('deliverability:supplier_invite', 'deliverability', 'supplier_invite', 'paused', 'high',
+          'Supplier invitations auto-paused: ' || p_why,
+          coalesce(p_evidence, '{}'::jsonb) || jsonb_build_object('cancelled_queued', v_cancelled, 'paused_by', p_source,
+                             'resume', 'set app_secrets.invite_enabled=true after reading the bounces/complaints'))
+  on conflict (detector_key) do update
+     set state = excluded.state, severity = excluded.severity, title = excluded.title, evidence = excluded.evidence,
+         last_seen_at = now(), seen_count = it_watch_finding.seen_count + 1, status = 'open', resolved_at = null;
+
+  insert into agent_runs(agent, status, counts, note, finished_at)
+  values (p_source, 'error', coalesce(p_counts, '{}'::jsonb) || jsonb_build_object('cancelled_queued', v_cancelled),
+          'PAUSED: ' || p_why || '; invite_enabled=false, ' || v_cancelled || ' queued invitation(s) and nudge(s) cancelled, it_engineer finding opened.', now());
+  return jsonb_build_object('paused', true, 'cancelled_queued', v_cancelled, 'source', p_source);
+end
+$function$
+
+;
+revoke execute on function public.fn_invite_campaign_pause(text, text, jsonb, jsonb) from public, anon, authenticated;
+
+-- What send_outbox does with each queued campaign row it is about to send (invite_lane.ts campaignStep): one call per run.
+--   cancel   the company is stopped: invite_enabled or supplier_outreach_golive false, a brake open, or the judgement brakes now
+--   requeue  the recipient's provider class is held by the judgement, or not open on the placement gate (the lane the gate
+--            measured is the lane the row leaves on: invitations and nudges alike are Microsoft 365 lane types)
+--   send     nothing stops it. A row that is not campaign mail (or a placement seed) is answered 'send': not this check's.
+create or replace function public.fn_invite_campaign_send_check(p_ids bigint[])
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare
+  v_on boolean := coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false);
+  v_brake bigint := (select b.id from public.invite_brake b where b.resumed_at is null order by b.id desc limit 1);
+  v_stop text; j jsonb; v_held text[] := '{}'; v_open text[]; v_out jsonb := '[]'::jsonb; r record; v_cls text;
+begin
+  if coalesce(cardinality(p_ids), 0) = 0 then return v_out; end if;
+  v_stop := case when not v_on then 'the supplier campaign is paused (invite_enabled is false)'
+                 when not public.fn_supplier_outreach_golive() then 'the founder''s supplier_outreach_golive is false'
+                 when v_brake is not null then 'the bounce brake ' || v_brake || ' is open' end;
+  if v_stop is null then
+    j := public.fn_invite_bounce_judgement(now());
+    if coalesce((j->>'company_brake')::boolean, false) then v_stop := 'the bounce judgement stops the company: ' || coalesce(j->>'why', 'brake'); end if;
+    v_held := coalesce((select array_agg(x) from jsonb_array_elements_text(j->'held_classes') x), '{}'::text[]);
+    v_open := public.fn_invite_placement_open_providers((now() at time zone 'Asia/Dubai')::date, now());
+  end if;
+  for r in select n.id, n.type, n.kind, n.to_email, n.to_role from public.notifications n where n.id = any (p_ids) loop
+    if not (r.type = any (public.fn_invite_campaign_types())) or r.to_role is distinct from 'supplier' then
+      v_out := v_out || jsonb_build_array(jsonb_build_object('id', r.id, 'verdict', 'send', 'why', 'not supplier campaign mail'));
+      continue;
+    end if;
+    if v_stop is not null then
+      v_out := v_out || jsonb_build_array(jsonb_build_object('id', r.id, 'verdict', 'cancel', 'why', v_stop));
+      continue;
+    end if;
+    -- a fixture address never leaves (send_outbox refuses example.invalid before any provider): not this check's to hold
+    if public.fn_is_demo_email(r.to_email) then
+      v_out := v_out || jsonb_build_array(jsonb_build_object('id', r.id, 'verdict', 'send', 'why', 'a fixture address'));
+      continue;
+    end if;
+    v_cls := coalesce(public.fn_mail_provider_of_email(r.to_email), 'other');
+    v_out := v_out || jsonb_build_array(jsonb_build_object('id', r.id,
+      'verdict', case when v_cls = any (v_held) or not (v_cls = any (coalesce(v_open, '{}'::text[]))) then 'requeue' else 'send' end,
+      'why', case when v_cls = any (v_held) then 'the ' || v_cls || ' mailboxes are held by the bounce judgement'
+                  when not (v_cls = any (coalesce(v_open, '{}'::text[]))) then 'the ' || v_cls || ' mailboxes are not open on the inbox placement gate'
+                  else 'open' end,
+      'class', v_cls));
+  end loop;
+  return v_out;
+end $fn$;
+revoke execute on function public.fn_invite_campaign_send_check(bigint[]) from public, anon, authenticated;
+grant execute on function public.fn_invite_campaign_send_check(bigint[]) to service_role;
 
 -- ── 6. THE SALES ENGINEER'S RESTART (the rules of 2-13 Nov; the probation judged by the lower bound; every step recorded) ─
 create or replace function public.fn_sales_engineer_restarts_invites_after_a_brake()
@@ -406,7 +566,9 @@ begin
                                 'hard', j->'sent_segment_all'->'hard', 'hard_lb', j->'sent_segment_all'->'hard_lb');
     end if;
     update public.app_secrets set value = 'false' where key = 'invite_enabled';
-    update public.notifications set status = 'cancelled' where type = 'supplier_invite' and status = 'queued';
+    -- every queued campaign row, the nudges included (review item 4), with the reason
+    update public.notifications set status = 'cancelled', last_error = left('cancelled: the restart''s probation failed: ' || (j->>'why'), 500)
+     where type = any (public.fn_invite_campaign_types()) and status = 'queued';
     insert into public.invite_brake(source, why, evidence)
     values ('invite_restart_probation', 'on probation since the restart: ' || (j->>'why'), j)
     returning * into b;
