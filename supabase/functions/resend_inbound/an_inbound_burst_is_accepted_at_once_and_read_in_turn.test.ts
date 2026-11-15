@@ -296,3 +296,13 @@ Deno.test('the reader hands the real pipeline the body as verified: a message al
   assert(restCalls.includes('/rest/v1/inbound_messages'), 'read_mail looked the id up');
   assert(!restCalls.some((c) => /expense_entries|storage|ai_gateway|fn_receipt_hand_to_bookkeeper/.test(c)), 'nothing was read or booked again: ' + restCalls.join(' '));
 });
+
+Deno.test('a delivery larger than a queue row should hold (the M365 reader inlines attachments) is read in the request, as before', async () => {
+  Q = new MemQueue();
+  const big = await signed({ email_id: 'm365:AAMkZZBIG', from: 'zz-demo-supplier@example.invalid', to: 'supplier@quotesdone.com', subject: 'ZZ DEMO big',
+    text: 'ZZ DEMO', attachments: [{ filename: 'big.pdf', content_type: 'application/pdf', content: 'A'.repeat(4 * 1024 * 1024 + 10) }] }, 'msg_zz_big');
+  const out = await (await handler(big)).json();
+  assertEquals(Q.rows.length, 0, 'not queued');
+  assertEquals(out.queue_id, undefined);
+  assertEquals(out.duplicate, true, 'read_mail answered it (the stub has every id on file)');
+});

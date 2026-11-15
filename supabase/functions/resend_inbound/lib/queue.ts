@@ -27,8 +27,12 @@ export const READS_PER_RUN = 1;
 export const READ_BUDGET_MS = 45_000;
 /** The lease is 150 s in fn_inbound_mail_claim; a live reader renews it this often, so only a dead reader's lease runs out. */
 export const LEASE_RENEW_MS = 30_000;
-/** A delivery larger than this (the Microsoft 365 reader inlines attachments) is read in the request, as before the queue. */
-export const INLINE_PAYLOAD_MAX = 20 * 1024 * 1024;
+/**
+ * A delivery larger than this is read in the request, as before the queue. Resend's deliveries are metadata (a few KB); only the
+ * Microsoft 365 reader inlines attachments (base64, up to 6 x 15 MB), and it hands one message at a time from its own tick, so it
+ * is not a burst. The bound keeps a queue row, and the PostgREST call that writes it, small.
+ */
+export const INLINE_PAYLOAD_MAX = 4 * 1024 * 1024;
 
 /**
  * What the queue row records, read off the verified payload alone (no network): the key a redelivery is matched on (the same
