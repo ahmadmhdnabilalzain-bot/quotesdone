@@ -24,6 +24,8 @@
 -- the number of fields is unchanged. If the field was renamed or removed since 15 Nov, the guard raises and the update rolls back
 -- (scripts/apply_sql.mjs sends the file as one transaction). Proved LOCAL on 15 Nov 2026 (Postgres 16, a stand-in category_specs
 -- holding production's hvac row): applied, re-applied unchanged, other categories untouched, and the guard raised on a removed field.
+-- Round 2 (same day, with system_type): its probe (..._probe.sql) printed PROBE FAILED before the file and PROBE OK after it,
+-- applied and in one rolled-back transaction, with production's hvac, painting, tiling and flooring rows (LOCAL).
 -- Idempotent: re-running writes the same values. Data only: no routine, table or grant.
 
 update public.category_specs cs
