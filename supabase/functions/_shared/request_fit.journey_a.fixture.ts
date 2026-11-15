@@ -16,7 +16,7 @@ import { rendererView, technicalComparison } from './line_specs/compare.ts';
 import { tradeOfCategory } from './line_specs/model.ts';
 import { ctxOfQuote, generaliseDeep, generaliseLine, generaliseQuoteTerms, mergeCtx } from './quote_generalise.ts';
 import { requestOf, reviewNotes } from './quote_review_notes.ts';
-import { annotateTechnical, enforceFit, fitQuote, fitView, requestRequirements, siteVisitAsked, type QuoteFit } from './request_fit.ts';
+import { annotateTechnical, enforceFit, fitQuote, fitView, hiddenBrandPhrases, hideBrandPhrases, requestRequirements, siteVisitAsked, type QuoteFit } from './request_fit.ts';
 import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
 
 export const NOW = new Date('2026-11-15T14:19:33.651Z');
@@ -164,7 +164,7 @@ export function journeyA(lang: 'en' | 'ar' = 'en'): { analysis: any; fits: Recor
   enforceFit(a, fits, lang, { rules: deterministicCompare(labelled as never, lang), prices: Object.fromEntries(labelled.map((l) => [l.label, l.price])) });
   a.all_quotes = rosterOf(labelled as never, a.top3, new Set());
   a.total_quotes = qs.length;
-  const g = generaliseDeep(a, allCtx);
+  const g = hideBrandPhrases(generaliseDeep(a, allCtx), qs.map((q) => hiddenBrandPhrases(fitById[q.id], q.items, trade)));
   g.review_notes = qs.map((q) => ({ quote_id: q.id, label: labels.get(q.id)!.en, notes: notesBy[q.id].map((n) => ({ code: n.code, severity: n.severity, text: lang === 'ar' ? n.ar : n.en })) }));
   return { analysis: g, fits };
 }

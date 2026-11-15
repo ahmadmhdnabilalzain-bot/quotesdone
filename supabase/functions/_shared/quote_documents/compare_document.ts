@@ -129,8 +129,8 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
     const fcols: string[] = qs.map((q: any) => String(q.label)).filter((l: string) => fitOf(l));
     if (fcols.length) {
       blocks.push({ t: 'h3', text: T('What you asked for, quote by quote', 'ما طلبته، عرضًا بعرض') });
-      blocks.push({ t: 'p', text: T('Each requirement you stated, from your request as our sales engineer recorded it, against what each supplier wrote. A brand is checked against the brands you named before the supplier\'s identity is hidden, so only whether it is one of yours, and its tier and origin, are shown.',
-        'كل متطلب ذكرته، من طلبك كما سجّله مهندس المبيعات لدينا، مقابل ما كتبه كل مورّد. وتُقارن العلامة التجارية بالعلامات التي سمّيتها قبل إخفاء هوية المورّد، فلا يظهر إلا ما إذا كانت من علاماتك، وفئتها ومنشؤها.'), muted: true });
+      blocks.push({ t: 'p', text: T('Each requirement you stated, from your request as our sales engineer recorded it, against what each supplier wrote. A brand is checked against the brands you named before the supplier\'s identity is hidden, so only whether it is one of yours is shown, with its tier and origin only where they cannot name it.',
+        'كل متطلب ذكرته، من طلبك كما سجّله مهندس المبيعات لدينا، مقابل ما كتبه كل مورّد. وتُقارن العلامة التجارية بالعلامات التي سمّيتها قبل إخفاء هوية المورّد، فلا يظهر إلا ما إذا كانت من علاماتك، مع فئتها ومنشئها حيث لا يدلّان عليها.'), muted: true });
       const fw = 0.62 / fcols.length;
       blocks.push({ t: 'table', head: [T('Requirement', 'المتطلب'), T('You asked for', 'طلبك'), ...fcols.map((l) => k.label(l))], widths: [0.2, 0.18, ...fcols.map(() => fw)], zebra: true, fs: fcols.length >= 4 ? 7.8 : 8.5,
         // deno-lint-ignore no-explicit-any

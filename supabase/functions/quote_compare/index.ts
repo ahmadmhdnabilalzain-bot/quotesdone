@@ -41,7 +41,7 @@ import { chunks, differingCells } from '../_shared/routine_judgements.ts';
 import { ctxOfQuote, generaliseDeep, generaliseLine, generaliseQuoteTerms, mergeCtx, type GeneraliseCtx } from '../_shared/quote_generalise.ts';
 import { requestOf, reviewNotes, type ReviewNote } from '../_shared/quote_review_notes.ts';
 // 15 Nov 2026 (journey A, sales_engineer): each quote measured against what the customer asked for, from its RAW lines.
-import { annotateTechnical, enforceFit, fitQuote, fitView, requestRequirements, settleRequests, siteVisitAsked, type QuoteFit } from '../_shared/request_fit.ts';
+import { annotateTechnical, enforceFit, fitQuote, fitView, hiddenBrandPhrases, hideBrandPhrases, requestRequirements, settleRequests, siteVisitAsked, type QuoteFit } from '../_shared/request_fit.ts';
 import { tradeOfCategory } from '../_shared/line_specs/model.ts';
 // THE ONE PRICE (15 Nov 2026): the stored ex-VAT figure the reveal fee is taken on; quote_amount only where it was never set.
 // Reading a VAT-inclusive total as ex-VAT is corrected where the figure is stored (accountant), never re-derived here.
@@ -343,11 +343,13 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     // pulls into the model's shortlist (review item 5). Code only, no model.
     const rulesForFit = requirements.length ? deterministicCompare(labelled as never, lang as 'en' | 'ar') : null;
     const priceByLabel: Record<string, number | null> = Object.fromEntries(labelled.map((l: any) => [String(l.label), l.price ?? null]));
+    const hiddenPhrases = qs.map((q: any) => hiddenBrandPhrases(fitById[String(q.id)], (itemsByQuote[String(q.id)] || []), tradeOfCategory(inq.category)));
     const withRoster = (a: any) => { if (a && typeof a === 'object') { a.price_benchmarks = priceBenchmarks; a.technical = technical ? annotateTechnical(rendererView(technical, lang as 'en' | 'ar'), requirements, fitByLabel, technical.trade, lang as 'en' | 'ar') : null;
       a.request_fit = requirements.length ? fitView(requirements, qs.filter((q: any) => fitById[String(q.id)]).map((q: any) => ({ label: labels.get(String(q.id))?.en ?? '', quote_id: String(q.id), fit: fitById[String(q.id)] }))) : null;
       enforceFit(a, fitByLabel, lang as 'en' | 'ar', { rules: rulesForFit, prices: priceByLabel }); a.technical_detail = technical; a.spec_mismatches = specMismatches; a.on_hold = onHold; a.quality_check = qualityCheck; a.all_quotes = rosterOf(labelled.map((l: any, i: number) => ({ ...l, quote_id: String(qs[i].id) })), Array.isArray(a.top3) ? a.top3 : [], heldIds); if (typeof a.total_quotes !== 'number') a.total_quotes = live.length; }
       if (!a || typeof a !== 'object') return a;
-      const g = generaliseDeep(a, allCtx);
+      // Ledger 1588: a listed brand whose tier and origin would name it is said nowhere in the analysis (request_fit.ts).
+      const g = hideBrandPhrases(generaliseDeep(a, allCtx), hiddenPhrases);
       g.review_notes = qs.map((q: any) => ({ quote_id: String(q.id), label: labels.get(String(q.id))?.en ?? null, label_ar: labels.get(String(q.id))?.ar ?? null,
         notes: (notesByQuote[String(q.id)] || []).map((n) => ({ code: n.code, severity: n.severity, line_no: n.line_no, text: lang === 'ar' ? n.ar : n.en, en: n.en, ar: n.ar })) }));
       return g; };

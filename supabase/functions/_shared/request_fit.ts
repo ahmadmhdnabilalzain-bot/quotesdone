@@ -31,7 +31,7 @@
 // Nothing here names a brand, a model or a supplier: the customer's listed brands are counted ("one of the 3 brands you
 // named"), never printed, so the column beside "yes — premium Japanese brand" cannot narrow a quote to one make.
 // Prevented by: _shared/request_fit.test.ts (journey A's three quotations, failing on main) and its PDF text snapshot.
-import { brandFact, genericBrand, TIER_RANK, tierOf, type Tier } from './quote_generalise.ts';
+import { brandFact, genericBrand, ORIGIN, TIER_RANK, tierOf, type Tier } from './quote_generalise.ts';
 import { deliveryOf, warrantyPeriod } from './line_specs/assess.ts';
 import { tradeOfCategory } from './line_specs/model.ts';
 import { arDuration } from './quote_documents/arabic.ts';
@@ -84,6 +84,8 @@ export function isProductLine(text: unknown, trade: string | null): boolean {
   if (trade === 'hvac') return HVAC_UNIT.test(t) && !NOT_A_UNIT.test(t);
   return true;
 }
+/** The brands a quote's product lines name, RAW (compared with his list, then only their generic words leave). */
+const quotedBrandsOf = (product: FitLine[]) => [...new Set(product.map((l) => { const raw = S(l.brand) || S((l.spec || {}).brand); return raw ? (brandFact(raw)?.name ?? raw) : brandsIn([l.description, l.specification].map(S).join(' '))[0] ?? ''; }).filter(Boolean))];
 const lineText = (l: FitLine) => [l.description, l.brand, l.specification, l.notes, ...Object.entries(l.spec || {}).filter(([k]) => !k.startsWith('_')).map(([, v]) => S(v))].filter(Boolean).join(' · ');
 /** The TR a text names ("1.5 TR", "2 ton", "24000 BTU"), or null. */
 export function trOf(text: unknown): number | null {
@@ -278,7 +280,7 @@ export function fitQuote(reqs: Requirement[], input: { quote: FitQuote; lines: F
   const set = (r: Requirement, status: FitStatus, shown: Bi, fail?: Bi) => { cells[r.code] = { status, shown }; if (status === 'differs' && r.hard) fails.push({ code: r.code, noun: lower(r.label), detail: fail ?? bi(`${shown.en}, against ${r.asked.en.toLowerCase()} you asked for`, `${shown.ar}، والمطلوب: ${r.asked.ar}`) }); };
 
   // The quoted brands, RAW, from the product lines: compared now, and only their generic words leave this function.
-  const quotedBrands = [...new Set(product.map((l) => { const raw = S(l.brand) || S((l.spec || {}).brand); return raw ? (brandFact(raw)?.name ?? raw) : brandsIn([l.description, l.specification].map(S).join(' '))[0] ?? ''; }).filter(Boolean))];
+  const quotedBrands = quotedBrandsOf(product);
   if (quotedBrands.length) {
     const gens = quotedBrands.map((b) => genericBrand(b));
     brand.generic = bi([...new Set(gens.map((g) => g.en))].join(', '), [...new Set(gens.map((g) => g.ar))].join('، '));
@@ -636,4 +638,42 @@ export function settleRequests(fit: QuoteFit | null | undefined, reviewId: strin
   const fresh = (fit?.asks || []).map((x) => ({ x, key: 'comparison:' + x.supplier.toLowerCase().replace(/[^a-z0-9]+/g, '_').slice(0, 80) })).filter(({ key }) => !known.has(key));
   const rows = [...new Map(fresh.map((f) => [f.key, f])).values()].map(({ x, key }) => ({ review_id: reviewId, key, code: 'comparison_point', kind: 'clarification' as const, line_no: null, boq_line: null, attr: null, label_en: x.supplier, label_ar: x.supplier }));
   return { rows, message: rows.length ? ['The customer is comparing the quotations on this request. Please answer these points on your quotation:', ...rows.map((r) => `- ${r.label_en}`)].join('\n') : null };
+}
+
+/**
+ * LEDGER 1588, EVERYWHERE THE ANALYSIS SAYS IT (review item 9). Where a quote's brand is one he listed and its tier and origin
+ * would name it (fit.brand.hidden), those words are taken out of the whole analysis the customer receives, after the generaliser
+ * wrote them: the generic phrase ("economy Chinese brand") and the country it is made in ("made in China") read "as you asked,
+ * shown after the reveal". A quote with the same generic phrase whose brand is not his loses it too: hiding more is safe.
+ */
+export function hiddenBrandPhrases(fit: QuoteFit | null | undefined, lines: FitLine[], trade: string | null): { en: string[]; ar: string[]; countries: { en: string; ar: string }[] } {
+  const out = { en: [] as string[], ar: [] as string[], countries: [] as { en: string; ar: string }[] };
+  if (!fit?.brand.hidden) return out;
+  const product = (lines || []).filter((l) => isProductLine(S(l.description) || S(l.specification), trade));
+  for (const b of quotedBrandsOf(product)) {
+    const g = genericBrand(b); out.en.push(g.en); out.ar.push(g.ar);
+    const o = g.origin ? ORIGIN[g.origin] : null; if (o) out.countries.push({ en: o.country, ar: o.ar_country });
+  }
+  return out;
+}
+// deno-lint-ignore no-explicit-any
+export function hideBrandPhrases(a: any, phrases: { en: string[]; ar: string[]; countries: { en: string; ar: string }[] }[]): any {
+  const en = [...new Set(phrases.flatMap((p) => p.en))].filter(Boolean).sort((x, y) => y.length - x.length);
+  const arr = [...new Set(phrases.flatMap((p) => p.ar))].filter(Boolean).sort((x, y) => y.length - x.length);
+  const countries = phrases.flatMap((p) => p.countries);
+  if (!en.length && !arr.length && !countries.length) return a;
+  const esc = (x: string) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const fix = (t: string) => {
+    let s = t;
+    for (const p of en) s = s.replace(new RegExp(esc(p), 'gi'), 'brand as you asked (shown after the reveal)');
+    for (const p of arr) s = s.split(p).join('علامة كما طلبت (تظهر بعد الكشف)');
+    for (const c of countries) {
+      s = s.replace(new RegExp(`\\b(?:made|manufactured|produced)\\s+in\\s+${esc(c.en)}\\b`, 'gi'), 'origin shown after the reveal');
+      s = s.replace(new RegExp(`(?:صنع|صُنع)\\s+في\\s+${esc(c.ar)}`, 'g'), 'المنشأ يظهر بعد الكشف');
+    }
+    return s;
+  };
+  // deno-lint-ignore no-explicit-any
+  const walk = (o: any): any => typeof o === 'string' ? fix(o) : Array.isArray(o) ? o.map(walk) : o && typeof o === 'object' ? Object.fromEntries(Object.entries(o).map(([k, v]) => [k, walk(v)])) : o;
+  return walk(a);
 }
