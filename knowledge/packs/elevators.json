@@ -583,7 +583,19 @@
       ],
       "site_visit_required_when": "An existing shaft must be surveyed before a firm price; new buildings can be priced from drawings.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "surveyed"
+        },
+        {
+          "shot": "Inside the lift shaft or pit, from the landing door, if it is safe",
+          "shot_ar": "داخل بئر المصعد أو الحفرة من باب الطابق، إن كان ذلك آمناً",
+          "from": "existing shaft"
+        }
+      ]
     },
     {
       "id": "elevators:spec-goods-bed-car-lift",
@@ -769,7 +781,24 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for existing shafts, to measure and check pit and headroom.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "Inside the lift shaft or pit, from the landing door, if it is safe",
+          "shot_ar": "داخل بئر المصعد أو الحفرة من باب الطابق، إن كان ذلك آمناً",
+          "from": "existing shafts"
+        },
+        {
+          "shot": "Each opening or area, straight on, with a tape measure across it if you have one",
+          "shot_ar": "كل فتحة أو مساحة من الأمام مباشرة، مع شريط قياس عليها إن توفر",
+          "from": "measure"
+        }
+      ]
     },
     {
       "id": "elevators:spec-escalator",
@@ -971,7 +1000,39 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for replacement of existing escalators, to check the truss, pit and delivery route.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "Each existing unit or item to be replaced, from the front",
+          "shot_ar": "كل وحدة أو قطعة سيتم استبدالها، من الأمام",
+          "from": "replacement"
+        },
+        {
+          "shot": "The label or nameplate on it, close up (make, model, size)",
+          "shot_ar": "الملصق أو اللوحة التعريفية عليها عن قرب (الماركة، الموديل، الحجم)",
+          "from": "replacement"
+        },
+        {
+          "shot": "Where it would be fixed: the wall, frame or structure, close enough to see what it is made of",
+          "shot_ar": "مكان التثبيت: الجدار أو الإطار أو الهيكل، عن قرب يكفي لمعرفة مادته",
+          "from": "truss"
+        },
+        {
+          "shot": "Inside the lift shaft or pit, from the landing door, if it is safe",
+          "shot_ar": "داخل بئر المصعد أو الحفرة من باب الطابق، إن كان ذلك آمناً",
+          "from": "truss, pit"
+        },
+        {
+          "shot": "Each opening or area, straight on, with a tape measure across it if you have one",
+          "shot_ar": "كل فتحة أو مساحة من الأمام مباشرة، مع شريط قياس عليها إن توفر",
+          "from": "pit"
+        },
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "delivery route"
+        }
+      ]
     },
     {
       "id": "elevators:spec-amc",
@@ -1123,7 +1184,24 @@
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "site_visit_required_when": "A start-of-contract condition survey of each lift is needed before a firm comprehensive AMC price; a non-comprehensive (labour-only) AMC can be priced from the lift list."
+      "site_visit_required_when": "A start-of-contract condition survey of each lift is needed before a firm comprehensive AMC price; a non-comprehensive (labour-only) AMC can be priced from the lift list.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "survey"
+        },
+        {
+          "shot": "Each installed unit, with its label or nameplate readable",
+          "shot_ar": "كل وحدة مركّبة مع وضوح ملصقها أو لوحتها التعريفية",
+          "from": "condition survey"
+        },
+        {
+          "shot": "Close-ups of the surface as it is now (cracks, peeling, rust or old coating)",
+          "shot_ar": "صور قريبة للسطح بحالته الحالية (تشققات، تقشر، صدأ أو طلاء قديم)",
+          "from": "condition"
+        }
+      ]
     },
     {
       "id": "elevators:spec-modernisation",

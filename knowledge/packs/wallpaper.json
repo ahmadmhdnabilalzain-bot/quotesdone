@@ -265,7 +265,34 @@
         }
       ],
       "site_visit_required_when": "A site visit is needed when walls have not been measured or their condition (damp, unevenness, old paper) is unknown.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "Each wall to be worked on, from far enough back to see all of it",
+          "shot_ar": "كل جدار سيتم العمل عليه، من مسافة تكفي لرؤيته كاملاً",
+          "from": "walls"
+        },
+        {
+          "shot": "Each opening or area, straight on, with a tape measure across it if you have one",
+          "shot_ar": "كل فتحة أو مساحة من الأمام مباشرة، مع شريط قياس عليها إن توفر",
+          "from": "not been measured"
+        },
+        {
+          "shot": "Close-ups of the surface as it is now (cracks, peeling, rust or old coating)",
+          "shot_ar": "صور قريبة للسطح بحالته الحالية (تشققات، تقشر، صدأ أو طلاء قديم)",
+          "from": "condition"
+        },
+        {
+          "shot": "Close-ups of any damp, stains or leaks, with something for scale",
+          "shot_ar": "صور قريبة لأي رطوبة أو بقع أو تسريب، مع شيء يوضح الحجم",
+          "from": "damp"
+        },
+        {
+          "shot": "The surface from a low angle, so slopes and dips show",
+          "shot_ar": "السطح من زاوية منخفضة لتظهر الميول والانخفاضات",
+          "from": "unevenness"
+        }
+      ]
     },
     {
       "id": "wallpaper:substrate-preparation",

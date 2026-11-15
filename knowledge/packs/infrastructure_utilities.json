@@ -172,7 +172,19 @@
       ],
       "site_visit_required_when": "A site visit and an existing-services survey are unavoidable before a firm price in developed areas.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "The pipes, cables and connections at the point where it will be connected",
+          "shot_ar": "الأنابيب والكابلات ونقاط التوصيل في مكان التركيب",
+          "from": "services"
+        }
+      ]
     },
     {
       "id": "infrastructure_utilities:uae-standards-and-approvals",

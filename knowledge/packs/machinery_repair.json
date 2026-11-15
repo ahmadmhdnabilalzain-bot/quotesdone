@@ -144,7 +144,19 @@
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
-      "site_visit_required_when": "most repairs cannot be priced firm before inspection; a firm price follows the diagnosis, so the first quote is the diagnosis fee plus labour rates."
+      "site_visit_required_when": "most repairs cannot be priced firm before inspection; a firm price follows the diagnosis, so the first quote is the diagnosis fee plus labour rates.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "inspection"
+        },
+        {
+          "shot": "The fault or the part to be repaired, close up",
+          "shot_ar": "العطل أو الجزء المطلوب إصلاحه عن قرب",
+          "from": "repairs"
+        }
+      ]
     },
     {
       "id": "machinery_repair:uae-standards-and-approvals",
