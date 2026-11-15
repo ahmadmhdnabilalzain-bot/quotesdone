@@ -24,7 +24,7 @@ import { ADVISE_RULE, heldProblem, problemIndex, problemsFor, readSolution, serv
 import { SUPPLIER_TO_ADVISE, adviseUnknown, packFields, placeTrades, slugOfTrade, withUniversal, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, universalAnswers, validCodes, validServiceKeys, validTopics,
   type Placement, type TradeContext } from '../_shared/inquiry_trades.ts';
 import { blockingGate, briefConditions, recordedSpecs, withPack } from './blocking_gate.ts';
-import { photoAskDraft, photoAskNow, photoPromptBlock, withPhotos, type SitePhotos } from '../_shared/site_photos.ts';
+import { photoAskDraft, photoAskOfTurn, photoPromptBlock, recordOf, recordSitePhotos, type SitePhotos } from '../_shared/site_photos.ts';
 
 export async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -385,7 +385,8 @@ export async function handle(req: Request): Promise<Response> {
     const tradeText = tradeBlock(tradeCtx, ar ? 'ar' : 'en', prevTopics);
     // PHOTOS FOR A SITE-VISIT JOB (15 Nov 2026, founder ledger 1704; _shared/site_photos.ts): the shots each placed trade's job
     // checklist asks for, shown to the model until the one turn that asks; never again after it.
-    const photoRecord: SitePhotos | null = draft.brief && typeof draft.brief === 'object' && (draft.brief as any).site_photos && typeof (draft.brief as any).site_photos === 'object' ? (draft.brief as any).site_photos : null;
+    // The record is the intake's own column (written by fn_site_photos_record in one statement: an upload between turns is on it).
+    const photoRecord: SitePhotos | null = recordOf(draft);
     const photoText = photoPromptBlock(tradeCtx, prevTopics, turns, photoRecord, ar ? 'ar' : 'en');
     const taxonomyText = taxonomy && !(st?.trade_codes?.length) ? taxonomyBlock(taxonomy) : '';
     const solutionState = solutionStateText(st, ar ? 'ar' : 'en');
@@ -663,8 +664,10 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     // THE ONE PHOTO ASK (founder ledger 1704): due on the first turn a visit applies to a trade whose checklist names shots, and never
     // again (the stamp on the turn and the record's `asked`). Optional: nothing below reads it for status or readiness. Photos the
     // portal sends (body.site_photos: each by its check job) are recorded by job, with the shot they answer.
-    const photoAsk = photoAskNow(tradeCtx, topicsNow, siteVisitNow, turns, photoRecord);
-    const photosNow = withPhotos(photoRecord, photoAsk, b.site_photos, 'portal', b.photos_declined === true);
+    // Stamped also when the model asked by itself on a turn with no site_visit (photos_asked true; review item 7), so it is never
+    // asked twice.
+    const photoTurn = photoAskOfTurn(tradeCtx, topicsNow, siteVisitNow, turns, photoRecord, !!(out && llmParseOk && out.photos_asked === true));
+    const photoAsk = photoTurn.shots;
     checklist = withPack(checklist, tradeCtx, String((out && out.category) || category || ''), topicsNow);
     // What the model put to them and what they chose (rule 13), and the services of their trades it named.
     const solution = out && llmParseOk ? readSolution(out) : null;
@@ -1185,7 +1188,8 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       // the emirate the model read on a turn that is not ready yet is kept (review of #1979: it was lost, and a later turn
       // where the model gave none counted across the UAE)
       : { ...(emirate ? { emirate, al_ain: alAin && emirate === 'Abu Dhabi' } : {}), emirate_asked: emirateAsked, details: interview ? interview.details : (slotDetails || prevBrief.details || {}), asked_key: interview ? interview.asked_key : (heldNext ? heldNext.key : null), ...(heldNext ? { asked_on_hold: true } : {}), state: 'interview', req_answers: reqAnswers, req_asked: reqAsked, checklist_topics: topicsNow, ...drawingState };
-    if (photosNow.asked.length || photosNow.photos.length) (briefToSave as any).site_photos = photosNow;
+    // The photo record is NOT part of the brief this turn writes whole (review item 4): it is recorded after the save, in one
+    // statement on its own column (recordSitePhotos), so a photo uploaded during this turn is never dropped by it.
     // The two additions the portal renders (14 Sep 2026). On the model path they are derived from
     // what the model and the canonical gate returned; on the interview path they are exact.
     const reqCount = checklist.filter((f: any) => f && f.required).length;
@@ -1257,7 +1261,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     }
     // The photo ask is IN the reply on the turn it is due: when the model's own reply did not ask, the list is added to the draft,
     // which the model then voices (1339: the customer reads the model's words).
-    if (photoAsk.length && !(out && llmParseOk && out.photos_asked === true)) out.assistant_message = `${String(out.assistant_message || '').trim()} ${photoAskDraft(photoAsk, slotLang)}`.trim();
+    if (photoAsk.length && photoTurn.draft) out.assistant_message = `${String(out.assistant_message || '').trim()} ${photoAskDraft(photoAsk, slotLang)}`.trim();
     {
       // SENT AS IT IS (re-check of 15 Nov 2026, item 3): a ready request carrying a "supplier to advise" says so, and names the sales
       // engineer's WhatsApp line, so a customer who did not know some details is never left at a dead end.
@@ -1300,6 +1304,12 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       reply: { next_question: nextQuestion, remaining_questions: remainingQuestions, readiness: readinessFields } });
     const { error: saveErr } = await admin.from('inquiry_intake').update({ category, status, raw_input: allText.slice(0, 4000), turns, brief: briefToSave, readiness: Math.max(0, Math.min(100, Number(out.readiness) || 0)), missing: out.missing || [], updated_at: new Date().toISOString() }).eq('id', draft.id);
     clock.lap('saved');
+    // THE PHOTO RECORD (ledger 1704; review items 2, 4): the ask, the No-photos answer and any photo jobs sent with this turn, added in
+    // one statement after the save. Before fn_site_photos_record is applied it records nothing; the stamp on the turn still holds.
+    const b_photos = Array.isArray(b.site_photos) ? b.site_photos : [];
+    const photosStored = photoAsk.length || b_photos.length || b.photos_declined === true
+      ? await recordSitePhotos(admin, { table: 'inquiry_intake', id: String(draft.id), customerId: String(draft.customer_id || cust?.id || ''), email, photos: b_photos, via: 'portal', asked: photoAsk, declined: b.photos_declined === true })
+      : photoRecord;
     // Where this turn's time went, on the run log (turn_clock.ts): read, prompt, model, exact_spec / held_reply, saved.
     const timing = { turn_ms: clock.lap('done'), laps: clock.laps, guard: guarded.violations, placed, reply_by: replyBy };
     if (saveErr) { await logRun('error', { intake_saved: 0, status_computed: status, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0, ...timing }, 'Intake result could not be saved back to inquiry_intake (' + String(saveErr.message) + ') — the brief of this turn was never persisted, so until the customer resends it the RFQ cannot be dispatched; they were answered 503 intake_unavailable.');
@@ -1344,7 +1354,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       blocking: { open: gate.verdict.open.map((o) => o.key), advised: gate.verdict.advised.map((o) => o.key), site_visits: gate.verdict.site_visits.map((v) => v.text) },
       // THE PHOTO ASK, ONCE (ledger 1704): the shots, for the card with an upload button per shot; optional, never a hold.
       photo_ask: photoAsk.length ? { optional: true, shots: photoAsk.map((p) => ({ shot: p.shot, shot_ar: p.shot_ar, trade: p.trade })) } : null,
-      site_photos: photosNow.asked.length || photosNow.photos.length ? photosNow : null,
+      site_photos: photosStored && (photosStored.asked.length || photosStored.photos.length) ? photosStored : null,
       ...(carry ? { carried: true, carried_turns: carry.turns.length } : {}), ...(stage !== 'normal' ? { stage } : {}),
       reply_by: replyBy,   // who wrote assistant_message: the model, or the code draft because OpenRouter was down (1339)
       pending: reaskTid !== null, ...(reaskTid ? { reask_turn_id: reaskTid } : {}),   // filed for the re-ask: the portal waits for it

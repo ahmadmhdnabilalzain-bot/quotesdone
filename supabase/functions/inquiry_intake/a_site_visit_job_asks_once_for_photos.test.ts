@@ -16,7 +16,7 @@ import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import { checklistsOf as loaderRows } from '../../../scripts/kb/load_trade_spec_checklists.mjs';
 import { activeChecklists, checklistsOf, readinessOf, universalOf, type TradeContext } from '../_shared/inquiry_trades.ts';
 import { blockingGate } from './blocking_gate.ts';
-import { askedBefore, forSpec, photoAskDraft, photoAskNow, photoPromptBlock, shotsFor, siteNotes, withPhotos } from '../_shared/site_photos.ts';
+import { askedBefore, forSpec, photoAskDraft, photoAskNow, photoAskOfTurn, photoPromptBlock, shotsFor, siteNotes, withPhotos } from '../_shared/site_photos.ts';
 import { invoke, loadFunction, type Stub } from '../_shared/twilio_free_harness.ts';
 
 const ROOT = new URL('../../../', import.meta.url);
@@ -111,11 +111,14 @@ Deno.test('the record: by check job, the asked shot kept, a retry never twice; t
 // ── the handler ────────────────────────────────────────────────────────────────────────────────────────────────────────
 const EMAIL = 'zz-demo-photos-customer@example.invalid';
 const J = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } });
-function world(model: Row, intake: Row) {
-  const w = { prompts: [] as string[], intake: { id: 'ii-zz-photos', email: EMAIL, status: 'needs_info', turns: [], customer_id: 'c-zz-photos', category: null, brief: {}, ...intake } as Row };
+// The intake and its customer carry real-shaped ids: the photo record goes through fn_site_photos_record, which takes uuids.
+const II = '00000000-0000-4000-8000-00000000a11e', CC = '00000000-0000-4000-8000-00000000c0de';
+function world(model: Row | Row[], intake: Row) {
+  const models = Array.isArray(model) ? model : [model];
+  const w = { prompts: [] as string[], rpcs: [] as Row[], intake: { id: II, email: EMAIL, status: 'needs_info', turns: [], customer_id: CC, category: null, brief: {}, site_photos: null, ...intake } as Row };
   const stub: Stub = {
     user: { id: 'u-zz-photos', email: EMAIL },
-    rows: { customers: [{ id: 'c-zz-photos', locale: 'en' }], category_specs: [{ category: 'general', label: 'x', fields: [] }],
+    rows: { customers: [{ id: CC, locale: 'en' }], category_specs: [{ category: 'general', label: 'x', fields: [] }],
       taxonomy_trade: [{ code: 'hvac', label: 'HVAC', group_code: 'mep_building_systems', authority_required: [] }],
       taxonomy_trade_service: [], trade_spec_checklist: tableRows(['hvac']), sales_knowledge: [] },
     rpc: { rl_check: true },
@@ -124,14 +127,22 @@ function world(model: Row, intake: Row) {
       const r = u.pathname.match(/^\/rest\/v1\/rpc\/(.+)$/)?.[1];
       if (u.pathname.startsWith('/functions/v1/')) {
         const body = await req.clone().json().catch(() => ({}));
-        if (body.fn === 'inquiry_intake' && body.response_format) { w.prompts.push(String(body.sys)); return J({ ok: true, content: JSON.stringify(model), model: 'stub/model' }); }
+        if (body.fn === 'inquiry_intake' && body.response_format) { w.prompts.push(String(body.sys)); return J({ ok: true, content: JSON.stringify(models[Math.min(w.prompts.length - 1, models.length - 1)]), model: 'stub/model' }); }
         return J({ ok: true, content: JSON.stringify({ answer: 'ZZ DEMO: a final price may need a visit; photos of the units would help, and they are optional.' }), model: 'stub/model' });
       }
+      // fn_site_photos_record, as the database runs it (one statement; the merge is withPhotos's rule): the record lands on the
+      // intake's own column, never inside brief
+      if (r === 'fn_site_photos_record') {
+        const a = await req.clone().json() as Row; w.rpcs.push(a);
+        if (a.p_id !== w.intake.id || a.p_customer_id !== w.intake.customer_id) return J(null);
+        w.intake.site_photos = withPhotos(w.intake.site_photos as never, (a.p_asked as never) ?? [], a.p_photos, a.p_via as 'portal', a.p_declined === true);
+        return J(w.intake.site_photos);
+      }
       if (r) return J(r === 'rl_check' ? true : null);
-      if (t === 'inquiry_state' && req.method === 'GET') return J([{ conv_key: 'intake:ii-zz-photos', surface: 'request_chat', specs: {}, unknown: {}, asked: {}, message_count: 2, status: 'open', trade_codes: ['hvac'] }]);
+      if (t === 'inquiry_state' && req.method === 'GET') return J([{ conv_key: 'intake:' + II, surface: 'request_chat', specs: {}, unknown: {}, asked: {}, message_count: 2, status: 'open', trade_codes: ['hvac'] }]);
       if (t === 'inquiry_intake') {
         if (req.method === 'GET') return J([{ ...w.intake }]);
-        if (req.method === 'PATCH') { Object.assign(w.intake, await req.clone().json()); return J([]); }
+        if (req.method === 'PATCH') { const patch = await req.clone().json() as Row; assert(!('site_photos' in patch), 'the chat turn wrote the photo record whole'); Object.assign(w.intake, patch); return J([]); }
       }
       return undefined;
     },
@@ -149,9 +160,9 @@ const readyModel = (siteVisit: string[]) => {
 
 Deno.test('the handler: the turn a visit applies asks once, changes no status, stamps the turn; the next turn asks nothing', async () => {
   // the same turn without the visit is the control: the ask must not move the status, the open keys or the blocking verdict
-  const control = await invoke(await fnOf(), world(readyModel([]), {}).stub, { intake_id: 'ii-zz-photos', text: 'ZZ DEMO replace three wall splits in a villa in Dubai', turn_id: 't-zz-photos-0', lang: 'en' });
+  const control = await invoke(await fnOf(), world(readyModel([]), {}).stub, { intake_id: II, text: 'ZZ DEMO replace three wall splits in a villa in Dubai', turn_id: 't-zz-photos-0', lang: 'en' });
   const { w, stub } = world(readyModel(['hvac']), {});
-  const r = await invoke(await fnOf(), stub, { intake_id: 'ii-zz-photos', text: 'ZZ DEMO replace three wall splits in a villa in Dubai', turn_id: 't-zz-photos-1', lang: 'en' });
+  const r = await invoke(await fnOf(), stub, { intake_id: II, text: 'ZZ DEMO replace three wall splits in a villa in Dubai', turn_id: 't-zz-photos-1', lang: 'en' });
   assertEquals(r.status, 200, JSON.stringify(r.json).slice(0, 400));
   assertEquals([r.json.status, JSON.stringify(r.json.missing_keys), JSON.stringify((r.json.blocking as Row).open)],
     [control.json.status, JSON.stringify(control.json.missing_keys), JSON.stringify((control.json.blocking as Row).open)], 'the photo ask moved the status or the open specs');
@@ -162,9 +173,10 @@ Deno.test('the handler: the turn a visit applies asks once, changes no status, s
   const turns = w.intake.turns as Row[];
   const last = turns.filter((t) => t.role === 'assistant').at(-1)!;
   assertEquals((last.photo_ask as string[]).length, 6, 'the asking turn is not stamped');
-  assertEquals(((w.intake.brief as Row).site_photos as Row & { asked: unknown[] }).asked.length, 6, 'the record does not keep the ask');
+  assertEquals(((w.intake.site_photos as Row & { asked: unknown[] }).asked).length, 6, 'the record does not keep the ask');
+  assert(!('site_photos' in (w.intake.brief as Row)), 'the record went into the brief the next turn writes whole');
   // the next turn: the customer says no photos; nothing is asked again and it stays ready
-  const again = await invoke(await fnOf(), stub, { intake_id: 'ii-zz-photos', text: 'ZZ DEMO no photos, sorry', turn_id: 't-zz-photos-2', lang: 'en' });
+  const again = await invoke(await fnOf(), stub, { intake_id: II, text: 'ZZ DEMO no photos, sorry', turn_id: 't-zz-photos-2', lang: 'en' });
   assertEquals(again.json.photo_ask, null, 'asked twice');
   assert(again.json.status !== 'held', 'held after "no photos"');
   assert(!w.prompts[1].includes('PHOTOS FOR A SITE-VISIT JOB'), 'the prompt offers the ask again');
@@ -172,8 +184,44 @@ Deno.test('the handler: the turn a visit applies asks once, changes no status, s
 
 Deno.test('the handler: a job with no site visit asks for no photo', async () => {
   const { stub } = world(readyModel([]), {});
-  const r = await invoke(await fnOf(), stub, { intake_id: 'ii-zz-photos', text: 'ZZ DEMO three new wall splits for a new villa in Dubai', turn_id: 't-zz-photos-3', lang: 'en' });
+  const r = await invoke(await fnOf(), stub, { intake_id: II, text: 'ZZ DEMO three new wall splits for a new villa in Dubai', turn_id: 't-zz-photos-3', lang: 'en' });
   assertEquals(r.status, 200);
   assertEquals(r.json.photo_ask, null);
   assertEquals(r.json.site_photos, null);
+});
+
+// ── review of bf8b9ea45, item 7: the model asked by itself, on a turn with no site_visit ──────────────────────────────────────
+Deno.test('photoAskOfTurn: a model that asked without site_visit stamps the turn; a due ask it did not voice gets the draft', () => {
+  const ctx = ctxOf(['hvac']);
+  const self = photoAskOfTurn(ctx, [], [], [], null, true);
+  assert(self.shots.length > 0 && self.draft === false, JSON.stringify(self));
+  assertEquals(photoAskOfTurn(ctx, [], [], [], null, false).shots, []);
+  const due = photoAskOfTurn(ctx, [], ['hvac'], [], null, false);
+  assert(due.shots.length > 0 && due.draft === true);
+  assertEquals(photoAskOfTurn(ctx, [], ['hvac'], [], null, true).draft, false);
+  assertEquals(photoAskOfTurn(ctx, [], ['hvac'], [{ role: 'assistant', photo_ask: ['x'] }], null, true).shots, [], 'asked twice');
+});
+
+Deno.test('the handler: the model asks for photos on a turn with no site_visit; the turn is stamped and nothing is asked again', async () => {
+  const asks = { ...readyModel([]), photos_asked: true, assistant_message: 'ZZ DEMO A visit may be needed; photos of each unit would help (optional).' };
+  const { w, stub } = world([asks, readyModel([])], {});
+  const r = await invoke(await fnOf(), stub, { intake_id: II, text: 'ZZ DEMO replace three wall splits in a villa in Dubai', turn_id: 't-zz-photos-7a', lang: 'en' });
+  assertEquals(r.status, 200, JSON.stringify(r.json).slice(0, 400));
+  const last = (w.intake.turns as Row[]).filter((t) => t.role === 'assistant').at(-1)!;
+  assert(Array.isArray(last.photo_ask) && (last.photo_ask as string[]).length > 0, 'the turn the model asked on was not stamped');
+  assert(r.json.photo_ask, 'the card with an upload button per shot was not offered');
+  const again = await invoke(await fnOf(), stub, { intake_id: II, text: 'ZZ DEMO ok', turn_id: 't-zz-photos-7b', lang: 'en' });
+  assertEquals(again.json.photo_ask, null);
+  assert(!w.prompts[1].includes('PHOTOS FOR A SITE-VISIT JOB'), 'the prompt invites a second ask');
+});
+
+// ── review items 2 and 4: photos sent with a turn and the No-photos answer are recorded in one statement, never in the brief ──
+Deno.test('the handler: photo jobs sent with a turn are recorded through fn_site_photos_record, on the intake, not the brief', async () => {
+  const { w, stub } = world(readyModel(['hvac']), {});
+  await invoke(await fnOf(), stub, { intake_id: II, text: 'ZZ DEMO replace three wall splits in a villa in Dubai', turn_id: 't-zz-photos-8a', lang: 'en' });
+  const shot = ((w.intake.site_photos as Row).asked as Row[])[0].shot as string;
+  const r = await invoke(await fnOf(), stub, { intake_id: II, text: 'ZZ DEMO here is a photo', turn_id: 't-zz-photos-8b', lang: 'en', site_photos: [{ shot, job_id: JOB(7) }], photos_declined: false });
+  assertEquals(w.rpcs.length, 2, 'the record was not written through the one-statement writer');
+  assertEquals(((w.intake.site_photos as Row).photos as Row[]).map((p) => p.job_id), [JOB(7)]);
+  assertEquals(((r.json.site_photos as Row).photos as Row[])[0].shot, shot);
 });

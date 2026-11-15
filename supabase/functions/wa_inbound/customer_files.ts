@@ -28,7 +28,7 @@ import { cadSupplierBoq, dxfTextOf } from '../_shared/cad_identity.ts';
 import { inDbRegion } from '../_shared/db_region.ts';
 import { admin, sec } from './shared.ts';
 import { fetchTwilioMedia } from './media.ts';
-import { withPhotos } from '../_shared/site_photos.ts';
+import { PHOTOS_PER_DAY, photosToday, recordSitePhotos } from '../_shared/site_photos.ts';
 
 export type CustomerFileResult = { ok: boolean; kind?: 'drawing' | 'cad' | 'photo'; target?: string; note: string; boqLines?: number; queued?: boolean; held?: boolean };
 
@@ -60,18 +60,19 @@ export async function targetOf(cust: { id: string; email: string }, caption: str
   return made?.id ? { table: 'inquiry_intake', id: String(made.id), hasDrawing: false, ref: 'a new request started for this file' } : null;
 }
 
-/** Queue a WhatsApp photo's check and record it on the request it was added to. null when either step fails (nothing offered). */
+/** Queue a WhatsApp photo's check and record it on the request it was added to. null when either step fails (nothing offered).
+ *  The record is written by public.fn_site_photos_record in ONE statement (review of bf8b9ea45, item 4): the old read of brief or
+ *  spec, the photo added here and the whole object written back lost one of two photos sent together, and overwrote a chat turn
+ *  saved in between. Each photo arrives as its own webhook, so that race was the normal case. A customer past the day's cap
+ *  (PHOTOS_PER_DAY) is not queued: the photo stays with the request, unoffered. */
 async function queueSitePhoto(cust: { id: string; email: string }, target: { table: 'inquiries' | 'inquiry_intake'; id: string }, path: string, name: string, mime: string, size: number): Promise<string | null> {
   try {
+    const today = await photosToday(admin, cust.id);
+    if (today === null || today >= PHOTOS_PER_DAY) return null;
     const { data: job, error } = await admin.from('cad_read_jobs').insert({ customer_id: cust.id, owner_email: cust.email, source_path: path, file_name: name, mime, bytes: size, why: 'site_photo_check', boq_in: { shot: null } }).select('id').maybeSingle();
     if (error || !job?.id) return null;
-    const col = target.table === 'inquiries' ? 'spec' : 'brief';
-    // deno-lint-ignore no-explicit-any
-    const { data: row } = await admin.from(target.table).select(col).eq('id', target.id).maybeSingle() as { data: Record<string, any> | null };
-    const holder = row && row[col] && typeof row[col] === 'object' ? row[col] : {};
-    const rec = withPhotos(holder.site_photos ?? null, [], [{ job_id: String(job.id) }], 'whatsapp');
-    const { error: e2 } = await admin.from(target.table).update({ [col]: { ...holder, site_photos: rec } }).eq('id', target.id);
-    return e2 ? null : String(job.id);
+    const rec = await recordSitePhotos(admin, { table: target.table, id: target.id, customerId: cust.id, email: cust.email, photos: [{ job_id: String(job.id) }], via: 'whatsapp' });
+    return rec?.photos?.some((p) => p.job_id === String(job.id)) ? String(job.id) : null;
   } catch (_e) { return null; }
 }
 

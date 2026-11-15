@@ -59,6 +59,27 @@ export function photoAskNow(ctx: TradeContext | null, topics: string[], siteVisi
   return shotsFor(ctx, topics, siteVisit);
 }
 
+/** THE ASK OF THIS TURN (review of bf8b9ea45, item 7). Due when a visit applies (photoAskNow): `draft` is true when the model's own
+ *  reply did not ask, so code adds the list. And when the model ASKED on its own (photos_asked true) on a turn where it put no
+ *  trade in site_visit, the turn is stamped too, with the shots of every placed trade that has some, so the prompt block (shown
+ *  until a stamp exists) never invites a second ask. [] when asked before or nothing to ask. */
+// deno-lint-ignore no-explicit-any
+export function photoAskOfTurn(ctx: TradeContext | null, topics: string[], siteVisit: string[], turns: any[], record: SitePhotos | null | undefined, modelAsked: boolean): { shots: AskedShot[]; draft: boolean } {
+  if (askedBefore(turns, record)) return { shots: [], draft: false };
+  const due = photoAskNow(ctx, topics, siteVisit, turns, record);
+  if (due.length) return { shots: due, draft: !modelAsked };
+  return modelAsked ? { shots: shotsFor(ctx, topics, ctx?.codes ?? []), draft: false } : { shots: [], draft: false };
+}
+
+/** The record of a request row: inquiry_intake.site_photos (its own column, written by fn_site_photos_record), else the copy an
+ *  older turn kept inside brief. null when neither holds one. */
+// deno-lint-ignore no-explicit-any
+export function recordOf(row: any): SitePhotos | null {
+  const own = row?.site_photos, old = row?.brief?.site_photos;
+  for (const r of [own, old]) if (r && typeof r === 'object' && Array.isArray(r.asked)) return r as SitePhotos;
+  return null;
+}
+
 /** The prompt block for the model: what to ask, once, when it judges a visit applies. '' when asked before or nothing to ask. */
 // deno-lint-ignore no-explicit-any
 export function photoPromptBlock(ctx: TradeContext | null, topics: string[], turns: any[], record: SitePhotos | null | undefined, lang: 'en' | 'ar' = 'en'): string {
@@ -104,6 +125,39 @@ export function siteNotes(record: SitePhotos | null | undefined, released: Set<s
   const provided = asked.map((a) => a.shot).filter((s) => ok.some((p) => p.shot === s));
   return { provided, not_provided: asked.map((a) => a.shot).filter((s) => !provided.includes(s)), extra: ok.filter((p) => !p.shot || !asked.some((a) => a.shot === p.shot)).length,
     withheld: (record?.photos ?? []).length - ok.length };
+}
+
+/** At most this many photos one customer may send for checking in 24 hours, across every request and door (the check is a
+ *  worker job with OCR and up to PHOTO_LOOKS paid looks each; site_photo_gate.ts states the cost). */
+export const PHOTOS_PER_DAY = 24;
+
+// deno-lint-ignore no-explicit-any
+type Admin = any;
+/** How many photo checks this customer queued in the last 24 hours (null when it cannot be read: the caller refuses, fail closed). */
+export async function photosToday(admin: Admin, customerId: string): Promise<number | null> {
+  try {
+    const { count, error } = await admin.from('cad_read_jobs').select('id', { count: 'exact', head: true }).eq('customer_id', customerId)
+      .eq('why', 'site_photo_check').gte('created_at', new Date(Date.now() - 86_400_000).toISOString());
+    return error ? null : Number(count ?? 0);
+  } catch (_e) { return null; }
+}
+
+/** RECORD PHOTOS IN ONE STATEMENT (review of bf8b9ea45, items 2 and 4): public.fn_site_photos_record adds them to
+ *  inquiry_intake.site_photos, or to inquiries.spec.site_photos with jsonb_set, computed from the row as it is under its lock,
+ *  so two photos sent together both stay and a chat turn saved meanwhile is never overwritten (nor overwrites them). Each photo
+ *  must be a site_photo_check job of the row's own customer; the database keeps them by job, at most MAX_PHOTOS, and keeps a
+ *  shot only when it was asked. `asked` is set once and never replaced. Returns the record as stored, or null (no row of this
+ *  customer, or the call failed: nothing recorded, never a partial record). */
+export async function recordSitePhotos(admin: Admin, o: { table: 'inquiry_intake' | 'inquiries'; id: string; customerId: string; email?: string | null;
+  photos?: { job_id: string; shot?: string | null }[]; via?: 'portal' | 'whatsapp'; asked?: AskedShot[] | null; declined?: boolean }): Promise<SitePhotos | null> {
+  if (!UUID.test(String(o.id || '')) || !UUID.test(String(o.customerId || ''))) return null;
+  try {
+    const { data, error } = await admin.rpc('fn_site_photos_record', { p_table: o.table, p_id: o.id, p_customer_id: o.customerId, p_email: o.email ?? null,
+      p_photos: (o.photos ?? []).map((p) => ({ job_id: String(p.job_id), shot: p.shot ?? null })), p_via: o.via ?? 'portal',
+      p_asked: o.asked && o.asked.length ? o.asked : null, p_declined: o.declined === true });
+    if (error || !data || typeof data !== 'object' || !Array.isArray((data as SitePhotos).asked)) return null;
+    return data as SitePhotos;
+  } catch (_e) { return null; }
 }
 
 /** The record as create_inquiry stores it on inquiries.spec.site_photos (kept apart from the details the text gate reads). */

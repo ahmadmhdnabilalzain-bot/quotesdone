@@ -21,6 +21,7 @@ import { LENGTHS_FAILED_NOTE, LENGTHS_QUEUED_NOTE } from '../../drawing_boq/leng
 import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../../_shared/drawing_format.ts';
 import { cadJobNeedsRedispatch, claimCadDispatch } from '../cad_dispatch.ts';
+import { PHOTOS_PER_DAY, photosToday, recordSitePhotos } from '../../_shared/site_photos.ts';
 import { type ActionCtx, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
 import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, queueCadRead, recordHeld, redactCad, scheduleTables, storeOriginal } from '../lib/drawings.ts';
 
@@ -81,13 +82,21 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       const raw = String(body.image_b64 || '').replace(/^data:[^;]+;base64,/, '');
       const mime = /^image\/(jpeg|png|webp)$/i.test(String(body.mime || '')) ? String(body.mime).toLowerCase() : 'image/jpeg';
       if (!raw || raw.length > 8_000_000 || !/^[A-Za-z0-9+/=]+$/.test(raw.slice(0, 2000))) return J({ ok: false, error: 'photo_unreadable' }, 400);
+      // A CAP PER CUSTOMER PER DAY (review of bf8b9ea45, item 6): each photo is a worker job with paid looks; unreadable = refused.
+      const today = await photosToday(admin, cust.id);
+      if (today === null || today >= PHOTOS_PER_DAY) return J({ ok: false, error: 'photo_daily_limit', limit: PHOTOS_PER_DAY }, 429);
       const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
       const path = await storeOriginal(cust.id, email, `site_photo.${ext}`, mime, raw, SAFE_UPLOAD);
       if (!path) return J({ ok: false, error: 'photo_not_stored' }, 500);
       const shot = String(body.shot || '').replace(/\s+/g, ' ').trim().slice(0, 140) || null;
       const job = await queueCadRead({ customerId: cust.id, email, path, name: 'site_photo', mime, b64Len: raw.length, why: 'site_photo_check', boqIn: { shot } });
       if (!job) return J({ ok: false, error: 'photo_not_queued' }, 500);
-      return J({ ok: true, job_id: job, shot, status: 'checking' });
+      // THE PHOTO IS ON THE REQUEST NOW, NOT AT THE NEXT CHAT TURN (review item 2): recorded on the customer's own intake in one
+      // statement (_shared/site_photos.ts recordSitePhotos). `recorded` false = the intake was not found as theirs; the portal
+      // then sends the job with Send, and create_inquiry checks it is theirs before keeping it.
+      const rec = /^[0-9a-f-]{36}$/i.test(String(body.intake_id || '')) ? await recordSitePhotos(admin, { table: 'inquiry_intake', id: String(body.intake_id), customerId: cust.id, email, photos: [{ job_id: job, shot }], via: 'portal' }) : null;
+      const recorded = !!rec?.photos?.some((p) => p.job_id === job);
+      return J({ ok: true, job_id: job, shot, status: 'checking', recorded });
     }
 
     if (action === 'analyze_boq') {
