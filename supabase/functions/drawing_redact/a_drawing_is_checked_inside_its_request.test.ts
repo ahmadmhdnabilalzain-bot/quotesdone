@@ -120,4 +120,6 @@ Deno.test('SLOW stub: a model call started at 124 s is cut by 135 s and the page
   assertMatch(api, /if \(cutByClock\(e, Date\.now\(\), redStopAt\)\) \{ timeHeld \+= slice\.length; abandoned\.push\(/);
   assertMatch(api, /const cut = pagesHeldForTime\(rj, i, slice\.length\); timeHeld \+= cut\.length; abandoned\.push\(\.\.\.cut\);/);
   assertMatch(api, /pages_abandoned: abandoned, pages_not_started: notReached/);
+  // Round 6: a JSON {ok:false} with no pages_in that arrives after the stop is time too.
+  assertMatch(api, /if \(!inN && !rj\?\.ok\) \{ redIn \+= slice\.length; if \(!cut\.length && cutByClock\(null, Date\.now\(\), redStopAt\)\) \{ timeHeld \+= slice\.length; abandoned\.push\([^\n]*\} else if \(!cut\.length\) redDied \+= slice\.length; return; \}/);
 });

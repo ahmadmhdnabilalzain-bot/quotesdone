@@ -306,7 +306,8 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             const cut = pagesHeldForTime(rj, i, slice.length); timeHeld += cut.length; abandoned.push(...cut);
             // A 546 answers JSON too - {code:'WORKER_RESOURCE_LIMIT'} with no pages_in - so an
             // isolate death is counted as pages LOST rather than as a batch that carried no pages.
-            if (!inN && !rj?.ok) { redDied += slice.length; redIn += slice.length; return; }
+            // One that answers after the stop is the clock's doing (round 6): held for time, not a dead redactor.
+            if (!inN && !rj?.ok) { redIn += slice.length; if (!cut.length && cutByClock(null, Date.now(), redStopAt)) { timeHeld += slice.length; abandoned.push(...slice.map((_x, k) => i + k)); } else if (!cut.length) redDied += slice.length; return; }
             redIn += inN; redOut += Number(rj?.pages_out || 0);
             if (rj?.ok && rj?.recorded && rj?.job_id && Array.isArray(rj.paths)) { redacted = redacted.concat(rj.paths.map((x: any) => String(x))); redJobs.push(String(rj.job_id)); }
           } catch (e) {

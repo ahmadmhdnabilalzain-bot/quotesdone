@@ -174,6 +174,7 @@ Deno.test('the sheets not checked in time are named; a call the clock cut is tim
   assert(cutByClock(timeout, 100, 125_000) && cutByClock(new DOMException('x', 'AbortError'), 100, 125_000));
   assert(cutByClock(new Error('reset'), 130_000, 125_000), 'any failure past the stop');
   assert(!cutByClock(new Error('WORKER_RESOURCE_LIMIT'), 50_000, 125_000), 'a worker death before the stop is still a death');
+  assert(cutByClock(null, 126_000, 125_000) && !cutByClock(null, 90_000, 125_000), 'an {ok:false} answer: time only after the stop');
   const row = heldRun({ customerId: 'c', email: 'e', sourcePath: 'p', meta: { redaction_pages_in: 4, redaction_pages_out: 2, redaction_complete: false }, reason: 'time', detail: { pages_held_for_time: 2, pages_abandoned: [2], pages_not_started: [3] } });
   assertEquals(row.verify_detail, { reason: 'time', pages_held_for_time: 2, pages_abandoned: [2], pages_not_started: [3] });
 });
