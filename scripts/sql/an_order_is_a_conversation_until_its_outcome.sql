@@ -67,8 +67,10 @@
 --   fn_company_message_gates and fn_seat_handoff. Deploy: resilience_ping is not needed (the duty runs on seatDuties); the
 --   replay picks the new surfaces up once _shared/think/routing.ts is deployed with any function that runs the replay
 --   (resilience_ping), which routes the CEO's turns to his routine route.
--- LOCKS: four new tables (ACCESS EXCLUSIVE on them only, at first apply); ROW EXCLUSIVE from one insert each into
---   decision_policy, seat_duty and event_subscription (six rows). No busy table is altered; no trigger on a busy table.
+-- LOCKS (measured LOCAL, pg_locks inside the apply transaction): four new tables (ACCESS EXCLUSIVE on them only, at first
+--   apply); ROW EXCLUSIVE on decision_policy (one row), seat_duty (one row; its trigger writes seat_playbook) and
+--   event_subscription (six rows; a row-share on org_role for its key). A re-apply takes SHARE UPDATE EXCLUSIVE on its own
+--   tables and row locks only (63-89 ms). No busy table (agent_actions, company_event) is touched; no trigger is added.
 -- prevented by: scripts/sql/an_order_is_a_conversation_until_its_outcome_probe.sql (LOCAL),
 --   scripts/checks/an_order_is_a_conversation_until_its_outcome.test.mjs, supabase/functions/_shared/order_thread_surfaces.test.ts
 set local lock_timeout = '3s';
