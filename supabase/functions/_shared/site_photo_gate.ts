@@ -129,7 +129,8 @@ const WHY: Record<PhotoReason, [string, string]> = {
 };
 export function photoNotice(n: number, shot: string | null, r: PhotoResult, lang: 'en' | 'ar' = 'en'): string {
   const ar = lang === 'ar';
-  const which = (ar ? `الصورة ${n}` : `Photo ${n}`) + (shot ? ` (${shot})` : '');
+  // n = 0: the worker does not know the photo's place in the chat; the card shows the notice under the photo it is about
+  const which = (n > 0 ? (ar ? `الصورة ${n}` : `Photo ${n}`) : (ar ? 'هذه الصورة' : 'This photo')) + (shot ? ` (${shot})` : '');
   const why = [...new Set(r.reasons)].map((x) => WHY[x][ar ? 1 : 0]);
   if (r.status === 'released') return ar ? `${which}: فُحصت وستصل إلى الموردين.` : `${which}: checked, and the suppliers will see it.`;
   if (r.status === 'masked') return ar ? `${which}: غطّينا ${why.join('، ')} قبل أن يراها الموردون.` : `${which}: we covered ${why.join(', ')} before the suppliers see it.`;

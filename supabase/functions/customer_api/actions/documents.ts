@@ -68,7 +68,26 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         }
         counted = { boq: applyVisionCounts((job.boq_in as any).vision_lines, vj), vision_count: { source: vj?.source ?? null, why: vj?.why ?? null, agrees: vj?.agrees ?? null } };
       }
-      return J({ ok: true, status: job.status, ...(job.status === 'queued' || job.status === 'running' ? { held_for: 'sales_engineer' } : {}), boq: res?.boq ?? null, ...(counted ? { counted_boq: counted.boq, vision_count: counted.vision_count } : {}), ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
+      return J({ ok: true, status: job.status, ...(job.status === 'queued' || job.status === 'running' ? { held_for: 'sales_engineer' } : {}), boq: res?.boq ?? null,
+        // a site photo's verdict and the customer's notice (which photo, why) from _shared/site_photo_gate.ts on the worker
+        ...(res?.photo && typeof res.photo === 'object' ? { photo: { status: String(res.photo.status || 'withheld'), shot: res.photo.shot ?? null, notice_en: String(res.photo.notice_en || ''), notice_ar: String(res.photo.notice_ar || '') } } : {}), ...(counted ? { counted_boq: counted.boq, vision_count: counted.vision_count } : {}), ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
+    }
+
+    // A SITE PHOTO FOR A SITE-VISIT JOB (15 Nov 2026, sales_engineer; founder ledger 1704, ruling 1683). Stored privately and
+    // queued for its check on the worker (scripts/cad_read_worker.ts sitePhoto, _shared/site_photo_gate.ts). Nothing of it is
+    // returned or shared: the request records the job (inquiry_intake site_photos), and a supplier sees only the copy the check
+    // released and recorded. The customer's notice comes back on cad_read_status.
+    if (action === 'site_photo') {
+      const raw = String(body.image_b64 || '').replace(/^data:[^;]+;base64,/, '');
+      const mime = /^image\/(jpeg|png|webp)$/i.test(String(body.mime || '')) ? String(body.mime).toLowerCase() : 'image/jpeg';
+      if (!raw || raw.length > 8_000_000 || !/^[A-Za-z0-9+/=]+$/.test(raw.slice(0, 2000))) return J({ ok: false, error: 'photo_unreadable' }, 400);
+      const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
+      const path = await storeOriginal(cust.id, email, `site_photo.${ext}`, mime, raw, SAFE_UPLOAD);
+      if (!path) return J({ ok: false, error: 'photo_not_stored' }, 500);
+      const shot = String(body.shot || '').replace(/\s+/g, ' ').trim().slice(0, 140) || null;
+      const job = await queueCadRead({ customerId: cust.id, email, path, name: 'site_photo', mime, b64Len: raw.length, why: 'site_photo_check', boqIn: { shot } });
+      if (!job) return J({ ok: false, error: 'photo_not_queued' }, 500);
+      return J({ ok: true, job_id: job, shot, status: 'checking' });
     }
 
     if (action === 'analyze_boq') {
