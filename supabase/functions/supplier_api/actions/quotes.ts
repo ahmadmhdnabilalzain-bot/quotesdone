@@ -395,7 +395,10 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         const vat = statedPrice({ amount: p.amount, subtotal: multi ? null : numOrNull(body.subtotal), vat_amount: multi ? null : numOrNull(body.vat_amount), text: vatText,
           stated: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: multi ? null : numOrNull(body.price_ex_vat),
           gross_amount: multi ? null : numOrNull(body.gross_amount), discount_amount: multi ? null : numOrNull(body.discount_amount),
-          discount_label: multi ? null : clip(body.discount_label, 80), net_amount: multi ? null : numOrNull(body.net_amount) });
+          discount_label: multi ? null : clip(body.discount_label, 80), net_amount: multi ? null : numOrNull(body.net_amount),
+          // The supplier's own lines and TRN are evidence of the VAT basis (line_specs/vat.ts, accountant 15 Nov 2026): a total
+          // that is exactly his lines plus 5% has VAT in it, whatever the form's basis said, so the review asks before any fee.
+          lines_sum: multi ? null : (p.lines as { amount?: unknown }[]).reduce((a, l) => a + (Number(l?.amount) > 0 ? Number(l.amount) : 0), 0), trn });
         const det = { inquiry_id: inquiryId, supplier_id: sup.id, option_no: p.option_no, submission_id, ...storedPrice(vat, p.amount), supplier_trn: trn,
           discount_label: vat.discount_label ? scrub(vat.discount_label, 80) : null,
           notes: sNotes, lead_time: scrub(body.lead_time, 200), validity: scrub(body.validity, 200), payment_terms: scrub(body.payment_terms, 400), warranty: scrub(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: (() => { const m = [...allMasked, ...maskHits.filter((h) => !allMasked.includes(h))]; return m.length ? m : null; })(), structured: p.lines.length > 0 };

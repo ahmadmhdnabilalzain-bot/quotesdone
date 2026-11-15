@@ -9,7 +9,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { isLiveQuote } from '../_shared/quote_live.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { adminCaller } from '../_shared/admin_session.ts';
-import { deterministicCompare, rosterOf } from './deterministic.ts';
+import { comparedPrice, deterministicCompare, rosterOf } from './deterministic.ts';
 import { observe } from '../_shared/observe.ts';
 import { challengeBeforeDeciding, LARGE_SUPPLIER_CHOICE_AED } from '../_shared/high_stakes_challenge.ts';
 import { registeredLocale } from '../_shared/registered_locale.ts';
@@ -215,7 +215,7 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
       technical = technicalComparison({ category: inq.category, request_lines: requestLines, requirements: requirementsOf(inqSpec), on_hold: onHold, now: new Date(), accepted,
         quotes: qs.map((q: any) => { const lab = labels.get(String(q.id))!; return { quote_id: String(q.id), label_en: lab.en, label_ar: lab.ar, supplier_letter: lab.letter, option_no: lab.option_no,
           lines: (itemsByQuote[String(q.id)] || []).map((it: any) => ({ line_no: it.line, description: String(it.description || ''), brand: it.brand, model: it.model, specification: it.specification, qty: it.qty, unit: it.unit, unit_price: it.unit_price, labour: it.labour, install: it.install, amount: it.amount, notes: it.notes, spec: it.spec, spec_source: specOf[String(q.id)]?.[it.line] ?? null })),
-          terms: { lead_time: q.lead_time, warranty: q.warranty, scope: q.scope, exclusions: q.exclusions, conditions: q.conditions, notes: q.notes, terms_spec: q.terms_spec, price_ex_vat: q.price_ex_vat ?? q.quote_amount } }; }) });
+          terms: { lead_time: q.lead_time, warranty: q.warranty, scope: q.scope, exclusions: q.exclusions, conditions: q.conditions, notes: q.notes, terms_spec: q.terms_spec, price_ex_vat: comparedPrice(q) } }; }) });
     } catch (e) { await logRun('error', { technical_comparison_failed: 1 }, 'quote_compare could not build the technical comparison (' + String((e as Error)?.message || e).slice(0, 160) + '); the ranking is served without it.'); }
     // SPEC MATCH ON THE ROUTINE CLASS (24 Sep 2026, _shared/routine_judgements.ts). Code decided which cells are not an exact match (≠);
     // whether each ≠ is a GENUINE mismatch (SS304 quoted for SS316) is judged by the routine class (google/gemini-3.8-flash). This function only
@@ -272,7 +272,7 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
       const items = (itemsByQuote[String(q.id)] || []).map((it: any) => generaliseLine(it, qctx));
       const gt = generaliseQuoteTerms({ lead_time: q.lead_time, validity: q.validity, warranty: q.warranty, payment_terms: q.payment_terms, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, notes: q.notes }, qctx);
       const tr = q.supplier_id != null ? trackBySupplier[String(q.supplier_id)] : null;
-      return { label: labels.get(String(q.id))?.en || ('Supplier ' + supplierLabel(i)), price: q.price_ex_vat ?? q.quote_amount, gross_amount: q.gross_amount ?? null, discount_amount: q.discount_amount ?? null, vat_treatment: q.vat_treatment ?? null, vat_amount: q.vat_amount ?? null, lead_time: gt.lead_time, validity: gt.validity, warranty: gt.warranty, payment_terms: gt.payment_terms, scope: gt.scope, conditions: gt.conditions, exclusions: gt.exclusions, notes: gt.notes,
+      return { label: labels.get(String(q.id))?.en || ('Supplier ' + supplierLabel(i)), price: comparedPrice(q), gross_amount: q.gross_amount ?? null, discount_amount: q.discount_amount ?? null, vat_treatment: q.vat_treatment ?? null, vat_amount: q.vat_amount ?? null, lead_time: gt.lead_time, validity: gt.validity, warranty: gt.warranty, payment_terms: gt.payment_terms, scope: gt.scope, conditions: gt.conditions, exclusions: gt.exclusions, notes: gt.notes,
         items: items.length ? items : undefined,
         review_notes: notesByQuote[String(q.id)] || [],
         itemised: items.length > 0,

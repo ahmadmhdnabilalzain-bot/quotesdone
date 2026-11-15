@@ -180,7 +180,10 @@ export function proposalFromModel(ai: ModelAnswer, gen: (v: unknown) => string):
   if (layout === 'unknown') doubts.push(`We read a total of ${money(total!)} and VAT of ${money(vat!)}, and cannot tell which is your price before VAT: is it ${money(total!)}, or ${money(r2(total! - vat!))}? Please type your price before VAT.`);
   const sub = subtotal ?? derivedSub;
   const sp = statedPrice({ amount: layout === 'unknown' ? null : totalWithVat, subtotal: disc ? null : sub, net_amount: disc ? subtotal : null, vat_amount: vat, text: '', stated,
-    gross_amount: fig(ai.gross_amount, 'the price before the discount'), discount_amount: disc, discount_label: str(ai.discount_label, 80) || null });
+    gross_amount: fig(ai.gross_amount, 'the price before the discount'), discount_amount: disc, discount_label: str(ai.discount_label, 80) || null,
+    // His own lines are evidence of the basis (line_specs/vat.ts, accountant 15 Nov 2026): "Total price (inclusive of VAT)
+    // 18,854.85" over lines of 17,957.00 is 17,957.00 before VAT, not a question and never 18,854.85.
+    lines_sum: options.length ? null : lines.reduce((a, l) => a + (Number(l.amount) > 0 ? Number(l.amount) : 0), 0) });
   const currency = str(ai.currency, 12);
   const foreign = !!currency && !AED.test(currency);
   const p: ModelProposal = {

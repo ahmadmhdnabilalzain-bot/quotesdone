@@ -152,6 +152,7 @@ export function withDeskAnswers(w: Working, answers: Record<string, string> | nu
     else if ((m = k.match(/^line:(\d+)$/))) out.qty_explained[`line:${m[1]}`] = v;
     else if (k === 'total') out.qty_explained.total = v;
     else if (k === 'currency' && v === 'aed') out.foreign_currency = null;
+    else if (k === 'vat' && RELEASE_CHOICES.vat.some((c) => c.value === v)) out.vat_answered = v;
   }
   return out;
 }
