@@ -73,6 +73,8 @@ Deno.test('3. every open spec waiting and the message answered something: nothin
   const all = { [CAP]: 1, [ROOM]: 1, scope: 1, system_type: 1 };
   assertEquals(read({ system_type: 'Wall/floor split' }, { spec_evidence: { system_type: 'The four splits' } }, {}, all).waiting, true);
   assertEquals(read({ system_type: 'Wall/floor split' }, {}, { system_type: 'Wall/floor split' }, all).waiting, false, 'nothing new: a waiting question is asked again');
+  assertEquals(read({ system_type: 'Wall/floor split', zz_notes: 'ZZ DEMO a key outside the checklist' }, {}, { system_type: 'Wall/floor split' }, all).waiting, false,
+    'a key outside the checklist is no answer: it never silences a waiting question');
 });
 Deno.test('4. with a model reading, only a tapped option of the held spec is read by code', () => {
   assertEquals(tappedHeldAnswer(FIELDS, 'system_type', 'package unit'), 'Package unit');
@@ -82,6 +84,7 @@ Deno.test('4. with a model reading, only a tapped option of the held spec is rea
 });
 Deno.test('5. the held reply asks the one question its buttons answer, offers the sales engineer once, on voice_draft', async () => {
   const seen: { system: string; input: string }[] = []; const classes: string[] = [];
+  // deno-lint-ignore no-explicit-any
   const deps = { gate: () => Promise.resolve(null), embed: () => Promise.resolve(null),
     rpc: (fn: string, a: Record<string, unknown>) => { if (fn === 'fn_ai_route') classes.push(String(a?.p_task_class)); return Promise.resolve({ data: null, error: null }); },
     llm: (_p: string, system: string, input: string) => { seen.push({ system, input }); return Promise.resolve({ content: JSON.stringify({ answer: 'ZZ DEMO held reply.' }), model: 'm' }); } } as any;

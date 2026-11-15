@@ -361,7 +361,8 @@ export function reconcileSlots(checklist: SpecField[], prevDetails: Record<strin
   const askable = open.filter((o) => !exhausted.includes(String(o.f.key)) && !askedAs(o.f))
     .map((o, i) => ({ o, i, n: openTurns[String(o.f.key)] || 0 })).sort((a, z) => a.n - z.n || a.i - z.i).map((x) => x.o);
   const prevKeys = new Set(Object.keys(prevDetails || {}).filter((k) => filled((prevDetails as Record<string, unknown>)[k])));
-  const recorded = Object.keys(details).filter((k) => !prevKeys.has(k));
+  // checklist keys only: a key outside the checklist the model adds is no answer, and must never silence a waiting question
+  const recorded = Object.keys(details).filter((k) => keys.has(k) && !prevKeys.has(k));
   for (const k of recorded) if (!evidenceNow[k] && evidence && filled(evidence[k])) evidenceNow[k] = asText(evidence[k]);
   const waiting = askable.length > 0 && askable.every((x) => (openTurns[String(x.f.key)] || 0) > 0);
   return {
