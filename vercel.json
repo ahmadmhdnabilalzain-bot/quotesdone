@@ -5,5 +5,12 @@
       "path": "/api/resilience-ping",
       "schedule": "*/15 * * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "**": false,
+      "*": false,
+      "main": true
+    }
+  }
 }
