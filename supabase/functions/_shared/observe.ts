@@ -213,14 +213,16 @@ const LONG_DIGITS = /\+?\d(?:[\s-]?\d){8,14}/g;
 // as "<phone>:47", so a cause lost the moment it happened. A date of this century or the last (year 19xx/20xx, month 01-12, day
 // 01-31), with an optional time and zone, not preceded by + or a digit, is set aside before the masking and put back after it.
 const DATE_TIME = /(?<![+\d])(?:19|20)\d{2}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])(?:[ T](?:[01]\d|2[0-3])(?::[0-5]\d(?::[0-5]\d(?:\.\d+)?)?)?(?:Z|[+-]\d{2}(?::?\d{2})?)?)?(?!\d)/g;
-const KEPT = (i: number) => '\u0000' + i.toString(26).replace(/[0-9]/g, (d) => String.fromCharCode(103 + Number(d))) + '\u0000';
+// the placeholder carries the DECIMAL index, each digit as a letter a-j (third review, item 5: a base-26 index mapped its digits onto
+// g-p, which collide with base-26's own letters, so the 17th date came back as the 1st)
+const KEPT = (i: number) => '\u0000' + String(i).replace(/\d/g, (d) => String.fromCharCode(97 + Number(d))) + '\u0000';
 export function maskContact(text: string): string {
   const kept: string[] = [];
   let out = String(text ?? '').replace(DATE_TIME, (m) => { kept.push(m); return KEPT(kept.length - 1); });
   for (const [re, as] of [[EMAIL, '<email>'], [PHONE_UAE_INTL, '<phone>'], [PHONE_UAE_NATIONAL, '<phone>'], [PHONE_INTL, '<phone>'], [LONG_DIGITS, '<phone>']] as [RegExp, string][]) {
     re.lastIndex = 0; out = out.replace(re, as);
   }
-  return kept.length ? out.replace(/\u0000([a-z]+)\u0000/g, (all, k: string) => kept[parseInt(k.replace(/[g-p]/g, (c) => String(c.charCodeAt(0) - 103)), 26)] ?? all) : out;
+  return kept.length ? out.replace(/\u0000([a-j]+)\u0000/g, (all, k: string) => kept[Number(k.replace(/[a-j]/g, (c) => String(c.charCodeAt(0) - 97)))] ?? all) : out;
 }
 /** What annotate() put on a Response, as the agent_runs row will carry it (read by tests). */
 export const annotationsOf = (res: Response): Record<string, unknown> | undefined => ANNOTATIONS.get(res);

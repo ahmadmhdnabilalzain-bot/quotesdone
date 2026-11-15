@@ -21,3 +21,13 @@ Deno.test('maskContact still masks a phone and an e-mail next to a time, and a n
   assertEquals(maskContact(''), '');
   assertEquals(maskContact(undefined as unknown as string), '');
 });
+
+Deno.test('maskContact puts back every date of a long cause in its own place, the 17th and the 25th too (third review, item 5)', () => {
+  const dates = Array.from({ length: 25 }, (_, i) => `2026-11-${String(i + 1).padStart(2, '0')} 08:${String(i).padStart(2, '0')}`);
+  const cause = dates.map((d, i) => `try ${i + 1} at ${d}`).join('; ') + '; Key (phone)=(+971 50 123 4567)';
+  const out = maskContact(cause);
+  assert(out.startsWith(dates.map((d, i) => `try ${i + 1} at ${d}`).join('; ') + '; Key (phone)='), out);
+  assert(out.includes('<phone>') && !out.includes('123 4567'), out);
+  const many = Array.from({ length: 120 }, (_, i) => `2026-${String((i % 12) + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`).join(' ');
+  assertEquals(maskContact(many), many, 'three-digit indexes too');
+});
