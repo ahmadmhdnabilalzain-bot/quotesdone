@@ -6649,6 +6649,7 @@
   "ffc3b6fbe64d"
  ],
  "supabase/functions/_shared/quote_labels.ts": [
+  "0f7d01f522bc",
   "d59ecf7fd6e7"
  ],
  "supabase/functions/_shared/quote_review_corpus.ts": [
@@ -7621,6 +7622,7 @@
  "supabase/functions/customer_api/actions/reports.ts": [
   "0183560e12a8",
   "318701cc6ae5",
+  "626dd59f122f",
   "89ad4a98f47d",
   "e00773da115b"
  ],
@@ -7974,6 +7976,7 @@
  "supabase/functions/quote_compare/index.ts": [
   "9a59faca8f00",
   "aa9f2a1ff91a",
+  "ac53e7a6c916",
   "ae49912278d5"
  ],
  "supabase/functions/reveal_invoice/attach.ts": [
@@ -8044,9 +8047,6 @@
   "ef35798a64c3",
   "ef4fa4ac2573",
   "f6176e44ad65"
- ],
- "supabase/functions/sales_engineer/lib/own_quotes.ts": [
-  "25d03c00c8dc"
  ],
  "supabase/functions/sales_engineer/portal_conversation.ts": [
   "02104b592ab7",
@@ -8129,6 +8129,7 @@
  "supabase/functions/stripe_checkout/index.ts": [
   "1317c3d3a9ac",
   "1d1780c6bc01",
+  "26328ae090d0",
   "783c51d9471a",
   "ea217ac6f72a"
  ],

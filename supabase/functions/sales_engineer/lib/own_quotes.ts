@@ -1,7 +1,7 @@
 // sales_engineer — the customer's own quotes, given to the model as facts.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 1,214-line index.ts split into modules, a pure move).
 import { NOT_LIVE_QUOTE_IN } from '../../_shared/quote_live.ts';
-import { customerQuoteLabels } from '../../_shared/quote_labels.ts';
+import { labelQuotes, NO_LETTER, storedLetters } from '../../_shared/quote_labels.ts';
 import { type QuoteForAnswer } from '../../_shared/chat_answers.ts';
 import { admin } from '../context.ts';
 import { ctxOfQuote, generaliseQuoteTerms, generaliseText } from '../../_shared/quote_generalise.ts';
@@ -43,9 +43,12 @@ export async function answerFromOwnQuotes(customerId: string, message: string, l
     if (allSup.length) { const { data: ls } = await admin.from('leads').select('id,company_name').in('id', allSup); for (const l of ls || []) if (l.company_name) ownName.set(Number(l.id), String(l.company_name)); }
     const lineRows = await itemsByQuote(admin, (qs as Array<{ id: string }>).slice(0, 15).map((q) => String(q.id))).catch(() => ({} as Record<string, any[]>));
     const byInq = new Map<string, { rfq_no: string | null; category: string | null; summary: string | null }>((inqs || []).map((i: any) => [i.id, i]));
-    // the letter the customer's card, quotation and comparison show: the one rule (_shared/quote_labels.ts), never a count here
-    const labelsByInq = new Map(await Promise.all([...new Set((qs as Array<{ inquiry_id: string }>).map((q) => String(q.inquiry_id)))]
-      .map(async (iid) => [iid, await customerQuoteLabels(admin, iid)] as const)));
+    // the letter the customer's card, quotation and comparison show: the one STORED the first time he was shown each supplier
+    // (_shared/quote_labels.ts), one read for every request, never a count here. The chat only repeats a letter: it lists held
+    // quotes too, so it records none. No stored letter, or a failed read: "Supplier" with no letter, never a guessed one.
+    const inqIds = [...new Set((qs as Array<{ inquiry_id: string }>).map((q) => String(q.inquiry_id)))];
+    const lettersByInq = await storedLetters(admin, inqIds);
+    const labelsByInq = new Map(inqIds.map((iid) => { const mine = (qs as any[]).filter((q) => String(q.inquiry_id) === iid); return [iid, labelQuotes(mine, lettersByInq?.get(iid) ?? new Map())] as const; }));
     const quotes: QuoteForAnswer[] = (qs as any[]).map((q) => {
       const lab = labelsByInq.get(String(q.inquiry_id))?.get(String(q.id));
       const inq = byInq.get(q.inquiry_id);
@@ -61,7 +64,7 @@ export async function answerFromOwnQuotes(customerId: string, message: string, l
       try { const ns = reviewNotes({ request: requestOf(inq), quote: q, lines, supplierNames: sname ? [sname] : [] }); review = ns.length ? ns.map((x) => (lang === 'ar' ? x.ar : x.en)) : undefined; } catch (_e) { review = undefined; }
       return {
         id: String(q.id), rfq_no: inq?.rfq_no ?? null, inquiry_category: inq?.category ?? null, inquiry_summary: inq?.summary ?? null,
-        supplier_label: name || (lab ? (lang === 'ar' ? lab.ar : lab.en) : (lang === 'ar' ? 'المورّد' : 'Supplier')),
+        supplier_label: name || (lab ? (lang === 'ar' ? lab.ar : lab.en) : (lang === 'ar' ? NO_LETTER.ar : NO_LETTER.en)),
         amount: q.quote_amount == null ? null : Number(q.quote_amount), status: q.status,
         exclusions: t.exclusions, scope: t.scope, conditions: t.conditions, warranty: t.warranty,
         lead_time: t.lead_time, payment_terms: t.payment_terms, validity: t.validity, notes: t.notes,

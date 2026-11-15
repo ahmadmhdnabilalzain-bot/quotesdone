@@ -83,7 +83,8 @@ export type TechnicalComparison = {
 };
 
 /** 'QD-<job number>-<letter>' — the job number is inquiries.rfq_no, the same one both portals print (21 Sep 2026, audit finding 7). */
-export function quoteRef(inq: { id?: string | null; rfq_no?: number | string | null }, letter: string) { return 'QD-' + jobNoOf(inq) + '-' + letter; }
+// No letter (the customer has not been shown this supplier yet, _shared/quote_labels.ts): the job number alone, never a guessed letter.
+export function quoteRef(inq: { id?: string | null; rfq_no?: number | string | null }, letter: string) { return 'QD-' + jobNoOf(inq) + (letter ? '-' + letter : ''); }
 export function clipCell(s: unknown, n: number) { const t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; }
 // deno-lint-ignore no-explicit-any
 const arrOf = (x: any) => Array.isArray(x) ? x : [];

@@ -2,18 +2,22 @@
 
 Seat: sales_engineer. Branch `sales_engineer-the-customer-is-asked-in-plain-words-and-sees-one-letter-per-supplier`.
 
-## One letter per supplier per request
-- A supplier's letter is the order its first quote REACHED THE CUSTOMER (`live_since`: the latest release of a quality or
-  spec hold, else `created_at`; ties by id), counted over every live quote of the request (held and sanctioned included).
-  A later quote, cheaper or not, takes the next letter; a letter once given never moves.
-- The one read is `_shared/quote_labels.ts` `customerQuoteLabels` / `customerQuoteLabelsByInquiry`. Portal cards
-  (my_inquiries), the quotation PDF and its file name (customer_api letterOf), quote_compare, the reveal invoice
-  (stripe_checkout) and the sales engineer's chat (own_quotes) all read it. Never compute a letter anywhere else.
-- Before: each surface used the PRICE rank at its own moment, so journey A's two quotation PDFs both said "Supplier A".
-- A supplier the customer first met through its question in the request's thread (rfq_clarification) holds its letter from
-  that moment; messages_api's customer e-mail and clarify_list read `customerSupplierLetters`.
-- The supplier's own alias (`jobAlias`, match order) is a different, supplier-side letter and stays so (supplier docs, the
-  supplier's view of the thread).
+## One letter per supplier per request, STORED once (review REVIEW_plain item 1)
+- The letter is RECORDED the first time the customer is shown the supplier and never changed: table
+  `public.customer_supplier_letter` (inquiry, supplier) -> letter, written only by `fn_customer_supplier_letters(uuid[], jsonb, text)`
+  (scripts/sql/a_suppliers_letter_is_kept_from_the_first_time_the_customer_sees_it.sql). service_role may SELECT and INSERT it,
+  never UPDATE or DELETE. An arrival-order rule worked out again later still moved (a revised upload after a hold, a
+  withdrawal, a re-held live quote), so the letter is no longer worked out at all.
+- WHO RECORDS (`_shared/quote_labels.ts recordShown`): the surfaces that SHOW a supplier first, passing only what they show:
+  the portal cards (my_inquiries: not held, not sanctioned), quote_compare (it now drops sanctioned quotes too), messages_api
+  (clarify_ask, and the owner's clarify_list). Several new suppliers in one view are lettered by their quotes' created_at.
+  The function itself refuses a sanctioned supplier and one with no live quote and no question on the request (no gap A, C).
+- WHO ONLY READS (`storedLetters` / `storedLetterOf`): the quotation PDF (letterOf), the reveal invoice (stripe_checkout) and
+  the sales engineer's chat (own_quotes; it lists held quotes too, so it records nothing).
+- A FAILED READ NEVER GUESSES (item 2): cards and chat say "Supplier" (NO_LETTER); quote_compare, the quotation PDF and the
+  reveal checkout answer 503 retry. A supplier read fine but never shown prints "Supplier" and ref `QD-<job>` (no suffix).
+- Deploy order: apply the SQL BEFORE customer_api, quote_compare, messages_api, stripe_checkout, sales_engineer.
+- The supplier's own alias (`jobAlias`, match order) is a different, supplier-side letter and stays so.
 
 ## Plain words
 - `_shared/customer_questions.ts` owns what the customer reads for a spec: plain EN/AR question, example, alternative,

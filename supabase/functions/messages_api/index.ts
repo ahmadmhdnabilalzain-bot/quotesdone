@@ -16,7 +16,7 @@ import { isCustomerCorrespondence } from '../_shared/customer_mail.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 // The supplier's alias on this job is the same one its own quotation prints (audit 21 Sep 2026, finding 29).
-import { customerSupplierLetters, jobAlias } from '../_shared/quote_labels.ts';
+import { jobAlias, NO_LETTER, recordShown } from '../_shared/quote_labels.ts';
 import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
 import { buildSupplierMailbox } from './mailbox.ts';
 import { stripContact, stripSupplierQuestion } from './strip_contact.ts';
@@ -197,9 +197,11 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     if (error || !ins) return R(500, { error: 'save_failed' });
     const label = jobAlias(order, Number(supLead.id));   // the supplier's own alias on this job, what the supplier is shown
     try {
-      // THE CUSTOMER'S LETTER for this supplier (_shared/quote_labels.ts, 15 Nov 2026): the one his quote cards, quotation and
-      // comparison use, so "Supplier B asked..." is the same Supplier B whose quote arrives later. Unreadable: no letter at all.
-      const custLetter = (await customerSupplierLetters(admin, inquiry_id)).get(String(supLead.id));
+      // THE CUSTOMER'S LETTER for this supplier (_shared/quote_labels.ts, 15 Nov 2026): this question is the customer's first sight
+      // of the supplier if it has not quoted yet, so its letter is recorded here, and his quote cards, quotation and comparison use
+      // the same one: "Supplier B asked..." is the Supplier B whose quote arrives later. Unrecorded or unreadable: no letter at all.
+      const rec = await recordShown(admin, { [inquiry_id]: [{ id: String(ins.id), supplier_id: Number(supLead.id), created_at: new Date().toISOString() }] }, 'question');
+      const custLetter = rec?.get(inquiry_id)?.get(String(supLead.id));
       const custLabel = custLetter ? 'Supplier ' + custLetter : 'A supplier';
       const { data: c } = await admin.from('customers').select('email,full_name,locale').eq('id', inq.customer_id).maybeSingle();
       if (c?.email && /@/.test(c.email)) {
@@ -224,8 +226,10 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     const shaped = (rows || []).map((r: any) => (isOwner ? { ...r, answer: r.answer_as_written ?? r.answer } : forSupplier(r)));
     const visible = shaped.filter((r: any) => isOwner || (r.kind === 'note' && r.answer) || Number(r.supplier_id) === Number(supLead?.id) || r.answered_at);
     // the customer reads each supplier by HIS letter (the quotes' one); a supplier reads the job's own aliases
-    const custLetters = isOwner ? await customerSupplierLetters(admin, inquiry_id) : null;
-    const labelOf = (sid: number) => custLetters ? (custLetters.has(String(sid)) ? 'Supplier ' + custLetters.get(String(sid)) : 'Supplier') : jobAlias(order, sid);
+    // (the questions listed here are shown to him, so a supplier he meets here first is lettered here, in the order it asked)
+    const asked = isOwner ? visible.filter((r: any) => r.kind === 'question' && r.supplier_id != null).map((r: any) => ({ id: String(r.id), supplier_id: Number(r.supplier_id), created_at: r.asked_at })) : [];
+    const custLetters = isOwner ? ((asked.length ? await recordShown(admin, { [inquiry_id]: asked }, 'question') : await recordShown(admin, {}, 'question', [inquiry_id]))?.get(inquiry_id) ?? new Map<string, string>()) : null;
+    const labelOf = (sid: number) => custLetters ? (custLetters.has(String(sid)) ? 'Supplier ' + custLetters.get(String(sid)) : NO_LETTER.en) : jobAlias(order, sid);
     const items = visible.map((r: any) => ({
       id: r.id, kind: r.kind, question: r.question ?? null, answer: r.answer ?? null, asked_at: r.asked_at, answered_at: r.answered_at ?? null,
       held_for_english: isOwner && !!r.english_held_at,

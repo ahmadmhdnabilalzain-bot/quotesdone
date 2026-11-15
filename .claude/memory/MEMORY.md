@@ -84,7 +84,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Quote the cost before spending](quote-the-cost-before-spending.md)
 - [Payments are the accountant; talks to sales](payments-are-the-accountant-and-talk-to-sales.md) — payment paths owned by accountant, portals speak only as sales engineer
 - [No exact spec → offer alternatives](no-exact-spec-offer-alternatives.md) — support asks; yes = accepted spec, no = apology
-- [The customer is asked in plain words and sees one letter per supplier (15 Nov)](the-customer-is-asked-in-plain-words-and-sees-one-letter-per-supplier.md) — letters by arrival via quote_labels customerQuoteLabels on every surface; customer_questions.ts owns plain EN/AR card wording + glossary
+- [The customer is asked in plain words and sees one letter per supplier (15 Nov)](the-customer-is-asked-in-plain-words-and-sees-one-letter-per-supplier.md) — letters STORED once in customer_supplier_letter when first shown (quote_labels recordShown/storedLetters), never guessed; customer_questions.ts owns plain EN/AR card wording + glossary
 - [Exact specs or the quote is held](exact-specs-or-the-quote-is-held.md) — per-line specs per trade; missing → hold; PDFs pro + fully Arabic
 - [Code extremely well built](code-extremely-well-built.md) — PERMANENT: independent review before EVERY merge; what can be coded is coded, EXCEPT understanding a document or a person (corrected 12 Nov, ledger 1664)
 - [Nothing is one-way](nothing-is-one-way.md) — every handoff/report tracked, replied, re-verified and closed by the originator
