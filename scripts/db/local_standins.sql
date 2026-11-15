@@ -87,6 +87,12 @@ select 'it.finding', 'it_engineer', s, 'local stand-in: the IT engineer found a 
        interval '4 hours', true, 'scripts/sql/the_it_engineer_closes_every_loop_it_opens.sql'
   from unnest(array['sales_engineer','accountant','customer_support','ceo']) s
 on conflict (type, from_seat, to_seat) do nothing;
+-- The live-fault conversation of the self-healing path (support.root_cause customer_support -> it_engineer, owned by
+-- scripts/sql/customer_support_finds_the_root_cause_each_week_and_measures_the_fix.sql; production holds the row, SELECT 15 Nov 2026).
+insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
+values ('support.root_cause', 'customer_support', 'it_engineer', 'local stand-in: a support cause, or a live fault a person reported, for the IT engineer',
+        'fn_seat_takes_support_root_cause', null, true, 'scripts/sql/customer_support_finds_the_root_cause_each_week_and_measures_the_fix.sql')
+on conflict (type, from_seat, to_seat) do nothing;
 -- The database's own credential (context db.internal), hashed as production hashes it, for the dummy cred_db_internal above, scoped
 -- to every edge function in this checkout (local_pg16.mjs passes their names as :fn_names), so a probe that asks "may db.internal
 -- call X" finds the row it finds on production. The local database holds no secret: the value is the dummy above.

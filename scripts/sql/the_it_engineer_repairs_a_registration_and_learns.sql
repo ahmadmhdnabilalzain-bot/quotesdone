@@ -156,7 +156,7 @@ begin
   if p_lead_id is not null then select lower(claimed_by), 'supplier' into v_email, v_role from public.leads where id = p_lead_id;
   elsif p_customer is not null then select lower(email), 'customer' into v_email, v_role from public.customers where id = p_customer; end if;
   if p_what in ('licence_read', 'certificate') and v_email is not null then
-    v_told := public.fn_it_tells_the_person('it.repair.done', p_issue_key || '@' || floor(extract(epoch from coalesce(f.started_at, now())))::bigint,
+    v_told := public.fn_it_tells_the_person('it_repair.done', p_issue_key || '@' || floor(extract(epoch from coalesce(f.started_at, now())))::bigint,
       v_role, v_email, 'en',
       case when p_what = 'licence_read' then 'QuotesDone: your trade licence has been read' else 'QuotesDone: your signed agreement certificate is ready' end,
       case when p_what = 'licence_read'
@@ -165,7 +165,7 @@ begin
         || chr(10) || chr(10) || 'The QuotesDone team',
       'Write a short e-mail telling them a step of their QuotesDone registration that had not finished is now done (the facts say which) and they can carry on from where they stopped. Do not mention any cause or system.',
       'DONE: ' || case when p_what = 'licence_read' then 'their trade licence has been read' else 'their signed agreement certificate has been produced' end
-        || chr(10) || 'WHAT THEY CAN DO NOW: carry on with the registration', '');
+        || chr(10) || 'WHAT THEY CAN DO NOW: carry on with the registration');
   end if;
   -- a person who told support hears "fixed" only when nothing else on their registration is still stalled
   v_faults := case when p_lead_id is not null and not exists (select 1 from public.it_engineer_finding x where x.closed_at is null
@@ -296,11 +296,11 @@ begin
     when l.licence_gate_reason ~* 'number' then 'the licence number could not be read: upload the page that shows the licence number'
     when l.licence_gate_reason ~* 'name|mismatch' then 'the company name on the licence does not match the account: upload the licence of the company you are registering'
     else 'the licence step is not complete: upload the trade licence again' end;
-  v_owed := public.fn_it_tells_the_person('it.repair.held_explain', p_issue_key || ':' || md5(l.licence_gate_reason), 'supplier', l.claimed_by, 'en',
+  v_owed := public.fn_it_tells_the_person('it_repair.held_explain', p_issue_key || ':' || md5(l.licence_gate_reason), 'supplier', l.claimed_by, 'en',
     'QuotesDone: one thing is needed to finish your registration',
     'Your registration is almost done. One thing is needed: ' || v_item || '. You can upload it on your supplier page, and we read it straight away.' || chr(10) || chr(10) || 'The QuotesDone team',
     'Write a short e-mail telling them their registration is almost done and exactly the one thing needed (the facts say what), that they can upload it on their supplier page and it is read straight away. Never say it is approved.',
-    'THE ONE THING NEEDED: ' || v_item || chr(10) || 'WHERE: their supplier page', '');
+    'THE ONE THING NEEDED: ' || v_item || chr(10) || 'WHERE: their supplier page');
   if not v_owed then return jsonb_build_object('outcome', 'nothing_to_do', 'why', 'already told about this reason, or the address cannot be written to in this mode'); end if;
   return jsonb_build_object('outcome', 'fixed', 'lead_id', l.id, 'item', v_item);
 end $fn$;
@@ -321,12 +321,12 @@ begin
             where c.email is not null and not coalesce(c.banned, false) and c.phone is not null
               and left(md5(regexp_replace(c.phone, '[^0-9+]', '', 'g')), 12) = v_hash and coalesce(c.is_demo, false) = v_fx loop
     n := n + 1;
-    if public.fn_it_tells_the_person('it.repair.dup_mobile', v_hash || ':' || md5(a.email), a.role, a.email, 'en',
+    if public.fn_it_tells_the_person('it_repair.dup_mobile', v_hash || ':' || md5(a.email), a.role, a.email, 'en',
          'QuotesDone: sign in with your e-mail address',
          'Your mobile number is also on another QuotesDone account, so a sign-in code cannot be sent to it by SMS. Please sign in with your e-mail address instead; your account and everything on it are as you left them.'
            || chr(10) || chr(10) || 'The QuotesDone team',
          'Write a short e-mail telling them their mobile number is on more than one QuotesDone account, so a code cannot be sent to it by SMS, and asking them to sign in with their e-mail address; their account is as they left it. Name no other account.',
-         'WHAT THEY CAN DO NOW: sign in with their e-mail address', '') then n_told := n_told + 1; end if;
+         'WHAT THEY CAN DO NOW: sign in with their e-mail address') then n_told := n_told + 1; end if;
   end loop;
   if n < 2 then return jsonb_build_object('outcome', 'nothing_to_do', 'why', 'the mobile is no longer on more than one account'); end if;
   update public.it_engineer_finding set evidence = evidence || jsonb_build_object('owner_seat', 'ceo', 'decision_needed',
@@ -375,6 +375,9 @@ begin
   end if;
   if exists (select 1 from public.it_route_failover f where f.task_class = v_class and f.restored_at is null) then
     return jsonb_build_object('outcome', 'nothing_to_do', 'why', 'a failover is already live for ' || v_class);
+  end if;
+  if not exists (select 1 from public.model_registry m where m.model_id = b.plan_b_model and m.active and m.approved) then
+    return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'the plan B is not an active, approved model_registry row: never a model the estate has not registered');
   end if;
   if exists (select 1 from public.llm_route_health h where h.model_id = b.plan_b_model and h.open_until > now()) then
     return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', 'the plan B route is itself open-circuit');
@@ -720,7 +723,9 @@ begin
               and exists (select 1 from public.it_engineer_finding x where x.issue_key = run.issue_key and coalesce((x.evidence->>'demo')::boolean, false) = v_fx)
             group by 1, 2 having count(distinct run.occurrence_started_at) >= 2 loop
     perform public.fn_it_code_defect_open('returns_after_fix.' || r.family, 'P2', r.issue_key, null, null, r.family,
-      jsonb_build_object('family', r.family, 'issue_key', r.issue_key, 'fixed_occurrences_7d', r.n));
+      jsonb_build_object('family', r.family, 'issue_key', r.issue_key, 'fixed_occurrences_7d', r.n),
+      case when r.issue_key ~ '^reg:stall:[a-z_]+:[0-9]+$' then array['lead:' || substring(r.issue_key from '([0-9]+)$')]
+           when r.issue_key ~ '^reg:stall:certificate:c:' then array['customer:' || substring(r.issue_key from 25)] else '{}'::text[] end);
     n_defects := n_defects + 1;
   end loop;
   -- (i) a person's report no family matched for 2 hours (no repair finding for their account, no unused code)

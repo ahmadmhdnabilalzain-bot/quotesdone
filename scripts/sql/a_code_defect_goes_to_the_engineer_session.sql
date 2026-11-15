@@ -165,19 +165,19 @@ begin
   if v_email is null then return false; end if;
   v_ar := v_lang = 'ar' and v_role <> 'supplier';
   if p_stage = 'opened' then
-    return public.fn_it_tells_the_person('it.defect.opened', p_defect_id || ':' || p_ref, v_role, v_email, v_lang,
+    return public.fn_it_tells_the_person('it_defect.opened', p_defect_id || ':' || p_ref, v_role, v_email, v_lang,
       case when v_ar then 'QuotesDone: نعمل على إصلاح مشكلة واجهتكم' else 'QuotesDone: we are fixing a problem you ran into' end,
       case when v_ar then 'واجهتم مشكلة على QuotesDone، وفريقنا التقني يعمل على إصلاحها الآن. بياناتكم محفوظة، وسنراسلكم فور إصلاحها لتكملوا من حيث توقفتم.' || chr(10) || chr(10) || 'فريق QuotesDone'
            else 'You ran into a problem on QuotesDone, and our technical team is fixing it now. Nothing you entered is lost, and we will write again as soon as it is fixed so you can carry on from where you stopped.' || chr(10) || chr(10) || 'The QuotesDone team' end,
       'Write a short e-mail telling them they ran into a problem on QuotesDone, our technical team is fixing it now, nothing they entered is lost, and we will write again as soon as it is fixed so they can carry on. Name no date.',
-      'STATUS: being fixed' || chr(10) || 'WHAT THEY CAN DO NOW: nothing; we will write when it is fixed', '');
+      'STATUS: being fixed' || chr(10) || 'WHAT THEY CAN DO NOW: nothing; we will write when it is fixed');
   end if;
-  return public.fn_it_tells_the_person('it.defect.fixed', p_defect_id || ':' || p_ref, v_role, v_email, v_lang,
+  return public.fn_it_tells_the_person('it_defect.fixed', p_defect_id || ':' || p_ref, v_role, v_email, v_lang,
     case when v_ar then 'QuotesDone: تم إصلاح المشكلة' else 'QuotesDone: the problem is fixed, please try again' end,
     case when v_ar then 'تم إصلاح المشكلة التي واجهتموها على QuotesDone. يرجى المحاولة مرة أخرى من حيث توقفتم.' || chr(10) || chr(10) || 'فريق QuotesDone'
          else 'The problem you ran into on QuotesDone is fixed. Please try again from where you stopped.' || chr(10) || chr(10) || 'The QuotesDone team' end,
     'Write a short e-mail telling them the problem they ran into on QuotesDone is fixed and asking them to try again from where they stopped. Thank them for their patience.',
-    'STATUS: fixed' || chr(10) || 'WHAT THEY CAN DO NOW: try again from where they stopped', '');
+    'STATUS: fixed' || chr(10) || 'WHAT THEY CAN DO NOW: try again from where they stopped');
 end $fn$;
 
 -- ── 3. CLAIM ────────────────────────────────────────────────────────────────────────────────────────────────────────

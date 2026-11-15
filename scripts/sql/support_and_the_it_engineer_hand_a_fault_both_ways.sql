@@ -93,7 +93,7 @@ declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') 
   v_role text := case when p_role = 'supplier' then 'supplier' else 'customer' end;
   v_lang text := case when p_lang = 'ar' and p_role <> 'supplier' then 'ar' else 'en' end;
 begin
-  if v_to is null or p_stage !~ '^it\.[a-z_.]+$' then return false; end if;
+  if v_to is null or p_stage !~ '^it_[a-z]+\.[a-z_]+$' then return false; end if;
   -- a fixture run reaches only a demo address, and a live run never reaches one
   if public.fn_is_demo_email(v_to) is distinct from v_fx then return false; end if;
   return public.fn_customer_support_voice_owe(p_stage, p_key, p_stage || ':' || v_lang || ':' || v_role, v_role, v_to, v_lang,
@@ -197,18 +197,22 @@ begin
       update public.support_fault_report set told_at = now(), told = 'no_email: the channel gave no address to write to', fixed_observed = left(p_observed, 500) where id = r.id;
       n_no_email := n_no_email + 1;
     else
-      v_owed := public.fn_it_tells_the_person('it.fault.fixed', r.id::text, r.audience, r.email, r.lang,
+      v_owed := public.fn_it_tells_the_person('it_fault.fixed', r.id::text, r.audience, r.email, r.lang,
         case when v_ar then 'QuotesDone: تم إصلاح المشكلة' else 'QuotesDone: the problem you told us about is fixed' end,
         case when v_ar then 'أخبرتمونا أن شيئًا لا يعمل على QuotesDone. تم إصلاحه الآن، ويمكنكم المتابعة من حيث توقفتم.' || chr(10) || chr(10) || 'فريق QuotesDone'
              else 'You told us something was not working on QuotesDone. It is fixed now, and you can carry on from where you stopped.' || chr(10) || chr(10) || 'The QuotesDone team' end,
         'Write a short e-mail telling them the problem they reported to us is fixed and they can carry on from where they stopped. Thank them for telling us.',
-        'STATUS: fixed' || chr(10) || 'WHAT THEY CAN DO NOW: carry on from where they stopped', '');
+        'STATUS: fixed' || chr(10) || 'WHAT THEY CAN DO NOW: carry on from where they stopped');
       update public.support_fault_report set told_at = now(), told = case when v_owed then 'owed' else 'not_owed: already told or not reachable in this mode' end,
              fixed_observed = left(p_observed, 500) where id = r.id;
       if v_owed then n_told := n_told + 1; end if;
     end if;
     if r.handoff_id is not null then
-      perform public.fn_seat_handoff_complete(r.handoff_id, jsonb_build_object('verdict', 'fixed', 'observed', left(p_observed, 500), 'told', r.email is not null));
+      -- the originator (customer_support) closes its hand-over once the fix is observed (trg_handoff_only_originator_closes)
+      perform set_config('qd.handoff_closer', 'customer_support', true);
+      perform public.fn_seat_handoff_complete(r.handoff_id, jsonb_build_object('verdict', 'fixed', 'observed', left(p_observed, 500), 'told', r.email is not null,
+                                                                          'closed_by', 'customer_support'));
+      perform set_config('qd.handoff_closer', '', true);
     end if;
     if r.lead_id is not null then
       perform public.fn_emit('support.registration_rescued', 'leads', r.lead_id::text, 'customer_support',
