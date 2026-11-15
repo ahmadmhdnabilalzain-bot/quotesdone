@@ -793,7 +793,6 @@ const ORIGIN_FIELD = /^(?:country_of_origin|origin|country|made_in)$/i;
  * asked, its origin fields are left out, and every phrase hideBrandPhrases knows is taken out of the rest (descriptions,
  * terms, review notes) before the payload is built. The model cannot write what it never read.
  */
-// deno-lint-ignore no-explicit-any
 export function hideBrandForModel<T>(q: T, phrases: HiddenPhrases | null | undefined): T {
   if (!phrases || (!phrases.en.length && !phrases.ar.length && !phrases.countries.length)) return q;
   // deno-lint-ignore no-explicit-any

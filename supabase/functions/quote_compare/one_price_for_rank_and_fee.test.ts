@@ -96,3 +96,17 @@ Deno.test('no reader of a quote price anywhere reads a second column first, and 
   }
   assertEquals(hits, []);
 });
+
+// FINAL REVIEW OF 15 Nov 2026, item 3: compare_rows read `r.price ?? q.price`, so a quote the roster held no price for showed
+// the model's own figure. The roster's price is the only one the report and the CSV read.
+Deno.test('the report and the CSV read the roster price only, never the model\'s own price', async () => {
+  const { compareTable } = await import('../_shared/quote_documents/compare_rows.ts');
+  const a = { quotes: [{ label: 'Supplier A', price: 1234, lead_time: '3 weeks' }, { label: 'Supplier B', price: 5555, lead_time: '2 weeks' }],
+    all_quotes: [{ label: 'Supplier A', price: 9000, lead_time: '3 weeks' }, { label: 'Supplier B', price: null, lead_time: '2 weeks' }],
+    top3: [{ rank: 1, label: 'Supplier A', why: '', tradeoff: '' }] };
+  const t = compareTable(a, false);
+  assert(t, 'the table is built');
+  const flat = JSON.stringify(t!.rows);
+  assert(flat.includes('9,000'), flat);
+  assert(!flat.includes('1,234') && !flat.includes('5,555'), `the model's price reached the table: ${flat}`);
+});
