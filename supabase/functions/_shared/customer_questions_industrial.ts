@@ -219,7 +219,7 @@ export const INDUSTRIAL_TRADES: Readonly<Record<string, CustomerQuestion>> = {
   spec_pressure_class: q('How strong must it be?', 'ما مدى القوة المطلوبة؟', ['written on the pipe system\'s drawing', 'مكتوب في مخطط شبكة الأنابيب'], DATASHEET),
   spec_end_connections_and_facing: q('How should it connect: bolted flanges, welded or threaded?', 'كيف يتصل: بفلنجات مشدودة بالبراغي أم باللحام أم بالسنون؟', null, OLD_PART, [['Bolted flanges', 'فلنجات'], ['Welded', 'لحام'], ['Threaded', 'سنون']]),
   spec_body_trim_seat_materials: q('Which materials should the valve be made of?', 'مم يجب أن يُصنع الصمام؟', null, SUPPLIER_ADVISES, [['Carbon steel', 'حديد كربوني'], ['Stainless steel', 'ستانلس']]),
-  spec_service_fluid: q('What flows through it: oil, gas, water? Is it hot or corrosive?', 'ما الذي يمرّ خلاله: نفط أم غاز أم ماء؟ وهل هو حار أو أكّال؟', null, SUPPLIER_ADVISES),
+  spec_service_fluid: q('What flows through it (oil, gas or water), and is it hot or corrosive?', 'ما الذي يمرّ خلاله (نفط أم غاز أم ماء)، وهل هو حار أو أكّال؟', null, SUPPLIER_ADVISES),
   spec_operator_actuator_details: q('Should the valve turn by hand or by a motor?', 'هل يُدار الصمام يدويًا أم بمحرّك؟', null, SUPPLIER_ADVISES, [['By hand', 'يدويًا'], ['By motor', 'بمحرّك']]),
   spec_quantity_and_tag_numbers: q('How many of each valve?', 'كم عدد كل صمام؟', ['4 of 4 inch and 6 of 2 inch', '4 صمامات 4 بوصات و6 صمامات بوصتين']),
   spec_approved_manufacturer_list: q('Must it be from an approved list of makers?', 'هل يجب أن يكون من قائمة مصنّعين معتمدين؟', null, DATASHEET, [['Yes, I can send the list', 'نعم، سأرسل القائمة'], ['No', 'لا']]),

@@ -22,6 +22,10 @@ Seat: sales_engineer. Branch `sales_engineer-the-customer-is-asked-in-plain-word
   which re-exports it). `interview.ts modelText` is what the MODEL is told about a spec (never the Arabic frame).
 - packFields puts `question_plain_en/ar` + `card_options(_ar)` beside the label; `options` stay [] (interview readers
   unchanged). `questionText` never returns English on an Arabic chat (ARABIC_FRAME when a spec has no Arabic).
-- Coverage: every HVAC split-AC spec, every blocking HVAC spec, the most frequent blocking specs: 309 of 1,604 blocking
-  specs. The rest show the model's own plain wording (`plain_question`) or the frame. Extending the table is the
-  way to grow coverage; never word-match the customer (ruling 890): the model names asked-about words in `explain_terms`.
+- Coverage (16 Nov 2026): ALL 1,604 blocking specs of the 450 packs (1,273 distinct spec codes), measured and printed by
+  `customer_questions.test.ts`, which fails if a blocking spec has none. The table is one file per group of trades
+  (`customer_questions_{home,building,works,commercial,services,industrial,goods}.ts`, entries written with
+  `customer_question_kit.ts q()`); a code has ONE entry (a test fails on an overlap). A NEW blocking spec in a pack needs its
+  entry in the file of its trade group, or the test names it. Tests also hold: Not sure last and never twice, no English in
+  the Arabic, one short question, no ask for a name, address, plot number, phone, e-mail or ID. Never word-match the customer
+  (ruling 890): the model names asked-about words in `explain_terms`.
