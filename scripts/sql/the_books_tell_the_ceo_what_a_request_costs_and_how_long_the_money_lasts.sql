@@ -185,10 +185,10 @@ begin
   select * into v_commit from public.founder_funding_commitment where from_month <= v_d order by from_month desc, id desc limit 1;
   -- the burn he has covered: average booked monthly expenses of the last three closed months, less revenue booked in them
   select round(avg((figures #>> '{cash_out,expenses_aed}')::numeric), 2), count(*) into v_burn, v_burn_months
-    from (select figures from public.accountant_month_close where month < date_trunc('month', v_d) order by month desc limit 3) z;
+    from (select figures from public.accountant_month_close where month <= date_trunc('month', v_d) order by month desc limit 3) z;
   select coalesce(sum(l.credit - l.debit), 0) into v_rev
     from public.gl_journal j join public.gl_journal_lines l on l.journal_id = j.id join public.gl_accounts a on a.code = l.account_code and a.type = 'revenue'
-   where j.status = 'posted' and j.entry_date >= (date_trunc('month', v_d) - interval '3 months') and j.entry_date < date_trunc('month', v_d);
+   where j.status = 'posted' and j.entry_date >= (date_trunc('month', v_d) - interval '2 months') and j.entry_date < (date_trunc('month', v_d) + interval '1 month');
   return jsonb_build_object(
     'as_of', v_d,
     'received_aed', round(v_cap + v_owner, 2), 'owner_capital_3000_aed', round(v_cap, 2), 'paid_by_owner_2500_aed', round(v_owner, 2),
@@ -222,7 +222,8 @@ declare
   v_fund numeric; w int; v_s date; v_in numeric; v_bud numeric; v_ar numeric; v_out jsonb := '[]'::jsonb;
   v_missing text[] := '{}';
 begin
-  v_fund := (v_ff->>'funding_per_month_used_aed')::numeric;
+  -- his commitment when recorded; else he keeps funding the burn as he has (0 revenue, no other funder): the same spend
+  v_fund := coalesce((v_ff->>'committed_aed_per_month')::numeric, v_spend);
   if v_cash is null then v_missing := v_missing || text 'no bank closing balance is recorded, so there is no opening cash'; end if;
   if (v_ff->>'committed_aed_per_month') is null then
     v_missing := v_missing || text 'no founder funding commitment is recorded (fn_accountant_founder_commitment_record); the funding he has actually provided is used instead';
@@ -241,7 +242,7 @@ begin
                'outflow_spend_aed', round(coalesce(v_spend, 0) * 12 / 52.0, 2), 'closing_cash_aed', round(v_cash, 2));
   end loop;
   return jsonb_build_object('opening_cash_aed', v_cp #> '{cash_in_bank,aed}', 'weeks', v_out, 'missing', to_jsonb(v_missing),
-    'founder_funding', jsonb_build_object('aed_per_month', v_fund, 'basis', v_ff->>'funding_basis'),
+    'founder_funding', jsonb_build_object('aed_per_month', v_fund, 'basis', case when (v_ff->>'committed_aed_per_month') is not null then v_ff->>'funding_basis' else 'measured: no commitment is recorded; he has funded every month''s burn (0 revenue, no other funder), so the forecast assumes he funds the same spend' end),
     'basis', 'Opening = the bank statement balance. Outflow = the average booked monthly spend (fn_accountant_cash_position) x 12/52. Inflow = the active budget''s revenue lines, supplier dues falling due in the week, and founder funding (fn_accountant_founder_funding: his recorded commitment, else the funding he has actually provided) x 12/52.');
 end $function$;
 revoke execute on function public.fn_accountant_cash_13_weeks() from public, anon, authenticated;
@@ -277,8 +278,9 @@ begin
   -- FOUNDER FUNDING (15 Nov 2026): the company is founder-funded (instruction 1013), so runway is cash over the burn LEFT
   -- after his funding. With his funding covering the burn, the runway is not a number of months: it lasts while he funds.
   v_ff := public.fn_accountant_founder_funding((v_m + interval '1 month' - interval '1 day')::date);
-  v_fund := (v_ff->>'funding_per_month_used_aed')::numeric;
   v_spend := (v_cp #>> '{runway,monthly_spend_aed}')::numeric;
+  -- his commitment when recorded; else he keeps funding the burn as he has (0 revenue, no other funder): the same spend
+  v_fund := coalesce((v_ff->>'committed_aed_per_month')::numeric, v_spend);
   v_net := case when v_spend is not null then round(v_spend - coalesce(v_fund, 0), 2) end;
   v_run_f := case when v_net > 0 and v_avail is not null then round(greatest(v_avail, 0) / v_net, 1) end;
 
@@ -295,7 +297,10 @@ begin
     'monthly_burn_after_founder_funding_aed', v_net,
     'runway_months_with_founder_funding', v_run_f,
     'runway_with_founder_funding', case when v_net is null then 'not measurable: no booked spend'
-                                        when v_net <= 0 then 'covered: founder funding of AED ' || v_fund || ' a month (' || (v_ff->>'funding_basis') || ') meets the burn of AED ' || v_spend || '; the runway lasts while he funds'
+                                        when v_net <= 0 then 'covered: founder funding of AED ' || v_fund || ' a month ('
+                                                             || case when (v_ff->>'committed_aed_per_month') is not null then v_ff->>'funding_basis'
+                                                                     else 'measured: no commitment recorded; he has funded every month''s burn' end
+                                                             || ') meets the burn of AED ' || v_spend || '; the runway lasts while he funds'
                                         when v_run_f is null then 'not measurable: no bank balance'
                                         else v_run_f || ' months: AED ' || v_net || ' a month of burn is not covered by founder funding' end,
     'cash_13_weeks', public.fn_accountant_cash_13_weeks(),
@@ -413,8 +418,8 @@ begin
                               'still_in_break_even_as_recurring_aed', s.still_recurring, 'stopped_on', s.stopped_on, 'basis', s.basis) as evidence
       from stopped_billed s where coalesce(s.billed_60d, 0) > 0 or coalesce(s.still_recurring, 0) > 0
     union all
-    select 'duplicate_' || d.k, 'Close the duplicate register entry for ' || d.k || ' (' || d.n || ' active rows: one subscription, counted ' || d.n || ' times in the register)',
-           d.smaller, jsonb_build_object('register_rows', d.rows_)
+    select 'duplicate_' || d.k, 'Close the duplicate register entry for ' || d.k || ' (' || d.n || ' active rows: one subscription, counted ' || d.n || ' times in the register, so the cash forecast pays it twice); check the vendor bills one plan only',
+           0::numeric, jsonb_build_object('register_rows', d.rows_, 'forecast_overstated_aed_per_month', d.smaller)
       from dup_register d
     union all
     select 'overhead_' || o.fn, 'Cap the clock-driven model spend of ' || o.fn || ' (AED ' || o.aed30 || ' in 30 days, whatever the request volume): run it less often or on the cheaper route',
@@ -422,7 +427,7 @@ begin
       from overhead o)
   select coalesce(jsonb_agg(jsonb_build_object('id', id, 'action', action, 'saving_aed_per_month', round(saving_aed_per_month, 2), 'evidence', evidence)
                             order by saving_aed_per_month desc), '[]'::jsonb),
-         coalesce(sum(saving_aed_per_month) filter (where id like 'stop_%' or id like 'duplicate_%'), 0)
+         coalesce(sum(saving_aed_per_month) filter (where id like 'stop_%'), 0)
     into v_cuts, v_cut_monthly from cuts;
   -- only cuts that lower TODAY's fixed lines lower the break-even (a CI bill is not in the break-even ledger)
   v_fixed_after := round(v_fixed - coalesce((select sum((x #>> '{evidence,still_in_break_even_as_recurring_aed}')::numeric) from jsonb_array_elements(v_cuts) x

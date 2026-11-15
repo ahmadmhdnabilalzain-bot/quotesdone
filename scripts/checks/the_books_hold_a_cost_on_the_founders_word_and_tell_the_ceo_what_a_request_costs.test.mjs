@@ -68,7 +68,7 @@ test('test spend never reaches the cost per request', () => {
 });
 
 test('runway and the 13-week forecast read founder funding, and founder money is capital, not a loan', () => {
-  assert.match(body(ECON, 'fn_accountant_cash_13_weeks'), /v_fund := \(v_ff->>'funding_per_month_used_aed'\)::numeric;/);
+  assert.match(body(ECON, 'fn_accountant_cash_13_weeks'), /v_fund := coalesce\(\(v_ff->>'committed_aed_per_month'\)::numeric, v_spend\);/);
   assert.match(body(ECON, 'fn_accountant_runway_figures'), /'runway_months_with_founder_funding', v_run_f/);
   const f = body(ECON, 'fn_accountant_founder_funding');
   assert.match(f, /l\.account_code = '3000'/);
