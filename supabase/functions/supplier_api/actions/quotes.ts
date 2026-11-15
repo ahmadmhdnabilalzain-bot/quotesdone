@@ -20,6 +20,7 @@ import { readQuote } from '../../_shared/reasoned_matching.ts';
 import { requirementsOf } from '../../_shared/line_specs/assess.ts';
 import { optionAmount, splitOptions } from '../../_shared/line_specs/options.ts';
 import { statedPrice, storedPrice } from '../../_shared/stated_price.ts';
+import { quotationDateOf } from '../../_shared/quotation_date.ts';
 import { findTrn } from '../../_shared/identity_numbers.ts';
 import { deriveLineFields, deriveTermsFromScope } from '../../_shared/line_specs/derive.ts';
 import { jobNo, readWorking, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from '../quote_review.ts';
@@ -398,7 +399,10 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
           discount_label: multi ? null : clip(body.discount_label, 80), net_amount: multi ? null : numOrNull(body.net_amount) });
         const det = { inquiry_id: inquiryId, supplier_id: sup.id, option_no: p.option_no, submission_id, ...storedPrice(vat, p.amount), supplier_trn: trn,
           discount_label: vat.discount_label ? scrub(vat.discount_label, 80) : null,
-          notes: sNotes, lead_time: scrub(body.lead_time, 200), validity: scrub(body.validity, 200), payment_terms: scrub(body.payment_terms, 400), warranty: scrub(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: (() => { const m = [...allMasked, ...maskHits.filter((h) => !allMasked.includes(h))]; return m.length ? m : null; })(), structured: p.lines.length > 0 };
+          notes: sNotes, lead_time: scrub(body.lead_time, 200), validity: scrub(body.validity, 200),
+          // Ledger 1697: the date printed on his quotation, when it was read for certain; his stated validity counts from it
+          // (fn_quote_validity_until), else from the day received. No validity of ours is ever written here.
+          quotation_date: quotationDateOf(body.quotation_date), payment_terms: scrub(body.payment_terms, 400), warranty: scrub(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: (() => { const m = [...allMasked, ...maskHits.filter((h) => !allMasked.includes(h))]; return m.length ? m : null; })(), structured: p.lines.length > 0 };
         // Delivery / installation / warranty the supplier confirmed in the quotation review, cleaned
         // (quote_review.ts) — the hold gate reads them exactly as it reads the portal's fill-in.
         if (confirmedTerms) (det as Record<string, unknown>).terms_spec = confirmedTerms;

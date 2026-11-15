@@ -93,8 +93,10 @@ or approved-manufacturer list; products must meet the UAE approvals for the job)
    the new submission replaces the earlier one for that option, and is checked again) or withdraw it; **once a
    customer reveals the supplier**, the revealed quotation binds within its validity and any change is agreed
    directly with the customer. (SA§12; FAQ "What information is mandatory?", "Can I revise quotations?", "Can I withdraw…")
-6. **Validity.** A quotation is valid **30 days** from submission unless refreshed or withdrawn before
-   reveal; the supplier is bound by a quotation revealed within validity. (SA§12)
+6. **Validity.** A quotation is valid for **the period the supplier states in it**, counted from the quotation's own
+   date (or the day it was received when it carries none); a quotation that states no validity has no expiry date, and
+   the customer reads "Validity: not stated by the supplier". QuotesDone sets no period of its own (founder ruling,
+   15 Nov 2026, ledger 1697). It can be refreshed or withdrawn before reveal.
 7. **Win.** The supplier is notified the moment a customer pays to reveal it, and must **begin responding
    within 5 working days**. (SA§11, SA§33)
 8. Every supplier covers the whole UAE and may cover several trades. (FAQ "Can I operate in multiple Emirates?")
