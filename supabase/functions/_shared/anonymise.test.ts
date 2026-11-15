@@ -166,3 +166,8 @@ Deno.test('a logo straddling the title strip edge is boxed whole on the preview'
   const im = page.images![0];
   assert(tb.boxes[0].some((b) => b.x <= im.x && b.y <= im.y && b.x + b.w >= im.x + im.w && b.y + b.h >= im.y + im.h), JSON.stringify(tb.boxes[0]));
 });
+
+Deno.test('a plot or a villa followed by a size keeps every digit (second review of 13 Nov 2026: "PLOT 3451 M2" read "█1 M2")', () => {
+  for (const s of ['PLOT 3451 M2', 'Plot 6457 sq', 'Villa 15 m frontage', 'Villa 5 bedrooms']) { assertEquals(redactText(s, []).text, s); assertEquals(residualScan(s, []), []); }
+  assert(residualScan('Plot 6457', []).length > 0);
+});

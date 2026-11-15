@@ -13,6 +13,7 @@
 // finishEnglish below, which stores it and e-mails every matched supplier. While the hold is on, the copy stays held.
 // The customer is told, in their language, that the message will be passed on shortly (HELD_NOTICE).
 // Every supplier e-mail on these paths goes through toSuppliers(), which drops any row carrying Arabic script.
+import { SITE_KEPT_FOR_SUPPLIERS, textForSuppliers } from '../supplier_api/what_a_supplier_receives.ts';
 import { requestDelivery } from './deliver.ts';
 
 const ARABIC = /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻾]/; // U+FEFF (a pasted BOM) is not Arabic
@@ -88,11 +89,18 @@ export async function mailMatched(admin: Admin, inquiry_id: string, mail: { type
 
 /** The replay's delivery: store the reasoned English as the supplier copy and tell every matched supplier. */
 export async function finishEnglish(admin: Admin, id: number, answer: unknown): Promise<{ ok: boolean; err?: string; notified?: number }> {
-  const english = englishAnswer(answer);
-  if (!english) return { ok: false, err: 'the reasoned answer is not English; the supplier copy stays held' };
+  const english0 = englishAnswer(answer);
+  if (!english0) return { ok: false, err: 'the reasoned answer is not English; the supplier copy stays held' };
   const { data: row } = await admin.from('rfq_clarification').select('id,inquiry_id,kind,question,english_held_at').eq('id', id).maybeSingle();
   if (!row) return { ok: false, err: 'no clarification ' + id };
   if (!row.english_held_at) return { ok: true, notified: 0 };   // already finished: never mailed twice
+  // THE ENGLISH PASSES THE SUPPLIER GATE TOO (13 Nov 2026, review of F2 item 1): the model's English of an Arabic answer was
+  // e-mailed with no gate after it. A text the gate cannot prove clean is kept for the customer and sent to nobody.
+  const english = await textForSuppliers(admin, String(row.inquiry_id), english0);
+  if (!english) {
+    await admin.from('rfq_clarification').update({ answer: SITE_KEPT_FOR_SUPPLIERS, english_held_at: null }).eq('id', id).not('english_held_at', 'is', null);
+    return { ok: true, notified: 0 };
+  }
   const { data: upd, error } = await admin.from('rfq_clarification').update({ answer: english, english_held_at: null })
     .eq('id', id).not('english_held_at', 'is', null).select('id');
   if (error) return { ok: false, err: error.message };

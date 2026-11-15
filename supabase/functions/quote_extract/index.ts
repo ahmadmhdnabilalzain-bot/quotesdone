@@ -14,10 +14,9 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
-import { scrubIdentityText } from '../_shared/identity_text.ts';
-import { generaliseText, type GeneraliseCtx } from '../_shared/quote_generalise.ts';
+import type { GeneraliseCtx } from '../_shared/quote_generalise.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
-import { checkerReading, checkReading, documentText, proposalFromModel } from './model_reading.ts';
+import { checkerReading, checkReading, documentText, modelAnonymiser, proposalFromModel } from './model_reading.ts';
 import { pageB64, pageMime } from '../_shared/licence_extract.ts';
 import { DATA_NOT_INSTRUCTIONS, untrustedBlock } from '../_shared/untrusted.ts';
 import { J } from '../_shared/json_response.ts';
@@ -38,14 +37,7 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // value before any caller value can equal it.
 // secretOk() is the shared one, in ../_shared/internal_auth.ts.
 function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return {}; } }
-function scrub(s: unknown): string {
-  let t = String(s == null ? '' : s);
-  t = t.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '█');
-  t = t.replace(/https?:\/\/\S+|www\.[\w.-]+\.[a-z]{2,}/gi, '█');
-  t = t.replace(/(?:\+?\d[\d\s().-]{6,}\d)/g, (m) => (m.replace(/\D/g,'').length >= 7 ? '█' : m));
-  // 3 Nov 2026: the shared identity shapes too (_shared/identity_text.ts), whatever the model left in.
-  return scrubIdentityText(t, '█').trim();
-}
+// scrub() moved to ./model_reading.ts (scrubModelText) on 13 Nov 2026, with the anonymiser that runs it (modelAnonymiser).
 // 10 Nov 2026 (founder ledger 1588-1590, sales_engineer): the replacement rule names ORIGIN and TIER. It said
 // "premium branded mixer", which kept the tier and lost the origin, so a customer who asked for Italian origin could
 // not see that the supplier quoted Chinese; and it was written for "a UAE building / fit-out job" while the estate
@@ -140,7 +132,7 @@ Deno.serve(observe('quote_extract', async (req) => {
     const reported = ai.masked_terms.map((x: unknown) => String(x).trim()).filter((x: string) => x.length >= 3 && x.length <= 60 && !/[@:/]|\d{7,}/.test(x));
     const genCtx: GeneraliseCtx = { supplierNames: Array.isArray(body.supplier_terms) ? body.supplier_terms.map((x: unknown) => String(x)) : [],
       brands: reported.filter((x: string) => !/\d/.test(x) && x.split(/\s+/).length <= 4), models: reported.filter((x: string) => /\d/.test(x) && /[A-Za-z]/.test(x) && x.length <= 30) };
-    const gen = (v: unknown) => { const r = generaliseText(scrub(v), genCtx); for (const t of r.replaced) if (!ai.masked_terms.includes(t.term)) ai.masked_terms.push(t.term); return r.text; };
+    const gen = modelAnonymiser(genCtx, ai.masked_terms);
     // The model's answer in the proposal shape, then the code checks (./model_reading.ts): the arithmetic, the code money
     // reader as the checker, options, and a note where a figure is not in the text layer. No figure is changed by a check.
     const codeRead = checkerReading(body.file_b64, String(body.filename || ''), String(body.mime || ''), docText, rd, masks);

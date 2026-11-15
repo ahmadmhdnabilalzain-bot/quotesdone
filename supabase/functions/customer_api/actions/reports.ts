@@ -11,7 +11,7 @@ import { compareTable, toCsv, quoteRef, jobNoOf, isCurrentDoc } from '../../_sha
 import { arabicOf } from '../../_shared/reasoned_governance.ts';
 import { type ActionCtx, J, PDF_LIMIT_PER_HOUR, admin } from '../context.ts';
 import { signedDoc } from '../lib/storage.ts';
-import { ARABIC_COMPARE_BUDGET_MS, buildBriefPdf, buildComparePdf, buildQuotePdf, fetchCompareAnalysis, heldReply, letterOf } from '../lib/pdfs.ts';
+import { ARABIC_COMPARE_BUDGET_MS, buildBriefPdf, buildComparePdf, buildQuotePdf, compareMaskNames, fetchCompareAnalysis, heldReply, letterOf } from '../lib/pdfs.ts';
 
 export async function reportActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, action, cust } = c;
@@ -65,10 +65,13 @@ export async function reportActions(c: ActionCtx): Promise<Response | undefined>
         const got = await fetchCompareAnalysis(iid, lang);
         if (got.analysis) analysis = got.analysis; else return J({ ok: false, error: got.error, code: got.error, message: 'The comparison is not available yet. Your quotes are unaffected.', message_ar: 'المقارنة غير متاحة بعد. عروضك لم تتأثر.' }, 409);
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 502); }
-      let side = compareTable(analysis, lang === 'ar');
+      // The same supplier names the PDF masks (anonymity audit 13 Nov 2026, REPORT_C L7). Whether a CSV may exist beside
+      // the PDF at all (ruling 1671) is the founder's question; until he answers, it is exactly as safe as the PDF.
+      const maskNames = await compareMaskNames(iid);
+      let side = compareTable(analysis, lang === 'ar', {}, maskNames);
       if (side && side.untranslated.length) {
         const ar = await arabicOf(defaultDeps(admin, 'customer_api'), { texts: side.untranslated, subject: { inquiry_id: iid } });
-        side = ar.complete ? compareTable(analysis, true, ar.map) : null;
+        side = ar.complete ? compareTable(analysis, true, ar.map, maskNames) : null;
         if (!side || side.untranslated.length) return heldReply();
       }
       if (!side) return J({ ok: false, error: 'comparison_unavailable', code: 'comparison_unavailable', message: 'The comparison is not available yet. Your quotes are unaffected.', message_ar: 'المقارنة غير متاحة بعد. عروضك لم تتأثر.' }, 409);
