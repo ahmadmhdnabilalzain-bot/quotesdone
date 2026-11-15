@@ -148,6 +148,7 @@ begin
   v_r := public.fn_ceo_plan_request(v_plan);
   if v_r->>'task_class' <> 'ceo_strategic_planning' or not (v_r->'input'->'pack' ? 'founder_network') or v_r->>'system' not like '%Never ask the founder anything%'
     then v_fail := v_fail || 'the weekly request is not the contract with the pack: ' || left(v_r::text, 300) || '; '; end if;
+  if v_plan is null then raise exception 'CHK<<PROBE FAILED: %>>', v_fail; end if;   -- nothing below can run without the week's plan
   perform public.fn_ceo_plan_due(v_monday);
   if (select count(*) from public.ceo_plan_week where world = 'demo' and kind = 'weekly') <> 1 then v_fail := v_fail || 'a second weekly plan opened the same week; '; end if;
 
