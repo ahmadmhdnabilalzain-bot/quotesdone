@@ -50,6 +50,10 @@ test('the re-price moves the price the customer compares, the reveal fee base an
   assert.match(src, /revoke execute on function public\.fn_quote_reprice\(uuid, numeric\) from public, anon, authenticated;/);
 });
 
-test('the customer still compares price_ex_vat first (if this moves, the re-price must follow it)', () => {
-  assert.match(readFileSync('supabase/functions/quote_compare/index.ts', 'utf8'), /price: q\.price_ex_vat \?\? q\.quote_amount/);
+// 15 Nov 2026 (accountant): the comparison now ranks on comparedPrice = feeBaseOf, which reads quote_amount (and price_ex_vat
+// only to know a held VAT basis). fn_quote_reprice moves both columns together, so the customer still sees the new price.
+test('the customer compares the fee base, comparedPrice (if this moves, the re-price must follow it)', () => {
+  const src = readFileSync('supabase/functions/quote_compare/index.ts', 'utf8');
+  assert.match(src, /price: comparedPrice\(q\)/);
+  assert.match(readFileSync('supabase/functions/quote_compare/deterministic.ts', 'utf8'), /export const comparedPrice = \(q: PriceRow\): number \| null => feeBaseOf\(q\);/);
 });

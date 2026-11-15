@@ -8,11 +8,10 @@ Reference Date Trade Emirate
 QD-166739-CMP 15 November 2026 HVAC / Air Dubai
 Quotes received Compared in detail Price range Recommended
 3 3 of 3 Supplier B
-AED
-12,279.00–18,854.85
+AED 12,279–17,957
 Executive summary
 1
-Cheapest quote is AED 12,279. Spread between highest and lowest is AED 6,575.85.
+Cheapest quote is AED 12,279. Spread between highest and lowest is AED 5,678.
 Recommended: Supplier B
 One of your listed brands (premium Japanese brand), and it meets 11 of your 13 requirements, including
 the installation warranty you asked for. Catch: It costs AED 3,471 more than Supplier A, which fails your
@@ -25,8 +24,8 @@ brand), and it meets 11 of your 13 requirements, Supplier A, which fails your
 including the installation warranty you asked for. installation warranty: 1 year
 against the 2 years you asked
 for.
-2 Supplier C It meets 11 of your 13 requirements; AED 3,104.85 —
-more than Supplier B.
+2 Supplier C It meets 11 of your 13 requirements; AED 2,207 more —
+than Supplier B.
 3 Supplier A It meets 9 of your 13 requirements; AED 3,471 less Fails your installation warranty: 1
 than Supplier B. year against the 2 years you
 asked for.
@@ -37,7 +36,7 @@ Dubai, United Arab Emirates · management@quotesdone.com · WhatsApp +1 218 316 
 QD-166739-CMP · v2.3 · Generated 15 November 2026 · Prepared by the QuotesDone sales engineer
 Quote comparison report · QD-166739-CMP
 # Supplier Price score Meets your request Done by your date Overall
-2 Supplier C 3.3 / 5 11 of 13 (4.6 / 5) Yes 4.0 / 5
+2 Supplier C 3.4 / 5 11 of 13 (4.6 / 5) Yes 4.0 / 5
 3 Supplier A 5.0 / 5 9 of 13 (4.0 / 5) Yes 4.5 / 5
 Price scores 5 × the lowest price ÷ this price, so the scores keep the real gaps between prices. "Meets your request" scores 5
 × the share of your requirements the quote meets; one it does not state counts half. Overall weighs price and your
@@ -152,8 +151,8 @@ compared under "What you asked for" above.
 Commercial comparison
 4
 Compare Supplier B Supplier C Supplier A
-Price (excluding VAT) AED 15,750 AED 18,854.85 AED 12,279
-VAT, as stated + VAT AED 787.50 (AED Excludes VAT + VAT AED 613.95 (AED
+Price (excluding VAT) AED 15,750 AED 17,957 AED 12,279
+VAT, as stated + VAT AED 787.50 (AED VAT included (AED 897.85) + VAT AED 613.95 (AED
 16,537.50 with VAT) 12,892.95 with VAT)
 Delivery / lead time 10 days from LPO 14 days from LPO 5 days from LPO
 Installation Included — Supply and Included — Included as Included — Included as
@@ -173,7 +172,7 @@ Dubai, United Arab Emirates · management@quotesdone.com · WhatsApp +1 218 316 
 QD-166739-CMP · v2.3 · Generated 15 November 2026 · Prepared by the QuotesDone sales engineer
 Quote comparison report · QD-166739-CMP
 Compare Supplier B Supplier C Supplier A
-What you get AED 15,750 — itemised AED 18,854.85 — itemised AED 12,279 — itemised
+What you get AED 15,750 — itemised AED 17,957 — itemised AED 12,279 — itemised
 quote. quote. quote.
 Not included Civil works, electrical Civil works Electrical works
 works
@@ -192,7 +191,7 @@ of them from your portal.
 Supplier Price Lead time Status
 Supplier A AED 12,279 5 days from LPO Shortlisted #3
 Supplier B AED 15,750 10 days from LPO Shortlisted #1
-Supplier C AED 18,854.85 14 days from LPO Shortlisted #2
+Supplier C AED 17,957 14 days from LPO Shortlisted #2
 Every quote above stays open to you — the shortlist is advice, not a limit. You can choose any of them: open
 your QuotesDone portal to view or reveal it.
 Risks and clarifications by supplier

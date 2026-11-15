@@ -86,13 +86,13 @@ Deno.test('3. the recommendation says plainly what the extra money buys, with th
   assert(!/Highest combined score/.test(JSON.stringify(a.top3)), 'no generic reason is left');
   assertEquals([a.top3[0].why, a.top3[0].tradeoff], ['One of your listed brands (premium Japanese brand), and it meets 11 of your 13 requirements, including the installation warranty you asked for.',
     'It costs AED 3,471 more than Supplier A, which fails your installation warranty: 1 year against the 2 years you asked for.']);
-  assertEquals(a.top3[1].why, 'It meets 11 of your 13 requirements; AED 3,104.85 more than Supplier B.');
+  assertEquals(a.top3[1].why, 'It meets 11 of your 13 requirements; AED 2,207 more than Supplier B.');
 });
 
 Deno.test('4. price scores are proportional, and the date is a yes / no, not a score', () => {
   const { analysis: a } = journeyA('en');
   const by = Object.fromEntries(a.quotes.map((q: { label: string }) => [q.label, q]));
-  assertEquals([by['Supplier A'].price_score, by['Supplier B'].price_score, by['Supplier C'].price_score], [5, 3.9, 3.3]);
+  assertEquals([by['Supplier A'].price_score, by['Supplier B'].price_score, by['Supplier C'].price_score], [5, 3.9, 3.4]);
   assertEquals(a.quotes.map((q: { delivery_score: unknown; meets_date: unknown }) => [q.delivery_score, q.meets_date]), [[null, true], [null, true], [null, true]]);
 });
 
@@ -136,7 +136,7 @@ Deno.test('7. the Arabic report carries the same comparison in Arabic, with noth
 Deno.test('8. the report a customer downloads for journey A (PDF text snapshot)', async () => {
   const text = await reportText();
   const flat = text.replace(/\s+/g, ' ');
-  for (const s of ['What you asked for, quote by quote', 'Requirement You asked for Supplier B Supplier C Supplier A', 'Refrigerant R32 or R410A R32 R32 R32', 'Points QuotesDone settles with the supplier for you', 'Supplier A fails what you asked for', 'It costs AED 3,471 more than Supplier A', '1.5 TR units: you asked for 2', 'Price score Meets your request Done by your date Overall']) assert(flat.includes(s), `"${s}" is not on the page`);
+  for (const s of ['What you asked for, quote by quote', 'Requirement You asked for Supplier B Supplier C Supplier A', 'Refrigerant R32 or R410A R32 R32 R32', 'Points QuotesDone settles with the supplier for you', 'Supplier A fails what you asked for', 'It costs AED 3,471 more than Supplier A', '1.5 TR units: you asked for 2', 'Price score Meets your request Done by your date Overall', 'Supplier C AED 17,957 14 days from LPO']) assert(flat.includes(s), `"${s}" is not on the page`);
   for (const s of ['All 30 match', 'Highest combined score', 'relative to the other quotes', 'Ask before you reveal', 'put them to the suppliers', 'economy Chinese']) assert(!text.includes(s), `"${s}" is still on the page`);
   let update = false;
   try { update = (await Deno.permissions.query({ name: 'env', variable: 'QD_UPDATE_SNAPSHOT' })).state === 'granted' && !!Deno.env.get('QD_UPDATE_SNAPSHOT'); } catch { update = false; }

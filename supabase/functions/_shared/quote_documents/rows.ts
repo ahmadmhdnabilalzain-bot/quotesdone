@@ -1,5 +1,6 @@
 import { assessQuote, requirementsOf, type Line as SpecLine, type TermsSpec } from '../line_specs/assess.ts';
 import { type Lang } from './base.ts';
+import { feeBaseOf } from '../stated_price.ts';
 
 // ── Types: what the caller hands in ─────────────────────────────────────────────────────────────
 export type QuoteRow = {
@@ -47,7 +48,7 @@ export function completenessOf(q: QuoteRow & { terms_spec?: unknown; lead_time?:
     spec: it.specs ? Object.fromEntries(Object.entries(it.specs).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])) : null }));
   const a = assessQuote({ category: category ?? null, lines, requirements: requirementsOf(inquirySpec),
     terms: { lead_time: q.lead_time ?? null, warranty: q.warranty ?? null, scope: q.scope ?? null, exclusions: q.exclusions ?? null, conditions: q.conditions ?? null, notes: q.notes ?? null,
-      terms_spec: (q.terms_spec && typeof q.terms_spec === 'object' ? q.terms_spec : null) as TermsSpec | null, price_ex_vat: q.price_ex_vat ?? q.quote_amount ?? null } });
+      terms_spec: (q.terms_spec && typeof q.terms_spec === 'object' ? q.terms_spec : null) as TermsSpec | null, price_ex_vat: feeBaseOf(q) } });
   const out = items.map((it, i) => { const r = a.lines[i]; const specs = r && Object.keys(r.spec).length ? { ...(it.specs ?? {}), ...r.spec } : it.specs; return { ...it, specs: specs ?? null }; });
   const inst = a.terms.installation, w = a.terms.warranty;
   const timeline = inst.detail && /^Installation in /.test(inst.detail) ? inst.detail.replace(/^Installation in /, '') : null;

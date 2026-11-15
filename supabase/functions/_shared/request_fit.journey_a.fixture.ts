@@ -4,8 +4,9 @@
 // "The brief", inquiry_as_the_supplier_receives_it.pdf), and the customer's own typed words (raw_input). The quotations:
 // the three suppliers of scripts/e2e/journey_proof/scenarios.mjs SCENARIOS.A (branch customer_support-a-journey-is-played-
 // by-people-not-a-script), with the lines, rates, terms and line specs their own PDFs and the customer's quote PDFs show
-// (dossier pages 44-61). Polar Tech's stored price is the VAT-inclusive AED 18,854.85 read as ex-VAT, exactly as the live
-// comparison carried it (the reading is the accountant's fix, on another branch); this fixture keeps what was stored.
+// (dossier pages 44-61). Polar Tech stated AED 18,854.85 INCLUDING VAT; the live comparison read it as ex-VAT. With the
+// accountant's fix (merged: a total stated with VAT is never read as without) it is stored as AED 17,957 before VAT, and the
+// comparison ranks on comparedPrice (deterministic.ts: the figure the reveal fee is charged on), as quote_compare does.
 //
 // journeyA(lang) runs the same pieces quote_compare/index.ts runs on these rows (labels, the technical comparison, the
 // review notes, the generaliser, request_fit, the rules ranking, the roster, the last gate), so the report built from it
@@ -17,7 +18,7 @@ import { tradeOfCategory } from './line_specs/model.ts';
 import { ctxOfQuote, generaliseDeep, generaliseLine, generaliseQuoteTerms, mergeCtx } from './quote_generalise.ts';
 import { requestOf, reviewNotes } from './quote_review_notes.ts';
 import { annotateTechnical, enforceFit, fitQuote, fitView, hiddenBrandPhrases, hideBrandPhrases, requestRequirements, siteVisitAsked, type QuoteFit } from './request_fit.ts';
-import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
+import { comparedPrice, deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
 
 export const NOW = new Date('2026-11-15T14:19:33.651Z');
 
@@ -114,7 +115,7 @@ export const QUOTES_A = [
       L(5, 'Service of ducted unit, 3 TR: coils, filters, drain and gas check; chemical coil cleaning, filter service, drain flush and pressure check.', 'Chemical coil cleaning, filters, drain flush, pressure check', 3, 'nos', 450, S('Daikin', 'Daikin', { capacity_tr: '3 TR' })),
       L(6, 'Testing and commissioning; pressure test, vacuum and performance readings.', null, 1, 'lot', 600, null),
     ] },
-  { id: 'zzq-8288bec3-a3', supplier_id: 9003, supplier_name: 'ZZ DEMO Polar Tech Contracting hvac 8288bec3', option_no: 1, quote_amount: 18854.85, price_ex_vat: 18854.85, vat_treatment: 'exclusive', vat_amount: null, gross_amount: null, discount_amount: null,
+  { id: 'zzq-8288bec3-a3', supplier_id: 9003, supplier_name: 'ZZ DEMO Polar Tech Contracting hvac 8288bec3', option_no: 1, quote_amount: 17957, price_ex_vat: 17957, vat_treatment: 'inclusive', vat_amount: 897.85, amount_as_stated: 18854.85, gross_amount: null, discount_amount: null,
     lead_time: '14 days from LPO', validity: '30 days', warranty: '5 years on compressors, 2 years on the installation', payment_terms: '30% advance, 70% on completion',
     scope: 'Supply and installation of four inverter wall split AC units; removal and disposal of four existing units; copper piping; service of three ducted units; testing and commissioning.',
     conditions: null, exclusions: 'Civil works.', notes: null, status: 'submitted', source: 'upload', expires_at: '2026-12-15T00:00:00Z',
@@ -139,7 +140,7 @@ export function journeyA(lang: 'en' | 'ar' = 'en'): { analysis: any; fits: Recor
   const items = (q: typeof qs[number]) => q.items.map((it) => ({ ...it, line: it.line_no }));
   const technical = technicalComparison({ category: inq.category, request_lines: [], requirements: requirementsOf(inq.spec), on_hold: 0, now: NOW, accepted: [],
     quotes: qs.map((q) => { const lab = labels.get(q.id)!; return { quote_id: q.id, label_en: lab.en, label_ar: lab.ar, supplier_letter: lab.letter, option_no: lab.option_no,
-      lines: q.items.map((it) => ({ ...it })) as never, terms: { lead_time: q.lead_time, warranty: q.warranty, scope: q.scope, exclusions: q.exclusions, conditions: q.conditions, notes: q.notes, terms_spec: q.terms_spec as never, price_ex_vat: q.price_ex_vat } }; }) });
+      lines: q.items.map((it) => ({ ...it })) as never, terms: { lead_time: q.lead_time, warranty: q.warranty, scope: q.scope, exclusions: q.exclusions, conditions: q.conditions, notes: q.notes, terms_spec: q.terms_spec as never, price_ex_vat: comparedPrice(q) } }; }) });
   const request = requestOf(inq, NOW);
   const ctxBy = Object.fromEntries(qs.map((q) => [q.id, ctxOfQuote(items(q), [q.supplier_name])]));
   const notesBy = Object.fromEntries(qs.map((q) => [q.id, reviewNotes({ request, quote: q, lines: q.items, supplierNames: [q.supplier_name] })]));
@@ -151,7 +152,7 @@ export function journeyA(lang: 'en' | 'ar' = 'en'): { analysis: any; fits: Recor
   const labelled = qs.map((q) => {
     const it = items(q).map((x) => generaliseLine(x, ctxBy[q.id]));
     const gt = generaliseQuoteTerms({ lead_time: q.lead_time, validity: q.validity, warranty: q.warranty, payment_terms: q.payment_terms, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, notes: q.notes }, ctxBy[q.id]);
-    return { quote_id: q.id, label: labels.get(q.id)!.en, price: q.price_ex_vat, gross_amount: q.gross_amount, discount_amount: q.discount_amount, vat_treatment: q.vat_treatment, vat_amount: q.vat_amount, ...gt,
+    return { quote_id: q.id, label: labels.get(q.id)!.en, price: comparedPrice(q), gross_amount: q.gross_amount, discount_amount: q.discount_amount, vat_treatment: q.vat_treatment, vat_amount: q.vat_amount, ...gt,
       items: it, review_notes: notesBy[q.id], fit: fitById[q.id], itemised: it.length > 0, expired: new Date(q.expires_at).getTime() < nowTs, source: q.source,
       completeness: { score: q.quality.score, passed: q.quality.pass, missing_mandatory: q.quality.category.mandatory_missing } };
   });

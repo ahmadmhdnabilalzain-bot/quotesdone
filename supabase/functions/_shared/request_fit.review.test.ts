@@ -110,7 +110,7 @@ Deno.test('4. the PDF scores table reads the date and the fit from request_fit o
 // ---------------------------------------------------------------------------------------------------------------------------
 Deno.test('5. enforceFit: a passing quote outside the model\'s top 3 is put first, labels match loosely, and the prose follows', () => {
   const { analysis: rules, fits } = journeyA('en');
-  const prices = { 'Supplier A': 12279, 'Supplier B': 15750, 'Supplier C': 18854.85 };
+  const prices = { 'Supplier A': 12279, 'Supplier B': 15750, 'Supplier C': 17957 };
   const opts = { rules, prices };
   // (a) B left out of the model's shortlist
   const m1 = { top3: [{ rank: 1, label: 'Supplier A', why: 'Cheapest.', tradeoff: '' }, { rank: 2, label: 'Supplier C', why: 'Dearest.', tradeoff: '' }],

@@ -30,7 +30,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
   const emirate = ar ? (arEmirate(inq?.emirate) ?? k.loc(inq?.emirate).text) : String(inq?.emirate || '');
   const summary = k.loc(inq?.summary, 600);
   // deno-lint-ignore no-explicit-any
-  const prices = roster.filter((r: any) => r.status !== 'held' && Number(r.price_ex_vat ?? r.price) > 0).map((r: any) => Number(r.price_ex_vat ?? r.price));
+  const prices = roster.filter((r: any) => r.status !== 'held' && Number(r.price) > 0).map((r: any) => Number(r.price));   // the roster's price is the fee base (comparedPrice)
   const top = arrOf(a.top3);
   // deno-lint-ignore no-explicit-any
   const blocks: any[] = [];
@@ -213,7 +213,7 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
       // deno-lint-ignore no-explicit-any
       rows: roster.map((r: any) => r.status === 'held'
         ? [linked(k.label(r.label), r.quote_id, { bold: true }), '—', '—', chip(r)]
-        : [linked(k.label(r.label) + (r.expired ? T(' (expired)', ' (منتهي الصلاحية)') : ''), r.quote_id, { bold: true }), priceStated({ ...r, quote_amount: r.price }, lang), k.dur(r.lead_time) || '—', chip(r)]),
+        : [linked(k.label(r.label) + (r.expired ? T(' (expired)', ' (منتهي الصلاحية)') : ''), r.quote_id, { bold: true }), priceStated({ ...r, quote_amount: r.price, price_ex_vat: r.price }, lang), k.dur(r.lead_time) || '—', chip(r)]),
       widths: [0.26, 0.22, 0.22, 0.30], align: ['s', 'e', 's', 's'], zebra: true });
     // deno-lint-ignore no-explicit-any
     for (const r of roster.filter((x: any) => x.status === 'held')) {

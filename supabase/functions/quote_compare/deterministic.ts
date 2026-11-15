@@ -22,7 +22,15 @@
 // one.
 
 import { notesAsLists, reviewPenalty, type ReviewNote } from '../_shared/quote_review_notes.ts';
+import { feeBaseOf, type PriceRow } from '../_shared/stated_price.ts';
 import { failText, fitTier, metText, recommendation, type QuoteFit } from '../_shared/request_fit.ts';
+
+/** THE ONE FIGURE (accountant, 15 Nov 2026). The price a quote is ranked and shown on in the comparison is the figure our
+ * fee is charged on — feeBaseOf, which is quotes.quote_amount, the column revealCharge reads in customer_api reveal.ts and
+ * stripe_checkout — never `price_ex_vat ?? quote_amount`, which read a second column first and ranked a quote whose VAT
+ * basis is not settled on its gross total. A quote with no settled ex-VAT price has no price here, so it never ranks.
+ * prevented by: quote_compare/one_price_for_rank_and_fee.test.ts */
+export const comparedPrice = (q: PriceRow): number | null => feeBaseOf(q);
 
 export type Labelled = {
   label: string; price: number | null; lead_time?: string | null; validity?: string | null;
