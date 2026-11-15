@@ -347,6 +347,11 @@ begin
   select count(*) into n_today from public.it_safe_fix_run r where r.family = 'stuck_job_rerun' and r.result->>'job' = v_job and r.outcome = 'fixed' and r.ran_at > now() - interval '1 day';
   if n_today >= j.max_per_day then return jsonb_build_object('outcome', 'refused_by_guardrail', 'why', v_job || ' was re-run ' || n_today || ' times today, its registered limit'); end if;
   execute format('select (public.%I())::text', j.routine) into v_raw;
+  -- a reader that answers {"ok": false, ...} did not run: that is a failed remedy, never a fix
+  begin v := v_raw::jsonb; exception when others then v := null; end;
+  if jsonb_typeof(v) = 'object' and v->>'ok' = 'false' then
+    return jsonb_build_object('outcome', 'failed', 'job', v_job, 'why', left(coalesce(v->>'error', v->>'reason', 'the reader said it did not run'), 300));
+  end if;
   return jsonb_build_object('outcome', 'fixed', 'job', v_job, 'routine', j.routine, 'answer', left(coalesce(v_raw, 'null'), 400));
 end $fn$;
 

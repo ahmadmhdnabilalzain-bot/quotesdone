@@ -1995,6 +1995,22 @@
       "body_ar": "يقرر مهندس تقنية المعلومات وحده، دون سؤال أحد: أي إصلاح تقني أو تراجع أو إعادة محاولة أو تحويل احتياطي أو تدوير مفتاح، وأي باب يغلقه (مثل حظر بادئة OTP مسيئة أو تعطيل واجب متعثر). ويتصرف كموظف خبير بخبرة تزيد على 20 عاماً؛ لا يكتفي بالإبلاغ، ولا ينتظر موافقة لاستعادة الخدمة. ويُسجَّل كل إجراء من هذا النوع بما تم والدليل على نجاحه. أما المال والاسترداد والتغييرات الهدّامة في الإنتاج فليست قرارات تقنية ولا تُتخذ منفرداً."
     },
     {
+      "id": "it_engineer:repairs-registration-within-guardrails",
+      "topic": "The IT engineer repairs a stuck registration itself, within its guardrails, and sends code defects to the engineer session",
+      "kind": "company",
+      "area": "seat_duties",
+      "sources": [
+        "internal:founder_instruction/1705",
+        "internal:founder_instruction/1574",
+        "internal:founder_instruction/1706",
+        "internal:memory/the-it-engineer-repairs-and-the-engineer-session-fixes-code.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-11-15",
+      "body_en": "The IT engineer solves a fault, it does not report it (founder rulings 1574 and 1705). Its loop is: detect, repair within the guardrails, verify the signal cleared, tell the affected person through customer_support, and record the lesson.\nThe registration watch (duty it_engineer.registration_watch, every 5 minutes) raises a stalled registration (a claimed supplier, not approved, idle 30 minutes with a cause on its row, or at once when the person told support), a burst (the same cause at 3 or more people in 15 minutes) and a class that returns after it was fixed.\nSeven repair families of ruling 1705 run on what it raises, each with a run limit, and a family that fails twice in a day parks itself: licence_read_rerun, terms_certificate_retry, code_resend_assist, held_registration_explain, duplicate_mobile_guide, stuck_job_rerun (only readers registered in it_rerunnable_job) and route_failover (the recorded plan B for one hour, then put back).\nWhat no family can repair is a code defect: the seat writes it to public.it_code_defect, and the hourly engineer session (docs/runbooks/the-code-defect-session.md) fixes it by the full route: failing test, independent review, the gate, PR, deploy, verify by SELECT, then the lesson in it_playbook, case memory, a memory note and this pack.\nThe seat never deletes or overwrites business data, never approves, rejects or unbans a supplier, never writes a licence value, never touches money, credit or caps, never weakens a gate, never changes a secret and never deploys itself.\nEvery repair is a company event (it.safe_fix, it.defect_opened, it.defect_fixed, support.registration_rescued) that every seat reads; the founder gets the record, never a request to fix it.",
+      "body_ar": "مهندس تقنية المعلومات يحل العطل ولا يكتفي بالإبلاغ عنه (قرارا المؤسس 1574 و1705). دورته: يكتشف، ويصلح ضمن الضوابط، ويتحقق من زوال العطل، ويخبر الشخص المتأثر عبر خدمة العملاء، ويسجل الدرس.\nمراقبة التسجيل (كل 5 دقائق) ترصد التسجيل المتوقف، وتكرار العطل نفسه لدى 3 أشخاص أو أكثر خلال 15 دقيقة، وعودة عطل سبق إصلاحه.\nسبع عائلات إصلاح تعمل على ما ترصده، لكل منها حد للتشغيل، وتتوقف العائلة التي تفشل مرتين في يوم: إعادة قراءة الرخصة، وإعادة إصدار شهادة الموافقة، وإعادة إرسال رمز الدخول، وشرح ما ينقص التسجيل المعلّق، وتوجيه صاحب الرقم المكرر إلى الدخول بالبريد، وإعادة تشغيل قارئ مسجّل، والتحويل إلى المسار الاحتياطي لساعة.\nما لا تصلحه العائلات عيب في الشيفرة يُسجَّل في it_code_defect وتصلحه جلسة المهندس بالمسار الكامل ثم تكتب الدرس.\nلا يحذف المهندس البيانات ولا يوافق على مورد ولا يكتب قيمة رخصة ولا يمس المال أو الحدود ولا يضعف أي بوابة ولا يغير سرًا ولا ينشر بنفسه."
+    },
+    {
       "id": "it_engineer:jd-kpi-targets",
       "topic": "The IT seat KPIs as the job description sets them: 99.9% uptime, 2.5 s, findings over 24 hours",
       "kind": "company",
