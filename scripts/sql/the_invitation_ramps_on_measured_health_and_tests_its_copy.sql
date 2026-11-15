@@ -29,7 +29,9 @@
 --      marketing.invite_copy_readout, daily) promotes the winner automatically when every active variant has min_sends (150)
 --      sends, the leader has min_engaged (5) engaged leads and beats each other variant on a one-sided two-proportion z-test at
 --      z >= 1.645 (95%); at max_sends (600) per variant with no winner, the control stays and the test ends ("no difference").
---   4. fn_sales_engineer_nudges_invited_suppliers: reads the judgement, skips a held class, and puts the lead's variant on the nudge.
+--   4. fn_sales_engineer_nudges_invited_suppliers: reads the judgement, skips a held class, puts the lead's variant on the nudge,
+--      and takes at most half the day's cap (invite_warmup.nudge_share): 102 nudges were owed on 15 Nov, and at a cap of 3 the
+--      04:01 nudge run would otherwise have left no slot for a first invitation for a month.
 --   5. fn_sales_engineer_supplier_outreach_tick: the wait of a day a restart reopened reads the judgement, not the 3-day number.
 -- prevented by: scripts/checks/the_supplier_funnel_runs_itself.test.mjs, supabase/functions/send_outbox/invite_variants.test.ts,
 -- the_invitation_ramps_on_measured_health_and_tests_its_copy_probe.sql (LOCAL).
@@ -87,7 +89,7 @@ insert into public.app_secrets (key, value) values ('invite_copy_test', jsonb_bu
   'min_sends', 150, 'min_engaged', 5, 'z', 1.645, 'max_sends', 600,
   'note', 'A winner needs every active variant at 150 sends, 5 engaged leads in the leader and a one-sided two-proportion z >= 1.645 against each other variant; at 600 each with no winner the control stays. 15 Nov 2026.')::text)
 on conflict (key) do nothing;
-update public.app_secrets set value = (jsonb_build_object('grow_max_hard_rate', 0.03, 'backoff_hard_lb', 0.02, 'min_step', 2, 'new_class_cap', 3)
+update public.app_secrets set value = (jsonb_build_object('grow_max_hard_rate', 0.03, 'backoff_hard_lb', 0.02, 'min_step', 2, 'new_class_cap', 3, 'nudge_share', 0.5)
                                        || coalesce(nullif(value, '')::jsonb, '{}'::jsonb))::text
  where key = 'invite_warmup' and not (coalesce(nullif(value, '')::jsonb, '{}'::jsonb) ? 'grow_max_hard_rate');
 
@@ -605,6 +607,13 @@ begin
      and (n.created_at at time zone 'UTC')::date = (p_now at time zone 'UTC')::date
      and public.fn_is_demo_email(n.to_email) = p_include_fixtures;
   v_left := greatest(0, v_cap - v_used);
+  -- THE NUDGES' SHARE (15 Nov 2026): 102 nudges were owed when the brake of 13 Nov lifted, and the nudge duty runs at 04:01
+  -- Dubai, before the batch, so at a cap of 3 it would have taken every slot for a month and no company would have been
+  -- invited for the first time. A nudge now takes at most invite_warmup.nudge_share (half) of the day's cap; the batch the rest.
+  v_left := least(v_left, greatest(0, floor(v_cap * coalesce((v_cfg->>'nudge_share')::numeric, 0.5))::int
+                                       - (select count(*) from public.notifications n where n.type = 'supplier_invite_nudge'
+                                           and (n.created_at at time zone 'UTC')::date = (p_now at time zone 'UTC')::date
+                                           and public.fn_is_demo_email(n.to_email) = p_include_fixtures)::int));
 
   for r in select d.*, l.company_name, l.claim_token from public.fn_supplier_invite_nudges_due(p_now, p_include_fixtures) d
              join public.leads l on l.id = d.lead_id loop
