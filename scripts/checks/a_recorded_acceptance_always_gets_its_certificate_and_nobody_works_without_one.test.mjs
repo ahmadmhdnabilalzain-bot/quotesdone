@@ -53,7 +53,10 @@ test('both routines are revoked and pinned; the file takes no strong lock on a h
 test('the writes a person depends on are read back: compliance_archive retries its certificate write and tells the IT seat', () => {
   const ca = read('supabase/functions/compliance_archive/index.ts');
   assert.match(ca, /const w = await writeRecorded\(casWrite\);/);
-  assert.match(ca, /if \(casErr\) await certificateNotRecorded\(kind, rec\.id, w\.attempts, casErr\.message\);/);
+  assert.match(ca, /if \(casErr\) await certificateNotRecorded\(kind, rec\.id, w\.attempts, casErr\);/);
+  // review 2 item 1: a write whose answer was lost is told apart from a lost race by reading the row again; the behaviour is
+  // proved by compliance_archive/a_lost_answer_keeps_the_certificate.test.ts (the handler, in memory)
+  assert.match(ca, /if \(named === cert\.path\) \{ won = true; casErr = null; \}/);
   assert.match(ca, /p_issue_key: `certificate_not_recorded:\$\{kind\}`/);
   const kyc = read('supabase/functions/kyc/index.ts');
   assert.equal((kyc.match(/if \(!w\.ok\) return termsNotRecorded\(kind, email, w\);/g) ?? []).length, 2);

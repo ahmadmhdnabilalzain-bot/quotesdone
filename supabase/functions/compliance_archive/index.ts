@@ -215,24 +215,41 @@ Deno.serve(observe('compliance_archive', async (req) => {
       // waited behind a rehearsal's lock on quotes (the gate it fires sends a notice whose trigger reads quotes) and the 8 s
       // statement timeout cancelled it: cert_record_failed, and the supplier stayed unapproved until the minute sweep
       // (fn_sales_engineer_resigns_unsigned_agreements) signed it again at 07:51. A compare-and-set is safe to repeat: a
-      // retry after a write that did land matches no row and is answered as the lost race below.
+      // retry after a write that did land matches no row, and the re-read below tells that apart from a lost race.
       const casWrite = () => {
         const cas = admin.from(table).update({ signed_terms_url: certUrl, signed_terms_path: cert.path, signed_terms_at: nowIso }).eq('id', rec.id);
         return (priorPath === null ? cas.is('signed_terms_path', null) : cas.eq('signed_terms_path', priorPath)).select('id');
       };
       const w = await writeRecorded(casWrite);
-      const won = w.ok ? w.data : null;
-      const casErr = !w.ok && w.reason !== 'the write matched no row' ? { message: w.reason } : null;
-      if (casErr) await certificateNotRecorded(kind, rec.id, w.attempts, casErr.message);
-      if (casErr || !won?.length) {
-        // Lost the race (or the write failed): this render is named by no row, so it must not stay. The
-        // winner already rebuilt the customer register after its own write, so nothing is left to refresh.
-        const { error: rmErr } = await admin.storage.from(BUCKET).remove([cert.path]);
-        if (rmErr) await admin.from('agent_runs').insert({ agent: 'compliance_archive', status: 'error', started_at: nowIso, finished_at: new Date().toISOString(),
-          counts: { stage: 'sign', kind, orphan_left: 1 }, note: ('a duplicate certificate render could not be removed and is named by no row: ' + cert.path + ' (' + rmErr.message + ')').slice(0, 500) });
-        if (casErr) return J({ error: 'cert_record_failed', detail: maskContact(casErr.message) }, 502);
-        const { data: w } = await admin.from(table).select('signed_terms_path').eq('id', rec.id).maybeSingle();
-        return J({ ok: true, kind, signed_url: await signedUrlOf((w?.signed_terms_path as string) || null), filed_by: 'fn_enqueue_doc_backups', register: null, reused: true });
+      let won = w.ok && w.data.length > 0;
+      let casErr: string | null = !w.ok && w.reason !== 'the write matched no row' ? w.reason : null;
+      // A LOST ANSWER IS NOT A LOST RACE (15 Nov 2026, review 2 item 1). A blip that arrives AFTER the write committed (a
+      // dropped connection, `fetch failed`, a gateway 5xx) is retried, and the retry's compare-and-set then matches no row
+      // because THIS call's own write already filled signed_terms_path; a final blip can likewise follow an earlier attempt
+      // that landed. Before this re-read both were taken as the lost race and the file was removed while the row named it:
+      // the row looked signed, no sweep re-signed it, and the certificate was gone. So the row is read again: naming this
+      // render, the write won. If that read fails too, the file is KEPT: an extra file named by no row can be cleaned up,
+      // a row naming a deleted certificate cannot be repaired by anyone.
+      let named: string | null | undefined;
+      if (!won) {
+        const { data: rd, error: rdErr } = await admin.from(table).select('signed_terms_path').eq('id', rec.id).maybeSingle();
+        if (!rdErr) named = ((rd as { signed_terms_path?: string | null } | null)?.signed_terms_path) ?? null;
+        if (named === cert.path) { won = true; casErr = null; }
+      }
+      if (!won) {
+        if (casErr) await certificateNotRecorded(kind, rec.id, w.attempts, casErr);
+        // Lost the race (or the write failed): this render is named by no row, so it must not stay. The winner already
+        // rebuilt the customer register after its own write, so nothing is left to refresh.
+        if (named === undefined) {
+          await admin.from('agent_runs').insert({ agent: 'compliance_archive', status: 'error', started_at: nowIso, finished_at: new Date().toISOString(),
+            counts: { stage: 'sign', kind, orphan_kept: 1 }, note: ('the certificate write was not confirmed and the row could not be read back, so this render was kept rather than risk deleting the one the row names: ' + cert.path).slice(0, 500) });
+        } else {
+          const { error: rmErr } = await admin.storage.from(BUCKET).remove([cert.path]);
+          if (rmErr) await admin.from('agent_runs').insert({ agent: 'compliance_archive', status: 'error', started_at: nowIso, finished_at: new Date().toISOString(),
+            counts: { stage: 'sign', kind, orphan_left: 1 }, note: ('a duplicate certificate render could not be removed and is named by no row: ' + cert.path + ' (' + rmErr.message + ')').slice(0, 500) });
+        }
+        if (casErr) return J({ error: 'cert_record_failed', detail: maskContact(casErr) }, 502);
+        return J({ ok: true, kind, signed_url: await signedUrlOf(named ?? null), filed_by: 'fn_enqueue_doc_backups', register: null, reused: true });
       }
 
       // The register is a whole-of-register document, not an entity document, so it has no row in
