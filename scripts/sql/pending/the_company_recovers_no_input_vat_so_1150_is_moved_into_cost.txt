@@ -9,3 +9,5 @@ What moves it: node scripts/apply_sql.mjs scripts/sql/the_company_recovers_no_in
 Then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt, in the same commit.
 Rehearsed 13 Nov 2026 with its probe on production, rolled back: PROBE OK (27 journals, 1150 = 0.00). On 13 Nov it was
 run again on a LOCAL copy, with the main and owner files: PROBE OK.
+
+ORDER (15 Nov 2026): the_books_hold_a_cost_on_the_founders_word_until_its_document_arrives.sql must be applied FIRST: this file's fn_expense_post_to_gl now calls fn_expense_held_document_merge, which that file creates.
