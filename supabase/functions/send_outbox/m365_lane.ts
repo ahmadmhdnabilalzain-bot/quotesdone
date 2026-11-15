@@ -266,16 +266,49 @@ const cap1 = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 // "free", "join", "register", "commission" or "1,000". It is short (~80 words) and asks one question a supplier answers by
 // replying, because a reply is the strongest positive signal a new mailbox can earn. Report:
 // docs/reports/QuotesDone Campaign/GLOCKAPPS_27_OCT_RESULT_AND_FIX_PLAN.md (variants B and C are there, unapplied).
+// THE COPY TEST (15 Nov 2026, marketing; scripts/sql/the_invitation_ramps_on_measured_health_and_tests_its_copy.sql). Three
+// variants, each held to the same rules (m365CopyLint: no link, English, never the word, the signature, the stop line, no
+// offer, no date): A is the founder-approved text above, unchanged; B and C are the report's variants of 27 Oct
+// (docs/reports/QuotesDone Campaign/GLOCKAPPS_27_OCT_RESULT_AND_FIX_PLAN.md), B without its offer phrase ("no commission") and
+// C made honest (buyers have not started sending requests yet). The database fixes each lead's variant once and writes it on
+// the row's kind ('invite_variant:b'); a row without one (a seed, an older row) is variant A. The nudge carries the same kind.
+export type InviteVariant = 'a' | 'b' | 'c';
+export const INVITE_VARIANTS: readonly InviteVariant[] = ['a', 'b', 'c'];
+export function variantOfKind(kind: unknown): InviteVariant {
+  const m = /^invite_variant:([a-z])$/.exec(String(kind || ''));
+  return m && (INVITE_VARIANTS as readonly string[]).includes(m[1]) ? (m[1] as InviteVariant) : 'a';
+}
 /** The subject asks; it names the trade when known, else the company. Never "invitation", "free", "commission" or "exclusive". */
-export function m365Subject(who: Who = {}): string {
+export function m365Subject(who: Who = {}, variant: InviteVariant = 'a'): string {
   const t = tradeLabel(who.trade);
+  if (variant === 'b') return 'Which trades does your company cover?';
+  if (variant === 'c') return t ? `Do you take on ${t} work?` : 'Do you take on work for companies in the UAE?';
   return t ? `A question about your ${t} work` : 'A question about your work in the UAE';
 }
-/** Variant A (27 Oct 2026). Company and trade when known, else the neutral wording. */
-export function m365InvitationText(who: Who = {}): string {
+/** Variant A (27 Oct 2026), or the variant under test. Company and trade when known, else the neutral wording. */
+export function m365InvitationText(who: Who = {}, variant: InviteVariant = 'a'): string {
   const c = companyName(who.company); const t = tradeLabel(who.trade);
+  const hello = c ? `Hi ${c} team,` : 'Hello,';
+  if (variant === 'b') {
+    return [
+      hello,
+      "I'm Ahmad, founder of QuotesDone in Dubai. Companies in the UAE post their requests for quotation with us, and each request goes only to suppliers in that exact trade.",
+      'Which trades does your company cover? If you reply with them, we will set up your company page for you.',
+      SIGNATURE,
+      STOP_LINE,
+    ].join('\n\n');
+  }
+  if (variant === 'c') {
+    return [
+      hello,
+      `Do you take on ${t ? t + ' work' : 'work in your trade'} for companies in the UAE? I'm Ahmad, founder of QuotesDone in Dubai, and before buyers ` +
+        `start sending requests for quotation I am collecting the ${t ? t + ' ' : ''}suppliers each request will go to.`,
+      SIGNATURE,
+      STOP_LINE,
+    ].join('\n\n');
+  }
   return [
-    c ? `Hi ${c} team,` : 'Hello,',
+    hello,
     "I'm Ahmad, founder of QuotesDone in Dubai. QuotesDone is a platform where companies in the UAE post requests for quotation, and each request goes only to suppliers who work in that exact trade.",
     `We are putting together our list of ${t ? t + ' ' : ''}suppliers now, before buyers start sending requests. ` +
       `Would your company like to receive ${t ? t + ' requests' : 'the requests that match your trade'} when they come in?`,
@@ -316,7 +349,7 @@ export function seedMarker(body: string): string {
 export function m365Body(_type: unknown, rowBody: string, kind?: unknown, who: Who = {}): string {
   const marker = kind === M365_SEED_KIND ? seedMarker(rowBody) : '';
   const own = marker ? String(rowBody).trimEnd().slice(0, -marker.length).trimEnd() : (rowBody || '');
-  const built = m365InvitationText({ company: who.company ?? companyFromBody(own), trade: who.trade });
+  const built = m365InvitationText({ company: who.company ?? companyFromBody(own), trade: who.trade }, variantOfKind(kind));
   return marker ? built + '\n\n' + marker : built;
 }
 
@@ -329,7 +362,7 @@ export function campaignMail(row: { type?: unknown; body?: unknown; subject?: un
   const body = String(row.body || '');
   const company = who.company ?? companyFromBody(body);
   const text = m365Body(row.type, body, row.kind, { ...who, company });
-  const subject = withPlacementRef(m365Subject({ company, trade: who.trade }), row);
+  const subject = withPlacementRef(m365Subject({ company, trade: who.trade }, variantOfKind(row.kind)), row);
   // THE RULES READ OUR COPY, NOT THE SUPPLIER'S OWN NAME (27 Oct 2026, review of #1614). Measured that day: 11 of
   // 17,401 eligible leads were held because their registered name tripped a copy rule meant for our wording:
   // "Eastlake Dec.Design" and "... CARPETS & NOV TRADING" read as month names next to the 1,000 offer, "2003 ALUMINIUM
