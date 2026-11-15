@@ -111,3 +111,18 @@ Deno.test('the gate hands back every box the checker named and had painted, in p
   const clean = await pixelGate('page', async () => JSON.stringify({ clean: true, addressed: false, regions: [] }), async (b) => b);
   assert(clean.ok && clean.boxes.length === 0);
 });
+
+// Round 4 (third review fix 5): a model that answers the mark as a JSON NUMBER drops a leading zero; a mark began with 0
+// about one view in ten, so about 89% of A1 pages (21 views) would have been held as unread.
+Deno.test('a mark answered as a JSON number is read: the first digit is never 0, and a numeric answer is padded to six digits', async () => {
+  for (let i = 0; i < 5000; i++) assert(/^[1-9]\d{5}$/.test(newMark()), 'the first digit is 1-9');
+  const firsts = new Set(Array.from({ length: 3000 }, () => newMark()[0]));
+  assertEquals(firsts.size, 9, 'every first digit 1-9 occurs');
+  assertEquals(parsePixelVerdict('{"mark":482913,"clean":true,"addressed":false,"regions":[]}')?.mark, '482913');
+  assertEquals(parsePixelVerdict('{"mark":12345,"clean":true,"addressed":false,"regions":[]}')?.mark, '012345', 'a dropped zero is padded back');
+  assertEquals(parsePixelVerdict('{"mark":"12345","clean":true,"addressed":false,"regions":[]}')?.mark, '12345', 'a string is taken as written');
+  // End to end: a stub that copies the mark as a NUMBER clears an A1 page's 21 views.
+  const crop = async (_b: string, _t: Tile, mark: string) => mark;
+  const g = await pixelGate('page', async (shown) => `{"mark":${Number(shown)},"clean":true,"addressed":false,"regions":[]}`, async (b) => b, pixelBudget(), { plan: planTiles({ wMm: SHEETS_MM.A1[0], hMm: SHEETS_MM.A1[1], from: 'mediabox' }), crop });
+  assert(g.ok && g.calls === 21, 'every view read');
+});

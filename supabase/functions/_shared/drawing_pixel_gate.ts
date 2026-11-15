@@ -70,8 +70,10 @@ export function markCells(mark: string, drawingH: number): { x: number; y: numbe
   }
   return out;
 }
-/** A fresh mark for one call. */
-export function newMark(): string { const a = new Uint32Array(MARK_DIGITS); crypto.getRandomValues(a); return [...a].map((v) => String(v % 10)).join(''); }
+/** A fresh mark for one call. Its first digit is 1-9 (round 4; third review fix 5): a model that answers the mark as a JSON
+ *  NUMBER drops a leading zero, and about one view in ten started with 0, so about 89% of A1 pages (21 views) would have
+ *  been held as unread. parsePixelVerdict also pads a numeric answer back to MARK_DIGITS. */
+export function newMark(): string { const a = new Uint32Array(MARK_DIGITS); crypto.getRandomValues(a); return [...a].map((v, i) => String(i === 0 ? 1 + (v % 9) : v % 10)).join(''); }
 /** ISO sheets, landscape, in mm. */
 export const SHEETS_MM: Record<string, [number, number]> = { A0: [1189, 841], A1: [841, 594], A2: [594, 420], A3: [420, 297], A4: [297, 210] };
 /** The cost model and the cap (see COST above). setUsd: per source file in 24 h (round 2's figure; a 20-page A1 set now
@@ -188,7 +190,11 @@ export function parsePixelVerdict(content: string | null | undefined): PixelVerd
   const c01 = (v: unknown) => Math.max(0, Math.min(1, Number(v) || 0));
   const regions = (Array.isArray(p.regions) ? p.regions : []).slice(0, 40).map((g: any) => ({ x: c01(g?.x), y: c01(g?.y), w: c01(g?.w), h: c01(g?.h), what: String(g?.what ?? '').slice(0, 80) })).filter((g: Box) => g.w > 0 && g.h > 0);
   const addressed = p.addressed === true, unsure = p.unsure === true;
-  return { clean: p.clean === true && !regions.length && !addressed && !unsure, regions, addressed, unsure, mark: String(p.mark ?? '').replace(/\D/g, '') };
+  // A mark answered as a JSON number (123456 instead of "123456") is padded back to its digits: a leading zero dropped by
+  // the number is not a misread. A string answer is taken as written.
+  const digits = String(p.mark ?? '').replace(/\D/g, '');
+  const mark = typeof p.mark === 'number' && Number.isInteger(p.mark) && p.mark >= 0 && digits.length < MARK_DIGITS ? digits.padStart(MARK_DIGITS, '0') : digits;
+  return { clean: p.clean === true && !regions.length && !addressed && !unsure, regions, addressed, unsure, mark };
 }
 
 /** Ask the model about one image (base64 JPEG); null = no answer (unavailable, held, refused, unparseable). */
