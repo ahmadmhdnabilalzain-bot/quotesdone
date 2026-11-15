@@ -75,8 +75,9 @@ begin
   return new;
 end $fn$;
 revoke execute on function public.trg_company_limit_change_waits_a_day() from public, anon, authenticated;
-drop trigger if exists trg_company_limit_change_waits_a_day on public.company_limit_change;
-create trigger trg_company_limit_change_waits_a_day before insert or update or delete on public.company_limit_change
+-- CREATE OR REPLACE TRIGGER (SHARE ROW EXCLUSIVE), not drop and create (ACCESS EXCLUSIVE on every re-run, measured LOCAL): the
+-- authority check reads this table on every money decision
+create or replace trigger trg_company_limit_change_waits_a_day before insert or update or delete on public.company_limit_change
   for each row execute function public.trg_company_limit_change_waits_a_day();
 
 create table if not exists public.company_spend_commitment (

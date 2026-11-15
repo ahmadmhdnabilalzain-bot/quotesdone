@@ -73,7 +73,6 @@ create table if not exists public.supplier_coverage_target (
   decision_reason text,
   retired_at timestamptz);
 comment on table public.supplier_coverage_target is 'Verified, active suppliers wanted per trade per emirate (founder ledger 1701). Rows written at apply are proposals the CEO confirms on his first run; source and demand_basis say where each number comes from. the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql';
-create unique index if not exists supplier_coverage_target_live on public.supplier_coverage_target (trade, emirate) where status <> 'retired';
 
 create table if not exists public.ceo_supply_decision (
   id bigserial primary key,
@@ -87,8 +86,12 @@ create table if not exists public.ceo_supply_decision (
   created_at timestamptz not null default now());
 comment on table public.ceo_supply_decision is 'Every decision of the CEO''s supply loop, with its reason and the reading it was taken on (founder ledger 1696: recorded, and in the founder''s daily summary). the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql';
 
+-- a re-run takes no SHARE lock for an index that exists (CREATE INDEX IF NOT EXISTS takes it even when there is nothing to do)
 do $guard$
 begin
+  if to_regclass('public.supplier_coverage_target_live') is null then
+    create unique index supplier_coverage_target_live on public.supplier_coverage_target (trade, emirate) where status <> 'retired';
+  end if;
   if not (select relrowsecurity from pg_class where oid = 'public.supplier_coverage_target'::regclass) then
     alter table public.supplier_coverage_target enable row level security;
   end if;

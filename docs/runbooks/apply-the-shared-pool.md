@@ -60,6 +60,13 @@ the strongest mode the file holds at its commit):
 | `subject_link`, `seat_pool_digest`, `pool_event_class`, `ceo_grant_once` | ACCESS EXCLUSIVE (new tables) | SHARE UPDATE EXCLUSIVE (comments) | written by the link trigger once it exists |
 | `seat_handoff_kind`, `decision_policy`, `founder_mail_policy`, `seat_duty` | ROW EXCLUSIVE (rows) | ROW EXCLUSIVE | small reference tables |
 
+The two other files (LOCAL, 15 Nov 2026, the same `pg_locks` reading; ACCESS SHARE reads left out):
+
+| file | first apply | re-run |
+|---|---|---|
+| limits | ACCESS EXCLUSIVE on its two new tables only | SHARE ROW EXCLUSIVE on `company_limit_change` (`create or replace trigger`), SHARE UPDATE EXCLUSIVE (comments) |
+| coverage | ACCESS EXCLUSIVE on its two new tables only; ROW EXCLUSIVE on `seat_duty`, `founder_mail_policy` (+ its history), `seat_playbook` | ROW EXCLUSIVE on `seat_duty`, `founder_mail_policy`, `supplier_coverage_target`; SHARE UPDATE EXCLUSIVE (comments) |
+
 How it stays short:
 - RLS, policies, indexes, columns and constraints are created only when missing (a `do` block reads the catalogue first), so a
   re-run takes nothing stronger than SHARE ROW EXCLUSIVE anywhere.
