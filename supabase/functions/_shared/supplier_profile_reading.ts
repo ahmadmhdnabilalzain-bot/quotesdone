@@ -22,6 +22,7 @@
 import { answerJson, choiceTaskClass, gatewayCall, inPool, quoteFinder, quoteKey, textChunks } from './supplier_trade_choice.ts';
 import { activeServiceRows } from './service_vocabulary.ts';
 import { surfaceEffort } from './effort_policy.ts';
+import { activitiesAsPrinted } from './licence_activities.ts';
 
 export const PROFILE_READER = 'supplier_doc_trades@5';
 /** Step A's entry in effort_policy.SURFACES: the clock it runs inside and the effort measured to fit it. */
@@ -129,14 +130,14 @@ Return STRICT JSON only, in this shape:
  "evidence":[{"words":"a short English name for this ONE service or product line as a customer would ask for it, at most 8 words (translate Arabic)","quote":"ONE line copied EXACTLY, word for word, from the documents, in its original language, that shows it","basis":"stated|shown|partner|brand","partner_name":null,"trade":"the trade code it belongs to, or null when none of our trades covers it","licence":"covered when the trade licence's activities cover it, not_covered when a licence is given and does not, unclear when no licence is given"}],
  "vague":[{"quote":"the vague line, copied exactly","why":"what a customer request could not be matched on","ask":"the one short question a sharp sales engineer would ask the supplier, in plain English","options":[{"label":"a specific option, 1 to 5 words","trade":"trade code or null"}]}],
  "also_ask":[{"because":"the evidence that makes these likely, in a few words","options":[{"label":"1 to 5 words","trade":"trade code or null"}]}],
- "licence":{"covers_profile":"yes|partly|no|no_licence","note":"one sentence when the licence and the other documents disagree, else empty","activities":["each business activity the trade licence lists, copied exactly as printed in its own language, wherever the licence prints it (a line, a table, the foot of the page); [] when no licence is given"]},
+ "licence":{"covers_profile":"yes|partly|no|no_licence","note":"one sentence when the licence and the other documents disagree, else empty","activities":["ONE business activity the trade licence lists, copied exactly as printed in its own language, wherever the licence prints it (a line, a table, the foot of the page): one element per activity, so a list printed in one line or cell and separated by commas or semicolons is one element per activity, while an activity whose own printed name holds a comma stays one element; [] when no licence is given"]},
  "supply_only":"true when the documents show the company only sells or supplies goods (an importer, trader, distributor or stockist) and does no installation, contracting, maintenance, cleaning or other work for a customer; false when they show it does such work; null when they do not say",
  "brands":[{"name":"brand","relation":"authorised_distributor|stocked|used","goods":"what that brand's goods are, a few words"}],
  "areas":["emirates the documents say the company serves"],
  "roles":["at most two of: manufacturer|distributor|supplier|installer|contractor|turnkey_fitout|maintenance|consultant"]}
 
 RULES
-1. EVERYTHING THE DOCUMENTS EVIDENCE, ONE ITEM EACH. A broad word covers many services: list every SPECIFIC service or product line the documents show, one evidence item per service (a line naming three services is three items, each quoting that line). One item per distinct service a customer would ask for: do not split one service into its parts (planting, lawns and palm trees are one item, garden planting). Read the whole text: lists, headings, sentences, project captions, brand lists. A service the documents show for different kinds of premises is one item per kind they show (office fit-out, retail fit-out, restaurant fit-out are three items), and each work a project caption lists is an item of its own (a caption "kitchens, wardrobes, wood panelling" is three items).
+1. EVERYTHING THE DOCUMENTS EVIDENCE, ONE ITEM EACH. A broad word covers many services: list every SPECIFIC service or product line the documents show, one evidence item per service (a line naming three services is three items, each quoting that line). A line that names a heading and then lists things after it ("Electrical installation: LV distribution boards, cabling, lighting and small power") is one item for EACH distinct service listed (distribution boards, cabling, lighting, small power), never one item for the heading alone; parts of one service stay one item, as the next sentence says. One item per distinct service a customer would ask for: do not split one service into its parts (planting, lawns and palm trees are one item, garden planting). Read the whole text: lists, headings, sentences, project captions, brand lists. A service the documents show for different kinds of premises is one item per kind they show (office fit-out, retail fit-out, restaurant fit-out are three items), and each work a project caption lists is an item of its own (a caption "kitchens, wardrobes, wood panelling" is three items).
 2. BASIS says how the documents show it.
    "stated": the company says it offers this: an item of its services or products list, a heading, its title or tagline, or a sentence saying what it does.
    "shown": it appears only in the company's own project descriptions or captions (work it has done), not in a statement of what it offers.
@@ -203,7 +204,10 @@ export function checkReading(content: string, docs: ReadDoc[], tradeCodes: Reado
   const lic = (p.licence ?? {}) as Record<string, unknown>;
   const cov = str(lic.covers_profile);
   // the licence's activities as the reading read them (absent from an answer recorded before 12 Nov 2026: then none recorded)
-  const acts = Array.isArray(lic.activities) ? [...new Set((lic.activities as unknown[]).map((a) => str(a).slice(0, 200)).filter(Boolean))].slice(0, 20) : null;
+  // one activity an element: an element is split at its commas only where the licence's own text prints each part on its own
+  // (licence_activities.ts, the grounded backstop: a scan's text is the vision model's list one to a line)
+  const licText = docs.filter((d) => d.kind === 'licence').map((d) => d.text).join('\n');
+  const acts = Array.isArray(lic.activities) ? activitiesAsPrinted((lic.activities as unknown[]).map((a) => str(a).slice(0, 200)), licText).slice(0, 20) : null;
   const so = p.supply_only === true || p.supply_only === 'true' ? true : p.supply_only === false || p.supply_only === 'false' ? false : null;
   return { ok: true, reading: {
     summary: str(p.summary).slice(0, 600), evidence, vague, also_ask, supply_only: so,

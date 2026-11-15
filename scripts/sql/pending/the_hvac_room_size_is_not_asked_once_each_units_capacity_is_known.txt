@@ -1,6 +1,0 @@
-Committed 15 Nov 2026 on branch sales_engineer-the-chat-never-asks-twice, not applied: this branch's session applies nothing
-(no production write). It moves when the branch is merged: apply it with scripts/apply_sql.mjs (data only, one row of
-category_specs), run its probe (the_hvac_room_size_is_not_asked_once_each_units_capacity_is_known_probe.sql: PROBE OK),
-then delete this note and append the file to the end of MANIFEST.txt in the same commit. Deploy
-inquiry_intake first or together: the old function ignores the two attributes, so either order is safe. The pack half
-(knowledge/packs/hvac.json guide rows) reaches trade_spec_checklist with scripts/kb/load_trade_spec_checklists.mjs --apply.

@@ -41,7 +41,9 @@ test('static: the door delegates, looks up the address before inserting, claims 
   assert.doesNotMatch(door, /\.insert\(/, 'the create_company door inserts a lead itself again');
   const src = noComments(read(DOOR));
   const look = src.indexOf(".ilike('email', ilikeExact(email))");
-  const ins = src.indexOf(".insert(");
+  // the leads insert, not the first `.insert(` in the file: the agent_actions record (audit, H10) is defined above createCompany,
+  // and found first it failed this on origin/main da0e42909 (15 Nov 2026) though the leads insert still comes after the look-up
+  const ins = src.indexOf("admin.from('leads').insert(");
   assert.ok(look > 0, 'create_company no longer looks for the lead that already holds the address');
   assert.ok(ins > look, 'create_company inserts before it has looked for the lead holding the address');
   assert.match(src, /\.update\(upd\)\.eq\('id', id\)\.is\('claimed_by', null\)\.select\('id'\)/, 'the claim lost its claimed_by-is-null guard: two sign-ups could both claim the row');
