@@ -44,6 +44,12 @@
 --   G+ (item 2): the sale refunded in full before Stripe's fee was read is listed to be read from Stripe again
 --      ('refunded_fee_unread') until the fee is written; then it drops off and its fee is booked once.
 --   L (item 3): an unmatched refund's finding is closed when a later event names its PaymentIntent, and it is booked.
+--   Final review (15 Nov 2026):
+--   O (item 1): AED 38.77 charged above the fee is returned through the CEO's check and settles; the supplier then goes
+--      silent and the customer asks for the fee back: a NEW case opens, for exactly the fee (total_charged less the
+--      return), nothing refused; the customer asking again gets that case, not the return; the whole charge is refused.
+--   R (item 4): the fee then refunded in full, the month's revenue is what it was before the sale (the sale counts 0),
+--      and while the fee was still kept it counted the fee and not the overcharge.
 do $probe$
 declare
   c_tx constant uuid := '29ac49f5-1f4e-4dc5-989a-479143f7ac8c';
@@ -55,6 +61,7 @@ declare
   v_tx4 uuid; v_tx5 uuid; v_def text; v_ret2 jsonb; v_task2 bigint; v_rid bigint; v_e text := 'not run'; v_q4 uuid; v_q5 uuid; v_cols text; v_sel text;
   v_q6 uuid; v_q7 uuid; v_tx6 uuid; v_tx7 uuid; v_task1 bigint; v_round int; v_h bigint; v_held bigint; v_g text := 'not run'; v_i text := 'not run';
   v_rev0 numeric; v_rev1 numeric; v_st jsonb; v_due bigint; v_k2 text := 'not run';
+  v_q8 uuid; v_tx8 uuid; v_o jsonb; v_o2 jsonb; v_rid8 bigint; v_rev8a numeric; v_rev8b numeric; v_rev8c numeric; v_o_txt text := 'not run';
 begin
   select revealed_at into v_rev from public.transactions where id = c_tx;
   if v_rev is null then raise exception 'CHK<<%>>', jsonb_build_object('verdict', 'PROBE FAILED: transaction 29ac49f5 is not in production'); end if;
@@ -605,11 +612,72 @@ begin
   begin perform public.fn_handoff_redact(v_p); exception when others then v_bad := v_bad || ('D: a sale.made payload breaks fn_handoff_redact: ' || sqlerrm)::text; end;
   perform set_config('qd.probe_files_demo_handoff', '', true);
 
+  -- ── O. AFTER AN OVERCHARGE RETURN THE CUSTOMER CAN STILL GET THE FEE BACK (final review, 15 Nov 2026, item 1) ─────
+  -- a live sale of another copy of the fixture quote, to the customer without contact (E), charged AED 38.77 above the fee
+  select revenue_aed into v_rev8a from public.fn_reveal_month_revenue(now());
+  execute format('insert into public.quotes (' || v_cols || ') select ' || replace(v_sel, '18 + %s', '17') || ' from public.quotes where id = %L returning id', c_q2) into v_q8;
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, app_fee, total_charged, processing_fee,
+         customer_price, paid_by, payment_ref, fee_status, livemode, paid_at, stripe_fee_fils, stripe_amount_received_fils, stripe_bt_amount_fils, stripe_bt_currency)
+  select q.id, q.inquiry_id, q.supplier_id, v_cust, q.quote_amount, v_fee / 100.0, v_fee / 100.0, (v_fee + 3877) / 100.0, 0,
+         q.quote_amount, 'customer', 'pi_zz_probe_w1_over', 'paid', true, now() - interval '1 minute', 6000, v_fee + 3877, v_fee + 3877, 'aed'
+    from public.quotes q where q.id = v_q8
+  returning id into v_tx8;
+  perform public.fn_accountant_escalates_payment_exception(v_tx8, 'probe', 'recommend_refund_difference', 'probe O: charged 38.77 above the fee');
+  update public.accountant_reveal_payment_check set ceo_decision = 'refund_difference', ceo_decided_at = now() where transaction_id = v_tx8;
+  v_o := public.fn_payment_check_returns_difference(v_tx8, 'ceo', 'probe O: return the difference');
+  v_rid8 := nullif(v_o->'refund'->>'refund_id', '')::bigint;
+  update public.refunds set status = 'processing', stripe_refund_id = 're_zz_probe_w1_over' where id = v_rid8;
+  perform public.fn_refund_settle('re_zz_probe_w1_over', 'succeeded', 3877, 'pi_zz_probe_w1_over', null, null, 'webhook_event', 'evt_zz_probe_w1_over');
+  if not exists (select 1 from public.refunds where id = v_rid8 and reason_code = 'overcharge_return' and amount_fils = 3877 and status = 'succeeded') then
+    v_bad := v_bad || ('O: the fixture''s overcharge return did not settle: ' || left(coalesce(v_o::text, '-'), 300))::text;
+  end if;
+  select revenue_aed into v_rev8b from public.fn_reveal_month_revenue(now());
+  -- the supplier goes silent; the customer asks for the fee back
+  begin
+    v_o2 := public.fn_refund_open_from_customer(v_tx8, 'customer', 'probe O: the supplier has not responded');
+  exception when others then v_o2 := jsonb_build_object('ok', false, 'raised', sqlerrm);
+  end;
+  v_o_txt := v_o2::text;
+  if not coalesce((v_o2->>'ok')::boolean, false) or coalesce((v_o2->>'duplicate')::boolean, false) or (v_o2->>'refund_id')::bigint is not distinct from v_rid8
+     or not exists (select 1 from public.refunds where id = (v_o2->>'refund_id')::bigint and transaction_id = v_tx8 and amount_fils = v_fee
+                       and reason_code = 'supplier_unresponsive' and status = 'requested') then
+    v_bad := v_bad || ('O (item 1): after an overcharge return the customer''s fee case did not open for exactly the fee ('
+      || v_fee || ' fils): ' || left(v_o_txt, 300))::text;
+  end if;
+  -- asked again: the case just opened, never the return
+  begin v_o := public.fn_refund_open_from_customer(v_tx8, 'customer');
+  exception when others then v_o := jsonb_build_object('ok', false, 'raised', sqlerrm);
+  end;
+  if not coalesce((v_o->>'duplicate')::boolean, false) or (v_o->>'refund_id') is distinct from (v_o2->>'refund_id') then
+    v_bad := v_bad || ('O: asked again, the customer is not shown the fee case: ' || left(v_o::text, 300))::text;
+  end if;
+  -- the whole charge (the returned 38.77 with it) is not a fee case: a00 refuses it
+  begin
+    insert into public.refunds (transaction_id, stripe_payment_intent, amount_fils, reason_code, requested_by, status, amount_source)
+    values (v_tx8, 'pi_zz_probe_w1_over', v_fee + 3877, 'supplier_unresponsive', 'probe', 'requested', 'in_platform_request');
+    v_bad := v_bad || 'O: a fee case for the whole charge, the returned overcharge included, was accepted'::text;
+  exception when others then
+    if sqlerrm !~ 'refund_amount_is_not_the_fee_paid|refunds_one_live_platform_refund_per_payment|refund_exceeds_what_was_paid' then
+      v_bad := v_bad || ('O: the whole-charge case was refused for another reason: ' || left(sqlerrm, 200))::text;
+    end if;
+  end;
+  -- ── R. THE FEE REFUNDED IN FULL AFTER THE RETURN: THE SALE COUNTS 0 IN THE MONTH (final review, item 4) ─────────────
+  perform public.fn_refund_settle('re_zz_probe_w1_overfee', 'succeeded', v_fee, 'pi_zz_probe_w1_over', null, null, 'webhook_event', 'evt_zz_probe_w1_overfee');
+  select revenue_aed into v_rev8c from public.fn_reveal_month_revenue(now());
+  if (select refund_status from public.transactions where id = v_tx8) is distinct from 'succeeded' then
+    v_bad := v_bad || ('R: the fee refunded in full after the return does not read refunded: '
+      || (select coalesce(refund_status, '-') || ' ' || coalesce(refund_amount_aed::text, '-') from public.transactions where id = v_tx8))::text;
+  end if;
+  if v_rev8b - v_rev8a is distinct from round(v_fee / 100.0, 2) or v_rev8c is distinct from v_rev8a then
+    v_bad := v_bad || ('R (item 4): the month''s revenue for a sale whose overcharge was returned is wrong: before the sale '
+      || v_rev8a || ', fee kept ' || v_rev8b || ' (expected +' || round(v_fee / 100.0, 2) || '), fee refunded in full ' || v_rev8c || ' (expected ' || v_rev8a || ')')::text;
+  end if;
+
   select last_value + case when is_called then 0 else -1 end into v_seq1 from public.reveal_invoice_no_seq;
   if v_seq1 is distinct from v_seq0 then v_bad := v_bad || ('the probe took a real invoice number: ' || v_seq0 || ' -> ' || v_seq1)::text; end if;
 
   raise exception 'CHK<<%>>', jsonb_build_object(
     'verdict', case when cardinality(v_bad) = 0 then 'PROBE OK' else 'PROBE FAILED: ' || array_to_string(v_bad, '; ') end,
     'owner_fn_seat_handoff', v_owner, 'shadow_steps', v_steps, 'journal_debits', v_dr, 'journal_credits', v_cr, 'memo', v_memo,
-    'settle', v_settle, 'gl_b', v_gl, 'return', v_ret, 'return_e', v_ret2, 'e', v_e, 'sweep', v_sweep, 'g', v_g, 'i', v_i, 'k', v_k2);
+    'settle', v_settle, 'gl_b', v_gl, 'return', v_ret, 'return_e', v_ret2, 'e', v_e, 'sweep', v_sweep, 'g', v_g, 'i', v_i, 'k', v_k2, 'o', v_o_txt);
 end $probe$;
