@@ -126,3 +126,41 @@ Deno.test('a mark answered as a JSON number is read: the first digit is never 0,
   const g = await pixelGate('page', async (shown) => `{"mark":${Number(shown)},"clean":true,"addressed":false,"regions":[]}`, async (b) => b, pixelBudget(), { plan: planTiles({ wMm: SHEETS_MM.A1[0], hMm: SHEETS_MM.A1[1], from: 'mediabox' }), crop });
   assert(g.ok && g.calls === 21, 'every view read');
 });
+
+// Round 4 (third review fix 4(d), the safe part): an OVER-EAGER checker that boxes every line it reads published 22 of 23
+// ordinary previews with 0 of 28 quoting strings left. On a text-layer page a checker box over drawing vocabulary only is
+// ignored (not painted) and logged; anything that names a party, a bare number, unread text or a picture is painted.
+import { vocabularyVet } from '../_shared/drawing_code_floor.ts';
+Deno.test('OVER-EAGER: a checker box over drawing words only is not painted and is logged; identity, numbers, unread text and wide boxes still are', async () => {
+  const p = (await fixture('zz_pool_b1_embedded_font.pdf'))[0];
+  const vet = vocabularyVet(p, ['ZZ Demo Agent'])!;
+  const around = (t: string) => { const r = p.runs.find((x) => x.text === t)!; assert(r, t); return { x: r.x - 0.002, y: r.y - 0.002, w: r.w + 0.004, h: r.h + 0.004 }; };
+  for (const t of ['POOL PLAN  SCALE 1:50', 'SHALLOW END  WL +0.00  FFL -1.20', 'EQUIPMENT SCHEDULE', 'CIRCULATION PUMP 1.5 HP 230V', '7. ALL DIMENSIONS IN MM, LEVELS IN M.']) {
+    assertEquals(vet([around(t)]).ignored.length, 1, `ignored: ${t}`);
+  }
+  for (const t of ['VILLA 15', 'STREET 23B, AL BARSHA 2', 'ZZ DEMO CORAL POOLS CONSULTANTS LLC', 'DM Licence No. 778899', 'Owner mobile 055 765 4321 Mr ZZ Demo Owner', '5000', '10000']) {
+    assertEquals(vet([around(t)]).keep.length, 1, `painted: ${t}`);
+  }
+  // A box reaching well past the words (it could hide a drawn name or a map beside them) is painted.
+  const r = around('EQUIPMENT SCHEDULE');
+  assertEquals(vet([{ ...r, w: r.w + 0.1, h: r.h + 0.1 }]).keep.length, 1);
+  // Text code cannot read is never vouched for by the words around it (v01's outlined labels).
+  const v01 = (await fixture('review_f3/v01_outlined_site_labels.pdf'))[0];
+  const ua = (await import('../_shared/drawing_code_floor.ts')).unreadAreas(v01, [])[0];
+  assertEquals(vocabularyVet(v01, [])!([{ x: ua.x - 0.01, y: ua.y - 0.01, w: ua.w + 0.02, h: ua.h + 0.02 }]).keep.length, 1);
+  // A page with no text layer has no vet: every box is painted.
+  assertEquals(vocabularyVet({ width: 1, height: 1, rotate: 0, runs: [] }, []), undefined);
+  // Through the gate: a checker that boxes the scale line only clears the page without painting it, and says so.
+  const count: { painted: number } = { painted: 0 };
+  const g2 = await pixelGate('page', async (shown) => JSON.stringify({ mark: shown, clean: false, addressed: false, regions: [{ ...around('POOL PLAN  SCALE 1:50'), what: 'scale' }] }), async (b) => { count.painted++; return b; }, pixelBudget(), { plan: { tiles: [{ x: 0, y: 0, w: 1, h: 1, outW: 100, outH: 70 }], whole: null, cols: 1, rows: 1, textPx: 12, calls: 1, usd: 0, page: { wMm: 420, hMm: 297, from: 'mediabox' } }, crop: async (_b, _t, m) => m, vet });
+  assert(g2.ok && g2.firstLookClean && count.painted === 0, 'not painted, page clear');
+  if (g2.ok) { assertEquals(g2.detail.ignored, 1); assertEquals(g2.detail.ignored_what, ['POOL PLAN  SCALE 1:50']); }
+  // An identity box beside it is painted as before.
+  const g3 = await pixelGate('page', async (shown) => JSON.stringify({ mark: shown, clean: count.painted > 0, addressed: false, regions: count.painted > 0 ? [] : [around('VILLA 15')] }), async (b) => { count.painted++; return b; }, pixelBudget(), { plan: { tiles: [{ x: 0, y: 0, w: 1, h: 1, outW: 100, outH: 70 }], whole: null, cols: 1, rows: 1, textPx: 12, calls: 1, usd: 0, page: { wMm: 420, hMm: 297, from: 'mediabox' } }, crop: async (_b, _t, m) => m, vet });
+  assert(g3.ok && Number(count.painted) === 1 && g3.boxes.length === 1);
+  // drawing_redact gives both text-layer routes the vet and records what was ignored.
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  assertMatch(src, /clock\.stopAt, vocabularyVet\(pp, \[\]\)\);/);
+  assertMatch(src, /clock\.stopAt, vocabularyVet\(pp, seeds\)\);/);
+  assertMatch(src, /if \(gate\.ok && gate\.detail\.ignored\) verifyDetail\.push\(\{ page: i, \.\.\.ignoredSaid\(gate\) \}\);/);
+});

@@ -33,7 +33,7 @@ import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
 import { readerAgrees } from '../_shared/pdf_vector_redact.ts';
 import { notReached } from '../_shared/not_reached.ts';
-import { codeFloorBoxes, padded, unpaintedUnread, unreadTextHold } from '../_shared/drawing_code_floor.ts';
+import { codeFloorBoxes, padded, unpaintedUnread, unreadTextHold, vocabularyVet, type Vet } from '../_shared/drawing_code_floor.ts';
 import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelGate, planTiles, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
 import { readCadStrings, readingHandedOn, type StringsReading } from '../_shared/drawing_string_reading.ts';
 import { INK_GRID, aspectMatches, expectedInk, imageDenseEnough, inkAgrees, pageCountHolds, pxNeeded } from '../_shared/released_file_pages.ts';
@@ -305,11 +305,18 @@ function oriented(size: PageSize, jpgB64: string): PageSize {
 /** The size a page with no better measure is checked at: the larger of A1 and what its pixels imply. */
 function sizeOfPixels(jpgB64: string): PageSize { const px = jpegSize(b64ToBytes(jpgB64)); return pageSizeFromPixels(px?.w ?? 2600, px?.h ?? 1838); }
 /** One page through the gate, TILED to its physical size; the answer carries the calls and USD it spent. */
-async function gatePage(key: string | undefined, held: boolean, secret: string, authors: string, jpgB64: string, budget: PixelBudget, size?: PageSize, stopAt?: number): Promise<PixelOutcome> {
+async function gatePage(key: string | undefined, held: boolean, secret: string, authors: string, jpgB64: string, budget: PixelBudget, size?: PageSize, stopAt?: number, vet?: Vet): Promise<PixelOutcome> {
   if (held || !key) return { ok: false, held: 'pixels_unverified', calls: 0, usd: 0, detail: { reason: held ? 'model_hold' : 'no_ai_key' } };
   const plan = planTiles(oriented(size ?? sizeOfPixels(jpgB64), jpgB64));
   // stopAt (drawing_deadline.ts): past it no view is asked and the page is held for time.
-  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b), (b, regions) => paintElsewhere(secret, b, regions), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m), stopAt });
+  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b), (b, regions) => paintElsewhere(secret, b, regions), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m), stopAt, vet });
+}
+/** Checker boxes left unpainted because they cover drawing vocabulary only (drawing_code_floor.vocabularyVet): logged and
+ *  recorded on the run, so an over-eager checker is visible rather than silent. */
+function ignoredSaid(g: PixelOutcome): Record<string, unknown> {
+  if (!g.ok || !g.detail.ignored) return {};
+  console.log(`drawing_redact: ${g.detail.ignored} checker box(es) over drawing vocabulary only were not painted: ${JSON.stringify(g.detail.ignored_what ?? [])}`);
+  return { checker_boxes_ignored: g.detail.ignored, checker_ignored_what: g.detail.ignored_what ?? [] };
 }
 /** What the customer is told when the set is past its budget (plain words), or nothing. */
 const budgetSaid = (held: string | undefined) => held === 'pixels_budget' ? { customer_message: PIXEL_BUDGET_MESSAGE } : {};
@@ -649,7 +656,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
           if (!r.ok) { skipped++; detail.push({ page: i, skipped: r.skipped }); continue; }
           textHits += Number(r.detail.text_layer_boxes) || 0;
           const pp = pdf[pageOffset + i];
-          const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(r.jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt);
+          const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(r.jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt, vocabularyVet(pp, []));
           pixelCalls += g.calls; pixelUsd += g.usd;
           if (!g.ok) { skipped++; if (g.held === TIME_HELD) timeHeld++; detail.push({ page: i, skipped: g.held, ...g.detail }); continue; }
           // The same rule as the model path (drawing_code_floor.unreadTextHold, round 4): every area of text code cannot read
@@ -659,7 +666,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
           const path = `${prefix}_p${i}.jpg`;
           const up = await admin.storage.from('drawing-files').upload(path, b64ToBytes(g.jpgB64), { contentType: 'image/jpeg', upsert: true });
           if (up.error) { skipped++; detail.push({ page: i, skipped: 'upload_failed' }); continue; }
-          paths.push(path); detail.push({ page: i, ...r.detail });
+          paths.push(path); detail.push({ page: i, ...r.detail, ...ignoredSaid(g) });
         } catch (_e) { skipped++; detail.push({ page: i, skipped: 'decode_failed' }); }
       }
       const status = paths.length === 0 ? 'failed' : (paths.length < imgs.length ? 'partial' : 'complete');
@@ -756,7 +763,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
         paintBoxes(img, floor);   // the code floor, at the server's own margin (its boxes are measured, not guessed)
         let jpg = await img.encodeJPEG(82);
         const pp = pdf[pageOffset + i];
-        const gate = await gatePage(key, false, String(body.__secret || ''), findModel, bytesToB64(jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt);
+        const gate = await gatePage(key, false, String(body.__secret || ''), findModel, bytesToB64(jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt, vocabularyVet(pp, seeds));
         if (!gate.ok && gate.held === TIME_HELD) { skipped++; timeHeld++; verifyDetail.push({ page: i, skipped: TIME_HELD, calls: gate.calls }); pixelCalls += gate.calls; pixelUsd += gate.usd; continue; }
         pixelCalls += gate.calls; pixelUsd += gate.usd;
         const attempt = gate.ok ? (gate.firstLookClean ? 1 : 2) : gate.calls;
@@ -773,6 +780,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
         const unreadHeld = gate.ok ? unreadTextHold(pp, seeds, painted) : null;
         if (unreadHeld) { skipped++; verifyDetail.push({ page: i, skipped: unreadHeld, areas: unpaintedUnread(pp, seeds, painted).length }); continue; }
         if (attempt > 1) verifyDetail.push({ page: i, attempts: attempt, recovered: true });
+        if (gate.ok && gate.detail.ignored) verifyDetail.push({ page: i, ...ignoredSaid(gate) });
         verified++;
         const path = `${prefix}_p${i}.jpg`;
         const up = await admin.storage.from('drawing-files').upload(path, jpg, { contentType: 'image/jpeg', upsert: true });

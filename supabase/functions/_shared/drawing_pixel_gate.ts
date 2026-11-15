@@ -207,7 +207,7 @@ export type PixelCrop = (jpgB64: string, tile: Tile, mark: string) => Promise<st
 export type PixelBudget = { left: () => number; spend: (usd: number) => void };
 
 export type PixelOutcome =
-  | { ok: true; jpgB64: string; calls: number; usd: number; painted: number; firstLookClean: boolean; boxes: Box[]; detail: { calls: number; usd: number; boxes_added: number; tiles: number } }
+  | { ok: true; jpgB64: string; calls: number; usd: number; painted: number; firstLookClean: boolean; boxes: Box[]; detail: { calls: number; usd: number; boxes_added: number; tiles: number; ignored?: number; ignored_what?: string[] } }
   | { ok: false; held: 'pixels_unverified' | 'pixels_not_clean' | 'pixels_budget' | 'time'; calls: number; usd: number; detail: Record<string, unknown> };
 
 /** Map a box found in `t` back to page fractions. */
@@ -228,7 +228,7 @@ async function pool<T, R>(items: T[], f: (x: T) => Promise<R>, late: (x: T) => R
  * again (at most PIXEL_MAX_RECHECKS times); painting only adds black, so a view once clean stays clean. Without a plan
  * the image is asked whole (one view, PIXEL_CALL_USD). `budget` is in USD; a round it cannot pay for HOLDS the page.
  */
-export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint, budget: PixelBudget = { left: () => Infinity, spend: () => {} }, look?: { plan: TilePlan; crop: PixelCrop; stopAt?: number; now?: () => number }): Promise<PixelOutcome> {
+export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint, budget: PixelBudget = { left: () => Infinity, spend: () => {} }, look?: { plan: TilePlan; crop: PixelCrop; stopAt?: number; now?: () => number; vet?: (regions: Box[]) => { keep: Box[]; ignored: { box: Box; text: string }[] } }): Promise<PixelOutcome> {
   const views: Tile[] = look ? [...look.plan.tiles, ...(look.plan.whole ? [look.plan.whole] : [])] : [{ x: 0, y: 0, w: 1, h: 1, outW: 0, outH: 0, whole: true }];
   const cost = (t: Tile) => look ? callUsd(t.outW, t.outH + TILING.markPx) : PIXEL_CALL_USD;
   let img = jpgB64, calls = 0, usd = 0, added = 0, pending = views;
@@ -236,6 +236,8 @@ export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint
   // Every box the checker named and that was painted, in page fractions (round 4: drawing_code_floor.unreadTextHold asks
   // whether each area of text code cannot read lies under SOME painted box, the checker's included).
   const boxes: Box[] = [];
+  // Checker boxes over drawing vocabulary only (drawing_code_floor.vocabularyVet): not painted, counted and named here.
+  const ignoredWhat: string[] = [];
   // THE CLOCK (round 4; drawing_deadline.ts): past look.stopAt no new view is asked and no new round begins; the page is
   // HELD for time ('time'), never published on the views that did answer.
   const now = look?.now ?? Date.now, stopAt = look?.stopAt ?? Infinity, late = () => now() >= stopAt;
@@ -262,11 +264,21 @@ export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint
     // v01 and v12 (13 Nov 2026): both previews were published with "AL BARSHA 2 VILLA 15" before this rule.
     const unread = answers.filter((a) => !a.read).length;
     if (unread) return { ok: false, held: 'pixels_unverified', calls, usd, detail: { calls, usd, boxes_added: added, round, unread } };
-    const dirty = answers.filter((a) => !a.v!.clean);
-    if (!dirty.length) return { ok: true, jpgB64: img, calls, usd, painted: added, firstLookClean: round === 0, boxes, detail: { calls, usd, boxes_added: added, tiles: views.length } };
+    let dirty = answers.filter((a) => !a.v!.clean);
     const blind = dirty.find((a) => !a.v!.regions.length);
     if (blind) return { ok: false, held: 'pixels_not_clean', calls, usd, detail: { calls, usd, boxes_added: added, unsure: blind.v!.unsure, addressed: blind.v!.addressed } };
-    const found = dirty.flatMap((a) => a.v!.regions.map((r) => toPage(a.t, r)));
+    // The vet (round 4): a view whose every box covers drawing words only, and that neither was unsure nor saw text
+    // addressing it, counts as clean; its boxes are not painted.
+    const kept = new Map<Tile, Box[]>();
+    for (const a of dirty) {
+      const onPage = a.v!.regions.map((r) => toPage(a.t, r));
+      if (!look?.vet || a.v!.unsure || a.v!.addressed) { kept.set(a.t, onPage); continue; }
+      const v = look.vet(onPage); ignoredWhat.push(...v.ignored.map((x) => x.text)); kept.set(a.t, v.keep);
+    }
+    dirty = dirty.filter((a) => kept.get(a.t)!.length > 0);
+    const vetDetail = ignoredWhat.length ? { ignored: ignoredWhat.length, ignored_what: ignoredWhat.slice(0, 12) } : {};
+    if (!dirty.length) return { ok: true, jpgB64: img, calls, usd, painted: added, firstLookClean: round === 0, boxes, detail: { calls, usd, boxes_added: added, tiles: views.length, ...vetDetail } };
+    const found = dirty.flatMap((a) => kept.get(a.t)!);
     seen.push(...dirty.flatMap((a) => a.v!.regions.map((r) => r.what || 'unnamed')));
     if (round === PIXEL_MAX_RECHECKS) break;
     img = await paint(img, found);

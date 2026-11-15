@@ -2,7 +2,8 @@
 // path). Kept apart from drawing_redact_page.ts so it is tested without the image codec.
 import type { PdfPage } from './pdf_text_positions.ts';
 import { residualScan, runCover, titleBlockBoxes, type Box } from './anonymise.ts';
-import { drawingLocation, namesParty, partyLabel, seedHit } from './drawing_text_policy.ts';
+import { drawingLocation, isVocabularyContent, namesParty, partyLabel, seedHit } from './drawing_text_policy.ts';
+import { tradeWord } from './drawing_vocabulary.ts';
 
 /**
  * THE CODE FLOOR under the vision models (13 Nov 2026, sales_engineer; anonymity audit B finding I1): the boxes code adds
@@ -58,4 +59,52 @@ export function unpaintedUnread(page: PdfPage | undefined, seeds: string[], pain
  */
 export function unreadTextHold(page: PdfPage | undefined, seeds: string[], painted: Box[]): string | null {
   return unpaintedUnread(page, seeds, painted).length ? 'unread_text_unclaimed' : null;
+}
+
+/**
+ * A CHECKER BOX OVER DRAWING WORDS ONLY IS NOT PAINTED (round 4, 15 Nov 2026, sales_engineer; third review fix 4(d), the
+ * safe part). MEASURED by the reviewer: an OVER-EAGER checker (it boxes every line it reads) published 22 of 23 ordinary
+ * previews with 0 of 28 quoting strings left, and nothing noticed. On a page with a text layer, code reads what lies under
+ * each box the checker names; a box is IGNORED (not painted, logged in the gate's detail) only when ALL of this holds:
+ *   - it covers at least one run (its centre inside the box) and every run it touches by a fifth or more is DRAWING
+ *     VOCABULARY: the strict closed-list gate (drawing_text_policy.isVocabularyContent: every token a number, a size or
+ *     device code, or a trade word; no company, licence, contact, label, place, Arabic, letter-spaced text), at least
+ *     one real word of the trade in it (a bare number such as the reviewer's n03 plot "+6512" written like a level is
+ *     NEVER ignored), and no party, seed or residual identity (the code floor's own test);
+ *   - it covers no text code cannot read (unreadAreas, glyph rows) and touches no picture;
+ *   - it does not reach past those runs by more than about a line height (it hides nothing but them).
+ * Anything else the checker boxes is painted as before. Levels, grids, scales, sheet numbers, revision rows and schedule
+ * rows are exactly such runs.
+ */
+export type Vet = (regions: Box[]) => { keep: Box[]; ignored: { box: Box; text: string }[] };
+export function vocabularyVet(page: PdfPage | undefined, seeds: string[]): Vet | undefined {
+  if (!page || !page.runs.length) return undefined;
+  const area = (b: Box) => Math.max(0, b.w) * Math.max(0, b.h);
+  const inter = (a: Box, b: Box) => area({ x: Math.max(a.x, b.x), y: Math.max(a.y, b.y), w: Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x), h: Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) });
+  const centreIn = (b: Box, r: Box) => r.x + r.w / 2 >= b.x && r.x + r.w / 2 <= b.x + b.w && r.y + r.h / 2 >= b.y && r.y + r.h / 2 <= b.y + b.h;
+  const vocab = (t: string) => {
+    const s = String(t || '').trim();
+    if (!s || !isVocabularyContent(s)) return false;
+    if (!s.split(/[^A-Za-z]+/).some((w) => w.length >= 2 && tradeWord(w))) return false;   // a real word of the trade, not a bare number
+    return !(namesParty(s) || partyLabel(s) || drawingLocation(s) || seedHit(s, seeds) || residualScan(s, seeds).length > 0);
+  };
+  const unread = unreadAreas(page, seeds), pics = page.images ?? [];
+  return (regions: Box[]) => {
+    const keep: Box[] = [], ignored: { box: Box; text: string }[] = [];
+    for (const b of regions) {
+      const touched = page.runs.filter((r) => area(r) > 0 && inter(r, b) >= 0.2 * area(r));
+      const covered = touched.filter((r) => centreIn(b, r));
+      const ok = covered.length > 0 && touched.every((r) => !r.unread && vocab(r.text))
+        && !unread.some((u) => inter(u, b) > 0) && !pics.some((im) => inter(im, b) > 0);
+      if (ok) {
+        const u = { x: Math.min(...touched.map((r) => r.x)), y: Math.min(...touched.map((r) => r.y)), w: 0, h: 0 };
+        u.w = Math.max(...touched.map((r) => r.x + r.w)) - u.x; u.h = Math.max(...touched.map((r) => r.y + r.h)) - u.y;
+        const pad = Math.max(0.01, Math.max(...touched.map((r) => r.h)));
+        const within = b.x >= u.x - pad && b.y >= u.y - pad && b.x + b.w <= u.x + u.w + pad && b.y + b.h <= u.y + u.h + pad;
+        if (within) { ignored.push({ box: b, text: touched.map((r) => r.text).join(' / ').slice(0, 80) }); continue; }
+      }
+      keep.push(b);
+    }
+    return { keep, ignored };
+  };
 }

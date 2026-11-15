@@ -75,7 +75,7 @@ Deno.test('drawing_redact starts no page after the clock and passes stopAt to ev
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   assertMatch(src, /const clock = deadlinesFrom\(body, startedAt\);/);
   assertEquals((src.match(/if \(Date\.now\(\) >= clock\.startBy\) \{ skipped\+\+; timeHeld\+\+;/g) ?? []).length, 2, 'both the manual and the model loop check the clock before each page');
-  assertEquals((src.match(/await gatePage\([^\n]*clock\.stopAt\);/g) ?? []).length, 6, 'every gate call carries the stop');
+  assertEquals((src.match(/await gatePage\([^\n]*clock\.stopAt(?:, vocabularyVet\(pp, (?:\[\]|seeds)\))?\);/g) ?? []).length, 6, 'every gate call carries the stop');
   assertMatch(src, /time_held: timeHeld, redaction_complete: recorded && paths\.length === imgs\.length \}\);/);
   const api = Deno.readTextFileSync(new URL('../customer_api/actions/documents.ts', import.meta.url));
   assertMatch(api, /deadline_at: redStartBy, stop_at: redStopAt/);
