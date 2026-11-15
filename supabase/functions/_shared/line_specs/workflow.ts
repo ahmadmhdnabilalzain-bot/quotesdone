@@ -614,7 +614,12 @@ export async function finishArabic(repo: SpecRepo, quoteId: string, supplier: Su
 // not_awaiting_approval and the desk is shut with the quote unsent and nothing named to fix. A
 // precheck that returns items puts the hold back to 'open' carrying them, exactly as `a.held` does
 // above, so the supplier sees what to do and can fill it in. Returning null means release.
-export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplier, actorEmail: string, confirm: unknown, ctx: Ctx, accept: (q: QuoteRow) => Promise<boolean>, precheck?: Precheck) {
+// `accept` MAY ANSWER 'not_sent' (15 Nov 2026, third review of the certificate branch, item 1): the write that sends the quotation
+// did not land (supplier_api acceptLive, quote_not_sent). The hold was already marked released, so liveHold() could no longer find
+// it: a second "Approve and send" answered not_awaiting_approval, and the supplier was mailed "Your quote is approved" for a quote
+// still a draft. Now the hold is put back exactly as the press found it (awaiting_approval, nothing approved or released), no
+// notice goes out, and the caller says the quotation was not sent; pressing again sends it.
+export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplier, actorEmail: string, confirm: unknown, ctx: Ctx, accept: (q: QuoteRow) => Promise<boolean | 'not_sent'>, precheck?: Precheck) {
   const q = await repo.quote(quoteId);
   if (!q || Number(q.supplier_id) !== Number(supplier.id)) return { ok: false as const, code: 'not_found' as const };
   const hold = await repo.liveHold(quoteId);
@@ -632,7 +637,13 @@ export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplie
   }
   const at = nowIso(ctx);
   await repo.updateHold(hold.id, { state: 'released', approved_at: at, approved_by: actorEmail, released_at: at });
-  const live = await accept(q);
+  const answer = await accept(q);
+  if (answer === 'not_sent') {
+    await repo.updateHold(hold.id, { state: 'awaiting_approval', approved_at: null, approved_by: null, released_at: null } as Partial<HoldRow>);
+    await repo.log({ signal: 'spec_hold_not_sent', quote_id: quoteId, hold_id: hold.id }, `Supplier ${actorEmail} approved the regenerated quotation ${quoteId}, but the write that sends it did not land; the hold is back awaiting his approval and no notice went out.`);
+    return { ok: false as const, code: 'quote_not_sent' as const };
+  }
+  const live = answer === true;
   const ids = await deliver(repo, deliveryRows(supplier, q, 'quote_spec_released', releasedNotice(langOf(supplier), ctx.ref, live)));
   await repo.log({ signal: 'spec_hold_released', quote_id: quoteId, hold_id: hold.id, sent_to_customer: live ? 1 : 0, delivery_requests: ids.length }, `Supplier ${actorEmail} approved the regenerated quotation ${quoteId}; the hold is released${live ? ' and the quote is with the customer' : ', and the quote still waits on its commercial terms'}.`);
   return { ok: true as const, released: true as const, live };

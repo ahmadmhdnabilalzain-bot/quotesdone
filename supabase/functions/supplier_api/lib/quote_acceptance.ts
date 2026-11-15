@@ -98,12 +98,17 @@ export async function supersedeQualityHold(qid: string) {
  *  copy for the code is src/components/portal/supplier/serverCopy.ts `quote_not_sent`. */
 export const QUOTE_NOT_SENT = {
   code: 'quote_not_sent', retryable: true,
-  message: 'Your quotation was saved but NOT sent to the customer: our system could not complete the last step just now. Nothing is lost. Please press Send again in a moment.',
+  message: 'Your quotation was saved but NOT sent to the customer: our system could not complete the last step just now. Nothing is lost. Please press "Submit quote" again in a moment.',
+} as const;
+/** The same, at the hold desk, whose button is "Approve and send to the customer" (SpecHold.tsx; third review, items 1 and 6). */
+export const QUOTE_NOT_SENT_APPROVE = {
+  code: 'quote_not_sent_approve', retryable: true,
+  message: 'Your quotation was NOT sent to the customer: our system could not complete the last step just now. Nothing is lost and your approval still waits. Please press "Approve and send to the customer" again in a moment.',
 } as const;
 /** What the supplier reads when his quotation's lines could not be saved (item B). Portal copy: serverCopy.ts `quote_not_saved`. */
 export const QUOTE_NOT_SAVED = {
   code: 'quote_not_saved', retryable: true,
-  message: 'Your quotation was NOT sent: our system could not save its lines just now. Nothing is lost. Please press Send again in a moment.',
+  message: 'Your quotation was NOT sent: our system could not save its lines just now. Nothing is lost. Please press "Submit quote" again in a moment.',
 } as const;
 /**
  * A QUOTATION'S LINES, WRITTEN OR SAID NOT TO BE (15 Nov 2026, review 2 of the certificate branch, item B). The old lines are deleted
@@ -165,4 +170,10 @@ export async function acceptLive(qid: string, inquiryId: string, notifyCustomer:
   await supersedeQualityHold(qid);
   try { const { data } = await admin.rpc('fn_quote_coach', { p_quote: qid }); coaching = data; } catch (_e) { /* */ }
   return { accepted: false, submittable: false, score: r.score, coaching };
+}
+/** What spec_approve offers approve() (workflow.ts): the quote goes live (true), stays for its commercial terms (false), or the
+ *  write that sends it did not land ('not_sent': approve() puts the hold back and sends no notice; third review, item 1). */
+export async function acceptForRelease(row: { id: unknown; inquiry_id: unknown }): Promise<boolean | 'not_sent'> {
+  const l = await acceptLive(String(row.id), String(row.inquiry_id), true);
+  return 'not_sent' in l && l.not_sent === true ? 'not_sent' : l.accepted;
 }

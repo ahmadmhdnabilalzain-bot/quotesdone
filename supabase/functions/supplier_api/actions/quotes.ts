@@ -32,7 +32,7 @@ import { maskContact } from '../../_shared/observe.ts';
 import type { Recorded } from '../../_shared/recorded_write.ts';
 import { CONCLUDED, UUID_RE, clip, numOrNull } from '../lib/fields.ts';
 import { NOT_MY_FILE, matchedInquiry, ownQuoteFile, sameVerdict, specChecklist } from '../lib/quote_gate.ts';
-import { QUOTE_NOT_SAVED, QUOTE_NOT_SENT, acceptLive, acceptRule, kickDelivery, notifyNewQuote, storeReviewNotes, supersedeQualityHold, supplierOf, writeQuoteLines } from '../lib/quote_acceptance.ts';
+import { QUOTE_NOT_SAVED, QUOTE_NOT_SENT, QUOTE_NOT_SENT_APPROVE, acceptForRelease, acceptLive, acceptRule, kickDelivery, notifyNewQuote, storeReviewNotes, supersedeQualityHold, supplierOf, writeQuoteLines } from '../lib/quote_acceptance.ts';
 import { regenRender } from '../lib/arabic_quotation.ts';
 
 export async function quoteActions(c: ActionCtx): Promise<Response | undefined> {
@@ -188,13 +188,13 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       // #854). approve() marks the hold released before it calls accept, and liveHold() reads only 'open' and
       // 'awaiting_approval', so a refusal from inside accept left the quote unsent AND the hold desk shut. As a
       // precheck the hold goes back to 'open' carrying the review's own issues, which spec_hold now shows (finding a).
-      let notSent = false;
+      // the write that sends it did not land (acceptLive, item A): approve() puts the hold back awaiting his approval and sends no
+      // notice (third review, item 1), and he reads that it was not sent; pressing "Approve and send" again sends it
       const out = await approve(repo, qid, supplierOf(sup, email), email, body.confirm, ctx,
-        async (row) => { const l = await acceptLive(String(row.id), String(row.inquiry_id), true); notSent = 'not_sent' in l && l.not_sent === true; return l.accepted; },
+        acceptForRelease,
         releaseCheck);
+      if (!out.ok && out.code === 'quote_not_sent') return J({ ok: false, error: 'quote_not_sent', ...QUOTE_NOT_SENT_APPROVE }, 503);
       if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 409);
-      // the release was approved but the write that sends the quotation did not land (item A): said, and the IT seat has it
-      if (notSent) return J({ ...out, ok: false, error: 'quote_not_sent', ...QUOTE_NOT_SENT }, 503);
       return J(out);
     }
     // WITHDRAW BEFORE THE REVEAL (QA walk, 19 Oct 2026: the portal showed a "Withdrawn" status but gave the

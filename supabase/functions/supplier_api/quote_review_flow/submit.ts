@@ -100,10 +100,16 @@ async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: 
     return again();
   }
   // Refused before anything was written (terms, verification, registration due, a concluded job).
-  const msg = String(j.error || 'The quotation could not be submitted.');
-  await say(repo, deps, r.id, 'notice', { en: `I could not submit the quotation yet: ${msg}`, ar: `تعذّر تقديم العرض حتى الآن: ${msg}` });
+  // HE READS A SENTENCE, NEVER A CODE (15 Nov 2026, third review of the certificate branch, item 2): submit_quote's 503 carries
+  // error 'quote_not_sent' / 'quote_not_saved' and the sentence in `message`; the thread and the banner printed the code. The
+  // message first, then an error that is itself a sentence (the older refusals), then the general one.
+  const msg = String(j.message || (typeof j.error === 'string' && /\s/.test(j.error) ? j.error : '') || 'The quotation could not be submitted.');
+  // the two writes that did not land (quote_not_sent / quote_not_saved) are said with THIS page's button (third review, item 6)
+  const lost = j.code === 'quote_not_sent' || j.code === 'quote_not_saved';
+  const said = lost ? `Your quotation was NOT sent to the customer: our system could not complete the last step just now. Nothing is lost. Please press "Submit to Job ${inq.job_no}" again in a moment.` : msg;
+  await say(repo, deps, r.id, 'notice', { en: lost ? said : `I could not submit the quotation yet: ${msg}`, ar: lost ? said : `تعذّر تقديم العرض حتى الآن: ${msg}` });
   await repo.updateReview(r.id, { status: prior, reviewing_since: null });
-  return again({ code: String(j.code || 'submit_refused'), message: msg });
+  return again({ code: lost ? 'submit_not_sent' : String(j.code || 'submit_refused'), message: said });
 }
 
 // Names the sibling modules of this folder import (the declarations above are unchanged).
