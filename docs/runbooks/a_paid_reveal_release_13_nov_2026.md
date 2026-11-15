@@ -92,7 +92,10 @@ These are the locks it takes, each held only to the end of the file (seconds):
 - `transactions`: ADD COLUMN ×6 (no default, catalogue only), a backfill UPDATE of 1 row, and trigger z20 replaced in place.
 - `stripe_dispute`: ADD COLUMN ×2, and trigger z60 replaced.
 - `refunds`: the reason-code CHECK added in one statement (1 row scanned), triggers z59 (new) and z60; the z30 trigger's
-  function is replaced (an overcharge return is no longer handed on as a customer's refund request).
+  function is replaced (an overcharge return is no longer handed on as a customer's refund request). The unique index
+  `refunds_one_live_platform_refund_per_payment` is dropped and re-created leaving overcharge returns out (ACCESS
+  EXCLUSIVE for the drop, SHARE for the build, 1 row; only on the first apply), and
+  `refunds_one_live_overcharge_return_per_payment` is built (final review, 15 Nov 2026, item 1).
 - `accountant_reveal_reconcile_item`: its outcome CHECK (60 rows), and an UPDATE.
 - `reveal_invoices` (0 rows) and `gl_journal` (215 rows): one unique index each.
 - `seat_handoff_kind`: insert. Two new tables (with RLS and a policy each) and one pg_cron job, `accountant_payment_checks`
@@ -110,6 +113,10 @@ select has_function_privilege('authenticated', 'public.fn_reveal_window(uuid)', 
 select count(*) from public.gl_journal where source = 'reveal_fee';                                        -- unchanged (test mode is never booked)
 select position('overcharge_return' in pg_get_functiondef('public.fn_refund_request_hands_to_accountant()'::regprocedure)) > 0;  -- true
 select has_function_privilege('authenticated', 'public.fn_refund_rolls_up_to_its_sale(uuid,text,text,bigint)', 'execute');  -- false (review 5)
+select count(*) from pg_indexes where schemaname = 'public' and tablename = 'refunds'
+   and (indexname = 'refunds_one_live_overcharge_return_per_payment'
+        or (indexname = 'refunds_one_live_platform_refund_per_payment' and indexdef like '%overcharge_return%'));      -- 2 (final review)
+select position('overcharge_return' in pg_get_functiondef('public.fn_refund_open_from_customer(uuid,text,text)'::regprocedure)) > 0;  -- true
 ```
 
 Its probe was run on the LOCAL copy before the release (PROBE OK, the files applied twice); it is not run here.
@@ -166,13 +173,20 @@ select count(*) from pg_trigger where tgname in ('z33_a_quote_moves_its_requests
 
 **Between this step and the deploy** the functions still running are the old ones: none reads `reveal_open_until`.
 Trigger a05 refuses a NEW supplier's quotation on a request already paid; the old supplier_api has no sentence for it,
-so that supplier gets its generic error for those minutes (READ from the trigger; production has 1 paid request).
+so that supplier gets its generic error for those minutes (READ from the trigger; production has 1 paid request). That
+is why supplier_api is deployed FIRST in step 3.
 
 ### Step 3: deploy the union of 16 functions, from the merged main
 
 ```
-node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production accountant customer_api inquiry_intake messages_api public_site quote_compare quote_extract resend_inbound reveal_invoice sales_engineer stripe_checkout stripe_confirm stripe_webhook supplier_api supplier_portal wa_inbound
+node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production supplier_api accountant customer_api inquiry_intake messages_api public_site quote_compare quote_extract resend_inbound reveal_invoice sales_engineer stripe_checkout stripe_confirm stripe_webhook supplier_portal wa_inbound
 ```
+
+**supplier_api goes FIRST** (final review, 15 Nov 2026, item 5). The script deploys named slugs one after another in the
+order given (`scripts/deploy_functions.mjs`: only a `--range` run is sorted). From step 2c until the new supplier_api is
+live, a NEW supplier quoting on a request already paid gets HTTP 500 `unexpected_error` ("Something went wrong. Please try
+again.", and the same on a retry) instead of the sentence saying the request takes no new quotations; 14th of 16 that
+window was the length of thirteen deploys, first it is one.
 
 The list is the import graph of the merged tree (main ff5f74688 + money + sales, 15 Nov 2026): every function whose
 index.ts reaches, through relative imports, a runtime file either branch changes. MONEY 7: accountant, messages_api,
