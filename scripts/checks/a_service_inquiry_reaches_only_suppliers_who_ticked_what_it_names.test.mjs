@@ -39,6 +39,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 const SKIP = hasToken ? false : 'no Supabase management token in this environment';
@@ -193,7 +194,7 @@ test('857.2 (probe): a supplier who ticked NOTHING in the trade named is not rea
   try { await withRun(async (run) => {
     const sup = await makeSupplier(run, { trade: PROBE_TRADE, withAuth: false, capability: false, company_name: `ZZ DEMO probe 857.2 ${run.tag}` });
     lead = Number(sup.leadId);
-    try { await sql(PROBE_857_2.replace('__LEAD__', String(lead)).replace('__TRADE__', PROBE_TRADE)); } catch (e) {
+    try { await replaySql(PROBE_857_2.replace('__LEAD__', String(lead)).replace('__TRADE__', PROBE_TRADE)); } catch (e) {
       const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e;
       out = JSON.parse(m[1].replace(/\\"/g, '"'));
     }

@@ -19,6 +19,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { homedir } from 'node:os';
 import { functionSource } from '../lib/function_sources.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const FILE = 'scripts/sql/dropbox_is_checked_every_day_login_and_space.sql';
@@ -97,7 +98,7 @@ test('the thresholds and classes, with invented readings, rolled back', { skip: 
       raise exception 'CHK<<%>>', o;
     end $p$;`;
   let r;
-  try { await sql('begin;\n' + read(FILE) + '\n' + body); } catch (e) {
+  try { await replaySql('begin;\n' + read(FILE) + '\n' + body, { label: 'the dropbox health thresholds probe' }); } catch (e) {
     const m = String(e.message).match(/CHK<<(.*?)>>/s);
     if (!m) throw e;
     r = JSON.parse(m[1].replace(/\\"/g, '"'));

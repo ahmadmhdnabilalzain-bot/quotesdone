@@ -37,6 +37,7 @@ import { newRun, teardown, makeSupplier, keys, REF, q, demoMobile, closeRehearsa
 import { mgmtRead, mgmtFixture } from '../lib/qd_guard.mjs';
 import { buildCorpus } from './document_intake_corpus.mjs';
 import { scoreRun, renderReport } from './document_intake_score.mjs';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const argv = process.argv.slice(2);
 const val = (f) => { const i = argv.indexOf(f); return i >= 0 ? argv[i + 1] : null; };
@@ -183,7 +184,7 @@ begin
 end $probe$;`;
 writeFileSync(join(WORK, 'probe.sql'), sql);
 let probe;
-try { await write(sql, 'document intake accuracy probe (always rolls back)'); throw new Error('the probe did not raise: refusing to trust a committed probe'); }
+try { await replaySql(sql, { label: 'the document intake accuracy probe (always rolls back)' }); throw new Error('the probe did not raise: refusing to trust a committed probe'); }
 catch (e) {
   let msg = String(e.message || e); try { msg = JSON.parse(e.body).message; } catch { /* not a JSON body */ }
   const m = /CHK<<([\s\S]*)>>/.exec(msg);

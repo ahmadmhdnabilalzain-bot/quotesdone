@@ -16,7 +16,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { srvMsg } from './serverCopy';
+import { noticeText, srvMsg } from './serverCopy';
 import { failed, fileToBase64, openPdf as openPdfUrl, qr, REVIEW_STATE, type Issue, type Lang, type MessageView, type ThreadView } from './quoteReviewApi';
 import { awaitingReply } from './awaitingReply';
 import { photoToDataUrl } from '@/lib/chatPhoto';
@@ -142,6 +142,7 @@ function Bubble({ m, lang, token }: { m: MessageView; lang: Lang; token: string 
   );
 }
 
+
 export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: string; lang: Lang; inquiryId: string; onChanged?: () => void }) {
   const t = COPY[lang];
   const [th, setTh] = useState<ThreadView | null>(null);
@@ -158,7 +159,8 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
   const adopt = useCallback((j: unknown, n: number) => {
     if (!alive.current || n !== seq.current) return;
     if (failed(j as ThreadView)) { setErr(srvMsg(lang, j, t.err)); return; }
-    const v = j as ThreadView; setTh(v); setErr(v.notice ? v.notice.message : '');
+    // a notice is shown as a sentence: its code's copy, else its message, and never a bare code (third review, item 2)
+    const v = j as ThreadView; setTh(v); setErr(v.notice ? noticeText(lang, v.notice, t.err) : '');
   }, [lang, t.err]);
 
   useEffect(() => {

@@ -23,6 +23,7 @@ import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { replaySql } from '../lib/safe_replay.mjs';   // a rolled-back probe goes through the replay guard (13 Nov 2026)
 
 const REPO = fileURLToPath(new URL('../..', import.meta.url));
 const walk = (d) => readdirSync(d).flatMap((f) => { const p = join(d, f); return statSync(p).isDirectory() ? walk(p) : /\.(tsx?|mjs)$/.test(f) ? [p] : []; });
@@ -124,7 +125,7 @@ test('production: the run, the warning through support, the hold, and the founde
     // withRun tears the supplier (row, documents, signed terms) down even if the probe or an assert throws.
     await withRun(async (run) => {
       const sup = await makeSupplier(run, { trade: 'aluminium', withAuth: false, capability: false, company_name: `ZZ DEMO holds probe ${run.tag}` });
-      try { await sql(PROBE.replace('__LEAD__', String(Number(sup.leadId)))); } catch (e) { const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
+      try { await replaySql(PROBE.replace('__LEAD__', String(Number(sup.leadId))), { label: 'the ignored-holds probe' }); } catch (e) { const m = String(e.message || e).match(/PROBE<<([\s\S]*)>>/); if (!m) throw e; out = parse(m[1]); }
     }, { quiet: true, tag: process.env.QD_RUN_TAG });   // an explicit tag lets the caller count its own leftovers
   } finally {
     if (hadFixtures === undefined) delete process.env.QD_FIXTURES; else process.env.QD_FIXTURES = hadFixtures;

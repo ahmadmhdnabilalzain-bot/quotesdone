@@ -114,8 +114,11 @@ begin
   raise exception 'CHK<<%>>', out;
 end $walk$;`;
 
-const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, { method: 'POST', headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ query: WALK }) });
-const text = await r.text(); let msg = text; try { const j = JSON.parse(text); msg = String(j.message || text); } catch (_e) { /* raw */ }
+// through the replay guard (13 Nov 2026): the walk writes and rolls back, and was POSTed straight to the management API
+const { replaySql } = await import('../lib/safe_replay.mjs');
+let msg = '';
+try { await replaySql(WALK, { label: 'the confirmed-number walk' }); } catch (e) { msg = String(e?.body ?? e?.message ?? e); try { msg = String(JSON.parse(msg).message || msg); } catch (_e) { /* raw */ } }
+const r = { status: msg ? 'raised' : 'returned' };
 const m = msg.match(/CHK<<(.*)>>/s);
 if (!m) { console.error('the walk did not report (HTTP ' + r.status + '): ' + msg.slice(0, 500)); process.exit(1); }
 const out = JSON.parse(m[1]);

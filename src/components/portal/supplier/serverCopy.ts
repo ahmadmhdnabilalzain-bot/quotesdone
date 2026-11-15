@@ -657,6 +657,12 @@ const COPY: Record<string, Entry> = {
   registration_state_unavailable: s('We could not confirm your registration status. Please try again shortly.', 'تعذّر التحقق من حالة تسجيلكم. يُرجى المحاولة بعد قليل.'),
   inquiry_concluded: s('This request has been concluded — the customer has already selected a supplier. Best of luck on the next one.', 'أُغلق هذا الطلب بعد أن اختار العميل مورّدًا. نتمنى لكم التوفيق في الطلبات القادمة.'),
   invalid_amount: s('Enter a valid amount.', 'أدخلوا مبلغًا صحيحًا.'),
+  // A write that sends his quotation, or saves its lines, did not land (15 Nov 2026, review 2 of the certificate branch, items A and B):
+  // said plainly, never "accepted". supplier_api/lib/quote_acceptance.ts QUOTE_NOT_SENT / QUOTE_NOT_SAVED carry the same sentence.
+  // English only: suppliers are always written to in English (ruling 1008), so both slots carry the same sentence.
+  quote_not_sent: s('Your quotation was saved but NOT sent to the customer: our system could not complete the last step just now. Nothing is lost. Please press "Submit quote" again in a moment.', 'Your quotation was saved but NOT sent to the customer: our system could not complete the last step just now. Nothing is lost. Please press "Submit quote" again in a moment.'),
+  quote_not_sent_approve: s('Your quotation was NOT sent to the customer: our system could not complete the last step just now. Nothing is lost and your approval still waits. Please press "Approve and send to the customer" again in a moment.', 'Your quotation was NOT sent to the customer: our system could not complete the last step just now. Nothing is lost and your approval still waits. Please press "Approve and send to the customer" again in a moment.'),
+  quote_not_saved: s('Your quotation was NOT sent: our system could not save its lines just now. Nothing is lost. Please press "Submit quote" again in a moment.', 'Your quotation was NOT sent: our system could not save its lines just now. Nothing is lost. Please press "Submit quote" again in a moment.'),
   draft_saved: s('Your quote was saved as a draft. Add the missing details so we can send it to the customer.', 'حُفظ عرضكم كمسودة. يُرجى إضافة التفاصيل الناقصة لنتمكّن من إرساله إلى العميل.'),
   quote_no_pages: s('Could not read the file pages. Please attach a clear PDF or photo.', 'تعذّرت قراءة صفحات الملف. يُرجى إرفاق ملف PDF أو صورة واضحة.'),
   quote_read_failed: s('We could not read that quotation automatically — fill in the form below instead; nothing else is needed.', 'تعذّرت قراءة عرض السعر تلقائيًا. يُرجى تعبئة النموذج أدناه بدلًا من ذلك، ولا يلزم أي إجراء آخر.'),
@@ -802,6 +808,13 @@ export function srvMsg(lang: string, j: any, fallback: string): string {
   if (j.code && COPY[j.code]) return srvText(lang, j.code, j.params, fallback);
   if (lang === 'ar') return fallback;
   return j.message || (typeof j.error === 'string' && j.error.includes(' ') ? j.error : '') || fallback;
+}
+
+/** A thread notice as the supplier reads it (QuoteReviewChat): the copy its code has, else its message when that is a sentence, else
+ *  `fallback`; never a bare code (15 Nov 2026, third review of the certificate branch, item 2: the banner read "quote_not_sent"). */
+export function noticeText(lang: string, notice: any, fallback: string): string {
+  const m = srvMsg(lang, notice, fallback);
+  return /\s/.test(m) ? m : fallback;
 }
 
 // Eligibility / alert rows carry `code` (+ params); titles and details are keyed `<code>_title|_detail`.

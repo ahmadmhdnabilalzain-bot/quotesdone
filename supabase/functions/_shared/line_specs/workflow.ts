@@ -54,7 +54,7 @@ export type HoldRow = {
   missing: MissingItem[]; note_en: string; note_ar: string; original_snapshot: unknown; supplier_values: unknown[];
   regenerated: unknown | null; regenerated_at: string | null; pdf_bucket: string | null; pdf_path: string | null;
   approved_at: string | null; approved_by: string | null; released_at: string | null; superseded_at: string | null;
-  owner_seat: typeof SEAT; opened_at: string; notified_at: string | null; notification_ids: number[] | null;
+  owner_seat: typeof SEAT; opened_at: string; notified_at: string | null; notification_ids: number[] | null; updated_at?: string | null;
 };
 /** A delivery request: the sales engineer asks, customer_support sends (#614). */
 export type NotificationRow = {
@@ -69,6 +69,9 @@ export interface SpecRepo {
   liveHold(quoteId: string): Promise<HoldRow | null>;
   insertHold(row: Omit<HoldRow, 'id'>): Promise<HoldRow>;
   updateHold(id: number, patch: Partial<HoldRow>): Promise<void>;
+  /** Compare-and-set (13 Nov 2026): write `patch` only if the hold still has the state, notified_at and updated_at it was read
+   *  with; true when this call won. A repository without it falls back to updateHold (a test fake that does not race). */
+  claimHold?(id: number, expect: Pick<HoldRow, 'state' | 'notified_at'> & { updated_at?: string | null }, patch: Partial<HoldRow>): Promise<boolean>;
   /** Queue the delivery requests; returns their ids. */
   notify(rows: NotificationRow[]): Promise<number[]>;
   /** Ask customer_support's dispatchers to send what was just queued, now. */
@@ -84,6 +87,11 @@ export type Ctx = { category: string | null; requirements: Requirements; ref: st
   read?: (q: QuoteRow, lines: Line[]) => Promise<QuoteReading | null>;
   checklist?: Attr[]; reason?: (lines: Line[], checklist: Attr[]) => Promise<Record<number, Record<string, string>> | null> };
 const nowIso = (ctx: Ctx) => (ctx.now ? ctx.now() : new Date()).toISOString();
+const nowMs = (ctx: Ctx) => (ctx.now ? ctx.now() : new Date()).getTime();
+/** A claim with no notification recorded after this long is a press whose delivery died without releasing it: taken again. */
+export const CLAIM_STALE_MS = 120_000;
+const alreadySent = (hold: HoldRow) => ({ ok: true as const, complete: true as const, regenerated: hold.regenerated as ReturnType<typeof standardise>,
+  pdf: hold.pdf_bucket && hold.pdf_path ? { bucket: hold.pdf_bucket, path: hold.pdf_path } : null, already_sent: true as const });
 const nowOf = (ctx: Ctx) => (ctx.now ? ctx.now() : new Date());
 const langOf = (s: Supplier): 'en' | 'ar' => (String(s.locale || '').toLowerCase().startsWith('ar') ? 'ar' : 'en');
 
@@ -460,6 +468,21 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
   if (!q || Number(q.supplier_id) !== Number(supplier.id)) return { ok: false as const, code: 'not_found' as const };
   const hold = await repo.liveHold(quoteId);
   if (!hold) return { ok: false as const, code: 'no_hold' as const };
+  // ONE PRESS, ONE APPROVAL REQUEST (it_engineer, 13 Nov 2026). On 13 Nov 08:10:57 a supplier's spec_fill failed after 11.3 s
+  // in its last step, the approval request (fn_customer_support_takes_delivery, cancelled behind a lock), with the hold
+  // already moved to awaiting_approval; he saw "Something went wrong. Please try again." Pressing again ran all of this
+  // again and asked for the request again, which is right after a failed delivery and a second message after a good one.
+  // The delivery is CLAIMED on the hold by compare-and-set before it is sent (review item 10: two tabs or a double press both
+  // passed a read-then-write check and both delivered): notified_at is stamped in the same conditional write that moves the
+  // hold, so the same values pressed again answer what was done and send nothing. A claim whose delivery failed is released;
+  // one that was never released and carries no notification after CLAIM_STALE_MS is taken again, so a lost press is not final.
+  const lastValues = (Array.isArray(hold.supplier_values) ? hold.supplier_values[hold.supplier_values.length - 1] : null) as { values?: unknown } | null;
+  const sameValues = !!lastValues && JSON.stringify(lastValues.values ?? null) === JSON.stringify(values ?? null);
+  const claimLive = !!hold.notified_at && ((hold.notification_ids?.length ?? 0) > 0 || nowMs(ctx) - Date.parse(hold.notified_at) < CLAIM_STALE_MS);
+  if (hold.state === 'awaiting_approval' && hold.regenerated && hold.regenerated_at && hold.notified_at && hold.notified_at >= hold.regenerated_at
+      && claimLive && sameValues) {
+    return alreadySent(hold);
+  }
   const lines = await repo.lines(quoteId);
   // WHAT IS ACCEPTED IS WHAT THE FORM OFFERED: the same deskView spec_hold showed (desk, live release check, the hold's
   // own open items). An item the release reports now is accepted although no earlier check stored it on the hold.
@@ -537,8 +560,27 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
     return { ok: true as const, complete: true as const, regenerated: record, pdf: null, arabic_pending: true as const };
   }
   const pdf = rendered;
-  await repo.updateHold(hold.id, { state: 'awaiting_approval', missing: [], supplier_values: history, regenerated: record, regenerated_at: record.prepared_at, pdf_bucket: pdf?.bucket ?? null, pdf_path: pdf?.path ?? null });
-  const ids = await deliver(repo, deliveryRows(supplier, q, 'quote_spec_regenerated', approvalNotice(langOf(supplier), ctx.ref)));
+  // THE CLAIM (ONE PRESS, ONE APPROVAL REQUEST, above): the hold moves to awaiting_approval and notified_at is stamped in ONE
+  // conditional write, against the hold as this press read it. A second tab, or the second of a double press, finds it changed
+  // and sends nothing. The stamp is this press's own clock, never the hold's opening notice (they could share a millisecond).
+  const claim = nowIso(ctx);
+  const moved = { state: 'awaiting_approval' as const, missing: [], supplier_values: history, regenerated: record, regenerated_at: record.prepared_at, pdf_bucket: pdf?.bucket ?? null, pdf_path: pdf?.path ?? null, notified_at: claim, notification_ids: [] };
+  const won = repo.claimHold ? await repo.claimHold(hold.id, { state: hold.state, notified_at: hold.notified_at ?? null, updated_at: hold.updated_at ?? null }, moved)
+    : (await repo.updateHold(hold.id, moved), true);
+  if (!won) {
+    await repo.log({ signal: 'spec_hold_press_lost_the_claim', quote_id: quoteId, hold_id: hold.id }, `A second press on quote ${quoteId} found the hold already moved by the first; it sent nothing.`);
+    if (sameValues || hold.state === 'open') return { ok: true as const, complete: true as const, regenerated: record, pdf, already_sent: true as const };
+    return { ok: false as const, code: 'hold_changed' as const };
+  }
+  let ids: number[];
+  try { ids = await deliver(repo, deliveryRows(supplier, q, 'quote_spec_regenerated', approvalNotice(langOf(supplier), ctx.ref))); }
+  catch (e) {
+    // the request was not taken: release the claim so the next press delivers it (best effort; a stale claim is taken again anyway)
+    try { if (repo.claimHold) await repo.claimHold(hold.id, { state: 'awaiting_approval', notified_at: claim }, { notified_at: null }); else await repo.updateHold(hold.id, { notified_at: null }); } catch (_e) { /* stale after CLAIM_STALE_MS */ }
+    throw e;
+  }
+  // the ids are the proof the request was taken; a failure to record them leaves the claim, so a same-values press still sends nothing
+  try { await repo.updateHold(hold.id, { notification_ids: ids }); } catch (_e) { /* the claim stands */ }
   await repo.log({ signal: 'spec_hold_regenerated', quote_id: quoteId, hold_id: hold.id, pdf: pdf ? 1 : 0, delivery_requests: ids.length }, `Supplier completed every required detail on quote ${quoteId}; the standardised quotation was regenerated${pdf ? ' with its PDF' : ' (PDF not produced)'} and the approval request went to customer_support for email and WhatsApp.`);
   return { ok: true as const, complete: true as const, regenerated: record, pdf };
 }
@@ -572,7 +614,12 @@ export async function finishArabic(repo: SpecRepo, quoteId: string, supplier: Su
 // not_awaiting_approval and the desk is shut with the quote unsent and nothing named to fix. A
 // precheck that returns items puts the hold back to 'open' carrying them, exactly as `a.held` does
 // above, so the supplier sees what to do and can fill it in. Returning null means release.
-export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplier, actorEmail: string, confirm: unknown, ctx: Ctx, accept: (q: QuoteRow) => Promise<boolean>, precheck?: Precheck) {
+// `accept` MAY ANSWER 'not_sent' (15 Nov 2026, third review of the certificate branch, item 1): the write that sends the quotation
+// did not land (supplier_api acceptLive, quote_not_sent). The hold was already marked released, so liveHold() could no longer find
+// it: a second "Approve and send" answered not_awaiting_approval, and the supplier was mailed "Your quote is approved" for a quote
+// still a draft. Now the hold is put back exactly as the press found it (awaiting_approval, nothing approved or released), no
+// notice goes out, and the caller says the quotation was not sent; pressing again sends it.
+export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplier, actorEmail: string, confirm: unknown, ctx: Ctx, accept: (q: QuoteRow) => Promise<boolean | 'not_sent'>, precheck?: Precheck) {
   const q = await repo.quote(quoteId);
   if (!q || Number(q.supplier_id) !== Number(supplier.id)) return { ok: false as const, code: 'not_found' as const };
   const hold = await repo.liveHold(quoteId);
@@ -590,7 +637,13 @@ export async function approve(repo: SpecRepo, quoteId: string, supplier: Supplie
   }
   const at = nowIso(ctx);
   await repo.updateHold(hold.id, { state: 'released', approved_at: at, approved_by: actorEmail, released_at: at });
-  const live = await accept(q);
+  const answer = await accept(q);
+  if (answer === 'not_sent') {
+    await repo.updateHold(hold.id, { state: 'awaiting_approval', approved_at: null, approved_by: null, released_at: null } as Partial<HoldRow>);
+    await repo.log({ signal: 'spec_hold_not_sent', quote_id: quoteId, hold_id: hold.id }, `Supplier ${actorEmail} approved the regenerated quotation ${quoteId}, but the write that sends it did not land; the hold is back awaiting his approval and no notice went out.`);
+    return { ok: false as const, code: 'quote_not_sent' as const };
+  }
+  const live = answer === true;
   const ids = await deliver(repo, deliveryRows(supplier, q, 'quote_spec_released', releasedNotice(langOf(supplier), ctx.ref, live)));
   await repo.log({ signal: 'spec_hold_released', quote_id: quoteId, hold_id: hold.id, sent_to_customer: live ? 1 : 0, delivery_requests: ids.length }, `Supplier ${actorEmail} approved the regenerated quotation ${quoteId}; the hold is released${live ? ' and the quote is with the customer' : ', and the quote still waits on its commercial terms'}.`);
   return { ok: true as const, released: true as const, live };
@@ -611,6 +664,13 @@ export function supabaseRepo(admin: any, opts: { dispatch?: () => Promise<void> 
     async liveHold(quoteId) { const { data } = must(await admin.from('quote_spec_hold').select('*').eq('quote_id', quoteId).in('state', ['open', 'awaiting_approval']).maybeSingle()); return data ?? null; },
     async insertHold(row) { const { data } = must(await admin.from('quote_spec_hold').insert(row).select('*').single()); return data; },
     async updateHold(id, patch) { must(await admin.from('quote_spec_hold').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id)); },
+    async claimHold(id, expect, patch) {
+      let q = admin.from('quote_spec_hold').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).eq('state', expect.state);
+      q = expect.notified_at == null ? q.is('notified_at', null) : q.eq('notified_at', expect.notified_at);
+      if (expect.updated_at !== undefined) q = expect.updated_at == null ? q.is('updated_at', null) : q.eq('updated_at', expect.updated_at);
+      const { data } = must(await q.select('id'));
+      return Array.isArray(data) && data.length === 1;
+    },
     async notify(rows) {
       const ids: number[] = [];
       // Email first. trg_wa_fanout adds a WhatsApp twin for a supplier who opted in, in the same

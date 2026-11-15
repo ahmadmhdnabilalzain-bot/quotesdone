@@ -74,11 +74,10 @@ begin
 end $probe$;`;
 
 test('the reveal invoice is filed by the accountant and handed to the sales engineer, once', { skip: !token() && 'no management token' }, async () => {
-  const r = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
-    method: 'POST', headers: { Authorization: `Bearer ${token()}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: PROBE }),
-  });
-  const text = await r.text();
+  // through the replay guard (13 Nov 2026): this POSTed its rolled-back probe straight to the management API
+  const { replaySql } = await import('../lib/safe_replay.mjs');
+  let text = '';
+  try { await replaySql(PROBE, { label: 'the reveal invoice probe' }); } catch (e) { text = String(e?.body ?? e?.message ?? e); }
   const m = text.match(/CHK<<(.*?)>>/s);
   assert.ok(m, 'probe did not reach its report: ' + text.slice(0, 600));
   const out = JSON.parse(m[1].replace(/\\"/g, '"'));
