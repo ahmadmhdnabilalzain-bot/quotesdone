@@ -30,6 +30,7 @@ import { surfaceEffort } from '../_shared/effort_policy.ts';
 import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
 import { requirementQuestions, isValidAnswer, NO_PREFERENCE, type Answers, type Ans } from '../_shared/intake_requirements.ts';
+import { FALLBACK as COMPANY } from '../_shared/doc_template.ts';
 import type { Dialect } from '../_shared/inquiry_state.ts';
 
 const asText = (v: unknown) => (typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')).trim();
@@ -38,7 +39,7 @@ const filled = (v: unknown) => v !== undefined && v !== null && !['', '{}', '[]'
 /** recordedElsewhere: this message answered one of the four questions or a "does not know" (it told us something);
  *  lastText: the customer's last message alone (a CHANGED value counts as told only when its cited words are in it);
  *  stall: the stamped history of the open specs (stallOf), for the backstop below. */
-export type SlotOpts = { recordedElsewhere?: boolean; lastText?: string | null; stall?: { streak: number; lastOpen: string[] | null } };
+export type SlotOpts = { recordedElsewhere?: boolean; lastText?: string | null; stall?: { streak: number; lastOpen: string[] | null }; lastAsked?: string[] };
 export type SlotState = { details: Record<string, string>; missingKeys: string[]; missing: string[]; complete: boolean; exhausted: string[]; held: boolean;
   /** Values the model filed under a spec they do not answer (finding b2): not recorded there, the spec stays open. */
   misfiled?: { key: string; reason: 'answers_another_kind' | 'no_customer_words'; kind?: UniversalKind }[];
@@ -49,7 +50,11 @@ export type SlotState = { details: Record<string, string>; missingKeys: string[]
   /** Every askable spec was already asked once and is waiting for its answer (askNext). */
   waiting?: boolean;
   /** The backstop held it: no required spec moved for STALL_TURNS turns in a row (stallOf). */
-  stalled?: boolean };
+  stalled?: boolean;
+  /** Exhausted specs the hold can still ask (not ones they said they do not know). */
+  askAgain?: string[];
+  /** Required specs sent to suppliers as "supplier to advise" because every one left was a "does not know". */
+  sentAsIs?: string[] };
 
 // ── A QUESTION IS NOT ASKED FOREVER (12 Oct 2026, sales_engineer) ─────────────────────────────────
 // MEASURED. Stage-2 run f4294be8: C9 (waterproofing, EN) was asked "Is there a leak now, or is this to
@@ -76,6 +81,14 @@ export const MAX_OPEN_TURNS = 3;
 // hold, so the sales engineer settles them with the customer. 8: the first message is read, and eight questions in a row that move
 // nothing are the most a real customer is asked before the hold (the ninth reply is the hold's).
 export const STALL_TURNS = 8;
+/** The specs the most recent asking reply asked (stamped asked_keys), for SlotOpts.lastAsked. */
+export function lastAskedKeys(turns: any[]): string[] {
+  for (let i = (turns || []).length - 1; i >= 0; i--) {
+    const sl = turns[i] && turns[i].role === 'assistant' && turns[i].slots ? turns[i].slots : null;
+    if (sl && Array.isArray(sl.asked_keys) && sl.asked_keys.length) return sl.asked_keys.map(String);
+  }
+  return [];
+}
 /** The stamped history of the open required specs: how many replies in a row moved none of them, and the last open set. */
 export function stallOf(turns: any[]): { streak: number; lastOpen: string[] | null } {
   let streak = 0, lastOpen: string[] | null = null;
@@ -84,7 +97,11 @@ export function stallOf(turns: any[]): { streak: number; lastOpen: string[] | nu
     if (!sl || !Array.isArray(sl.missing_keys)) continue;
     const now = sl.missing_keys.map(String);
     const moved = lastOpen === null || lastOpen.some((k) => !now.includes(k));
-    streak = moved ? 0 : streak + 1;
+    // A REPLY THAT ASKED NOTHING, OR A MESSAGE THAT TOLD US SOMETHING, IS NO STALL (re-check of 15 Nov 2026, item 1): a customer who
+    // answered five questions and then volunteered eight useful details was held at turn 9 for it. Such a turn neither counts nor resets.
+    const told = sl.told === true || (Array.isArray(sl.recorded) && sl.recorded.length > 0);
+    const askedNothing = Array.isArray(sl.asked_keys) && sl.asked_keys.length === 0;
+    if (moved) streak = 0; else if (!told && !askedNothing) streak++;
     lastOpen = now;
   }
   return { streak, lastOpen };
@@ -291,9 +308,19 @@ export function lastAskedKey(turns: any[]): string | null {
 export function unknownHeldDraft(checklist: SpecField[], unknownKeys: string[], lang: Lang): string {
   const open = heldQuestions(checklist, unknownKeys, lang);
   return lang === 'ar'
-    ? 'شكرًا لكم. لا بأس في عدم معرفة بعض التفاصيل، وسيتواصل معكم مهندس المبيعات لدينا لتحديدها قبل إرسال الطلب إلى الموردين، دون حاجة إلى الإجابة عنها هنا.' + (open.length ? '\n- ' + open.join('\n- ') : '')
-    : 'Thank you. It is fine not to know some of the details; our sales engineer will settle them with you before the request goes to suppliers, so there is nothing more to answer about them here.' + (open.length ? '\n- ' + open.join('\n- ') : '');
+    ? 'شكرًا لكم. لا بأس في عدم معرفة بعض التفاصيل، وسيتواصل معكم مهندس المبيعات لدينا لتحديدها قبل إرسال الطلب إلى الموردين، دون حاجة إلى الإجابة عنها هنا. ' + SALES_ENGINEER_WHATSAPP.ar + (open.length ? '\n- ' + open.join('\n- ') : '')
+    : 'Thank you. It is fine not to know some of the details; our sales engineer will settle them with you before the request goes to suppliers, so there is nothing more to answer about them here. ' + SALES_ENGINEER_WHATSAPP.en + (open.length ? '\n- ' + open.join('\n- ') : '');
 }
+/** The company's WhatsApp line for the sales engineer (doc_template FALLBACK.phone, the number every document prints as WhatsApp). */
+export const SALES_ENGINEER_WHATSAPP: Record<Lang, string> = {
+  en: `You can also reach our sales engineer on WhatsApp at ${COMPANY.phone}.`,
+  ar: `ويمكنكم أيضًا التواصل مع مهندس المبيعات لدينا عبر واتساب على الرقم ${COMPANY.phone}.`,
+};
+/** The ready reply's addition when a spec goes to the suppliers as "supplier to advise" (re-check of 15 Nov 2026, item 3). */
+export const SENT_AS_IS: Record<Lang, string> = {
+  en: 'What you do not know goes to the suppliers marked as theirs to advise, so you can send it as it is.',
+  ar: 'وما لا تعرفونه يصل إلى الموردين على أنه متروك لتقديرهم، فيمكنكم إرسال الطلب كما هو.',
+};
 
 /** How many earlier replies ASKED each spec (stampTurn's asked_keys); a turn stamped before asked_keys counts its open keys. */
 export function askedTurnsByKey(turns: any[]): Record<string, number> {
@@ -384,19 +411,6 @@ export function reconcileSlots(checklist: SpecField[], prevDetails: Record<strin
     if (byAnswer || byModel) { details[k] = notNeededValue(nn.text); if (byModel) evidenceNow[k] = words; }
   }
   sameAs();
-  const required = orderFields(checklist).filter((o) => o.f.required && o.f.key);
-  const open = required.filter((o) => !(String(o.f.key) in details));
-  // A spec that is the same question as another open spec is asked as that one, never on its own.
-  const askedAs = (f: SpecField) => !!(f.same_as && keys.has(String(f.same_as)) && !(String(f.same_as) in details));
-  // The backstop (STALL_TURNS): this message moved no required spec either, after STALL_TURNS - 1 replies that moved none.
-  const openNow = open.map((o) => String(o.f.key));
-  const st = o.stall;
-  const stalled = !!st && st.lastOpen !== null && !st.lastOpen.some((k) => !openNow.includes(k)) && st.streak + 1 >= STALL_TURNS;
-  const exhausted = open.filter((x) => (stalled && !askedAs(x.f)) || (openTurns[String(x.f.key)] || 0) >= MAX_OPEN_TURNS || unknown.has(String(x.f.key))).map((x) => String(x.f.key));
-  // THE NEXT QUESTION IS ONE NOT YET ASKED (15 Nov 2026, journey A): a spec the customer has not been asked yet comes before one
-  // already waiting for its answer; the checklist's order decides between equals.
-  const askable = open.filter((o) => !exhausted.includes(String(o.f.key)) && !askedAs(o.f))
-    .map((o, i) => ({ o, i, n: openTurns[String(o.f.key)] || 0 })).sort((a, z) => a.n - z.n || a.i - z.i).map((x) => x.o);
   const prevKeys = new Set(Object.keys(prevDetails || {}).filter((k) => filled((prevDetails as Record<string, unknown>)[k])));
   // checklist keys only: a key outside the checklist the model adds is no answer, and must never silence a waiting question.
   // A CHANGED value counts too (review of 15 Nov 2026, item 3: "actually supply only" was followed by the waiting pipe-length question),
@@ -405,17 +419,45 @@ export function reconcileSlots(checklist: SpecField[], prevDetails: Record<strin
   const changedNow = (k: string) => prevKeys.has(k) && asText((prevDetails as Record<string, unknown>)[k]) !== details[k] && !!last && !!evidence && filled(evidence[k]) && last.includes(squash(asText(evidence[k])));
   const recorded = Object.keys(details).filter((k) => keys.has(k) && (!prevKeys.has(k) || changedNow(k)));
   for (const k of recorded) if (!evidenceNow[k] && evidence && filled(evidence[k])) evidenceNow[k] = asText(evidence[k]);
-  const waiting = askable.length > 0 && askable.every((x) => (openTurns[String(x.f.key)] || 0) > 0);
+  const required = orderFields(checklist).filter((o) => o.f.required && o.f.key);
+  // SENT AS IT IS, NEVER A DEAD END (re-check of 15 Nov 2026, item 3): when every required spec still open is one the customer said
+  // they do not know, nothing is left to ask. It was held for good (Send exists only at ready, and the card still asked a spec they
+  // had said they did not know). Now each goes to the suppliers as "Customer does not know: supplier to advise", the same answer a
+  // blocking pack spec gets (adviseUnknown) and the one "send it as it is" leads to: the request is complete and can be sent.
+  const openAll = required.filter((x) => !(String(x.f.key) in details));
+  const sentAsIs = openAll.length > 0 && openAll.every((x) => unknown.has(String(x.f.key))) ? openAll.map((x) => String(x.f.key)) : [];
+  for (const k of sentAsIs) details[k] = SUPPLIER_TO_ADVISE_TEXT;
+  if (sentAsIs.length) sameAs();
+  const open = required.filter((x) => !(String(x.f.key) in details));
+  // A spec that is the same question as another open spec is asked as that one, never on its own.
+  const askedAs = (f: SpecField) => !!(f.same_as && keys.has(String(f.same_as)) && !(String(f.same_as) in details));
+  // The backstop (STALL_TURNS): this message moved no required spec and told us nothing either, after STALL_TURNS - 1 such replies.
+  const openNow = open.map((x) => String(x.f.key));
+  const st = o.stall;
+  const told = recorded.length > 0 || !!o.recordedElsewhere;
+  const stalled = !!st && !told && st.lastOpen !== null && !st.lastOpen.some((k) => !openNow.includes(k)) && st.streak + 1 >= STALL_TURNS;
+  const exhausted = open.filter((x) => (stalled && !askedAs(x.f)) || (openTurns[String(x.f.key)] || 0) >= MAX_OPEN_TURNS || unknown.has(String(x.f.key))).map((x) => String(x.f.key));
+  // THE NEXT QUESTION IS ONE NOT YET ASKED (15 Nov 2026, journey A): a spec the customer has not been asked yet comes before one
+  // already waiting for its answer; the checklist's order decides between equals.
+  const askable = open.filter((x) => !exhausted.includes(String(x.f.key)) && !askedAs(x.f))
+    .map((x, i) => ({ o: x, i, n: openTurns[String(x.f.key)] || 0 })).sort((a, z) => a.n - z.n || a.i - z.i).map((x) => x.o);
+  // WAITING ONLY WHILE THE QUESTION JUST ASKED IS STILL OPEN (re-check of 15 Nov 2026, item 2): a customer who ANSWERS it gets the
+  // next question in the same reply, never a bare "Thanks, noted."; one who tells us something else is not asked it again yet.
+  const lastAsked = (o.lastAsked ?? []).map(String);
+  const askedStillOpen = lastAsked.length > 0 && lastAsked.some((k) => openNow.includes(k));
+  const waiting = askable.length > 0 && askable.every((x) => (openTurns[String(x.f.key)] || 0) > 0) && askedStillOpen;
   return {
     details, exhausted, ...(misfiled.length ? { misfiled } : {}),
-    missingKeys: open.map((o) => String(o.f.key)),
-    missing: askable.map((o) => questionText(o.f, lang)),
-    askableKeys: askable.map((o) => String(o.f.key)),
+    missingKeys: open.map((x) => String(x.f.key)),
+    missing: askable.map((x) => questionText(x.f, lang)),
+    askableKeys: askable.map((x) => String(x.f.key)),
+    // what the hold can still ask: exhausted, and not a spec they said they do not know
+    askAgain: exhausted.filter((k) => !unknown.has(k)),
     complete: open.length === 0,
     held: open.length > 0 && askable.length === 0,
-    recorded, evidence: evidenceNow, ...(stalled ? { stalled } : {}),
-    // nothing new to ask: every open spec is waiting, and this message brought an answer (here or to the four questions)
-    waiting: waiting && (recorded.length > 0 || !!o.recordedElsewhere),
+    recorded, evidence: evidenceNow, ...(stalled ? { stalled } : {}), ...(sentAsIs.length ? { sentAsIs } : {}),
+    // nothing new to ask: every open spec is waiting, the one just asked is still open, and this message told us something
+    waiting: waiting && told,
   };
 }
 
@@ -466,7 +508,8 @@ export function settleModelTurn(checklist: SpecField[], prevDetails: Record<stri
   } else if (sl.held) {
     // A HELD INTAKE STILL ASKS (27 Oct 2026, ledger 580): the open questions travel with the hold. This branch used
     // to clear both lists, so every held turn answered questions=0, missing=[] and no next_question (see heldAsk).
-    const open = heldQuestions(checklist, sl.exhausted, lang);
+    // only what the hold can still ask: a spec they said they do not know is never on the card again (re-check, item 3)
+    const open = heldQuestions(checklist, sl.askAgain ?? sl.exhausted, lang);
     out.missing = open; out.questions = open; out.brief = null;
     out.assistant_message = HELD_FOR_SPECS[lang] || HELD_FOR_SPECS.en;
     return sl;
@@ -587,6 +630,8 @@ export function answerToQuestion(v: unknown): string {
 export type TurnSlots = { status: string; details: Record<string, unknown>; req_answers: Answers; missing: string[]; missing_keys?: string[];
   /** The specs this reply asked (askedTurnsByKey counts them); what it recorded and the customer's words each came from. */
   asked_keys?: string[]; recorded?: string[]; evidence?: Record<string, string>;
+  /** This message told us something (a checklist spec, one of the four questions, a "does not know"): stallOf does not count it. */
+  told?: boolean;
   reply?: { next_question: unknown; remaining_questions: string[]; readiness: { filled: number; required: number } | null } };
 export function stampTurn(turns: any[], snap: TurnSlots): void {
   for (let i = turns.length - 1; i >= 0; i--) {

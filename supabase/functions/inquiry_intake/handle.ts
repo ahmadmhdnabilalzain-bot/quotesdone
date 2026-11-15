@@ -3,7 +3,7 @@ import { drawingNoteOf } from './attached_file.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
-import { stallOf, settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, mergeRequirements, recordedRequirements, answerToQuestion, stampTurn, askedTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, tappedHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft, openSpecsBlock } from './slots.ts';
+import { stallOf, lastAskedKeys, SENT_AS_IS, SALES_ENGINEER_WHATSAPP, settleModelTurn, replyFromState, requirementsContract, requirementsFromModel, mergeRequirements, recordedRequirements, answerToQuestion, stampTurn, askedTurnsByKey, slotAskOf, slotKeyFor, heldReasonFor, heldReply, heldAsk, tappedHeldAnswer, intakeVoice, heldDraftOf, lastAskedKey, unknownHeldDraft, openSpecsBlock } from './slots.ts';
 import { emirateOf, isAlAin, detectUrgency, utilityText, SEVEN_EMIRATES, SEVEN_EMIRATES_AR } from './classify.ts';
 import { confirmQuestion, openLines, readConfirmAnswer, type BoqCheck } from '../_shared/boq_open_lines.ts';
 import { ACTOR, requirementsStep, requirementQuestions, statedAnswers, questionIn, toStored, forCard, type Answers } from '../_shared/intake_requirements.ts';
@@ -21,7 +21,7 @@ import { accountKey, loadTranscript } from '../_shared/chat_history.ts';
 import { capRule, capStage, carriedTurns, carryState, intakeKey, mergeState, openPortalEpisode, readState, registerPatch, saysDontKnow,
   stateSummary, statusOfStage, type Dialect, type InquiryState, type StatePatch } from '../_shared/inquiry_state.ts';
 import { ADVISE_RULE, heldProblem, problemIndex, problemsFor, readSolution, serviceKeysOfChoice, solutionPatch, solutionsBlock, solutionStateText, stateServiceKeys } from '../_shared/solution_catalogue.ts';
-import { adviseUnknown, packFields, placeTrades, slugOfTrade, withUniversal, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, universalAnswers, validCodes, validServiceKeys, validTopics,
+import { SUPPLIER_TO_ADVISE, adviseUnknown, packFields, placeTrades, slugOfTrade, withUniversal, taxonomyBlock, taxonomyOf, tradeBlock, tradeContext, universalAnswers, validCodes, validServiceKeys, validTopics,
   type Placement, type TradeContext } from '../_shared/inquiry_trades.ts';
 import { blockingGate, briefConditions, recordedSpecs, withPack } from './blocking_gate.ts';
 
@@ -620,6 +620,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     let slotAsk: { key: string; text: string } | null = null;
     let slotRecorded: string[] = [];                       // keys this turn recorded, with the words they came from (stamped)
     let slotEvidence: Record<string, string> = {};
+    let toldNow = false;                                   // this message told us something (stamped: stallOf does not count it)
     const slotUnknown = new Set<string>();   // specs the customer does not know: never asked again (slots.ts reconcileSlots)
     // The spec a held intake asks this turn (slots.ts heldAsk); remembered on the row so the next message is read
     // as its answer by code (readHeldAnswer), the way the deterministic interview reads asked_key.
@@ -687,9 +688,10 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       const reqNewNow = Object.entries(requirementsFromModel(String(out.category || category || ''), out.requirements))
         .some(([k, a]) => !reqPrev0[k] || (reqChangedNamed.has(k) && JSON.stringify(reqPrev0[k]) !== JSON.stringify(a)));
       const settled = settleModelTurn(checklist, prevDetAdvised, out, slotLang, (d) => buildBrief(String(category || out.category || ''), d, allText, emirate, firstUser0), askedTurnsByKey(turns), slotUnknown, allText,
-        { recordedElsewhere: reqNewNow || modelUnknown.some((k: string) => !(st?.unknown ?? {})[k]), lastText: text, stall: stallOf(turns) });
+        { recordedElsewhere: reqNewNow || modelUnknown.some((k: string) => !(st?.unknown ?? {})[k]), lastText: text, stall: stallOf(turns), lastAsked: lastAskedKeys(turns) });
       slotDetails = settled.details; slotMissingKeys = settled.missingKeys; slotExhausted = settled.held ? settled.exhausted : [];
       slotRecorded = settled.recorded ?? []; slotEvidence = settled.evidence ?? {};
+      toldNow = slotRecorded.length > 0 || reqNewNow || modelUnknown.some((k: string) => !(st?.unknown ?? {})[k]) || Object.keys(unknownNow).length > 0;
       // The state's first askable question and its key: when that is the question asked, the key goes with it.
       slotAsk = slotAskOf(settled);
     }
@@ -1236,6 +1238,10 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       out.assistant_message = modelAnswer + ' ' + String(out.assistant_message || '');
     }
     {
+      // SENT AS IT IS (re-check of 15 Nov 2026, item 3): a ready request carrying a "supplier to advise" says so, and names the sales
+      // engineer's WhatsApp line, so a customer who did not know some details is never left at a dead end.
+      if (status === 'ready' && brief && brief.details && Object.values(brief.details).some((v) => v === SUPPLIER_TO_ADVISE)
+          && !String(out.assistant_message || '').includes(SENT_AS_IS[slotLang])) out.assistant_message = `${String(out.assistant_message || '').trim()} ${SENT_AS_IS[slotLang]} ${SALES_ENGINEER_WHATSAPP[slotLang]}`;
       const draftMsg = String(out.assistant_message || '').trim();
       if (draftMsg && draftMsg !== String(modelWrote ?? '').trim()) out.assistant_message = await voice(draftMsg);
     }
@@ -1269,7 +1275,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     const askedKeys: string[] = nextQuestion?.key ? [String(nextQuestion.key)]
       : status !== 'ready' && Array.isArray(out.questions) && out.questions.length ? (modelAskedKeys.length ? modelAskedKeys : slotAsk ? [slotAsk.key] : []) : [];
     stampTurn(turns, { status, details: (briefToSave as any).details || {}, req_answers: reqAnswers, missing: Array.isArray(out.missing) ? out.missing.map(String) : [], missing_keys: missingKeys,
-      asked_keys: askedKeys, ...(slotRecorded.length ? { recorded: slotRecorded, evidence: slotEvidence } : {}),
+      asked_keys: askedKeys, ...(slotRecorded.length ? { recorded: slotRecorded, evidence: slotEvidence } : {}), ...(toldNow ? { told: true } : {}),
       reply: { next_question: nextQuestion, remaining_questions: remainingQuestions, readiness: readinessFields } });
     const { error: saveErr } = await admin.from('inquiry_intake').update({ category, status, raw_input: allText.slice(0, 4000), turns, brief: briefToSave, readiness: Math.max(0, Math.min(100, Number(out.readiness) || 0)), missing: out.missing || [], updated_at: new Date().toISOString() }).eq('id', draft.id);
     clock.lap('saved');

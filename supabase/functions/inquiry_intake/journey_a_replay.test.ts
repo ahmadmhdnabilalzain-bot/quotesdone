@@ -255,8 +255,13 @@ Deno.test('journey A of 15 Nov: a faithful reading is recorded where it was said
   const at7 = turns.find((t) => t.n === 7)!;
   assertEquals(at7?.details.scope, 'Supply and install', 'supply and install was not recorded at the line that said it');
   assert(!turns.filter((t) => t.n >= 7).some((t) => t.next?.key === 'scope' || t.next?.key === 'installation'), 'supply/install asked after it was answered: ' + log.join('; '));
-  // no question asked twice
-  assertEquals(asked.filter((k, i) => asked.indexOf(k) !== i), [], 'a question was asked twice: ' + log.join('; '));
+  // no question asked twice in a row of answers to other things: a waiting question comes back only once the customer has answered the
+  // question asked before it (re-check of 15 Nov 2026, item 2: warranty, asked at t8, is asked again at t10 after the date was answered),
+  // never on two asking turns in a row, and never more than twice
+  const asks = turns.filter((t) => t.next?.key).map((t) => String(t.next!.key));
+  assert(asks.every((k, i) => i === 0 || asks[i - 1] !== k), 'asked on two asking turns in a row: ' + log.join('; '));
+  assert(asks.every((k) => asks.filter((x) => x === k).length <= 2), 'a question asked three times: ' + log.join('; '));
+  assertEquals(asks.filter((k, i) => asks.indexOf(k) !== i), ['warranty'], log.join('; '));
   // room size is never asked once each unit's capacity is known (line 5); ducting is never asked of a service-only ducted scope
   const ROOM = ['application_area', 'spec_room_use_and_area_or_heat_load_calc'];
   assert(!turns.filter((t) => t.n >= 5).some((t) => ROOM.includes(String(t.next?.key))), 'room size asked after every capacity was given: ' + log.join('; '));
@@ -303,7 +308,7 @@ Deno.test('journey A of 15 Nov: the interview\'s system prompt is the same on ev
 // asked, reaches the hold after STALL_TURNS (8) questions; (3) a changed answer is the customer telling us something; (4) the
 // hold never lists the AC type twice; (5) a question they ask on a held turn is still answered.
 import { STALL_TURNS } from './slots.ts';
-type Scripted = { text: string; details?: Record<string, [string, string]>; unknown?: string[]; req?: Record<string, unknown>; changed?: string[]; asked?: string[]; question?: string; answer?: string };
+type Scripted = { text: string; details?: Record<string, [string, string]>; unknown?: string[]; req?: Record<string, unknown>; changed?: string[]; asked?: string[]; question?: string; answer?: string; dontKnow?: boolean };
 async function scripted(name: string, lines: Scripted[], untilReady = true) {
   type Row = Record<string, unknown>;
   const acc = { details: {} as Record<string, string>, evidence: {} as Record<string, string>, unknown: [] as string[], req: {} as Row };
@@ -320,6 +325,13 @@ async function scripted(name: string, lines: Scripted[], untilReady = true) {
         if (!(typeof b.sys === 'string' && b.sys.includes('Return STRICT JSON only'))) { w.writer.push(JSON.stringify(b)); return JA({ ok: true, model: 'stub/model', content: JSON.stringify({ answer: 'ZZ DEMO voiced reply.' }) }); }
         for (const [k, [v, ev]] of Object.entries(now.details ?? {})) { acc.details[k] = v; acc.evidence[k] = ev; }
         for (const k of now.unknown ?? []) if (!acc.unknown.includes(k)) acc.unknown.push(k);
+        if (now.dontKnow) {   // a faithful reader of "I don't know" to the question just asked
+          const lastA = (w.intake.turns as Row[]).filter((x) => x.role === 'assistant').at(-1) as Row | undefined;
+          const k = String((((lastA?.slots as Row)?.reply as Row)?.next_question as Row)?.key ?? '');
+          if (k === 'required_by') acc.req[k] = 'flexible';
+          else if (k.startsWith('material.') || k === 'installation' || k === 'warranty') acc.req[k] = 'not_sure';
+          else if (k && !acc.unknown.includes(k)) acc.unknown.push(k);
+        }
         Object.assign(acc.req, now.req ?? {});
         return JA({ ok: true, model: 'stub/model', content: JSON.stringify({ category: 'hvac', trades: ['hvac'], urgency: 'normal', status: 'needs_info',
           assistant_message: 'ZZ DEMO stand-in reply' + (now.question ? ' ' + now.question : ''), claims_ready: false, questions: now.question ? [now.question] : [], readiness: 50, missing: [],
@@ -396,4 +408,44 @@ Deno.test('round 2, items 4 and 5: the hold lists the AC type once, and a questi
   assert(facts.includes('This request is HELD'), 'the held reply was not written');
   assert(!(facts.includes('Unit type (wall split') && facts.includes('What kind of air conditioning')), 'the AC type is listed twice under two keys');
   assert(facts.includes('They asked us something; answer it first, in these words: ZZ DEMO: asking for quotes is free for you.'), 'their question on a held turn is dropped');
+});
+
+// ── ROUND 3 (re-check of 15 Nov 2026, "INTAKE CHAT 2") ───────────────────────────────────────────────────────────────────
+const VOLUNTEER: Scripted[] = [
+  { text: 'ZZ DEMO: prefer Daikin or Mitsubishi.', details: { brand_tier: ['Premium (Daikin/Mitsubishi/Trane/Carrier)', 'prefer Daikin or Mitsubishi'] } },
+  { text: 'ZZ DEMO: please include a yearly maintenance contract.', details: { amc: ['Yes, include AMC', 'include a yearly maintenance contract'] } },
+  { text: 'ZZ DEMO: the power is three phase.', details: { electrical_supply: ['Three-phase 400V', 'the power is three phase'] } },
+  { text: 'ZZ DEMO: no drawings, the supplier should size it.', details: { load_basis: ['No - supplier to size it', 'the supplier should size it'] } },
+  { text: 'ZZ DEMO: outdoor units go on the roof, by stairs.', details: { spec_outdoor_unit_mounting: ['Roof, by stairs', 'outdoor units go on the roof'] } },
+  { text: 'ZZ DEMO: nothing to remove, it is a new villa.', details: { spec_old_unit_removal_and_refrigerant_recover: ['Nothing to remove', 'nothing to remove'] } },
+  { text: 'ZZ DEMO: R32 refrigerant please.', details: { spec_refrigerant: ['R32', 'R32 refrigerant'] } },
+  { text: 'ZZ DEMO: five star energy rating at least.', details: { spec_minimum_esma_star_rating: ['5 star', 'five star energy rating'] } },
+];
+Deno.test('round 3, item 1: a customer who answers five questions and then volunteers eight useful details is never held for it', async () => {
+  const turns = await scripted('volunteer', [{ text: AC_FIRST, details: AC_READ },
+    { text: 'ZZ DEMO: inverter.', details: { spec_inverter_or_fixed_speed: ['Inverter', 'inverter'] } },
+    { text: 'ZZ DEMO: two of 1.5 ton and one 2.5 ton.', details: { spec_cooling_capacity: ['2 x 1.5 TR, 1 x 2.5 TR', 'two of 1.5 ton and one 2.5 ton'] } },
+    { text: 'ZZ DEMO: wall splits.', details: { system_type: ['Wall/floor split', 'wall splits'] } },
+    { text: 'ZZ DEMO: about 4 metres of pipe per unit.', details: { spec_copper_pipe_length_included_per_unit: ['About 4 m per unit', 'about 4 metres of pipe per unit'] } },
+    { text: 'ZZ DEMO: it is a new installation.', details: { new_or_replace: ['New installation', 'it is a new installation'] } },
+    ...VOLUNTEER], false);
+  assert(!turns.some((t) => t.status === 'held'), 'held for volunteering: ' + turns.map((t) => t.n + t.status[0] + ':' + (t.next?.key ?? '-')).join(' '));
+});
+Deno.test('round 3, item 2: a customer who answers the question asked gets the next question in the same reply, never a bare "Thanks, noted."', async () => {
+  const lines: Scripted[] = [{ text: AC_FIRST, details: { ...AC_READ, system_type: ['Wall/floor split', '3 new split AC units'] } }, ...VOLUNTEER.slice(0, 6),
+    { text: 'ZZ DEMO: supply and install.', details: { scope: ['Supply and install', 'supply and install'] } }];
+  const turns = await scripted('answers', lines, false);
+  const log = turns.map((t) => t.n + t.status[0] + ':' + (t.next?.key ?? '-')).join(' ');
+  const scopeAsked = turns.findIndex((t) => t.next?.key === 'scope');
+  assert(scopeAsked >= 0 && scopeAsked < turns.length - 1, log);
+  assert(turns.slice(scopeAsked + 1, -1).some((t) => t.next === null), 'the waiting rule never applied (the test proves nothing): ' + log);
+  assert(turns.at(-1)!.next !== null, 'the answer to the question asked got no next question: ' + log);
+});
+Deno.test('round 3, item 3: a customer who says "I don\'t know" to every remaining spec reaches Send, with the unknowns stated to suppliers', async () => {
+  const turns = await scripted('dkall', [{ text: AC_FIRST, details: AC_READ }, ...Array.from({ length: 24 }, () => ({ text: "ZZ DEMO: I don't know.", dontKnow: true }))]);
+  const last = turns.at(-1)!;
+  assertEquals(last.status, 'ready', turns.map((t) => t.n + t.status[0] + ':' + (t.next?.key ?? '-')).join(' '));
+  assert(Object.values(last.details).includes('Customer does not know: supplier to advise'), 'the unknowns are not stated to suppliers');
+  assert(last.writer.includes('so you can send it as it is') && last.writer.includes('WhatsApp at +1 218 316 6814'), 'the ready reply does not say it goes as it is, or name the WhatsApp line');
+  assert(!turns.some((t) => t.status === 'held' && t.next && !t.next.key), 'a held card with no key');
 });

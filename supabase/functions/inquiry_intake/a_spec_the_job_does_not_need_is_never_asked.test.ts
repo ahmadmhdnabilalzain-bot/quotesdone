@@ -82,7 +82,11 @@ Deno.test('3. held after three ASKS, not three open turns; the next question is 
 });
 Deno.test('3. every open spec waiting and the message answered something: nothing is asked; answered nothing: asked again', () => {
   const all = { [CAP]: 1, [ROOM]: 1, scope: 1, system_type: 1 };
-  assertEquals(read({ system_type: 'Wall/floor split' }, { spec_evidence: { system_type: 'The four splits' } }, {}, all).waiting, true);
+  const readL = (details: Record<string, string>, extra: Record<string, unknown>, prev: Record<string, string>, lastAsked: string[]) =>
+    reconcileSlots(FIELDS, prev, { brief: { details }, ...extra }, 'en', all, [], SAID, { lastAsked });
+  assertEquals(readL({ system_type: 'Wall/floor split' }, { spec_evidence: { system_type: 'The four splits' } }, {}, ['scope']).waiting, true);
+  // re-check of 15 Nov 2026, item 2: the question just asked was ANSWERED, so the next one is asked in the same reply
+  assertEquals(readL({ scope: 'Supply only' }, { spec_evidence: { scope: 'The four splits' } }, {}, ['scope']).waiting, false, 'an answer to the asked question is followed by a bare "Thanks, noted."');
   assertEquals(read({ system_type: 'Wall/floor split' }, {}, { system_type: 'Wall/floor split' }, all).waiting, false, 'nothing new: a waiting question is asked again');
   assertEquals(read({ system_type: 'Wall/floor split', zz_notes: 'ZZ DEMO a key outside the checklist' }, {}, { system_type: 'Wall/floor split' }, all).waiting, false,
     'a key outside the checklist is no answer: it never silences a waiting question');

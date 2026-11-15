@@ -460,7 +460,9 @@ export function requirementsStep(category: string, prev: Answers, askedKey: stri
   const asked = o.asked ?? {};
   const order = missing.map((q, i) => ({ q, i, n: asked[q.key] || 0 })).sort((a, z) => a.n - z.n || a.i - z.i).map((x) => x.q);
   // a reply code could not read (no model reading) is asked again at once: "I couldn't match that" names THAT question
-  const waiting = !retry && order.length > 0 && order.every((q) => (asked[q.key] || 0) > 0) && (filledNow.length > 0 || !!o.recordedNow);
+  // ...and only while the question just asked is still open: an answer to it is followed by the next question (re-check, item 2)
+  const waiting = !retry && order.length > 0 && order.every((q) => (asked[q.key] || 0) > 0) && (filledNow.length > 0 || !!o.recordedNow)
+    && !!askedKey && missing.some((q) => q.key === askedKey);
   const n = retry ? (missing.find((q) => q.key === askedKey) ?? order[0]) : waiting ? undefined : order[0];
   let next: ReqStep['next'] = null;
   if (n) {
