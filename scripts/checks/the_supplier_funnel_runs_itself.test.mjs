@@ -115,7 +115,7 @@ test('the ramp steps up only on the 14-day judgement, from the cap it is at, nev
   const r = code(body(RAMP, 'fn_invite_ramp'));
   assert.match(r, /fn_invite_bounce_judgement\(now\(\)\)/);
   assert.match(r, /least\(v_ceiling, greatest\(v_cur \+ v_min_step, ceil\(v_cur \* v_growth\)::int\)\)/);
-  assert.match(RAMP, /'grow_max_hard_rate', 0\.03, 'backoff_hard_lb', 0\.02, 'min_step', 2, 'new_class_cap', 3, 'nudge_share', 0\.5/);
+  assert.match(RAMP, /'grow_max_hard_rate', 0\.03, 'backoff_hard_lb', 0\.025, 'min_step', 2, 'new_class_cap', 3, 'nudge_share', 0\.5/);
   // the placement gate is untouched: Microsoft and Yahoo/AOL never open (founder instruction 1537)
   for (const s of [BRAKE, RAMP, REPLY]) assert.doesNotMatch(code(s), /create or replace function public\.fn_invite_placement_open_providers/);
 });

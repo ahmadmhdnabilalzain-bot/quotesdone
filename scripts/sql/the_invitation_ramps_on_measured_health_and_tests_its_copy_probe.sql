@@ -78,7 +78,7 @@ begin
   v_cap := public.fn_invite_ramp();
   if v_cap <> 5 then v_p := v_p || ('the ramp grew twice for one send day: ' || v_cap); end if;
 
-  -- 5. one hard bounce in 35 sends still lets it grow; two hold; three back off by half
+  -- 5. one hard bounce in 35 sends still lets it grow; two hold; three (lower bound 3.3% > 2.5%) back off by half
   delete from public.agent_runs where agent = 'invite_ramp' and finished_at > now() - interval '1 minute';
   insert into public.app_secrets (key, value) values ('invite_daily_cap', '5') on conflict (key) do update set value = excluded.value;
   for i in 1..5 loop perform pg_temp.probe_send(pg_temp.probe_lead(v_dom, 3000 + i), now() - interval '1 hour', i = 1); end loop;
@@ -88,7 +88,7 @@ begin
   perform pg_temp.probe_send(pg_temp.probe_lead(v_dom, 4001), now() - interval '50 minutes', true);
   v_cap := public.fn_invite_ramp();
   if v_cap <> 8 then v_p := v_p || ('two hard bounces in 36 did not hold at 8: ' || v_cap || ' ' || coalesce((select note from public.agent_runs where agent = 'invite_ramp' order by id desc limit 1), '')); end if;
-  -- 3 of 37 (lower bound 3.3% > 2%): back off by half
+  -- 3 of 37 (lower bound 3.3% > 2.5%): back off by half
   perform pg_temp.probe_send(pg_temp.probe_lead(v_dom, 4002), now() - interval '45 minutes', true);
   v_cap := public.fn_invite_ramp();
   if v_cap <> 4 then v_p := v_p || ('three hard bounces in 37 did not back off to 4: ' || v_cap || ' ' || coalesce((select note from public.agent_runs where agent = 'invite_ramp' order by id desc limit 1), '')); end if;

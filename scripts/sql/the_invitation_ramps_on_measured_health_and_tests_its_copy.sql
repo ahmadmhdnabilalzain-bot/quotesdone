@@ -14,7 +14,7 @@
 --      Step up once per send day, +50% and at least +2 (3 -> 5 -> 8 -> 12 -> 18 -> 27 -> 41 -> 50 = the founder cap), only when
 --      the last send day used 80% of the cap AND the 14-day hard bounces are at most 3% of sends (or a single one), at most one
 --      policy refusal, no throttling soft bounces, no complaint. Back off by half when the 95% lower bound of the hard-bounce
---      rate passes 2% (under the brake's 3%) or on any complaint. The complaint pause (Gmail/Yahoo 0.3%) is unchanged.
+--      rate passes 2.5% (under the brake's 3%) or on any complaint. The complaint pause (Gmail/Yahoo 0.3%) is unchanged.
 --      Thresholds are invite_warmup keys (grow_max_hard_rate, backoff_hard_lb, min_step, new_class_cap), added below.
 --   2. enqueue_supplier_invites: the brake is fn_invite_judge_and_brake; a provider class the judgement holds is left out; a
 --      class not yet sent to (fewer than 20 sends in the window) gets at most new_class_cap (3) a day while the warm class
@@ -89,7 +89,7 @@ insert into public.app_secrets (key, value) values ('invite_copy_test', jsonb_bu
   'min_sends', 150, 'min_engaged', 5, 'z', 1.645, 'max_sends', 600,
   'note', 'A winner needs every active variant at 150 sends, 5 engaged leads in the leader and a one-sided two-proportion z >= 1.645 against each other variant; at 600 each with no winner the control stays. 15 Nov 2026.')::text)
 on conflict (key) do nothing;
-update public.app_secrets set value = (jsonb_build_object('grow_max_hard_rate', 0.03, 'backoff_hard_lb', 0.02, 'min_step', 2, 'new_class_cap', 3, 'nudge_share', 0.5)
+update public.app_secrets set value = (jsonb_build_object('grow_max_hard_rate', 0.03, 'backoff_hard_lb', 0.025, 'min_step', 2, 'new_class_cap', 3, 'nudge_share', 0.5)
                                        || coalesce(nullif(value, '')::jsonb, '{}'::jsonb))::text
  where key = 'invite_warmup' and not (coalesce(nullif(value, '')::jsonb, '{}'::jsonb) ? 'grow_max_hard_rate');
 
@@ -217,7 +217,7 @@ declare
   -- 15 Nov 2026 (sales_engineer): health is the bounce judgement over 14 days (fn_invite_bounce_judgement), not a 48 h count
   -- that a 3-a-day cap could never fill (backoff_min_sends 20 > 2 days x 3: the cap was stuck at 3 for good).
   v_grow_hard numeric := coalesce((c->>'grow_max_hard_rate')::numeric, 0.03);
-  v_back_lb numeric := coalesce((c->>'backoff_hard_lb')::numeric, 0.02);
+  v_back_lb numeric := coalesce((c->>'backoff_hard_lb')::numeric, 0.025);
   v_min_step int := coalesce((c->>'min_step')::int, 2);
   v_j jsonb; v_seg jsonb; v_wsent int; v_whard int; v_wpol int;
   v_cur int; v_new int; v_note text; v_status text := 'ok';
@@ -293,7 +293,7 @@ begin
       end if;
     end if;
   elsif (v_whard >= 2 and coalesce((v_seg->>'hard_lb')::numeric, 0) > v_back_lb) or coalesce((v_seg->>'complaint')::int, 0) >= 1 or v_c48 >= 1 then
-    -- BACK OFF on evidence: the 95% lower bound of the hard-bounce rate over 14 days above backoff_hard_lb (2%, under the
+    -- BACK OFF on evidence: the 95% lower bound of the hard-bounce rate over 14 days above backoff_hard_lb (2.5%, under the
     -- brake's 3%), or any complaint
     v_new := greatest(1, floor(v_cur * 0.5)::int);   -- ruling 1231 review: a back-off must reduce, so no floor at base
     v_note := 'back off: 14-day hard bounce ' || v_whard || '/' || v_wsent || ' (95% lower bound ' || round(coalesce((v_seg->>'hard_lb')::numeric, 0) * 100, 1)
