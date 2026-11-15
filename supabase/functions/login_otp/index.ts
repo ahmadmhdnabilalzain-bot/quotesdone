@@ -14,7 +14,10 @@ import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // `admin` is the system's service-role client and must NEVER sign anybody in. See mintSession.
 const admin = createClient(SB_URL, SB_SERVICE);
-const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS' };
+// Access-Control-Max-Age (15 Nov 2026, customer_support): the preflight `send` paid is remembered for two hours (Chromium's ceiling),
+// so `verify`, typed a minute later, no longer waits on a second OPTIONS round trip to ap-southeast-1 before its POST leaves (the
+// Fetch standard's default is 5 seconds; the code e-mail to the registration form measured 3,026 and 3,078 ms against 3,000).
+const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type, apikey', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Access-Control-Max-Age': '7200' };
 const reply = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'Content-Type': 'application/json', ...CORS } });
 async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
 function emailOk(e: string) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || '')); }

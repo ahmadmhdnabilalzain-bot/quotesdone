@@ -43,3 +43,13 @@ export async function atTheDoor(jwt: string, deps: DoorDeps): Promise<Door> {
   if (await (early && hinted === email ? early : deps.sanctioned(email))) return { kind: 'sanctioned' };
   return { kind: 'in', user, email };
 }
+
+// THE PORTAL'S PREFLIGHT WARM (15 Nov 2026, customer_support; src/components/portal/supplier/api.ts preflightNow). The portal sends
+// {"action":"warm"} with the anonymous key beside the code check, so the browser's CORS preflight for supplier_api is paid while
+// login_otp answers and create_company does not wait on it. Answered 204 before the sign-in check: no session, no database read,
+// nothing done (like the x-qd-warm keep-warm, which a browser cannot send: that header is not in the preflight's allow-list).
+/** True for the portal's warm request; never for an internal door (those carry __secret). */
+export function warmOnly(peek: unknown): boolean {
+  const p = peek as { action?: unknown; __secret?: unknown } | null;
+  return !!p && p.action === 'warm' && p.__secret == null;
+}

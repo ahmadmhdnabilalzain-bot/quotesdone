@@ -16,7 +16,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { safeInquiry } from './quote_review_actions.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { type ActionCtx, J, admin, cors, failed } from './context.ts';
-import { atTheDoor } from './lib/door.ts';
+import { atTheDoor, warmOnly } from './lib/door.ts';
 import { arabicFinish } from './lib/arabic_quotation.ts';
 import { emailedQuotationThread, quoteReviewChatActions } from './actions/quote_review_chat.ts';
 import { accountActions } from './actions/account.ts';
@@ -60,6 +60,8 @@ const handle = async (req: Request): Promise<Response> => {
   try {
     // The one internal door, before any session is asked for: the replay of a held Arabic translation.
     const peek = await req.clone().json().catch(() => ({}));
+    // The portal's preflight warm: 204 before any session or database read (./lib/door.ts warmOnly).
+    if (warmOnly(peek)) return new Response(null, { status: 204, headers: cors });
     if (peek?.__secret && peek.action === 'spec_arabic_finish') {
       const auth = await requireInternal(admin, String(peek.__secret), 'supplier_api');
       if (!auth.ok) return J({ error: 'forbidden' }, 403);

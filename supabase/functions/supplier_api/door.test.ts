@@ -75,3 +75,10 @@ Deno.test('emailClaimOf reads the claim and nothing else', () => {
   assertEquals(emailClaimOf(jwtFor({ email: ' A@B.ae ' })), 'a@b.ae');
   assertEquals([emailClaimOf(''), emailClaimOf('a.b'), emailClaimOf('a.%%%.c'), emailClaimOf(jwtFor({ sub: 'x' }))], ['', '', '', '']);
 });
+
+Deno.test('warmOnly is the portal\'s {"action":"warm"} and nothing else: never an internal door, never a real action', async () => {
+  const { warmOnly } = await import('./lib/door.ts');
+  assertEquals(warmOnly({ action: 'warm' }), true);
+  for (const p of [null, undefined, {}, { action: 'me' }, { action: 'create_company' }, { action: 'warm', __secret: 'x' }, { action: 'WARM' }, 'warm'])
+    assertEquals(warmOnly(p), false, JSON.stringify(p));
+});
