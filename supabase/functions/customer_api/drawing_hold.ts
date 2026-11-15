@@ -46,6 +46,22 @@ export function cadNote(isCad: boolean, hand: { drawing_held: boolean }) {
 }
 
 /**
+ * A VECTOR PDF GOES TO SUPPLIERS AS ITS CHECKED PREVIEWS ONLY (round 4 of the drawings fix, 15 Nov 2026, sales_engineer;
+ * third review ANONYMITY F3 DRAWINGS 3, fix 3). drawing_redact mode 'file' stores an anonymised PDF as 'awaiting_pixels'
+ * until the released file's own pages are rendered and checked (lib/drawings.ts verifyReleasedFile), and nothing calls
+ * that yet (READ, 15 Nov 2026). So every vector PDF was held with "you can upload a clearer copy", which is false, and
+ * left an unsigned pending file in storage. Until verifyReleasedFile is wired, analyze_drawing does not attempt the file
+ * for a PDF: suppliers get the checked preview of each sheet, and the customer is told so in plain words. The original is
+ * not sent by the platform after a reveal either (supplier_api inbox: drawing_file_url is null, READ), so the message says
+ * the customer can send it himself once he has opened that supplier's quotation.
+ */
+export const PDF_PREVIEWS_ONLY = 'pdf_previews_only';
+export const PDF_PREVIEWS_MESSAGE = {
+  en: 'Suppliers see a cleaned picture of each sheet, with your details removed. The drawing file itself is not sent to them now: when you open a supplier\'s quotation, you can send that supplier the original file.',
+  ar: 'يطّلع المورّدون على صورة منقّحة لكل لوحة بعد حذف بياناتك منها. أمّا ملف المخطّط نفسه فلا يُرسَل إليهم الآن، وعند فتح عرض سعر أحد المورّدين يمكنك إرسال الملف الأصلي إليه.',
+} as const;
+
+/**
  * THE ANONYMISED FILE WAS HELD, AND THE CUSTOMER IS TOLD (review of #1838, 3 Nov 2026). drawing_redact mode 'file'
  * holds the vector PDF when an image the size of a drawing lies across the title block (image_straddles_title_block)
  * and records the hold on drawing_redaction_runs — but analyze_drawing said nothing, so nobody knew the suppliers
@@ -55,6 +71,9 @@ export function cadNote(isCad: boolean, hand: { drawing_held: boolean }) {
 export function fileHeldNote(reason: string | null) {
   if (!reason) return {};
   if (reason === 'pixels_budget') return { drawing_file_held: reason, drawing_file_message: PIXEL_BUDGET_MESSAGE };
+  // A vector PDF is not made into a file today (PDF_PREVIEWS_ONLY below); a run still waiting for its pixels is the same
+  // case. "Upload a clearer copy" was false for both: no re-upload changes it.
+  if (reason === PDF_PREVIEWS_ONLY || reason === 'awaiting_pixels') return { drawing_file_held: reason, drawing_file_message: PDF_PREVIEWS_MESSAGE };
   const straddles = reason === 'image_straddles_title_block';
   return {
     drawing_file_held: reason,

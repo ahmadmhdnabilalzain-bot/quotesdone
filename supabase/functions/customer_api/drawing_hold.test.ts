@@ -108,7 +108,28 @@ Deno.test('a held anonymised file is said to the customer, in English and Arabic
   const src = functionSource('customer_api');
   const finalAnswer = src.split('\n').find((l) => /return J\(\{ ok: true, boq: boqOut, drawing_file_path: path/.test(l)) || '';
   assert(/\.\.\.fileHeldNote\(fileHeld\)/.test(finalAnswer), "analyze_drawing's final answer does not spread fileHeldNote(fileHeld)");
-  assert(/fileHeld = f\.held/.test(src), 'fileHeld is never set from the anonymised file result');
+  assert(/\) fileHeld = PDF_PREVIEWS_ONLY;/.test(src), 'fileHeld is never set for a vector PDF (round 4: previews only)');
+});
+
+// Round 4 of the drawings fix (15 Nov 2026; third review ANONYMITY F3 DRAWINGS 3, fix 3): every vector PDF was held with
+// "you can upload a clearer copy", which is false - its file waits for verifyReleasedFile, which nothing calls.
+Deno.test('a vector PDF goes to suppliers as its checked previews, the file is not attempted, and the customer is told the truth', async () => {
+  const { fileHeldNote, PDF_PREVIEWS_ONLY, PDF_PREVIEWS_MESSAGE } = await import('./drawing_hold.ts');
+  for (const reason of [PDF_PREVIEWS_ONLY, 'awaiting_pixels']) {
+    const n = fileHeldNote(reason) as { drawing_file_held: string; drawing_file_message: { en: string; ar: string } };
+    assertEquals(n.drawing_file_held, reason);
+    assertEquals(n.drawing_file_message, PDF_PREVIEWS_MESSAGE);
+    assert(!/clearer copy|upload/i.test(n.drawing_file_message.en), 'no false advice to re-upload');
+    assert(!/نسخة أوضح/.test(n.drawing_file_message.ar), 'no false advice to re-upload (Arabic)');
+  }
+  assertEquals(PDF_PREVIEWS_MESSAGE.en, "Suppliers see a cleaned picture of each sheet, with your details removed. The drawing file itself is not sent to them now: when you open a supplier's quotation, you can send that supplier the original file.");
+  assert(/صورة منقّحة لكل لوحة/.test(PDF_PREVIEWS_MESSAGE.ar) && /الملف الأصلي/.test(PDF_PREVIEWS_MESSAGE.ar));
+  // Other holds keep their own words.
+  assert(/upload the drawing again/.test((fileHeldNote('image_straddles_title_block') as { drawing_file_message: { en: string } }).drawing_file_message.en));
+  // analyze_drawing makes no anonymised vector file for a PDF (no mode 'file' call, no pending file left in storage).
+  const docs = Deno.readTextFileSync(new URL('./actions/documents.ts', import.meta.url));
+  assert(!/redactFile\(/.test(docs), 'analyze_drawing still calls redactFile for a PDF');
+  assert(/redMeta\.redaction_complete && path && !isCad && body\.original_b64 && \/\^JVBERi0\/[^\n]*\) fileHeld = PDF_PREVIEWS_ONLY;/.test(docs));
 });
 
 // Round 3 of the anonymity fix (13 Nov 2026): drawing_redact answered customer_message when the pixel gate held a page

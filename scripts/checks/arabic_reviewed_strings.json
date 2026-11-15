@@ -6937,7 +6937,8 @@
  ],
  "supabase/functions/customer_api/drawing_hold.ts": [
   "35ee341d4ee3",
-  "397caa319c3f"
+  "397caa319c3f",
+  "f8b350a9fd4c"
  ],
  "supabase/functions/customer_api/lib/inquiry_rules.ts": [
   "576825a5b165"

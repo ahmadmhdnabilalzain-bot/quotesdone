@@ -9,7 +9,7 @@ import { SAFE_UPLOAD, SAFE_SHEET, SAFE_DOCS } from '../../_shared/attachment.ts'
 import { seedTerms, titleBlockBoxes } from '../../_shared/anonymise.ts';
 import { supplierBoxes } from '../../_shared/supplier_copy.ts';
 import { cadSupplierBoq, dxfTextOf } from '../../_shared/cad_identity.ts';
-import { budgetNote, cadNote, fileHeldNote, drawingHandoff, heldRun } from '../drawing_hold.ts';
+import { PDF_PREVIEWS_ONLY, budgetNote, cadNote, fileHeldNote, drawingHandoff, heldRun } from '../drawing_hold.ts';
 import { isPhotoOrScan, visionCountBody, applyVisionCounts } from '../vision_count_wire.ts';
 import { documentLocale } from '../../_shared/registered_locale.ts';
 import { linesFromRuns, pdfPages } from '../../_shared/pdf_text_positions.ts';
@@ -21,7 +21,7 @@ import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../../_shared/drawing_format.ts';
 import { cadJobNeedsRedispatch, claimCadDispatch } from '../cad_dispatch.ts';
 import { type ActionCtx, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
-import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, queueCadRead, recordHeld, redactCad, redactFile, scheduleTables, storeOriginal } from '../lib/drawings.ts';
+import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, queueCadRead, recordHeld, redactCad, scheduleTables, storeOriginal } from '../lib/drawings.ts';
 
 /** analyze_drawing answers inside this (ms from its request), 10 s before the 150 s edge wall. See the action below. */
 export const ANALYZE_DRAWING_BUDGET_MS = 140_000;
@@ -307,13 +307,11 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // THE HOLD IS DECIDED AND RECORDED HERE (audit 21 Sep 2026, finding 9; ./drawing_hold.ts).
         // Anything short of every page verified hands back NO redacted paths and share_redacted:false,
         // and writes one 'held' row against the stored original so the unshared drawing is visible.
-        // A fully redacted PDF also goes out as the anonymised VECTOR PDF (redactFile), beside its page previews.
+        // A fully redacted PDF goes out as its checked PREVIEWS only (round 4, drawing_hold.PDF_PREVIEWS_ONLY): the anonymised
+        // vector file (redactFile, drawing_redact mode 'file') waits for verifyReleasedFile, which nothing calls yet, so it is
+        // not attempted, and the customer is told what suppliers see.
         let fileHeld: string | null = null;
-        if (!pricedByCode && redMeta.redaction_complete && path && !isCad && body.original_b64 && /^JVBERi0/.test(String(body.original_b64).replace(/^data:[^;]+;base64,/, ''))) {
-          const f = await redactFile({ secret, b64: String(body.original_b64), custId: cust.id, email, path, seeds: seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }) });
-          if (f && 'path' in f) { redacted.push(f.path); redJobs.push(f.job); }
-          else if (f && 'held' in f) fileHeld = f.held;
-        }
+        if (!pricedByCode && redMeta.redaction_complete && path && !isCad && body.original_b64 && /^JVBERi0/.test(String(body.original_b64).replace(/^data:[^;]+;base64,/, ''))) fileHeld = PDF_PREVIEWS_ONLY;
         const hand = drawingHandoff(redMeta, path, redacted);
         if (hand.drawing_held && path && !pricedByCode) {
           const reason = serverBoxes ? 'server_boxes_sent_pages_refused' : (needsManual ? 'no_server_boxes_and_model_refused' : (redDied ? 'redactor_died' : 'pages_not_verified'));
