@@ -23,10 +23,13 @@
 --      marketing_campaign.approved_by may now read 'ceo'.
 --   4. fn_ceo_switches_marketing_golive(on, reason): marketing_golive is data the CEO moves with a reason, no deploy. The
 --      founder's emergency stop (marketing_publishing_enabled) is never touched by the CEO and still outranks it.
---   5. fn_marketing_article_release_due: a release is recorded as the CEO's publish decision.
+--   5. fn_ceo_publishes_article(slug, reason): the CEO's publish decision for an article it approved; fn_marketing_article_release_due
+--      releases an article with that decision on its weekly slot (one a week, a UAE working day), with or without
+--      marketing_golive. marketing_golive also starts the founder's morning LinkedIn list (fn_marketing_outreach_due), so the
+--      CEO's round does not switch it on by itself: that stays a decision the CEO takes with its reason (point 4).
 --   6. fn_ceo_decides_marketing (seat duty ceo.marketing_decisions, hourly): accepts a month waiting on the founder, approves
---      a calendar that meets the boundaries, and switches marketing_golive on when a CEO-approved calendar or article waits and
---      the emergency stop is off (it never switches it off on its own: that is a decision with a reason, by the function).
+--      a calendar that meets the boundaries, and publishes every article the CEO approved that has no publish decision yet,
+--      while the founder's emergency stop is off.
 -- NOT BUILT HERE (stated, not hidden): a released article still reaches the website only when it is baked into
 -- src/content/blog.json and deployed (marketing_outreach release step); serving released articles from the database is the
 -- audit's M4 and needs a site change and a public read path.
@@ -139,10 +142,30 @@ end $fn$;
 revoke execute on function public.fn_ceo_approves_marketing_calendar(text, text) from public, anon, authenticated;
 grant execute on function public.fn_ceo_approves_marketing_calendar(text, text) to service_role;
 
+create or replace function public.fn_ceo_publishes_article(p_slug text, p_reason text)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare a public.marketing_article;
+begin
+  if length(btrim(coalesce(p_reason, ''))) < 20 then return jsonb_build_object('ok', false, 'reason', 'say why, in a sentence (20 characters or more)'); end if;
+  select * into a from public.marketing_article where slug = p_slug and not is_demo;
+  if a.id is null then return jsonb_build_object('ok', false, 'reason', 'no such article'); end if;
+  if a.status <> 'approved' or a.approved_by is distinct from 'ceo' then
+    return jsonb_build_object('ok', false, 'reason', 'only an article the CEO approved after its review rounds is published (status ' || a.status || ')');
+  end if;
+  if exists (select 1 from public.marketing_ceo_decision d where d.subject_kind = 'article' and d.subject_ref = p_slug and d.decision = 'publish') then
+    return jsonb_build_object('ok', true, 'changed', false, 'slug', p_slug);
+  end if;
+  insert into public.marketing_ceo_decision (subject_kind, subject_ref, decision, reason, evidence)
+  values ('article', p_slug, 'publish', btrim(p_reason), jsonb_build_object('article_id', a.id, 'approved_at', a.approved_at));
+  return jsonb_build_object('ok', true, 'changed', true, 'slug', p_slug, 'released', 'on its weekly slot by fn_marketing_article_release_due');
+end $fn$;
+revoke execute on function public.fn_ceo_publishes_article(text, text) from public, anon, authenticated;
+grant execute on function public.fn_ceo_publishes_article(text, text) to service_role;
+
 -- The CEO seat's hourly marketing round: code decides inside the boundaries above, each decision with its reason.
 create or replace function public.fn_ceo_decides_marketing()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare p record; c record; v jsonb; v_out jsonb := '[]'::jsonb; v_waiting text;
+declare p record; c record; v jsonb; v_out jsonb := '[]'::jsonb;
 begin
   -- a month waiting on the founder: the CEO accepts the plan it already reviewed
   for p in select * from public.marketing_month_plan where status = 'sent_to_founder' order by month loop
@@ -161,20 +184,16 @@ begin
            || 'UAE working days only, every post through the brand and hard-rule lint at build; ruling 1696.');
     v_out := v_out || jsonb_build_object('calendar', c.campaign_key, 'result', v);
   end loop;
-  -- the switch: on when something the CEO (or the founder) approved waits to go out and the founder's emergency stop is off
-  if not public.fn_marketing_publishing_live() and public.fn_marketing_publishing_on() then
-    v_waiting := coalesce(
-      (select 'the approved article "' || a.slug || '"' from public.marketing_article a
-        where a.status = 'approved' and a.approved_by = 'ceo' and not a.is_demo order by a.approved_at limit 1),
-      (select 'the approved calendar ' || m.campaign_key from public.marketing_campaign m
-        where not m.is_demo and m.approved_hash is not null and m.approved_hash = public.fn_marketing_campaign_hash(m.id)
-          and exists (select 1 from public.marketing_post x where x.campaign_id = m.id and x.status <> 'cancelled' and x.scheduled_at > now())
-        order by m.id limit 1));
-    if v_waiting is not null then
-      v := public.fn_ceo_switches_marketing_golive(true, 'The CEO switches publishing on: ' || v_waiting
-             || ' is approved and waiting; the founder''s emergency stop is off. Ruling 1696: no deploy, no founder approval.');
-      v_out := v_out || jsonb_build_object('marketing_golive', v);
-    end if;
+  -- an article the CEO approved and has not yet published: the CEO publishes it (released on its weekly slot), unless the
+  -- founder's emergency stop is on
+  if public.fn_marketing_publishing_on() then
+    for c in select a.slug from public.marketing_article a
+              where a.status = 'approved' and a.approved_by = 'ceo' and a.kind = 'market_topic' and not a.is_demo
+                and not exists (select 1 from public.marketing_ceo_decision d where d.subject_kind = 'article' and d.subject_ref = a.slug and d.decision = 'publish')
+              order by a.approved_at loop
+      v := public.fn_ceo_publishes_article(c.slug, 'The CEO publishes the market article it approved after its review rounds: one blog a week on a UAE working day (rulings 1058, 1696).');
+      v_out := v_out || jsonb_build_object('article', c.slug, 'result', v);
+    end loop;
   end if;
   return jsonb_build_object('decisions', v_out, 'marketing_golive', public.fn_marketing_publishing_live(), 'emergency_stop_off', public.fn_marketing_publishing_on());
 end $fn$;
@@ -182,7 +201,7 @@ revoke execute on function public.fn_ceo_decides_marketing() from public, anon, 
 
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
   ('ceo.marketing_decisions', 'ceo', interval '1 hour', 'fn_ceo_decides_marketing',
-   'The CEO, not the founder, accepts the marketing month it reviewed, approves a calendar exactly as built (organic, unedited, posts to come) and switches marketing_golive on when an approved calendar or article waits and the emergency stop is off; every decision recorded with its reason. Ruling 1696.',
+   'The CEO, not the founder, accepts the marketing month it reviewed, approves a calendar exactly as built (organic, unedited, posts to come) and publishes the articles it approved (released one a week); marketing_golive is the CEO''s to move with a reason; the founder''s emergency stop outranks all. Ruling 1696.',
    'scripts/sql/the_ceo_approves_the_marketing_month_publishes_articles_and_holds_the_marketing_switch.sql')
 on conflict (duty) do update set every = excluded.every, routine = excluded.routine, what = excluded.what, owner_file = excluded.owner_file;
 
@@ -313,16 +332,14 @@ begin
    where status = 'approved' and approved_by = 'ceo' and kind = 'market_topic' and not is_demo
    order by approved_at, id limit 1 for update skip locked;
   if not found then return jsonb_build_object('released', null, 'this_week', v_week, 'reason', 'nothing_approved_by_the_ceo'); end if;
-  if not public.fn_marketing_publishing_live() then
-    return jsonb_build_object('released', null, 'held', true, 'would_release', v_next.slug, 'reason', 'marketing_golive is not true');
+  -- THE CEO PUBLISHES IT (15 Nov 2026, ruling 1696): a CEO publish decision for this article (fn_ceo_publishes_article, with
+  -- its reason) releases it on its weekly slot; marketing_golive, which also starts the founder's morning LinkedIn list, is no
+  -- longer the only key. Neither: held, as before.
+  if not public.fn_marketing_publishing_live()
+     and not exists (select 1 from public.marketing_ceo_decision d where d.subject_kind = 'article' and d.subject_ref = v_next.slug and d.decision = 'publish') then
+    return jsonb_build_object('released', null, 'held', true, 'would_release', v_next.slug, 'reason', 'no CEO publish decision and marketing_golive is not true');
   end if;
   update public.marketing_article set status = 'released', released_at = now(), updated_at = now() where id = v_next.id;
-  -- THE CEO PUBLISHES IT (15 Nov 2026, ruling 1696): the release is the CEO's decision, recorded with its reason
-  insert into public.marketing_ceo_decision (subject_kind, subject_ref, decision, reason, evidence)
-  values ('article', v_next.slug, 'publish',
-          'The CEO approved this market article on ' || to_char(v_next.approved_at at time zone 'Asia/Dubai', 'DD Mon YYYY')
-          || ' after its review rounds; one blog a week on a UAE working day, publishing switched on: released for the site (ruling 1058, 1696).',
-          jsonb_build_object('article_id', v_next.id, 'approved_at', v_next.approved_at, 'this_week', v_week + 1));
   return jsonb_build_object('released', v_next.slug, 'this_week', v_week + 1);
 end $function$
 

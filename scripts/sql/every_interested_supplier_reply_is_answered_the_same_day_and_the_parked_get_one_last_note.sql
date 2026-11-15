@@ -217,7 +217,7 @@ declare
   v_cap int := coalesce((select nullif(btrim(value), '')::int from public.app_secrets where key = 'supplier_final_touch_daily'), 5);
   v_wa text := (select nullif(btrim(value), '') from public.app_secrets where key = 'supplier_whatsapp_click_to_chat');
   v_site text := coalesce((select nullif(btrim(value), '') from public.app_secrets where key = 'public_site_url'), 'https://quotesdone.com');
-  v_open text[]; v_j jsonb; v_held text[]; v_used int; v_left int; v_queued int := 0; r record; m jsonb; v_res jsonb; v_cls text; v_link text;
+  v_open text[]; v_j jsonb; v_held text[]; v_used int; v_left int; v_queued int := 0; r public.leads; m jsonb; v_res jsonb; v_cls text; v_link text;
 begin
   if not public.fn_is_working_day(v_dxb::date) or extract(hour from v_dxb) < 9 or extract(hour from v_dxb) >= 17 then
     return jsonb_build_object('held', 'outside a UAE working day 09:00-17:00 Dubai', 'queued', 0);

@@ -30,12 +30,13 @@
 --      sends, the leader has min_engaged (5) engaged leads and beats each other variant on a one-sided two-proportion z-test at
 --      z >= 1.645 (95%); at max_sends (600) per variant with no winner, the control stays and the test ends ("no difference").
 --   4. fn_sales_engineer_nudges_invited_suppliers: reads the judgement, skips a held class, and puts the lead's variant on the nudge.
+--   5. fn_sales_engineer_supplier_outreach_tick: the wait of a day a restart reopened reads the judgement, not the 3-day number.
 -- prevented by: scripts/checks/the_supplier_funnel_runs_itself.test.mjs, supabase/functions/send_outbox/invite_variants.test.ts,
 -- the_invitation_ramps_on_measured_health_and_tests_its_copy_probe.sql (LOCAL).
 -- APPLY ORDER: after the_bounce_brake_judges_each_bounce_by_kind_provider_and_sample_and_the_ceo_restarts_within_a_limit.sql.
 -- DEPLOY ORDER: send_outbox FIRST (it must know 'invite_variant:b' before a row carries it; an older send_outbox writes variant A
 -- for every row, which only blurs the test, never breaks a send), then this file.
--- LOCKS: two new tables; three routines replaced in place; app_secrets.invite_warmup gains four keys. No busy-table DDL.
+-- LOCKS: two new tables; four routines replaced in place; app_secrets.invite_warmup gains four keys. No busy-table DDL.
 set local lock_timeout = '1500ms';
 
 -- ── 1. THE VARIANTS IN THE TEST ───────────────────────────────────────────────────────────────────────────────────
@@ -646,3 +647,144 @@ $function$
 
 ;
 revoke execute on function public.fn_sales_engineer_nudges_invited_suppliers(timestamp with time zone, integer, boolean) from public, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.fn_sales_engineer_supplier_outreach_tick(p_force boolean DEFAULT false)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  v_judge jsonb;
+  v_now_dxb timestamp := now() at time zone 'Asia/Dubai';
+  v_go boolean; v_weekend boolean; v_invited int; r record; s jsonb; v_cap int;
+  v_due int := 0; v_sent int := 0; v_failed jsonb := '[]'::jsonb; v_clock jsonb; v_out jsonb; v_why text;
+  v_cfg jsonb := coalesce((select nullif(value, '')::jsonb from public.app_secrets where key = 'invite_warmup'), '{}'::jsonb);
+  v_gate text; v_daily_done boolean; v_batch_done boolean; v_batch_why text; v_batch_wait boolean := false;
+  v_resumed timestamptz; v_hs int; v_hb int; v_max numeric; v_released jsonb;
+begin
+  -- A RESUME REOPENS THE DAY'S BATCH (2 Nov 2026, ledger 1486). The latest brake resumed today (Dubai); a batch run before it
+  -- does not count as today's batch.
+  select max(b.resumed_at) into v_resumed from public.invite_brake b
+   where b.resumed_at > now() - interval '1 day' and (b.resumed_at at time zone 'Asia/Dubai')::date = v_now_dxb::date;
+  select exists (select 1 from public.agent_runs a
+                  where a.agent = 'sales_engineer' and a.counts->>'job' = 'supplier_outreach'
+                    and a.started_at > now() - interval '1 day'
+                    and (a.started_at at time zone 'Asia/Dubai')::date = v_now_dxb::date),
+         exists (select 1 from public.agent_runs a
+                  where a.agent = 'sales_engineer'
+                    and ((a.counts->>'job' = 'supplier_outreach' and coalesce(a.counts->>'batch_waiting', 'false') <> 'true')
+                         or a.counts->>'job' = 'supplier_outreach_batch')
+                    and a.started_at > now() - interval '1 day'
+                    and (a.started_at at time zone 'Asia/Dubai')::date = v_now_dxb::date
+                    and (v_resumed is null or a.started_at > v_resumed))
+    into v_daily_done, v_batch_done;
+  if not p_force then
+    if extract(hour from v_now_dxb) < 9 then return jsonb_build_object('due', false, 'reason', 'before 09:00 Dubai'); end if;
+    if v_daily_done and v_batch_done then
+      return jsonb_build_object('due', false, 'reason', 'already ran this Dubai day');
+    end if;
+  end if;
+
+  v_go := coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false)
+          and public.fn_supplier_outreach_golive();
+  v_weekend := extract(isodow from v_now_dxb) in (6, 7);
+  v_why := case when not public.fn_supplier_outreach_golive() then 'supplier_outreach_golive is false'
+                when not v_go then 'invite_enabled is false'
+                when v_weekend then 'it is the UAE weekend' end;
+
+  -- 1. THE BATCH, behind the PLACEMENT GATE (24 Sep 2026, it_engineer). On an open day it goes only after that
+  --    morning's seed landed in the Inbox of both seed mailboxes; while the check can still finish it waits (the
+  --    next beat asks again); any other answer holds it (fail closed). enqueue_supplier_invites asks the same gate.
+  if p_force or not v_batch_done then
+    v_batch_why := v_why;
+    if v_why is null then
+      -- 27 Oct 2026: the GlockApps verdict, per mailbox class. The batch is held only when no class passes;
+      -- enqueue_supplier_invites invites the passing classes and skips the rest. It never answers 'wait'.
+      if cardinality(public.fn_invite_placement_open_providers(v_now_dxb::date)) = 0 then
+        v_batch_why := 'the GlockApps inbox placement verdict cleared no mailbox class ('
+                       || (public.fn_invite_placement_class_verdicts(now()) ->> 'strict') || ')';
+      end if;
+      v_gate := public.fn_invite_placement_class_verdicts(now()) ->> 'strict';
+    end if;
+    -- A batch a resume reopened waits while the bounce judgement would stop the company (15 Nov 2026: the same reading the
+    -- batch brakes on, fn_invite_bounce_judgement, no longer the 3-day single number), so a resume is not undone by the
+    -- bounces it was given on. v_hs / v_hb keep their meaning for the note: the sends and hard bounces the judgement read.
+    if v_batch_why is null and v_resumed is not null and v_daily_done then
+      v_judge := public.fn_invite_bounce_judgement(now());
+      v_hs := coalesce((v_judge->'sent_segment_all'->>'sent')::int, 0); v_hb := coalesce((v_judge->'sent_segment_all'->>'hard')::int, 0);
+      if coalesce((v_judge->>'company_brake')::boolean, false) then
+        v_batch_wait := true;
+      end if;
+    end if;
+    if not v_batch_wait then
+      -- THE WARM-UP (22 Sep 2026). fn_invite_ramp sets today's invite_daily_cap from the last 48 h of bounces and
+      -- complaints. Open days only: a held day sends nothing, so it must not move the cap.
+      if v_batch_why is null then v_cap := public.fn_invite_ramp(); end if;
+      -- The 18 the old stale rule held go back only through this gate; the routine asks the go switch and the brake itself.
+      if v_batch_why is null then v_released := public.fn_sales_engineer_releases_the_invitations_held_stale_on_2_nov(); end if;
+      -- enqueue_supplier_invites holds itself (gates, weekend, holiday, bounce brake, cap, placement).
+      v_invited := public.enqueue_supplier_invites(null);
+    end if;
+  end if;
+
+  -- A later beat of the same day: the daily work is done, only the batch was owed.
+  if v_daily_done and not p_force then
+    if v_batch_wait then
+      return jsonb_build_object('due', false, 'reason', 'a resume reopened today''s batch; it waits while the bounce judgement reads '
+                                || v_hb || ' bounced of ' || v_hs || ' sent, over the limit');
+    end if;
+    v_out := jsonb_build_object('job', 'supplier_outreach_batch', 'dubai_day', v_now_dxb::date, 'held', v_batch_why is not null,
+      'held_because', v_batch_why, 'placement_gate', v_gate, 'invites', jsonb_build_object('queued', v_invited, 'cap', v_cap),
+      'released_stale', v_released);
+    insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+    values ('sales_engineer', 'ok', now(), now(), v_out,
+            case when v_batch_why is not null
+                 then 'Supplier invitation batch HELD (' || v_batch_why || '): ' || coalesce(v_invited, 0) || ' queued.'
+                 else 'Supplier invitation batch: ' || coalesce(v_invited, 0) || ' invitation(s) queued at a cap of ' || coalesce(v_cap::text, '?') || '.' end);
+    return v_out;
+  end if;
+
+  -- 2. Reminders: always counted; written only on an open weekday (the campaign gates, not the placement gate).
+  for r in select * from public.fn_supplier_registration_reminders_due() loop
+    v_due := v_due + 1;
+    -- 2 Nov 2026 (ledger 1449): a pause holds cold mail. A supplier who already started still hears from us, on a weekday inside
+    -- the sending window, unless a complaint stopped the campaign (fn_supplier_reminder_is_open).
+    if v_why is not null and (v_weekend or not public.fn_supplier_reminder_is_open(r.stage)
+         or extract(hour from v_now_dxb) >= coalesce((v_cfg->>'window_end_hour')::int, 17)) then continue; end if;
+    s := public.fn_sales_engineer_sends_registration_reminder(r.lead_id, r.stage, r.step, r.last_activity);
+    if coalesce((s->>'ok')::boolean, false) then v_sent := v_sent + 1;
+      if v_why is not null then
+        update public.notifications set not_before = greatest(now(), (v_now_dxb::date + make_interval(hours => coalesce((v_cfg->>'window_start_hour')::int, 9))) at time zone 'Asia/Dubai')
+         where id = (s->'delivery'->>'notification_id')::bigint and type = 'supplier_registration_reminder';
+      end if;
+    else v_failed := v_failed || jsonb_build_array(jsonb_build_object('lead_id', r.lead_id, 'reason', s->>'reason'));
+    end if;
+  end loop;
+
+  -- 3. The 24-hour clock: internal, so not held by the campaign gates.
+  v_clock := public.fn_sales_engineer_raises_undecided_submissions(false);
+
+  v_out := jsonb_build_object('job', 'supplier_outreach', 'dubai_day', v_now_dxb::date, 'held', v_why is not null, 'held_because', v_why,
+    'placement_gate', v_gate, 'batch_waiting', v_batch_wait, 'batch_held_because', v_batch_why,
+    'invites', jsonb_build_object('queued', coalesce(v_invited, 0), 'cap', v_cap), 'released_stale', v_released,
+    'reminders', jsonb_build_object('due', v_due, 'sent', v_sent, 'failed', v_failed),
+    'submissions', v_clock);
+  insert into public.agent_runs (agent, status, started_at, finished_at, counts, note)
+  values ('sales_engineer', case when jsonb_array_length(v_failed) > 0 then 'warn' else 'ok' end, now(), now(), v_out,
+          case when v_why is not null
+               then 'Supplier outreach HELD (' || v_why || '): ' || coalesce(v_invited, 0) || ' invitation(s) queued, ' || v_due
+                    || ' reminder(s) due, ' || v_sent || ' written to suppliers who already started; ' || coalesce(v_clock->>'raised_to_ceo', '0') || ' undecided submission(s) raised to the CEO.'
+               else 'Supplier outreach: '
+                    || case when v_batch_wait then 'the invitation batch a resume reopened waits while the 3-day bounce window reads '
+                                                   || v_hb || ' bounced of ' || v_hs || ' sent, over the limit'
+                            when v_batch_why is not null then 'the invitation batch was HELD (' || v_batch_why || ')'
+                            else coalesce(v_invited, 0) || ' invitation(s) queued at a cap of ' || coalesce(v_cap::text, '?') end
+                    || ', ' || v_sent || ' of ' || v_due
+                    || ' reminder(s) sent; ' || coalesce(v_clock->>'raised_to_ceo', '0') || ' undecided submission(s) raised to the CEO.' end);
+  return v_out;
+end
+$function$
+
+;
+revoke execute on function public.fn_sales_engineer_supplier_outreach_tick(boolean) from public, anon, authenticated;

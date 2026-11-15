@@ -35,7 +35,21 @@ begin
   if (select approved_by from public.marketing_campaign where id = v_cid) is distinct from 'ceo'
      or (select approved_hash from public.marketing_campaign where id = v_cid) is distinct from public.fn_marketing_campaign_hash(v_cid) then
     v_p := v_p || ('the calendar was not approved as built: ' || r::text); end if;
-  if not public.fn_marketing_publishing_live() then v_p := v_p || ('publishing was not switched on for an approved calendar: ' || r::text); end if;
+  if public.fn_marketing_publishing_live() then v_p := v_p || 'the CEO round switched marketing_golive on by itself (it also starts the founder''s LinkedIn list)'::text; end if;
+
+  -- an article the CEO approved is published by the CEO's decision (released on its weekly slot), once
+  insert into public.marketing_article (slug, kind, title_en, excerpt_en, meta_desc_en, category_en, body_html_en, title_ar, excerpt_ar, meta_desc_ar,
+                                        category_ar, body_html_ar, sources, checks, ingested_by, linkedin_post_key, status, approved_by, approved_at, is_demo)
+  values (v_key || '-article', 'market_topic', 'Probe title', 'Probe excerpt', 'Probe meta', 'Probe', '<p>Probe</p>', U&'\0645\0642\0627\0644', U&'\0645\0642\0627\0644',
+          U&'\0645\0642\0627\0644', U&'\0645\0642\0627\0644', U&'<p>\0645\0642\0627\0644</p>', '[{"ref":"probe","text":"probe"}]'::jsonb,
+          '{"lint":[],"ungrounded":[]}'::jsonb, 'claude', v_key || '-post', 'approved', 'ceo', now() - interval '3 days', false);
+  r := public.fn_ceo_decides_marketing();
+  if not exists (select 1 from public.marketing_ceo_decision where subject_kind = 'article' and subject_ref = v_key || '-article' and decision = 'publish') then
+    v_p := v_p || ('the CEO did not publish the article it approved: ' || r::text); end if;
+  r := public.fn_ceo_decides_marketing();
+  if (select count(*) from public.marketing_ceo_decision where subject_kind = 'article' and subject_ref = v_key || '-article') <> 1 then v_p := v_p || 'an article was published twice'::text; end if;
+  r := public.fn_ceo_publishes_article('qd-probe-no-such-article', 'Probe: publishing an article that does not exist.');
+  if coalesce((r->>'ok')::boolean, false) then v_p := v_p || 'an unknown article was published'::text; end if;
 
   -- an edited calendar (the channels are in the content hash) is refused; a paid one cannot exist (marketing_campaign_spend_policy_check)
   update public.marketing_campaign set approved_by = null, approved_at = null, approved_hash = null, approved_message_id = null where id = v_cid;
@@ -46,8 +60,15 @@ begin
   -- 4. the founder's emergency stop outranks the CEO: with it on, the CEO's round switches nothing on
   update public.app_secrets set value = 'false' where key = 'marketing_golive';
   update public.app_secrets set value = 'false' where key = 'marketing_publishing_enabled';
+  update public.marketing_article set status = 'approved' where slug = v_key || '-article';
+  insert into public.marketing_article (slug, kind, title_en, excerpt_en, meta_desc_en, category_en, body_html_en, title_ar, excerpt_ar, meta_desc_ar,
+                                        category_ar, body_html_ar, sources, checks, ingested_by, linkedin_post_key, status, approved_by, approved_at, is_demo)
+  values (v_key || '-second', 'market_topic', 'Probe title', 'Probe excerpt', 'Probe meta', 'Probe', '<p>Probe</p>', U&'\0645\0642\0627\0644', U&'\0645\0642\0627\0644',
+          U&'\0645\0642\0627\0644', U&'\0645\0642\0627\0644', U&'<p>\0645\0642\0627\0644</p>', '[{"ref":"probe","text":"probe"}]'::jsonb,
+          '{"lint":[],"ungrounded":[]}'::jsonb, 'claude', v_key || '-post2', 'approved', 'ceo', now() - interval '1 day', false);
   r := public.fn_ceo_decides_marketing();
   if public.fn_marketing_publishing_live() then v_p := v_p || 'the CEO switched publishing on over the founder''s emergency stop'::text; end if;
+  if exists (select 1 from public.marketing_ceo_decision where subject_ref = v_key || '-second') then v_p := v_p || 'the CEO published over the founder''s emergency stop'::text; end if;
   if (select value from public.app_secrets where key = 'marketing_publishing_enabled') <> 'false' then v_p := v_p || 'the CEO touched the emergency stop'::text; end if;
 
   -- 5. decisions are history

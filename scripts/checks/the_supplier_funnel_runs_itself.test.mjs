@@ -80,7 +80,7 @@ test('the brake judges by kind, provider class, segment and the Wilson lower bou
   assert.match(body(BRAKE, 'fn_invite_judge_cell'), /fn_invite_wilson_lower/, 'a rate is judged without its lower bound');
   assert.match(BRAKE, /'hard_limit', 0\.03, 'hard_min', 2/, 'the hard-bounce limit is not data');
   // the old rule (>= 15 sends and over the rate, or 5 bounces in 3 days) is in no routine that sends or ramps any more
-  for (const [src, fn] of [[RAMP, 'enqueue_supplier_invites'], [RAMP, 'fn_sales_engineer_nudges_invited_suppliers']]) {
+  for (const [src, fn] of [[RAMP, 'enqueue_supplier_invites'], [RAMP, 'fn_sales_engineer_nudges_invited_suppliers'], [RAMP, 'fn_sales_engineer_supplier_outreach_tick']]) {
     const b = code(body(src, fn));
     assert.doesNotMatch(b, /v_inv_recent >= 15|greatest\(5, ceil\(/, `${fn} still brakes on the 3-day single number`);
     assert.match(b, /fn_invite_(judge_and_brake|bounce_judgement)\(/, `${fn} does not read the judgement`);
@@ -162,13 +162,17 @@ test('the CEO, not the founder, accepts the month, approves the calendar and mov
   const tick = code(body(MKT, 'fn_marketing_month_plan_tick'));
   assert.doesNotMatch(tick, /set status = 'sent_to_founder'/, 'the month still waits for the founder');
   assert.match(tick, /insert into public\.marketing_ceo_decision/);
-  for (const fn of ['fn_ceo_switches_marketing_golive', 'fn_ceo_accepts_marketing_month', 'fn_ceo_approves_marketing_calendar']) {
+  for (const fn of ['fn_ceo_switches_marketing_golive', 'fn_ceo_accepts_marketing_month', 'fn_ceo_approves_marketing_calendar', 'fn_ceo_publishes_article']) {
     assert.match(body(MKT, fn), /length\(btrim\(coalesce\(p_reason, ''\)\)\) < 20/, `${fn} decides without a reason`);
     assert.match(body(MKT, fn), /insert into public\.marketing_ceo_decision/, `${fn} decides without a record`);
   }
   assert.doesNotMatch(code(MKT), /key = 'marketing_publishing_enabled'[^;]*update|update public\.app_secrets set value[^;]*marketing_publishing_enabled|\('marketing_publishing_enabled',/,
     'the CEO writes the founder\'s emergency stop');
-  assert.match(code(body(MKT, 'fn_ceo_decides_marketing')), /public\.fn_marketing_publishing_on\(\)/, 'the CEO switches on over the emergency stop');
+  const round = code(body(MKT, 'fn_ceo_decides_marketing'));
+  assert.match(round, /public\.fn_marketing_publishing_on\(\)/, 'the CEO publishes over the emergency stop');
+  assert.doesNotMatch(round, /fn_ceo_switches_marketing_golive\(true/, 'the CEO round switches marketing_golive on by itself (it also starts the founder\'s LinkedIn list)');
+  assert.match(body(MKT, 'fn_marketing_article_release_due'), /d\.subject_kind = 'article' and d\.subject_ref = v_next\.slug and d\.decision = 'publish'/,
+    'the weekly release does not read the CEO\'s publish decision');
   assert.match(MKT, /check \(approved_by = any \(array\['founder'::text, 'ceo'::text\]\)\)/);
 });
 
