@@ -1,0 +1,5 @@
+Committed, not applied (16 Nov 2026, ceo seat builder). It applies after the four files of the plan branch (the limits, the pool,
+the coverage file and the_ceo_thinks_plans_and_orders_every_week.sql, whose fn_ceo_plan_bet_reading, ceo_plan_bet, ceo_growth_channel
+and fn_ceo_plan_text_asks_founder it reads). Moves when that branch and this one are released: the releasing session applies it with
+its probe on a local Postgres first, then on production in a quiet minute, deploys a function that carries _shared/think/routing.ts
+(resilience_ping runs the replay), and appends the file to the end of MANIFEST.txt after the planning file, deleting this note.

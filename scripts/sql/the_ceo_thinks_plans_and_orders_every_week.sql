@@ -549,6 +549,10 @@ begin
         'calibration', public.fn_ceo_plan_calibration(p.id))
       from public.ceo_plan_week p where p.world = public.fn_ceo_plan_world() and p.kind in ('seed', 'weekly') and p.status in ('filed', 'measured') order by p.period desc, p.id desc limit 1), '{}'::jsonb));
   exception when others then v := v || jsonb_build_object('last_plan', jsonb_build_object('unavailable', left(sqlerrm, 200))); end;
+  -- every order as a conversation: the open ones with their last turns, the retros and lessons of 30 days
+  -- (an_order_is_a_conversation_until_its_outcome.sql, applied after this file; until then the section says why it is missing)
+  begin v := v || jsonb_build_object('order_threads', public.fn_order_threads_pack());
+  exception when others then v := v || jsonb_build_object('order_threads', jsonb_build_object('unavailable', left(sqlerrm, 200))); end;
   begin
     v := v || jsonb_build_object('own_decisions', coalesce((select jsonb_agg(jsonb_build_object('source', d.source, 'subject', d.subject, 'choice', d.choice, 'reason', public.fn_ceo_plan_clean_text(d.reason, 300), 'at', d.created_at) order by d.id desc)
         from public.ceo_own_decision d where d.world = public.fn_ceo_plan_world() and d.created_at > now() - interval '14 days'), '[]'::jsonb));
@@ -566,7 +570,9 @@ returns jsonb language sql immutable set search_path to 'public', 'pg_temp' as $
            "held_registrations": "registrations submitted 2+ days ago and not decided (direction at_most)",
            "placement_inbox_pct": "inbox % of the provider class on the latest decided GlockApps test after the bet (args: provider_class)",
            "focus_verified": "verified suppliers toward opening the focus trades (fn_supplier_coverage covered_suppliers)",
-           "reported": "the seat reported the order done (fn_seat_reports_done): for a build or a task code cannot count"}'::jsonb
+           "reported": "the seat reported the order done (fn_seat_reports_done): for a build or a task code cannot count",
+           "engineer_request_done": "the engineer session finished the request of this order (an_order_is_a_conversation_until_its_outcome.sql; args: request_id, or the order''s latest)",
+           "m365_engaged_sends": "mail the Microsoft 365 lane sent since the bet to people who engaged (replied, or registered): honest warm-up (args: none)"}'::jsonb
 $fn$;
 revoke execute on function public.fn_ceo_plan_measures() from public, anon, authenticated;
 
@@ -598,6 +604,20 @@ begin
     v_val := (public.fn_supplier_coverage(10)->>'covered_suppliers')::numeric;
   when 'reported' then
     select case when a.status = 'done' then 1 else 0 end into v_val from public.agent_actions a where a.id = b.handoff_id;
+  -- an order conversation's measures (an_order_is_a_conversation_until_its_outcome.sql, applied after this file): read only
+  -- when its table exists, so this file stands alone
+  when 'engineer_request_done' then
+    if to_regclass('public.engineer_session_request') is null then return jsonb_build_object('met', false, 'why', 'no engineer_session_request table yet'); end if;
+    execute 'select case when r.status = ''done'' then 1 else 0 end from public.engineer_session_request r
+              where (r.id::text = $1 or ($1 is null and r.handoff_id = $2)) order by r.id desc limit 1'
+       into v_val using b.measure_args->>'request_id', b.handoff_id;
+    v_val := coalesce(v_val, 0);
+  when 'm365_engaged_sends' then
+    select count(*) into v_val from public.notifications n join public.leads l on l.id = n.lead_id
+     where n.status = 'sent' and n.sent_at >= b.created_at and n.provider_message_id like 'm365:%'
+       and public.fn_ceo_plan_lead_in_world(l.is_demo, l.company_name, l.email)
+       and (exists (select 1 from public.supplier_reply_followup f where f.lead_id = l.id)
+            or exists (select 1 from public.marketing_first_touch m where m.lead_id = l.id) or l.registration_submitted_at is not null);
   else
     return jsonb_build_object('met', false, 'why', 'no such measure ' || b.measure);
   end case;
@@ -1240,6 +1260,9 @@ begin
        -- a model wrote these reasons: cleaned like any free text before they reach him (review item 1)
        || coalesce((select E'\nTHE CEO DECIDED HIMSELF: ' || string_agg(d.subject || ' - ' || d.choice || ': ' || public.fn_ceo_plan_clean_text(d.reason, 200), '; ' order by d.id)
                      from public.ceo_own_decision d where d.world = public.fn_ceo_plan_world() and d.created_at >= p_since), '');
+  -- each open order as a conversation, one line each (an_order_is_a_conversation_until_its_outcome.sql, applied after this file)
+  begin v := v || coalesce(public.fn_order_threads_summary_text(), '');
+  exception when others then null; end;
   return v;
 end $fn$;
 revoke execute on function public.fn_ceo_plan_summary_text(timestamptz) from public, anon, authenticated;

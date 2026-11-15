@@ -4,7 +4,7 @@ import { rehearsalLetsFixtureThrough } from '../spend_guards.ts';
 import type { Phase, ThinkDeps, ThinkRequest } from './types.ts';
 
 /** The held-question surfaces that are a seat's own scheduled work about the company, never about a person's case. */
-export const INTERNAL_DUTY_SURFACE = /^[a-z_]+\.(knowledge_refresh|postmortem|root_cause|ceo_revision|management_review|target_forecast|marketing_month_plan|experiment_approval|experiment_verdict|it_finding|overdue_handoff|authority)$/;
+export const INTERNAL_DUTY_SURFACE = /^[a-z_]+\.(knowledge_refresh|postmortem|root_cause|ceo_revision|management_review|target_forecast|marketing_month_plan|experiment_approval|experiment_verdict|it_finding|overdue_handoff|authority|order_plan|order_status|order_retro|order_answer|order_response|order_next)$/;
 /** The class a step is asked as: an easy run's own judgement goes on the seat's routine route (see ThinkRequest.easy). */
 export function easyClass(taskClass: string, easy: boolean | undefined): string {
   return easy === true && taskClass === 'internal_judgement' ? 'routine_employee_reasoning' : taskClass;
@@ -20,7 +20,13 @@ export function easyClass(taskClass: string, easy: boolean | undefined): string 
 // inside company limits the SQL enforces), priced by the daily cap at the routine unit (AED 0.0106); left off these lists it ran
 // on the CEO's Opus route at about AED 0.42 a call, up to 1.09 (30-day production average), 30 a day = AED 12.7 against a cap
 // of AED 0.50. prevented by: _shared/ceo_judges_it_findings.test.ts
-export const EASY_DUTY_SURFACE = /\.(knowledge_refresh|it_finding|overdue_handoff|authority)$/;
+// AN ORDER IS A CONVERSATION (ceo, 16 Nov 2026, founder: "how do they talk to each other?"; scripts/sql/
+// an_order_is_a_conversation_until_its_outcome.sql files them). A seat's turns on an order it received (<seat>.order_plan,
+// .order_status, .order_retro) are its own scheduled work about the company: INTERNAL_DUTY, on the seat's own judgement route
+// (AED 0.014-0.019 a call, ai_cost_log 30 days to 15 Nov). The CEO's answers on an order (ceo.order_answer, .order_response,
+// .order_next) are routine for his seat: EASY, on his routine route (AED 0.0107 a call), never on his Opus route (AED 0.42);
+// Opus stays for the weekly plan only. The seats' surfaces are deliberately NOT easy. prevented by: _shared/order_thread_surfaces.test.ts
+export const EASY_DUTY_SURFACE = /(\.(knowledge_refresh|it_finding|overdue_handoff|authority)|^ceo\.order_(answer|response|next))$/;
 // THE CLASS NAMES WHAT THE STEP IS; THE SEAT PICKS THE MODEL (29 Sep 2026, founder_instruction 1056, which
 // superseded the 23 Sep ruling 841/844). Planning (decompose) and reading pages (research) are
 // routine_employee_reasoning; a seat's own answer or decision is internal_judgement; a reply a customer, a

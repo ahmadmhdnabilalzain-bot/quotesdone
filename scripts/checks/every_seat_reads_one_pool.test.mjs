@@ -141,7 +141,7 @@ test('2b. the CEO judges: no code acknowledgement, the routine route, a daily ca
   const take = sqlText.slice(sqlText.indexOf('create or replace function public.fn_ceo_takes_it_finding('), sqlText.indexOf('revoke execute on function public.fn_ceo_takes_it_finding('));
   assert.doesNotMatch(take, /acknowledged/, 'an acknowledgement that decides nothing is not an answer');
   // ceo.authority too (third review, item 4: it ran on the CEO's Opus route at ~AED 0.42 a call against a cap priced at 0.0106)
-  assert.match(read('supabase/functions/_shared/think/routing.ts'), /EASY_DUTY_SURFACE = \/\\\.\(knowledge_refresh\|it_finding\|overdue_handoff\|authority\)\$\//);
+  assert.match(read('supabase/functions/_shared/think/routing.ts'), /EASY_DUTY_SURFACE = \/(\\\.\(knowledge_refresh\|it_finding\|overdue_handoff\|authority\)\$|\(\\\.\(knowledge_refresh\|it_finding\|overdue_handoff\|authority\)\|\^ceo\\\.order_\(answer\|response\|next\)\)\$)\//);
   assert.match(sqlText, /\('ceo_daily_judgements', '\{"items": 30, "aed": 0\.5, "per_tick": 5, "unit_aed_default": 0\.0106\}'::jsonb,/);
   assert.match(sqlText, /'ceo\.company_pool', 'ceo', interval '15 minutes', 'fn_company_pool_tick'/);
   assert.match(sqlText, /begin v := v \|\| jsonb_build_object\('ceo', public\.fn_ceo_files_judgements\(\)\);/);

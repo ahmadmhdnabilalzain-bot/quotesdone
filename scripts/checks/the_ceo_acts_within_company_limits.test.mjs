@@ -76,7 +76,7 @@ test('3. the review-3 findings stay fixed', () => {
   const files = code(fnBody(pool, 'fn_ceo_files_judgements'));
   assert.match(files, /v_auth_room := case when n <= 1 then n else n \/ 2 end;/, 'item 5: authority takes at most half of the room');
   assert.match(files, /order by a\.created_at limit v_auth_room loop/);
-  assert.match(read('supabase/functions/_shared/think/routing.ts'), /EASY_DUTY_SURFACE = \/\\\.\(knowledge_refresh\|it_finding\|overdue_handoff\|authority\)\$\//, 'item 4: the routine route');
+  assert.match(read('supabase/functions/_shared/think/routing.ts'), /EASY_DUTY_SURFACE = \/(\\\.\(knowledge_refresh\|it_finding\|overdue_handoff\|authority\)\$|\(\\\.\(knowledge_refresh\|it_finding\|overdue_handoff\|authority\)\|\^ceo\\\.order_\(answer\|response\|next\)\)\$)\//, 'item 4: the routine route');
   const orders = code(fnBody(pool, 'fn_ceo_orders_reported'));
   assert.match(orders, /a\.detail->>'finding_handoff_id'[\s\S]{0,120}x\.status <> 'pending'[\s\S]*'closed with its finding'/, 'item 3: a fix order closes with its finding');
   assert.match(files, /case when r\.detail->>'type' = 'ceo\.order'\s+then jsonb_build_array\(jsonb_build_object\('id', 'withdraw'/, 'item 3: a late order is never chased');
