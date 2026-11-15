@@ -29,3 +29,8 @@ Seat: sales_engineer. Branch `sales_engineer-the-customer-is-asked-in-plain-word
   entry in the file of its trade group, or the test names it. Tests also hold: Not sure last and never twice, no English in
   the Arabic, one short question, no ask for a name, address, plot number, phone, e-mail or ID. Never word-match the customer
   (ruling 890): the model names asked-about words in `explain_terms`.
+- Arabic register (native review, 15 Nov 2026): the customer is addressed in the formal plural (هل تريدون، أرسلوا، لديكم);
+  an option is the customer's own voice (نعم، سأرسله); "Not sure? ..." is «إن لم تكونوا متأكدين ف...»; UAE trade words in
+  Arabic letters (سبليت، ممبرين، شتر، ميزانين، بمواصفات خليجية); pipe and bar sizes are «قطر», not «عرض». A test fails on a
+  singular address. An edited Arabic line is re-recorded with
+  `node scripts/checks/every_arabic_message_is_written_not_translated.test.mjs --write` (run with SUPABASE_ACCESS_TOKEN unset).
