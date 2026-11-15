@@ -29,6 +29,12 @@ src/lib/firstTouch.ts and written to marketing_first_touch at registration).
 - The forecast no longer offers "tell_founder": a forecast decision is `ceo_own_decision`. Compliance re-checks are one monthly
   directive to the it_engineer (nothing updates compliance_sources.last_checked_at; 72 self-addressed ones were unmeetable).
 - Invitations never go to Microsoft or Yahoo (ruling 1537, whatever GlockApps says): the register refuses that channel by rule.
+- Review 4 of the base branch (15 Nov), fixed in this branch: service_role cannot write the limit tables (revoked; TRUNCATE and
+  commitment edits refused by trigger; a change waits a day from clock_timestamp()); money is committed only under READ
+  COMMITTED (the advisory lock only serialises a fresh read there); the 3-argument fn_agent_may_act refuses money (refunds
+  excepted); every recipient an authority action would reach (ask AND subject lead:N / email:x) passes the message gates on every
+  path; coverage reads fn_supplier_target_by_trade_emirate and leads with the year-one milestone (one number); only the focus
+  trades (decision_policy ceo_focus_trades) are confirmed.
 
 Related: [[the-ceo-decides-inside-limits-held-as-data]], [[the-llm-understands-code-only-checks]],
 [[whatsapp-supplier-invites-need-an-opt-in]].

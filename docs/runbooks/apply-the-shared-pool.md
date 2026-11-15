@@ -109,6 +109,11 @@ each probe PROBE OK both times).
    `node scripts/apply_sql.mjs scripts/sql/the_company_limits_bind_every_seat_and_the_ceo_changes_one_only_after_a_day.sql --apply --ddl --seat ceo`,
    its pending note goes, the file is appended to the END of `MANIFEST.txt`. Check: `select public.fn_company_limits()` shows
    both limits.
+   Since review 4 (15 Nov): the seats' role (service_role) loses INSERT/UPDATE/DELETE/TRUNCATE on `company_limit_change` and
+   `company_spend_commitment` (check: `select has_table_privilege('service_role','public.company_spend_commitment','DELETE')` is
+   false); both refuse TRUNCATE and commitments are append-only (a probe clears its own day only as the table owner with
+   `qd.limits_probe = 'rollback'`); a commitment or a limit change under REPEATABLE READ or SERIALIZABLE is refused; the
+   three-argument `fn_agent_may_act` refuses money (refunds excepted) and points at the subject-aware form.
 1. At a minute the money runbook's rule 2 read shows no transaction open longer than 5 s, apply the pool file:
    `node scripts/apply_sql.mjs scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql --apply --ddl --seat ceo`.
    On `55P03 lock timeout`: wait 30 s, read again, re-run; at most 3 times. Then delete
@@ -118,7 +123,10 @@ each probe PROBE OK both times).
    contains `RETIRED`.
 1b. Apply the coverage file (any minute):
    `node scripts/apply_sql.mjs scripts/sql/the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql --apply --ddl --seat ceo`,
-   pending note, MANIFEST line. Check: `select status, count(*) from supplier_coverage_target group by 1` shows the proposal.
+   pending note, MANIFEST line. Check: `select status, count(*) from supplier_coverage_target group by 1` shows the proposal;
+   the first daily run confirms ONLY the focus trades (`decision_policy ceo_focus_trades`: hvac, interior_fitout,
+   building_materials), the rest stay proposed each with its reason; the founder's summary leads with the year-one milestone
+   number (`fn_ceo_supplier_target_status`), the focus coverage inside it (review 4, items 5 and 6).
 1c. Apply the planning file (any minute; it alters no busy table and updates 72 `ceo_directive` rows and one `model_policy` row):
    `node scripts/apply_sql.mjs scripts/sql/the_ceo_thinks_plans_and_orders_every_week.sql --apply --ddl --seat ceo`, its two
    pending notes go, the file and its probe are appended to the END of `MANIFEST.txt`. Locks (LOCAL): ACCESS EXCLUSIVE on its five
