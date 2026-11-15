@@ -47,10 +47,39 @@ Every table this release alters is small except `agent_actions`. No step rewrite
    LAST line of `scripts/sql/MANIFEST.txt` and delete its `scripts/sql/pending/<name>.txt` note. A file already in
    MANIFEST (re-applied) keeps its line.
 
-## The order
+## The order (corrected 15 Nov 2026, review 5, R1)
 
-main → owner → index (alone) → deploy the seven functions → verify parity → the sibling's SQL → its functions →
-the redaction file → the founder-gated files, only on his word. Each step is checked before the next starts.
+main → owner → index (alone; indisvalid) → **the SALES SQL** → deploy the union of 16 functions from the merged main →
+verify parity → the redaction file → the founder-gated files, only on his word. Each step is checked before the next starts.
+
+**Why the sales SQL comes before any deploy.** The sibling branch
+`sales_engineer-a-paid-request-is-closed-and-everyone-on-it-is-told` (75f60e2d3) adds `inquiries.reveal_open_until`, and
+`_shared/reveal_guard.ts:169` on that branch selects it. Once main holds the sales branch, EVERY function built from main
+that reaches reveal_guard (import graph of the merged tree: customer_api, quote_compare, sales_engineer, stripe_checkout,
+stripe_confirm) selects a column that does not
+exist until the sales SQL is applied: PostgREST answers with an error, and every checkout and every reveal is refused
+`not_your_inquiry`. So the sales SQL is applied before any function built from a main that holds the sales branch is
+deployed, by anyone, for any reason, and this release deploys only after step 2c.
+
+### Step 0: the merge, and what main must hold before the deploy
+
+1. Merge the money branch (`accountant-a-payment-is-known-booked-and-timed-from-the-moment-it-is-paid`), then the sales
+   branch. Both add `scripts/it/a_paid_reveal_is_known_to_every_seat_with_a_step.gaps.mjs`; the money branch's copy is the
+   sales copy plus `'paid_at',paid_at` in the live trace (its own assertion reads it), so git reports add/add on that
+   ONE line (measured with `git merge-tree`): take the money branch's version. Its `REVEAL_REHEARSAL` mode rehearses on
+   production: never run it.
+2. **supplier_api must fit the Supabase upload limit.** Measured 15 Nov 2026 with
+   `deno info --json --no-lock --node-modules-dir=none supabase/functions/supplier_api/index.ts` (the sum of the local
+   modules' sizes, the files the deploy uploads):
+
+   | tree | local modules | bytes |
+   |---|---|---|
+   | origin/main ff5f74688 | 219 | 4,714,485 |
+   | main + money + sales (merged locally) | 220 | 4,726,421 |
+   | the same + `it_engineer-supplier-api-fits-the-deploy-limit` (a9a419a57, SheetJS minified) | 220 | **4,221,350** |
+
+   The deploy failed on 13 Nov at 4,686,568 bytes. So the it_engineer's branch must be on main BEFORE step 3; measure
+   again on the merged main and deploy only when the sum is under 4,400,000 bytes.
 
 ### Step 1: the main file (accountant)
 
@@ -80,6 +109,7 @@ select jobname, schedule from cron.job where jobname = 'accountant_payment_check
 select has_function_privilege('authenticated', 'public.fn_reveal_window(uuid)', 'execute');              -- false
 select count(*) from public.gl_journal where source = 'reveal_fee';                                        -- unchanged (test mode is never booked)
 select position('overcharge_return' in pg_get_functiondef('public.fn_refund_request_hands_to_accountant()'::regprocedure)) > 0;  -- true
+select has_function_privilege('authenticated', 'public.fn_refund_rolls_up_to_its_sale(uuid,text,text,bigint)', 'execute');  -- false (review 5)
 ```
 
 Its probe was run on the LOCAL copy before the release (PROBE OK, the files applied twice); it is not run here.
@@ -113,15 +143,48 @@ together with another file). Production already has the index, so this is a no-o
 true. If it returns false (a concurrent build that failed leaves an INVALID index, which `IF NOT EXISTS` then skips), run
 `drop index concurrently public.agent_actions_kind_type_from_idx;` alone, then this step again, and check again.
 
-### Step 3: deploy the functions
+### Step 2c: the SALES SQL (sales_engineer)
 
 ```
-node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production stripe_webhook stripe_checkout stripe_confirm accountant reveal_invoice messages_api supplier_api
+node scripts/apply_sql.mjs scripts/sql/a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql --apply --ddl --seat sales_engineer
 ```
 
-Deploy from the MERGED main, within minutes of step 2b. Then `node scripts/verify_deploy_parity.mjs` on those seven
-slugs (a sampler: also call one reader, e.g. reveal_invoice for the ZZ DEMO sale, to see the new code answer). The window
-readers (messages_api, supplier_api) call `fn_reveal_window` as the service role, which is the only role granted it.
+By the same rules: it sets `lock_timeout = '1500ms'`; it adds `inquiries.reveal_open_until` and the table
+`request_reveal_outcome` (its foreign key takes SHARE ROW EXCLUSIVE on `transactions`); its CHECK on quotes is re-added
+and validated (5 rows); its triggers z33 and a05 are replaced in place. Locks measured locally (review 5): 74 ms,
+`inquiries` and `quotes` ACCESS EXCLUSIVE + SHARE ROW EXCLUSIVE, `transactions` SHARE ROW EXCLUSIVE. Its probe passed on
+the LOCAL copy after steps 1-2b, applied twice in this order (15 Nov 2026); it is not run here.
+
+Checks after (read only):
+
+```sql
+select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'inquiries'
+   and column_name = 'reveal_open_until';                                                               -- 1
+select count(*) from pg_trigger where tgname in ('z33_a_quote_moves_its_requests_reveal_period',
+       'a05_a_paid_request_takes_no_new_quotations');                                                   -- 2
+```
+
+**Between this step and the deploy** the functions still running are the old ones: none reads `reveal_open_until`.
+Trigger a05 refuses a NEW supplier's quotation on a request already paid; the old supplier_api has no sentence for it,
+so that supplier gets its generic error for those minutes (READ from the trigger; production has 1 paid request).
+
+### Step 3: deploy the union of 16 functions, from the merged main
+
+```
+node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production accountant customer_api inquiry_intake messages_api public_site quote_compare quote_extract resend_inbound reveal_invoice sales_engineer stripe_checkout stripe_confirm stripe_webhook supplier_api supplier_portal wa_inbound
+```
+
+The list is the import graph of the merged tree (main ff5f74688 + money + sales, 15 Nov 2026): every function whose
+index.ts reaches, through relative imports, a runtime file either branch changes. MONEY 7: accountant, messages_api,
+reveal_invoice, stripe_checkout, stripe_confirm, stripe_webhook, supplier_api. SALES 13: customer_api, inquiry_intake,
+public_site, quote_compare, quote_extract, resend_inbound, reveal_invoice, sales_engineer, stripe_checkout,
+stripe_confirm, supplier_api, supplier_portal, wa_inbound. Four are in both (reveal_invoice, stripe_checkout,
+stripe_confirm, supplier_api): never deploy them from a checkout that lacks either branch. Re-derive the list on the
+merged main before deploying (a later merge can add a function).
+
+Within minutes of step 2c. Then `node scripts/verify_deploy_parity.mjs` on those 16 slugs (a sampler: also call one
+reader, e.g. reveal_invoice for the ZZ DEMO sale, to see the new code answer). The window readers (messages_api,
+supplier_api) call `fn_reveal_window` as the service role, which is the only role granted it.
 
 **A payment made between the apply and the deploy** (measured on a local copy): the old stripe_webhook writes it with
 `livemode` NULL. It is never numbered or booked and the founder brief lists it as "Stripe mode not known". The receipt
@@ -129,14 +192,10 @@ waits until the sweep stamps the insert time as its paid time (15 to 30 minutes)
 accountant runtime reads Stripe's mode and figures and books it once. A Stripe TEST payment by an account with no demo
 flag in that gap gets real hand-overs and a receipt, which is why the journey window (rule 1) is excluded.
 
-### Step 4: the sibling (sales_engineer): its SQL, then its functions
+### Step 4: moved
 
-`node scripts/apply_sql.mjs scripts/sql/a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql --apply --ddl --seat sales_engineer`,
-by the same rules (it sets `lock_timeout = '1500ms'`; its CHECK on quotes is added NOT VALID and validated in a second,
-short statement; its triggers are replaced in place). Its probe needs steps 1 and 2 and passed on the LOCAL copy after
-the money files (review 4). Then deploy its functions from a main that holds BOTH branches: `supplier_api`,
-`stripe_checkout` and `stripe_confirm` are touched by both, so they are never deployed from a checkout that lacks
-either (its own hand-back names the full list).
+The sibling's SQL, step 4 before 15 Nov, is now step 2c (its file's header still says "step 4"); its functions are in
+step 3's union.
 
 ### Step 5: the redaction owner file (it_engineer), re-applied
 
