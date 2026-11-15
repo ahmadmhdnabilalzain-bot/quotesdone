@@ -4,7 +4,7 @@ import type { Out as AuthenticateOut } from './authenticate.ts';
 import { M365_INBOUND_PREFIX } from '../../_shared/m365_reply_inbox.ts';
 import { admin, J, sec, logRun } from '../lib/runtime.ts';
 import { addr, pickBody } from '../lib/mail_parse.ts';
-import { fetchInboundEmail } from '../lib/inbound_fetch.ts';
+import { fetchInboundEmail, RESEND_READ_MS } from '../lib/inbound_fetch.ts';
 
 export async function readMail(ctx: AuthenticateOut) {
     const { raw } = ctx;
@@ -27,6 +27,11 @@ export async function readMail(ctx: AuthenticateOut) {
     if ((!text || text.length < 20 || !atts.length) && resendEmailId && rkey) {
       const full = await fetchInboundEmail(resendEmailId, rkey);
       if (full) { const fd = full.data || full; if (fd.headers && typeof fd.headers === 'object') hdrs = { ...fd.headers, ...(hdrs || {}) }; const fb = pickBody(fd); if (fb && fb.length > text.length) text = fb; if (Array.isArray(fd.attachments) && fd.attachments.length) atts = fd.attachments; if (!d.subject && fd.subject) d = { ...d, subject: fd.subject }; if (!d.from && fd.from) d = { ...d, from: fd.from }; if (!d.to && fd.to) d = { ...d, to: fd.to }; if (!d.html && fd.html) d = { ...d, html: fd.html }; }
+      // A READ THAT FAILED IS READ AGAIN (it_engineer, 15 Nov 2026). Resend's webhook is metadata only, so with no body in the
+      // delivery a failed read left nothing to read: a receipt was held as "no amount", a supplier's mail stored empty. This
+      // runs inside the queue's reader now (lib/queue.ts), where a throw is a failed attempt read again after a backoff and,
+      // on the fifth, a message handed to its seat with this reason. A delivery that carried its own body goes on as before.
+      else if (emailId && !text) throw new Error('the e-mail could not be read from Resend (GET /emails/inbound/' + resendEmailId + ' answered with an error or not within ' + Math.round(RESEND_READ_MS / 1000) + ' s), and the delivery carries no body of its own');
       else if (emailId) await logRun('error', { email_id: emailId }, 'could not fetch full inbound email from Resend - body and attachments may be incomplete');
     }
     // 14 SEP 2026 (founder: "all conversations need to be saved"). The 8,000-character cut below is

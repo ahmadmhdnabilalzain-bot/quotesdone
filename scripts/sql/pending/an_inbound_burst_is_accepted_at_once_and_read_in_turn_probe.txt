@@ -1,0 +1,7 @@
+A PROBE, so it is never applied at all: it raises its verdict at the end and rolls back every row it writes (queue rows
+'zz-demo-probe-*' on example.invalid, the handoff its own dead letter files, the kick's queued net request). It moves
+now() by writing the lease and backoff onto its own rows, since now() is fixed inside one transaction. Run it on the
+LOCAL database after an_inbound_burst_is_accepted_at_once_and_read_in_turn.sql; it must print PROBE OK. It cannot
+reproduce two sessions racing for a claim (one transaction is one session): the claim's advisory lock is checked by
+scripts/checks/an_inbound_burst_is_accepted_at_once_and_read_in_turn.test.mjs. This note stays for the life of the file.
+Seat: it_engineer.
