@@ -43,7 +43,8 @@ export const safeInquiry = (i: Json): SafeInquiry => ({
  */
 export function boqCsv(rows: BoqRow[]): string {
   const esc = (v: unknown) => { let s = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-  return '﻿' + [['No', 'Section', 'Description', 'Qty', 'Unit', 'Qty basis'].join(','), ...rows.map((r, k) => [k + 1, r.section, r.description, r.qty, r.unit, qtyBasis(r)?.en ?? ''].map(esc).join(','))].join('\r\n') + '\r\n';
+  // the specified make (13 Nov 2026): the PDF prints it, so the spreadsheet beside it does too
+  return '﻿' + [['No', 'Section', 'Description', 'Specified make', 'Qty', 'Unit', 'Qty basis'].join(','), ...rows.map((r, k) => [k + 1, r.section, r.description, (r as { specification?: unknown }).specification ?? '', r.qty, r.unit, qtyBasis(r)?.en ?? ''].map(esc).join(','))].join('\r\n') + '\r\n';
 }
 const extOf = (url: string) => { const m = String(url).split('?')[0].match(/\.([a-z0-9]{2,4})$/i); return m ? '.' + m[1].toLowerCase() : ''; };
 /**

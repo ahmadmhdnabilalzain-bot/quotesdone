@@ -75,5 +75,6 @@ test('the browser OCR of a PDF runs only when the server read it and found no te
   assert.match(cond, /res\.ok === true && res\.pdf_words === 0/, 'the OCR fallback must require ok:true and pdf_words 0 from analyze_drawing');
   // analyze_drawing returns pdf_words on the success path and on both failure paths that still carry the file.
   const ad = DOCS.slice(DOCS.indexOf("if (action === 'analyze_drawing')"));
-  assert.equal((ad.match(/pdf_words: pdfWords/g) || []).length, 3, 'analyze_drawing must return pdf_words on its success, boq_fetch_failed and analysis_failed answers');
+  // 13 Nov 2026: and on the quotation answer (a priced document rebuilt as our inquiry, customer_api actions/documents.ts).
+  assert.equal((ad.match(/pdf_words: pdfWords/g) || []).length, 4, 'analyze_drawing must return pdf_words on its success, quotation, boq_fetch_failed and analysis_failed answers');
 });

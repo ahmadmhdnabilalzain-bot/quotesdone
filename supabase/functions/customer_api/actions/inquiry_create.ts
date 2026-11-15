@@ -23,6 +23,9 @@ import { drawingIdentityFinding, resolveRedactedPaths, storedDrawingTerms } from
 import { gateAtSend } from '../drawing_send_gate.ts';
 import { ownDrawingPath } from '../drawing_path.ts';
 import { matchAndNotify } from '../lib/matching.ts';
+import { keylessPlaceKeys, oneOfSeven, splitSite } from '../../_shared/site_location.ts';
+import { attachedLine } from '../../supplier_api/what_a_supplier_receives.ts';
+import { isQuotationReading, quotationGate } from '../../drawing_boq/quotation_gate.ts';
 import { claimIntake, releaseIntake } from '../lib/intake_claim.ts';
 import { keysOfTrade, serviceKeyCols, stateKeysForIntake } from '../lib/state_service_keys.ts';
 import { joinIfNotOpen, notOpenAnswer } from '../../_shared/trade_opening.ts';
@@ -139,7 +142,11 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       if ((recent || 0) >= INQUIRY_LIMIT_PER_HOUR) return J({ error: 'You have created many requests in a short time. Please try again later.' }, 429);
       const drawing = body.drawing && typeof body.drawing === 'object' ? body.drawing : null;
       let boqObj = drawing?.boq && typeof drawing.boq === 'object' ? drawing.boq : null;
-      const briefSource = drawing ? (['drawing','quotation','boq'].includes(String(drawing.brief_source)) ? String(drawing.brief_source) : 'drawing') : null;
+      // A CUSTOMER'S EXISTING QUOTATION IS NEVER A DRAWING (13 Nov 2026, anonymity audit A, L2): the reading itself says it
+      // is one (drawing_boq/quotation_gate.ts isQuotationReading: the model's document_kind, or the code reader's note), and
+      // that wins over whatever the browser called the upload. Measured: the portal sent every PDF as 'drawing' or 'boq', so
+      // suppliers were told "A drawing with a draft bill of quantities is attached" of another supplier's priced offer.
+      const briefSource = drawing ? (isQuotationReading(boqObj) ? 'quotation' : ['drawing','quotation','boq'].includes(String(drawing.brief_source)) ? String(drawing.brief_source) : 'drawing') : null;
       let intake: any = null;
       if (body.intake_id) { const { data: it } = await admin.from('inquiry_intake').select('*').eq('id', String(body.intake_id)).maybeSingle(); if (it && it.email === email && it.status === 'ready') intake = it;
         // This intake already posted its request (lib/intake_claim.ts): Send again after a timeout is told so, not asked the questions again.
@@ -171,9 +178,16 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         if (!known) category = intake?.category ? String(intake.category).trim() : '';
       }
       if (!category) category = 'general';
-      const emirate = body.emirate || (briefObj?.emirate || null) || null;
+      // One of the seven, whatever the browser sent (13 Nov 2026, review of F2): any string was stored and shown to suppliers.
+      const emirate = oneOfSeven(body.emirate) || oneOfSeven(briefObj?.emirate) || null;
       const specIn = body.spec && typeof body.spec === 'object' ? body.spec : {};
-      const spec = (briefObj?.details && typeof briefObj.details === 'object') ? { ...briefObj.details, ...specIn } : specIn;
+      // THE EXACT SITE IS THE CUSTOMER'S (13 Nov 2026, founder ruling 1683; _shared/site_location.ts): it is kept under the
+      // customer-only key `site_location` (the intake's own reading, or an address answer that says more than the emirate),
+      // and the address key a supplier reads keeps the emirate. Every supplier door drops the key before a reveal.
+      // This trade's checklist questions that ask where with no key of their own ("Emirate / area": the interview calls them
+      // field_N) are recorded per request, so every door reduces them too (_shared/site_location.ts keylessPlaceKeys).
+      const { data: cf } = await admin.from('category_specs').select('fields').eq('category', category).maybeSingle();
+      const spec: Record<string, any> = splitSite((briefObj?.details && typeof briefObj.details === 'object') ? { ...briefObj.details, ...specIn } : { ...specIn }, emirate, briefObj?.site_location, keylessPlaceKeys(cf?.fields));
       const budget = (body.budget ? String(body.budget) : (briefObj?.budget ? String(briefObj.budget) : '')).slice(0, 80) || null;
       // THE SALES ENGINEER'S QUESTIONS GATE THE POST (founder, 14 Sep 2026: "do you require a warranty?
       // do you require installation? do you have specific material in mind ... our job is to ask").
@@ -207,6 +221,8 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       // Never trust drawing.drawing_redacted_paths from the body — see resolveRedactedPaths above.
       const rr = await resolveRedactedPaths(String(cust.id), String(user.id || ''), drawing);
       if ('err' in rr) return J(rr.err, rr.status);
+      // A quotation's pages are never shown to a supplier: analyze_drawing returns none for it. Pages here are a DRAWING's,
+      // attached beside the quotation (review of F2: a quotation and a drawing together kept neither drawing), so they stay.
       const drawingRedacted = rr.paths.length ? rr.paths.slice(0, 24) : null;
       // `tradesIn` arrives from the request body, so Set<unknown> is what TypeScript infers and
       // every downstream use of a trade - labelize(tr), KW[tr], category: tr - was an error.
@@ -231,6 +247,17 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       // THE DRAWING'S OWN NAMES ARE GATED HERE, FROM THE STORED FILE (10 Nov 2026, ../drawing_send_gate.ts says what was
       // measured). Before the open lines are recorded and before redactBoq, so nothing written for suppliers below - boq,
       // spec.boq_check.lines, the notification - is taken from lines the gate has not read.
+      // The old supplier's names a quotation's reading carried (analyze_drawing termsToKeep) leave the BOQ here and are kept
+      // under the request's customer-only key, so every supplier door removes them from the customer's own words too.
+      if (boqObj && Array.isArray(boqObj.old_supplier_terms)) {
+        spec.old_supplier_terms = boqObj.old_supplier_terms.map((t: unknown) => String(t ?? '').slice(0, 80)).filter(Boolean).slice(0, 80);
+        const { old_supplier_terms: _drop, ...rest } = boqObj; boqObj = rest;
+      }
+      // the rates of the customer's own priced BOQ: his, kept as data under the customer-only key (second review of F2, item e)
+      if (boqObj && Array.isArray(boqObj.customer_rates)) {
+        spec.customer_rates = boqObj.customer_rates.slice(0, 600);
+        const { customer_rates: _r, ...rest } = boqObj; boqObj = rest;
+      }
       if (boqObj) {
         const at = await storedDrawingTerms(drawingPath);
         const sg = gateAtSend(boqObj, at.terms, briefSource);
@@ -239,6 +266,10 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
           await drawingIdentityFinding('boq_held', { source_path: drawingPath, why: sg.held, dropped_lines: sg.dropped_lines, brief_source: briefSource });
         } else if (sg.dropped_lines) await drawingIdentityFinding('boq_identity_dropped', { source_path: drawingPath, dropped_lines: sg.dropped_lines, brief_source: briefSource });
         boqObj = sg.boq;
+        // The door's own pass over a quotation's reading (drawing_boq/quotation_gate.ts): money, reference numbers and the
+        // stored file's own names, whatever reading reached here (customer_api analyze_drawing has already run it with the
+        // document's party terms; running it again changes nothing on a clean reading).
+        if (boqObj && briefSource === 'quotation') boqObj = quotationGate(boqObj, { parties: at.terms ?? [], refs: [], prefixes: [] });
       }
       // A drawing attached but not redacted and verified goes nowhere; the customer was told on upload, the seat is told here.
       if (drawingPath && !drawingRedacted && (briefSource === 'drawing' || drawing?.held === true)) await drawingIdentityFinding('sent_without_drawing', { source_path: drawingPath, held: drawing?.held === true });
@@ -375,7 +406,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
           },
           notifyChild: async (id, tr) => {
             const tlabel = labelize(tr);
-            const extra = ' This is the ' + tlabel + ' portion of a larger project — please quote for the ' + tlabel + ' works only; other trades are handled separately.' + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
+            const extra = ' This is the ' + tlabel + ' portion of a larger project — please quote for the ' + tlabel + ' works only; other trades are handled separately.' + attachedLine(briefSource, !!boqObj, !!drawingRedacted);
             // Each child is ONE trade and is routed like any single request: through the capability
             // matcher (sales_engineer.match), not keyword matching. Measured 14 Sep 2026: split children
             // went to match_suppliers_kw, which matched a registered aluminium supplier and no one for
@@ -406,7 +437,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, ...serviceKeyCols(stateKeys), compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
         if (e1) { await releaseIntake(admin, String(intake.id)); return J(...inquiryNotSaved(e1)); }
         const tradeList = distinctTrades.map(labelize).join(', ');
-        const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + (boqObj ? (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached.' : ' A redacted drawing is attached.') : '');
+        const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + attachedLine(briefSource, !!boqObj, !!drawingRedacted);
         const { matches, routing } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, summary, budget, extra: extra + supplierLine(reqStored) });
         // The routing goes back with the answer (finding c of 10 Nov 2026): a turnkey request no turnkey contractor matched
         // carries routing.separate_offer (how many specialists could quote it per trade), and the portal asks the customer
@@ -416,8 +447,9 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
 
       const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length || intakeTradeCodes.length ? [...new Set([...tradesIn, ...intakeTradeCodes])] : null, brief_source: briefSource, ...drawCols, ...briefCols, ...serviceKeyCols(stateKeys), compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
       if (e1) { await releaseIntake(admin, String(intake.id)); return J(...inquiryNotSaved(e1)); }
-      const extra = boqObj ? (briefSource === 'quotation' ? ' A scope (anonymized from the customer’s own quotation, prices removed) is attached.' : (briefSource === 'boq' ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : ' A drawing with a draft bill of quantities is attached.')) : '';
+      const extra = attachedLine(briefSource, !!boqObj, !!drawingRedacted);
       const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, summary, budget, extra: extra + supplierLine(reqStored) });
       return J({ ...postedSingle(String(inq!.id), 'single', matches, routing), concierge: await confirmRequest(String(inq!.id)) });
     }
 }
+

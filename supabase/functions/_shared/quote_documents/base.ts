@@ -54,15 +54,20 @@ export function maskContacts(s: unknown, names: string[] = [], lang: Lang = 'en'
   // each named supplier by knownNameRe too: its suffix-free core and any two consecutive words of its name.
   // Whole names only here: these documents carry several suppliers' text and a fragment of one supplier's name is
   // another's ordinary scope (review of #1838 item 2). The supplier's own text lost its fragments at save.
+  // Each named supplier BEFORE the shared list too (13 Nov 2026): the list reduces places now, and "Al Quoz Trading" must
+  // be matched whole before "Al Quoz" becomes "Dubai".
+  if (opts.parties !== false) for (const n of names) { const re = knownNameRe(n); if (re && String(n).replace(/[^A-Za-z؀-ۿ]/g, '').length >= 3) t = t.replace(re, H); }
   t = scrubIdentityText(t, H, { parties: opts.parties });
   for (const n of names) { const re = knownNameRe(n); if (re && String(n).replace(/[^A-Za-z؀-ۿ]/g, '').length >= 3) t = t.replace(re, H); }
   for (const n of names) {
     const v = String(n || '').trim();
     if (v.length < 3) continue;
-    t = t.replace(new RegExp(escapeRe(v), 'gi'), H);
+    // Whole words only (review of 13 Nov 2026: "Construct Ltd" took the "Construct" out of "Construction").
+    const edge = (x: string) => new RegExp(`(?<![A-Za-z0-9\u0600-\u06FF])${escapeRe(x)}(?![A-Za-z0-9\u0600-\u06FF])`, 'gi');
+    t = t.replace(edge(v), H);
     // "ZZ DEMO Cooling Services LLC" also appears as "ZZ DEMO Cooling Services".
     const core = v.replace(/\b(?:l\.?l\.?c|fze|fzco|fz-llc|est|establishment|trading|co|company|ltd|limited)\.?\s*$/i, '').trim();
-    if (core.length >= 5 && core !== v) t = t.replace(new RegExp(escapeRe(core), 'gi'), H);
+    if (core.length >= 5 && core !== v) t = t.replace(edge(core), H);
   }
   return t;
 }
