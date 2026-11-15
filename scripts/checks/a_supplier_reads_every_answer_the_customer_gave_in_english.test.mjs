@@ -46,9 +46,10 @@ test('the requests that lost the answers are re-saved, guarded to exactly those 
   assert.match(SQL, /update public\.inquiries\s+set spec = spec\s+where jsonb_typeof\(spec\) = 'object' and spec \? 'customer_requirements'\s+and not coalesce\(spec_masked \? 'customer_requirements', false\);/);
 });
 
-test('the file waits for its apply with a note, and its probe is never applied', () => {
-  const note = readFileSync(join(ROOT, 'scripts/sql/pending/a_supplier_reads_every_answer_the_customer_gave_in_english.txt'), 'utf8');
-  assert.match(note, /sales_engineer/);
+test('the file is applied and on the MANIFEST (its pending note was deleted on 12 Nov, f8e948478), and its probe is never applied', () => {
+  const manifest = readFileSync(join(ROOT, 'scripts/sql/MANIFEST.txt'), 'utf8').split('\n').map((l) => l.trim());
+  assert.ok(manifest.includes('scripts/sql/a_supplier_reads_every_answer_the_customer_gave_in_english.sql'), 'the applied file is not on the MANIFEST');
+  assert.ok(!manifest.some((l) => l.includes('a_supplier_reads_every_answer_the_customer_gave_in_english_probe')), 'the probe must never be applied');
   readFileSync(join(ROOT, 'scripts/sql/pending/a_supplier_reads_every_answer_the_customer_gave_in_english_probe.txt'), 'utf8');
 });
 
