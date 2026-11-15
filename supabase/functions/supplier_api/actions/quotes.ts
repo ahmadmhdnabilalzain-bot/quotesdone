@@ -27,10 +27,12 @@ import { carryHeldAnswers, heldAnswersOf, issueAsMissing, optionOfEach, releaseR
 import { scrubDeep, scrubIdentity, scrubLine } from '../identity_scrub.ts';
 import { cleanTemplate } from '../quote_template.ts';
 import { newOptionRefusal } from '../new_option.ts';
-import { type ActionCtx, J, SUPA_URL, admin, failed, logged, secretVal } from '../context.ts';
+import { type ActionCtx, J, SUPA_URL, admin, failed, logged, secretVal, tellItSeat } from '../context.ts';
+import { maskContact } from '../../_shared/observe.ts';
+import type { Recorded } from '../../_shared/recorded_write.ts';
 import { CONCLUDED, UUID_RE, clip, numOrNull } from '../lib/fields.ts';
 import { NOT_MY_FILE, matchedInquiry, ownQuoteFile, sameVerdict, specChecklist } from '../lib/quote_gate.ts';
-import { acceptLive, acceptRule, kickDelivery, notifyNewQuote, storeReviewNotes, supersedeQualityHold, supplierOf } from '../lib/quote_acceptance.ts';
+import { QUOTE_NOT_SAVED, QUOTE_NOT_SENT, acceptLive, acceptRule, kickDelivery, notifyNewQuote, storeReviewNotes, supersedeQualityHold, supplierOf, writeQuoteLines } from '../lib/quote_acceptance.ts';
 import { regenRender } from '../lib/arabic_quotation.ts';
 
 export async function quoteActions(c: ActionCtx): Promise<Response | undefined> {
@@ -186,10 +188,13 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       // #854). approve() marks the hold released before it calls accept, and liveHold() reads only 'open' and
       // 'awaiting_approval', so a refusal from inside accept left the quote unsent AND the hold desk shut. As a
       // precheck the hold goes back to 'open' carrying the review's own issues, which spec_hold now shows (finding a).
+      let notSent = false;
       const out = await approve(repo, qid, supplierOf(sup, email), email, body.confirm, ctx,
-        async (row) => (await acceptLive(String(row.id), String(row.inquiry_id), true)).accepted,
+        async (row) => { const l = await acceptLive(String(row.id), String(row.inquiry_id), true); notSent = 'not_sent' in l && l.not_sent === true; return l.accepted; },
         releaseCheck);
       if (!out.ok) return J({ ...out, error: out.code }, out.code === 'not_found' ? 404 : 409);
+      // the release was approved but the write that sends the quotation did not land (item A): said, and the IT seat has it
+      if (notSent) return J({ ...out, ok: false, error: 'quote_not_sent', ...QUOTE_NOT_SENT }, 503);
       return J(out);
     }
     // WITHDRAW BEFORE THE REVEAL (QA walk, 19 Oct 2026: the portal showed a "Withdrawn" status but gave the
@@ -411,8 +416,8 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         let qid: string;
         if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return failed(String(action), error); qid = String(prior.id); }
         else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
+        let linesW: Recorded;
         try {
-          await admin.from('quote_items').delete().eq('quote_id', qid);
           // A line's own words fill brand / model / specification where the caller sent none; a scope
           // that says installation is included, with no line carrying a labour or install figure, marks
           // the first line install = 0 — "included in the rate" — so the scorer's labour-or-installation
@@ -422,8 +427,38 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
           // A line item with no description is dropped, not stored blank - a quote line the buyer
           // cannot read is worse than one that is absent.
           const clean = rows.filter((r: { description: string | null }) => r.description);
-          if (clean.length) await admin.from('quote_items').insert(clean);
-        } catch (_e) { /* */ }
+          // THE LINES ARE SAVED, OR HE IS TOLD THEY WERE NOT (15 Nov 2026, review 2 of the certificate branch, item B). This delete and
+          // insert sat in a try/catch that supabase-js never enters, so a lock or a timeout left the quotation with its old lines or none
+          // and the submission answered ok. writeQuoteLines checks both, and tries the pair again on a blip (delete then insert, so a
+          // retry after an insert whose answer was lost never doubles a line).
+          linesW = await writeQuoteLines(qid, clean);
+        } catch (e) { linesW = { ok: false, attempts: 1, reason: String((e as Error)?.message ?? e).slice(0, 300), blip: false }; }
+        // Put the row back exactly as it was before a check (dry_run): the snapshotted columns and the snapshotted lines (with their
+        // own ids, so anything that references a line still does). A row this check CREATED is removed.
+        const restore = async (): Promise<boolean> => {
+          try {
+            if (prior && snapRow) {
+              const u = await admin.from('quotes').update(snapRow).eq('id', qid);
+              const d = await admin.from('quote_items').delete().eq('quote_id', qid);
+              const i2 = snapLines.length ? await admin.from('quote_items').insert(snapLines) : { error: null };
+              return !u.error && !d.error && !i2.error;
+            }
+            const d = await admin.from('quote_items').delete().eq('quote_id', qid);
+            const dq = await admin.from('quotes').delete().eq('id', qid);
+            return !d.error && !dq.error;
+          } catch (_e) { return false; }
+        };
+        if (!linesW.ok) {
+          const restored = dryRun ? await restore() : null;
+          tellItSeat('quote_lines_not_saved', "supplier_api could not save a supplier's quotation lines, so the submission was refused",
+            'edge function supplier_api, action submit_quote', { quote_id: qid, inquiry_id: inquiryId, option_no: p.option_no, prior_status: prior?.status ?? null,
+              dry_run: dryRun, restored, attempts: linesW.attempts, reason: maskContact(linesW.reason).slice(0, 300),
+              told: dryRun ? 'the check was refused (preflight_unavailable)' : 'the supplier was told his quotation was not sent (quote_not_saved); nothing was let through' });
+          if (dryRun && !restored) return J({ error: 'preflight_restore_failed', code: 'preflight_restore_failed', quote_id: qid, message: 'The check could not be undone cleanly and we have raised it. Please do not resend until we confirm.' }, 500);
+          if (dryRun) return J({ error: 'preflight_unavailable', code: 'preflight_unavailable', message: 'We could not run the check just now. Please try again in a moment.' }, 503);
+          if (anyAccepted) await notifyNewQuote(String(inquiryId), anyAccepted);   // an earlier option of this submission did go live
+          return J({ ok: false, error: 'quote_not_saved', ...QUOTE_NOT_SAVED, quote_id: qid, options: results.length ? results : undefined }, 503);
+        }
         // Preflight (dry_run). Runs the real scorer, the real accept rule and the real hold gate's
         // assessment, then stops: the status is put back as it was, nothing is notified, no hold opens.
         // The gate's own context: the same checklist, the same settled readings, the same assessment (workflow.ts
@@ -436,21 +471,8 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
           const acc = await acceptRule(qid);
           const { a, settled } = await readAndAssess(repo, qid, gctx);
           await sameVerdict(gkey, a, settled, qid, 'preflight');
-          // Put it back exactly as it was: the snapshotted columns and the snapshotted lines (with their
-          // own ids, so anything that references a line still does). A row this check CREATED is removed.
-          let restored = true;
-          try {
-            if (prior && snapRow) {
-              const u = await admin.from('quotes').update(snapRow).eq('id', qid);
-              const d = await admin.from('quote_items').delete().eq('quote_id', qid);
-              const i2 = snapLines.length ? await admin.from('quote_items').insert(snapLines) : { error: null };
-              restored = !u.error && !d.error && !i2.error;
-            } else {
-              const d = await admin.from('quote_items').delete().eq('quote_id', qid);
-              const dq = await admin.from('quotes').delete().eq('id', qid);
-              restored = !d.error && !dq.error;
-            }
-          } catch (_e) { restored = false; }
+          // Put it back exactly as it was (restore, above).
+          const restored = await restore();
           // A FAILED RESTORE IS AN INCIDENT, NOT A FIELD ON A 200 (review of #854). Until this line it
           // answered ok:true with restored:false and a console line nobody reads, so a SENT quotation
           // could be left with its lines deleted and its terms overwritten and nothing would page. It
@@ -499,6 +521,8 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         results.push({ quote_id: qid, option_no: p.option_no, held: false, ...live });
       }
       if (anyAccepted) await notifyNewQuote(String(inquiryId), anyAccepted);   // one notice per submission, named by its first live quote
+      // an option whose sending write did not land (acceptLive, item A) is said, never answered ok
+      if (body.dry_run !== true && results.some((r) => r.not_sent)) return J({ ok: false, error: 'quote_not_sent', ...QUOTE_NOT_SENT, options: multi ? results : undefined, quote_id: multi ? undefined : results[0]?.quote_id }, 503);
       if (multi) return J({ ok: true, options: results, submission_id, accepted: results.some((r) => r.accepted), held: results.some((r) => r.held), dry_run: body.dry_run === true, code: 'options_split', params: { count: results.length } });
       const r0 = results[0];
       const q = { id: r0.quote_id, option_no: r0.option_no, status: r0.accepted ? 'submitted' : 'draft' };
