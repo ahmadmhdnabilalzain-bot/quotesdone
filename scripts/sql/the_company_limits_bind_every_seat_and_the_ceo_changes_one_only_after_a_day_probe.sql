@@ -35,10 +35,20 @@ begin
     if coalesce((public.fn_ceo_sets_company_limit('per_action_aed', v_per + 9, 'probe ' || v_tag || ': another change while one waits')->>'ok')::boolean, true)
       then v_fail := v_fail || 'a second change was taken while one waited; '; end if;
   end if;
-  insert into public.company_limit_change (limit_key, value_aed, reason, set_by, effective_at)
-  values ('daily_spend_aed', v_day + 1, 'probe ' || v_tag || ': asking for an immediate change', 'ceo', now() - interval '1 day');
-  if (select effective_at from public.company_limit_change where reason like 'probe ' || v_tag || ': asking%') < now() + interval '23 hours'
-    then v_fail := v_fail || 'a direct insert chose its own effective time; '; end if;
+  -- REVIEW_ceoplan item 4 (LOCAL): a real change of daily_spend_aed waiting made this insert raise and the probe fail. The probe
+  -- reads the real state: with a change waiting, a second one is refused; with none, a direct insert waits a day whatever it asked.
+  if exists (select 1 from public.company_limit_change where limit_key = 'daily_spend_aed' and effective_at > clock_timestamp()) then
+    begin
+      insert into public.company_limit_change (limit_key, value_aed, reason, set_by, effective_at)
+      values ('daily_spend_aed', v_day + 1, 'probe ' || v_tag || ': asking for an immediate change', 'ceo', now() - interval '1 day');
+      v_fail := v_fail || 'a second waiting change of daily_spend_aed was taken by a direct insert; ';
+    exception when others then null; end;
+  else
+    insert into public.company_limit_change (limit_key, value_aed, reason, set_by, effective_at)
+    values ('daily_spend_aed', v_day + 1, 'probe ' || v_tag || ': asking for an immediate change', 'ceo', now() - interval '1 day');
+    if (select effective_at from public.company_limit_change where reason like 'probe ' || v_tag || ': asking%') < now() + interval '23 hours'
+      then v_fail := v_fail || 'a direct insert chose its own effective time; '; end if;
+  end if;
   if coalesce((public.fn_ceo_sets_company_limit('daily_spend_aed', 1, 'too short')->>'ok')::boolean, true) then v_fail := v_fail || 'a change with no reason was taken; '; end if;
   begin
     insert into public.company_limit_change (limit_key, value_aed, reason, set_by, effective_at) values ('daily_spend_aed', 1, 'probe ' || v_tag || ': a seed after the first value', 'seed', now());
@@ -59,6 +69,12 @@ begin
      or has_table_privilege('service_role', 'public.company_spend_commitment', 'DELETE') or has_table_privilege('service_role', 'public.company_spend_commitment', 'UPDATE')
      or has_table_privilege('service_role', 'public.company_spend_commitment', 'INSERT')
     then v_fail := v_fail || 'service_role can write the limit tables directly; '; end if;
+  -- REVIEW_ceoplan: nor its own authority or the CEO's caps
+  if has_table_privilege('service_role', 'public.ceo_standing_grant', 'INSERT') or has_table_privilege('service_role', 'public.ceo_standing_grant', 'UPDATE')
+     or has_table_privilege('service_role', 'public.ceo_standing_grant', 'DELETE') or has_table_privilege('service_role', 'public.decision_policy', 'INSERT')
+     or has_table_privilege('service_role', 'public.decision_policy', 'UPDATE') or has_table_privilege('service_role', 'public.decision_policy', 'DELETE')
+     or not has_table_privilege('service_role', 'public.decision_policy', 'SELECT') or not has_table_privilege('service_role', 'public.ceo_standing_grant', 'SELECT')
+    then v_fail := v_fail || 'service_role can write ceo_standing_grant or decision_policy (a seat could grant itself authority or raise a cap), or can no longer read them; '; end if;
   begin
     truncate public.company_limit_change;
     v_fail := v_fail || 'company_limit_change was truncated; ';
@@ -105,6 +121,11 @@ begin
          ('probe.report_' || v_tag, 'marketing', 'probe.report_' || v_tag, 'probe', 'ceo');
   if coalesce((public.fn_agent_may_act('marketing', 'probe.ad_boost_' || v_tag, 1000)->>'may_act')::boolean, true)
     then v_fail := v_fail || 'the three-argument rule allowed AED 1000 of ad spend outside the limits; '; end if;
+  -- REVIEW_ceoplan item 6: with no amount, or zero, money is refused too
+  if coalesce((public.fn_agent_may_act('marketing', 'probe.ad_boost_' || v_tag, null)->>'may_act')::boolean, true)
+     or coalesce((public.fn_agent_may_act('marketing', 'probe.ad_boost_' || v_tag, 0)->>'may_act')::boolean, true)
+     or coalesce((public.fn_agent_may_act('marketing', 'probe.ad_boost_' || v_tag)->>'may_act')::boolean, true)
+    then v_fail := v_fail || 'the three-argument rule allowed ad spend with no amount or zero; '; end if;
   if not coalesce((public.fn_agent_may_act('accountant', 'probe.refund_' || v_tag, 50)->>'may_act')::boolean, false)
      or not coalesce((public.fn_agent_may_act('marketing', 'probe.report_' || v_tag)->>'may_act')::boolean, false)
     then v_fail := v_fail || 'the three-argument rule changed for a refund or a non-money action; '; end if;
@@ -130,6 +151,16 @@ begin
   update public.leads set invite_status = null, email = 'limits-probe-lead-' || v_tag || '@outlook.com' where id = v_lead;
   v_g := public.fn_company_message_gates('email', null, v_lead);
   if not exists (select 1 from unnest(v_g) g where g like 'inbox placement:%') then v_fail := v_fail || 'a Microsoft mailbox passed the placement bar (founder_instruction 1537): ' || array_to_string(v_g, ',') || '; '; end if;
+  -- REVIEW_ceoplan item 6: the same Microsoft address named ONLY as an address (no lead id) is read against the bar (1537), and
+  -- an address alone finds its lead's opt-out
+  v_g := public.fn_company_message_gates('email', 'limits-probe-lead-' || v_tag || '@outlook.com', null);
+  if not exists (select 1 from unnest(v_g) g where g like 'inbox placement:%') then v_fail := v_fail || 'a Microsoft address with no lead passed the placement bar: ' || array_to_string(v_g, ',') || '; '; end if;
+  v_g := public.fn_company_message_gates('email', 'limits-probe-free-' || v_tag || '@hotmail.com', null);
+  if not exists (select 1 from unnest(v_g) g where g like 'inbox placement:%') then v_fail := v_fail || 'an unknown Microsoft address passed the placement bar: ' || array_to_string(v_g, ',') || '; '; end if;
+  update public.leads set invite_status = 'unsubscribed' where id = v_lead;
+  v_g := public.fn_company_message_gates('email', 'LIMITS-PROBE-LEAD-' || v_tag || '@outlook.com', null);
+  if not exists (select 1 from unnest(v_g) g where g like 'opt-out:%') then v_fail := v_fail || 'an opted-out lead named by its address alone passed: ' || array_to_string(v_g, ',') || '; '; end if;
+  update public.leads set invite_status = null where id = v_lead;
   if cardinality(public.fn_company_message_gates('whatsapp', null, v_lead)) = 0 then v_fail := v_fail || 'WhatsApp with no opt-in passed; '; end if;
   if cardinality(public.fn_company_message_gates('sms', null, v_lead)) = 0 then v_fail := v_fail || 'an unknown channel passed; '; end if;
 

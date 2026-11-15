@@ -49,7 +49,8 @@
 -- the_company_limits_bind_every_seat_and_the_ceo_changes_one_only_after_a_day_probe.sql (LOCAL, every rule executed)
 -- APPLY ORDER: this file, then every_seat_reads_one_pool_and_every_hand_over_comes_back.sql (its authority check reads these),
 -- then the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql.
--- LOCKS: two new tables and routines only; nothing here touches a busy table.
+-- LOCKS: two new tables and routines only; nothing here touches a busy table. The two REVOKEs of section 8 take a brief lock on
+-- ceo_standing_grant and decision_policy (ACL change; small tables read by the seats, under the file's lock_timeout).
 set local lock_timeout = '1500ms';
 
 -- ── 1. THE LIMITS: append-only, the first value at once, every later change a day later ─────────────────────────────
@@ -216,6 +217,12 @@ declare v_out text[] := '{}'; v_email text; v_lead public.leads; v_s jsonb; v_pr
 begin
   if p_lead_id is not null then select * into v_lead from public.leads where id = p_lead_id; end if;
   v_email := lower(nullif(btrim(coalesce(p_email, v_lead.email, '')), ''));
+  -- REVIEW_ceoplan item 6 (LOCAL): a recipient named only by an address skipped the lead's opt-out and the placement bar, so an
+  -- Outlook invitation passed (founder instruction 1537). The address finds its lead (uq_leads_email_lower), and the placement
+  -- bar below is read for EVERY e-mail recipient, with or without a lead.
+  if v_lead.id is null and v_email is not null then
+    select * into v_lead from public.leads where lower(email) = v_email and email <> '' order by id limit 1;
+  end if;
   if v_lead.id is not null and coalesce(v_lead.invite_status, '') in ('complained', 'unsubscribed', 'opted_out') then
     v_out := v_out || ('opt-out: the person ' || v_lead.invite_status);
   end if;
@@ -226,11 +233,11 @@ begin
     if v_email is null then return v_out || 'no e-mail address'::text; end if;
     v_s := public.fn_email_sendable(v_email);
     if not coalesce((v_s->>'ok')::boolean, false) then v_out := v_out || ('suppression: ' || coalesce(v_s->>'reason', 'not sendable')); end if;
-    if v_lead.id is not null then   -- a supplier invitation also passes the inbox-placement bar for its mailbox provider
-      v_prov := public.fn_mail_provider_of_email(v_email);
-      if not (v_prov = any (coalesce(public.fn_invite_placement_open_providers((now() at time zone 'Asia/Dubai')::date), '{}'::text[]))) then
-        v_out := v_out || ('inbox placement: the ' || coalesce(v_prov, 'unknown') || ' provider is not open on invite_placement_bar');
-      end if;
+    -- every e-mail recipient passes the inbox-placement bar for its mailbox provider (a caller that sends a reply to the person's
+    -- own mail, not a cold message, removes this one reason itself: fn_ceo_plan_bet_check for a channel without gate_placement)
+    v_prov := public.fn_mail_provider_of_email(v_email);
+    if not coalesce(v_prov = any (coalesce(public.fn_invite_placement_open_providers((now() at time zone 'Asia/Dubai')::date), '{}'::text[])), false) then
+      v_out := v_out || ('inbox placement: the ' || coalesce(v_prov, 'unknown') || ' provider is not open on invite_placement_bar');
     end if;
   elsif lower(coalesce(p_channel, '')) = 'whatsapp' then
     if v_lead.id is null or not exists (select 1 from public.supplier_whatsapp_optin o where o.lead_id = v_lead.id) then
@@ -350,12 +357,24 @@ create or replace function public.fn_agent_may_act(p_grantee_role_id text, p_act
 returns jsonb language plpgsql stable set search_path to 'public', 'pg_temp' as $fn$
 declare v jsonb := public.fn_agent_standing_grant(p_grantee_role_id, p_action_class, p_amount_aed);
 begin
+  -- REVIEW_ceoplan item 6 (LOCAL): ('marketing', 'ad_boost', null) and ('marketing', 'ad_boost', 0) returned may_act true. A
+  -- money action is refused here with ANY amount, none and zero included: only the subject-aware form commits money.
   if public.fn_action_is_money(p_action_class) and lower(coalesce(p_action_class, '')) !~ 'refund'
-     and coalesce(p_amount_aed, 0) > 0 and coalesce((v->>'may_act')::boolean, false) then
+     and coalesce((v->>'may_act')::boolean, false) then
     return jsonb_build_object('may_act', false, 'route', 'hard_limit', 'grant', v->>'grant',
-      'reason', format('Money (%s, AED %s) is allowed only through the subject-aware authority check, fn_agent_may_act(seat, action, amount, subject, ask), which commits it against the company limits (founder ledger 1696).', p_action_class, p_amount_aed));
+      'reason', format('Money (%s, %s) is allowed only through the subject-aware authority check, fn_agent_may_act(seat, action, amount, subject, ask), which names the amount and commits it against the company limits (founder ledger 1696).',
+                       p_action_class, case when coalesce(p_amount_aed, 0) > 0 then 'AED ' || p_amount_aed else 'no amount named' end));
   end if;
   return v;
 end $fn$;
 revoke execute on function public.fn_agent_may_act(text, text, numeric) from public, anon, authenticated;   -- as on production (SELECT 15 Nov)
 grant execute on function public.fn_agent_may_act(text, text, numeric) to service_role;
+
+-- ── 8. NO SEAT WRITES ITS OWN AUTHORITY OR THE CEO'S CAPS (REVIEW_ceoplan, REVIEW_ceo item 1 re-run) ───────────────────────
+-- SELECT 15 Nov: service_role holds arwdDxtm on ceo_standing_grant and decision_policy, so any edge function could grant itself
+-- a standing authority or raise a cap (decision_policy ceo_planning_loop.week_aed_cap, ceo_focus_trades). No edge function,
+-- script or site code writes either table (READ: every supabase/functions, scripts and src reference is a select), and no
+-- SECURITY INVOKER routine writes them (SELECT: the three writers are SECURITY DEFINER). The seats keep reading both; the
+-- definer routines (owned by postgres) keep writing.
+revoke insert, update, delete, truncate on public.ceo_standing_grant from service_role;
+revoke insert, update, delete, truncate on public.decision_policy from service_role;

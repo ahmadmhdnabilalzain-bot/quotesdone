@@ -490,6 +490,30 @@ begin
     then v_fail := v_fail || 'R4: the CEO''s own authority reached an unsubscribed lead; '; end if;
   if coalesce((public.fn_agent_may_act('customer_support', 'probe.dispatch_' || v_tag, null, 'probe:' || v_tag || ':nobody')->>'may_act')::boolean, true)
     then v_fail := v_fail || 'R4: a message action that names nobody was allowed; '; end if;
+  -- REVIEW_ceoplan item 6: a conversation is a message (a live customer_support grant): a WhatsApp number with no opt-in, an
+  -- address given as ask.to, and nobody at all are refused; an Outlook address named only by ask.email meets the placement bar
+  insert into public.ceo_standing_grant (grant_key, grantee_role_id, action_class, scope_note, issued_by)
+  values ('probe.conversation_' || v_tag, 'customer_support', 'probe.conversation_' || v_tag, 'probe', 'ceo'),
+         ('probe.invitation_std_' || v_tag, 'sales_engineer', 'probe.invitation_std_' || v_tag, 'probe', 'ceo');
+  if not (public.fn_action_is_message('conversation') and public.fn_action_is_message('social_conversation') and public.fn_action_is_message('sms_blast')
+          and public.fn_action_is_message('wa_template') and public.fn_action_is_message('chat_reply') and public.fn_action_is_message('email_batch'))
+     or public.fn_action_is_message('monitoring') or public.fn_action_is_message('matching') or public.fn_action_is_message('financial_reporting')
+     or public.fn_action_is_message('bookkeeping') or public.fn_action_is_message('publishing')
+    then v_fail := v_fail || 'R6: a conversation, an SMS or a WhatsApp action is not read as a message (or a non-message is); '; end if;
+  v_r := public.fn_agent_may_act('customer_support', 'probe.conversation_' || v_tag, null, 'wa:+971500' || lpad((abs(hashtext(v_tag)) % 1000000)::text, 6, '0'));
+  if coalesce((v_r->>'may_act')::boolean, true) or v_r::text not like '%consent: no WhatsApp opt-in%'
+    then v_fail := v_fail || 'R6: a conversation to a WhatsApp number with no opt-in was allowed: ' || v_r::text || '; '; end if;
+  v_r := public.fn_agent_may_act('customer_support', 'probe.conversation_' || v_tag, null, 'probe:' || v_tag || ':to', jsonb_build_object('to', 'pool-probe-sup-' || v_tag || '@example.invalid'));
+  if coalesce((v_r->>'may_act')::boolean, true) or v_r::text not like '%message gate: suppression%'
+    then v_fail := v_fail || 'R6: a conversation to a suppressed address given as ask.to was allowed: ' || v_r::text || '; '; end if;
+  if coalesce((public.fn_agent_may_act('customer_support', 'probe.conversation_' || v_tag, null, 'probe:' || v_tag || ':nobody2')->>'may_act')::boolean, true)
+    then v_fail := v_fail || 'R6: a conversation that names nobody was allowed; '; end if;
+  v_r := public.fn_agent_may_act('sales_engineer', 'probe.invitation_std_' || v_tag, null, 'probe:' || v_tag || ':ms', jsonb_build_object('email', 'pool-probe-ms-' || v_tag || '@outlook.com'));
+  if coalesce((v_r->>'may_act')::boolean, true) or v_r::text not like '%inbox placement%'
+    then v_fail := v_fail || 'R6: an Outlook address named only by ask.email passed the placement bar (1537): ' || v_r::text || '; '; end if;
+  v_r := public.fn_agent_may_act('sales_engineer', 'probe.invitation_std_' || v_tag, null, 'LEAD:' || v_lead_uns);
+  if coalesce((v_r->>'may_act')::boolean, true) or v_r::text not like '%opt-out%'
+    then v_fail := v_fail || 'R6: a lead named LEAD:N (upper case) was not read against the gates: ' || v_r::text || '; '; end if;
   -- a deploy is never asked, by anyone; the IT engineer's other questions go to the CEO
   v_r := public.fn_agent_may_act('it_engineer', 'deploy', null, 'probe:' || v_tag || ':d', jsonb_build_object('what', 'deploy the fix'));
   if coalesce((v_r->>'may_act')::boolean, true) or coalesce((v_r->>'asked')::boolean, true) or v_r->>'route' <> 'release_path'

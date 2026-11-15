@@ -963,29 +963,67 @@ revoke all on sequence public.ceo_grant_once_id_seq from anon, authenticated;
 -- facts.email, facts.lead_id, recipients[]) AND from the subject (lead:N, supplier:N, email:x), and the existing gates are read
 -- for each of them before ANY path answers: standing grant, single-use grant, the CEO's own authority, or a question to him.
 -- An action that is a message by its name and names nobody is refused: what it would reach cannot be checked.
+-- REVIEW_ceoplan item 6 (LOCAL): 'conversation' (a live customer_support standing grant, SELECT) was not a message, so with
+-- ask.to or subject wa:+971... it returned may_act true and read no gate; underscores also hid 'sms' and 'wa' (sms_blast,
+-- wa_template). A conversation, a chat and any WhatsApp, SMS or e-mail action is a message; the words are matched as parts of
+-- the action's name, not only as whole words.
 create or replace function public.fn_action_is_message(p_action_class text)
 returns boolean language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  select lower(coalesce(p_action_class, '')) ~ '(invit|messag|\msend|e_?mail|\mmail|whatsapp|\mwa\M|dispatch|outreach|nudge|reply|\msms\M|\mcall\M|follow_?up|remind|notif)'
+  select lower(coalesce(p_action_class, '')) ~ '(invit|messag|send|mail|whats|(^|[^a-z])wa([^a-z]|$)|(^|[^a-z])sms|dispatch|outreach|nudge|repl(y|ies)|convers|chat|\mcall\M|follow_?up|remind|notif|broadcast|template|outbound)'
 $fn$;
 revoke execute on function public.fn_action_is_message(text) from public, anon, authenticated;
 
+-- Every recipient an action would reach, read against the gates. Recipients are read from the ask (email, to, phone, whatsapp,
+-- recipient, lead_id; the same inside facts; recipients[] of objects or strings) and from the subject (lead:N, supplier:N in any
+-- case; email:, mailto:, wa:, whatsapp:, phone:, tel:, sms: with an address or a number). A number finds its lead by its last nine
+-- digits (leads.phone or whatsapp_phone). A recipient that is neither an address, a number nor a lead id is refused: what it would
+-- reach cannot be checked.
 create or replace function public.fn_authority_message_gates(p_action_class text, p_subject text, p_ask jsonb default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare a jsonb := case when jsonb_typeof(p_ask) = 'object' then p_ask else '{}'::jsonb end; r record; v_out text[] := '{}'; v_n int := 0;
-        v_ch text := lower(coalesce(a->>'channel', a->'facts'->>'channel', case when lower(coalesce(p_action_class, '')) ~ '(whatsapp|\mwa\M)' then 'whatsapp' else 'email' end));
+        v_cls text := lower(coalesce(p_action_class, '')); v_subj text := btrim(coalesce(p_subject, '')); v_ch text; v_lead bigint; v_tail text;
+        v_rcpt jsonb := case when jsonb_typeof(a->'recipients') = 'array' then a->'recipients' else '[]'::jsonb end;
 begin
+  v_ch := lower(coalesce(a->>'channel', a->'facts'->>'channel',
+            case when v_cls ~ '(whats|(^|[^a-z])wa([^a-z]|$))' or v_subj ~* '^(wa|whatsapp):' then 'whatsapp'
+                 when v_cls ~ '(^|[^a-z])sms' or v_subj ~* '^sms:' then 'sms'
+                 else 'email' end));
   for r in
-    with x as (
-      select a->>'email' as email, a->>'lead_id' as lead union all
-      select a->'facts'->>'email', a->'facts'->>'lead_id' union all
-      select e->>'email', e->>'lead_id' from jsonb_array_elements(case when jsonb_typeof(a->'recipients') = 'array' then a->'recipients' else '[]'::jsonb end) e union all
-      select case when p_subject ~* '^email:' then substr(p_subject, 7) end, substring(p_subject from '^(?:lead|supplier):(\d+)'))
-    select distinct nullif(btrim(lower(email)), '') as email, case when lead ~ '^\d+$' then lead::bigint end as lead from x
-     where nullif(btrim(coalesce(email, '')), '') is not null or lead ~ '^\d+$'
+    with raw as (
+      select btrim(v) as v, null::text as lead from (values (a->>'email'), (a->>'to'), (a->>'phone'), (a->>'whatsapp'), (a->>'recipient'),
+                                     (a->'facts'->>'email'), (a->'facts'->>'to'), (a->'facts'->>'phone'), (a->'facts'->>'recipient')) t(v)
+      union all
+      select btrim(coalesce(e->>'email', e->>'to', e->>'phone', case when jsonb_typeof(e) = 'string' then e #>> '{}' end)), e->>'lead_id'
+        from jsonb_array_elements(v_rcpt) e
+      union all
+      select btrim(substring(v_subj from '(?i)^(?:email|mailto|wa|whatsapp|phone|tel|sms):(.+)$')), substring(v_subj from '(?i)^(?:lead|supplier):(\d+)$')
+      union all
+      select null, a->>'lead_id' union all select null, a->'facts'->>'lead_id')
+    select distinct
+           case when v ~ '@' then lower(v) end as email,
+           case when v !~ '@' and v ~ '^\+?[0-9 ().-]+$' and length(regexp_replace(v, '[^0-9]', '', 'g')) >= 7 then regexp_replace(v, '[^0-9]', '', 'g') end as phone,
+           case when v is not null and v <> '' and v !~ '@' and not (v ~ '^\+?[0-9 ().-]+$' and length(regexp_replace(v, '[^0-9]', '', 'g')) >= 7) then left(v, 60) end as unknown,
+           case when btrim(lead) ~ '^\d{1,18}$' then btrim(lead)::bigint end as lead,
+           (btrim(coalesce(lead, '')) <> '' and btrim(lead) !~ '^\d{1,18}$') as bad_lead
+      from raw
+     where coalesce(v, '') <> '' or coalesce(btrim(lead), '') <> ''
   loop
     v_n := v_n + 1;
-    v_out := v_out || coalesce((select array_agg('message gate: ' || g || ' (' || coalesce(r.email, 'lead ' || r.lead) || ')')
-                                  from unnest(public.fn_company_message_gates(v_ch, r.email, r.lead)) g), '{}'::text[]);
+    if r.unknown is not null or r.bad_lead then
+      v_out := v_out || ('message gate: a recipient that is neither an address, a number nor a lead id cannot be checked (' || coalesce(r.unknown, 'lead_id') || ')');
+      continue;
+    end if;
+    v_lead := r.lead;
+    if r.phone is not null and v_lead is null then
+      v_tail := right(r.phone, 9);
+      select l.id into v_lead from public.leads l
+       where right(regexp_replace(coalesce(l.phone, ''), '[^0-9]', '', 'g'), 9) = v_tail
+          or right(regexp_replace(coalesce(l.whatsapp_phone, ''), '[^0-9]', '', 'g'), 9) = v_tail
+       order by l.id limit 1;
+    end if;
+    v_out := v_out || coalesce((select array_agg('message gate: ' || g || ' (' || coalesce(r.email, case when r.phone is not null then 'number ending ' || right(r.phone, 4) end, 'lead ' || r.lead) || ')')
+                                  from unnest(public.fn_company_message_gates(v_ch, r.email, v_lead)) g), '{}'::text[]);
+    -- a number with no lead, on e-mail, has no address to read: refused by "no e-mail address" above; on WhatsApp, no opt-in
   end loop;
   return jsonb_build_object('message', public.fn_action_is_message(p_action_class), 'channel', v_ch, 'recipients', v_n, 'refusals', to_jsonb(v_out));
 end $fn$;
