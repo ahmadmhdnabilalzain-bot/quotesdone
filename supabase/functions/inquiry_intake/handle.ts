@@ -839,7 +839,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       // The one question asked is heldNext's (its buttons go with it), and the sales engineer is offered once per conversation.
       const settleOffered = turns.some((t: any) => t && t.role === 'assistant' && t.settle_offered === true);
       const hr = askAgain.length ? await heldReply(defaultDeps(admin, 'inquiry_intake'), checklist, askAgain, slotLang, text, turns, clock.replyDeadline(),
-          { ask: heldNext ? { text: heldNext.text, options: heldNext.options } : null, offerSettle: !settleOffered, answer: meaning })
+          { ask: heldNext ? { key: heldNext.key, text: heldNext.text, options: heldNext.options } : null, offerSettle: !settleOffered, answer: meaning })
         : { text: '', outage: false, by: 'none' as const };
       if (askAgain.length && !settleOffered) settleOfferNow = true;
       // the model's held reply; the code list back means OpenRouter was down (1339); '' means the model is up but nothing

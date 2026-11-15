@@ -463,6 +463,12 @@ export function questionText(f: SpecField, lang: Lang): string {
   if (lang === 'ar') return String(f.question_plain_ar || '').trim() || (f && (f.question || f.key) ? ARABIC_FRAME : '');
   return String(f.question_plain_en || f.question || f.key || '').trim();
 }
+/** The spec as the MODEL is told it (its prompt's open specs, the held reply's facts): the plain wording in the customer's
+ *  language where there is one, else the English plain wording or the label, which the model reads and words in their language.
+ *  Never the Arabic frame: that names no spec. */
+export function modelText(f: SpecField, lang: Lang): string {
+  return String((lang === 'ar' ? f.question_plain_ar || f.question_plain_en : f.question_plain_en) || f.question || f.key || '').trim();
+}
 /** The options the card offers to tap, in the customer's language, or null. A field's own options first (in Arabic, those with
  *  an Arabic label: options_ar, else customer_questions.ts OPTION_AR; "Not sure" always), else the pack spec's card options. */
 export function optionsOf(f: SpecField | null | undefined, lang: Lang): string[] | null {

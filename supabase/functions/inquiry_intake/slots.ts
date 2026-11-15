@@ -24,7 +24,7 @@
 // status differs from the status the model wrote its sentence for, the sentence is replaced by one
 // built from the state, so the customer is never told "ready" while the row says otherwise. No word of
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
-import { orderFields, questionText, optionsOf, parseAnswer, isUnknown, answersAnotherKind, type Lang, type SpecField, type UniversalKind } from './interview.ts';
+import { orderFields, questionText, modelText, optionsOf, parseAnswer, isUnknown, answersAnotherKind, type Lang, type SpecField, type UniversalKind } from './interview.ts';
 import { optionAr, sameArabic } from '../_shared/customer_questions.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import { surfaceEffort } from '../_shared/effort_policy.ts';
@@ -142,9 +142,9 @@ export const HELD_FOR_SPECS: Record<Lang, string> = {
 // The request chat is a portal surface, so the reply is the sales engineer's (the_portals_are_the_sales_engineer).
 /** The plain questions still open on a held intake, in the customer's language, in checklist order. A field with no
  *  question text is skipped: a raw key ('area') never reaches the model. */
-export function heldQuestions(checklist: SpecField[], exhausted: string[], lang: Lang): string[] {
+export function heldQuestions(checklist: SpecField[], exhausted: string[], lang: Lang, forModel = false): string[] {
   const out = orderFields(checklist).filter((o) => exhausted.includes(String(o.f.key)) && (o.f.question_plain_en || o.f.question_plain_ar || o.f.question))
-    .map((o) => questionText(o.f, lang)).filter(Boolean);
+    .map((o) => (forModel ? modelText(o.f, lang) : questionText(o.f, lang))).filter(Boolean);
   return [...new Set(out)];
 }
 /** The code draft of the held reply: the handover sentence and the open questions listed. Sent as it stands only when
@@ -164,11 +164,14 @@ export function heldDraftOf(checklist: SpecField[], exhausted: string[], lang: L
 // are named as still open, not asked; the sales-engineer sentence is in the facts only when `offerSettle` (no earlier reply
 // offered it); and it is the voice_draft task with no brief (intakeVoice's class: the facts are all it needs).
 export async function heldReply(deps: ThinkDeps, checklist: SpecField[], exhausted: string[], lang: Lang, message: string, conversation: { role: string; text: string }[], deadline?: number,
-  o: { ask?: { text: string; options?: string[] | null } | null; offerSettle?: boolean; answer?: string | null } = {}): Promise<IntakeVoice> {
-  const open = heldQuestions(checklist, exhausted, lang);
+  o: { ask?: { key?: string | null; text: string; options?: string[] | null } | null; offerSettle?: boolean; answer?: string | null } = {}): Promise<IntakeVoice> {
+  // the model is told each open spec by what it is (modelText), never by the Arabic frame; the one asked is excluded by its key
+  const open = heldQuestions(checklist, exhausted, lang, true);
   const offer = o.offerSettle !== false;
   const ask = o.ask && String(o.ask.text || '').trim() ? o.ask : open[0] ? { text: open[0], options: null } : null;
-  const others = open.filter((q) => q !== ask?.text);
+  const askedField = o.ask?.key ? checklist.find((f) => f && String(f.key) === String(o.ask!.key)) : null;
+  const askedText = askedField ? modelText(askedField, lang) : null;
+  const others = open.filter((q) => q !== ask?.text && q !== askedText);
   const r = await aiReply(deps, {
     seat: 'sales_engineer', channel: 'the website request chat', audience: 'customer', lang, message, deadline,
     taskClass: VOICE_CLASS, briefInPrompt: false,
@@ -498,7 +501,7 @@ export function openSpecsBlock(checklist: SpecField[], held: Record<string, unkn
   if (!open.length) return '';
   return 'OPEN SPECS NOW (required and not yet answered; read the customer\'s last message against ALL of them):\n' + open.map((o) => {
     const k = String(o.f.key), n = asked[k] || 0;
-    return `- [${k}] ${questionText(o.f, lang)} (${n ? `asked ${n} time${n > 1 ? 's' : ''}` : 'not asked yet'})`
+    return `- [${k}] ${modelText(o.f, lang)} (${n ? `asked ${n} time${n > 1 ? 's' : ''}` : 'not asked yet'})`
       + (o.f.not_needed_when?.text ? ` | NOT NEEDED when: ${o.f.not_needed_when.text}` : '') + (o.f.same_as ? ` | same question as [${o.f.same_as}]` : '');
   }).join('\n');
 }
