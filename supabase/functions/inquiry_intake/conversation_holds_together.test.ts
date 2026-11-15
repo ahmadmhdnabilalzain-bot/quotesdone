@@ -43,9 +43,10 @@ Deno.test("a spec the customer does not know is never asked again: exhausted at 
   assertEquals(settled.held, false);
   // known-bad control: without the unknown key the same spec stays askable
   assert(reconcileSlots(PARTITION, {}, out, 'en', {}, []).missing.includes('Which finish do you want on it?'));
-  // only unknown specs left: held for the sales engineer, never "ready" without the spec
+  // only unknown specs left: SENT AS IT IS (re-check of 15 Nov 2026, item 3; until then held for good, a dead end): the spec goes to
+  // the suppliers as "Customer does not know: supplier to advise" and the request can be sent; it is never ready with the spec blank
   const h = settleModelTurn(PARTITION, { size: '2.4 x 1.2 m', location: 'JVC, Dubai' }, { status: 'ready', brief: { details: {} } }, 'en', briefOf, {}, ['material']);
-  assertEquals([h.held, h.complete], [true, false]);
+  assertEquals([h.held, h.complete, h.details.material, h.sentAsIs], [false, true, 'Customer does not know: supplier to advise', ['material']]);
   assert(/sales engineer will settle them/.test(unknownHeldDraft(PARTITION, ['material'], 'en')));
   assert(unknownHeldDraft(PARTITION, ['material'], 'ar').includes('مهندس المبيعات'));
 });

@@ -84,6 +84,27 @@ const TIMEOUT_MS = 20000;
  */
 export const REASONING_TIMEOUT_MS = 90000;
 
+/**
+ * THE NEXT CALL'S PREFLIGHT IS PAID WHILE THE SUPPLIER IS ALREADY WAITING (15 Nov 2026, customer_support; the code e-mail to the
+ * registration form measured 3,026 and 3,078 ms against 3,000, from the US container).
+ *
+ * Every call() is a cross-origin POST with Authorization and Content-Type: application/json, so the browser first sends an
+ * OPTIONS preflight to that function and waits for it, a full round trip to ap-southeast-1, before the POST leaves. Without
+ * Access-Control-Max-Age a preflight is remembered for 5 seconds (the Fetch standard's default), so the first supplier_api call
+ * after sign-in, create_company, always paid one on the step's critical path. This sends the same request shape (the same URL,
+ * method and header names, so its preflight is the one create_company needs) with the anonymous key and
+ * {"action":"warm"}, which supplier_api answers 204 before the sign-in check or any database read (lib/door.ts warmOnly). Fired
+ * beside the code check, the preflight lands while login_otp is still answering. Best effort: nothing waits on it, and a failure
+ * changes nothing. An older supplier_api answers it 401 at the sign-in check; the preflight is paid all the same.
+ * Prevented by: scripts/checks/the_registration_does_not_wait_on_a_preflight.test.mjs
+ */
+export function preflightNow(path: string): void {
+  try {
+    void fetch(fnUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + ANON }, body: '{"action":"warm"}' })
+      .then((r) => r.body?.cancel(), () => undefined).catch(() => undefined);
+  } catch (_e) { /* best effort: the call itself pays the preflight as before */ }
+}
+
 export async function call(path: string, body: Record<string, unknown>, token?: string | null, opts: { timeoutMs?: number } = {}): Promise<any> {
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), opts.timeoutMs && opts.timeoutMs > 0 ? opts.timeoutMs : TIMEOUT_MS);

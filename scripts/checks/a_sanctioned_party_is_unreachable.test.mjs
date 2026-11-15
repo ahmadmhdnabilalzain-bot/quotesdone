@@ -72,8 +72,17 @@ const SURFACES = [
    'both sign-in branches must answer the refusal with 403, not a generic 500'],
 
   // ACT — one gate above the action switch in each of the two portal APIs.
+  // 15 Nov 2026 (customer_support): the ban read leaves beside auth.getUser for the address the token names and is used only
+  // when getUser verified that same address (supplier_api/lib/door.ts); all three halves are pinned, and
+  // supplier_api/door.test.ts proves a banned verified address is refused whatever the token claims.
   ['supabase/functions/supplier_api/index.ts',
-   'if (await sanctionedEmail(admin, email)) return J(SANCTIONED_REFUSAL, 403);',
+   'sanctioned: (e) => sanctionedEmail(admin, e) });',
+   'supplier_api must ask public.sanctions_ban about the signed-in address'],
+  ['supabase/functions/supplier_api/index.ts',
+   "if (await (early && hinted === email ? early : deps.sanctioned(email))) return { kind: 'sanctioned' };",
+   'supplier_api must decide the ban for the address auth.getUser verified, never the one the token merely claims'],
+  ['supabase/functions/supplier_api/index.ts',
+   "if (door.kind === 'sanctioned') return J(SANCTIONED_REFUSAL, 403);",
    'supplier_api must refuse every action for a sanctioned account'],
   // 12 Nov 2026 (it_engineer): the e-mail ban read is started beside the company read and awaited at the gate, so both
   // halves are pinned (supplier_portal/the_email_ban_is_read_beside_the_company.test.ts proves the order).

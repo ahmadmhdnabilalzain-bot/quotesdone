@@ -218,7 +218,8 @@ export type CreateDeps = {
   sessionByCode: boolean;
   /** _shared/sanctioned.ts sanctionedLead: a listing under a confirmed sanctions ban is never claimed. */
   sanctionedLead: (leadId: number) => Promise<boolean>;
-  setRegistration: (leadId: number) => Promise<unknown>;
+  /** lib/registration.ts setRegistration: touch=false when the caller's own write has just run the state trigger (as here, always). */
+  setRegistration: (leadId: number, touch?: boolean) => Promise<unknown>;
   recordFirstTouch: (leadId: number, touch: unknown) => Promise<void>;
   /** lib/me_row.ts supplierOf for this account: the row `me` would answer, read after the write. */
   readSupplier?: () => Promise<Record<string, unknown> | null>;
@@ -231,17 +232,28 @@ const lookupFailed = (what: string, error: PgError) => {
 };
 
 /**
- * After the company is written and its registration state derived: the first touch is recorded and the supplier is read the
- * way `me` reads him, together. The answer carries `supplier` so the portal opens the registration form on this answer and
- * does not ask `me` next (Onboarding.tsx). A read that fails or finds nothing leaves `supplier` out, and the portal asks `me`
- * as it always did; the registration itself has already succeeded and is never reported as failed for it.
+ * After the company is written: its registration state, the first touch and the supplier as `me` reads him, in ONE wave. The answer
+ * carries `supplier` so the portal opens the registration form on this answer and does not ask `me` next (Onboarding.tsx). A read
+ * that fails or finds nothing leaves `supplier` out, and the portal asks `me` as it always did; the registration itself has already
+ * succeeded and is never reported as failed for it.
+ *
+ * ONE WAVE AFTER THE WRITE, NOT THREE ROUND TRIPS (15 Nov 2026, customer_support; the code e-mail to the registration form measured
+ * 3,026 and 3,078 ms against 3,000, create_company 797 ms of server time at 15:13:57). The new-company path waited on the insert,
+ * then setRegistration's UPDATE (portal_updated_at only), then fn_supplier_registration_state, then this pair: four calls in series
+ * after the look-ups. The state is derived by trg_bz_supplier_registration_state, BEFORE INSERT OR UPDATE, from columns that UPDATE
+ * did not change, so the insert itself has already derived it; the insert now writes portal_updated_at, which was the UPDATE's only
+ * effect (no other UPDATE trigger acts on that column: read on production 15 Nov 2026), and the state is read without a touch, as the
+ * /portal?t= claim already reads it. The claim below updates the row itself (portal_updated_at included), so it reads without one too.
+ * fn_supplier_registration_state is STABLE and the first touch writes marketing_first_touch, not leads: the three are independent reads
+ * of a committed row. Prevented by: create_company.test.ts "after the write, one wave".
  */
-async function afterTheWrite(id: number, touch: unknown, deps: CreateDeps): Promise<{ supplier?: Record<string, unknown> }> {
-  const [, supplier] = await Promise.all([
+async function afterTheWrite(id: number, touch: unknown, deps: CreateDeps): Promise<{ registration: unknown; supplier?: Record<string, unknown> }> {
+  const [registration, , supplier] = await Promise.all([
+    deps.setRegistration(id, false),
     deps.recordFirstTouch(id, touch),
     deps.readSupplier ? deps.readSupplier().catch((e) => { console.error('create_company: the supplier read after the write failed —', String(e)); return null; }) : Promise.resolve(null),
   ]);
-  return supplier && Number(supplier.id) === id ? { supplier } : {};
+  return supplier && Number(supplier.id) === id ? { registration, supplier } : { registration };
 }
 
 /** An agent_actions row recording what create_company decided about a listing. A failed write is logged; the registration stands. */
@@ -316,9 +328,8 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
     const { data: won, error } = await admin.from('leads').update(upd).eq('id', id).is('claimed_by', null).select('id');
     if (error) { const r = registrationRefusal(error); return r.body.code === 'claim_failed' ? refused(error) : { status: r.status, body: r.body }; }
     if (!won || !won.length) return { status: 409, body: { ...EMAIL_ALREADY_REGISTERED } };   // another sign-up won the row
-    const reg = await deps.setRegistration(id);
-    const supplier = await afterTheWrite(id, body.first_touch, deps);
-    return { status: 200, body: { ok: true, id, registration: reg, claimed_invited: true, ...supplier } };
+    const { registration, ...supplier } = await afterTheWrite(id, body.first_touch, deps);
+    return { status: 200, body: { ok: true, id, registration, claimed_invited: true, ...supplier } };
   }
   // H10: every registration is its own row; an open listing that comes close is flagged for a person to merge (header above).
   const listings = (listingsRead && !listingsRead.error ? listingsRead.data || [] : []) as Listing[];
@@ -329,16 +340,16 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
     : match.kind === 'flag' ? { leads: match.leads, why: match.why } : null;
   const { data: ins, error } = await admin.from('leads').insert({ company_name: name, emirate: body.emirate || null, sector: body.category || null,
     business_role: body.role || 'supplier', claimed: true, claimed_by: email, email, owner_email_verified: proven, source: 'self_registered',
-    locale: deps.locale, scraped_at: new Date().toISOString().slice(0, 10) }).select('id').maybeSingle();
+    locale: deps.locale, scraped_at: new Date().toISOString().slice(0, 10), portal_updated_at: new Date().toISOString() }).select('id').maybeSingle();
   if (error) return refused(error);
-  if (flag) await audit(admin, { agent: 'it_engineer', kind: 'possible_duplicate_listing', status: 'pending', risk: 'medium',
+  // The listing flag (an older portal build that still sends a name) is written beside the wave after the write, not before it.
+  const [{ registration, ...supplier }] = await Promise.all([afterTheWrite(Number(ins!.id), body.first_touch, deps),
+    flag ? audit(admin, { agent: 'it_engineer', kind: 'possible_duplicate_listing', status: 'pending', risk: 'medium',
     title: 'Possible duplicate of a directory listing — ' + name.slice(0, 120),
     recommendation: `A registration came close to ${flag.leads.length === 1 ? 'an unclaimed directory listing' : flag.leads.length ? flag.leads.length + ' unclaimed directory listings' : 'unclaimed directory listings'} (${flag.why}). The company was registered as a new row and the listing was not touched. Compare the two rows (detail.new_lead_id and detail.listings): if they are the same company, merge the listing into the registered row by hand and mark this done; if not, mark it dismissed with the reason. Nothing waits on this: the supplier is already registered.`,
     detail: { new_lead_id: Number(ins!.id), account: email, typed_name: name, emirate: body.emirate ?? null, why: flag.why,
       ...(match.kind === 'strong' ? { basis: match.basis } : {}),
       listings: flag.leads.slice(0, 10).map((l) => ({ id: Number(l.id), company_name: l.company_name, emirate: l.emirate ?? null })) },
-    target_table: 'leads', target_id: String(ins!.id) });
-  const reg = await deps.setRegistration(Number(ins!.id));
-  const supplier = await afterTheWrite(Number(ins!.id), body.first_touch, deps);
-  return { status: 200, body: { ok: true, id: ins?.id, registration: reg, ...supplier } };
+    target_table: 'leads', target_id: String(ins!.id) }) : Promise.resolve()]);
+  return { status: 200, body: { ok: true, id: ins?.id, registration, ...supplier } };
 }

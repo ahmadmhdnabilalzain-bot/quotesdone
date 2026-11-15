@@ -17,7 +17,11 @@ const COPY = {
   },
 } as const;
 
-export function codeEmail(purpose: 'signin' | 'confirm', code: string, ar: boolean): { subject: string; html: string } {
+// 15 Nov 2026 (customer_support, founder ledger 1699: "whatever GlockApps found that we can fix, consider it
+// seriously"): the message also carries a plain-text part. An HTML-only message is a spam signal on its own
+// (SpamAssassin MIME_HTML_ONLY; Microsoft's filter weighs a missing text part), and GlockApps placed our mail
+// at Microsoft 0/21 inbox on 10 Nov. The text part says the same as the HTML, with no link and no image.
+export function codeEmail(purpose: 'signin' | 'confirm', code: string, ar: boolean): { subject: string; html: string; text: string } {
   const c = COPY[purpose][ar ? 'ar' : 'en'];
   const html = `<div dir="${ar ? 'rtl' : 'ltr'}" lang="${ar ? 'ar' : 'en'}" style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:480px;margin:0 auto;color:#1f2937">`
     + `<div style="text-align:center;padding:18px 0"><img src="${LOGO}" width="44" height="44" alt="QuotesDone"></div>`
@@ -32,5 +36,6 @@ export function codeEmail(purpose: 'signin' | 'confirm', code: string, ar: boole
     + `</div>`
     + (c.foot ? `<p style="text-align:center;font-size:11px;color:#9aa1ab;margin-top:14px">${c.foot}</p>` : '')
     + `</div>`;
-  return { subject: c.subject, html };
+  const text = [c.title, '', c.lead, '', code, ...(c.ignore ? ['', c.ignore] : []), ...(c.foot ? ['', c.foot] : [])].join('\n');
+  return { subject: c.subject, html, text };
 }

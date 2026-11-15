@@ -218,7 +218,9 @@ Deno.test('C9: a key unanswered through MAX_OPEN_TURNS turns stops being asked a
 
 Deno.test('an exhausted key is not asked again while other keys are still asked', () => {
   const out: any = C9_TURN(); delete out.brief.details.location;
-  const s = settleModelTurn(WATERPROOFING, {}, out, 'en', briefOf, { issue: MAX_OPEN_TURNS, location: 1 });
+  // the other three were recorded on earlier turns (as in C9's run): this message brings nothing new, so the waiting location
+  // question is asked again (15 Nov 2026: a waiting question is not repeated on a turn that answered something else)
+  const s = settleModelTurn(WATERPROOFING, { ...out.brief.details }, out, 'en', briefOf, { issue: MAX_OPEN_TURNS, location: 1 });
   assertEquals(out.status, 'needs_info');
   assertEquals(s.missingKeys, ['issue', 'location']);
   assertEquals(out.questions, ['Location / area and emirate?'], 'the leak question is not repeated');

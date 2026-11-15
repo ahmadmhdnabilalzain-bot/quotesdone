@@ -35,7 +35,7 @@ function world(o: { category: string | null; fields: Row[]; state: Row | null; m
       const r = u.pathname.match(/^\/rest\/v1\/rpc\/(.+)$/)?.[1];
       if (u.pathname.startsWith('/functions/v1/')) {
         const body = await req.clone().json().catch(() => ({}));
-        if (body.fn === 'inquiry_intake' && body.response_format) { w.prompts.push(String(body.sys)); return J({ ok: true, content: JSON.stringify(o.model), model: 'stub/model' }); }
+        if (body.fn === 'inquiry_intake' && body.response_format) { w.prompts.push(String(body.sys) + '\n' + (Array.isArray(body.input) ? body.input : []).map((m: { content?: unknown }) => typeof m?.content === 'string' ? m.content : JSON.stringify(m?.content ?? '')).join('\n')); return J({ ok: true, content: JSON.stringify(o.model), model: 'stub/model' }); }
         return J({ ok: true, content: JSON.stringify({ answer: 'ZZ DEMO: noted. Which emirate is it in?' }), model: 'stub/model' });
       }
       if (r) { const args = await req.clone().json().catch(() => ({})); w.rpcs.push({ fn: r, args }); if (r === 'rl_check') return J(true); return J(null); }

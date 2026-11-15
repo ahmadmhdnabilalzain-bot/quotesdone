@@ -44,7 +44,10 @@ export type Lang = 'en' | 'ar';
 
 /** [value, English label, Arabic label] */
 type O = [string, string, string];
-type Component = { c: string; en: string; ar: string; opts: O[]; field?: string };
+/** not_needed_when: the condition, in plain words, under which this job has no such component (journey A, 15 Nov 2026: a ducting
+ *  preference asked of a service of existing ducted units). The model judges it from the conversation ("not_needed", slots.ts
+ *  requirementsContract); the question then offers and records "Not needed for this job". Data on the component, never code. */
+type Component = { c: string; en: string; ar: string; opts: O[]; field?: string; not_needed_when?: string };
 /**
  * install / warranty say what this trade USUALLY needs. They never skip a question: when false, the
  * question is still asked and "Not needed" is offered as the suggestion for the customer to confirm.
@@ -116,7 +119,8 @@ export const PROFILES: Record<string, Profile> = {
   glass: P(true, true, [{ c: 'frame', en: 'Frame', ar: 'الإطار', opts: [['aluminium', 'Aluminium framed', 'بإطار ألمنيوم'], ['frameless', 'Frameless', 'بدون إطار'], ['steel', 'Steel framed', 'بإطار حديد']] }]),
   gypsum: P(true, true, [{ c: 'board', en: 'Gypsum board', ar: 'ألواح الجبس', opts: [['standard', 'Standard board', 'ألواح عادية'], ['moisture_resistant', 'Moisture-resistant (green) board', 'ألواح مقاومة للرطوبة'], ['fire_rated', 'Fire-rated board', 'ألواح مقاومة للحريق']] }]),
   hvac: P(true, true, [tier('brand', 'Air-conditioning brand', 'ماركة المكيفات', 'brand_tier'),
-    { c: 'ducting', en: 'Ducting', ar: 'مجاري الهواء', opts: [['gi', 'Galvanised steel (GI)', 'حديد مجلفن'], ['pre_insulated', 'Pre-insulated panel', 'ألواح معزولة مسبقاً'], ['flexible', 'Flexible duct', 'مجاري مرنة']] }]),
+    { c: 'ducting', en: 'Ducting', ar: 'مجاري الهواء', opts: [['gi', 'Galvanised steel (GI)', 'حديد مجلفن'], ['pre_insulated', 'Pre-insulated panel', 'ألواح معزولة مسبقاً'], ['flexible', 'Flexible duct', 'مجاري مرنة']],
+      not_needed_when: 'the job installs no new ductwork: wall splits only, or only a service or repair of existing ducted units' }]),
   insulation: P(true, true, [{ c: 'material', en: 'Insulation material', ar: 'مادة العزل', field: 'material', opts: [['xps_eps', 'XPS / EPS board', 'ألواح XPS أو EPS'], ['pu_spray', 'Polyurethane spray', 'رش بولي يوريثين'], ['rockwool', 'Rockwool / mineral wool', 'صوف صخري']] }]),
   'interior-design': P(false, false, []),
   'it-networking': P(true, true, [{ c: 'cabling', en: 'Cabling', ar: 'الكابلات', opts: [['cat6', 'Cat6', 'Cat6'], ['cat6a', 'Cat6A', 'Cat6A'], ['fibre', 'Fibre optic', 'ألياف ضوئية']] }, tier('equipment', 'Network equipment brands', 'ماركات أجهزة الشبكة')]),
@@ -177,10 +181,12 @@ export function componentLabel(c: string): { en: string; ar: string } | null {
 export type Kind = 'material' | 'installation' | 'warranty' | 'required_by';
 export type Opt = { v: string; en: string; ar: string };
 /** `suggested` is the option value the TRADE usually needs. It is offered, never recorded. */
-export type ReqQuestion = { key: string; kind: Kind; label_en: string; label_ar: string; en: string; ar: string; options: Opt[]; free_text: boolean; field?: string; suggested?: string };
+export type ReqQuestion = { key: string; kind: Kind; label_en: string; label_ar: string; en: string; ar: string; options: Opt[]; free_text: boolean; field?: string; suggested?: string; not_needed_when?: string };
 
 const o = ([v, en, ar]: O): Opt => ({ v, en, ar });
 export const NO_PREFERENCE: Opt = { v: 'no_preference', en: 'No preference', ar: 'لا تفضيل لدي' };
+/** The answer to a component the job does not have (Component.not_needed_when). */
+export const NOT_NEEDED_COMPONENT: Opt = { v: 'not_needed', en: 'Not needed for this job', ar: 'غير مطلوب لهذا العمل' };
 const NOT_SURE: Opt = { v: 'not_sure', en: 'Not sure', ar: 'لست متأكداً' };
 export const INSTALL_VALUES = ['yes', 'supply_only', 'not_needed', 'not_sure'] as const;
 export const WARRANTY_VALUES = ['yes', 'not_needed', 'not_sure'] as const;
@@ -207,7 +213,8 @@ export function requirementQuestions(category: string): ReqQuestion[] {
     key: 'material.' + c.c, kind: 'material', label_en: c.en, label_ar: c.ar, field: c.field,
     en: `Any preference for the ${c.en.charAt(0).toLowerCase() + c.en.slice(1)}? Tap one, or type what you have in mind.`,
     ar: `هل لديك تفضيل في ${c.ar}؟ اختر أحد الخيارات، أو اكتب ما تفضّله.`,
-    options: [...c.opts.map(o), NO_PREFERENCE], free_text: true,
+    options: [...c.opts.map(o), NO_PREFERENCE, ...(c.not_needed_when ? [NOT_NEEDED_COMPONENT] : [])], free_text: true,
+    ...(c.not_needed_when ? { not_needed_when: c.not_needed_when } : {}),
   }));
   qs.push({ key: 'installation', kind: 'installation', label_en: 'Installation', label_ar: 'التركيب', en: 'Do you need the supplier to install it, or only deliver it?', ar: 'هل تريد أن يتولّى المورّد التركيب، أم يكفي التوريد فقط؟', options: INSTALL, free_text: false, suggested: p.install ? undefined : 'not_needed' });
   qs.push({ key: 'warranty', kind: 'warranty', label_en: 'Warranty', label_ar: 'الضمان', en: 'Do you need a warranty, and for how long at least?', ar: 'هل تحتاج إلى ضمان؟ وما أدنى مدة تقبلها؟', options: WARRANTY, free_text: false, suggested: p.warranty ? undefined : 'not_needed' });
@@ -311,6 +318,15 @@ export function tappedAnswer(q: ReqQuestion, text: string, now = new Date(), sho
   return shown && shown.labels.some((l) => l === raw || l.toLowerCase() === lo) ? shown.answer : null;
 }
 
+/** The answer "I don't know" gives question `q` (re-check of 15 Nov 2026, item 3): the material to the supplier's standard, installation and
+ *  warranty "not sure", the date flexible. Recorded only for the question just asked (inquiry_intake/handle.ts), as a "does not know"
+ *  is for a checklist spec, so a customer who knows none of them still reaches Send. */
+export function notSureAnswer(q: ReqQuestion): Ans {
+  if (q.kind === 'material') return { v: NO_PREFERENCE.v, note: 'Not sure: supplier to propose the standard specification' };
+  if (q.kind === 'installation') return { v: 'not_sure' };
+  if (q.kind === 'warranty') return { v: 'not_sure', min_months: null };
+  return { v: 'flexible', date: null, text: 'Not sure: flexible' };
+}
 /** A stored or carried answer that is not a valid answer to `q` today (e.g. version 1's 'no') is not an answer. */
 export function isValidAnswer(q: ReqQuestion, v: Ans | undefined): boolean {
   if (!v) return false;
@@ -414,6 +430,8 @@ export type ReqStep = {
   answers: Answers; filled_now: string[]; retry: boolean; unanswered: boolean;
   next: { key: string; text: string; options: string[]; suggested: string | null } | null;
   remaining: string[]; filled: number; total: number; complete: boolean;
+  /** Every open question was already asked and this message answered something: nothing is asked this turn. */
+  waiting?: boolean;
 };
 /**
  * One turn: `text` answers `askedKey` (the question last asked); the next unanswered question is
@@ -423,7 +441,11 @@ export type ReqStep = {
  * nothing of the customer's words: not the conversation (statedAnswers) and not the reply (parseRequirementAnswer), only a
  * tapped option (tappedAnswer). Without it (no model reading this turn: OpenRouter down) code's reading is all there is.
  */
-export function requirementsStep(category: string, prev: Answers, askedKey: string | null, text: string, details: Record<string, unknown>, lang: Lang, now = new Date(), conversation = '', o: { modelRead?: boolean } = {}): ReqStep {
+// THE NEXT QUESTION IS ONE NOT YET ASKED, AND NONE IS ASKED TWICE IN A ROW OF ANSWERS (15 Nov 2026, journey A): `asked` counts how
+// often each question was asked before; one not yet asked goes first. When every open question was already asked and this message
+// answered something (`recordedNow`, here or in the checklist), nothing is asked (next null, waiting true): the customer is telling
+// us the job in their own order, and the open questions stay listed in remaining_questions.
+export function requirementsStep(category: string, prev: Answers, askedKey: string | null, text: string, details: Record<string, unknown>, lang: Lang, now = new Date(), conversation = '', o: { modelRead?: boolean; asked?: Record<string, number>; recordedNow?: boolean } = {}): ReqStep {
   const qs = requirementQuestions(category);
   const answers: Answers = {};
   for (const q of qs) if (prev && isValidAnswer(q, prev[q.key])) answers[q.key] = prev[q.key];
@@ -444,7 +466,13 @@ export function requirementsStep(category: string, prev: Answers, askedKey: stri
     }
   }
   const missing = qs.filter((q) => !answers[q.key]);
-  const n = missing[0];
+  const asked = o.asked ?? {};
+  const order = missing.map((q, i) => ({ q, i, n: asked[q.key] || 0 })).sort((a, z) => a.n - z.n || a.i - z.i).map((x) => x.q);
+  // a reply code could not read (no model reading) is asked again at once: "I couldn't match that" names THAT question
+  // ...and only while the question just asked is still open: an answer to it is followed by the next question (re-check, item 2)
+  const waiting = !retry && order.length > 0 && order.every((q) => (asked[q.key] || 0) > 0) && (filledNow.length > 0 || !!o.recordedNow)
+    && !!askedKey && missing.some((q) => q.key === askedKey);
+  const n = retry ? (missing.find((q) => q.key === askedKey) ?? order[0]) : waiting ? undefined : order[0];
   let next: ReqStep['next'] = null;
   if (n) {
     const s = suggestions(category, details, now)[n.key];
@@ -455,9 +483,9 @@ export function requirementsStep(category: string, prev: Answers, askedKey: stri
     next = { key: n.key, text: questionIn(n, lang) + hint, options, suggested: sLabel };
   }
   return {
-    answers, filled_now: filledNow, retry, unanswered, next,
+    answers, filled_now: filledNow, retry, unanswered, next, waiting,
     remaining: missing.map((q) => questionIn(q, lang)),
-    filled: qs.length - missing.length, total: qs.length, complete: !n,
+    filled: qs.length - missing.length, total: qs.length, complete: !missing.length,
   };
 }
 
