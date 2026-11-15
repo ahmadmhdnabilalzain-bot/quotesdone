@@ -29,9 +29,12 @@ const key = (s: string) => String(s ?? '').normalize('NFKC').toLowerCase()
 /** Every line of the text and every cell of every line, compared by `key`. */
 export function printedOnTheirOwn(text: string | null | undefined): Set<string> {
   const out = new Set<string>();
+  // A line or cell whose text ends in a separator is a name wrapped after its comma, not a row of its own (review of 15 Nov:
+  // "Air-Conditioning,   تكييف…\nVentilation & Air Filtration Systems Installation" in a bilingual two-column licence was cut in two).
+  const wrapped = (s: string) => /[,،;؛]\s*$/u.test(s);
   for (const line of String(text ?? '').split(/\r?\n/)) {
-    const k = key(line); if (k) out.add(k);
-    for (const cell of line.split(/\t| {2,}|\s\|\s/)) { const c = key(cell); if (c) out.add(c); }
+    const k = wrapped(line) ? '' : key(line); if (k) out.add(k);
+    for (const cell of line.split(/\t| {2,}|\s\|\s/)) { const c = wrapped(cell) ? '' : key(cell); if (c) out.add(c); }
     // "Activities: A" / "Activity | A": the value after a label on its line is a cell of its own
     const m = line.match(/^[^:：]{2,40}[:：]\s*(.+)$/u); if (m) { const c = key(m[1]); if (c) out.add(c); }
   }

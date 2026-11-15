@@ -18,7 +18,7 @@ const TAX = fakeTaxonomy(['electrical'], ['electrical.wiring_install', 'electric
 
 Deno.test('the reading is told: a heading with a list after it is one item for each thing listed', () => {
   const sys = profileReadSystem([{ code: 'electrical', label: 'Electrical' }]);
-  assert(sys.includes('is one item for EACH thing listed (distribution boards, cabling, lighting, small power), never one item for the heading alone'));
+  assert(sys.includes('is one item for EACH distinct service listed (distribution boards, cabling, lighting, small power), never one item for the heading alone; parts of one service stay one item'));
   assert(sys.includes('a line naming three services is three items, each quoting that line'));
 });
 

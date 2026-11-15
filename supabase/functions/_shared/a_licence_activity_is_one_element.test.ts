@@ -91,3 +91,21 @@ Deno.test('the profile reading: a joined licence list is split where the licence
   const r3 = checkReading(answer(L('L3').activities), [profile, printed], codes);
   assert(r3.ok); assertEquals(r3.reading.licence.activities, L('L3').activities);
 });
+
+// Review of 15 Nov 2026: a name wrapped right after its own comma, with another column on the same line, is not two rows.
+Deno.test('a comma-holding activity wrapped after its comma beside another column is never split', () => {
+  const joined = ['Air-Conditioning, Ventilation & Air Filtration Systems Installation'];
+  const bilingual = 'Air-Conditioning,      تكييف الهواء\nVentilation & Air Filtration Systems Installation      والتهوية وتنقية الهواء';
+  assertEquals(activitiesAsPrinted(joined, bilingual), joined);
+  const tabbed = 'Activity\tCode\nAir-Conditioning,\t4329\nVentilation & Air Filtration Systems Installation\t01';
+  assertEquals(activitiesAsPrinted(joined, tabbed), joined);
+});
+
+Deno.test('a split licence read keeps at most the 20 activities the licence doc holds', () => {
+  const many = Array.from({ length: 30 }, (_, i) => `Activity number ${i + 1}`);
+  const text = many.join('\n');
+  const { doc } = checkLicenceRead({ license_number: '', issue_date: null, expiry_date: null, activities: [many.join(', ')] }, text);
+  // deno-lint-ignore no-explicit-any
+  const acts = (doc as any).activities as string[];
+  assert(acts.length <= 20, `kept ${acts.length}`);
+});

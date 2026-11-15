@@ -338,7 +338,7 @@ export function checkLicenceRead<T extends { license_number: string; issue_date:
   // one activity an element, split only where the text layer prints each part on its own (licence_activities.ts, the grounded backstop)
   // deno-lint-ignore no-explicit-any
   const o = out as any;
-  if (t.trim() && Array.isArray(o.activities)) o.activities = activitiesAsPrinted(o.activities, t);
+  if (t.trim() && Array.isArray(o.activities)) o.activities = activitiesAsPrinted(o.activities, t).slice(0, 20);   // the cap normaliseLicence keeps
   return { doc: out, check: { failed, notes, grounded } };
 }
 
