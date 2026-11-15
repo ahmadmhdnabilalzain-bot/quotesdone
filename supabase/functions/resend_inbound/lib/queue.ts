@@ -36,8 +36,10 @@ export const INLINE_PAYLOAD_MAX = 4 * 1024 * 1024;
 
 /**
  * What the queue row records, read off the verified payload alone (no network): the key a redelivery is matched on (the same
- * email id read_mail.ts reads, else the Svix message id), the envelope, the thread whose order is kept, and the seat a dead
- * letter goes to. The finance mailboxes have no thread: eighteen receipts need no order among themselves.
+ * email id read_mail.ts reads, else the Svix message id), the envelope, the RFC Message-ID, the thread whose order is kept, and
+ * the seat a dead letter goes to. The finance mailboxes have no thread: eighteen receipts need no order among themselves.
+ * The Message-ID is what the Microsoft 365 readers hand once across every mailbox of the tenant (_shared/m365_reply_inbox.ts
+ * inboundOnFile): one message addressed to supplier@ and to another mailbox is two Graph ids, two queue keys, one Message-ID.
  */
 export function envelopeOf(raw: string, svixId: string) {
   // deno-lint-ignore no-explicit-any
@@ -49,7 +51,8 @@ export function envelopeOf(raw: string, svixId: string) {
   const finance = FINANCE_BOXES.has(to.split('@')[0] || '');
   const marketing = isCalendarReply({ to, subject }) || !!approvalTokenOf({ to, subject }) || !!planTokenOf({ to, subject });
   const ownerSeat: OwnerSeat = finance ? 'accountant' : marketing ? 'marketing' : 'customer_support';
-  return { providerEmailId: emailId || (svixId ? 'svix:' + svixId : ''), from, to, subject,
+  const messageId = String(d?.message_id || '').trim().slice(0, 998) || null;
+  return { providerEmailId: emailId || (svixId ? 'svix:' + svixId : ''), from, to, subject, messageId,
            threadKey: finance || !from || !to ? null : from + '>' + to, ownerSeat };
 }
 
@@ -62,7 +65,7 @@ export async function acceptDelivery(rpc: Rpc, raw: string, svixId: string): Pro
   try {
     const { data, error } = await rpc('fn_inbound_mail_accept', {
       p_provider_email_id: env.providerEmailId, p_svix_id: svixId || null, p_payload: raw, p_from: env.from, p_to: env.to,
-      p_subject: env.subject, p_thread_key: env.threadKey, p_owner_seat: env.ownerSeat });
+      p_subject: env.subject, p_thread_key: env.threadKey, p_owner_seat: env.ownerSeat, p_message_id: env.messageId });
     if (error || !data) return { ok: false, error: String(error?.message || 'fn_inbound_mail_accept answered nothing').slice(0, 300) };
     return { ok: true, duplicate: data.duplicate === true, id: Number(data.id) || null };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e).slice(0, 300) }; }

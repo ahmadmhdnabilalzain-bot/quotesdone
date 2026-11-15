@@ -48,8 +48,11 @@ test('the queue: one row per provider id, the reader cap under one lock, the thr
   assert.equal((SQL.match(/lease_until = now\(\) \+ interval '150 seconds'/g) ?? []).length, 2, 'claim and touch hold the same lease');
   assert.match(SQL, /interval '1 minute'[\s\S]{0,80}interval '5 minutes'[\s\S]{0,80}interval '15 minutes'[\s\S]{0,60}interval '60 minutes'/);
   assert.match(SQL, /max_attempts      integer not null default 5/);
-  assert.match(SQL, /public\.fn_seat_handoff\('it_engineer', r\.owner_seat, 'it\.finding', 'inbound_mail_queue', r\.id::text/);
   assert.match(SQL, /r\.status <> 'reading' or r\.claimed_by is distinct from p_worker/, 'a reader whose lease was taken back cannot overwrite the verdict');
+  // the jitter: both retry paths (a failed attempt, a lease that ran out) take the backoff stretched at random
+  assert.match(SQL, /now\(\) \+ public\.fn_inbound_mail_backoff\(p_attempts\) \* \(1 \+ 0\.5 \* random\(\)\)/);
+  assert.equal((SQL.match(/public\.fn_inbound_mail_retry_at\(r\.attempts\)/g) ?? []).length, 2, 'the claim and the finish both use the jittered retry');
+  assert.doesNotMatch(SQL, /now\(\) \+ public\.fn_inbound_mail_backoff\(r\./, 'no retry without the jitter');
   // the reader renews well inside the lease; its budget leaves the edge's wall clock for the message it started
   const q = read(`${FN}/lib/queue.ts`);
   assert.match(q, /export const LEASE_RENEW_MS = 30_000;/);
@@ -60,6 +63,40 @@ test('the queue: one row per provider id, the reader cap under one lock, the thr
   assert.match(SQL, /grant execute on function public\.fn_inbound_mail_kick\(\) to service_role;/);
   // the receipts' idempotency key is untouched
   assert.match(read(`${FN}/steps/receipts.ts`), /const msgKey = emailId \? \('resend:' \+ emailId\)/);
+});
+
+test('a dead letter is an IT finding the loop keeps open, closed by a requeue or a read; a requeue clears the row; a second death files anew', () => {
+  const dl = SQL.slice(SQL.indexOf('create or replace function public.fn_inbound_mail_dead_letter'), SQL.indexOf('create or replace function public.fn_inbound_mail_close_finding'));
+  // review of 15 Nov 2026: a bare fn_seat_handoff (no it_engineer_finding row) was closed by fn_it_loop_reverify within minutes
+  assert.doesNotMatch(SQL, /fn_seat_handoff\(/, 'no handoff without its finding: the IT loop closes a handoff whose finding is gone');
+  assert.match(dl, /v_key := 'inbound_mail_queue:' \|\| r\.id;/);
+  assert.match(dl, /perform public\.fn_it_engineer_finding_upsert\(v_key, v_title,/);
+  assert.match(dl, /jsonb_build_object\('owner_seat', r\.owner_seat, 'subject', 'resend_inbound'/);
+  assert.match(dl, /v_h := public\.fn_it_loop_open\(v_key\);/);
+  // it names the message by the sender's domain, never the address
+  assert.match(dl, /v_domain := coalesce\(nullif\(lower\(split_part\(r\.from_email, '@', 2\)\), ''\)/);
+  assert.doesNotMatch(dl, /'from_email', r\.from_email|' from ' \|\| r\.from_email/, 'the finding carries the sender\'s domain, not his address');
+  const requeue = SQL.slice(SQL.indexOf('create or replace function public.fn_inbound_mail_requeue'), SQL.indexOf('create or replace function public.fn_inbound_mail_kick'));
+  assert.match(requeue, /handoff_id = null, last_error = null/);
+  assert.match(requeue, /perform public\.fn_inbound_mail_close_finding\(p_id,/);
+  const finish = SQL.slice(SQL.indexOf('create or replace function public.fn_inbound_mail_finish'), SQL.indexOf('create or replace function public.fn_inbound_mail_requeue'));
+  assert.match(finish, /status = 'done'[\s\S]{0,200}perform public\.fn_inbound_mail_close_finding\(p_id,/);
+  assert.match(read(`scripts/sql/${NAME}_probe.sql`), /perform public\.fn_it_loop_reverify\(\);/, 'the probe runs the IT loop after a dead letter');
+});
+
+test('one message read once across Microsoft 365 mailboxes while it waits; a booked message never dead-letters on a failed Resend read', () => {
+  assert.match(SQL, /  message_id        text,/);
+  assert.match(SQL, /create index if not exists inbound_mail_queue_message_id on public\.inbound_mail_queue \(message_id\) where message_id is not null;/);
+  assert.match(read(`${FN}/lib/queue.ts`), /p_message_id: env\.messageId/);
+  const inbox = read('supabase/functions/_shared/m365_reply_inbox.ts');
+  assert.match(inbox, /\['inbound_mail_queue', 'message_id', 'message_id', \(r\) => r\.message_id\]/);
+  assert.match(inbox, /\['inbound_mail_queue', 'provider_email_id', 'provider_email_id', \(r\) => r\.provider_email_id\]/);
+  const integ = read('supabase/functions/resilience_ping/ticks/it_engineer/integrations.ts');
+  assert.match(integ, /const \{ onFile: m365OnFile, messageOnFile: m365MessageOnFile \} = inboundOnFile\(admin as unknown as OnFileDb\);/);
+  assert.doesNotMatch(integ, /from\('inbound_messages'\)\.select\('message_id:raw->>message_id'\)/, 'no lookup that reads inbound_messages alone');
+  const rm = read(`${FN}/steps/read_mail.ts`);
+  const onFile = rm.indexOf(".from('inbound_messages').select('id').eq('provider_email_id', emailId)");
+  assert.ok(onFile > 0 && onFile < rm.indexOf('fetchInboundEmail(resendEmailId'), 'the "already on file" answer comes before the Resend read');
 });
 
 test('the minute kick: scheduled, internal credential in scope, one request per free slot', () => {
@@ -73,13 +110,13 @@ test('the minute kick: scheduled, internal credential in scope, one request per 
 
 test('every routine is revoked and pinned; the table is service-role only; no strong lock on a table people use; pending with its probe', () => {
   const routines = [...SQL.matchAll(/create or replace function public\.(fn_inbound_mail_\w+)\(/g)].map((m) => m[1]);
-  assert.equal(routines.length, 9);
+  assert.equal(routines.length, 11);
   for (const r of routines) assert.match(SQL, new RegExp(`revoke execute on function public\\.${r}\\([^)]*\\) from public, anon, authenticated;`), r);
-  assert.equal((SQL.match(/security definer set search_path to 'public', 'pg_temp'|security definer\nset search_path to 'public', 'pg_temp'/g) ?? []).length, 9);
+  assert.equal((SQL.match(/security definer set search_path to 'public', 'pg_temp'|security definer\nset search_path to 'public', 'pg_temp'/g) ?? []).length, 11);
   assert.match(SQL, /create policy inbound_mail_queue_service_role_only on public\.inbound_mail_queue\s+as permissive for all to public using \(false\) with check \(false\);/);
   assert.match(SQL, /revoke all on public\.inbound_mail_queue from anon, authenticated;/);
   const prod = catalogueFrom({ relations: ['public.internal_credential', 'public.cron_registry', 'public.writer_seat', 'public.agent_actions',
-    'public.app_secrets', 'public.inbound_messages', 'public.table_export_registry', 'cron.job'].join(',') });
+    'public.app_secrets', 'public.inbound_messages', 'public.table_export_registry', 'public.it_engineer_finding', 'cron.job'].join(',') });
   assert.deepEqual(stallsLiveUsers(SQL, prod), []);
   const manifest = read('scripts/sql/MANIFEST.txt').split('\n').map((l) => l.trim());
   const pending = (() => { try { return read(`scripts/sql/pending/${NAME}.txt`).trim(); } catch { return ''; } })();

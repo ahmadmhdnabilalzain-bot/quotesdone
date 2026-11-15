@@ -21,7 +21,7 @@ Deno.env.set('RESEND_INBOUND_NO_SERVE', '1');
 
 // ---- The queue, in memory, with the SQL file's rules: unique provider id; at most READERS reading; a thread waits for its
 // earlier message; a 150 s lease taken back after it runs out; backoff 1/5/15/60 min; dead at max_attempts. ----
-type Row = { id: number; provider_email_id: string; svix_id: string | null; payload: string; from_email: string; to_email: string;
+type Row = { id: number; provider_email_id: string; svix_id: string | null; payload: string; from_email: string; to_email: string; message_id?: string | null;
   thread_key: string | null; owner_seat: string; status: 'queued' | 'reading' | 'done' | 'dead'; attempts: number; max_attempts: number;
   next_attempt_at: number; claimed_by: string | null; lease_until: number | null; last_error: string | null; outcome: unknown };
 const READERS = 2; const LEASE = 150_000;
@@ -39,7 +39,7 @@ class MemQueue {
       const seen = this.rows.find((r) => r.provider_email_id === a.p_provider_email_id);
       if (seen) return { data: { queued: false, duplicate: true, id: seen.id, status: seen.status }, error: null };
       const r: Row = { id: this.rows.length + 1, provider_email_id: a.p_provider_email_id, svix_id: a.p_svix_id, payload: a.p_payload,
-        from_email: a.p_from, to_email: a.p_to, thread_key: a.p_thread_key, owner_seat: a.p_owner_seat, status: 'queued', attempts: 0,
+        from_email: a.p_from, to_email: a.p_to, message_id: a.p_message_id ?? null, thread_key: a.p_thread_key, owner_seat: a.p_owner_seat, status: 'queued', attempts: 0,
         max_attempts: 5, next_attempt_at: this.clock, claimed_by: null, lease_until: null, last_error: null, outcome: null };
       this.rows.push(r);
       return { data: { queued: true, duplicate: false, id: r.id }, error: null };
@@ -90,6 +90,7 @@ class MemQueue {
 let Q = new MemQueue();
 
 const restCalls: string[] = [];
+let ON_FILE = true;   // whether the stub's inbound_messages holds every id asked for
 globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
   const req = new Request(input, init);
   const u = new URL(req.url);
@@ -103,6 +104,7 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
     const p = JSON.parse(body); return json(p.p_secret === DB_INTERNAL && p.p_function === 'resend_inbound' ? { ok: true, context: 'db.internal', credential_id: 9 } : { ok: false });
   }
   const one = (req.headers.get('Accept') || '').includes('vnd.pgrst.object');
+  if (u.pathname === '/rest/v1/inbound_messages' && req.method === 'GET' && !ON_FILE) return json([]);
   if (u.pathname === '/rest/v1/app_secrets') {
     const v = SECRETS[(u.searchParams.get('key') || '').replace(/^eq\./, '')];
     if (v === undefined) return one ? json({ message: 'none' }, 406) : json([]);
@@ -280,7 +282,7 @@ Deno.test('one sender\'s mail to one mailbox is read in the order it came; recei
 
 Deno.test('the queue key and envelope are read off the verified payload: the email id read_mail reads, else the Svix id', () => {
   const resend = envelopeOf(JSON.stringify({ type: 'email.received', data: { email_id: 'zz-e1', from: 'A <a@example.invalid>', to: ['Expenses@mail.quotesdone.com'], subject: 's' } }), 'msg_1');
-  assertEquals([resend.providerEmailId, resend.threadKey, resend.ownerSeat], ['zz-e1', null, 'accountant']);
+  assertEquals([resend.providerEmailId, resend.threadKey, resend.ownerSeat, resend.messageId], ['zz-e1', null, 'accountant', null]);
   const m365 = envelopeOf(JSON.stringify({ type: 'email.received', data: { email_id: 'm365:AAMkZZ', from: 'b@example.invalid', to: 'supplier@quotesdone.com', subject: 'Re: quote' } }), 'msg_2');
   assertEquals([m365.providerEmailId, m365.threadKey, m365.ownerSeat], ['m365:AAMkZZ', 'b@example.invalid>supplier@quotesdone.com', 'customer_support']);
   assertEquals(envelopeOf('not json', 'msg_3').providerEmailId, 'svix:msg_3');
@@ -305,4 +307,37 @@ Deno.test('a delivery larger than a queue row should hold (the M365 reader inlin
   assertEquals(Q.rows.length, 0, 'not queued');
   assertEquals(out.queue_id, undefined);
   assertEquals(out.duplicate, true, 'read_mail answered it (the stub has every id on file)');
+});
+
+Deno.test('the RFC Message-ID is recorded on the queue row, so the Microsoft 365 readers can hand one message once across mailboxes while it waits', async () => {
+  Q = new MemQueue();
+  const env = envelopeOf(JSON.stringify({ type: 'email.received', data: { email_id: 'm365:AAMkZZSUP', message_id: '<zz-demo-1@example.invalid>',
+    from: 'zz-demo-supplier@example.invalid', to: 'supplier@quotesdone.com', subject: 'ZZ DEMO quote' } }), 'msg_zz_mid');
+  assertEquals(env.messageId, '<zz-demo-1@example.invalid>');
+  useReader({ rpc: Q.rpc, read: stubReader().read, waitUntil: () => {}, log: () => Promise.resolve() });
+  const res = await handler(await signed({ email_id: 'm365:AAMkZZSUP', message_id: '<zz-demo-1@example.invalid>', from: 'zz-demo-supplier@example.invalid',
+    to: 'supplier@quotesdone.com', subject: 'ZZ DEMO quote', text: 'ZZ DEMO' }, 'msg_zz_mid'));
+  assertEquals(res.status, 200);
+  assertEquals(Q.rows[0].message_id, '<zz-demo-1@example.invalid>', 'fn_inbound_mail_accept was handed p_message_id');
+  useReader(null);
+});
+
+Deno.test('a message already on file is answered BEFORE the Resend read: a re-read while Resend fails ends at once, never as a failed attempt', async () => {
+  // metadata only (as Resend delivers), and Resend's read fails (the stub answers 404 for api.resend.com)
+  const raw = JSON.stringify({ type: 'email.received', data: { email_id: 'zz-demo-booked', from: FOUNDER, to: ['expenses@mail.quotesdone.com'], subject: 'Fwd: ZZ DEMO receipt' } });
+  const row = { id: 8, provider_email_id: 'zz-demo-booked', svix_id: 'msg_zz_booked', payload: raw, attempts: 2, max_attempts: 5 };
+  SECRETS.resend_api_key = 'zz-demo-resend-key';
+  try {
+    restCalls.length = 0; ON_FILE = true;
+    const res = await readQueued(row);
+    const out = await res.json();
+    assertEquals([res.status, out.duplicate], [200, true], JSON.stringify(out));
+    assert(!restCalls.some((c) => c.startsWith('/emails/inbound')), 'Resend was not asked: ' + restCalls.join(' '));
+    // control: the same message NOT on file still fails its attempt (read again later), as the queue intends
+    restCalls.length = 0; ON_FILE = false;
+    let threw = '';
+    try { await readQueued(row); } catch (e) { threw = String((e as Error).message); }
+    assert(threw.includes('could not be read from Resend'), 'not on file and unreadable: a failed attempt, got ' + JSON.stringify(threw));
+    assert(restCalls.some((c) => c === '/emails/inbound/zz-demo-booked'), 'Resend was asked: ' + restCalls.join(' '));
+  } finally { delete SECRETS.resend_api_key; ON_FILE = true; }
 });

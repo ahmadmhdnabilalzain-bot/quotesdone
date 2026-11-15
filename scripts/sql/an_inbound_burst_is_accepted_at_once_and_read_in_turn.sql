@@ -12,7 +12,10 @@
 --
 -- CHANGE
 --   1. public.inbound_mail_queue: one row per e-mail, unique on the provider's id (Resend's email_id, 'm365:<id>' for the
---      Microsoft 365 reader, else 'svix:<svix-id>'), holding the verified delivery as it arrived. resend_inbound now verifies the
+--      Microsoft 365 reader, else 'svix:<svix-id>'), holding the verified delivery as it arrived, and its RFC Message-ID
+--      (message_id). The Microsoft 365 readers hand one Message-ID once across every mailbox of the tenant
+--      (_shared/m365_reply_inbox.ts inboundOnFile reads inbound_messages AND this table): before the queue, supplier@'s copy
+--      was in inbound_messages by the time the tenant sweep looked; now it is only queued, so the queue is read too. resend_inbound now verifies the
 --      token and the Svix signature, records the row (fn_inbound_mail_accept; a redelivery is answered "duplicate"), answers
 --      200 and only then starts reading (EdgeRuntime.waitUntil).
 --   2. fn_inbound_mail_claim hands a reader the oldest due message, under one advisory lock so the count is exact:
@@ -23,10 +26,18 @@
 --          correction a minute later are read in the order he sent them;
 --        * a reader holds a 150 s lease it renews every 30 s (fn_inbound_mail_touch); a reader the edge killed stops renewing,
 --          and its message is taken back at the next claim after the backoff, counted as an attempt.
---   3. fn_inbound_mail_finish: read -> done; failed -> queued again after 1, 5, 15, then 60 minutes; failed on the
---      max_attempts-th (5) try -> dead (fn_inbound_mail_dead_letter): an it.finding handoff to the seat that owns the mail
---      (accountant for the finance mailboxes, marketing for the founder's replies to its approvals, customer_support for
---      the rest, as resend_inbound decided at acceptance) with the reason and how to read it again (fn_inbound_mail_requeue).
+--   3. fn_inbound_mail_finish: read -> done; failed -> queued again after 1, 5, 15, then 60 minutes, each stretched by up to
+--      half again at random (fn_inbound_mail_retry_at), so two messages that failed together (a worker the edge killed takes
+--      every reader on it) do not come back together; failed on the max_attempts-th (5) try -> dead
+--      (fn_inbound_mail_dead_letter): an IT finding 'inbound_mail_queue:<id>' (fn_it_engineer_finding_upsert, owner_seat in
+--      its evidence) and its it.finding handoff (fn_it_loop_open) to the seat that owns the mail (accountant for the finance
+--      mailboxes, marketing for the founder's replies to its approvals, customer_support for the rest, as resend_inbound
+--      decided at acceptance), naming the message (mailbox, sender's domain, subject cut to 80 characters, when it arrived)
+--      with the reason and how to read it again. THE FINDING IS WHAT KEEPS THE HANDOFF OPEN: fn_it_loop_reverify closes an
+--      it.finding handoff whose finding is gone or closed (review of 15 Nov 2026: a bare fn_seat_handoff, with no finding
+--      row, was closed by the IT loop within minutes as "the finding is no longer open"). It is closed by a requeue
+--      (fn_inbound_mail_requeue) or by a successful read; a second death after a requeue reopens it as a new occurrence, so
+--      a new handoff is filed.
 --   4. fn_inbound_mail_kick asks resend_inbound?drain=1 (db.internal credential, whose scope gains resend_inbound) to start one
 --      reader per due message a free slot can take. A reader reads ONE message per invocation (the edge limits CPU per
 --      invocation, and a run that read message after message would add theirs up and be killed part-way through a later one),
@@ -53,6 +64,7 @@ create table if not exists public.inbound_mail_queue (
   from_email        text not null default '',
   to_email          text not null default '',
   subject           text not null default '',
+  message_id        text,
   thread_key        text,
   owner_seat        text not null default 'customer_support'
                     check (owner_seat in ('accountant', 'marketing', 'customer_support', 'sales_engineer', 'ceo')),
@@ -73,6 +85,7 @@ create unique index if not exists inbound_mail_queue_provider_email_id_key on pu
 create index if not exists inbound_mail_queue_open on public.inbound_mail_queue (next_attempt_at, id) where status in ('queued', 'reading');
 create index if not exists inbound_mail_queue_thread on public.inbound_mail_queue (thread_key, id) where status in ('queued', 'reading');
 create index if not exists inbound_mail_queue_done on public.inbound_mail_queue (finished_at) where status = 'done';
+create index if not exists inbound_mail_queue_message_id on public.inbound_mail_queue (message_id) where message_id is not null;
 
 alter table public.inbound_mail_queue enable row level security;
 drop policy if exists inbound_mail_queue_service_role_only on public.inbound_mail_queue;
@@ -108,17 +121,29 @@ returns interval language sql immutable security definer set search_path to 'pub
 $fn$;
 revoke execute on function public.fn_inbound_mail_backoff(integer) from public, anon, authenticated;
 
+-- When attempt n+1 may start: the backoff, stretched by up to half again at random. A worker the edge kills takes every reader on
+-- it, and their messages would otherwise come back at the same instant, attempt for attempt, to a dead letter (review, 15 Nov).
+create or replace function public.fn_inbound_mail_retry_at(p_attempts integer)
+returns timestamptz language sql volatile security definer set search_path to 'public', 'pg_temp' as $fn$
+  select now() + public.fn_inbound_mail_backoff(p_attempts) * (1 + 0.5 * random())
+$fn$;
+revoke execute on function public.fn_inbound_mail_retry_at(integer) from public, anon, authenticated;
+
 -- The webhook's record. A redelivery of a message already on file changes nothing and says so.
+-- (The 8-argument form of an earlier draft of this file was never applied to production; dropped so a re-applied local
+-- database keeps one form.)
+drop function if exists public.fn_inbound_mail_accept(text, text, text, text, text, text, text, text);
 create or replace function public.fn_inbound_mail_accept(p_provider_email_id text, p_svix_id text, p_payload text,
   p_from text default '', p_to text default '', p_subject text default '', p_thread_key text default null,
-  p_owner_seat text default 'customer_support')
+  p_owner_seat text default 'customer_support', p_message_id text default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_id bigint; v_status text;
 begin
   if coalesce(btrim(p_provider_email_id), '') = '' then raise exception 'an inbound e-mail must carry its provider id'; end if;
-  insert into public.inbound_mail_queue (provider_email_id, svix_id, payload, from_email, to_email, subject, thread_key, owner_seat)
+  insert into public.inbound_mail_queue (provider_email_id, svix_id, payload, from_email, to_email, subject, message_id, thread_key, owner_seat)
   values (p_provider_email_id, p_svix_id, coalesce(p_payload, ''), left(coalesce(p_from, ''), 320), left(coalesce(p_to, ''), 320),
-          left(coalesce(p_subject, ''), 300), nullif(left(coalesce(p_thread_key, ''), 700), ''),
+          left(coalesce(p_subject, ''), 300), nullif(btrim(left(coalesce(p_message_id, ''), 998)), ''),
+          nullif(left(coalesce(p_thread_key, ''), 700), ''),
           case when p_owner_seat in ('accountant', 'marketing', 'customer_support', 'sales_engineer', 'ceo') then p_owner_seat
                else 'customer_support' end)
   on conflict (provider_email_id) do nothing
@@ -127,35 +152,74 @@ begin
   select id, status into v_id, v_status from public.inbound_mail_queue where provider_email_id = p_provider_email_id;
   return jsonb_build_object('queued', false, 'duplicate', true, 'id', v_id, 'status', v_status);
 end $fn$;
-revoke execute on function public.fn_inbound_mail_accept(text, text, text, text, text, text, text, text) from public, anon, authenticated;
-grant execute on function public.fn_inbound_mail_accept(text, text, text, text, text, text, text, text) to service_role;
+revoke execute on function public.fn_inbound_mail_accept(text, text, text, text, text, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_inbound_mail_accept(text, text, text, text, text, text, text, text, text) to service_role;
 
--- A message no reader could finish: dead, and handed to the seat that owns the mail with the reason.
+-- A message no reader could finish: dead, an IT finding, and that finding's it.finding handoff to the seat that owns the mail.
+-- The finding is what the IT loop re-verifies (fn_it_loop_reverify keeps the handoff while the finding is open); a requeue or a
+-- successful read closes it (fn_inbound_mail_close_finding). It names the message by what an internal seat needs to find it and
+-- nothing more: our mailbox, the sender's DOMAIN, the subject cut to 80 characters, when it arrived and the provider's id; the
+-- sender's address stays on the queue row.
 create or replace function public.fn_inbound_mail_dead_letter(p_id bigint, p_reason text)
 returns bigint language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare r public.inbound_mail_queue; v_h bigint; v_reason text := left(coalesce(nullif(btrim(p_reason), ''), 'no reason was given'), 1000);
+declare r public.inbound_mail_queue; v_h bigint; v_key text; v_domain text; v_subj text; v_when text; v_title text;
+  v_reason text := left(coalesce(nullif(btrim(p_reason), ''), 'no reason was given'), 1000);
 begin
   update public.inbound_mail_queue
      set status = 'dead', finished_at = now(), lease_until = null, last_error = v_reason
    where id = p_id and status <> 'dead'
   returning * into r;
   if not found then return null; end if;
-  v_h := public.fn_seat_handoff('it_engineer', r.owner_seat, 'it.finding', 'inbound_mail_queue', r.id::text, jsonb_build_object(
-    'duty', 'inbound_mail_dead_letter', 'subject', 'resend_inbound', 'issue_key', 'inbound_mail_dead_letter:' || r.id,
-    'title', left('An e-mail to ' || r.to_email || ' from ' || r.from_email || ' could not be read after ' || r.attempts
-                  || ' attempt(s): ' || v_reason, 200),
-    'provider_email_id', r.provider_email_id, 'from_email', r.from_email, 'to_email', r.to_email,
-    'mail_subject', left(r.subject, 200), 'received_at', r.received_at, 'attempts', r.attempts, 'reason', v_reason,
-    'ask', case when r.owner_seat = 'accountant'
-                then 'Nothing was booked from this e-mail. Replay it with the accountant''s expense_sweep (email_id '
-                     || r.provider_email_id || ', dry_run first), or read the receipt yourself. Once the cause is fixed, '
-                     || 'fn_inbound_mail_requeue(' || r.id || ') reads it again.'
-                else 'Nobody has read this e-mail yet and the sender has had no answer. Read it in Resend (or the mailbox) and '
-                     || 'act on it. Once the cause is fixed, fn_inbound_mail_requeue(' || r.id || ') reads it again.' end));
+  v_key := 'inbound_mail_queue:' || r.id;
+  v_domain := coalesce(nullif(lower(split_part(r.from_email, '@', 2)), ''), 'an unknown sender');
+  v_subj := case when btrim(r.subject) = '' then '(no subject)'
+                 when length(btrim(r.subject)) > 80 then left(btrim(r.subject), 79) || '…' else btrim(r.subject) end;
+  v_when := to_char(r.received_at at time zone 'UTC', 'DD Mon YYYY HH24:MI') || ' UTC';
+  v_title := 'An e-mail to ' || coalesce(nullif(r.to_email, ''), 'an unknown mailbox') || ' from ' || v_domain || ' ("' || v_subj
+             || '", received ' || v_when || ') could not be read after ' || r.attempts || ' attempt(s)';
+  perform public.fn_it_engineer_finding_upsert(v_key, v_title,
+    'resend_inbound reader (public.inbound_mail_queue id ' || r.id || ', provider id ' || left(r.provider_email_id, 120) || ')',
+    'agent_facing', 1,
+    jsonb_build_object('owner_seat', r.owner_seat, 'subject', 'resend_inbound', 'duty', 'inbound_mail_dead_letter',
+      'queue_id', r.id, 'provider_email_id', r.provider_email_id, 'mailbox', r.to_email, 'sender_domain', v_domain,
+      'mail_subject', v_subj, 'received_at', r.received_at, 'attempts', r.attempts, 'reason', v_reason,
+      'ask', case when r.owner_seat = 'accountant'
+                  then 'The reader could not finish this receipt. Whether anything was booked from it: select id from '
+                       || 'public.expense_entries where source_msg_id = ''resend:' || r.provider_email_id || '''. If not, replay it '
+                       || 'alone with the accountant''s expense_sweep (email_id ' || r.provider_email_id || ', dry_run first), or '
+                       || 'book the receipt yourself. Once the cause is fixed, select public.fn_inbound_mail_requeue(' || r.id
+                       || ') reads it again and closes this finding.'
+                  else 'Nobody has read this e-mail yet and the sender has had no answer. Read it in Resend (or the mailbox) and '
+                       || 'act on it. Once the cause is fixed, select public.fn_inbound_mail_requeue(' || r.id
+                       || ') reads it again and closes this finding.' end),
+    '{}'::text[],
+    array['why the reader failed on this message: ' || left(v_reason, 300)],
+    'it_engineer');
+  -- Its handoff now, not at the next IT loop tick. Should the loop's open step fail here, the finding still stands and the
+  -- loop opens it on its next tick (fn_it_loop_tick, step 2), so the dead letter is never lost with the handoff.
+  begin
+    v_h := public.fn_it_loop_open(v_key);
+  exception when others then
+    v_h := null;
+  end;
   update public.inbound_mail_queue set handoff_id = v_h where id = r.id;
   return v_h;
 end $fn$;
 revoke execute on function public.fn_inbound_mail_dead_letter(bigint, text) from public, anon, authenticated;
+
+-- The dead letter's finding, closed: by a requeue (the seat fixed the cause and the message is read again) or a successful read.
+-- A second death after a requeue reopens it (fn_it_engineer_finding_upsert restarts started_at), which is a new occurrence and so
+-- a new handoff (fn_it_loop_open keys the handoff on issue_key@started_at).
+create or replace function public.fn_inbound_mail_close_finding(p_id bigint, p_note text)
+returns boolean language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+begin
+  if not exists (select 1 from public.it_engineer_finding where issue_key = 'inbound_mail_queue:' || p_id and closed_at is null) then
+    return false;
+  end if;
+  perform public.fn_it_engineer_finding_close('inbound_mail_queue:' || p_id, left(coalesce(p_note, 'closed'), 500));
+  return true;
+end $fn$;
+revoke execute on function public.fn_inbound_mail_close_finding(bigint, text) from public, anon, authenticated;
 
 -- Hand a reader the oldest due messages it may read now. Takes back a message whose reader stopped renewing its lease.
 create or replace function public.fn_inbound_mail_claim(p_worker text, p_limit integer default 1)
@@ -175,7 +239,7 @@ begin
     else
       update public.inbound_mail_queue
          set status = 'queued', claimed_by = null, lease_until = null,
-             next_attempt_at = now() + public.fn_inbound_mail_backoff(r.attempts),
+             next_attempt_at = public.fn_inbound_mail_retry_at(r.attempts),
              last_error = 'attempt ' || r.attempts || ': the reader stopped without finishing (its lease ran out)'
        where id = r.id;
     end if;
@@ -226,6 +290,7 @@ begin
   if coalesce(p_ok, false) then
     update public.inbound_mail_queue set status = 'done', finished_at = now(), lease_until = null, outcome = p_outcome
      where id = p_id;
+    perform public.fn_inbound_mail_close_finding(p_id, 'the e-mail was read on attempt ' || r.attempts);
     return jsonb_build_object('finished', true, 'status', 'done');
   end if;
   update public.inbound_mail_queue set outcome = coalesce(p_outcome, outcome) where id = p_id;
@@ -233,7 +298,7 @@ begin
     perform public.fn_inbound_mail_dead_letter(p_id, 'attempt ' || r.attempts || ': ' || coalesce(p_error, 'no reason was given'));
     return jsonb_build_object('finished', true, 'status', 'dead');
   end if;
-  v_next := now() + public.fn_inbound_mail_backoff(r.attempts);
+  v_next := public.fn_inbound_mail_retry_at(r.attempts);
   update public.inbound_mail_queue
      set status = 'queued', claimed_by = null, lease_until = null, next_attempt_at = v_next,
          last_error = left('attempt ' || r.attempts || ': ' || coalesce(p_error, 'no reason was given'), 1000)
@@ -244,13 +309,21 @@ revoke execute on function public.fn_inbound_mail_finish(bigint, text, boolean, 
 grant execute on function public.fn_inbound_mail_finish(bigint, text, boolean, jsonb, text) to service_role;
 
 -- A dead message, read again once its cause is fixed (a seat or a session calls it; nothing calls it on a schedule).
+-- The dead letter's finding is closed here (its handoff then closes at the IT loop's next re-verification); the handoff and the
+-- last error are cleared off the row, so a second death files and says its own.
 create or replace function public.fn_inbound_mail_requeue(p_id bigint)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_found boolean;
 begin
   update public.inbound_mail_queue
-     set status = 'queued', attempts = 0, next_attempt_at = now(), claimed_by = null, lease_until = null, finished_at = null
+     set status = 'queued', attempts = 0, next_attempt_at = now(), claimed_by = null, lease_until = null, finished_at = null,
+         handoff_id = null, last_error = null
    where id = p_id and status = 'dead';
-  return jsonb_build_object('requeued', found, 'id', p_id);
+  v_found := found;
+  if v_found then
+    perform public.fn_inbound_mail_close_finding(p_id, 'requeued: the e-mail is read again (fn_inbound_mail_requeue)');
+  end if;
+  return jsonb_build_object('requeued', v_found, 'id', p_id);
 end $fn$;
 revoke execute on function public.fn_inbound_mail_requeue(bigint) from public, anon, authenticated;
 
@@ -302,9 +375,9 @@ on conflict (kind, name) do update set owner_seat = excluded.owner_seat, note = 
 -- PROBE: read-only; returns its verdict as a row (the file holds DDL, so it must not raise).
 with f as (select count(*) n from pg_proc p join pg_namespace s on s.oid = p.pronamespace
             where s.nspname = 'public' and p.prosecdef
-              and p.proname in ('fn_inbound_mail_readers', 'fn_inbound_mail_backoff', 'fn_inbound_mail_accept', 'fn_inbound_mail_dead_letter',
-                                'fn_inbound_mail_claim', 'fn_inbound_mail_touch', 'fn_inbound_mail_finish', 'fn_inbound_mail_requeue',
-                                'fn_inbound_mail_kick')
+              and p.proname in ('fn_inbound_mail_readers', 'fn_inbound_mail_backoff', 'fn_inbound_mail_retry_at', 'fn_inbound_mail_accept',
+                                'fn_inbound_mail_dead_letter', 'fn_inbound_mail_close_finding', 'fn_inbound_mail_claim',
+                                'fn_inbound_mail_touch', 'fn_inbound_mail_finish', 'fn_inbound_mail_requeue', 'fn_inbound_mail_kick')
               and exists (select 1 from unnest(p.proconfig) cfg where cfg like 'search_path=%')
               and not has_function_privilege('anon', p.oid, 'execute')
               and not has_function_privilege('authenticated', p.oid, 'execute')),
@@ -312,6 +385,6 @@ with f as (select count(*) n from pg_proc p join pg_namespace s on s.oid = p.pro
               and not has_table_privilege('anon', c.oid, 'select') and not has_table_privilege('authenticated', c.oid, 'select')),
      j as (select count(*) n from cron.job where jobname = 'inbound_mail_drain' and active),
      c as (select count(*) n from public.internal_credential where context = 'db.internal' and active and 'resend_inbound' = any (scope))
-select case when (select n from f) = 9 and (select n from t) = 1 and (select n from j) = 1 and (select n from c) >= 1 then 'PROBE OK'
-            else 'PROBE FAILED: routines ' || (select n from f) || ' of 9, table ' || (select n from t) || ', job ' || (select n from j)
+select case when (select n from f) = 11 and (select n from t) = 1 and (select n from j) = 1 and (select n from c) >= 1 then 'PROBE OK'
+            else 'PROBE FAILED: routines ' || (select n from f) || ' of 11, table ' || (select n from t) || ', job ' || (select n from j)
                  || ', scope ' || (select n from c) end as verdict;
