@@ -38,7 +38,7 @@
 --
 -- Prevented by: scripts/checks/a_quotation_is_valid_for_the_period_the_supplier_states.test.mjs (this file's text, and no
 -- routine source in the repository fills an expiry with a period of its own) and this file's _probe.sql (run on a local
--- Postgres 16: 52 readings of real wordings, the trigger on insert and update, the three reveal-period routines).
+-- Postgres 16: 63 wordings read, 51 that state a validity and 12 that state none, the trigger on insert and update, the three reveal-period routines).
 -- Pending until the release applies it: scripts/sql/pending/<this name>.txt
 --
 -- THE APPLY MUST NOT FREEZE THE SITE: it adds a nullable column to quotes (ACCESS EXCLUSIVE, catalogue only, no rewrite) and

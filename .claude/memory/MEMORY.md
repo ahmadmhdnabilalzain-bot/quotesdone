@@ -85,6 +85,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Payments are the accountant; talks to sales](payments-are-the-accountant-and-talk-to-sales.md) — payment paths owned by accountant, portals speak only as sales engineer
 - [No exact spec → offer alternatives](no-exact-spec-offer-alternatives.md) — support asks; yes = accepted spec, no = apology
 - [Exact specs or the quote is held](exact-specs-or-the-quote-is-held.md) — per-line specs per trade; missing → hold; PDFs pro + fully Arabic
+- [Quotation validity is what the supplier states (15 Nov)](quotation-validity-is-what-the-supplier-states.md) — ledger 1697: no period of ours anywhere; none stated = no expiry, "not stated by the supplier"; Supplier Agreement v17 §12 (30 days) awaits his version choice
 - [Code extremely well built](code-extremely-well-built.md) — PERMANENT: independent review before EVERY merge; what can be coded is coded, EXCEPT understanding a document or a person (corrected 12 Nov, ledger 1664)
 - [Nothing is one-way](nothing-is-one-way.md) — every handoff/report tracked, replied, re-verified and closed by the originator
 - [Always name the seat](always-name-the-seat.md) — never say "an agent"; commits signed by the owning seat

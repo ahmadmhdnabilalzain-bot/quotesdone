@@ -56,8 +56,7 @@ Other rules:
   revealed you", "Withdrawn", "Expired".
 - The quotation is issued as a standard PDF in English and Arabic. If the Arabic PDF is not ready
   yet, the English PDF can be opened now.
-- A submitted quote cannot be revised. It can be withdrawn before a reveal. It is valid for the period your quotation states (QuotesDone sets none); if it
-  states none, the customer reads "Validity: not stated by the supplier".
+- A submitted quote cannot be revised. It can be withdrawn before a reveal. It is valid for the period it states.
 - "Why … was not chosen" on a quote shows the loss feedback.
 - When a request is concluded, the portal says "Concluded — the customer has chosen."
 
