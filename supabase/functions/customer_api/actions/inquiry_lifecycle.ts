@@ -12,7 +12,7 @@ import { notSureKeys, specHandoffArgs } from '../spec_handoff.ts';
 import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../../_shared/supplier_english.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 import { asLocale, documentLocale } from '../../_shared/registered_locale.ts';
-import { arrivals, labelQuotes, type QuoteLabel } from '../../_shared/quote_labels.ts';
+import { customerQuoteLabelsByInquiry } from '../../_shared/quote_labels.ts';
 import { feeBaseOf, feeBasisLine, priceStated, vatStated } from '../../_shared/stated_price.ts';
 import { requestDelivery } from '../../_shared/deliver.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../../_shared/line_specs/no_exact_spec.ts';
@@ -217,12 +217,12 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       // quoting supplier — a superset of the listed ones, used only through supMeta lookups of quotes
       // that survive the filters, so the answer is unchanged.
       const allSupIds = [...new Set(allQuotes.map((q) => q.supplier_id).filter((x) => x != null))] as (string | number)[];
-      const [sanctionedSup, itemsOf, supRows, holdsRes] = await Promise.all([
+      const [sanctionedSup, itemsOf, supRows, labelsByInq] = await Promise.all([
         sanctionedLeads(admin, allSupIds),
         itemsByQuote(admin, allQuotes.map((q) => String(q.id))),
         allSupIds.length ? Promise.all([admin.from('leads').select('id,company_name,app_rating,app_reviews,emirate,founded_year,rv_response_rate,rv_reveals,verified,licence_gate_reason,license_doc_path,license_expiry,company_profile_doc_path').in('id', allSupIds), admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', allSupIds)]) : null,
-        // the quality holds that released a quote: when it reached the customer, for its letter (_shared/quote_labels.ts)
-        ids.length ? admin.from('quote_quality_hold').select('quote_id,released_at').in('inquiry_id', ids) : null,
+        // each request's supplier letters, the one read every customer surface uses (_shared/quote_labels.ts)
+        customerQuoteLabelsByInquiry(admin, ids),
       ]);
       const inqById = new Map<string, any>([...(tops || []), ...kids].map((i: any) => [String(i.id), i]));
       // The requests already re-posted as separate quotes per trade: their question is answered (lib/separate_quotes.ts).
@@ -238,14 +238,7 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       const quotes: Record<string, any>[] = allQuotes.filter((q) => !heldIds.has(String(q.id)) && !sanctionedSup.has(String(q.supplier_id)));
       // ONE LETTER PER SUPPLIER PER REQUEST (_shared/quote_labels.ts, 15 Nov 2026): counted over EVERY live quote of the request,
       // the held and sanctioned ones included, so a quote hidden here or released later never moves another's letter.
-      const holdRows = holdsRes && !holdsRes.error && Array.isArray(holdsRes.data) ? holdsRes.data : [];
-      const labelsByInq = new Map<string, Map<string, QuoteLabel>>();
-      const labelFor = (q: Record<string, any>) => {
-        const iid = String(q.inquiry_id);
-        let m = labelsByInq.get(iid);
-        if (!m) { m = labelQuotes(arrivals(allQuotes.filter((x) => String(x.inquiry_id) === iid) as any[], holdRows)); labelsByInq.set(iid, m); }
-        return m.get(String(q.id));
-      };
+      const labelFor = (q: Record<string, any>) => labelsByInq.get(String(q.inquiry_id))?.get(String(q.id));
       // How many suppliers the request actually reached. Without this the portal cannot tell
       // "waiting for quotes" apart from "this reached nobody", and shows hope either way.
       const matchedBy: Record<string, number> = {};

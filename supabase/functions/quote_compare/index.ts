@@ -33,7 +33,7 @@ async function sha256hex(s: string){ const b=await crypto.subtle.digest('SHA-256
 import { rendererView, technicalComparison, type TechnicalComparison } from '../_shared/line_specs/compare.ts';
 import { compareItem, heldQuoteIds } from '../_shared/reveal_guard.ts';
 import { requirementsOf } from '../_shared/line_specs/assess.ts';
-import { arrivals, labelQuotes } from '../_shared/quote_labels.ts';
+import { arrivals, customerQuoteLabels, labelQuotes } from '../_shared/quote_labels.ts';
 import { DATA_NOT_INSTRUCTIONS } from '../_shared/untrusted.ts';
 import { chunks, differingCells } from '../_shared/routine_judgements.ts';
 // 10 Nov 2026 (founder ledger 1588-1590, sales_engineer): the expert review notes per quote, and the generaliser every
@@ -114,11 +114,8 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     let qualityHeld = 0; let qualityHours = 24;
     // deno-lint-ignore no-explicit-any
     const qualityFlags: Record<string, any[]> = {};
-    // deno-lint-ignore no-explicit-any
-    let holdRows: any[] = [];   // when a hold released a quote: the moment it reached the customer, for its letter
     try {
       const { data: hs, error } = await admin.from('quote_quality_hold').select('quote_id,flags,held_at,release_due,released_at,release_reason,corrected_at,superseded_at').eq('inquiry_id', inquiry_id);
-      if (!error) holdRows = hs || [];
       if (!error) for (const h of (hs || [])) {
         const hrs = Math.round((new Date(h.release_due).getTime() - new Date(h.held_at).getTime()) / 3600000);
         if (Number.isFinite(hrs) && hrs > 0) qualityHours = hrs;
@@ -202,7 +199,8 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     // "Supplier A – Option 1" (founder, 14 Sep 2026: options are separate quotations of one supplier). The letters are the request's
     // ONE set (_shared/quote_labels.ts, 15 Nov 2026): every live quote by arrival, so the comparison calls a supplier what its
     // quotation PDF and its portal card call it (journey A: the PDFs said A and A, this said B and A).
-    const labels = labelQuotes(arrivals(live, holdRows));
+    const oneSet = await customerQuoteLabels(admin, String(inquiry_id));
+    const labels = live.every((q: any) => oneSet.has(String(q.id))) ? oneSet : labelQuotes(arrivals(live));   // the read failed: arrival by created_at
     // THE TECHNICAL COMPARISON — line by line, attribute by attribute, against what the customer
     // asked for; held quotes are counted, never shown. Rebuilt on every answer, cached or not.
     let onHold = 0;

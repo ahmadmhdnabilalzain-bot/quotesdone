@@ -60,24 +60,42 @@ export function labelQuotes(quotes: LabelInput[]): Map<string, QuoteLabel> {
   return out;
 }
 
-/** The quotes as labelQuotes reads them: each live quote with `live_since` from the quality hold that released it. */
+/** The quotes as labelQuotes reads them: each live quote with `live_since`, the latest release of a hold on it (a quote a quality
+ *  or spec hold kept back is a draft until released, so it reached the customer then, not at created_at). */
 export function arrivals(quotes: Array<{ id: unknown; supplier_id: number | string | null; option_no?: number | null; created_at?: string | null; status?: unknown }>,
   holds: Array<{ quote_id: unknown; released_at?: string | null }> = []): LabelInput[] {
   const released = new Map<string, string>();
-  for (const h of holds) if (h && h.released_at) released.set(String(h.quote_id), String(h.released_at));
+  for (const h of holds) {
+    if (!h || !h.released_at || !Number.isFinite(Date.parse(String(h.released_at)))) continue;
+    const k = String(h.quote_id), was = released.get(k);
+    if (!was || Date.parse(String(h.released_at)) > Date.parse(was)) released.set(k, String(h.released_at));
+  }
   return quotes.filter((q) => isLiveQuote(q.status)).map((q) => ({ id: String(q.id), supplier_id: q.supplier_id, option_no: q.option_no ?? 1,
     created_at: q.created_at ?? null, live_since: released.get(String(q.id)) ?? null }));
 }
 
-/** THE ONE READ (above): every live quote of the request and the quality holds that released any of them, labelled. A read that
- *  fails gives an empty map, and the caller says "Supplier" with no letter rather than a guessed one. */
+/** THE ONE READ (above), for one or many requests: every live quote of each and the quality and spec holds that released any of
+ *  them (three reads in parallel), labelled per request. A request whose quotes cannot be read gets no entry, and its caller
+ *  says "Supplier" with no letter rather than a guessed one; a hold table that cannot be read leaves created_at to decide. */
+// deno-lint-ignore no-explicit-any
+export async function customerQuoteLabelsByInquiry(admin: any, inquiryIds: string[]): Promise<Map<string, Map<string, QuoteLabel>>> {
+  const out = new Map<string, Map<string, QuoteLabel>>();
+  const ids = [...new Set(inquiryIds.map(String).filter(Boolean))];
+  if (!ids.length) return out;
+  try {
+    // deno-lint-ignore no-explicit-any
+    const holdsOf = async (table: string): Promise<any[]> => { try { const { data, error } = await admin.from(table).select('quote_id,released_at').in('inquiry_id', ids).not('released_at', 'is', null); return !error && Array.isArray(data) ? data : []; } catch (_e) { return []; } };
+    const [qr, quality, spec] = await Promise.all([
+      admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,created_at,status').in('inquiry_id', ids).not('status', 'in', NOT_LIVE_QUOTE_IN).limit(2000),
+      holdsOf('quote_quality_hold'), holdsOf('quote_spec_hold'),
+    ]);
+    if (qr?.error || !Array.isArray(qr?.data)) return out;
+    const holds = [...quality, ...spec];
+    for (const iid of ids) out.set(iid, labelQuotes(arrivals(qr.data.filter((q: { inquiry_id: unknown }) => String(q.inquiry_id) === iid), holds)));
+    return out;
+  } catch (_e) { return out; }
+}
 // deno-lint-ignore no-explicit-any
 export async function customerQuoteLabels(admin: any, inquiryId: string): Promise<Map<string, QuoteLabel>> {
-  try {
-    const { data: qs, error } = await admin.from('quotes').select('id,supplier_id,option_no,created_at,status').eq('inquiry_id', inquiryId).not('status', 'in', NOT_LIVE_QUOTE_IN).limit(500);
-    if (error || !Array.isArray(qs)) return new Map();
-    let holds: Array<{ quote_id: unknown; released_at?: string | null }> = [];
-    try { const { data: hs, error: he } = await admin.from('quote_quality_hold').select('quote_id,released_at').eq('inquiry_id', inquiryId); if (!he && Array.isArray(hs)) holds = hs; } catch (_e) { /* no hold table: created_at alone */ }
-    return labelQuotes(arrivals(qs, holds));
-  } catch (_e) { return new Map(); }
+  return (await customerQuoteLabelsByInquiry(admin, [String(inquiryId)])).get(String(inquiryId)) ?? new Map();
 }

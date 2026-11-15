@@ -3,7 +3,7 @@
 // a supplier's letter is the order its first quote reached the customer, so three quotes arriving in any order, at any price,
 // read and re-read at any moment, keep the letters they were first given.
 import { assertEquals } from 'jsr:@std/assert@1';
-import { arrivals, customerQuoteLabels, labelQuotes, type LabelInput } from './quote_labels.ts';
+import { arrivals, customerQuoteLabels, customerQuoteLabelsByInquiry, labelQuotes, type LabelInput } from './quote_labels.ts';
 
 // Three suppliers, three prices that do NOT follow arrival: the cheapest arrives last.
 const T = (h: number) => `2026-11-15T${String(h).padStart(2, '0')}:00:00Z`;
@@ -79,25 +79,31 @@ Deno.test('a supplier\'s second option keeps its first quote\'s letter', () => {
 });
 
 Deno.test('the one read: card, PDF and comparison get the same letters from customerQuoteLabels', async () => {
-  // a fake PostgREST client: the live quotes of the request (PRICE order, as the old reads asked) and one released hold
+  // a fake PostgREST client: the live quotes of two requests (PRICE order, as the old reads asked), a quality hold released at
+  // 12:00 and a spec hold released at 13:00
   const rows = [
-    { id: 'q-polar', supplier_id: 33, option_no: 1, created_at: T(11), status: 'submitted' },
-    { id: 'q-arabian', supplier_id: 22, option_no: 1, created_at: T(10), status: 'submitted' },
-    { id: 'q-breeze', supplier_id: 11, option_no: 1, created_at: T(9), status: 'submitted' },
+    { id: 'q-polar', inquiry_id: 'inq-1', supplier_id: 33, option_no: 1, created_at: T(11), status: 'submitted' },
+    { id: 'q-arabian', inquiry_id: 'inq-1', supplier_id: 22, option_no: 1, created_at: T(10), status: 'submitted' },
+    { id: 'q-breeze', inquiry_id: 'inq-1', supplier_id: 11, option_no: 1, created_at: T(9), status: 'submitted' },
+    { id: 'q-other', inquiry_id: 'inq-2', supplier_id: 33, option_no: 1, created_at: T(8), status: 'submitted' },
   ];
+  const tables: Record<string, unknown[]> = { quotes: rows, quote_quality_hold: [{ quote_id: 'q-breeze', released_at: T(12) }], quote_spec_hold: [{ quote_id: 'q-arabian', released_at: T(13) }] };
   const calls: string[] = [];
   const chain = (table: string) => {
     const b: Record<string, unknown> = {};
-    const res = table === 'quotes' ? { data: rows, error: null } : { data: [{ quote_id: 'q-breeze', released_at: T(12) }], error: null };
     for (const m of ['select', 'eq', 'not', 'limit', 'order', 'in']) b[m] = (...a: unknown[]) => { calls.push(`${table}.${m}(${a.map(String).join(',')})`); return b; };
-    b.then = (ok: (v: unknown) => unknown) => Promise.resolve(res).then(ok);
+    b.then = (ok: (v: unknown) => unknown) => Promise.resolve({ data: tables[table] ?? [], error: null }).then(ok);
     return b;
   };
   const admin = { from: (t: string) => chain(t) };
   const l = await customerQuoteLabels(admin, 'inq-1');
-  // Breeze was held by the quality check until 12:00, so it reached the customer after the other two
-  assertEquals([l.get('q-arabian')!.letter, l.get('q-polar')!.letter, l.get('q-breeze')!.letter], ['A', 'B', 'C']);
+  // Polar went live at 11:00; Breeze was held by the quality check until 12:00; Arabian by a spec hold until 13:00
+  assertEquals([l.get('q-polar')!.letter, l.get('q-breeze')!.letter, l.get('q-arabian')!.letter], ['A', 'B', 'C']);
+  assertEquals(l.has('q-other'), false, 'another request\'s quote takes no letter here');
   assertEquals(calls.some((c) => c.startsWith('quotes.not(status,in,("draft","withdrawn"))')), true);
+  // many requests in one read (the portal list): each request lettered on its own
+  const many = await customerQuoteLabelsByInquiry(admin, ['inq-1', 'inq-2']);
+  assertEquals([many.get('inq-1')!.get('q-polar')!.letter, many.get('inq-2')!.get('q-other')!.letter], ['A', 'A']);
   // a read that fails gives no letter at all, never a guessed one
   const broken = { from: () => { throw new Error('down'); } };
   assertEquals((await customerQuoteLabels(broken, 'inq-1')).size, 0);
