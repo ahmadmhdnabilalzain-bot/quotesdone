@@ -94,9 +94,11 @@ on conflict (table_name) do update set exported = excluded.exported, category = 
 --   fixed   it_repair.done, it_fault.fixed, it_defect.fixed   one an hour (one repair is one tick or one verification)
 --   opened  it_defect.opened                                    one a day ("we are fixing it" is said once)
 -- fn_it_told_recently answers the stage already owed (or null), so a caller records the person as told by that notice.
+-- (the owed row, and the sent record customer_support_duty_message in case an owed row was ever cleared)
 create or replace function public.fn_it_told_recently(p_email text, p_class text)
 returns text language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  select o.stage from public.customer_support_voice_owed o
+  select o.stage from (select stage, to_email, created_at from public.customer_support_voice_owed
+                       union all select stage, lower(to_email), created_at from public.customer_support_duty_message where stage like 'it\_%') o
    where o.to_email = lower(btrim(coalesce(p_email, '')))
      and ((p_class = 'fixed' and o.stage in ('it_repair.done', 'it_fault.fixed', 'it_defect.fixed') and o.created_at > now() - interval '1 hour')
        or (p_class = 'opened' and o.stage = 'it_defect.opened' and o.created_at > now() - interval '1 day'))
