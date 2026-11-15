@@ -93,10 +93,17 @@ function nearWord(a: string, b: string): boolean {
   return edits + (a.length - i) + (b.length - j) <= 1;
 }
 /** What the checker SAID it saw is the text under the box: every token of `what` is a token of `runs` (a word of 4+
- *  letters may be one edit off, as OCR reads it; a number must be exact). An empty or descriptive `what` is not. */
+ *  letters may be one edit off, as OCR reads it; a number must be exact), or its letters and digits are a stretch of the
+ *  runs'. An empty, descriptive or other text `what` is not. */
 export function whatIsUnder(what: string | undefined, runs: string[]): boolean {
   const w = tokensOf(what ?? ''), under = runs.flatMap(tokensOf);
-  return w.length > 0 && w.every((t) => under.some((u) => nearWord(t, u)));
+  if (!w.length) return false;
+  if (w.every((t) => under.some((u) => nearWord(t, u)))) return true;
+  // Or its letters and digits, run together, are a stretch of the runs' (a reader's "2.5" read as "25", a word cut at a
+  // tile's edge): at least 3 of them, so a stray "1" or "I" vouches for nothing.
+  const flat = (x: string) => x.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const fw = flat(what ?? '');
+  return fw.length >= 3 && runs.some((r) => flat(r).includes(fw)) || (fw.length >= 3 && flat(runs.join('')).includes(fw));
 }
 export function vocabularyVet(page: PdfPage | undefined, seeds: string[]): Vet | undefined {
   if (!page || !page.runs.length) return undefined;

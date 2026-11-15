@@ -66,7 +66,7 @@ Deno.test('the prompt asks for the mark, the parser keeps only its digits, and t
   const a = src.indexOf("if (body.mode === 'tile')"), tile = src.slice(a, src.indexOf('\n    }\n', a));
   assertMatch(tile, /!\/\^\\d\{6\}\$\/\.test\(String\(body\.mark/);
   assertMatch(tile, /tileJpeg\([^\n]*, 85, String\(body\.mark\)\)/);
-  assertMatch(src, /crop: \(b, t, m\) => cropElsewhere\(secret, b, t, m\)/);
+  assertMatch(src, /crop: \(b, t, m\) => cropElsewhere\(secret, b, t, m, stopAt\)/);
 });
 
 // LAZY (reads every view, copies its mark, reports nothing): the code floor holds what it covers; what code cannot read
@@ -188,6 +188,9 @@ Deno.test('a checker box one line off its identity is painted and asked again, n
   assertEquals(vet([{ ...honest, h: 0.017 }]).keep.length, 1, 'the same honest box touching +6512 at all: painted');
   assert(whatIsUnder('SHALOW END', ['SHALLOW END WL +0.00']), 'one misread letter in a long word is the same word');
   assert(!whatIsUnder('+6513', ['+6512']), 'a number must match exactly');
+  assert(whatIsUnder('SPLIT AC UNIT 25 TR', ['SPLIT AC UNIT 2.5 TR']) && whatIsUnder('MENT SCHEDU', ['EQUIPMENT SCHEDULE']), 'a reader\'s 2.5 as 25, a word cut at a tile edge');
+  assert(!whatIsUnder('I.', ['CIRCULATION PUMP']) && !whatIsUnder('——', ['SSL -0.05']), 'a stray letter or a rule vouches for nothing');
+  assert(!whatIsUnder('MARINA PEARL TOWER', ['CIRCULATION PUMP 1.5 HP 230V']) && !whatIsUnder('+6512', ['SHALLOW END WL +0.00 FFL -1.20']));
   // Through the gate: a checker that keeps naming "+6512" one line high is painted twice, asked three times, and HELD.
   const count = { painted: 0, asked: 0 };
   const plan = { tiles: [{ x: 0, y: 0, w: 1, h: 1, outW: 100, outH: 70 }], whole: null, cols: 1, rows: 1, textPx: 12, calls: 1, usd: 0, page: { wMm: 594, hMm: 420, from: 'mediabox' as const } };
