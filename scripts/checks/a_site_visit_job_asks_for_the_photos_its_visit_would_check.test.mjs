@@ -146,3 +146,18 @@ test('item 3: the supplier\'s inquiry view renders "Photos from the site" from t
   assert.match(jsCode(read('supabase/functions/supplier_api/quote_review_actions.ts')), /site_photos: i\.site_photos \?\? null/, 'inquiry_detail drops the section');
   assert.match(jsCode(read('supabase/functions/supplier_api/actions/prints.ts')), /site_photos: i\.site_photos \?/, 'the inquiry PDF row drops the section');
 });
+
+test('items 2 and 8: the request chat records each photo on the request, sends the jobs with Send, and leaves "checking" when a check fails', () => {
+  const nr = jsCode(read('src/components/me/NewRequest.tsx'));
+  assert.match(nr, /action: 'site_photo', [^\n]*intake_id: intakeId \|\| null/, 'the upload does not name the request it belongs to');
+  assert.match(nr, /action: 'create_inquiry', [^\n]*site_photos: sitePhotosRef\.current\.map/, 'Send does not carry the photo jobs');
+  assert.match(nr, /s\.status === 'failed' \|\| s\.error === 'not_found'\)\) \{ upd\(\(x\) => \(\{ \.\.\.x, status: 'withheld', notice: t\(lang, 'ph_failed'\) \}\)\)/, 'a failed job leaves the card at "checking"');
+  assert.match(nr, /status: 'later', notice: t\(lang, 'ph_later'\)/, 'a check still running when polling stops leaves the card at "checking"');
+  assert.match(nr, /ph_not_on_request/, 'a photo added after Send is said to reach the suppliers');
+  const txt = read('src/components/me/portalText.ts');
+  for (const k of ['ph_checked', 'ph_failed', 'ph_later', 'ph_not_on_request', 'ph_daily_limit']) assert.equal((txt.match(new RegExp('\\b' + k + ':', 'g')) ?? []).length, 2, `${k} in English and Arabic`);
+  const api = jsCode(read('supabase/functions/customer_api/actions/documents.ts'));
+  assert.match(api, /recordSitePhotos\(admin, \{ table: 'inquiry_intake', id: String\(body\.intake_id\)/, 'site_photo does not record the photo on the intake');
+  assert.match(api, /photo_daily_limit/);
+  assert.match(jsCode(read('supabase/functions/customer_api/actions/inquiry_create.ts')), /photosAtSend\(admin, cust\.id, forSpec\(recordOf\(intake\)\), body\.site_photos\)/, 'create_inquiry ignores the jobs sent with Send');
+});

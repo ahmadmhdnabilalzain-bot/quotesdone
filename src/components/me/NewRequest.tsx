@@ -73,7 +73,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   // site-visit job, an upload button per shot, and each photo by its check job. Optional: nothing here gates Send.
   const [photoAsk, setPhotoAsk] = useState(null); // { optional, shots: [{shot, shot_ar}] } | null (hidden)
   const [sitePhotos, setSitePhotos] = useState([]); const sitePhotosRef = useRef([]); // [{ shot, job_id, status, notice }]
-  const photoRef = useRef(null); const photoShot = useRef(null);
+  const photoRef = useRef(null); const photoShot = useRef(null); const photosDeclined = useRef(false);
+  const postedRef = useRef(false); const sentJobs = useRef(new Set()); // the photo jobs create_inquiry was given with Send
   // ONE CONTRACTOR OR SEPARATE QUOTES IS ASKED, NEVER SILENT (evidence run of 10 Nov 2026, ledger 1604, finding c). The
   // composer sent 'turnkey' for every brief naming two trades without the customer seeing the choice. Both choices are
   // shown with a plain explanation; one contractor is preselected (standing rulings 1021 and 1025: ask the customer first,
@@ -151,7 +152,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     const slowTimer = setTimeout(() => setSlow(true), SLOW_TURN_MS);
     const dr = drawingNow || drawing;
     const sp = sitePhotosRef.current.map((p) => ({ shot: p.shot, job_id: p.job_id }));
-    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (dr && dr.boq) || null, lang, turn_id: tid, ...(sp.length ? { site_photos: sp } : {}), ...extra }, token).catch(() => null);
+    const declined = photosDeclined.current; photosDeclined.current = false;
+    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (dr && dr.boq) || null, lang, turn_id: tid, ...(sp.length ? { site_photos: sp } : {}), ...(declined ? { photos_declined: true } : {}), ...extra }, token).catch(() => null);
     clearTimeout(slowTimer);
     setThinking(false); setSlow(false);
     // Nothing to carry (no portal job waiting): the request chat simply starts as it always did.
@@ -186,21 +188,36 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   // A SITE PHOTO: made a JPEG in this browser, stored and queued for its check (customer_api site_photo), then polled for the
   // verdict; the customer reads which photo was covered or not sent, and why (cad_read_status photo.notice_*).
   const setPhotos = (f) => { sitePhotosRef.current = f(sitePhotosRef.current); setSitePhotos(sitePhotosRef.current); };
+  // The upload records the photo on the request at once (customer_api site_photo with the intake id; `recorded`), and Send also
+  // carries every photo job (create_inquiry keeps only the customer's own), so a photo added after the last chat turn reaches the
+  // request (review of bf8b9ea45, item 2). The card says "suppliers will see it" only when that is true: a photo whose check
+  // released it and that is on the request, or goes with Send. A failed check, or one still running when polling stops, leaves
+  // "checking" with a plain message (item 8).
+  const photoNote = (x, s) => {
+    if (!s || !s.photo) return x;
+    const ok = s.photo.status === 'released' || s.photo.status === 'masked';
+    // after Send, a photo that went with neither the intake's record nor Send is not on the request: said so, never "suppliers will see it"
+    const missed = ok && postedRef.current && !x.recorded && !sentJobs.current.has(x.job_id);
+    return { ...x, status: s.photo.status, notice: missed ? t(lang, 'ph_not_on_request') : (ar ? s.photo.notice_ar : s.photo.notice_en) || t(lang, ok ? 'ph_checked' : 'ph_failed') };
+  };
   const onSitePhoto = async (file) => {
     const shot = photoShot.current; photoShot.current = null;
     try { if (photoRef.current) photoRef.current.value = ''; } catch (_e) {}
     if (!file || tooBig(file)) return;
     try {
       const p = await fileToImages(file);
-      const res = await call('customer_api', { action: 'site_photo', image_b64: p.b64, mime: p.mime || 'image/jpeg', shot }, token).catch(() => null);
+      const res = await call('customer_api', { action: 'site_photo', image_b64: p.b64, mime: p.mime || 'image/jpeg', shot, intake_id: intakeId || null }, token).catch(() => null);
+      if (res && res.error === 'photo_daily_limit') { push({ role: 'assistant', text: t(lang, 'ph_daily_limit') }); return; }
       if (!res || !res.ok || !res.job_id) { push({ role: 'assistant', text: t(lang, 'nr_file_unreadable') }); return; }
-      setPhotos((a) => [...a, { shot, job_id: res.job_id, status: 'checking', notice: '' }]);
+      setPhotos((a) => [...a, { shot, job_id: res.job_id, status: 'checking', notice: '', recorded: res.recorded === true }]);
+      const upd = (f) => setPhotos((a) => a.map((x) => (x.job_id === res.job_id ? f(x) : x)));
       for (let i = 0; i < 48; i++) {
         await new Promise((r) => setTimeout(r, 15000));
         const s = await call('customer_api', { action: 'cad_read_status', job_id: res.job_id }, token).catch(() => null);
-        if (s && s.ok && s.status === 'done' && s.photo) { setPhotos((a) => a.map((x) => (x.job_id === res.job_id ? { ...x, status: s.photo.status, notice: ar ? s.photo.notice_ar : s.photo.notice_en } : x))); return; }
-        if (s && (s.status === 'failed' || s.error === 'not_found')) return;
+        if (s && s.ok && s.status === 'done') { upd((x) => (s.photo ? photoNote(x, s) : { ...x, status: 'withheld', notice: t(lang, 'ph_failed') })); return; }
+        if (s && (s.status === 'failed' || s.error === 'not_found')) { upd((x) => ({ ...x, status: 'withheld', notice: t(lang, 'ph_failed') })); return; }
       }
+      upd((x) => ({ ...x, status: 'later', notice: t(lang, 'ph_later') }));
     } catch (e) { push({ role: 'assistant', text: t(lang, String(e && e.message).includes('HEIC') ? 'nr_heic_unsupported' : 'nr_file_unreadable') }); }
   };
   const sendText = async (text) => { const v = String(text || '').trim(); if (!v) return; push({ role: 'user', text: v }); setInput(''); await runIntake(v); };
@@ -501,13 +518,14 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     const category = (brief && brief.category) || (drawing && drawing.boq && drawing.boq.category) || '';
     const firstUser = messages.find((m) => m.role === 'user' && m.text);
     const summary = (brief && brief.summary) || (firstUser ? firstUser.text.slice(0, 180) : category);
-    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? (combineMode || combineDefaultOf(brief)) : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing, accept_terms_version: acceptTermsVersion || undefined, requirement_edits: edits, lang }, token).catch(() => null);
+    sentJobs.current = new Set(sitePhotosRef.current.map((p) => p.job_id));
+    const r = await call('customer_api', { action: 'create_inquiry', intake_id: intakeId || null, category: category || null, emirate: (brief && brief.emirate) || null, raw_input: messages.filter((m) => m.role === 'user' && m.text).map((m) => m.text).join('\n'), spec: { plausibility: (brief && brief.plausibility) || null, provenance: (brief && brief.provenance) || null }, summary, budget: (brief && brief.budget) || null, scope_type: (brief && Array.isArray(brief.trades) && brief.trades.length > 1) ? (combineMode || combineDefaultOf(brief)) : 'single', trades: (brief && Array.isArray(brief.trades)) ? brief.trades : [], drawing, accept_terms_version: acceptTermsVersion || undefined, requirement_edits: edits, lang, site_photos: sitePhotosRef.current.map((p) => ({ shot: p.shot, job_id: p.job_id })) }, token).catch(() => null);
     setBusy(false);
     // THE HONEST AFTER-POST (14 Sep 2026). A request no registered supplier covers is still posted and
     // flagged to the team (customer_api flagCoverageGap), but the composer used to close with nothing
     // said. The customer is now told, in their language, that quotes may take longer and why.
     if (r && r.error === 'terms_reaccept') { setReaccept({ version: r.version }); setReacceptTick(false); return; }
-    if (r && r.ok) setReaccept(null);
+    if (r && r.ok) { setReaccept(null); postedRef.current = true; }
     if (r && r.ok) {
       // One answer shape (customer_api, _shared/inquiry_posted.ts): matches is already summed over a
       // split's children, and inquiry_id is the request the customer made (the combined parent).
@@ -700,7 +718,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
                 );
               })}
             </ul>
-            <button type="button" className="mt-2 text-[11.5px] text-muted-foreground underline" onClick={() => setPhotoAsk(null)}>{t(lang, 'ph_none')}</button>
+            <button type="button" className="mt-2 text-[11.5px] text-muted-foreground underline" onClick={() => { photosDeclined.current = true; setPhotoAsk(null); }}>{t(lang, 'ph_none')}</button>
             <input ref={photoRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => onSitePhoto(e.target.files && e.target.files[0])} />
           </div>
         ) : null}
