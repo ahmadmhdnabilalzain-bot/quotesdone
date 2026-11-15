@@ -264,7 +264,9 @@ export function compareDocument(args: { analysis: any; inquiry: InquiryRow; lang
     const asks: Cell[][] = [];
     // deno-lint-ignore no-explicit-any
     for (const q of qs) { const f = fitOf(q.label); arrOf(f?.asks).forEach((x: any, i: number) => asks.push([i === 0 ? { text: k.label(q.label), bold: true } : '', bi(x),
-      x?.state === 'answered' && x?.answer ? String(x.answer) : T('Not answered yet', 'لم تصل الإجابة بعد')])); }
+      x?.state === 'answered' && x?.answer ? String(x.answer)
+        : x?.state === 'closed' ? T('No longer asked: a supplier was chosen or the request ended', 'لم يعد مطروحًا: تم اختيار مورّد أو انتهى الطلب')
+        : T('Not answered yet', 'لم تصل الإجابة بعد')])); }
     if (asks.length) {
       section('Points QuotesDone asks the supplier to confirm', 'نقاط تطلب QuotesDone من المورّد تأكيدها');
       blocks.push({ t: 'p', text: T('Each quotation leaves these points open. QuotesDone asks the supplier to confirm these points, with your identity hidden, and shows the answer here once it arrives. You do not need to contact anyone.',

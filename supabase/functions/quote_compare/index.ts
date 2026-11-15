@@ -286,10 +286,12 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
             const qid = String(q.id); const rid = reviewOf.get(String(q.supplier_id)); if (!rid) continue;
             const name = nameBySupplier[String(q.supplier_id)];
             const shown = (raw: string) => { let t = generaliseQuoteTerms({ notes: raw }, ctxByQuote[qid]).notes ?? ''; const re = name ? knownNameRe(name) : null; if (re) t = t.replace(re, 'the supplier'); return scrubIdentityText(t, '[removed]').trim().slice(0, 600) || null; };
-            const answers: Record<string, { state: 'asked' | 'answered'; answer: string | null }> = {};
+            const answers: Record<string, { state: 'asked' | 'answered' | 'closed'; answer: string | null }> = {};
             for (const p of (pts || []).filter((x: any) => String(x.review_id) === rid)) {
               const body = p.answered_message_id ? said.get(String(p.answered_message_id)) : undefined;
-              answers[String(p.key)] = p.state === 'answered' && body ? { state: 'answered', answer: shown(body) } : { state: 'asked', answer: null };
+              // superseded: the customer revealed a supplier or the request ended before an answer (COMPARE4 gap 2)
+              answers[String(p.key)] = p.state === 'answered' && body ? { state: 'answered', answer: shown(body) }
+                : p.state === 'superseded' ? { state: 'closed', answer: null } : { state: 'asked', answer: null };
             }
             fitById[qid] = withAnswers(fitById[qid], answers);
           }

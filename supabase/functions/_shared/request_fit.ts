@@ -53,8 +53,9 @@ export type Requirement = {
 };
 /** A point the quote leaves open: what the customer reads (en / ar), and the same point put to the supplier, in English.
  *  `key` names it in the supplier's quotation conversation (quote_review_request.key); once the supplier has answered,
- *  `state` is 'answered' and `answer` carries his words as the customer may read them (pointAnswers). */
-export type Ask = Bi & { supplier: string; key?: string; state?: 'asked' | 'answered'; answer?: string | null };
+ *  `state` is 'answered' and `answer` carries his words as the customer may read them (pointAnswers). A point still open
+ *  when the customer revealed a supplier or the request ended is 'closed': it was superseded and is asked no more. */
+export type Ask = Bi & { supplier: string; key?: string; state?: 'asked' | 'answered' | 'closed'; answer?: string | null };
 export type FitCell = { status: FitStatus; shown: Bi };
 export type FitFail = { code: string; noun: Bi; detail: Bi };
 export type QuoteFit = {
@@ -642,9 +643,13 @@ export function enforceFit(a: any, fits: Record<string, QuoteFit>, lang: 'en' | 
   a.bottom_line = `${why} ${rec.bottom}`.trim();
   a.top3[0] = { ...a.top3[0], why: rec.why, tradeoff: [rec.trade, ...(fits[best]?.hard_fails.length ? [ar ? `لا يستوفي طلبك: ${failText(fits[best], 'ar')}.` : `Fails ${failText(fits[best], 'en')}.`] : [])].filter(Boolean).join(' ') };
   a.best_value_reason = rec.why;
+  // Once the customer revealed a supplier or the request ended, every open point was superseded (state 'closed'): nothing is
+  // asked any more, so the page stops saying that it is (COMPARE4 gap 2).
+  const allAsks = Object.values(fits).flatMap((f) => f?.asks ?? []);
+  const stillAsking = !allAsks.length || allAsks.some((x) => x.state !== 'closed');
   a.advice = ar
-    ? `رتّبنا العروض وفق ما طلبته: ${best} أولًا. تبقى العروض جميعها مدرجة، ولك أن تكشف أيًّا منها. تطلب QuotesDone من المورّد تأكيد النقاط التي يتركها عرضه مفتوحة، وتظهر إجابته هنا عند وصولها.`
-    : `We ranked the quotes on what you asked for: ${best} first. Every quote stays listed and you can reveal any of them. QuotesDone asks the supplier to confirm the points its quote leaves open, and shows the answer here once it arrives.`;
+    ? `رتّبنا العروض وفق ما طلبته: ${best} أولًا. تبقى العروض جميعها مدرجة، ولك أن تكشف أيًّا منها.` + (stillAsking ? ` تطلب QuotesDone من المورّد تأكيد النقاط التي يتركها عرضه مفتوحة، وتظهر إجابته هنا عند وصولها.` : '')
+    : `We ranked the quotes on what you asked for: ${best} first. Every quote stays listed and you can reveal any of them.` + (stillAsking ? ` QuotesDone asks the supplier to confirm the points its quote leaves open, and shows the answer here once it arrives.` : '');
 }
 
 
@@ -695,9 +700,15 @@ export function pointsHandoff(fit: QuoteFit | null | undefined, q: { inquiry_id:
  * (quote_compare reads quote_review_request and the answering message on every view): an answered point carries the
  * supplier's answer as the customer may read it (generalised and scrubbed by the caller). A point not recorded yet is asked.
  */
-export function withAnswers(fit: QuoteFit, answers: Record<string, { state: 'asked' | 'answered'; answer: string | null }>): QuoteFit {
+export function withAnswers(fit: QuoteFit, answers: Record<string, { state: 'asked' | 'answered' | 'closed'; answer: string | null }>): QuoteFit {
   if (!fit?.asks?.length) return fit;
-  return { ...fit, asks: fit.asks.map((x) => { const a = answers[x.key ?? pointKey(x.supplier)]; return a?.state === 'answered' ? { ...x, state: 'answered' as const, answer: a.answer } : { ...x, state: 'asked' as const, answer: null }; }) };
+  return { ...fit, asks: fit.asks.map((x) => {
+    const a = answers[x.key ?? pointKey(x.supplier)];
+    if (a?.state === 'answered') return { ...x, state: 'answered' as const, answer: a.answer };
+    // superseded at the decision (COMPARE4 gap 2): nothing is asked after the reveal or the end, and the page does not say it is
+    if (a?.state === 'closed') return { ...x, state: 'closed' as const, answer: null };
+    return { ...x, state: 'asked' as const, answer: null };
+  }) };
 }
 
 // ---------------------------------------------------------------------------------------------

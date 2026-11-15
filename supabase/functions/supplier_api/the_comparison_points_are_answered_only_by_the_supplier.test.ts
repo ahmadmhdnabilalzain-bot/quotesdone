@@ -147,6 +147,24 @@ Deno.test('after the reveal nothing is taken, and nothing is raised (the job is 
   assertEquals(h.mem.requests.find((q) => q.code === POINT_CODE)!.state, 'open');
 });
 
+Deno.test('a point superseded at the decision is asked no more: the submitted conversation closes again and the model is not told it', async () => {
+  // COMPARE4 gap 2: the database supersedes every open point the moment the customer reveals a supplier or the request ends
+  // (fn_sales_engineer_comparison_points_supersede). Even before this conversation reads the request as closed, a superseded
+  // point is not open: nothing reopens the submitted conversation for it, and no model turn raises it.
+  const inq = { v: inquiry() }; const h = harness(inq);
+  await toSubmitted(h);
+  await raise(h);
+  assertEquals(ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID)).can_write, true);
+  const pt = h.mem.requests.find((q) => q.code === POINT_CODE)!;
+  await h.mem.repo.closeRequests([pt.id], 'superseded', null);
+  const t = ok(await thread(h.mem.repo, h.deps, h.ctx, INQ_ID));
+  assertEquals([t.state, t.can_write, t.open_requests.length], ['submitted', false, 0]);
+  const voicesBefore = h.voices.length;
+  assertEquals((await message(h.mem.repo, h.deps, h.ctx, INQ_ID, 'Our price is final.') as { code?: string }).code, 'review_closed');
+  assert(h.voices.slice(voicesBefore).every((v) => !v.situation.includes(POINT)), 'no model turn raises a superseded point');
+  assertEquals([h.mem.requests.find((q) => q.code === POINT_CODE)!.state, h.answered.length], ['superseded', 0]);
+});
+
 Deno.test('quote_compare writes no engineer message and no request row: it files the hand-over, and its handler writes the rows', async () => {
   const src = await Deno.readTextFile(new URL('../quote_compare/index.ts', import.meta.url));
   assert(!/from\('quote_review_messages'\)\s*\.insert/.test(src), 'quote_compare inserts an engineer message');
