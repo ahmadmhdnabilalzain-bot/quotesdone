@@ -22,7 +22,7 @@
 // emirates, dates, yes/no, options, AED) normalises what it can recognise; nothing is invented.
 
 import { saysDontKnow } from '../_shared/inquiry_state.ts';
-import { ARABIC_FRAME, NOT_SURE, optionAr } from '../_shared/customer_questions.ts';
+import { ARABIC_FRAME, NOT_SURE, optionAr, saysNotSureAr } from '../_shared/customer_questions.ts';
 export type SpecField = {
   key?: string; question?: string; required?: boolean; type?: string; options?: string[];
   question_plain_en?: string; question_plain_ar?: string;
@@ -473,7 +473,7 @@ export function optionsOf(f: SpecField | null | undefined, lang: Lang): string[]
     const sure = own.some((o) => /not sure|unsure|recommend|advise/i.test(o));
     if (lang === 'en') return sure ? own : [...own, NOT_SURE.en];
     const ar = own.map((o, i) => (Array.isArray(f.options_ar) && f.options_ar.length === f.options!.length && f.options_ar[i]) || optionAr(o)).filter((x): x is string => !!x);
-    return sure && ar.some((a) => a.includes(NOT_SURE.ar)) ? ar : [...ar.filter((a) => a !== NOT_SURE.ar), NOT_SURE.ar];
+    return ar.some(saysNotSureAr) ? ar : [...ar, NOT_SURE.ar];
   }
   const card = (lang === 'ar' ? f.card_options_ar : f.card_options) ?? [];
   const list = card.filter((o) => typeof o === 'string' && o);

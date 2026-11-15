@@ -8,7 +8,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { invoke, loadFunction, type Stub } from '../_shared/twilio_free_harness.ts';
 import { checklistsOf as loaderRows } from '../../../scripts/kb/load_trade_spec_checklists.mjs';
-import { GLOSSARY, NOT_SURE } from '../_shared/customer_questions.ts';
+import { GLOSSARY, saysNotSureAr } from '../_shared/customer_questions.ts';
 import type { SpecField } from './interview.ts';
 
 type Row = Record<string, unknown>;
@@ -175,8 +175,9 @@ Deno.test('the Arabic speaker: every card and every button is Arabic, with «ل�
   assert(cs.length >= 4, 'too few cards to judge: ' + cs.length);
   for (const c of cs) {
     assert(/[؀-ۿ]/.test(c.text) && !/[A-Za-z]{2,}/.test(c.text), `an English card on an Arabic chat: [${c.key}] ${c.text}`);
-    for (const x of c.options ?? []) assert(!/[A-Za-z]{2,}/.test(x), `an English button on an Arabic chat: [${c.key}] ${x}`);
-    assert((c.options ?? []).some((x) => x.includes(NOT_SURE.ar) || x.includes('لا تفضيل') || x.includes('مرن')), `no «لست متأكداً» on [${c.key}] ${c.text}: ${JSON.stringify(c.options)}`);
+    // every button is an Arabic label (a brand or a code may stand inside one: "ممتاز (Daikin/...)")
+    for (const x of c.options ?? []) assert(/[\u0600-\u06FF]/.test(x), `an English button on an Arabic chat: [${c.key}] ${x}`);
+    assert((c.options ?? []).some((x) => saysNotSureAr(x) || x.includes('لا تفضيل') || x.includes('مرن')), `no «لست متأكداً» on [${c.key}] ${c.text}: ${JSON.stringify(c.options)}`);
     for (const re of ARABIC.jargon) assert(!re.test(c.text), `jargon on [${c.key}] ${c.text}`);
   }
   const keys = cs.map((c) => c.key).filter(Boolean);

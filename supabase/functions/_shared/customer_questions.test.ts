@@ -1,7 +1,7 @@
 // What the customer reads for a spec (customer_questions.ts): plain words in both languages, an example, "Not sure", and the
 // supplier-facing label left exactly as the pack wrote it. Read against the repository packs, as the loader maps them.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { ARABIC_FRAME, CUSTOMER_QUESTION, explainTerms, GLOSSARY, NOT_SURE, OPTION_AR, plainFrame, plainOf } from './customer_questions.ts';
+import { ARABIC_FRAME, CUSTOMER_QUESTION, explainTerms, GLOSSARY, NOT_SURE, optionAr, plainFrame, plainOf, sameArabic } from './customer_questions.ts';
 import { checklistsOf as tradeChecklists, packFields, type TradeContext } from './inquiry_trades.ts';
 import { checklistsOf as loaderRows, specCode } from '../../../scripts/kb/load_trade_spec_checklists.mjs';
 
@@ -24,7 +24,6 @@ Deno.test('every entry names a real spec of a pack (or a universal field), in pl
     assertEquals(!!q.eg_en, !!q.eg_ar, `${code}: an example in one language only`);
     assertEquals(!!q.alt_en, !!q.alt_ar, `${code}: an alternative in one language only`);
   }
-  for (const v of Object.values(OPTION_AR)) assertEquals(latinWords(v), [], v);
   assertEquals(latinWords(ARABIC_FRAME), []);
 });
 
@@ -77,4 +76,12 @@ Deno.test('coverage across every pack (measured, printed): the blocking specs a 
   }
   console.log(`blocking specs with plain Arabic wording: ${covered} of ${blocking}`);
   assert(covered >= 240, `coverage fell: ${covered}`);
+});
+
+Deno.test('a category option\'s Arabic label comes from the portal\'s one table; none without an Arabic letter; diacritics do not matter', () => {
+  assertEquals(optionAr('Supply only'), 'توريد فقط');
+  assertEquals(optionAr('supply ONLY'), 'توريد فقط');
+  assertEquals(optionAr('VRF/VRV'), null, 'a label with no Arabic letter is not an Arabic label');
+  assertEquals(optionAr('zz no such option'), null);
+  assert(sameArabic('لست متأكداً', 'لست متأكدًا'));
 });

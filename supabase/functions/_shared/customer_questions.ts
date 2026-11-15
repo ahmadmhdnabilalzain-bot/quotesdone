@@ -23,6 +23,8 @@
 // prevented by: supabase/functions/_shared/customer_questions.test.ts and
 //   supabase/functions/inquiry_intake/the_customer_is_asked_in_plain_words.test.ts
 
+import { SPEC_OPTION_AR } from './spec_options_ar.ts';
+
 export type Lang = 'en' | 'ar';
 type Opt = readonly [en: string, ar: string];
 export interface CustomerQuestion { en: string; ar: string; eg_en?: string; eg_ar?: string; alt_en?: string; alt_ar?: string; options?: readonly Opt[] }
@@ -347,21 +349,24 @@ export function explainTerms(terms: unknown, lang: Lang): string {
 
 // ── A CATEGORY QUESTION'S OPTIONS ON AN ARABIC CHAT ─────────────────────────────────────────────────────────────────────
 // category_specs fields carry question_plain_ar but their tap options only in English (SELECT, 15 Nov 2026: hvac has no
-// options_ar). An option with no Arabic here is not shown on an Arabic chat (the customer types instead); "Not sure" always is.
-// The tapped Arabic label is read back to its English option by code (slots.ts tappedHeldAnswer), so nothing downstream changes.
-export const OPTION_AR: Readonly<Record<string, string>> = {
-  'not sure': NOT_SURE.ar, 'yes': 'نعم', 'no': 'لا', 'flexible': 'مرن', 'no preference': 'لا تفضيل',
-  'not sure - need site survey': 'لست متأكداً - يلزم كشف على الموقع',
-  'wall/floor split': 'سبليت جداري أو أرضي', 'ducted (concealed) split': 'سبليت مخفي (دكت)', 'cassette': 'كاسيت',
-  'vrf/vrv': 'نظام مركزي متعدد الوحدات', 'chiller (air/water-cooled)': 'تشيلر (مبرّد مركزي)', 'package unit': 'وحدة باكج', 'fahu/ahu (fresh air)': 'وحدة هواء نقي',
-  'new installation': 'تركيب جديد', 'replacement of existing': 'استبدال الموجود', 'extension of existing': 'إضافة إلى الموجود',
-  'service / repair / maintenance': 'صيانة أو إصلاح',
-  'yes, i have heat-load calc / mep drawings': 'نعم، لدي مخططات أو حساب للتبريد', 'no - supplier to size it': 'لا، المورّد يحدد الحجم',
-  'premium (daikin/mitsubishi/trane/carrier)': 'ماركة ممتازة', 'mid (lg/gree/o-general)': 'ماركة متوسطة', 'economy': 'اقتصادية', 'best value - recommend': 'الأفضل قيمة - اقترحوا',
-  'single-phase 230v': 'كهرباء منزلية عادية (أحادية)', 'three-phase 400v': 'كهرباء ثلاثية الطور',
-  'supply only': 'توريد فقط', 'supply and install': 'توريد وتركيب', 'turnkey (incl. ducting, mep drawings, testing & commissioning)': 'تسليم مفتاح (يشمل المجاري والمخططات والاختبار والتشغيل)',
-  'yes, include amc': 'نعم، مع عقد صيانة سنوي',
-  'within 2 weeks': 'خلال أسبوعين', '2-4 weeks': 'من 2 إلى 4 أسابيع', '1-2 months': 'من شهر إلى شهرين',
-};
+// options_ar). The Arabic label of every category option already had ONE home, the portal spec helper's table (666 options);
+// it now lives in _shared/spec_options_ar.ts SPEC_OPTION_AR, read by the portal and by this card alike. An option with no Arabic label
+// there (or one with no Arabic letter in it, "VRF / VRV") is not shown on an Arabic chat (the customer types instead); "Not
+// sure" always is. The tapped Arabic label is read back to its English option by code (slots.ts tappedHeldAnswer).
+const ARABIC_LETTER = /[\u0600-\u06FF]/;
+const SPEC_OPTION_AR_LOWER = new Map(Object.entries(SPEC_OPTION_AR).map(([k, v]) => [k.trim().toLowerCase(), v]));
 /** The Arabic label of an English option, or null when there is none. */
-export const optionAr = (o: string): string | null => OPTION_AR[String(o ?? '').trim().toLowerCase()] ?? null;
+export function optionAr(o: string): string | null {
+  const k = String(o ?? '').trim();
+  const v = SPEC_OPTION_AR[k] ?? SPEC_OPTION_AR_LOWER.get(k.toLowerCase()) ?? null;
+  return v && ARABIC_LETTER.test(v) ? v : null;
+}
+/** Two Arabic labels are the same words whatever their diacritics ("متأكداً" and "متأكدًا"). */
+export const sameArabic = (a: string, b: string): boolean => {
+  const n = (x: string) => String(x ?? '').replace(/[\u064B-\u0652\u0640]/g, '').replace(/\s+/g, ' ').trim();
+  return n(a) === n(b);
+};
+export const saysNotSureAr = (a: string): boolean => {
+  const n = (x: string) => String(x ?? '').replace(/[\u064B-\u0652\u0640]/g, '');
+  return n(a).includes(n(NOT_SURE.ar));
+};

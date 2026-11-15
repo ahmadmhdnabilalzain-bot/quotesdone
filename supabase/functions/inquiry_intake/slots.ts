@@ -25,7 +25,7 @@
 // built from the state, so the customer is never told "ready" while the row says otherwise. No word of
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
 import { orderFields, questionText, optionsOf, parseAnswer, isUnknown, answersAnotherKind, type Lang, type SpecField, type UniversalKind } from './interview.ts';
-import { optionAr } from '../_shared/customer_questions.ts';
+import { optionAr, sameArabic } from '../_shared/customer_questions.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import { surfaceEffort } from '../_shared/effort_policy.ts';
 import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
@@ -313,7 +313,7 @@ export function tappedHeldAnswer(checklist: SpecField[], askedKey: string | null
   if (hit) return hit;
   // the Arabic label of an option (an Arabic chat taps it: interview.ts optionsOf) is that English option
   const i = f.options.findIndex((o, n) => typeof o === 'string' && [Array.isArray(f.options_ar) && f.options_ar.length === f.options!.length ? f.options_ar[n] : null, optionAr(o)]
-    .some((a) => !!a && String(a).replace(/\s+/g, ' ').trim().toLowerCase() === t));
+    .some((a) => !!a && sameArabic(String(a), t)));
   return i >= 0 ? f.options[i] : null;
 }
 
