@@ -402,6 +402,7 @@
   "c2c305a5d90c",
   "da8eb4028e9c",
   "e0cc77dfb9cb",
+  "e32062bae10e",
   "f10f79ee1c12",
   "f89c95c3bf1e"
  ],
@@ -532,7 +533,7 @@
   "cfa16bd898f9",
   "d3e5b043b2ec",
   "f46615c0e6c6",
-  "ff31e0edcd64"
+  "f84e57255e6f"
  ],
  "src/components/portal/supplier/core/copy.ts": [
   "1cf52c5d56dc",

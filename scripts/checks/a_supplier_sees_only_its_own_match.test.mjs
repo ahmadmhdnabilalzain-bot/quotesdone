@@ -71,9 +71,12 @@ test('SP-N-04: the prefix rule is the upload paths\' own prefix, and rejects tra
 test('SP-F-02: the quotation review runs inside submit_quote, before the first write', () => {
   const a = action('submit_quote');
   const review = a.indexOf('reviewQuotation(');
+  // 15 Nov 2026 (sales_engineer, validity fix 1): the row is written through writeQuoteRow (lib/quote_acceptance.ts), which
+  // retries once without a column the SQL has not applied yet; the write itself is still the insert/update below.
   const insert = a.indexOf("from('quotes').insert(");
-  const update = a.indexOf("from('quotes').update(det)");
+  const update = a.search(/from\('quotes'\)\.update\((?:det|d)\)/);
   assert.notEqual(review, -1, 'submit_quote must run reviewQuotation — the chat rules are not the chat\'s alone');
+  assert.ok(insert !== -1 && update !== -1, 'submit_quote writes the quotes row by insert and by update');
   assert.ok(review < insert && review < update, 'the verdict must be known before the row is written');
 });
 
