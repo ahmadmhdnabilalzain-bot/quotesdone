@@ -59,6 +59,11 @@ test('proposals: a right trade and nothing absurd; one absurd trade fails the pr
   assert.equal(judgeProposals(P1, ['electrical.lv_distribution', 'staff_transport.bus_rental']).ok, false);
   assert.deepEqual(judgeProposals(P1, ['cosmetics_wholesale.x']).absurd, ['cosmetics_wholesale']);
   assert.equal(judgeProposals(P1, []).ok, false, 'nothing proposed is not "understands what they do"');
+  // paid certification 15 Nov 2026, run 2 J2: P2 prints "Site installation, repairs and polishing of wooden works" (the quote of
+  // furniture_repair.furniture_polishing): acceptable (registration_fixtures.mjs P2). The bar is not loosened beyond that one trade.
+  const P2 = EXP.profiles.find((p) => p.id === 'P2');
+  assert.equal(judgeProposals(P2, ['doors.wooden_doors', 'furniture_repair.furniture_polishing', 'joinery.kitchens']).ok, true);
+  assert.deepEqual(judgeProposals(P2, ['joinery.kitchens', 'upholstery.x', 'office_chairs.x']).absurd, ['upholstery', 'office_chairs']);
 });
 
 test('Arabic is found, presentation forms included; English is not', () => {
