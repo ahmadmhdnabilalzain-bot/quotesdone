@@ -31,3 +31,28 @@ Deno.test('the dossier prints every section, the leak, the holes and the wrong V
     'Nobody in the company was told', 'WRONG BASE', 'Anonymity leak', 'USD 0.0120']) assert(text.includes(want), `missing: ${want}`);
   assert(!/\bpassed\b/i.test(text), 'the dossier never says "passed"');
 });
+
+// A persona played the journey (personas/report.mjs builds sections.people): the dossier says on page 1 and in its own
+// section whether a real person would have got through, where they left, what was asked twice and each "not sure".
+Deno.test('the dossier prints "Would a real person have got through?" with the abandonment, repeats and each "not sure"', async () => {
+  const people = {
+    title: 'Would a real person have got through?', mode: 'dry run', latency_source: 'replayed',
+    persona: { key: 'impatient', label: 'ZZ DEMO impatient customer', short: 'wants a price now', lang: 'en', patience: { slow_s: 20, max_slow: 3, abandon_on_repeat: 1, max_questions: 6 }, knows: ['how many units'], does_not_know: ['the brand'], files: [] },
+    headline: 'No. ZZ DEMO impatient customer left at turn 3: asked again what was already answered once (turn 3, first asked at turn 1).', got_through: false,
+    abandoned: { at: 3, rule: 'repeat', reason: 'asked again what was already answered once (turn 3, first asked at turn 1)' }, outcome: 'abandoned',
+    turns: [{ n: 1, question: 'Cooling capacity per unit', key: 'spec_cooling_capacity', latency_s: 10.8, repeat: false, understood: true, reply: '1.5 ton each' },
+      { n: 2, question: 'Any preference for the brand?', key: 'material.brand', latency_s: 21.9, repeat: false, understood: true, reply: 'dont care, cheapest decent one' },
+      { n: 3, question: 'Cooling capacity per unit', key: 'spec_cooling_capacity', latency_s: 28.3, repeat: true, understood: null, reply: '(left: asked again)' }],
+    repeats: [{ n: 3, question: 'Cooling capacity per unit', first_asked_at: 1, why: 'same key' }], slowest: [{ n: 3, seconds: 28.3, question: 'Cooling capacity per unit' }],
+    not_sure: [{ n: 2, topic: 'brand', question: 'Any preference for the brand?', said: 'dont care, cheapest decent one', platform_did: 'accepted it and moved on to: "Cooling capacity per unit"', recorded_as: 'Customer does not know: supplier to advise' }],
+    misunderstood: [], files: [], problems: [], suppliers: [{ label: 'ZZ DEMO Quiet Air', behaviour: 'ignores the request', outcome: 'ignored the request', steps: ['never answered'] }],
+    verdicts: [{ expected: 'a person like this reaches Send', happened: 'left at turn 3', as_expected: false }], spend: { calls: 2, usd: 0.0004, models: ['zz/stub'] },
+  };
+  const r = await buildDossier({ ...rec, sections: { ...rec.sections, people } }, '/nonexistent');
+  assert(r.dropped === 0, 'dropped glyphs: ' + r.dropped);
+  const text = linesFromRuns(await pdfPages(r.bytes)).replace(/\s+/g, ' ');
+  for (const want of ['Would a real person have got through?', 'No. ZZ DEMO impatient customer left at turn 3', 'The person left at turn 3', 'Asked again what was already answered',
+    'YES, again', 'The slowest replies', '28.3', 'what the platform did with each "not sure"', 'accepted it and moved on to', 'What it recorded',
+    'The suppliers, played as people', 'ZZ DEMO Quiet Air', 'NOT as expected']) assert(text.includes(want), `missing: ${want}`);
+  assert(!/\bpassed\b/i.test(text), 'the dossier never says "passed"');
+});
