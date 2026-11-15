@@ -27,9 +27,11 @@
 --      max_attempts-th (5) try -> dead (fn_inbound_mail_dead_letter): an it.finding handoff to the seat that owns the mail
 --      (accountant for the finance mailboxes, marketing for the founder's replies to its approvals, customer_support for
 --      the rest, as resend_inbound decided at acceptance) with the reason and how to read it again (fn_inbound_mail_requeue).
---   4. pg_cron inbound_mail_drain, every minute: fn_inbound_mail_kick asks resend_inbound?drain=1 (db.internal credential,
---      whose scope gains resend_inbound) to read when a message is due and a reader slot is free. It is the safety net: the
---      webhook itself starts a reader, and a webhook that finds both slots taken leaves its message for the next one.
+--   4. fn_inbound_mail_kick asks resend_inbound?drain=1 (db.internal credential, whose scope gains resend_inbound) to start one
+--      reader per due message a free slot can take. A reader reads ONE message per invocation (the edge limits CPU per
+--      invocation, and a run that read message after message would add theirs up and be killed part-way through a later one),
+--      then calls the kick itself to hand on; the webhook starts a reader too, and one that finds both slots taken leaves its
+--      message for the next. pg_cron inbound_mail_drain runs the kick every minute as the net under that chain.
 --      Done rows are deleted after 30 days (the inbound_messages row is the record); dead rows are kept.
 -- NOTHING IS PROCESSED TWICE: the queue key stops a redelivery; a message is claimed by one reader at a time (skip locked under
 -- the advisory lock); a message re-read after a crash meets the pipeline's own guards (inbound_messages.provider_email_id is
@@ -243,7 +245,8 @@ begin
 end $fn$;
 revoke execute on function public.fn_inbound_mail_requeue(bigint) from public, anon, authenticated;
 
--- pg_cron, every minute: start a reader for each due message a free slot can take; forget done rows after 30 days.
+-- Start a reader for each due message a free slot can take (pg_cron every minute, and each reader when it finishes); forget
+-- done rows after 30 days.
 create or replace function public.fn_inbound_mail_kick()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_due integer; v_live integer; v_n integer; v_secret text; v_ref text; v_req bigint; v_reqs bigint[] := '{}'; v_gone integer;
@@ -270,6 +273,7 @@ begin
   return jsonb_build_object('kicked', v_n, 'due', v_due, 'reading', v_live, 'requests', to_jsonb(v_reqs), 'forgotten', v_gone);
 end $fn$;
 revoke execute on function public.fn_inbound_mail_kick() from public, anon, authenticated;
+grant execute on function public.fn_inbound_mail_kick() to service_role;   -- a reader hands on to the next (lib/queue.ts)
 
 select cron.schedule('inbound_mail_drain', '* * * * *',
   $CRON$set statement_timeout = '20s'; select public.fn_inbound_mail_kick();$CRON$);

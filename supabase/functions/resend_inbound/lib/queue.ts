@@ -16,6 +16,13 @@ export type Rpc = (fn: string, args: Record<string, unknown>) => PromiseLike<{ d
 export type QueueRow = { id: number; provider_email_id: string; svix_id: string | null; payload: string; attempts: number; max_attempts: number };
 export type OwnerSeat = 'accountant' | 'marketing' | 'customer_support';
 
+/**
+ * ONE MESSAGE PER RUN, THEN HAND ON. The edge limits CPU per invocation, and a reading is CPU-heavy (PDF text layer, image
+ * sanitising), so a reader that read message after message in one invocation would add up the CPU of all of them and be killed
+ * part-way through a later one. Each run reads one message and then asks fn_inbound_mail_kick to start the next reader (one per
+ * free slot), so every message is read in an invocation of its own.
+ */
+export const READS_PER_RUN = 1;
 /** No new message is started after this long; one already started is never cut (the edge's own wall clock is the bound). */
 export const READ_BUDGET_MS = 45_000;
 /** The lease is 150 s in fn_inbound_mail_claim; a live reader renews it this often, so only a dead reader's lease runs out. */
@@ -64,19 +71,20 @@ export type ReaderDeps = {
   log?: (status: string, counts: Record<string, unknown>, note: string) => Promise<void>;
   now?: () => number;
   budgetMs?: number;
+  maxReads?: number;
   renewMs?: number;
   worker?: string;
 };
-export type Tally = { read: number; done: number; retried: number; dead: number; lost: number; finish_failed: number; claim_error?: string };
+export type Tally = { read: number; done: number; retried: number; dead: number; lost: number; finish_failed: number; handed_on: number; claim_error?: string };
 
-/** Claim, read, finish, one message at a time, until the queue has nothing this reader may take or the budget is spent. */
+/** Claim, read, finish (READS_PER_RUN messages, or fewer when nothing is due or the budget is spent), then hand on. */
 export async function drainQueue(deps: ReaderDeps): Promise<Tally> {
   const now = deps.now || Date.now;
   const worker = deps.worker || crypto.randomUUID();
   const budget = deps.budgetMs ?? READ_BUDGET_MS;
   const t0 = now();
-  const tally: Tally = { read: 0, done: 0, retried: 0, dead: 0, lost: 0, finish_failed: 0 };
-  while (now() - t0 < budget) {
+  const tally: Tally = { read: 0, done: 0, retried: 0, dead: 0, lost: 0, finish_failed: 0, handed_on: 0 };
+  while (tally.read < (deps.maxReads ?? READS_PER_RUN) && now() - t0 < budget) {
     let row: QueueRow | null = null;
     try {
       const { data, error } = await deps.rpc('fn_inbound_mail_claim', { p_worker: worker, p_limit: 1 });
@@ -106,6 +114,10 @@ export async function drainQueue(deps: ReaderDeps): Promise<Tally> {
       else if (data?.status === 'dead') tally.dead++;
       else tally.retried++;
     } catch (_e) { tally.finish_failed++; }   // the lease runs out and the message is read again: "already on file" ends it
+  }
+  // This reader's slot is free again: start the next reader for whatever is due. The minute kick is the net under it.
+  if (tally.read) {
+    try { const { data } = await deps.rpc('fn_inbound_mail_kick', {}); tally.handed_on = Number(data?.kicked) || 0; } catch (_e) { /* the minute kick reads it */ }
   }
   if (deps.log && (tally.read || tally.claim_error)) {
     const bad = tally.dead || tally.claim_error || tally.finish_failed;

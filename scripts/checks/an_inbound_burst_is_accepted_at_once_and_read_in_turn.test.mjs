@@ -55,6 +55,9 @@ test('the queue: one row per provider id, the reader cap under one lock, the thr
   assert.match(q, /export const LEASE_RENEW_MS = 30_000;/);
   assert.match(q, /export const READ_BUDGET_MS = 45_000;/);
   assert.match(q, /rpc\('fn_inbound_mail_claim', \{ p_worker: worker, p_limit: 1 \}\)/, 'one message at a time per reader');
+  assert.match(q, /export const READS_PER_RUN = 1;/, 'one message per invocation: the edge limits CPU per invocation');
+  assert.match(q, /if \(tally\.read\) \{\s+try \{ const \{ data \} = await deps\.rpc\('fn_inbound_mail_kick', \{\}\)/, 'a reader hands on to the next');
+  assert.match(SQL, /grant execute on function public\.fn_inbound_mail_kick\(\) to service_role;/);
   // the receipts' idempotency key is untouched
   assert.match(read(`${FN}/steps/receipts.ts`), /const msgKey = emailId \? \('resend:' \+ emailId\)/);
 });

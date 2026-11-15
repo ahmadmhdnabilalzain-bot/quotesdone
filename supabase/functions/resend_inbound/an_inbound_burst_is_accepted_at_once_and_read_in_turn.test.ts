@@ -28,6 +28,7 @@ const READERS = 2; const LEASE = 150_000;
 const backoff = (n: number) => (n <= 1 ? 1 : n === 2 ? 5 : n === 3 ? 15 : 60) * 60_000;
 class MemQueue {
   rows: Row[] = []; clock = Date.now(); deadLetters: { id: number; reason: string; seat: string }[] = []; touches = 0; acceptDown = false;
+  kicks: number[] = []; onKick: (n: number) => void = () => {};
   now = () => this.clock;
   private dead(r: Row, reason: string) { r.status = 'dead'; r.lease_until = null; r.last_error = reason; this.deadLetters.push({ id: r.id, reason, seat: r.owner_seat }); }
   rpc = (fn: string, a: Record<string, unknown>) => Promise.resolve(this.call(fn, a));
@@ -71,6 +72,13 @@ class MemQueue {
       Object.assign(r, { status: 'queued', claimed_by: null, lease_until: null, next_attempt_at: this.clock + backoff(r.attempts), last_error: 'attempt ' + r.attempts + ': ' + a.p_error });
       return { data: { finished: true, status: 'queued' }, error: null };
     }
+    if (fn === 'fn_inbound_mail_kick') {   // pg_net's request to resend_inbound?drain=1, once per free slot a due message can take
+      const due = this.rows.filter((x) => (x.status === 'queued' && x.next_attempt_at <= this.clock) || (x.status === 'reading' && (x.lease_until ?? 0) < this.clock)).length;
+      const live = this.rows.filter((x) => x.status === 'reading' && (x.lease_until ?? 0) >= this.clock).length;
+      const n = Math.min(due, Math.max(0, READERS - live));
+      this.kicks.push(n); this.onKick(n);
+      return { data: { kicked: n, due, reading: live }, error: null };
+    }
     if (fn === 'fn_inbound_mail_requeue') {
       const r = this.rows.find((x) => x.id === a.p_id && x.status === 'dead');
       if (r) Object.assign(r, { status: 'queued', attempts: 0, next_attempt_at: this.clock });
@@ -106,6 +114,9 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
 const { handler, useReader, readQueued } = await import('./index.ts');
 const { drainQueue, envelopeOf } = await import('./lib/queue.ts');
 
+const drainRequest = (secret: string) => new Request('http://stub.invalid/functions/v1/resend_inbound?drain=1',
+  { method: 'POST', body: JSON.stringify({ __secret: secret, drain: true }), headers: { 'Content-Type': 'application/json' } });
+
 async function signed(data: Record<string, unknown>, svixId: string): Promise<Request> {
   const raw = JSON.stringify({ type: 'email.received', data });
   const ts = String(Math.floor(Date.now() / 1000));
@@ -137,7 +148,10 @@ Deno.test('a burst of 20 deliveries is answered at once, and every message is re
   Q = new MemQueue();
   const background: Promise<unknown>[] = [];
   const r = stubReader(20);
-  useReader({ rpc: Q.rpc, read: r.read, waitUntil: (p) => { background.push(p); }, log: () => Promise.resolve() });
+  const runs: Record<string, unknown>[] = [];
+  useReader({ rpc: Q.rpc, read: r.read, waitUntil: (p) => { background.push(p); }, log: (_s, counts) => { runs.push(counts); return Promise.resolve(); } });
+  // a reader hands on through the kick: pg_net's request to ?drain=1 reaches the same handler
+  Q.onKick = (n) => { for (let i = 0; i < n; i++) background.push(handler(drainRequest(DB_INTERNAL))); };
   const t0 = Date.now();
   const answers = await Promise.all(Array.from({ length: 20 }, async (_, i) => {
     const s = Date.now(); const res = await handler(await receipt(i + 1)); return { res, ms: Date.now() - s, body: await res.json() };
@@ -152,8 +166,10 @@ Deno.test('a burst of 20 deliveries is answered at once, and every message is re
     assertEquals(again.duplicate, true); assertEquals(again.queued, false);
   }
   assertEquals(Q.rows.length, 20);
-  await Promise.all(background);
+  for (let k = 0; k < background.length; k++) await background[k];   // the chain grows while it is awaited
   assertEquals(Q.rows.filter((x) => x.status === 'done').length, 20, JSON.stringify(Q.rows.map((x) => [x.id, x.status])));
+  assert(runs.every((c) => Number(c.read) <= 1), 'each message is read in a run of its own');
+  assertEquals(runs.filter((c) => c.read === 1).length, 20);
   assertEquals(r.reads.length, 20, 'read ' + r.reads.length + ' times');
   assertEquals(new Set(r.reads).size, 20, 'no message read twice');
   assert(r.peak() <= 2, 'at most two read at once, saw ' + r.peak());
@@ -180,8 +196,7 @@ Deno.test('the minute kick: refused without the internal credential, 202 with it
   useReader({ rpc: Q.rpc, read: r.read, waitUntil: (p) => { background.push(p); }, log: () => Promise.resolve() });
   Q.call('fn_inbound_mail_accept', { p_provider_email_id: 'zz-demo-left', p_svix_id: 'msg_left', p_payload: '{}', p_from: FOUNDER,
     p_to: 'expenses@mail.quotesdone.com', p_thread_key: null, p_owner_seat: 'accountant' });
-  const kick = (secret: string) => handler(new Request('http://stub.invalid/functions/v1/resend_inbound?drain=1',
-    { method: 'POST', body: JSON.stringify({ __secret: secret, drain: true }), headers: { 'Content-Type': 'application/json' } }));
+  const kick = (secret: string) => handler(drainRequest(secret));
   assertEquals((await kick('zz-demo-wrong-credential-0000000000')).status, 403);
   assertEquals(background.length, 0);
   assertEquals((await kick(DB_INTERNAL)).status, 202);
@@ -223,6 +238,7 @@ Deno.test('a pipeline error is a failed attempt read again after 1 minute; a liv
   const deps = { rpc: Q.rpc, read: r.read, now: Q.now, renewMs: 15, log: () => Promise.resolve() };
   const t1 = await drainQueue(deps);
   assertEquals([t1.read, t1.retried, t1.done], [1, 1, 0]);
+  assertEquals(Q.kicks, [0], 'it handed on once it had read; nothing was due yet');
   assert(Q.touches >= 2, 'renewed ' + Q.touches + ' times during a 60 ms read every 15 ms');
   assert(String(Q.rows[0].last_error).includes('ZZ DEMO the reader failed'));
   assertEquals((await drainQueue(deps)).read, 0, 'not before its backoff');
