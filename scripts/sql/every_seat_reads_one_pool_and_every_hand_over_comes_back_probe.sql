@@ -34,6 +34,7 @@
 --   E. the important line survives the cap; the block is at most 1,200 characters; the context never builds the digest.
 do $probe$
 declare
+  v_lead_uns bigint;
   v_tag text := substr(md5(clock_timestamp()::text), 1, 8);
   v_appr bigint := -(abs(hashtext(v_tag)) % 1000000000) - 2;  v_sup bigint; v_rival bigint;
   v_cust uuid; v_inq uuid; v_tx uuid; v_q1 uuid; v_q2 uuid; v_case text := 'QD-S-PROBE' || upper(v_tag);
@@ -43,6 +44,7 @@ declare
   v_sum jsonb := jsonb_build_object('known', '{}'::jsonb, 'tried', '{}'::jsonb, 'needed', '{}'::jsonb, 'evidence', '[]'::jsonb,
                                     'context', 'probe', 'decision', 'probe', 'open_asks', '[]'::jsonb, 'deadline', 'none');
 begin
+  perform set_config('qd.limits_probe', 'rollback', true);   -- the owner may clear the probe's own day of commitments; it always rolls back
   -- ── fixtures: ZZ DEMO people, own ids ──
   insert into public.customers (full_name, email) values ('ZZ DEMO Pool Probe Customer', 'pool-probe-' || v_tag || '@example.invalid') returning id into v_cust;
   insert into public.leads (company_name, email) values ('ZZ DEMO Pool Probe Supplier A', 'pool-probe-a-' || v_tag || '@example.invalid') returning id into v_sup;
@@ -473,6 +475,21 @@ begin
            jsonb_build_object('what', 'write to an unsubscribed address', 'email', 'pool-probe-sup-' || v_tag || '@example.invalid'));
   if coalesce((v_r->>'may_act')::boolean, true) or coalesce((v_r->>'asked')::boolean, true) or v_r::text not like '%message gate: suppression%'
     then v_fail := v_fail || 'R2: a recipient the suppression list holds was not refused unasked: ' || v_r::text || '; '; end if;
+  -- REVIEW 4, item 4: every recipient on every path. A lead named only in the subject, a standing grant, and the CEO himself
+  -- reach nobody the gates refuse; a message action that names nobody is refused
+  insert into public.leads (company_name, email, invite_status) values ('ZZ DEMO Pool Probe Unsubscribed ' || v_tag, 'pool-probe-uns-' || v_tag || '@example.invalid', 'unsubscribed')
+  returning id into v_lead_uns;
+  v_r := public.fn_agent_may_act('sales_engineer', 'probe.invitation_' || v_tag, null, 'lead:' || v_lead_uns, '{}'::jsonb);
+  if coalesce((v_r->>'may_act')::boolean, true) or coalesce((v_r->>'asked')::boolean, true) or v_r::text not like '%message gate: opt-out%'
+    then v_fail := v_fail || 'R4: a lead named only in the subject was not read against the gates: ' || v_r::text || '; '; end if;
+  insert into public.ceo_standing_grant (grant_key, grantee_role_id, action_class, scope_note, issued_by)
+  values ('probe.dispatch_' || v_tag, 'customer_support', 'probe.dispatch_' || v_tag, 'probe', 'ceo');
+  if coalesce((public.fn_agent_may_act('customer_support', 'probe.dispatch_' || v_tag, null, 'email:pool-probe-sup-' || v_tag || '@example.invalid')->>'may_act')::boolean, true)
+    then v_fail := v_fail || 'R4: a standing grant reached a suppressed address; '; end if;
+  if coalesce((public.fn_agent_may_act('ceo', 'probe.invitation_ceo_' || v_tag, null, 'lead:' || v_lead_uns, jsonb_build_object('why', 'The CEO invites this supplier himself.'))->>'may_act')::boolean, true)
+    then v_fail := v_fail || 'R4: the CEO''s own authority reached an unsubscribed lead; '; end if;
+  if coalesce((public.fn_agent_may_act('customer_support', 'probe.dispatch_' || v_tag, null, 'probe:' || v_tag || ':nobody')->>'may_act')::boolean, true)
+    then v_fail := v_fail || 'R4: a message action that names nobody was allowed; '; end if;
   -- a deploy is never asked, by anyone; the IT engineer's other questions go to the CEO
   v_r := public.fn_agent_may_act('it_engineer', 'deploy', null, 'probe:' || v_tag || ':d', jsonb_build_object('what', 'deploy the fix'));
   if coalesce((v_r->>'may_act')::boolean, true) or coalesce((v_r->>'asked')::boolean, true) or v_r->>'route' <> 'release_path'

@@ -9,10 +9,19 @@
 do $probe$
 declare
   v_tag text := substr(md5(clock_timestamp()::text), 1, 8); v_fail text := ''; v_r jsonb; v_per numeric; v_day numeric; v_n int;
-  v_lead bigint; v_g text[];
+  v_lead bigint; v_g text[]; v_locks int;
 begin
+  perform set_config('qd.limits_probe', 'rollback', true);   -- the owner may clear the probe's own day; it always rolls back
   v_per := public.fn_company_limit('per_action_aed'); v_day := public.fn_company_limit('daily_spend_aed');
   if v_per is null or v_day is null then v_fail := v_fail || 'the limits are not set; '; end if;
+
+  -- REVIEW 4, item 1: a change written late in a long transaction still waits a full day from when it is written
+  if not exists (select 1 from public.company_limit_change where limit_key = 'per_action_aed' and effective_at > clock_timestamp()) then
+    perform pg_sleep(1.1);
+    v_r := public.fn_ceo_sets_company_limit('per_action_aed', v_per + 5, 'probe ' || v_tag || ': written a second into a long transaction');
+    if (v_r->>'effective_at')::timestamptz < now() + interval '24 hours 1 second' then
+      v_fail := v_fail || 'a change late in a transaction waits less than a day (now(), not clock_timestamp()): ' || v_r::text || '; '; end if;
+  end if;
 
   -- a change waits a day, whatever the writer asked; the value in force does not move meanwhile
   if exists (select 1 from public.company_limit_change where limit_key = 'per_action_aed' and effective_at > now()) then
@@ -44,6 +53,32 @@ begin
     if found then v_fail := v_fail || 'a limit row was deleted; '; end if;
   exception when others then null; end;
 
+  -- REVIEW 4, item 1: the seats' role holds no write on either table, a TRUNCATE is refused, a commitment cannot be deleted
+  -- (outside the probe's own seam), and a change written late in a long transaction still waits a full day
+  if has_table_privilege('service_role', 'public.company_limit_change', 'INSERT') or has_table_privilege('service_role', 'public.company_limit_change', 'TRUNCATE')
+     or has_table_privilege('service_role', 'public.company_spend_commitment', 'DELETE') or has_table_privilege('service_role', 'public.company_spend_commitment', 'UPDATE')
+     or has_table_privilege('service_role', 'public.company_spend_commitment', 'INSERT')
+    then v_fail := v_fail || 'service_role can write the limit tables directly; '; end if;
+  begin
+    truncate public.company_limit_change;
+    v_fail := v_fail || 'company_limit_change was truncated; ';
+  exception when others then null; end;
+  begin
+    truncate public.company_spend_commitment;
+    v_fail := v_fail || 'company_spend_commitment was truncated; ';
+  exception when others then null; end;
+  perform set_config('qd.limits_probe', '', true);
+  insert into public.company_spend_commitment (seat, action_class, subject, amount_aed, route) values ('marketing', 'probe.keep', 'probe:' || v_tag, 0.01, 'probe');
+  begin
+    delete from public.company_spend_commitment where subject = 'probe:' || v_tag;
+    if found then v_fail := v_fail || 'a commitment was deleted (today''s money given back); '; end if;
+  exception when others then null; end;
+  begin
+    update public.company_spend_commitment set amount_aed = 0.02 where subject = 'probe:' || v_tag;
+    if found then v_fail := v_fail || 'a commitment was edited; '; end if;
+  exception when others then null; end;
+  perform set_config('qd.limits_probe', 'rollback', true);
+
   -- commitments: refused with no amount, above the per-action limit, above what is left of today; written when it fits
   delete from public.company_spend_commitment where dubai_day = (now() at time zone 'Asia/Dubai')::date;   -- the probe's own day
   if coalesce((public.fn_company_spend_commit('marketing', 'probe.spend', 'probe:' || v_tag, null, 'probe')->>'committed')::boolean, true)
@@ -51,12 +86,28 @@ begin
   if coalesce((public.fn_company_spend_commit('marketing', 'probe.spend', 'probe:' || v_tag, v_per + 1, 'probe')->>'committed')::boolean, true)
     then v_fail := v_fail || 'a commitment above the per-action limit was written; '; end if;
   if least(v_per, v_day) >= 1 then
+    select count(*) into v_locks from pg_locks where locktype = 'advisory' and pid = pg_backend_pid();
     v_r := public.fn_company_spend_commit('marketing', 'probe.spend', 'probe:' || v_tag, least(v_per, v_day), 'probe');
     if not coalesce((v_r->>'committed')::boolean, false) then v_fail := v_fail || 'a commitment that fits was refused: ' || v_r::text || '; '; end if;
+    -- review 4, item 2: the day's total is read and written under one company-wide lock, held to the end of the transaction
+    if (select count(*) from pg_locks where locktype = 'advisory' and pid = pg_backend_pid()) <= v_locks
+      then v_fail := v_fail || 'a commitment was written without the company''s spend lock; '; end if;
     insert into public.company_spend_commitment (seat, action_class, subject, amount_aed, route) values ('marketing', 'probe.fill', 'probe', greatest(v_day, 0.01), 'probe');
     if coalesce((public.fn_company_spend_commit('marketing', 'probe.spend', 'probe:' || v_tag, 1, 'probe')->>'committed')::boolean, true)
       then v_fail := v_fail || 'a commitment past today''s limit was written; '; end if;
   end if;
+
+  -- REVIEW 4, item 3: the three-argument rule refuses money under a standing grant with no ceiling (it said may_act true for
+  -- ('marketing', 'ad_boost', 1000)); a refund keeps its own path; a non-money action is answered as before
+  insert into public.ceo_standing_grant (grant_key, grantee_role_id, action_class, scope_note, issued_by)
+  values ('probe.ad_boost_' || v_tag, 'marketing', 'probe.ad_boost_' || v_tag, 'probe', 'ceo'),
+         ('probe.refund_' || v_tag, 'accountant', 'probe.refund_' || v_tag, 'probe', 'ceo'),
+         ('probe.report_' || v_tag, 'marketing', 'probe.report_' || v_tag, 'probe', 'ceo');
+  if coalesce((public.fn_agent_may_act('marketing', 'probe.ad_boost_' || v_tag, 1000)->>'may_act')::boolean, true)
+    then v_fail := v_fail || 'the three-argument rule allowed AED 1000 of ad spend outside the limits; '; end if;
+  if not coalesce((public.fn_agent_may_act('accountant', 'probe.refund_' || v_tag, 50)->>'may_act')::boolean, false)
+     or not coalesce((public.fn_agent_may_act('marketing', 'probe.report_' || v_tag)->>'may_act')::boolean, false)
+    then v_fail := v_fail || 'the three-argument rule changed for a refund or a non-money action; '; end if;
 
   -- the classifiers
   if not (public.fn_action_is_money('meta_ads_spend') and public.fn_action_is_money('ad_spend') and public.fn_action_is_money('refund')

@@ -51,7 +51,8 @@ test('2. the hard limits are in code and data', () => {
   const lim = code(read(LIMITS));
   const trg = fnBody(lim, 'trg_company_limit_change_waits_a_day');
   assert.match(trg, /if tg_op <> 'INSERT' then\s+raise exception/, 'append-only: an edit or a delete is refused');
-  assert.match(trg, /new\.effective_at := now\(\) \+ interval '24 hours';/, 'a change waits a day whatever the writer asked');
+  // review 4, item 1: from the clock, not the transaction's start (a row written late in a long transaction waited less)
+  assert.match(trg, /new\.effective_at := clock_timestamp\(\) \+ interval '24 hours';/, 'a change waits a day whatever the writer asked');
   assert.match(lim, /before insert or update or delete on public\.company_limit_change/);
   assert.match(fnBody(lim, 'fn_company_limit'), /c\.effective_at <= now\(\)/, 'the value in force never reads a waiting change');
   assert.match(fnBody(lim, 'fn_company_spend_commit'), /pg_advisory_xact_lock\(hashtext\('qd\.company_spend_commitment'\)\);\s+v := public\.fn_company_spend_fits/, 'the check and the write are one step under one lock');

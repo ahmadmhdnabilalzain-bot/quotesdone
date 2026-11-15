@@ -50,10 +50,12 @@
 --      seat has today (only a build order may name it), switched-off invitations, an open order on the same measure, and any
 --      question to the founder. A passed bet is a ceo.order hand-over with its measure, target and due date; a refused bet goes
 --      back to the model ONCE with the reasons; a second refusal is recorded and the bet dropped.
---   5. THE FIRST PLAN AS DATA (week of 16 Nov 2026, the audit's plan, revised for ruling 1709): the operating target (30 verified
---      suppliers in three Dubai focus trades by 20 Dec: MEP, interior fit-out, construction materials), the narrowing of the
---      coverage targets to those trades, and the 16 Nov bets per seat. It is a ceo_plan_week row of kind 'seed'; the loop's first
---      run files it through the same checks as any model plan. Nothing here sends anything.
+--   5. THE FIRST PLAN AS DATA (week of 16 Nov 2026, the audit's plan, revised for ruling 1709): the 16 Nov bets per seat and the
+--      CEO's trade priorities. It is a ceo_plan_week row of kind 'seed'; the loop's first run files it through the same checks as
+--      any model plan. Nothing here sends anything. The operating target (30 verified suppliers in three focus trades by 20 Dec:
+--      hvac, interior_fitout, building_materials) is the coverage file's decision_policy 'ceo_focus_trades' (review 4): that run
+--      confirms only those targets, so there is one count, beside the year-one milestone; the plan may change the focus
+--      (CEO action set_focus_trades -> fn_ceo_sets_focus_trades).
 --   6. NO FOUNDER ASK: the forecast's third choice was "tell_founder" ("a decision only the founder holds"); it is now
 --      "act_within_authority" (the CEO changes a limit, a target or the plan himself), and an answer still carrying the old
 --      choice is recorded as the CEO's own decision (public.ceo_own_decision) with its reason. Nothing goes to the founder from
@@ -123,18 +125,6 @@ create table if not exists public.ceo_growth_channel (
   constraint ceo_growth_channel_refusal_says_why check (verdict <> 'refused' or (length(btrim(coalesce(refused_because, ''))) >= 20 and length(btrim(coalesce(alternative, ''))) >= 20)));
 comment on table public.ceo_growth_channel is 'The CEO''s channel register (founder ledger 1705/1706: is it safe, and if not, what is the alternative): each channel''s safety verdict with its rule and rulings, the gate a named recipient must pass, whether a seat can do it today, and its conversion prior Beta(alpha, beta) learned from recorded outcomes. the_ceo_thinks_plans_and_orders_every_week.sql';
 
-create table if not exists public.ceo_operating_target (
-  id bigserial primary key,
-  objective text not null check (length(btrim(objective)) >= 20),
-  emirate text not null,
-  due_on date not null,
-  groups jsonb not null check (jsonb_typeof(groups) = 'array'),
-  status text not null default 'active' check (status in ('active', 'met', 'retired')),
-  source text not null check (length(btrim(source)) >= 20),
-  set_at timestamptz not null default now(),
-  retired_at timestamptz);
-comment on table public.ceo_operating_target is 'The CEO''s operating target under the founder''s north star (ledger 1701): verified suppliers per focus trade group in one emirate by a date. groups = [{group, label, trades[], target}]. the_ceo_thinks_plans_and_orders_every_week.sql';
-
 create table if not exists public.ceo_plan_week (
   id bigserial primary key,
   kind text not null check (kind in ('seed', 'weekly', 'daily')),
@@ -197,7 +187,7 @@ comment on table public.ceo_own_decision is 'A decision the CEO takes himself wh
 do $guard$
 declare t text;
 begin
-  foreach t in array array['ceo_growth_channel', 'ceo_operating_target', 'ceo_plan_week', 'ceo_plan_bet', 'ceo_own_decision'] loop
+  foreach t in array array['ceo_growth_channel', 'ceo_plan_week', 'ceo_plan_bet', 'ceo_own_decision'] loop
     if not (select relrowsecurity from pg_class where oid = ('public.' || t)::regclass) then
       execute format('alter table public.%I enable row level security', t);
     end if;
@@ -210,7 +200,7 @@ begin
     create index ceo_plan_bet_open on public.ceo_plan_bet (status) where status = 'filed';
   end if;
 end $guard$;
-revoke all on sequence public.ceo_operating_target_id_seq, public.ceo_plan_week_id_seq, public.ceo_plan_bet_id_seq, public.ceo_own_decision_id_seq from anon, authenticated;
+revoke all on sequence public.ceo_plan_week_id_seq, public.ceo_plan_bet_id_seq, public.ceo_own_decision_id_seq from anon, authenticated;
 
 insert into public.decision_policy (key, value, description) values
   ('ceo_planning_loop', '{"weekly_on": true, "daily_on": true, "weekly_task_class": "ceo_strategic_planning", "daily_task_class": "routine_employee_reasoning", "week_aed_cap": 8, "weekly_local": "07:00", "daily_local": "07:30", "max_bets_weekly": 8, "max_bets_daily": 2, "max_due_days": 42}'::jsonb,
@@ -283,110 +273,11 @@ on conflict (channel) do nothing;
 -- the seeded priors already hold what was measured up to apply: learning starts from here, so no window is counted twice
 update public.ceo_growth_channel set measured_until = now() where measured_until is null;
 
--- ── 3. THE OPERATING TARGET (the audit's honest verdict: 300-400 by 31 Dec cannot be reached; 30 in three Dubai trades by 20 Dec) ─
-insert into public.ceo_operating_target (objective, emirate, due_on, groups, source)
-select '30 verified suppliers in three Dubai focus trades by 20 Dec 2026, so that those trades open to buyers (trade_opening_rule.open_at_suppliers = 10); the founder''s 300-400 by 31 Dec stays the north star.',
-       'Dubai', date '2026-12-20',
-       '[{"group":"mep","label":"MEP: HVAC, electrical, plumbing","trades":["hvac","electrical","electrical_wholesale","mep_general","plumbing"],"target":10},
-         {"group":"interior_fitout","label":"Interior fit-out: fit-out, gypsum and ceilings, flooring","trades":["interior_fitout","gypsum","flooring"],"target":10},
-         {"group":"construction_materials","label":"Construction materials","trades":["building_materials","masonry_blockwork","steel","steel_stock"],"target":10}]'::jsonb,
-       'The CEO seat audit of 15 Nov 2026 (SP/audit/CEO.md section 8): the only recorded demand is 2 HVAC customers waiting and 1 electrical intake; fit-out has the highest fee per request and the largest reachable Dubai pool; materials suppliers quote fast from stock. Trade codes are the active taxonomy codes (SELECT 15 Nov).'
- where not exists (select 1 from public.ceo_operating_target where status = 'active');
-
--- Verified suppliers per focus group, by the predicate fn_supplier_coverage uses (confirmed capabilities, fn_is_matchable, stated
--- emirates hold the emirate or none stated), demo excluded; a supplier counts once per group.
-create or replace function public.fn_ceo_focus_coverage()
-returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-declare t public.ceo_operating_target; v jsonb;
-begin
-  select * into t from public.ceo_operating_target where status = 'active' order by id desc limit 1;
-  if not found then return jsonb_build_object('active', false); end if;
-  with sup as materialized (
-    select sc.supplier_id, sc.trades,
-           array(select distinct lower(btrim(e)) from unnest(coalesce(sc.coverage_emirates, '{}'::text[]) || coalesce(l.service_emirates, '{}'::text[])) e
-                  where nullif(btrim(e), '') is not null) as stated
-      from public.supplier_capabilities sc join public.leads l on l.id = sc.supplier_id
-     where sc.confirmed_at is not null and coalesce(l.is_demo, false) = public.fn_ceo_plan_world_is_demo()
-       and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)),
-  g as (
-    select x->>'group' as grp, x->>'label' as label, (x->>'target')::int as target,
-           array(select jsonb_array_elements_text(x->'trades')) as trades
-      from jsonb_array_elements(t.groups) x),
-  c as (
-    select g.grp, g.label, g.target, g.trades,
-           (select count(distinct s.supplier_id) from sup s where s.trades && g.trades
-              and (cardinality(s.stated) = 0 or lower(t.emirate) = any(s.stated)))::int as verified
-      from g)
-  select jsonb_build_object('active', true, 'id', t.id, 'objective', t.objective, 'emirate', t.emirate, 'due_on', t.due_on,
-           'days_left', t.due_on - (now() at time zone 'Asia/Dubai')::date,
-           'target', (select sum(target) from c), 'verified', (select sum(least(verified, target)) from c),
-           'groups', (select jsonb_agg(jsonb_build_object('group', grp, 'label', label, 'target', target, 'verified', verified, 'gap', greatest(target - verified, 0), 'trades', to_jsonb(trades))) from c))
-    into v;
-  return v;
-end $fn$;
-revoke execute on function public.fn_ceo_focus_coverage() from public, anon, authenticated;
-
--- While an operating target is active, a supply_gap recruitment note outside its trades is not proposed again once the CEO has
--- retired it (real demand, inquiries and the waitlist, is still proposed anywhere). The rest is the coverage file's body as is.
-create or replace function public.fn_supplier_coverage_target_propose()
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare r public.trade_opening_rule; v_target int; n_inq int := 0; n_wait int := 0; n_gap int := 0;
-        v_rule_src text; v_focus text[];
-begin
-  select * into r from public.trade_opening_rule where id = 1;
-  v_target := coalesce(r.open_at_suppliers, (select category_open_min_suppliers from public.pricing_config order by id limit 1), 10);
-  v_rule_src := 'target ' || v_target || ' = trade_opening_rule.open_at_suppliers, the verified suppliers at which a trade opens to customers ('
-                || coalesce(r.reason, 'pricing_config.category_open_min_suppliers') || ')';
-  v_focus := array(select jsonb_array_elements_text(x->'trades') from public.ceo_operating_target o, jsonb_array_elements(o.groups) x where o.status = 'active');
-  with d as (
-    select t as trade, coalesce(nullif(btrim(i.emirate), ''), 'UAE') as emirate, count(*) as n_all,
-           count(*) filter (where i.created_at > now() - interval '90 days') as n_90d, max(i.created_at) as last_at
-      from public.inquiries i left join public.customers c on c.id = i.customer_id, unnest(coalesce(i.trades, '{}'::text[])) t
-     where coalesce(public.fn_seat_clock_customer_is_fixture(c), false) = (coalesce(current_setting('qd.duty_fixtures', true), '') = 'on')
-       and t in (select code from public.taxonomy_trade where active)
-     group by 1, 2),
-  ins as (
-    insert into public.supplier_coverage_target (trade, emirate, target_suppliers, source, demand_basis, priority)
-    select d.trade, d.emirate, v_target,
-           'demand: ' || d.n_all || ' real inquiries in ' || d.trade || ' / ' || d.emirate || ' (public.inquiries, fixtures excluded); ' || v_rule_src,
-           jsonb_build_object('source', 'inquiries', 'inquiries_all', d.n_all, 'inquiries_90d', d.n_90d, 'last_at', d.last_at), 1000 + d.n_all
-      from d
-     where not exists (select 1 from public.supplier_coverage_target x where x.trade = d.trade and x.emirate = d.emirate and x.status <> 'retired')
-    returning 1)
-  select count(*) into n_inq from ins;
-  with w as (
-    select q.trade, count(*) as n from public.customer_trade_waitlist q
-     where q.status = 'waiting' and q.trade in (select code from public.taxonomy_trade where active)
-       and ((q.customer_id is not null and public.fn_customer_is_demo(q.customer_id)) or (q.phone is not null and public.fn_is_demo_phone(q.phone))) = (coalesce(current_setting('qd.duty_fixtures', true), '') = 'on')
-     group by 1),
-  ins as (
-    insert into public.supplier_coverage_target (trade, emirate, target_suppliers, source, demand_basis, priority)
-    select w.trade, 'UAE', v_target,
-           'demand: ' || w.n || ' customer(s) waiting for ' || w.trade || ' (public.customer_trade_waitlist, status waiting, fixtures excluded); ' || v_rule_src,
-           jsonb_build_object('source', 'customer_trade_waitlist', 'waiting', w.n), 500 + w.n
-      from w
-     where not exists (select 1 from public.supplier_coverage_target x where x.trade = w.trade and x.emirate = 'UAE' and x.status <> 'retired')
-    returning 1)
-  select count(*) into n_wait from ins;
-  with ins as (
-    insert into public.supplier_coverage_target (trade, emirate, target_suppliers, source, demand_basis, priority)
-    select g.trade, g.emirate, v_target,
-           'no customer demand recorded (supply_gap.demand_90d ' || g.demand_90d || '); recruited by decision ' || coalesce(g.decided_by, '?')
-             || ' (public.supply_gap status recruit, ' || g.uninvited_pool || ' uninvited leads); ' || v_rule_src,
-           jsonb_build_object('source', 'supply_gap', 'demand_90d', g.demand_90d, 'short_open', g.short_open, 'decided_by', g.decided_by,
-                              'uninvited_pool', g.uninvited_pool, 'matchable_then', g.matchable), least(g.uninvited_pool, 499)
-      from public.supply_gap g
-     where g.status = 'recruit' and g.trade in (select code from public.taxonomy_trade where active) and not (coalesce(current_setting('qd.duty_fixtures', true), '') = 'on')
-       and not exists (select 1 from public.supplier_coverage_target x where x.trade = g.trade and x.emirate = g.emirate and x.status <> 'retired')
-       -- the CEO narrowed the targets to his operating target's trades: a recruitment note he retired is not proposed again
-       and not (cardinality(v_focus) > 0 and not (g.trade = any(v_focus))
-                and exists (select 1 from public.supplier_coverage_target x where x.trade = g.trade and x.emirate = g.emirate and x.status = 'retired'))
-    returning 1)
-  select count(*) into n_gap from ins;
-  return jsonb_build_object('proposed_from_inquiries', n_inq, 'proposed_from_waitlist', n_wait, 'proposed_from_recruitment_decisions', n_gap,
-                            'target_each', v_target, 'proposed_total', (select count(*) from public.supplier_coverage_target where status = 'proposed'));
-end $fn$;
-revoke execute on function public.fn_supplier_coverage_target_propose() from public, anon, authenticated;
+-- ── 3. THE OPERATING TARGET IS THE COVERAGE FILE'S FOCUS (review 4, items 5 and 6) ────────────────────────────────────
+-- The audit's operating target (30 verified suppliers in three focus trades by 20 Dec: MEP/hvac first, interior fit-out,
+-- construction materials) is decision_policy 'ceo_focus_trades' in the coverage file: its run confirms only those targets and
+-- fn_supplier_coverage reads them with the objective owner's predicate beside the year-one milestone, so the founder sees one
+-- company number (the milestone) and the focus inside it. This file adds no second count.
 
 -- ── 4. REGISTRATIONS BY FIRST TOUCH (ruling 1709) ──────────────────────────────────────────────────────────────────────────
 -- Every registration in the window by its source: 'founder' (utm_source founder), 'email_invitation' (a supplier_invite the
@@ -448,7 +339,9 @@ declare v_days int := greatest(coalesce(p_days, 7), 1); v_from timestamptz := no
         x jsonb;
 begin
   -- the operating target and coverage
-  begin v := v || jsonb_build_object('operating_target', public.fn_ceo_focus_coverage());
+  begin v := v || jsonb_build_object('operating_target', (select jsonb_build_object('focus', c->'focus', 'milestone', c->'milestone', 'gate_1004', c->'gate_1004',
+                                        'covered', c->'covered_suppliers', 'target', c->'target_suppliers', 'open', c->'trades_at_target', 'gaps', c->'gaps')
+                                        from (select public.fn_supplier_coverage(10) c) z));
   exception when others then v := v || jsonb_build_object('operating_target', jsonb_build_object('unavailable', left(sqlerrm, 200))); end;
   begin v := v || jsonb_build_object('coverage', public.fn_supplier_coverage(10) - 'basis');
   exception when others then v := v || jsonb_build_object('coverage', jsonb_build_object('unavailable', left(sqlerrm, 200))); end;
@@ -579,7 +472,7 @@ returns jsonb language sql immutable set search_path to 'public', 'pg_temp' as $
            "invitations": "real leads of the trades the outbox invited since the bet (args: trades)",
            "held_registrations": "registrations submitted 2+ days ago and not decided (direction at_most)",
            "placement_inbox_pct": "inbox % of the provider class on the latest decided GlockApps test after the bet (args: provider_class)",
-           "focus_verified": "verified suppliers in the operating target''s focus groups (fn_ceo_focus_coverage)",
+           "focus_verified": "verified suppliers toward opening the focus trades (fn_supplier_coverage covered_suppliers)",
            "reported": "the seat reported the order done (fn_seat_reports_done): for a build or a task code cannot count"}'::jsonb
 $fn$;
 revoke execute on function public.fn_ceo_plan_measures() from public, anon, authenticated;
@@ -609,7 +502,7 @@ begin
      where p.provider_class = coalesce(b.measure_args->>'provider_class', 'microsoft')
        and p.test_id = (select t.test_id from public.deliverability_test t where t.verdict <> 'pending' and t.created_at >= b.created_at order by t.created_at desc limit 1);
   when 'focus_verified' then
-    v_val := (public.fn_ceo_focus_coverage()->>'verified')::numeric;
+    v_val := (public.fn_supplier_coverage(10)->>'covered_suppliers')::numeric;
   when 'reported' then
     select case when a.status = 'done' then 1 else 0 end into v_val from public.agent_actions a where a.id = b.handoff_id;
   else
@@ -737,7 +630,7 @@ revoke execute on function public.fn_ceo_plan_bet_check(jsonb) from public, anon
 create or replace function public.fn_ceo_plan_self_action(p_plan_id bigint, p_act jsonb)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_reason text := btrim(coalesce(p_act->>'reason', '')); v_kind text := p_act->>'kind'; v_focus text[]; n_ret int := 0; n_add int := 0; n_rm int := 0;
-        t text; v_key text := 'plan:' || p_plan_id || ':' || coalesce(p_act->>'kind', '-');
+        t text; v_key text := 'plan:' || p_plan_id || ':' || coalesce(p_act->>'kind', '-'); v_res jsonb;
 begin
   if length(v_reason) < 20 then return jsonb_build_object('ok', false, 'reason', 'a CEO action says why, in a sentence (20 characters or more)'); end if;
   if exists (select 1 from public.ceo_own_decision where dedupe_key = v_key) then return jsonb_build_object('ok', true, 'already', v_key); end if;
@@ -756,19 +649,15 @@ begin
     insert into public.ceo_own_decision (source, subject, choice, reason, reading, dedupe_key)
     values ('plan', 'invitation trade priorities', 'set_trade_priority', v_reason, jsonb_build_object('added', n_add, 'removed', n_rm, 'act', p_act), v_key);
     return jsonb_build_object('ok', true, 'added', n_add, 'removed', n_rm);
-  elsif v_kind = 'narrow_coverage_to_operating_target' then
-    v_focus := array(select jsonb_array_elements_text(x->'trades') from public.ceo_operating_target o, jsonb_array_elements(o.groups) x where o.status = 'active');
-    if cardinality(v_focus) = 0 then return jsonb_build_object('ok', false, 'reason', 'no active operating target'); end if;
-    -- a recruitment note outside the focus trades is retired; real demand (inquiries, the waitlist) is kept wherever it is
-    update public.supplier_coverage_target set status = 'retired', retired_at = now(),
-           decision_reason = coalesce(decision_reason || ' | ', '') || 'retired by the CEO''s plan #' || p_plan_id || ': ' || left(v_reason, 300)
-     where status <> 'retired' and demand_basis->>'source' = 'supply_gap' and not (trade = any(v_focus));
-    get diagnostics n_ret = row_count;
+  elsif v_kind = 'set_focus_trades' then
+    -- the coverage file's own routine: the policy, the targets confirmed and sent back, each with its reason
+    v_res := public.fn_ceo_sets_focus_trades(array(select jsonb_array_elements_text(coalesce(p_act->'trades', '[]'::jsonb))), v_reason);
+    if not coalesce((v_res->>'ok')::boolean, false) then return v_res; end if;
     insert into public.ceo_own_decision (source, subject, choice, reason, reading, dedupe_key)
-    values ('plan', 'coverage targets', 'narrow_coverage_to_operating_target', v_reason, jsonb_build_object('retired', n_ret, 'focus', to_jsonb(v_focus)), v_key);
-    return jsonb_build_object('ok', true, 'retired', n_ret);
+    values ('plan', 'focus trades', 'set_focus_trades', v_reason, v_res, v_key);
+    return v_res;
   end if;
-  return jsonb_build_object('ok', false, 'reason', 'no such CEO action: ' || coalesce(v_kind, '-') || ' (set_trade_priority, narrow_coverage_to_operating_target)');
+  return jsonb_build_object('ok', false, 'reason', 'no such CEO action: ' || coalesce(v_kind, '-') || ' (set_trade_priority, set_focus_trades)');
 end $fn$;
 revoke execute on function public.fn_ceo_plan_self_action(bigint, jsonb) from public, anon, authenticated;
 
@@ -953,7 +842,7 @@ returns jsonb language sql stable security definer set search_path to 'public', 
       'options', '[{channel, message, expected_per_week [low, high], assumptions, cost_aed, legal, brand_risk, reversible, seat, seat_can_do_it_today}] 3 to 6',
       'decision', jsonb_build_object(
         'bets', '[{channel, seat, what, how, why, measure, measure_args, target, direction, due_at, expected_low, expected_high, cost_aed, legal, kill_criterion, lead_ids?, providers?}]',
-        'ceo_actions', '[{kind: set_trade_priority {add[], remove[]} | narrow_coverage_to_operating_target, reason}]',
+        'ceo_actions', '[{kind: set_trade_priority {add[], remove[]} | set_focus_trades {trades[] 1 to 5}, reason}]',
         'dropped', '[{option, why}]')),
     'task_class', case when p_kind = 'daily' then coalesce((select value->>'daily_task_class' from public.decision_policy where key = 'ceo_planning_loop'), 'routine_employee_reasoning')
                        else coalesce((select value->>'weekly_task_class' from public.decision_policy where key = 'ceo_planning_loop'), 'ceo_strategic_planning') end)
@@ -1061,17 +950,12 @@ revoke execute on function public.fn_ceo_plan_due(timestamptz, boolean) from pub
 -- ── 13. THE FOUNDER'S DAILY SUMMARY: the week's plan and his own people (information, ledger 1696 and 1709) ────────────────
 create or replace function public.fn_ceo_plan_summary_text(p_since timestamptz default now() - interval '24 hours')
 returns text language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-declare f jsonb := public.fn_ceo_founder_network_reading(); o jsonb := public.fn_ceo_focus_coverage(); v text := '';
+declare f jsonb := public.fn_ceo_founder_network_reading(); v text := '';
 begin
   v := E'\nYOUR PEOPLE (your link, utm_source founder): ' || coalesce(f->>'started', '0') || ' started, ' || coalesce(f->>'submitted', '0') || ' submitted, '
        || coalesce(f->>'approved', '0') || ' approved since ' || to_char((f->>'since')::timestamptz at time zone 'Asia/Dubai', 'DD Mon') || '.'
        || coalesce((select E'\nStuck, so you can call them: ' || string_agg((x->>'company') || ' - ' || (x->>'step') || ' (' || (x->>'days') || ' days)', '; ')
                       from jsonb_array_elements(f->'stuck') x), '');
-  if coalesce((o->>'active')::boolean, false) then
-    v := v || E'\nOPERATING TARGET: ' || coalesce(o->>'verified', '0') || ' of ' || coalesce(o->>'target', '?') || ' verified in Dubai focus trades, '
-         || coalesce(o->>'days_left', '?') || ' days to ' || to_char((o->>'due_on')::date, 'DD Mon') || ' ('
-         || (select string_agg((g->>'label') || ' ' || (g->>'verified') || '/' || (g->>'target'), '; ') from jsonb_array_elements(o->'groups') g) || ').';
-  end if;
   v := v || coalesce((select E'\nTHE CEO''S PLAN (' || p.kind || ', ' || to_char(p.period, 'DD Mon') || ', ' || p.status || '): '
                       || (select string_agg(coalesce(b.seat, 'founder') || ' ' || b.channel || ' ' || b.measure || ' ' || coalesce(b.target::text, '?')
                                             || ' by ' || coalesce(to_char(b.due_at at time zone 'Asia/Dubai', 'DD Mon'), '?') || ' [' || b.status
@@ -1284,7 +1168,7 @@ select 'seed', date '2026-11-16', 'asked', 'seed',
    "bets": [
     {"channel": "founder_network", "seat": "founder", "what": "The founder messages and calls his own network from his own number with his tracked link; the CEO tells him every morning who started, submitted and was approved, and who is stuck at which step.", "how": "https://quotesdone.com/portal?join=1&utm_source=founder&utm_medium=whatsapp&utm_campaign=2026-11", "why": "Ledger 1709: his estimate is 20 to 100 registrations; people he knows convert far above cold mail.", "measure": "registrations_by_source", "measure_args": {"source": "founder"}, "target": 20, "direction": "at_least", "due_at": "2026-12-06T18:00:00+04:00", "expected_low": 20, "expected_high": 100, "cost_aed": 0, "legal": "Safe: people he knows, personal messages from his own number (PDPL: business contacts he holds; no list is taken).", "kill_criterion": "none: it is his network; the CEO reports the numbers"},
     {"channel": "reply_within_1h", "seat": "sales_engineer", "what": "Answer every supplier reply since 1 Nov with the registration link (5 replies dropped), and every new reply within one business hour.", "how": "Through the supplier mailbox reply path; answer only what they wrote; a STOP is honoured.", "why": "5 of 5 replies were dropped by the reply path; each answered reply is the warmest lead we have.", "measure": "replies_unanswered", "measure_args": {}, "target": 0, "direction": "at_most", "due_at": "2026-11-17T18:00:00+04:00", "expected_low": 1, "expected_high": 2, "cost_aed": 0, "legal": "Safe: a reply to their own mail; ledger 1301 covers the cold invitation only.", "kill_criterion": "never: the 1-hour answer is permanent"},
-    {"channel": "email_invitation_google", "seat": "sales_engineer", "what": "Invitation batches in the three focus trades, Dubai, Google-hosted and verified addresses only, up to the 1231 schedule.", "how": "The existing invitation duty and the outbox: fn_email_sendable, suppressions, the placement bar.", "why": "The only open mailbox class; 1,248 never-invited Dubai Google addresses.", "measure": "invitations", "measure_args": {"trades": ["hvac", "electrical", "mep_general", "interior_fitout", "gypsum", "flooring", "building_materials"]}, "target": 100, "direction": "at_least", "due_at": "2026-11-23T18:00:00+04:00", "expected_low": 1, "expected_high": 3, "cost_aed": 0, "legal": "Safe at: 1231 schedule, bounce under 3%, checked-only, STOP line, one-click unsubscribe, no link (1301); Google class only (1537).", "kill_criterion": "bounce over 3% in 7 days, or 0 registrations from 250 delivered", "providers": ["google"]},
+    {"channel": "email_invitation_google", "seat": "sales_engineer", "what": "Invitation batches in the three focus trades, Dubai, Google-hosted and verified addresses only, up to the 1231 schedule.", "how": "The existing invitation duty and the outbox: fn_email_sendable, suppressions, the placement bar.", "why": "The only open mailbox class; 1,248 never-invited Dubai Google addresses.", "measure": "invitations", "measure_args": {"trades": ["hvac", "interior_fitout", "building_materials"]}, "target": 100, "direction": "at_least", "due_at": "2026-11-23T18:00:00+04:00", "expected_low": 1, "expected_high": 3, "cost_aed": 0, "legal": "Safe at: 1231 schedule, bounce under 3%, checked-only, STOP line, one-click unsubscribe, no link (1301); Google class only (1537).", "kill_criterion": "bounce over 3% in 7 days, or 0 registrations from 250 delivered", "providers": ["google"]},
     {"channel": "registration_unblock", "seat": "sales_engineer", "what": "Every submitted registration decided within two days, so none of the founder''s people waits on us.", "how": "The registration review the sales engineer already owns; ask the supplier for what is missing through his own channel.", "why": "The founder''s people will arrive in a burst; a held registration is the next leak.", "measure": "held_registrations", "measure_args": {}, "target": 0, "direction": "at_most", "due_at": "2026-11-20T18:00:00+04:00", "expected_low": 0, "expected_high": 0, "cost_aed": 0, "legal": "Safe: e-mail through the outbox; WhatsApp only with his opt-in (1341).", "kill_criterion": "never"},
     {"channel": "deliverability_fix", "seat": "it_engineer", "what": "Microsoft inbox placement at least 80% on a GlockApps retest.", "how": "Honest warm-up of supplier@quotesdone.com; one GlockApps credit when ready; never lookalike domains.", "why": "The founder''s people on Microsoft-hosted company mail must receive our sign-up, approval and request mail; invitations stay off Microsoft by ruling 1537.", "measure": "placement_inbox_pct", "measure_args": {"provider_class": "microsoft"}, "target": 80, "direction": "at_least", "due_at": "2026-12-08T18:00:00+04:00", "expected_low": 0, "expected_high": 0, "cost_aed": 0, "legal": "Safe if honest warm-up (Microsoft and Google sender policies).", "kill_criterion": "two retests under 50%: stop and keep the Google class only"},
     {"channel": "supplier_referral", "seat": "it_engineer", "what": "Build the referral link asked at approval and the WhatsApp click-to-chat link on the site, the registration page and the e-mail signature.", "how": "A per-supplier referral link with utm_source referral; a wa.me link with the consent question.", "why": "Both channels are safe and cost nothing, and no seat can run them today.", "measure": "reported", "measure_args": {}, "target": 1, "direction": "at_least", "due_at": "2026-11-22T18:00:00+04:00", "expected_low": 0, "expected_high": 0, "cost_aed": 0, "legal": "Safe: the supplier sends from his own channel; the chat is started by the supplier (Meta policy, 1341).", "kill_criterion": "none: a build"},
@@ -1292,8 +1176,7 @@ select 'seed', date '2026-11-16', 'asked', 'seed',
     {"channel": "linkedin_company_page", "seat": "marketing", "what": "Three company-page posts a week for the focus trades; Google Business Profile verified; Dubai Chamber listing applied for.", "how": "The monthly calendar; never boosted (1456); honest copy: before buyers start sending requests.", "why": "Trust for the founder''s people who look us up, at no cost.", "measure": "reported", "measure_args": {}, "target": 1, "direction": "at_least", "due_at": "2026-11-30T18:00:00+04:00", "expected_low": 0, "expected_high": 1, "cost_aed": 0, "legal": "Safe: organic posts; no paid placement (1456); no incentivised reviews (Google policy).", "kill_criterion": "0 tagged registrations from 12 posts"}
    ],
    "ceo_actions": [
-    {"kind": "set_trade_priority", "add": ["hvac", "electrical", "mep_general", "gypsum", "building_materials"], "remove": ["painting", "signage", "upholstery"], "reason": "The operating target names three Dubai focus trades from the only recorded demand (2 HVAC customers waiting, 1 electrical intake) and fee size; painting, signage and upholstery were chosen on pool size alone."},
-    {"kind": "narrow_coverage_to_operating_target", "reason": "143 of the 144 coverage targets came from recruitment notes with no recorded demand; the CEO holds only his three focus trades (and real demand wherever it is) until they open."}
+    {"kind": "set_trade_priority", "add": ["hvac", "electrical", "mep_general", "gypsum", "building_materials"], "remove": ["painting", "signage", "upholstery"], "reason": "The focus trades (hvac, interior_fitout, building_materials) come from the only recorded demand (2 HVAC customers waiting, 1 electrical intake), fee size and the Google-reachable pool; painting, signage and upholstery were chosen on pool size alone."}
    ],
    "dropped": [
     {"option": "hire a part-time caller", "why": "ruling 1709: no hire; the founder calls his own network"},

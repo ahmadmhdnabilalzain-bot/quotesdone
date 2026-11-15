@@ -25,6 +25,8 @@ begin
   update public.supplier_coverage_target set status = 'retired', retired_at = now() where status <> 'retired';
   select code into v_t1 from public.taxonomy_trade where active order by code limit 1;
   select code into v_t2 from public.taxonomy_trade where active and code <> v_t1 order by code limit 1;
+  -- the probe's focus is its own first trade (review 4, item 6: only the focus is confirmed)
+  update public.decision_policy set value = value || jsonb_build_object('trades', jsonb_build_array(v_t1)) where key = 'ceo_focus_trades';
   update public.app_secrets set value = 'true' where key = 'invite_enabled';
   update public.app_secrets set value = '3' where key = 'invite_daily_cap';
   insert into public.app_secrets (key, value) select 'invite_enabled', 'true' where not exists (select 1 from public.app_secrets where key = 'invite_enabled');
@@ -73,14 +75,21 @@ begin
 
   -- 3. THE RUN: confirms with a reason, reads, orders three seats with leads, outcome and date
   v_r := public.fn_ceo_grows_supply(v_at);
-  if not coalesce((v_r->>'ran')::boolean, false) or (v_r->>'confirmed')::int <> 3 then v_fail := v_fail || 'the run did not confirm the proposal: ' || v_r::text || '; '; end if;
+  if not coalesce((v_r->>'ran')::boolean, false) or (v_r->>'confirmed')::int <> 1 then v_fail := v_fail || 'the run did not confirm the focus trade only: ' || v_r::text || '; '; end if;
+  if (select count(*) from public.supplier_coverage_target where trade = v_t2 and status = 'proposed' and decision_reason like 'Kept proposed by the CEO: % is not a focus trade%') <> 2
+    then v_fail := v_fail || 'a proposal outside the focus was confirmed, or kept with no reason (review 4, item 6); '; end if;
   if not exists (select 1 from public.ceo_supply_decision where decided_on = v_day and kind = 'confirm_targets' and length(reason) > 40)
     then v_fail := v_fail || 'the confirmation has no recorded reason; '; end if;
   v_r := public.fn_supplier_coverage(10);
-  if (v_r->>'targets_confirmed')::int <> 3 or (v_r->>'covered_suppliers')::int <> 1
+  if (v_r->>'targets_confirmed')::int <> 1 or (v_r->>'covered_suppliers')::int <> 1 or (v_r->>'target_suppliers')::int <> 10
      or (select (g->>'verified')::int from jsonb_array_elements(v_r->'gaps') g where g->>'trade' = v_t1 and g->>'emirate' = 'Dubai') <> 1
-     or (select (g->>'verified')::int from jsonb_array_elements(v_r->'gaps') g where g->>'trade' = v_t2 and g->>'emirate' = 'Sharjah') <> 0
     then v_fail := v_fail || 'coverage does not count the verified supplier where he works: ' || v_r::text || '; '; end if;
+  -- one number (review 4, item 5): the count per target is the objective owner's, and the milestone rides along
+  if (select (g->>'verified')::int from jsonb_array_elements(v_r->'gaps') g where g->>'trade' = v_t1)
+       is distinct from (select o.verified from public.fn_supplier_target_by_trade_emirate(true) o where o.trade = v_t1 and o.emirate = 'Dubai')
+     or (v_r->'milestone'->>'verified') is distinct from (public.fn_ceo_supplier_target_status(now(), true)->>'verified')
+     or not (v_r ? 'gate_1004')
+    then v_fail := v_fail || 'coverage is a second count beside the objective''s owner: ' || v_r::text || '; '; end if;
   v_seat := public.fn_ceo_invitation_seat();
   select id into v_o_inv from public.agent_actions where kind = 'handoff' and agent = v_seat and detail->>'type' = 'ceo.order' and detail->>'measure' = 'invitations' and status = 'pending';
   select id into v_o_stuck from public.agent_actions where kind = 'handoff' and agent = 'sales_engineer' and detail->>'type' = 'ceo.order' and detail->>'measure' = 'stuck_followed_up' and status = 'pending';
@@ -160,7 +169,9 @@ begin
           jsonb_build_object('ceo_decision', jsonb_build_object('choice', 'refuse', 'reason', 'The probe post has no audience yet ' || v_tag, 'decided_at', now()),
                              'not_cited', jsonb_build_object('reason', 'probe', 'by', 'probe')), now(), 'ceo');
   v_txt := public.fn_ceo_daily_summary_text(now() - interval '1 day');
-  if v_txt not like 'SUPPLIER COVERAGE (founder ledger 1701): 1 of %' or v_txt not like '%FUNNEL, 30 days:%' or v_txt not like '%COMPANY LIMITS: AED%'
+  if v_txt not like 'VERIFIED SUPPLIERS (the year-one plan, ceo.supplier_target): ' || (public.fn_ceo_supplier_target_status(now(), true)->>'verified') || '%'
+     or v_txt not like '%FOCUS TRADES (' || v_t1 || '): 1 of 10 verified toward opening%' or v_txt like '%SUPPLIER COVERAGE%'
+     or v_txt not like '%FUNNEL, 30 days:%' or v_txt not like '%COMPANY LIMITS: AED%'
      or v_txt not like '%marketing asked boost the probe post ' || v_tag || ': refuse - The probe post has no audience yet ' || v_tag || '%'
      or v_txt not like '%supply confirm_targets%' or v_txt not like '%supply set_target%' or v_txt not like '%Nothing here waits on you.'
     then v_fail := v_fail || 'the summary does not say the day and the decisions: ' || left(v_txt, 900) || '; '; end if;

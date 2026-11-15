@@ -44,6 +44,19 @@
 --      the funnel, the CEO's decisions of the last day (IT findings, late hand-overs, seats' questions of authority, his own
 --      authority, the supply orders, targets), the company limits with any waiting change and today's spend. Kind
 --      ceo_daily_summary through fn_notify_founder (founder_mail_policy can silence it); nothing in it asks him anything.
+-- REVIEW 4 (15 Nov 2026), items 5 and 6:
+--   * ONE NUMBER. the_ceo_tracks_the_supplier_target_by_trade_and_emirate.sql already owns the objective: the predicate
+--     (fn_supplier_target_by_trade_emirate), the ledger-1004 gate (fn_every_category_has_ten_suppliers) and the year-one
+--     milestone duty ceo.supplier_target (fn_ceo_supplier_target_status: 2 verified of 200 by 30 Nov on 15 Nov, SELECT).
+--     fn_supplier_coverage now reads the verified count per target FROM fn_supplier_target_by_trade_emirate and carries the
+--     milestone and the gate, and the founder's summary leads with the milestone's number; coverage is the CEO's focus inside
+--     it, never a second total (before: 4 of 1,440 beside 2 of 200).
+--   * FOCUS. 140 of the 144 proposals are UAE-wide recruitment notes with 0 demand, and the first run confirmed them all, so a
+--     new supplier moved coverage by 0.07%. The CEO's focus trades are data (decision_policy 'ceo_focus_trades': hvac, with 2
+--     customers waiting; interior_fitout; building_materials, the largest Google-reachable pools after civil works, which is
+--     contracting, not supply); the run confirms ONLY those, every other proposal stays proposed with one reason, and the
+--     invitation order points at the focus gaps. The CEO changes the focus with a reason (fn_ceo_sets_focus_trades).
+--     A recruitment note's priority is its rank by uninvited pool, so 17 rows no longer tie at 499 and sort alphabetically.
 -- FIXTURES: with qd.duty_fixtures = 'on' (the estate's probe seam, as fn_marketing_recruitment_funnel reads it) every reading
 -- here sees ONLY demo rows, and without it ONLY real ones: a probe proves the loop on its own ZZ DEMO world, and no production
 -- row decides its outcome; a live run never counts a demo supplier, request or invitation.
@@ -159,7 +172,9 @@ begin
            'no customer demand recorded (supply_gap.demand_90d ' || g.demand_90d || '); recruited by decision ' || coalesce(g.decided_by, '?')
              || ' (public.supply_gap status recruit, ' || g.uninvited_pool || ' uninvited leads); ' || v_rule_src,
            jsonb_build_object('source', 'supply_gap', 'demand_90d', g.demand_90d, 'short_open', g.short_open, 'decided_by', g.decided_by,
-                              'uninvited_pool', g.uninvited_pool, 'matchable_then', g.matchable), least(g.uninvited_pool, 499)
+                              'uninvited_pool', g.uninvited_pool, 'matchable_then', g.matchable),
+           -- the rank by uninvited pool (largest first, UAE-wide before an emirate on a tie), never a cap all the large pools share
+           greatest(1, 499 - (row_number() over (order by g.uninvited_pool desc nulls last, (g.emirate = 'UAE') desc) - 1))::int
       from public.supply_gap g
      where g.status = 'recruit' and g.trade in (select code from public.taxonomy_trade where active) and not (coalesce(current_setting('qd.duty_fixtures', true), '') = 'on')
        and not exists (select 1 from public.supplier_coverage_target x where x.trade = g.trade and x.emirate = g.emirate and x.status <> 'retired')
@@ -182,10 +197,11 @@ begin
       from public.supplier_capabilities sc join public.leads l on l.id = sc.supplier_id
      where sc.confirmed_at is not null and coalesce(l.is_demo, false) = (coalesce(current_setting('qd.duty_fixtures', true), '') = 'on')
        and public.fn_is_matchable(l.verified, l.banned, l.matching_blocked, l.approval_status, l.permanently_closed, l.chat_strikes)),
+  one as materialized (   -- THE predicate of the objective's owner (review 4, item 5): one count per trade and emirate
+    select o.trade, o.emirate, o.verified from public.fn_supplier_target_by_trade_emirate(coalesce(current_setting('qd.duty_fixtures', true), '') = 'on') o),
   t as (
     select x.id, x.trade, x.emirate, x.target_suppliers as target, x.status, x.priority, x.demand_basis->>'source' as demand_source,
-           (select count(*) from sup s where x.trade = any(s.trades)
-             and (x.emirate = 'UAE' or cardinality(s.stated) = 0 or lower(x.emirate) = any(s.stated)))::int as verified
+           coalesce((select o.verified from one o where o.trade = x.trade and lower(o.emirate) = lower(x.emirate)), 0)::int as verified
       from public.supplier_coverage_target x where x.status in ('proposed', 'confirmed'))
   select jsonb_build_object(
     'at', now(),
@@ -196,11 +212,17 @@ begin
     'coverage_pct', (select round(100.0 * sum(least(verified, target)) / nullif(sum(target), 0), 1) from t where status = 'confirmed'),
     'trades_at_target', (select count(*) from t where status = 'confirmed' and verified >= target),
     'verified_real_suppliers', (select count(*) from sup),
+    'focus', coalesce((select value from public.decision_policy where key = 'ceo_focus_trades'), '{}'::jsonb),
+    'milestone', (select jsonb_build_object('verified', m->'verified', 'target', m->'target', 'milestone', m->'milestone', 'shortfall', m->'shortfall',
+                                            'pace_per_day', m->'pace_per_day', 'behind', m->'behind')
+                    from (select public.fn_ceo_supplier_target_status(now(), coalesce(current_setting('qd.duty_fixtures', true), '') = 'on') m) z),
+    'gate_1004', (select jsonb_build_object('below_ten', g->'below_ten', 'categories', g->'categories')
+                    from (select public.fn_every_category_has_ten_suppliers(coalesce(current_setting('qd.duty_fixtures', true), '') = 'on') g) z),
     'gaps', coalesce((select jsonb_agg(jsonb_build_object('trade', g.trade, 'emirate', g.emirate, 'target', g.target, 'verified', g.verified,
                                  'gap', g.target - g.verified, 'demand', g.demand_source) order by g.priority desc, g.target - g.verified desc, g.trade)
                         from (select * from t where status = 'confirmed' and verified < target order by priority desc, target - verified desc, trade
                                limit greatest(coalesce(p_limit, 10), 1)) g), '[]'::jsonb),
-    'basis', 'verified = real suppliers with confirmed capabilities that fn_is_matchable passes, whose trades hold the trade and whose stated emirates hold the emirate (none stated = UAE-wide): fn_sales_engineer_supply_gap''s predicate, demo excluded. covered = sum over confirmed targets of least(verified, target).')
+    'basis', 'verified per target = fn_supplier_target_by_trade_emirate (the objective''s owner, the_ceo_tracks_the_supplier_target_by_trade_and_emirate.sql): confirmed capabilities that fn_is_matchable passes, stated emirates hold the emirate (none stated = UAE-wide), demo excluded. covered = sum over confirmed (focus) targets of least(verified, target). milestone = fn_ceo_supplier_target_status, the one company number.')
   into v;
   return v;
 end $fn$;
@@ -312,6 +334,67 @@ end $fn$;
 revoke execute on function public.fn_ceo_sets_coverage_target(text, text, integer, text) from public, anon, authenticated;
 grant execute on function public.fn_ceo_sets_coverage_target(text, text, integer, text) to service_role;
 
+-- ── 5b. THE CEO'S FOCUS TRADES (review 4, item 6): data, changed with a reason ─────────────────────────────────────
+insert into public.decision_policy (key, value, description) values
+  ('ceo_focus_trades', '{"trades": ["hvac", "interior_fitout", "building_materials"], "invite_first": "Dubai", "due_on": "2026-12-20", "objective": "30 verified suppliers in three focus trades by 20 Dec 2026, so they open to buyers (trade_opening_rule.open_at_suppliers 10 each); the year-one milestones stay the company number", "why": {"hvac": "MEP first: the only recorded buyer demand (2 customers waiting, customer_trade_waitlist; 1 electrical intake in 90 days)", "interior_fitout": "the highest fee per request in the plan model and a large Google-reachable pool (1,430 UAE, review 4)", "building_materials": "the second largest Google-reachable pool (3,111 UAE, review 4); suppliers quote fast from stock"}}'::jsonb,
+   'The CEO''s focus trades (review 4 of 15 Nov 2026, the CEO seat audit): his daily run confirms coverage targets only in these trades, every other proposal stays proposed with its reason, and the invitation order points at their gaps. Changed by fn_ceo_sets_focus_trades with a reason. the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql')
+on conflict (key) do nothing;
+
+create or replace function public.fn_ceo_focus_trades()
+returns text[] language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select coalesce(array(select jsonb_array_elements_text(value->'trades') from public.decision_policy where key = 'ceo_focus_trades'), '{}'::text[])
+$fn$;
+revoke execute on function public.fn_ceo_focus_trades() from public, anon, authenticated;
+
+-- The focus as targets: each focus trade has a confirmed UAE-wide target (written if no row exists), every confirmed target
+-- outside the focus goes back to proposed, and every proposal outside it carries one reason. Returns what moved.
+create or replace function public.fn_ceo_focus_targets(p_reason text)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_focus text[] := public.fn_ceo_focus_trades(); v_target int; n_new int := 0; n_conf int := 0; n_back int := 0; n_kept int := 0;
+begin
+  v_target := coalesce((select open_at_suppliers from public.trade_opening_rule where id = 1), 10);
+  insert into public.supplier_coverage_target (trade, emirate, target_suppliers, source, demand_basis, priority)
+  select f, 'UAE', v_target, 'focus trade of the CEO (decision_policy ceo_focus_trades): ' || left(coalesce(p_reason, ''), 300), jsonb_build_object('source', 'ceo_focus'), 900
+    from unnest(v_focus) f
+   where exists (select 1 from public.taxonomy_trade t where t.code = f and t.active)
+     and not exists (select 1 from public.supplier_coverage_target x where x.trade = f and x.status <> 'retired');
+  get diagnostics n_new = row_count;
+  update public.supplier_coverage_target set status = 'confirmed', confirmed_at = now(), confirmed_by = 'ceo',
+         decision_reason = 'Confirmed by the CEO: a focus trade (' || array_to_string(v_focus, ', ') || '). ' || left(coalesce(p_reason, ''), 300) || ' Source: ' || source
+   where status = 'proposed' and trade = any(v_focus);
+  get diagnostics n_conf = row_count;
+  update public.supplier_coverage_target set status = 'proposed', confirmed_at = null, confirmed_by = null,
+         decision_reason = coalesce(decision_reason || ' | ', '') || 'back to proposed: no longer a focus trade (' || array_to_string(v_focus, ', ') || ')'
+   where status = 'confirmed' and not (trade = any(v_focus));
+  get diagnostics n_back = row_count;
+  update public.supplier_coverage_target set decision_reason = 'Kept proposed by the CEO: ' || trade || ' is not a focus trade (' || array_to_string(v_focus, ', ')
+         || '); it is confirmed when the focus trades open or demand is recorded for it.'
+   where status = 'proposed' and not (trade = any(v_focus)) and decision_reason is null;
+  get diagnostics n_kept = row_count;
+  return jsonb_build_object('focus', to_jsonb(v_focus), 'written', n_new, 'confirmed', n_conf, 'back_to_proposed', n_back, 'kept_proposed_with_reason', n_kept);
+end $fn$;
+revoke execute on function public.fn_ceo_focus_targets(text) from public, anon, authenticated;
+
+create or replace function public.fn_ceo_sets_focus_trades(p_trades text[], p_reason text)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_t text[] := array(select distinct btrim(x) from unnest(coalesce(p_trades, '{}'::text[])) x where btrim(x) <> ''); v jsonb;
+begin
+  if length(btrim(coalesce(p_reason, ''))) < 20 then return jsonb_build_object('ok', false, 'reason', 'say why, in a sentence (20 characters or more)'); end if;
+  if cardinality(v_t) < 1 or cardinality(v_t) > 5 then return jsonb_build_object('ok', false, 'reason', 'focus is 1 to 5 trades'); end if;
+  if exists (select 1 from unnest(v_t) x where not exists (select 1 from public.taxonomy_trade t where t.code = x and t.active)) then
+    return jsonb_build_object('ok', false, 'reason', 'every focus trade is an active taxonomy code');
+  end if;
+  update public.decision_policy set value = value || jsonb_build_object('trades', to_jsonb(v_t), 'set_at', now(), 'set_reason', left(btrim(p_reason), 600))
+   where key = 'ceo_focus_trades';
+  v := public.fn_ceo_focus_targets(btrim(p_reason));
+  insert into public.ceo_supply_decision (decided_on, kind, subject, reason, reading, dedupe_key)
+  values ((now() at time zone 'Asia/Dubai')::date, 'set_target', 'focus trades: ' || array_to_string(v_t, ', '), left(btrim(p_reason), 600), v,
+          'set_focus:' || array_to_string(v_t, ',') || ':' || clock_timestamp());
+  return jsonb_build_object('ok', true) || v;
+end $fn$;
+revoke execute on function public.fn_ceo_sets_focus_trades(text[], text) from public, anon, authenticated;
+grant execute on function public.fn_ceo_sets_focus_trades(text[], text) to service_role;
+
 -- ── 6. THE CEO'S DAILY LOOP ───────────────────────────────────────────────────────────────────────────────────────
 -- The seat that owns the duty that sends invitations (seat_duty, read now, never assumed): on 15 Nov 2026 the routine
 -- fn_sales_engineer_supplier_outreach_tick is the duty sales_engineer.supplier_outreach (SELECT); marketing when none is found.
@@ -336,16 +419,16 @@ begin
   -- 1. THE TARGETS: what is newly recorded is proposed, and the CEO confirms it (ledger 1701: the objective is his to hold).
   -- The first run confirms the proposal written at apply; a later run confirms what new demand added. Each with its reason.
   perform public.fn_supplier_coverage_target_propose();
-  update public.supplier_coverage_target set status = 'confirmed', confirmed_at = now(), confirmed_by = 'ceo',
-         decision_reason = 'Confirmed by the CEO''s daily run: ' || source
-   where status = 'proposed';
-  get diagnostics v_conf = row_count;
-  if v_conf > 0 then
+  -- only the focus trades are confirmed (review 4, item 6); every other proposal stays proposed with its one reason
+  v_read := public.fn_ceo_focus_targets('The focus trades are where coverage moves the company: a trade opens to buyers at its opening level, and three open trades beat 140 trades at 0.07% each.');
+  v_conf := coalesce((v_read->>'confirmed')::int, 0) + coalesce((v_read->>'written')::int, 0);
+  if v_conf > 0 or coalesce((v_read->>'back_to_proposed')::int, 0) > 0 then
     insert into public.ceo_supply_decision (decided_on, kind, subject, reason, reading, dedupe_key)
-    values (v_today, 'confirm_targets', v_conf || ' coverage targets',
-            'Each target is the company''s own opening level, on a trade and emirate where demand or a recruitment decision is recorded (inquiries, the waitlist, supply_gap recruit); no other source exists, so the CEO holds them as the objective and changes one with a reason when demand shows itself.',
-            jsonb_build_object('by_source', (select jsonb_object_agg(src, n) from (select demand_basis->>'source' src, count(*) n from public.supplier_coverage_target
-                                                                                    where status = 'confirmed' and confirmed_at = now() group by 1) x)),
+    values (v_today, 'confirm_targets', v_conf || ' coverage targets in the focus trades',
+            'Each target is the company''s own opening level in one of the CEO''s focus trades (decision_policy ceo_focus_trades: ' || array_to_string(public.fn_ceo_focus_trades(), ', ')
+              || '); the other proposals stay proposed, each with its reason, until the focus trades open or demand is recorded for them.',
+            v_read || jsonb_build_object('by_source', (select jsonb_object_agg(src, n) from (select demand_basis->>'source' src, count(*) n from public.supplier_coverage_target
+                                                                                    where status = 'confirmed' group by 1) x)),
             'confirm_targets:' || v_today) on conflict (dedupe_key) do nothing;
   end if;
 
@@ -479,9 +562,14 @@ returns text language plpgsql stable security definer set search_path to 'public
 declare v_cov jsonb := public.fn_supplier_coverage(5); v_fun jsonb := public.fn_supplier_funnel_reading(30); v_lim jsonb := public.fn_company_limits();
         v_out text;
 begin
-  v_out := 'SUPPLIER COVERAGE (founder ledger 1701): ' || coalesce(v_cov->>'covered_suppliers', '0') || ' of ' || coalesce(v_cov->>'target_suppliers', '0')
-    || ' target suppliers (' || coalesce(v_cov->>'coverage_pct', '-') || '%) across ' || coalesce(v_cov->>'targets_confirmed', '0') || ' trade-areas; '
-    || coalesce(v_cov->>'trades_at_target', '0') || ' at target; ' || coalesce(v_cov->>'verified_real_suppliers', '0') || ' verified real suppliers in all.'
+  -- ONE company number first (review 4, item 5): the year-one milestone of ceo.supplier_target; the focus is part of it
+  v_out := 'VERIFIED SUPPLIERS (the year-one plan, ceo.supplier_target): ' || coalesce(v_cov->'milestone'->>'verified', '0')
+    || coalesce(' of ' || (v_cov->'milestone'->>'target') || ' by ' || to_char((v_cov->'milestone'->>'milestone')::date, 'DD Mon')
+                || ', shortfall ' || (v_cov->'milestone'->>'shortfall') || ', ' || (v_cov->'milestone'->>'pace_per_day') || ' a day needed', '') || '.'
+    || E'\nFOCUS TRADES (' || array_to_string(public.fn_ceo_focus_trades(), ', ') || '): ' || coalesce(v_cov->>'covered_suppliers', '0') || ' of '
+    || coalesce(v_cov->>'target_suppliers', '0') || ' verified toward opening (' || coalesce(v_cov->>'coverage_pct', '-') || '%); '
+    || coalesce(v_cov->>'trades_at_target', '0') || ' open; categories under ten: ' || coalesce(v_cov->'gate_1004'->>'below_ten', '?') || ' of '
+    || coalesce(v_cov->'gate_1004'->>'categories', '?') || ' (ledger 1004).'
     || coalesce(E'\nWidest gaps: ' || (select string_agg(g->>'trade' || ' / ' || (g->>'emirate') || ' ' || (g->>'verified') || ' of ' || (g->>'target'), '; ')
                                          from jsonb_array_elements(v_cov->'gaps') g), '')
     || E'\nFUNNEL, 30 days: invited ' || (v_fun->>'invited') || ', opened (a floor) ' || (v_fun->>'opened') || ', started ' || (v_fun->>'started')

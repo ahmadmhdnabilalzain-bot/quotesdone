@@ -957,6 +957,40 @@ revoke all on sequence public.ceo_grant_once_id_seq from anon, authenticated;
 -- a prompt: a destructive production change; money with no amount, above the per-action limit or above what is left of
 -- today's company limit (fn_company_spend_fits); an action that would weaken a message gate; a named recipient the consent,
 -- suppression, opt-out or inbox-placement gates refuse (fn_company_message_gates). Empty = the CEO may allow it once.
+-- EVERY RECIPIENT, EVERY PATH (review 4, item 4, LOCAL): an 'invitation' on subject lead:N with an empty ask passed with no
+-- gate read, was allowed once and returned route ceo_allow_once; a standing grant ('dispatch' to a suppressed address) and the
+-- grantee 'ceo' returned before any gate. Now the recipients an action would reach are read from the ask (email, lead_id,
+-- facts.email, facts.lead_id, recipients[]) AND from the subject (lead:N, supplier:N, email:x), and the existing gates are read
+-- for each of them before ANY path answers: standing grant, single-use grant, the CEO's own authority, or a question to him.
+-- An action that is a message by its name and names nobody is refused: what it would reach cannot be checked.
+create or replace function public.fn_action_is_message(p_action_class text)
+returns boolean language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select lower(coalesce(p_action_class, '')) ~ '(invit|messag|\msend|e_?mail|\mmail|whatsapp|\mwa\M|dispatch|outreach|nudge|reply|\msms\M|\mcall\M|follow_?up|remind|notif)'
+$fn$;
+revoke execute on function public.fn_action_is_message(text) from public, anon, authenticated;
+
+create or replace function public.fn_authority_message_gates(p_action_class text, p_subject text, p_ask jsonb default null)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare a jsonb := case when jsonb_typeof(p_ask) = 'object' then p_ask else '{}'::jsonb end; r record; v_out text[] := '{}'; v_n int := 0;
+        v_ch text := lower(coalesce(a->>'channel', a->'facts'->>'channel', case when lower(coalesce(p_action_class, '')) ~ '(whatsapp|\mwa\M)' then 'whatsapp' else 'email' end));
+begin
+  for r in
+    with x as (
+      select a->>'email' as email, a->>'lead_id' as lead union all
+      select a->'facts'->>'email', a->'facts'->>'lead_id' union all
+      select e->>'email', e->>'lead_id' from jsonb_array_elements(case when jsonb_typeof(a->'recipients') = 'array' then a->'recipients' else '[]'::jsonb end) e union all
+      select case when p_subject ~* '^email:' then substr(p_subject, 7) end, substring(p_subject from '^(?:lead|supplier):(\d+)'))
+    select distinct nullif(btrim(lower(email)), '') as email, case when lead ~ '^\d+$' then lead::bigint end as lead from x
+     where nullif(btrim(coalesce(email, '')), '') is not null or lead ~ '^\d+$'
+  loop
+    v_n := v_n + 1;
+    v_out := v_out || coalesce((select array_agg('message gate: ' || g || ' (' || coalesce(r.email, 'lead ' || r.lead) || ')')
+                                  from unnest(public.fn_company_message_gates(v_ch, r.email, r.lead)) g), '{}'::text[]);
+  end loop;
+  return jsonb_build_object('message', public.fn_action_is_message(p_action_class), 'channel', v_ch, 'recipients', v_n, 'refusals', to_jsonb(v_out));
+end $fn$;
+revoke execute on function public.fn_authority_message_gates(text, text, jsonb) from public, anon, authenticated;
+
 -- p_ask may name the recipient: {channel, email, lead_id} or the same inside facts.
 create or replace function public.fn_ceo_authority_guard(p_seat text, p_action_class text, p_amount_aed numeric, p_ask jsonb)
 returns text[] language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -993,10 +1027,10 @@ revoke execute on function public.fn_ceo_authority_guard(text, text, numeric, js
 -- authority within the limits, with a reason (ledger 1696). Round 4, R2 and R5.
 create or replace function public.fn_agent_may_act(p_grantee_role_id text, p_action_class text, p_amount_aed numeric, p_subject text, p_ask jsonb default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare v jsonb := public.fn_agent_may_act(p_grantee_role_id, p_action_class, p_amount_aed);
+declare v jsonb := public.fn_agent_standing_grant(p_grantee_role_id, p_action_class, p_amount_aed);   -- the grant as read; money is committed below
         v_subject text := nullif(btrim(coalesce(p_subject, '')), ''); g public.ceo_grant_once; v_h bigint; h public.agent_actions;
         a jsonb := case when jsonb_typeof(p_ask) = 'object' then p_ask else '{}'::jsonb end; v_guard text[]; v_c jsonb;
-        v_money boolean := public.fn_action_is_money(p_action_class) or coalesce(p_amount_aed, 0) > 0; v_key text;
+        v_money boolean := public.fn_action_is_money(p_action_class) or coalesce(p_amount_aed, 0) > 0; v_key text; v_gates jsonb;
 begin
   -- never through this check, whoever asks (round 4, R2)
   if public.fn_action_is_destructive_production_change(p_action_class) then
@@ -1010,6 +1044,16 @@ begin
   if v_money and (p_amount_aed is null or p_amount_aed <= 0) then
     return jsonb_build_object('may_act', false, 'route', 'hard_limit', 'asked', false,
       'reason', 'A money action names its amount in AED (' || p_action_class || '); nothing is asked or allowed without one.');
+  end if;
+  -- every recipient the action would reach passes the existing gates, before any path answers (review 4, item 4)
+  v_gates := public.fn_authority_message_gates(p_action_class, v_subject, a);
+  if (v_gates->>'message')::boolean and (v_gates->>'recipients')::int = 0 then
+    return jsonb_build_object('may_act', false, 'route', 'hard_limit', 'asked', false, 'gates', v_gates,
+      'reason', 'A message action (' || p_action_class || ') names its recipients (subject lead:N or email:x, or ask.email / ask.lead_id / ask.recipients), so every one of them is read against the consent, suppression, opt-out and inbox-placement gates first.');
+  end if;
+  if jsonb_array_length(v_gates->'refusals') > 0 then
+    return jsonb_build_object('may_act', false, 'route', 'hard_limit', 'asked', false, 'gates', v_gates, 'guarded', v_gates->'refusals',
+      'reason', 'No grant, standing or single-use, and no CEO decision reaches a person the gates refuse: ' || left(array_to_string(array(select jsonb_array_elements_text(v_gates->'refusals')), '; '), 600));
   end if;
   -- the standing rule permits it: money still fits the company limits, and is committed now
   if coalesce((v->>'may_act')::boolean, false) then

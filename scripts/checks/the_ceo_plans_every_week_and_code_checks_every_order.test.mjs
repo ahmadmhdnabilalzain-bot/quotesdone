@@ -116,9 +116,10 @@ test('6. the first plan is data filed by the loop\'s first run, the founder\'s n
   assert.ok(bets.indexOf('"channel": "founder_network"') > 0 && bets.indexOf('"channel": "founder_network"') < bets.indexOf('"channel": "reply_within_1h"'), 'the founder\'s network is bet 1');
   assert.match(seed, /utm_source=founder&utm_medium=whatsapp&utm_campaign=2026-11/);
   assert.match(fnBody('fn_ceo_plan_due'), /fn_ceo_plan_file\(s\.id, s\.output/, 'the seed goes through fn_ceo_plan_file like any plan');
-  assert.match(C, /insert into public\.ceo_operating_target \(objective, emirate, due_on, groups, source\)/, 'the operating target is a row');
-  for (const t of ['hvac', 'interior_fitout', 'building_materials']) assert.ok(C.includes(`"${t}"`), `the focus trades include ${t}`);
-  assert.match(C, /date '2026-12-20'/);
+  const cover = code(read('scripts/sql/the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql'));
+  assert.match(cover, /'ceo_focus_trades', '\{"trades": \["hvac", "interior_fitout", "building_materials"\]/, 'the operating target is the coverage file\'s focus, as data');
+  assert.match(cover, /"due_on": "2026-12-20"/);
+  assert.doesNotMatch(C, /create table if not exists public\.ceo_operating_target/, 'no second objective in this file (review 4, item 5)');
 });
 
 test('7. routines revoked and pinned, tables with a policy, the file pending until applied', () => {
@@ -130,11 +131,45 @@ test('7. routines revoked and pinned, tables with a policy, the file pending unt
     assert.match(C, new RegExp(`revoke execute on function public\\.${n}\\([^)]*\\) from public, anon, authenticated`), `${n} is revoked`);
   }
   assert.match(C, /create policy %I on public\.%I as permissive for all to public using \(false\) with check \(false\)/);
-  for (const t of ['ceo_growth_channel', 'ceo_operating_target', 'ceo_plan_week', 'ceo_plan_bet', 'ceo_own_decision']) assert.ok(C.includes(`'${t}'`), `${t} gets its policy`);
+  for (const t of ['ceo_growth_channel', 'ceo_plan_week', 'ceo_plan_bet', 'ceo_own_decision']) assert.ok(C.includes(`'${t}'`), `${t} gets its policy`);
   const manifest = read('scripts/sql/MANIFEST.txt');
   for (const f of [FILE, PROBE]) {
     const pending = f.replace('scripts/sql/', 'scripts/sql/pending/').replace(/\.sql$/, '.txt');
     assert.ok(manifest.includes(f) !== existsSync(join(REPO, pending)), `${f}: a MANIFEST line or a pending note, never both`);
   }
   assert.match(read(PROBE), /raise exception 'CHK<<PROBE OK/, 'the probe raises, so it writes nothing');
+});
+
+test('8. review 4 of the base branch holds in the text (each item also has a probe row)', () => {
+  const LIM = code(read('scripts/sql/the_company_limits_bind_every_seat_and_the_ceo_changes_one_only_after_a_day.sql'));
+  const POOL = code(read('scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql'));
+  const COV = code(read('scripts/sql/the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql'));
+  // 1. no direct write by the seats' role, no truncate, append-only commitments, a day from the clock
+  assert.match(LIM, /revoke insert, update, delete, truncate on public\.company_limit_change from service_role;/);
+  assert.match(LIM, /revoke insert, update, delete, truncate on public\.company_spend_commitment from service_role;/);
+  assert.match(LIM, /before truncate on public\.company_limit_change/);
+  assert.match(LIM, /before truncate on public\.company_spend_commitment/);
+  assert.match(LIM, /before update or delete on public\.company_spend_commitment/);
+  assert.match(LIM, /new\.effective_at := clock_timestamp\(\) \+ interval '24 hours'/);
+  assert.doesNotMatch(LIM, /new\.effective_at := now\(\)/);
+  // 2. the race holds only under READ COMMITTED, so anything else is refused; one waiting change per limit under a lock
+  const commit = LIM.slice(LIM.indexOf('create or replace function public.fn_company_spend_commit('));
+  assert.ok(commit.indexOf("current_setting('transaction_isolation') <> 'read committed'") > 0
+    && commit.indexOf("current_setting('transaction_isolation')") < commit.indexOf("pg_advisory_xact_lock(hashtext('qd.company_spend_commitment'))"), 'the commitment refuses other isolation levels before the lock');
+  assert.match(LIM, /pg_advisory_xact_lock\(hashtext\('qd\.company_limit_change:' \|\| new\.limit_key\)\)/);
+  // 3. the three-argument rule refuses money (refunds excepted); the subject-aware form reads the grant, not the old rule
+  const three = LIM.slice(LIM.indexOf('create or replace function public.fn_agent_may_act(p_grantee_role_id text, p_action_class text, p_amount_aed numeric default null)'));
+  assert.match(three, /fn_action_is_money\(p_action_class\) and lower\(coalesce\(p_action_class, ''\)\) !~ 'refund'/);
+  assert.match(POOL, /declare v jsonb := public\.fn_agent_standing_grant\(p_grantee_role_id, p_action_class, p_amount_aed\);/);
+  // 4. every recipient (subject included) on every path, before the standing grant answers
+  const five = POOL.slice(POOL.indexOf('create or replace function public.fn_agent_may_act(p_grantee_role_id text, p_action_class text, p_amount_aed numeric, p_subject text'));
+  assert.ok(five.indexOf('fn_authority_message_gates(') > 0 && five.indexOf('fn_authority_message_gates(') < five.indexOf("if coalesce((v->>'may_act')::boolean, false) then"), 'the gates are read before the standing grant answers');
+  assert.match(POOL, /substring\(p_subject from '\^\(\?:lead\|supplier\):\(\\d\+\)'\)/, 'a lead named in the subject is a recipient');
+  // 5. one objective: the coverage reads the owner's routine and carries the milestone
+  assert.match(COV, /fn_supplier_target_by_trade_emirate\(/);
+  assert.match(COV, /'milestone', \(select/);
+  assert.match(COV, /VERIFIED SUPPLIERS \(the year-one plan, ceo\.supplier_target\)/);
+  // 6. focus: only the focus is confirmed; no saturating priority
+  assert.match(COV, /where status = 'proposed' and trade = any\(v_focus\)/);
+  assert.doesNotMatch(COV, /least\(g\.uninvited_pool, 499\)/);
 });

@@ -59,6 +59,10 @@ begin
   insert into public.supplier_reply_followup (inbound_message_id, lead_id, to_email, intent, due_at, state, created_at)
   values (v_im, v_l4, 'plan-inv-' || v_tag || '@example.invalid', 'interested', now() - interval '20 hours', 'dropped', now() - interval '1 day') returning id into v_fu;
 
+  -- the focus trades as targets (the coverage file's own routine), in the probe's world only
+  update public.supplier_coverage_target set status = 'retired', retired_at = now() where status <> 'retired';
+  perform public.fn_ceo_focus_targets('ZZ DEMO plan probe: the focus as targets');
+
   -- 1. THE PACK: every section, none unavailable, read from the probe's own world
   v_p := public.fn_ceo_planning_pack(7);
   foreach v_k in array array['at', 'days', 'world', 'operating_target', 'coverage', 'funnel', 'registrations_by_source', 'founder_network', 'placement',
@@ -76,8 +80,8 @@ begin
   if (v_p->'founder_network')::text like '%@%' or (v_p->'founder_network')::text like '%+971%' then v_fail := v_fail || 'the founder''s list carries a contact detail; '; end if;
   if (v_p->'registrations_by_source'->'totals'->'founder'->>'started')::int <> 3 or (v_p->'registrations_by_source'->'totals'->'email_invitation'->>'submitted')::int <> 1
     then v_fail := v_fail || 'registrations are not counted by first-touch source: ' || (v_p->'registrations_by_source'->'totals')::text || '; '; end if;
-  if (select (g->>'verified')::int from jsonb_array_elements(v_p->'operating_target'->'groups') g where g->>'group' = 'mep') <> 1
-    then v_fail := v_fail || 'the HVAC supplier in Dubai does not count for MEP: ' || (v_p->'operating_target')::text || '; '; end if;
+  if (v_p->'operating_target'->>'covered')::int <> 1 or (v_p->'operating_target'->>'target')::int <> 30 or not (v_p->'operating_target' ? 'milestone')
+    then v_fail := v_fail || 'the operating target is not the focus coverage beside the milestone: ' || (v_p->'operating_target')::text || '; '; end if;
   if jsonb_array_length(v_p->'replies'->'unanswered') <> 1 then v_fail := v_fail || 'the dropped reply is not in the pack; '; end if;
   if (select count(*) from jsonb_array_elements(v_p->'channels') c where c->>'verdict' = 'refused' and coalesce(c->>'alternative', '') = '') > 0
      or (select count(*) from jsonb_array_elements(v_p->'channels') c where c->>'verdict' = 'refused') < 8
@@ -103,7 +107,10 @@ begin
       then v_fail := v_fail || 'an invitation order was filed while invitations are off; '; end if;
     if exists (select 1 from public.ceo_invite_trade_priority where trade = 'painting' and cleared_at is null)
       then v_fail := v_fail || 'the seed''s own action did not clear painting; '; end if;
-    if (select count(*) from public.ceo_own_decision where dedupe_key like 'plan:' || v_seed || ':%') <> 2 then v_fail := v_fail || 'the seed''s two CEO actions are not recorded; '; end if;
+    if (select count(*) from public.ceo_own_decision where dedupe_key like 'plan:' || v_seed || ':%') <> 1 then v_fail := v_fail || 'the seed''s CEO action is not recorded; '; end if;
+    if (select array_to_string(refusal, ' ') from public.ceo_plan_bet where plan_id = v_seed and measure = 'invitations') is null
+       or (select measure_args->'trades' from public.ceo_plan_bet where plan_id = v_seed and measure = 'invitations') <> '["hvac", "interior_fitout", "building_materials"]'::jsonb
+      then v_fail := v_fail || 'the seed''s invitation bet does not point at the focus trades; '; end if;
     if exists (select 1 from public.ceo_plan_bet where plan_id = v_seed and seat = 'founder' and handoff_id is not null) then v_fail := v_fail || 'the founder was handed an order; '; end if;
     -- the seed's orders are withdrawn so the planted week below is checked on its own (one open order per seat and measure)
     update public.ceo_plan_bet set status = 'withdrawn' where plan_id = v_seed and status = 'filed';
@@ -226,11 +233,17 @@ begin
   if (select choice from public.ceo_own_decision where dedupe_key = 'target_forecast:' || v_week) is distinct from 'act_within_authority'
     then v_fail := v_fail || 'the old tell_founder answer is not the CEO''s own decision; '; end if;
 
+  -- 8b. THE PLAN CHANGES THE FOCUS through the coverage file's own routine, with its reason
+  v_r := public.fn_ceo_plan_self_action(v_plan, jsonb_build_object('kind', 'set_focus_trades', 'trades', jsonb_build_array('hvac'), 'reason', 'ZZ DEMO plan probe: hvac alone has buyers waiting'));
+  if not coalesce((v_r->>'ok')::boolean, false) or public.fn_ceo_focus_trades() <> array['hvac']
+     or exists (select 1 from public.supplier_coverage_target where trade = 'interior_fitout' and status = 'confirmed')
+    then v_fail := v_fail || 'the plan could not change the focus through fn_ceo_sets_focus_trades: ' || v_r::text || '; '; end if;
+
   -- 9. THE SUMMARY tells the founder his people and the plan, asks nothing, carries no contact detail
   insert into public.marketing_first_touch (lead_id, utm_source, landing_path, recorded_at) values (v_l1, 'founder', '/portal', now() - interval '9 days'), (v_l2, 'founder', '/portal', now() - interval '9 days');
   v_txt := public.fn_ceo_plan_summary_text(now() - interval '1 day');
   if v_txt not like '%YOUR PEOPLE%2 started, 1 submitted, 0 approved%' or v_txt not like '%Plan Started ' || v_tag || ' - account made, documents not submitted%'
-     or v_txt not like '%OPERATING TARGET: 1 of 30%' or v_txt not like '%THE CEO''S PLAN%'
+     or v_txt not like '%THE CEO''S PLAN%'
     then v_fail := v_fail || 'the summary does not tell the founder his people and the plan: ' || left(v_txt, 700) || '; '; end if;
   if v_txt like '%@%' or v_txt ~* '(please (approve|confirm)|your approval|reply (yes|with)|do you (approve|agree)|needs your decision)' then v_fail := v_fail || 'the summary carries an address or asks him something; '; end if;
 
