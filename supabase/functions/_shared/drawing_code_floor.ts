@@ -81,10 +81,11 @@ export type Vet = (regions: (Box & { what?: string })[]) => { keep: Box[]; ignor
 /**
  * The words and numbers of a text, upper case (round 6, fifth review): a word is letters and digits in any script (Arabic
  * kept); a NUMBER keeps its own sign, decimal point and separators, so "+6512" is never "+65.12" and "120" never "1.20"
- * ("-1.20", "1:50", "2.5", "230V", "2xRJ45" are each one token); digits are never joined across a decimal point.
+ * ("-1.20", "1:50", "2.5", "230V", "2xRJ45" are each one token); digits are never joined across a decimal point. A
+ * sign is a sign only where a number starts: the dash of a tag ("UWL-3", "A-1") joins nothing and signs nothing.
  */
 export function tokensOf(t: string): string[] {
-  return (String(t || '').toUpperCase().match(/[+\-\u2212]?\p{N}[\p{L}\p{N}]*(?:[.,:/\u00d7]\p{N}[\p{L}\p{N}]*)*|[\p{L}\p{N}]+/gu) ?? []);
+  return (String(t || '').toUpperCase().match(/(?:(?<![\p{L}\p{N}])[+\-\u2212])?\p{N}[\p{L}\p{N}]*(?:[.,:/\u00d7]\p{N}[\p{L}\p{N}]*)*|[\p{L}\p{N}]+/gu) ?? []);
 }
 /** One edit apart (a misread letter, one dropped or added); the caller allows it only for a word of 4+ letters, no digit. */
 function oneEdit(a: string, b: string): boolean {

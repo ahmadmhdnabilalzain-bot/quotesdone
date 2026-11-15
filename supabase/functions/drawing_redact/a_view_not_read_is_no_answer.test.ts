@@ -263,4 +263,6 @@ Deno.test('the fifth review\'s 26 boxes: every attack is painted, the honest box
   assertEquals(tokensOf('FFL -1.20 +6512 1:50 230V 2xRJ45 A-A'), ['FFL', '-1.20', '+6512', '1:50', '230V', '2XRJ45', 'A', 'A']);
   assertEquals(tokensOf(owner).length, 2);
   assert(!tokensOf('LEVEL +65.12').includes('+6512') && !tokensOf('FFL -1.20').includes('120'));
+  assertEquals(tokensOf('UWL-3 A-1 P-12'), ['UWL', '3', 'A', '1', 'P', '12'], 'a tag\'s dash is not a minus sign');
+  assert(whatIsUnder('UWL 3 LIGHT', ['UWL-3 LIGHT']), 'OCR reading UWL-3 as UWL 3 is the same tag');
 });
