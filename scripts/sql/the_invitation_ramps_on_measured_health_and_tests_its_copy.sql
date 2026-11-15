@@ -33,6 +33,16 @@
 --      and takes at most half the day's cap (invite_warmup.nudge_share): 102 nudges were owed on 15 Nov, and at a cap of 3 the
 --      04:01 nudge run would otherwise have left no slot for a first invitation for a month.
 --   5. fn_sales_engineer_supplier_outreach_tick: the wait of a day a restart reopened reads the judgement, not the 3-day number.
+-- REVIEW OF 15 NOV 2026 (scratchpad REVIEW_growth, items 1, 2, 7), fixed here:
+--   * Variant B promised "we will set up your company page for you" (nothing performs it, ledger 1401) and said companies already
+--     post requests. Its words (m365_lane.ts) are now true: buyers have not started, and a reply gets the company's own sign-up
+--     link from the model (email_triage withClaimLink). m365CopyLint now refuses both claims, so a row carrying them is held.
+--   * "Engaged" counted any reply that was not a bounce, so "stop", a decline or an out-of-office counted for a variant. Now a
+--     reply counts only when fn_supplier_reply_kind reads it as interested or a question, and it is not an automatic reply or a
+--     machine sender (fn_inbound_is_auto_reply, fn_is_machine_sender). fn_supplier_reply_kind lives here (the readout, applied
+--     first, reads it; the same-day answer in the next file uses it too).
+--   * The ramp stopped on complaints only at 2 in 48 hours; any complaint the judgement reads now stops the company through
+--     fn_invite_brake_company, with its brake row, so the restarts and the CEO see it.
 -- prevented by: scripts/checks/the_supplier_funnel_runs_itself.test.mjs, supabase/functions/send_outbox/invite_variants.test.ts,
 -- the_invitation_ramps_on_measured_health_and_tests_its_copy_probe.sql (LOCAL).
 -- APPLY ORDER: after the_bounce_brake_judges_each_bounce_by_kind_provider_and_sample_and_the_ceo_restarts_within_a_limit.sql.
@@ -80,7 +90,7 @@ revoke all on public.invite_variant_assignment from anon, authenticated;
 
 insert into public.invite_variant (variant_key, label, is_control, note) values
   ('a', 'One question, no offer (control)', true, 'The founder-approved text of 27 Oct 2026 (m365InvitationText): who we are, the list we are building, would your company like to receive the requests of its trade.'),
-  ('b', 'We set up your page', false, 'Variant B of 27 Oct, without the offer phrase: asks which trades the company covers and offers to set up its company page from the reply.'),
+  ('b', 'Which trades, and your own sign-up link', false, 'Variant B of 27 Oct, made true (review of 15 Nov): asks which trades the company covers, says buyers have not started, and offers the company''s own sign-up link in answer to a reply (the model sends it; nothing sets the page up for them, ledger 1401).'),
   ('c', 'Two sentences', false, 'Variant C of 27 Oct, made honest (buyers have not started sending requests yet): a direct trade question and why we ask.')
 on conflict (variant_key) do nothing;
 
@@ -107,6 +117,23 @@ $fn$;
 revoke execute on function public.fn_invite_variant_for_lead(bigint) from public, anon, authenticated;
 
 -- ── 3. THE READOUT AND THE DECISION ───────────────────────────────────────────────────────────────────────────────
+-- WHAT KIND OF REPLY IT IS: decline (a stop included) / subsidiary / later / question / interested (fn_supplier_reply_intent, plus
+-- a question when the person asks one). Defined here because the readout reads it and this file is applied first; the same-day
+-- answer (every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql) uses it too.
+create or replace function public.fn_supplier_reply_kind(p_text text)
+returns text language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select case
+    when i <> 'interested' then i
+    -- a question: a question mark, or a line that opens like one ("how do we", "what is", "can you", "is there")
+    when coalesce(p_text, '') ~ '\?' or coalesce(p_text, '') ~* '(^|\n)\s*(how|what|which|when|where|who|why|is|are|do|does|can|could|would|will|should)\M'
+      then 'question'
+    else 'interested' end
+    from (select public.fn_supplier_reply_intent(p_text) as i) x
+$fn$;
+revoke execute on function public.fn_supplier_reply_kind(text) from public, anon, authenticated;
+
+-- ENGAGED (review item 7) = a reply that is interested or a question (fn_supplier_reply_kind; never a decline, a stop, "later",
+-- an automatic reply or a machine sender), a click, or a registration. A variant that annoys people is never promoted.
 create or replace function public.fn_invite_copy_readout(p_now timestamptz default now())
 returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
   with sent as (
@@ -119,7 +146,10 @@ returns jsonb language sql stable security definer set search_path to 'public', 
   per_lead as (
     select s.variant_key, s.lead_id,
            exists (select 1 from public.inbound_messages m where m.lead_id = s.lead_id and m.created_at > s.sent_at and m.created_at <= p_now
-                    and not public.fn_inbound_is_bounce(m.from_email, m.subject, m.raw)) as replied,
+                    and not public.fn_inbound_is_bounce(m.from_email, m.subject, m.raw)
+                    and not public.fn_inbound_is_auto_reply(m.subject, m.body, m.raw)
+                    and not public.fn_is_machine_sender(m.from_email)
+                    and public.fn_supplier_reply_kind(m.body) in ('interested', 'question')) as replied,
            l.invite_clicked_at is not null and l.invite_clicked_at <= p_now as clicked,
            (coalesce(l.claimed, false) or l.registration_submitted_at is not null) as registered
       from sent s join public.leads l on l.id = s.lead_id)
@@ -260,14 +290,15 @@ begin
   v_seg := v_j->'sent_segment_all';
   v_wsent := coalesce((v_seg->>'sent')::int, 0); v_whard := coalesce((v_seg->>'hard')::int, 0); v_wpol := coalesce((v_seg->>'policy')::int, 0);
 
-  if v_c48 >= v_pause_n and v_cr >= v_pause_c then
-    -- SPAM COMPLAINTS STOP THE CAMPAIGN. Gmail and Yahoo reject bulk senders above 0.3%; two people
-    -- pressing "spam" inside 48 hours is not noise at this volume.
-    update app_secrets set value = 'false' where key = 'invite_enabled';
+  if coalesce(v_j->>'company_reason', '') = 'complaint' or (v_c48 >= v_pause_n and v_cr >= v_pause_c) then
+    -- SPAM COMPLAINTS STOP THE CAMPAIGN. 15 Nov 2026 (review item 2): ANY complaint the judgement reads, on any supplier campaign
+    -- mail in its window, stops the company through fn_invite_brake_company (a brake row the restarts and the CEO read; every
+    -- queued campaign row cancelled), not only two in 48 hours.
+    v_note := 'PAUSED ON COMPLAINTS: ' || coalesce(v_j->>'why', v_c48 || ' spam complaint(s) on ' || v_s48 || ' invitation(s) in 48 h ('
+              || round(v_cr * 100, 2) || '% >= ' || round(v_pause_c * 100, 2) || '%)');
+    perform public.fn_invite_brake_company('invite_bounce_judge', v_note, coalesce(v_j, '{}'::jsonb) || jsonb_build_object('called_by', 'invite_ramp', 'company_reason', 'complaint'));
     v_new := v_base; v_status := 'error';
-    v_note := 'PAUSED ON COMPLAINTS: ' || v_c48 || ' spam complaint(s) on ' || v_s48 || ' invitation(s) in 48 h ('
-              || round(v_cr * 100, 2) || '% >= ' || round(v_pause_c * 100, 2) || '%). invite_enabled set to false; cap reset to base '
-              || v_base || '.';
+    v_note := v_note || '. invite_enabled set to false; cap reset to base ' || v_base || '.';
     if not exists (select 1 from founder_alerts where event = 'invite_paused_complaints' and created_at > now() - interval '24 hours') then
       insert into founder_alerts(level, event, detail, channel)
       values ('crit', 'invite_paused_complaints', 'Supplier invites AUTO-PAUSED: ' || v_note || ' Read the complaints before resuming.', 'system');

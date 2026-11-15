@@ -79,7 +79,11 @@
 -- judgement), then every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql, then
 -- the_ceo_approves_the_marketing_month_publishes_articles_and_holds_the_marketing_switch.sql.
 -- LOCKS: two new tables; invite_brake (47 rows) gets two nullable columns (ACCESS EXCLUSIVE for milliseconds); the trigger
--- function z80_invite_same_day_brake runs is replaced in place (no lock on public.leads). Apply outside a sending minute.
+-- function z80_invite_same_day_brake runs is replaced in place (no lock on public.leads); fn_invite_campaign_pause is replaced in
+-- place; its cancel touches only queued campaign rows of notifications (a few). Apply outside a sending minute.
+-- DEPLOY ORDER: send_outbox first, then this file (and the three after it) at once. Between the two, send_outbox finds no
+-- fn_invite_campaign_send_check and holds every campaign row 30 minutes at a time: it never sends one (fail closed). The other
+-- way round, an old send_outbox would write a last note (kind invite_final_touch) as invitation text A.
 set local lock_timeout = '1500ms';
 
 -- ── 1. THE CEO'S LIMITS, AS DATA ──────────────────────────────────────────────────────────────────────────────────

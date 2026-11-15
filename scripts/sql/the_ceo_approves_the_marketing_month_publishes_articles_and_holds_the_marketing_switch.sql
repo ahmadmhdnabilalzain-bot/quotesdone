@@ -30,6 +30,13 @@
 --   6. fn_ceo_decides_marketing (seat duty ceo.marketing_decisions, hourly): accepts a month waiting on the founder, approves
 --      a calendar that meets the boundaries, and publishes every article the CEO approved that has no publish decision yet,
 --      while the founder's emergency stop is off.
+-- REVIEW OF 15 NOV 2026 (scratchpad REVIEW_growth, item 6, item 3 and a note), fixed here:
+--   * fn_marketing_article_release_due checks the founder's emergency stop (fn_marketing_publishing_on) AT RELEASE TIME: a CEO
+--     publish decision written while the stop was off no longer releases an article after he switched it on.
+--   * marketing_ceo_decision is written only by these routines: INSERT/UPDATE/DELETE/TRUNCATE/REFERENCES/TRIGGER revoked from
+--     service_role, and a BEFORE TRUNCATE trigger (as growth_limit_change and invite_brake_decision).
+--   * fn_marketing_month_plan_reply: the founder's acknowledgement no longer tells him to reply "approve" to the calendar (the
+--     CEO approves it now; he is informed, ruling 1696).
 -- NOT BUILT HERE (stated, not hidden): a released article still reaches the website only when it is baked into
 -- src/content/blog.json and deployed (marketing_outreach release step); serving released articles from the database is the
 -- audit's M4 and needs a site change and a public read path.
@@ -37,7 +44,7 @@
 -- the_ceo_approves_the_marketing_month_publishes_articles_and_holds_the_marketing_switch_probe.sql (LOCAL).
 -- APPLY ORDER: last of the four files of 15 Nov (it depends on none of the other three).
 -- LOCKS: one new table; marketing_campaign (a handful of rows) has one CHECK constraint replaced (ACCESS EXCLUSIVE for
--- milliseconds); two routines replaced in place.
+-- milliseconds); three routines replaced in place (fn_marketing_month_plan_tick, fn_marketing_article_release_due, fn_marketing_month_plan_reply).
 set local lock_timeout = '1500ms';
 
 create table if not exists public.marketing_ceo_decision (
@@ -59,6 +66,8 @@ end $fn$;
 revoke execute on function public.trg_marketing_ceo_decision_is_history() from public, anon, authenticated;
 create or replace trigger trg_marketing_ceo_decision_is_history before update or delete on public.marketing_ceo_decision
   for each row execute function public.trg_marketing_ceo_decision_is_history();
+create or replace trigger trg_marketing_ceo_decision_never_truncated before truncate on public.marketing_ceo_decision
+  for each statement execute function public.trg_marketing_ceo_decision_is_history();
 
 do $guard$
 begin
@@ -77,6 +86,9 @@ begin
 end $guard$;
 revoke all on public.marketing_ceo_decision from anon, authenticated;
 revoke all on sequence public.marketing_ceo_decision_id_seq from anon, authenticated;
+-- written only by the CEO's routines below (SECURITY DEFINER, as the owner); service_role keeps SELECT (review item 3)
+revoke insert, update, delete, truncate, references, trigger on public.marketing_ceo_decision from service_role;
+revoke usage, update on sequence public.marketing_ceo_decision_id_seq from service_role;
 
 -- ── THE CEO'S DECISIONS ───────────────────────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_ceo_switches_marketing_golive(p_on boolean, p_reason text)
@@ -335,6 +347,11 @@ begin
   -- THE CEO PUBLISHES IT (15 Nov 2026, ruling 1696): a CEO publish decision for this article (fn_ceo_publishes_article, with
   -- its reason) releases it on its weekly slot; marketing_golive, which also starts the founder's morning LinkedIn list, is no
   -- longer the only key. Neither: held, as before.
+  -- THE FOUNDER'S EMERGENCY STOP, AT RELEASE TIME (review item 6): a CEO decision written while it was off does not release an
+  -- article once he has switched it on (fn_ceo_decides_marketing reads it only when the decision is written).
+  if not public.fn_marketing_publishing_on() then
+    return jsonb_build_object('released', null, 'held', true, 'would_release', v_next.slug, 'reason', 'the founder''s emergency stop (marketing_publishing_enabled) is on');
+  end if;
   if not public.fn_marketing_publishing_live()
      and not exists (select 1 from public.marketing_ceo_decision d where d.subject_kind = 'article' and d.subject_ref = v_next.slug and d.decision = 'publish') then
     return jsonb_build_object('released', null, 'held', true, 'would_release', v_next.slug, 'reason', 'no CEO publish decision and marketing_golive is not true');
@@ -345,3 +362,48 @@ end $function$
 
 ;
 revoke execute on function public.fn_marketing_article_release_due() from public, anon, authenticated;
+
+-- THE FOUNDER'S ACKNOWLEDGEMENT (the review's note): the live definition of 15 Nov 2026 (pg_get_functiondef, SELECT; identical to
+-- the mirror), changed only in its comment and its message. It still told him "reply "approve" to that calendar and it is scheduled
+-- and published"; the CEO approves the calendar now (fn_ceo_approves_marketing_calendar) and he is informed, not asked (ruling 1696).
+CREATE OR REPLACE FUNCTION public.fn_marketing_month_plan_reply(p jsonb)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+declare
+  m public.marketing_month_plan; v_from text := lower(btrim(coalesce(p->>'from_email', ''))); v_rid bigint; v_msg text; v_out text;
+  v_atts text[] := coalesce((select array_agg(x) from jsonb_array_elements_text(coalesce(p->'attachments', '[]'::jsonb)) x), '{}');
+begin
+  select * into m from public.marketing_month_plan where plan_token = lower(coalesce(p->>'token', '')) for update;
+  if v_from is distinct from public.fn_marketing_founder_email() then
+    return jsonb_build_object('outcome', 'not_the_founder', 'month', m.month);
+  end if;
+  if m.month is null then
+    v_out := 'unknown_plan';
+    v_msg := 'Your reply did not match a video plan email, so nothing was filed. Please reply to the latest plan email.';
+  elsif not coalesce((p->>'authenticated')::boolean, false) then
+    v_out := 'not_authenticated';
+    v_msg := 'A reply to the video plan arrived with your address but our mail server could not verify it came from your mailbox, so nothing was filed. If it was you, reply again from your usual mail app.';
+  else
+    insert into public.marketing_founder_request (kind, month, founder_text, attachments, message_id)
+    values ('month_content', m.month, left(btrim(coalesce(p->>'text', '')), 4000), v_atts, nullif(p->>'message_id', ''))
+    on conflict (message_id) where message_id is not null and message_id <> '' do nothing
+    returning id into v_rid;
+    if v_rid is null then return jsonb_build_object('outcome', 'already_filed', 'month', m.month); end if;
+    -- his reply with the content: the CEO accepted the month already (fn_marketing_month_plan_tick, fn_ceo_accepts_marketing_month);
+    -- the status stays 'accepted' for a month that reached him before that (the calendar builder reads it), and his words are kept
+    update public.marketing_month_plan set status = 'accepted', founder_decided_at = now(),
+           founder_note = left(btrim(coalesce(p->>'text', '')), 2000), updated_at = now() where month = m.month;
+    v_out := 'content_received';
+    v_msg := 'Received for ' || to_char(m.month, 'FMMonth YYYY') || ' (' || cardinality(v_atts) || ' attachment(s)). The marketing seat builds the calendar from it '
+             || '(request ' || v_rid || '); the CEO approves it and it is scheduled and published. You are told what goes out; nothing waits for you.';
+  end if;
+  perform public.fn_marketing_mail_founder('marketing_month_plan_reply',
+    case when v_out = 'content_received' then 'Received: ' else 'Not filed: ' end || 'video plan ' || coalesce(to_char(m.month, 'FMMonth YYYY'), ''), v_msg);
+  return jsonb_build_object('outcome', v_out, 'month', m.month, 'request_id', v_rid);
+end $function$
+
+;
+revoke execute on function public.fn_marketing_month_plan_reply(jsonb) from public, anon, authenticated;
