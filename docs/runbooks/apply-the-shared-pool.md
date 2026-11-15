@@ -119,6 +119,12 @@ each probe PROBE OK both times).
 1b. Apply the coverage file (any minute):
    `node scripts/apply_sql.mjs scripts/sql/the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql --apply --ddl --seat ceo`,
    pending note, MANIFEST line. Check: `select status, count(*) from supplier_coverage_target group by 1` shows the proposal.
+1c. Apply the planning file (any minute; it alters no busy table and updates 72 `ceo_directive` rows and one `model_policy` row):
+   `node scripts/apply_sql.mjs scripts/sql/the_ceo_thinks_plans_and_orders_every_week.sql --apply --ddl --seat ceo`, its two
+   pending notes go, the file and its probe are appended to the END of `MANIFEST.txt`. Locks (LOCAL): ACCESS EXCLUSIVE on its five
+   new tables at first apply only; ROW EXCLUSIVE on `decision_policy`, `seat_duty`, `model_policy` and `ceo_directive`. Check:
+   `select kind, status from ceo_plan_week` shows the seed `asked`; `select count(*) from ceo_growth_channel` is 22. The seed is
+   filed by the loop's first run (the hourly duty `ceo.planning_loop`, or the heartbeat), through the same checks as any plan.
 2. Release rehearsal, once, by the release session:
    `QD_POOL_RELEASE_REHEARSAL=1 node --test scripts/checks/every_seat_reads_one_pool.test.mjs` must print `PROBE OK`.
    The probe writes ZZ DEMO rows (and two `storage.objects` rows under `zz-demo-pool-probe/`) only and always rolls back.
@@ -127,7 +133,10 @@ each probe PROBE OK both times).
    `ceo_agent` (coverage, limit, target), `resilience_ping` (the replay runs `ceo.it_finding`, `ceo.overdue_handoff` and
    `ceo.authority`), `sales_engineer` ('match' on the subject-aware rule, 202 when it asked the CEO), `accountant` and
    `marketing` (a CEO order is reported). Until the SQL is live, the TS reads an empty pool and 'match' falls back to the
-   three-argument rule, so the deploy order is not a hazard.
+   three-argument rule, so the deploy order is not a hazard. The planning loop: `ceo_agent` (action `plan`, `plan_read`) BEFORE
+   `resilience_ping` (its CEO plan step calls `fn_ceo_plan_due` and hands a due plan to `ceo_agent` action `plan`, detached); a
+   `resilience_ping` deployed first would call an action the old `ceo_agent` answers `unknown_action` (400, logged, retried).
+   `fn_ceo_plan_due` opens the first weekly plan on the first Monday after the apply, from 07:00 Dubai.
 4. A later quiet minute, the dispatcher's trigger, alone:
    `node scripts/apply_sql.mjs scripts/sql/the_department_dispatcher_trigger_goes_once_its_body_is_a_no_op.sql --apply --ddl --seat ceo`
    (same retry rule), then its pending note goes and the file is appended to `MANIFEST.txt`.
@@ -140,6 +149,9 @@ reaches him once, after 07:00 Dubai, from the `ceo.supply_coverage` duty: `fn_ce
 `ceo_daily_summary` (severity info; `founder_mail_policy` can silence it). It says supplier coverage against target, the
 funnel, the CEO's decisions of the last day with their reasons (IT findings, late hand-overs, seats' questions of authority,
 his own authority, the supply orders and targets), the company limits with any waiting change, and the open orders.
+Since the planning file (ledger 1709) it also says how many of HIS people (first touch `utm_source=founder`) started, submitted
+and were approved, and which are stuck at which step, by company name only, so he can call them; the operating target; the
+week's plan with each bet's status (and code's reason for every refusal); and the decisions the CEO took himself.
 
 ## 4. After the apply, watch
 

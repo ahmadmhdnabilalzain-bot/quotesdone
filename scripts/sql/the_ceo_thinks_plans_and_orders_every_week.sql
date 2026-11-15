@@ -85,6 +85,21 @@ returns boolean language sql stable security definer set search_path to 'public'
 $fn$;
 revoke execute on function public.fn_ceo_plan_lead_in_world(boolean, text, text) from public, anon, authenticated;
 
+-- A supplier reply still waiting for an answer: dropped by the reply path, or past its due time, and no mail the outbox sent to
+-- that address since. 5 of the 7 replies since 1 Nov carry no lead (SELECT 15 Nov), so the world is read from the lead when there
+-- is one and from the address when there is not; an answer sent through any path counts.
+create or replace function public.fn_ceo_plan_reply_unanswered(p_id bigint, p_at timestamptz default now())
+returns boolean language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select (f.state = 'dropped' or (f.state = 'due' and f.due_at < p_at))
+     and case when l.id is not null then public.fn_ceo_plan_lead_in_world(l.is_demo, l.company_name, l.email)
+              else public.fn_is_demo_email(coalesce(f.to_email, '')) = public.fn_ceo_plan_world_is_demo() end
+     and not exists (select 1 from public.notifications n where lower(n.to_email) = lower(f.to_email) and n.status = 'sent'
+                      and n.sent_at > f.created_at and n.sent_at <= p_at)
+    from public.supplier_reply_followup f left join public.leads l on l.id = f.lead_id
+   where f.id = p_id
+$fn$;
+revoke execute on function public.fn_ceo_plan_reply_unanswered(bigint, timestamptz) from public, anon, authenticated;
+
 -- ── 1. TABLES ────────────────────────────────────────────────────────────────────────────────────────────────────────
 create table if not exists public.ceo_growth_channel (
   channel text primary key check (channel ~ '^[a-z0-9_]{3,60}$'),
@@ -476,7 +491,7 @@ begin
                                                                                    where created_at >= now() - interval '30 days' group by 1, 2) s), '{}'::jsonb),
       'unanswered', coalesce((select jsonb_agg(jsonb_build_object('followup_id', f.id, 'lead_id', f.lead_id, 'intent', f.intent, 'state', f.state, 'at', f.created_at, 'outcome', left(coalesce(f.outcome, ''), 160)) order by f.id)
                                 from public.supplier_reply_followup f where f.created_at >= now() - interval '30 days'
-                                 and (f.state = 'dropped' or (f.state = 'due' and f.due_at < now()))), '[]'::jsonb));
+                                 and public.fn_ceo_plan_reply_unanswered(f.id, now())), '[]'::jsonb));
     v := v || jsonb_build_object('replies', x);
   exception when others then v := v || jsonb_build_object('replies', jsonb_build_object('unavailable', left(sqlerrm, 200))); end;
   -- demand signals
@@ -582,9 +597,8 @@ begin
   when 'submitted_by_source' then
     select count(*) into v_val from public.fn_ceo_registrations_by_source(b.created_at - interval '30 days', now()) where source = v_src and submitted_at >= b.created_at;
   when 'replies_unanswered' then
-    select count(*) into v_val from public.supplier_reply_followup f join public.leads l on l.id = f.lead_id
-     where f.created_at >= timestamptz '2026-11-01 00:00+04' and public.fn_ceo_plan_lead_in_world(l.is_demo, l.company_name, l.email)
-       and (f.state = 'dropped' or (f.state = 'due' and f.due_at < now()));
+    select count(*) into v_val from public.supplier_reply_followup f
+     where f.created_at >= timestamptz '2026-11-01 00:00+04' and public.fn_ceo_plan_reply_unanswered(f.id, now());
   when 'invitations' then
     v_val := (public.fn_ceo_supply_order_reading(jsonb_build_object('measure', 'invitations', 'trades', b.measure_args->'trades', 'target', coalesce(b.target, 0)), b.created_at)->>'value')::numeric;
   when 'held_registrations' then
@@ -970,9 +984,8 @@ create or replace function public.fn_ceo_plan_anomalies(p_at timestamptz default
 returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v jsonb := '[]'::jsonb; n int; s int;
 begin
-  select count(*) into n from public.supplier_reply_followup f join public.leads l on l.id = f.lead_id
-   where f.created_at > p_at - interval '48 hours' and public.fn_ceo_plan_lead_in_world(l.is_demo, l.company_name, l.email)
-     and (f.state = 'dropped' or (f.state = 'due' and f.due_at < p_at));
+  select count(*) into n from public.supplier_reply_followup f
+   where f.created_at > p_at - interval '48 hours' and public.fn_ceo_plan_reply_unanswered(f.id, p_at);
   if n > 0 then v := v || jsonb_build_object('kind', 'reply_unanswered', 'count', n, 'why', n || ' supplier replies of the last 48 hours dropped or overdue'); end if;
   select count(*) into n from public.ceo_plan_bet b join public.agent_actions a on a.id = b.handoff_id
    where b.status = 'missed' and b.scored_at > p_at - interval '24 hours';
