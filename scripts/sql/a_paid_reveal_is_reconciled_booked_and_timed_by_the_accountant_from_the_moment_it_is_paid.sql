@@ -1197,7 +1197,7 @@ begin
   values ('overcharge_returned', c.email, 'customer', nullif(a.detail->>'inquiry_id', '')::uuid, nullif(a.detail->>'quote_id', '')::uuid,
     case when v_ar then 'نردّ إليكم مبلغًا زائدًا' else 'We are returning money we should not have charged' end,
     case when v_ar
-      then 'تقاضينا منكم ' || v_amt || ' درهم زيادةً على رسوم الكشف، ونقوم بردّه إلى بطاقتكم الآن. تُظهر البنوك المبلغ المردود عادةً خلال 7 إلى 14 يوم عمل. لا يلزمكم القيام بأي شيء.'
+      then 'تقاضينا منكم ' || v_amt || ' درهم زيادةً على رسوم الكشف، ونردّه إلى بطاقتكم الآن، وتُظهره البنوك عادةً خلال 7 إلى 14 يوم عمل. ولا يلزمكم أي إجراء.'
       else 'We charged you AED ' || v_amt || ' more than our reveal fee. It is being returned to your card now; banks usually show it within 7 to 14 working days. You do not need to do anything.'
     end, case when v_ar then 'ar' else 'en' end)
   returning id into v_nid;
@@ -2115,8 +2115,8 @@ begin
                          'paid_at', NEW.paid_at, 'paid_at_source', NEW.paid_at_source, 'refund_window_ends_at', v_ends, 'our_invoice_no', v_inv,
                          'refund_window_sentence_en', 'The supplier must respond within the refund window, which ends on '
                             || to_char(v_ends at time zone 'Asia/Dubai', 'FMDD Mon YYYY') || ' at 23:59 UAE time (five working days from your payment).',
-                         'refund_window_sentence_ar', 'يجب أن يردّ المورّد خلال مهلة الاسترداد التي تنتهي في ' || to_char(v_ends at time zone 'Asia/Dubai', 'DD/MM/YYYY')
-                            || ' الساعة 23:59 بتوقيت الإمارات (خمسة أيام عمل من تاريخ الدفع).');
+                         'refund_window_sentence_ar', 'وعلى المورّد أن يردّ خلال مهلة الاسترداد التي تنتهي في ' || to_char(v_ends at time zone 'Asia/Dubai', 'DD/MM/YYYY')
+                            || ' الساعة 23:59 بتوقيت الإمارات، أي بعد خمسة أيام عمل من تاريخ الدفع.');
     if v_test then perform public.fn_demo_shadow_record('handoff', 'reveal.paid', 'accountant', 'sales_engineer', v_paid);
     else perform public.fn_seat_handoff('accountant', 'sales_engineer', 'reveal.paid', 'transactions', NEW.id::text, v_paid);
     end if;
@@ -2668,7 +2668,7 @@ begin
           case when v_ar then 'فاتورتكم ' || coalesce(v_inv, '') || ' جاهزة · تنتهي مهلة الاسترداد ' || coalesce(v_ardate, '')
                else 'Invoice ' || coalesce(v_inv, '') || ' ready · refund window ends ' || coalesce(v_en, '') end,
           case when v_ar
-            then 'أصبحت فاتورة رسوم الكشف رقم ' || coalesce(v_inv, '') || ' التي سددتموها متاحة في حسابكم على QuotesDone، ويمكنكم فتحها في أي وقت من زر «الفاتورة» على العرض الذي كشفتموه، أو من «المستندات» ضمن «الفواتير». '
+            then 'أصبحت فاتورة رسوم الكشف رقم ' || coalesce(v_inv, '') || ' التي سددتموها متاحة في حسابكم على QuotesDone، ويمكنكم فتحها في أي وقت من زر «الفاتورة (PDF)» على العرض الذي كشفتموه، أو من «الفواتير» ضمن «المستندات». '
                  || 'تنتهي مهلة الاسترداد لهذا الكشف في ' || coalesce(v_ardate, '') || '، أي بعد خمسة أيام عمل من تاريخ الدفع.'
             else 'The invoice for the reveal fee you paid, invoice ' || coalesce(v_inv, '') || ', is now in your QuotesDone account. Open it any time from the "Invoice (PDF)" button on the quote you revealed, or under Invoices in Documents. '
                  || 'The refund window for this reveal ends on ' || coalesce(v_en, '') || ', five working days from your payment.'

@@ -637,7 +637,8 @@ begin
       'أصدرنا لكم استردادًا بقيمة ' || (d->>'amount_aed') || ' درهم، أي كامل المبلغ المدفوع، إلى وسيلة الدفع الأصلية، إذ لم يردّ المورّد خلال '
         || v_window::text || ' أيام عمل. وقد يستغرق ظهوره في كشف حسابكم ' || v_min || '–' || v_max || ' يوم عمل.'
           || case when coalesce((v_request->>'reopened')::boolean, false)
-                  then ' وما زال بإمكانكم فتح عرض آخر من العروض التي وصلتكم في هذا الطلب ما دامت سارية.' else '' end,
+                  then ' وما زال بإمكانكم فتح عرض آخر من العروض التي وصلتكم في هذا الطلب ما دامت سارية.'
+                  else ' ويسعدنا أن تنشروا طلبكم من جديد لنعرّفكم بمورّد آخر.' end,
       '{}', 'refund_issued:' || (d->>'subject_id'));
     return jsonb_build_object('delivery_request', v_req, 'amount_aed', d->'amount_aed', 'request', v_request);
 
