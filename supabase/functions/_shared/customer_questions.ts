@@ -28,6 +28,7 @@ import { HOME_TRADES } from './customer_questions_home.ts';
 import { BUILDING_TRADES } from './customer_questions_building.ts';
 import { WORKS_TRADES } from './customer_questions_works.ts';
 import { COMMERCIAL_TRADES } from './customer_questions_commercial.ts';
+import { SERVICES_TRADES } from './customer_questions_services.ts';
 
 export type Lang = 'en' | 'ar';
 type Opt = readonly [en: string, ar: string];
@@ -285,7 +286,7 @@ const BASE_QUESTION: Readonly<Record<string, CustomerQuestion>> = {
 };
 
 /** Every spec's plain wording: the base table above, then the trade tables (one file per group of trades). */
-export const CUSTOMER_QUESTION: Readonly<Record<string, CustomerQuestion>> = { ...BASE_QUESTION, ...HOME_TRADES, ...BUILDING_TRADES, ...WORKS_TRADES, ...COMMERCIAL_TRADES };
+export const CUSTOMER_QUESTION: Readonly<Record<string, CustomerQuestion>> = { ...BASE_QUESTION, ...HOME_TRADES, ...BUILDING_TRADES, ...WORKS_TRADES, ...COMMERCIAL_TRADES, ...SERVICES_TRADES };
 
 /** The label as a plain English question when the table has no entry: its parenthesised list of technical units dropped. */
 export function plainFrame(label: string): string {
