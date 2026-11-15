@@ -22,9 +22,14 @@
 // emirates, dates, yes/no, options, AED) normalises what it can recognise; nothing is invented.
 
 import { saysDontKnow } from '../_shared/inquiry_state.ts';
+import { ARABIC_FRAME, NOT_SURE, optionAr } from '../_shared/customer_questions.ts';
 export type SpecField = {
   key?: string; question?: string; required?: boolean; type?: string; options?: string[];
   question_plain_en?: string; question_plain_ar?: string;
+  /** THE CARD'S WORDS (15 Nov 2026; _shared/customer_questions.ts): tap options a pack spec offers the customer (its own
+   *  `options` stay [] so the readers here treat it as free text), Arabic labels of `options` (parallel), and plain=false when
+   *  question_plain_en is only the generic frame of the label (the model's own plain wording may then be shown instead). */
+  card_options?: string[]; card_options_ar?: string[]; options_ar?: string[]; plain?: boolean;
   /** WHEN THE JOB DOES NOT NEED THIS SPEC (15 Nov 2026, journey A; slots.ts notNeededOf). Data on the trade's own spec, never an
    *  if-statement: `answered` names specs whose answer makes this one unnecessary (code checks only that one of them holds an
    *  answer; it reads no words), `text` is the condition in plain words, which the model may judge holds from what the
@@ -451,9 +456,28 @@ export function orderFields(fields: SpecField[], askOrder: Record<string, number
       || (a.i - b.i));
 }
 
+/** The question the CUSTOMER reads: the plain wording in their language. NEVER ENGLISH ON AN ARABIC CHAT (15 Nov 2026, persona
+ *  dry run: every card of an Arabic chat was an English spec label): a field with no Arabic wording is asked with the Arabic
+ *  frame (customer_questions.ts ARABIC_FRAME), never its English label. The label (`question`) is what suppliers read. */
 export function questionText(f: SpecField, lang: Lang): string {
-  if (lang === 'ar') return String(f.question_plain_ar || f.question_plain_en || f.question || f.key || '').trim();
+  if (lang === 'ar') return String(f.question_plain_ar || '').trim() || (f && (f.question || f.key) ? ARABIC_FRAME : '');
   return String(f.question_plain_en || f.question || f.key || '').trim();
+}
+/** The options the card offers to tap, in the customer's language, or null. A field's own options first (in Arabic, those with
+ *  an Arabic label: options_ar, else customer_questions.ts OPTION_AR; "Not sure" always), else the pack spec's card options. */
+export function optionsOf(f: SpecField | null | undefined, lang: Lang): string[] | null {
+  if (!f) return null;
+  const own = Array.isArray(f.options) ? f.options.filter((o) => typeof o === 'string' && o) : [];
+  if (own.length) {
+    // "Not sure" on every card (an option of the field's own that already says so is kept as it is)
+    const sure = own.some((o) => /not sure|unsure|recommend|advise/i.test(o));
+    if (lang === 'en') return sure ? own : [...own, NOT_SURE.en];
+    const ar = own.map((o, i) => (Array.isArray(f.options_ar) && f.options_ar.length === f.options!.length && f.options_ar[i]) || optionAr(o)).filter((x): x is string => !!x);
+    return sure && ar.some((a) => a.includes(NOT_SURE.ar)) ? ar : [...ar.filter((a) => a !== NOT_SURE.ar), NOT_SURE.ar];
+  }
+  const card = (lang === 'ar' ? f.card_options_ar : f.card_options) ?? [];
+  const list = card.filter((o) => typeof o === 'string' && o);
+  return list.length ? list : null;
 }
 
 export type InterviewState = { details: Record<string, string>; asked_key: string | null };
@@ -487,7 +511,7 @@ export function interviewStep(fields: SpecField[], state: InterviewState, answer
   const filled = req.filter((o) => has(o.key)).length;
   const nextField = req.find((o) => !has(o.key));
   const next = nextField
-    ? { key: nextField.key, text: questionText(nextField.f, lang), options: Array.isArray(nextField.f.options) && nextField.f.options.length ? nextField.f.options : null }
+    ? { key: nextField.key, text: questionText(nextField.f, lang), options: optionsOf(nextField.f, lang) }
     : null;
   return { details, filled_now: filledNow, next, readiness: { filled, required: req.length }, complete: !nextField };
 }

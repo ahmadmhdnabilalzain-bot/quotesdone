@@ -24,7 +24,8 @@
 // status differs from the status the model wrote its sentence for, the sentence is replaced by one
 // built from the state, so the customer is never told "ready" while the row says otherwise. No word of
 // the customer's text is matched here (ruling 890): only keys and values the model returned are read.
-import { orderFields, questionText, parseAnswer, isUnknown, answersAnotherKind, type Lang, type SpecField, type UniversalKind } from './interview.ts';
+import { orderFields, questionText, optionsOf, parseAnswer, isUnknown, answersAnotherKind, type Lang, type SpecField, type UniversalKind } from './interview.ts';
+import { optionAr } from '../_shared/customer_questions.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import { surfaceEffort } from '../_shared/effort_policy.ts';
 import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
@@ -39,7 +40,14 @@ const filled = (v: unknown) => v !== undefined && v !== null && !['', '{}', '[]'
 /** recordedElsewhere: this message answered one of the four questions or a "does not know" (it told us something);
  *  lastText: the customer's last message alone (a CHANGED value counts as told only when its cited words are in it);
  *  stall: the stamped history of the open specs (stallOf), for the backstop below. */
-export type SlotOpts = { recordedElsewhere?: boolean; lastText?: string | null; stall?: { streak: number; lastOpen: string[] | null }; lastAsked?: string[] };
+export type SlotOpts = { recordedElsewhere?: boolean; lastText?: string | null; stall?: { streak: number; lastOpen: string[] | null }; lastAsked?: string[];
+  /** THE CUSTOMER ASKED WHAT A WORD OF OUR QUESTION MEANS (15 Nov 2026, persona dry run; the model's explain_terms): the reply
+   *  explains it and asks THAT question again, in plain words, before anything else. A rephrase, not a repeat: it is still
+   *  counted in asked_keys, so the ASKS limit (MAX_OPEN_TURNS) holds. */
+  rephrase?: boolean;
+  /** The model's own plain wording of the question for one spec, in the customer's language (its plain_question): shown only for
+   *  a spec with no vetted wording in that language (no question_plain_ar on an Arabic chat; plain=false in English). */
+  phrased?: { key: string; text: string } | null };
 export type SlotState = { details: Record<string, string>; missingKeys: string[]; missing: string[]; complete: boolean; exhausted: string[]; held: boolean;
   /** Values the model filed under a spec they do not answer (finding b2): not recorded there, the spec stays open. */
   misfiled?: { key: string; reason: 'answers_another_kind' | 'no_customer_words'; kind?: UniversalKind }[];
@@ -81,6 +89,16 @@ export const MAX_OPEN_TURNS = 3;
 // hold, so the sales engineer settles them with the customer. 8: the first message is read, and eight questions in a row that move
 // nothing are the most a real customer is asked before the hold (the ninth reply is the hold's).
 export const STALL_TURNS = 8;
+/** The model's plain wording of the next question (its plain_question), kept only when it is a key and a short question in the
+ *  customer's language: on an Arabic chat, Arabic with at most a few Latin letters (a unit such as BTU). Model output, never
+ *  the customer's words; reconcileSlots decides whether it is shown (SlotOpts.phrased). */
+export function phrasedOf(x: unknown, lang: Lang): { key: string; text: string } | null {
+  if (!x || typeof x !== 'object' || Array.isArray(x)) return null;
+  const key = String((x as { key?: unknown }).key ?? '').trim(), text = String((x as { text?: unknown }).text ?? '').replace(/\s+/g, ' ').trim();
+  if (!key || !text || text.length > 300) return null;
+  if (lang === 'ar' && (!/[\u0600-\u06FF]/.test(text) || (text.match(/[A-Za-z]/g) ?? []).length > 12)) return null;
+  return { key, text };
+}
 /** The specs the most recent asking reply asked (stamped asked_keys), for SlotOpts.lastAsked. */
 export function lastAskedKeys(turns: any[]): string[] {
   for (let i = (turns || []).length - 1; i >= 0; i--) {
@@ -125,9 +143,9 @@ export const HELD_FOR_SPECS: Record<Lang, string> = {
 /** The plain questions still open on a held intake, in the customer's language, in checklist order. A field with no
  *  question text is skipped: a raw key ('area') never reaches the model. */
 export function heldQuestions(checklist: SpecField[], exhausted: string[], lang: Lang): string[] {
-  return orderFields(checklist).filter((o) => exhausted.includes(String(o.f.key)))
-    .map((o) => String((lang === 'ar' ? o.f.question_plain_ar || o.f.question_plain_en : o.f.question_plain_en) || o.f.question || '').trim())
-    .filter(Boolean);
+  const out = orderFields(checklist).filter((o) => exhausted.includes(String(o.f.key)) && (o.f.question_plain_en || o.f.question_plain_ar || o.f.question))
+    .map((o) => questionText(o.f, lang)).filter(Boolean);
+  return [...new Set(out)];
 }
 /** The code draft of the held reply: the handover sentence and the open questions listed. Sent as it stands only when
  *  OpenRouter is down (founder_instruction 1339); otherwise it is the draft the model writes from (intakeVoice). */
@@ -250,8 +268,7 @@ export async function intakeVoice(deps: ThinkDeps, o: { draft: string; lang: Lan
 export function heldAsk(checklist: SpecField[], exhausted: string[], lang: Lang): { key: string; text: string; options: string[] | null } | null {
   const o = orderFields(checklist).find((x) => exhausted.includes(String(x.f.key)) && questionText(x.f, lang));
   if (!o) return null;
-  const opts = Array.isArray(o.f.options) ? o.f.options.filter((x) => typeof x === 'string' && x) : [];
-  return { key: String(o.f.key), text: questionText(o.f, lang), options: opts.length ? opts : null };
+  return { key: String(o.f.key), text: questionText(o.f, lang), options: optionsOf(o.f, lang) };
 }
 
 // A DEFERRAL IS NOT A SPEC (independent review of #1641, 27 Oct 2026). The hold exists because the customer answered
@@ -292,7 +309,12 @@ export function tappedHeldAnswer(checklist: SpecField[], askedKey: string | null
   const f = askedKey ? checklist.find((x) => x && String(x.key) === String(askedKey)) : null;
   const t = String(text || '').replace(/\s+/g, ' ').trim().toLowerCase();
   if (!f || !t || !Array.isArray(f.options)) return null;
-  return f.options.find((o) => typeof o === 'string' && o.trim().toLowerCase() === t) ?? null;
+  const hit = f.options.find((o) => typeof o === 'string' && o.trim().toLowerCase() === t);
+  if (hit) return hit;
+  // the Arabic label of an option (an Arabic chat taps it: interview.ts optionsOf) is that English option
+  const i = f.options.findIndex((o, n) => typeof o === 'string' && [Array.isArray(f.options_ar) && f.options_ar.length === f.options!.length ? f.options_ar[n] : null, optionAr(o)]
+    .some((a) => !!a && String(a).replace(/\s+/g, ' ').trim().toLowerCase() === t));
+  return i >= 0 ? f.options[i] : null;
 }
 
 /** The spec the last reply asked (its stamped next_question key), so "I don't know" is read as the answer to THAT spec. */
@@ -441,15 +463,23 @@ export function reconcileSlots(checklist: SpecField[], prevDetails: Record<strin
   // already waiting for its answer; the checklist's order decides between equals.
   const askable = open.filter((x) => !exhausted.includes(String(x.f.key)) && !askedAs(x.f))
     .map((x, i) => ({ o: x, i, n: openTurns[String(x.f.key)] || 0 })).sort((a, z) => a.n - z.n || a.i - z.i).map((x) => x.o);
+  // A REPHRASE (SlotOpts.rephrase): they asked what a word of the question just asked means, so that question, still open and
+  // askable, is asked again now (explained), ahead of one not yet asked.
+  const lastAsked0 = (o.lastAsked ?? []).map(String);
+  const again = o.rephrase ? askable.findIndex((x) => lastAsked0.includes(String(x.f.key))) : -1;
+  if (again > 0) askable.unshift(...askable.splice(again, 1));
   // WAITING ONLY WHILE THE QUESTION JUST ASKED IS STILL OPEN (re-check of 15 Nov 2026, item 2): a customer who ANSWERS it gets the
   // next question in the same reply, never a bare "Thanks, noted."; one who tells us something else is not asked it again yet.
   const lastAsked = (o.lastAsked ?? []).map(String);
   const askedStillOpen = lastAsked.length > 0 && lastAsked.some((k) => openNow.includes(k));
-  const waiting = askable.length > 0 && askable.every((x) => (openTurns[String(x.f.key)] || 0) > 0) && askedStillOpen;
+  const waiting = !o.rephrase && askable.length > 0 && askable.every((x) => (openTurns[String(x.f.key)] || 0) > 0) && askedStillOpen;
+  // the model's plain wording, only for a spec with no vetted wording in this language (SlotOpts.phrased)
+  const ph = o.phrased && String(o.phrased.text || '').trim() ? o.phrased : null;
+  const shown = (f: SpecField) => ph && ph.key === String(f.key) && (lang === 'ar' ? !String(f.question_plain_ar || '').trim() : f.plain === false) ? String(ph.text).trim() : questionText(f, lang);
   return {
     details, exhausted, ...(misfiled.length ? { misfiled } : {}),
     missingKeys: open.map((x) => String(x.f.key)),
-    missing: askable.map((x) => questionText(x.f, lang)),
+    missing: askable.map((x) => shown(x.f)),
     askableKeys: askable.map((x) => String(x.f.key)),
     // what the hold can still ask: exhausted, and not a spec they said they do not know
     askAgain: exhausted.filter((k) => !unknown.has(k)),
@@ -519,8 +549,11 @@ export function settleModelTurn(checklist: SpecField[], prevDetails: Record<stri
     // NOTHING IS ASKED TWICE IN A ROW OF ANSWERS (15 Nov 2026, journey A): when every open spec has already been asked and this
     // message brought an answer to something (sl.waiting), the reply takes what was said and asks nothing; the open specs stay
     // in remaining_questions, and a message that answers nothing is when a waiting question is asked again.
-    if (sl.exhausted.length || !Array.isArray(out.questions) || !out.questions.length) out.questions = sl.waiting ? [] : sl.missing.slice(0, 1);
+    // A REPHRASE asks the question they asked about, as the state words it (the explanation goes first: handle.ts).
+    if (o.rephrase && sl.missing.length) out.questions = sl.missing.slice(0, 1);
+    else if (sl.exhausted.length || !Array.isArray(out.questions) || !out.questions.length) out.questions = sl.waiting ? [] : sl.missing.slice(0, 1);
   }
+  if (out.status === 'needs_info' && o.rephrase && sl.missing.length) { out.assistant_message = sl.missing[0]; return sl; }
   // The reply must agree with the row (review of #1277). READY: always the state's sentence, which tells
   // the customer to press Send to suppliers - the request goes nowhere until they confirm. NOT READY: the
   // model's sentence stands only when it wrote for needs_info, asked something, and flagged
