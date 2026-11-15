@@ -17,6 +17,12 @@
 //                   customer's portal serves, the quotation PDF (quoteDocument + renderPdf), and per request the
 //                   comparison PDF (compareDocument) and CSV (compareTable + toCsv).
 //   Q&A          -> messages_api stripContact (clarify_ask / clarify_answer), both directions.
+//   quotation, MODEL PATH (13 Nov 2026, anonymity audit REPORT_C L8: the upload door is model-first since PR #1981 and
+//                   this corpus drove only the code reader the chat door uses): a CARELESS model reading that copies the
+//                   file's whole text into description, scope, terms and notes and reports nothing masked, through
+//                   quote_extract's own anonymiser (model_reading.ts modelAnonymiser + proposalFromModel), the same save
+//                   scrub, and the quotation PDF -> out/<id>/model_quote_doc.json + model_quotation.pdf. Every planted
+//                   token on those surfaces is a leak the code backstop let through.
 //
 // The scanned-PDF drawing goes through the same deterministic gate: the server finds no text layer, sends no boxes,
 // and in production drawing_redact's MODEL path then decides the page. That path is not run here (it needs the live
@@ -30,6 +36,7 @@ import { boqFromPages } from '../../supabase/functions/drawing_boq/boq_from_text
 import { inboxBoq, scrubIdentity, scrubLine } from '../../supabase/functions/supplier_api/identity_scrub.ts';
 import { readDocument } from '../../supabase/functions/_shared/doc_read/index.ts';
 import { quoteFromExtracted } from '../../supabase/functions/quote_extract/quote_from_document.ts';
+import { checkReading, modelAnonymiser, proposalFromModel } from '../../supabase/functions/quote_extract/model_reading.ts';
 import { compareDocument, compareTable, quoteDocument, supplierLabel, toCsv } from '../../supabase/functions/_shared/quote_documents.ts';
 import { deterministicCompare, rosterOf } from '../../supabase/functions/quote_compare/deterministic.ts';
 import { renderPdf } from '../../supabase/functions/pdf_native/render.ts';
@@ -124,6 +131,23 @@ for (const q of man.quotes) {
     r.surfaces.push({ kind: 'json', path: `out/${q.id}/quote_doc.json` });
     const pdf = await renderPdf(doc.body, { fetchBytes: async () => null });
     if (pdf.ok) { await write(`${out}/quotation.pdf`, pdf.bytes); r.surfaces.push({ kind: 'pdf', path: `out/${q.id}/quotation.pdf` }); } else r.held.push('quote_pdf:' + pdf.status);
+    // THE MODEL PATH, read carelessly: the file's own words in every text field, nothing reported masked.
+    if (rd.ok) {
+      const words = String(((rd as { text?: string }).text ?? '') + ' ' + JSON.stringify((rd as { tables?: unknown }).tables ?? [])).replace(/\s+/g, ' ').slice(0, 6000);
+      const chunk = (i: number) => words.slice(i * 1000, (i + 1) * 1000);
+      const careless = { is_quotation: true, currency: 'AED', total: row.quote_amount, line_items: [0, 1, 2].map((i) => ({ description: chunk(i), qty: '1', quantity: 1, unit: 'lot', amount: null })),
+        scope: chunk(3), payment_terms: chunk(4), warranty: chunk(5), notes: words.slice(0, 1000), conditions: chunk(1), exclusions: chunk(2), lead_time: '', validity: '', masked_terms: [] };
+      const masked: string[] = [];
+      const read = checkReading(proposalFromModel(careless, modelAnonymiser({ supplierNames: [q.supplier.company_name] }, masked)), '', null);
+      const mrow = { ...row, notes: s(read.notes, 1000), scope: s(read.scope, 2000), conditions: s(read.conditions, 2000), exclusions: s(read.exclusions, 2000), payment_terms: s(read.payment_terms, 400), warranty: s(read.warranty, 200) };
+      // deno-lint-ignore no-explicit-any
+      const mitems = (read.line_items ?? []).map((raw: any) => scrubLine({ ...raw }, q.supplier.company_name, hits)).map((l: any) => ({ desc: clip(l.description, 300), qty: String(l.qty ?? ''), unit: String(l.unit ?? ''), amount: null, brand: null, model: null, specification: null }));
+      const mdoc = quoteDocument({ quote: mrow, inquiry: inq, items: mitems, letter: 'A', lang: 'en', maskNames, requestUrl: 'https://quotesdone.com/me', revealRate: 0.03, ...nowDate });
+      await write(`${out}/model_quote_doc.json`, JSON.stringify(mdoc.body));
+      r.surfaces.push({ kind: 'json', path: `out/${q.id}/model_quote_doc.json` });
+      const mpdf = await renderPdf(mdoc.body, { fetchBytes: async () => null });
+      if (mpdf.ok) { await write(`${out}/model_quotation.pdf`, mpdf.bytes); r.surfaces.push({ kind: 'pdf', path: `out/${q.id}/model_quotation.pdf` }); }
+    }
   } catch (e) { r.error = String((e as Error)?.message || e).slice(0, 200); }
   result.quotes.push(r);
 }
@@ -148,7 +172,7 @@ for (const [ri, req] of man.requests.entries()) {
     await write(`${out}/compare_doc.json`, JSON.stringify(doc.body)); r.surfaces.push({ kind: 'json', path: `out/request_${ri}/compare_doc.json` });
     const pdf = await renderPdf(doc.body, { fetchBytes: async () => null });
     if (pdf.ok) { await write(`${out}/comparison.pdf`, pdf.bytes); r.surfaces.push({ kind: 'pdf', path: `out/request_${ri}/comparison.pdf` }); }
-    const t = compareTable(a, false);
+    const t = compareTable(a, false, {}, maskNames);
     if (t) { await write(`${out}/comparison.csv`, toCsv(t.head, t.rows)); r.surfaces.push({ kind: 'text_file', path: `out/request_${ri}/comparison.csv` }); }
   } catch (e) { r.error = String((e as Error)?.message || e).slice(0, 200); }
   result.requests.push(r);
