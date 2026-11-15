@@ -6,7 +6,7 @@
 // name ("ORBITAL" for "Orbit", "KITCHEN" and "SWITCHED SPUR" for "Kitchens Plus", "CEILING HEIGHT" for "Marina
 // Heights"). Every probe is a case here. Offline; the names are synthetic.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { fold, isDrawingContent, namesParty, seedHit } from './drawing_text_policy.ts';
+import { fold, isDrawingContent, isVocabularyContent, namesParty, seedHit } from './drawing_text_policy.ts';
 import { seedTerms } from './anonymise.ts';
 import { ID_TEXT } from './drawing_identity_text.ts';
 
@@ -39,14 +39,24 @@ Deno.test('drawing words are not a name: whole tokens only, and never a seed wor
   assert(seedHit('MARINA HEIGHTS', seedTerms({ company: 'Marina Heights Developers' })));
 });
 
-Deno.test('fail closed: a short word passes only from the closed list; anything unknown, foreign or disguised is withheld', () => {
+Deno.test('the scan route\'s vocabulary gate (isVocabularyContent, OCR with no model): a short word passes only from the closed list; anything unknown, foreign or disguised is withheld', () => {
   for (const t of ['DAR', 'WSP', 'ARUP', 'ZZ', 'ORB', 'OR BI T', '<> BY DAR', 'ZZ ORBIT', 'NORTH GATE LLC', '0RB1T', 'ORB\u00cdT', 'K', 'K A R E E M', 'VILLA 12 JUMEIRAH', 'al@', 'kx.ae', 'T 050']) {
-    assert(!isDrawingContent(t), `"${t}" passed as drawing content`);
+    assert(!isVocabularyContent(t), `"${t}" passed as drawing content`);
   }
   for (const t of ['OFFICE 101', 'SD - SMOKE DETECTOR', 'DB-01', '63A TPN', '12 WAYS', '2x13A', 'L1', 'FFL +0.150', 'SPLIT AC 2.5 TR', 'DATA OUTLET CAT6', 'CABLE SIZE 4C x 16 SQMM XLPE/SWA', 'REFER TO MEP SPECIFICATION', 'CONTRACTOR TO VERIFY ON SITE', 'EXISTING WALL TO BE DEMOLISHED', 'POWDER ROOM', 'SWIMMING POOL', 'VANITY', 'SHOWER', '<>', '600x600', 'OFFICE 1@1']) {
-    assert(isDrawingContent(t), `"${t}" was withheld`);
+    assert(isVocabularyContent(t), `"${t}" was withheld`);
   }
   assert(!namesParty('CONTRACTOR TO VERIFY ON SITE') && namesParty('CONTRACTOR: ZZ OMEGA CONTRACTING') && namesParty('ZZORBITENGINEERING'));
+});
+
+// 13 Nov 2026 (design change C, review item 10): the code floor withholds only what it can PROVE is a party or a place.
+Deno.test('the code floor (isDrawingContent): what code can prove is withheld; a word it merely does not know is not', () => {
+  for (const t of ['ZZ ORBIT ENGINEERING', 'NORTH GATE LLC', 'DM LIC 123456', '050 123 4567', 'al@', 'kx.ae', 'VILLA 12 JUMEIRAH', 'PLOT NO 345', 'OWNER: MR X', 'DRAWN BY A. DEMO', 'K A R E E M', 'E 492 310.25 N 2 778 104.60', 'V-15']) {
+    assert(!isDrawingContent(t), `"${t}" passed the floor`);
+  }
+  for (const t of ['BS 7671', 'IEC 61439', 'LOAD SCHEDULE', 'TOTAL CONNECTED LOAD 45.6 KW', 'FLAT ROOF', 'TOWER CRANE', 'STREET LIGHT', 'PLOT BOUNDARY', 'PAINT JOTUN FENOMASTIC', 'N', 'UNIT 1200 W', 'TOWER B', 'BUILDING A', 'CLIENT', '0 1 2 3 4 5 m']) {
+    assert(isDrawingContent(t), `"${t}" was withheld by the floor`);
+  }
 });
 
 Deno.test('the phone forms the review drew are contacts', () => {

@@ -63,7 +63,8 @@ test('the e-mails to suppliers are gated as the portal is', () => {
 test('a priced document is never pictured for a supplier, and a drawing beside it is kept', () => {
   const docs = code(F('customer_api/actions/documents.ts'));
   assert.match(docs, /const pricedByCode = !isCad && pdfLines\.length > 0 && looksPriced\(/);
-  assert.match(docs, /i < \(pricedByCode \? 0 : images\.length\)/, 'no page of a priced document is redacted for suppliers');
+  // Round 4 (drawing_deadline): the loop counts batches under the request's clock; a priced document still runs none.
+  assert.match(docs, /const batches = pricedByCode \? 0 : Math\.ceil\(images\.length \/ REDACT_BATCH\);\s*const ran = await eachPageInTime\(batches,/, 'no page of a priced document is redacted for suppliers');
   assert.match(docs, /const priced = pricedRoute\(\{ isCad, pdfLines, reading: jd\.boq \|\| null \}\);\s*if \(priced\) return J/, 'the priced route answers before the drawing route');
   const create = code(F('customer_api/actions/inquiry_create.ts'));
   assert.match(create, /const drawingRedacted = rr\.paths\.length \? rr\.paths\.slice\(0, 24\) : null/, 'a drawing attached beside a quotation keeps its pages');

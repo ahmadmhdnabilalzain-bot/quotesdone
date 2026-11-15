@@ -72,7 +72,9 @@ for (const [name, [dwgSha, dxfSha, entities]] of Object.entries(SAMPLES)) {
 // release, redacted and proved - geometry pair-for-pair and every take-off quantity unchanged, the file re-opens.
 for (const [name, [dwgSha]] of Object.entries(SAMPLES)) {
   Deno.test(`${name}.dwg is redacted to a DXF whose geometry and counts are the original's`, async () => {
-    const r = await redactCadFile(await get(name + '.dwg', dwgSha), ['zz demo nobody']);
+    // Since the drawings fix (15 Nov 2026) no CAD file is shared until a model has read every string; this check proves
+    // geometry and counts, so it stands in a reading that found no identity (the public sample files name no owner).
+    const r = await redactCadFile(await get(name + '.dwg', dwgSha), ['zz demo nobody'], { identity: new Set() });
     assert(r.ok, JSON.stringify(r));
     if (!r.ok) return;
     assertEquals(r.source, 'dwg');
