@@ -10,11 +10,16 @@ Seat: sales_engineer. Branch `sales_engineer-the-customer-is-asked-in-plain-word
   (my_inquiries), the quotation PDF and its file name (customer_api letterOf), quote_compare, the reveal invoice
   (stripe_checkout) and the sales engineer's chat (own_quotes) all read it. Never compute a letter anywhere else.
 - Before: each surface used the PRICE rank at its own moment, so journey A's two quotation PDFs both said "Supplier A".
-- The supplier's own alias (`jobAlias`, match order) is a different, supplier-side letter and stays so.
+- A supplier the customer first met through its question in the request's thread (rfq_clarification) holds its letter from
+  that moment; messages_api's customer e-mail and clarify_list read `customerSupplierLetters`.
+- The supplier's own alias (`jobAlias`, match order) is a different, supplier-side letter and stays so (supplier docs, the
+  supplier's view of the thread).
 
 ## Plain words
 - `_shared/customer_questions.ts` owns what the customer reads for a spec: plain EN/AR question, example, alternative,
   tap options ending "Not sure"; GLOSSARY for "what does X mean". The spec LABEL stays the supplier-facing text.
+- Category options' Arabic labels: ONE table, `_shared/spec_options_ar.ts` (moved from src/components/me/specOptionsAr.ts,
+  which re-exports it). `interview.ts modelText` is what the MODEL is told about a spec (never the Arabic frame).
 - packFields puts `question_plain_en/ar` + `card_options(_ar)` beside the label; `options` stay [] (interview readers
   unchanged). `questionText` never returns English on an Arabic chat (ARABIC_FRAME when a spec has no Arabic).
 - Coverage: every HVAC split-AC spec, every blocking HVAC spec, the most frequent blocking specs: 309 of 1,604 blocking
