@@ -148,3 +148,15 @@ Deno.test('a set past what the model check may spend is said to the customer in 
   assert(/\.\.\.redMeta,/.test(finalAnswer), "analyze_drawing's final answer does not spread redMeta");
   assert(/budgetNote\(cadRed\?\.reason === 'pixels_budget'\)/.test(src), 'the CAD route does not say the budget hold');
 });
+
+// Round 4 (third review fix 2; _shared/drawing_deadline.ts): a page not checked inside the request is held for time, and said.
+Deno.test('a drawing not checked in time is held and the customer is told why and what helps, in English and Arabic', async () => {
+  const { timeNote, TIME_MESSAGE, heldRun } = await import('./drawing_hold.ts');
+  assertEquals(timeNote(0), {});
+  assertEquals(timeNote(2), { drawing_held_reason: 'time', drawing_held_message: TIME_MESSAGE, redaction_pages_held_for_time: 2 });
+  assert(/suppliers do not see this drawing yet/.test(TIME_MESSAGE.en) && /a few at a time/.test(TIME_MESSAGE.en));
+  assert(/لا يرى المورّدون هذا المخطّط/.test(TIME_MESSAGE.ar));
+  const row = heldRun({ customerId: 'c', email: 'e', sourcePath: 'p', meta: { redaction_pages_in: 4, redaction_pages_out: 2, redaction_complete: false }, reason: 'time', detail: { pages_held_for_time: 2, pages_not_started: [3] } });
+  assertEquals(row.verify_detail, { reason: 'time', pages_held_for_time: 2, pages_not_started: [3] });
+  assertEquals(row.skipped, 2);
+});

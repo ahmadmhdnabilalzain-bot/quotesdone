@@ -38,6 +38,7 @@ import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_
 import { readCadStrings, readingHandedOn, type StringsReading } from '../_shared/drawing_string_reading.ts';
 import { INK_GRID, aspectMatches, expectedInk, imageDenseEnough, inkAgrees, pageCountHolds, pxNeeded } from '../_shared/released_file_pages.ts';
 import { asciiDxfOf } from '../_shared/cad_file_redact.ts';
+import { TIME_HELD, deadlinesFrom } from '../_shared/drawing_deadline.ts';
 
 import { instructingRuns, verifyVerdict } from './verify_verdict.ts';
 
@@ -304,10 +305,11 @@ function oriented(size: PageSize, jpgB64: string): PageSize {
 /** The size a page with no better measure is checked at: the larger of A1 and what its pixels imply. */
 function sizeOfPixels(jpgB64: string): PageSize { const px = jpegSize(b64ToBytes(jpgB64)); return pageSizeFromPixels(px?.w ?? 2600, px?.h ?? 1838); }
 /** One page through the gate, TILED to its physical size; the answer carries the calls and USD it spent. */
-async function gatePage(key: string | undefined, held: boolean, secret: string, authors: string, jpgB64: string, budget: PixelBudget, size?: PageSize): Promise<PixelOutcome> {
+async function gatePage(key: string | undefined, held: boolean, secret: string, authors: string, jpgB64: string, budget: PixelBudget, size?: PageSize, stopAt?: number): Promise<PixelOutcome> {
   if (held || !key) return { ok: false, held: 'pixels_unverified', calls: 0, usd: 0, detail: { reason: held ? 'model_hold' : 'no_ai_key' } };
   const plan = planTiles(oriented(size ?? sizeOfPixels(jpgB64), jpgB64));
-  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b), (b, regions) => paintElsewhere(secret, b, regions), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m) });
+  // stopAt (drawing_deadline.ts): past it no view is asked and the page is held for time.
+  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b), (b, regions) => paintElsewhere(secret, b, regions), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m), stopAt });
 }
 /** What the customer is told when the set is past its budget (plain words), or nothing. */
 const budgetSaid = (held: string | undefined) => held === 'pixels_budget' ? { customer_message: PIXEL_BUDGET_MESSAGE } : {};
@@ -363,8 +365,12 @@ async function publish(id: string, body: any, o: Parameters<typeof recordRun>[2]
 
 Deno.serve(observe('drawing_redact', async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
+  // THE CLOCK (round 4, drawing_deadline.ts): no page is started after clock.startBy, and a page under way is abandoned at
+  // clock.stopAt; either is HELD for time and said. A caller (customer_api) may bring both earlier, never later.
+  const startedAt = Date.now();
   try {
     const body = await req.json().catch(() => ({} as any));
+    const clock = deadlinesFrom(body, startedAt);
     // AUDIT 9.5 (3 Aug 2026): the gate now asks fn_internal_auth, which accepts both the new
     // per-context credential and the legacy shared secret, and records which one called.
     const __auth = await requireInternal(admin, body?.__secret, 'drawing_redact');
@@ -420,7 +426,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
       // The worker sends the sheet's size when it knows it (page_mm: a CAD drawing's, from its text heights); a scan is
       // checked as the larger of A1 and what its pixels imply.
       const pm = body.page_mm, size = pm && Number(pm.w) > 0 && Number(pm.h) > 0 ? { wMm: Number(pm.w), hMm: Number(pm.h), from: 'cad' as const } : undefined;
-      const g = await gatePage(key, held, String(body.__secret || ''), String(body.authors || 'deterministic'), stripB64(body.jpg_b64), await budgetInFlight(body.source_path, body.spent_usd), size);
+      const g = await gatePage(key, held, String(body.__secret || ''), String(body.authors || 'deterministic'), stripB64(body.jpg_b64), await budgetInFlight(body.source_path, body.spent_usd), size, clock.stopAt);
       return J(g.ok ? { ok: true, jpg_b64: g.jpgB64, pixel_calls: g.calls, pixel_usd: g.usd, first_look_clean: fileMayBeShared(g) } : { ok: true, held: g.held, pixel_calls: g.calls, pixel_usd: g.usd, detail: g.detail, ...budgetSaid(g.held) });
     }
     if (body.mode === 'read_strings') {
@@ -499,7 +505,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
       }
       const page = await cadPage(f.bytes, seeds).catch(() => null);
       if (!page || !page.ok) { await admin.storage.from('drawing-files').remove([path]).catch(() => {}); return await hold('released_file_not_drawn', page && !page.ok ? page.skipped : 'exception'); }
-      const g = await gatePage(key, held, String(body.__secret || ''), 'deterministic', bytesToB64(page.jpg), budget, pageSizeFromCad(Number(page.detail.width), Number(page.detail.height), Number(page.detail.text_px_p10)));
+      const g = await gatePage(key, held, String(body.__secret || ''), 'deterministic', bytesToB64(page.jpg), budget, pageSizeFromCad(Number(page.detail.width), Number(page.detail.height), Number(page.detail.text_px_p10)), clock.stopAt);
       spent.pixel_usd = g.usd;
       // A file the model boxes anything on is not cut again here: it is not shared (the preview, painted, still goes).
       if (!fileMayBeShared(g)) { await admin.storage.from('drawing-files').remove([path]).catch(() => {}); return await hold(g.ok ? 'pixels_found_identity' : g.held, { pixel_calls: g.calls, pixel_usd: g.usd, strings_usd: stringsUsd, ...g.detail }); }
@@ -556,7 +562,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
       const budget = await pixelBudgetFor((run as any).source_path);
       for (let i = 0; i < pages.length; i++) {
         const p = pages[i];
-        const g = await gatePage(key, held, String(body.__secret || ''), 'deterministic', shown[i], budget, Math.abs(p.rotate || 0) % 180 === 90 ? pageSizeFromMediaBox(p.height, p.width) : pageSizeFromMediaBox(p.width, p.height));
+        const g = await gatePage(key, held, String(body.__secret || ''), 'deterministic', shown[i], budget, Math.abs(p.rotate || 0) % 180 === 90 ? pageSizeFromMediaBox(p.height, p.width) : pageSizeFromMediaBox(p.width, p.height), clock.stopAt);
         calls += g.calls; usd += g.usd;
         if (!fileMayBeShared(g)) return await refuse(g.ok ? 'pixels_found_identity' : g.held, i);
       }
@@ -586,7 +592,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
       if (!identity) out = { ok: false, skipped: heldM ? 'held_model_off' : 'strings_not_read' };
       else { try { out = await cadPage(b64ToBytes(body.original_b64), seeds, { identity }); } catch (e) { out = { ok: false, skipped: 'cad_render_exception', detail: String((e as Error)?.message || e).slice(0, 160) }; } }
       if (out.ok) {
-        const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(out.jpg), budgetM, pageSizeFromCad(out.image.width, out.image.height, Number(out.detail.text_px_p10)));
+        const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(out.jpg), budgetM, pageSizeFromCad(out.image.width, out.image.height, Number(out.detail.text_px_p10)), clock.stopAt);
         spentM.pixel_usd = g.usd;
         if (!g.ok) out = { ok: false, skipped: g.held, detail: JSON.stringify(g.detail).slice(0, 160) };
         else { out = { ...out, jpg: b64ToBytes(g.jpgB64), detail: { ...out.detail, pixel_calls: g.calls, pixel_usd: g.usd, pixel_boxes: g.detail.boxes_added } }; }
@@ -629,7 +635,9 @@ Deno.serve(observe('drawing_redact', async (req) => {
       const budget = await pixelBudgetFor(body.source_path);
       const agrees = body.original_b64 ? await readerAgrees(b64ToBytes(body.original_b64), [pageOffset, pageOffset + imgs.length]) : false;
       let pixelCalls = 0, pixelUsd = 0;
+      let timeHeld = 0;
       for (let i = 0; i < imgs.length; i++) {
+        if (Date.now() >= clock.startBy) { skipped++; timeHeld++; detail.push({ page: i, skipped: TIME_HELD }); continue; }
         if (!agrees) { skipped++; detail.push({ page: i, skipped: 'reader_disagrees_with_pdf' }); continue; }
         // FAIL CLOSED (founder, 14 Sep 2026: nothing that identifies the customer may reach a supplier). The
         // steps live in _shared/drawing_redact_page.ts serverBoxedPage: a page the server cannot read (a scan,
@@ -641,9 +649,9 @@ Deno.serve(observe('drawing_redact', async (req) => {
           if (!r.ok) { skipped++; detail.push({ page: i, skipped: r.skipped }); continue; }
           textHits += Number(r.detail.text_layer_boxes) || 0;
           const pp = pdf[pageOffset + i];
-          const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(r.jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined);
+          const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(r.jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt);
           pixelCalls += g.calls; pixelUsd += g.usd;
-          if (!g.ok) { skipped++; detail.push({ page: i, skipped: g.held, ...g.detail }); continue; }
+          if (!g.ok) { skipped++; if (g.held === TIME_HELD) timeHeld++; detail.push({ page: i, skipped: g.held, ...g.detail }); continue; }
           // The same rule as the model path (drawing_code_floor.unreadTextHold, round 4): every area of text code cannot read
           // must lie under a painted box - the boxes that came with the page, the text layer's, or the checker's - or HELD.
           const unreadHeld = unreadTextHold(pp, [], [...(r.painted ?? []), ...g.boxes.map((b) => padded(b, REPAINT_MARGIN))]);
@@ -656,7 +664,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
       }
       const status = paths.length === 0 ? 'failed' : (paths.length < imgs.length ? 'partial' : 'complete');
       const recorded = await publish(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: paths.length, verify_failed: 0, verify_detail: { method: 'manual', pages: detail, pixel_calls: pixelCalls, pixel_usd: pixelUsd } });
-      return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: 0, verify_failed: 0, verify_detail: detail, status, method: 'manual', text_layer_hits: textHits, redaction_complete: recorded && paths.length === imgs.length, ...budgetSaid(detail.some((d: any) => d.skipped === 'pixels_budget') ? 'pixels_budget' : undefined) });
+      return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: 0, verify_failed: 0, verify_detail: detail, status, method: 'manual', text_layer_hits: textHits, time_held: timeHeld, redaction_complete: recorded && paths.length === imgs.length, ...budgetSaid(detail.some((d: any) => d.skipped === 'pixels_budget') ? 'pixels_budget' : undefined) });
     }
 
     // THE MODEL IS HELD: SAY SO, DO NOT ASK (24 Sep 2026). Under the OpenRouter hold every find call failed and
@@ -702,7 +710,9 @@ Deno.serve(observe('drawing_redact', async (req) => {
     // Boxes code adds under the models' answer (see THE CODE FLOOR below; drawing_redact_page.codeFloorBoxes); null = no
     // reading of this page exists.
     const codeFloor = (i: number) => codeFloorBoxes(pdf[pageOffset + i], seeds);
+    let timeHeld = 0;
     for (let i = 0; i < imgs.length; i++) {
+      if (Date.now() >= clock.startBy) { skipped++; timeHeld++; verifyDetail.push({ page: i, skipped: TIME_HELD }); continue; }
       try {
         const regions = regionsByPage[i] || [];
         const hasId = identityByPage[i] !== false;
@@ -746,7 +756,8 @@ Deno.serve(observe('drawing_redact', async (req) => {
         paintBoxes(img, floor);   // the code floor, at the server's own margin (its boxes are measured, not guessed)
         let jpg = await img.encodeJPEG(82);
         const pp = pdf[pageOffset + i];
-        const gate = await gatePage(key, false, String(body.__secret || ''), findModel, bytesToB64(jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined);
+        const gate = await gatePage(key, false, String(body.__secret || ''), findModel, bytesToB64(jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt);
+        if (!gate.ok && gate.held === TIME_HELD) { skipped++; timeHeld++; verifyDetail.push({ page: i, skipped: TIME_HELD, calls: gate.calls }); pixelCalls += gate.calls; pixelUsd += gate.usd; continue; }
         pixelCalls += gate.calls; pixelUsd += gate.usd;
         const attempt = gate.ok ? (gate.firstLookClean ? 1 : 2) : gate.calls;
         const vr = gate.ok ? { clean: true, found: [] as string[] } : { clean: false, found: [gate.held, ...((gate.detail as any).still ?? [])] };
@@ -773,6 +784,6 @@ Deno.serve(observe('drawing_redact', async (req) => {
     }
     const status = paths.length === 0 ? 'failed' : (paths.length < imgs.length ? 'partial' : 'complete');
     const recorded = await publish(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: { method: 'model', pages: verifyDetail, pixel_calls: pixelCalls, pixel_usd: pixelUsd } });
-    return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: verifyDetail, status, method: 'model', redaction_complete: recorded && paths.length === imgs.length });
+    return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: verified, verify_failed: verifyFailed, verify_detail: verifyDetail, status, method: 'model', time_held: timeHeld, redaction_complete: recorded && paths.length === imgs.length });
   } catch (e) { return J({ ok: false, error: String((e as Error)?.message || e) }, 200); }
 }));

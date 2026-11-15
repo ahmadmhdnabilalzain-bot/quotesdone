@@ -25,12 +25,12 @@ export function drawingHandoff(meta: RedMeta, originalPath: string | null, redac
 }
 
 /** The ledger row for a held drawing (mirrors the 'boq_held' row create_inquiry writes). */
-export function heldRun(o: { customerId: string; email: string; sourcePath: string; meta: RedMeta; reason: string }) {
+export function heldRun(o: { customerId: string; email: string; sourcePath: string; meta: RedMeta; reason: string; detail?: Record<string, unknown> }) {
   return {
     customer_id: o.customerId, owner_email: o.email, source_path: o.sourcePath, output_paths: [] as string[],
     pages_in: o.meta.redaction_pages_in, pages_out: o.meta.redaction_pages_out, skipped: Math.max(0, o.meta.redaction_pages_in - o.meta.redaction_pages_out),
     status: 'held', pages_verified: o.meta.redaction_pages_out, verify_failed: Math.max(0, o.meta.redaction_pages_in - o.meta.redaction_pages_out),
-    verify_detail: { reason: o.reason },
+    verify_detail: { reason: o.reason, ...(o.detail ?? {}) } as Record<string, unknown> & { reason: string },
   };
 }
 
@@ -93,4 +93,18 @@ export function fileHeldNote(reason: string | null) {
  */
 export function budgetNote(hit: boolean) {
   return hit ? { drawing_held_reason: 'pixels_budget' as const, drawing_held_message: PIXEL_BUDGET_MESSAGE } : {};
+}
+
+/**
+ * NOT EVERY SHEET COULD BE CHECKED IN TIME, AND THE CUSTOMER IS TOLD SO (round 4 of the drawings fix, 15 Nov 2026; third
+ * review fix 2; _shared/drawing_deadline.ts). analyze_drawing starts no page after 100 s of its request and drawing_redact
+ * abandons one under way at 125 s; such a page is HELD for time, so the drawing as a whole is held (drawingHandoff: only a
+ * set with every page verified is shared). The answer says why in plain words and what helps: fewer sheets an upload.
+ */
+export const TIME_MESSAGE = {
+  en: 'We could not check every sheet in the time one upload allows, so suppliers do not see this drawing yet. Upload the sheets suppliers need most, a few at a time, and each upload is checked in full.',
+  ar: 'لم يتّسع وقت الرفع الواحد لفحص كل اللوحات، لذلك لا يرى المورّدون هذا المخطّط حتى الآن. ارفع اللوحات التي يحتاجها المورّدون أكثر من غيرها، بضع لوحات في كل مرة، فتُفحص كل دفعة كاملة.',
+} as const;
+export function timeNote(pagesHeldForTime: number) {
+  return pagesHeldForTime > 0 ? { drawing_held_reason: 'time' as const, drawing_held_message: TIME_MESSAGE, redaction_pages_held_for_time: pagesHeldForTime } : {};
 }

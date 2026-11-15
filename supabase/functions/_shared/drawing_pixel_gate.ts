@@ -202,16 +202,17 @@ export type PixelBudget = { left: () => number; spend: (usd: number) => void };
 
 export type PixelOutcome =
   | { ok: true; jpgB64: string; calls: number; usd: number; painted: number; firstLookClean: boolean; boxes: Box[]; detail: { calls: number; usd: number; boxes_added: number; tiles: number } }
-  | { ok: false; held: 'pixels_unverified' | 'pixels_not_clean' | 'pixels_budget'; calls: number; usd: number; detail: Record<string, unknown> };
+  | { ok: false; held: 'pixels_unverified' | 'pixels_not_clean' | 'pixels_budget' | 'time'; calls: number; usd: number; detail: Record<string, unknown> };
 
 /** Map a box found in `t` back to page fractions. */
 export const toPage = (t: Tile, r: Box): Box => ({ x: t.x + r.x * t.w, y: t.y + r.y * t.h, w: r.w * t.w, h: r.h * t.h });
 
 /** At most this many views of a page are asked at once. */
 const CONCURRENCY = 4;
-async function pool<T, R>(items: T[], f: (x: T) => Promise<R>): Promise<R[]> {
+async function pool<T, R>(items: T[], f: (x: T) => Promise<R>, late: (x: T) => R = () => { throw new Error('late'); }, stopped: () => boolean = () => false): Promise<R[]> {
   const out: R[] = new Array(items.length); let next = 0;
-  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, items.length) }, async () => { while (next < items.length) { const i = next++; out[i] = await f(items[i]); } }));
+  // A view not yet started when the clock runs out is not asked (drawing_deadline: the page is then held for time).
+  await Promise.all(Array.from({ length: Math.min(CONCURRENCY, items.length) }, async () => { while (next < items.length) { const i = next++; out[i] = stopped() ? late(items[i]) : await f(items[i]); } }));
   return out;
 }
 
@@ -221,7 +222,7 @@ async function pool<T, R>(items: T[], f: (x: T) => Promise<R>): Promise<R[]> {
  * again (at most PIXEL_MAX_RECHECKS times); painting only adds black, so a view once clean stays clean. Without a plan
  * the image is asked whole (one view, PIXEL_CALL_USD). `budget` is in USD; a round it cannot pay for HOLDS the page.
  */
-export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint, budget: PixelBudget = { left: () => Infinity, spend: () => {} }, look?: { plan: TilePlan; crop: PixelCrop }): Promise<PixelOutcome> {
+export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint, budget: PixelBudget = { left: () => Infinity, spend: () => {} }, look?: { plan: TilePlan; crop: PixelCrop; stopAt?: number; now?: () => number }): Promise<PixelOutcome> {
   const views: Tile[] = look ? [...look.plan.tiles, ...(look.plan.whole ? [look.plan.whole] : [])] : [{ x: 0, y: 0, w: 1, h: 1, outW: 0, outH: 0, whole: true }];
   const cost = (t: Tile) => look ? callUsd(t.outW, t.outH + TILING.markPx) : PIXEL_CALL_USD;
   let img = jpgB64, calls = 0, usd = 0, added = 0, pending = views;
@@ -229,7 +230,11 @@ export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint
   // Every box the checker named and that was painted, in page fractions (round 4: drawing_code_floor.unreadTextHold asks
   // whether each area of text code cannot read lies under SOME painted box, the checker's included).
   const boxes: Box[] = [];
+  // THE CLOCK (round 4; drawing_deadline.ts): past look.stopAt no new view is asked and no new round begins; the page is
+  // HELD for time ('time'), never published on the views that did answer.
+  const now = look?.now ?? Date.now, stopAt = look?.stopAt ?? Infinity, late = () => now() >= stopAt;
   for (let round = 0; round <= PIXEL_MAX_RECHECKS; round++) {
+    if (late()) return { ok: false, held: 'time', calls, usd, detail: { calls, usd, boxes_added: added, round } };
     const due = pending.reduce((s, t) => s + cost(t), 0);
     if (budget.left() < due) return { ok: false, held: 'pixels_budget', calls, usd, detail: { calls, usd, boxes_added: added, round, due } };
     budget.spend(due); calls += pending.length; usd += due;
@@ -237,10 +242,14 @@ export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint
     const answers = await pool(pending, async (t) => {
       const mark = look ? newMark() : '';
       const shown = look ? await look.crop(page, t, mark).catch(() => null) : page;
-      if (!shown) return { t, v: null, read: false };
+      if (!shown) return { t, v: null, read: false, late: false };
       const v = parsePixelVerdict(await ask(shown).catch(() => null));
-      return { t, v, read: !look || (!!v && v.mark === mark) };
-    });
+      return { t, v, read: !look || (!!v && v.mark === mark), late: false };
+    }, (t) => ({ t, v: null, read: false, late: true }), late);
+    const notAsked = answers.filter((a) => a.late).length;
+    // What was never asked was never spent: it goes back to the set's budget and out of the record.
+    if (notAsked) { const back = answers.filter((a) => a.late).reduce((s, a) => s + cost(a.t), 0); budget.spend(-back); calls -= notAsked; usd -= back; }
+    if (notAsked) return { ok: false, held: 'time', calls, usd, detail: { calls, usd, boxes_added: added, round, not_asked: notAsked } };
     if (answers.some((a) => !a.v)) return { ok: false, held: 'pixels_unverified', calls, usd, detail: { calls, usd, boxes_added: added, round } };
     // A VIEW NOT READ IS NO ANSWER (round 3, the reading mark): an answer that does not carry the number drawn under that
     // view did not read it, whatever it says, so the page is HELD. MEASURED with an ALWAYS-CLEAN stub on the reviewer's
@@ -256,6 +265,7 @@ export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint
     if (round === PIXEL_MAX_RECHECKS) break;
     img = await paint(img, found);
     added += found.length; boxes.push(...found);
+    if (late()) return { ok: false, held: 'time', calls, usd, detail: { calls, usd, boxes_added: added, round: round + 1 } };
     pending = dirty.map((a) => a.t);
   }
   return { ok: false, held: 'pixels_not_clean', calls, usd, detail: { calls, usd, boxes_added: added, still: seen.slice(-8) } };
