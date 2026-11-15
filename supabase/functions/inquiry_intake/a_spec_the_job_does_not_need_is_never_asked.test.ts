@@ -15,7 +15,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { askedTurnsByKey, heldReply, MAX_OPEN_TURNS, NOT_NEEDED_PREFIX, reconcileSlots, requirementsContract, requirementsFromModel, tappedHeldAnswer, VOICE_CLASS } from './slots.ts';
 import type { SpecField } from './interview.ts';
-import { requirementQuestions, requirementsStep } from '../_shared/intake_requirements.ts';
+import { requirementQuestions, requirementsStep, toStored, validateStored } from '../_shared/intake_requirements.ts';
 import { checklistsOf, packFields, type TradeContext } from '../_shared/inquiry_trades.ts';
 import { expertFieldsOf } from '../../../scripts/kb/load_trade_spec_checklists.mjs';
 
@@ -104,6 +104,10 @@ Deno.test('6. the four questions: ducting not needed is an answer, and the next 
   assert(duct.options.some((o) => o.v === 'not_needed' && o.en === 'Not needed for this job'));
   assert(requirementsContract('hvac').includes('"not_needed" when the job installs no new ductwork'), 'the model is told when ducting is not needed');
   assertEquals(requirementsFromModel('hvac', { 'material.ducting': 'not_needed' })['material.ducting'], { v: 'not_needed' });
+  // the post gate customer_api runs at create (inquiry_create.ts validateStored) accepts it, and a supplier reads it in words
+  const stored = toStored('hvac', { 'material.brand': { v: 'premium' }, 'material.ducting': { v: 'not_needed' }, installation: { v: 'yes' }, warranty: { v: 'yes', min_months: 24 }, required_by: { v: 'date', date: '2026-12-15', text: '15 December 2026' } }, new Date('2026-11-15T10:00:00Z'));
+  assertEquals(validateStored('hvac', stored).ok, true, JSON.stringify(validateStored('hvac', stored)));
+  assertEquals(stored.materials.find((m) => m.component === 'ducting')?.choice_en, 'Not needed for this job');
   assertEquals(requirementsQuestionsWithout('cleaning'), false, 'a component with no condition offers no "not needed"');
   const now = new Date('2026-11-15T10:00:00Z');
   const prev = { 'material.brand': { v: 'premium' }, 'material.ducting': { v: 'not_needed' }, installation: { v: 'yes' } };
