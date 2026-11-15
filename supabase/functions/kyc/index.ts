@@ -136,7 +136,7 @@ async function verifyCheck(tw: TwAuth, phone: string, code: string): Promise<boo
 // ONE RETRY ON 429 (21 Sep 2026). Resend allows 10 requests a second per team, shared with send_outbox
 // draining a campaign on the same key; a code refused for a busy second is retried once rather than lost.
 // The call lives in _shared/resend_send.ts so login_otp and kyc cannot drift apart.
-async function sendEmail(to: string, subject: string, html: string) { const [key, fromS, replyS] = await Promise.all([secCached('resend_api_key'), secCached('email_from_info'), secCached('email_reply_info')]); if (!key) return false; const from = fromS || 'QuotesDone <info@quotesdone.com>'; const reply_to = replyS || 'info@quotesdone.com'; return await resendWithRetry(key, { from, to, subject, html, reply_to }); }
+async function sendEmail(to: string, subject: string, html: string, text?: string) { const [key, fromS, replyS] = await Promise.all([secCached('resend_api_key'), secCached('email_from_info'), secCached('email_reply_info')]); if (!key) return false; const from = fromS || 'QuotesDone <info@quotesdone.com>'; const reply_to = replyS || 'info@quotesdone.com'; return await resendWithRetry(key, { from, to, subject, html, ...(text ? { text } : {}), reply_to }); }
 // SUPPRESSION BYPASS 28 Jul 2026 ----------------------------------------------------------------
 // login_otp and contact_submit both consult email_suppressions before handing anything to Resend,
 // and send_outbox queries the same table. kyc did not: sendEmail() above builds its own Resend call,
@@ -331,7 +331,7 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       // previously the send result was discarded: a failed send left the user waiting with no trace
       const codeAr = (await registeredLocale(admin, { role: kind, email }, b.lang)) === 'ar';
       const mail = codeEmail('confirm', c, codeAr);
-      const sent = await sendEmail(email, mail.subject, mail.html);
+      const sent = await sendEmail(email, mail.subject, mail.html, mail.text);
       // A code that did not leave is not "sent" (21 Sep 2026): this answered ok:true either way, so the
       // screen said "we emailed you a code" over a Resend refusal and the supplier waited for nothing.
       if (!sent) { await logRun('error', { action, kind }, 'verification email failed to send (Resend rejected or key missing) - user cannot verify'); return J({ ok: false, error: 'Could not send the email code. Please try again in a minute.', code: 'email_not_sent' }, 502); }

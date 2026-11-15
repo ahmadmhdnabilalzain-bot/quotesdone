@@ -57,7 +57,7 @@ async function twilioAuth() { const sid = await sec('twilio_api_key_sid'); const
 // ONE RETRY ON 429 (21 Sep 2026). Resend allows 10 requests a second per team, shared with send_outbox
 // draining a campaign on the same key; a code refused for a busy second is retried once rather than lost.
 // The call lives in _shared/resend_send.ts so login_otp and kyc cannot drift apart.
-async function sendEmail(to: string, subject: string, html: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; const reply_to = (await sec('email_reply_info')) || 'info@quotesdone.com'; return await resendWithRetry(key, { from, to, subject, html, reply_to }); }
+async function sendEmail(to: string, subject: string, html: string, text?: string) { const key = await sec('resend_api_key'); if (!key) return false; const from = (await sec('email_from_info')) || 'QuotesDone <info@quotesdone.com>'; const reply_to = (await sec('email_reply_info')) || 'info@quotesdone.com'; return await resendWithRetry(key, { from, to, subject, html, ...(text ? { text } : {}), reply_to }); }
 
 // SUPPRESSION BYPASS 27 Jul 2026 ----------------------------------------------------------------
 // send_outbox was the ONLY sender in the codebase that consulted email_suppressions. sendEmail()
@@ -349,7 +349,7 @@ const signIn = observe('login_otp', async (req) => {
         const mail = codeEmail('signin', c, codeAr);
         // A code that did not leave is not "sent" (21 Sep 2026). The result was discarded, so a Resend
         // refusal answered ok:true and the person waited on a code screen for an email that never came.
-        if (!(await sendEmail(email, mail.subject, mail.html))) {
+        if (!(await sendEmail(email, mail.subject, mail.html, mail.text))) {
           await log('error', { channel: 'email', not_sent: 1 }, 'login_otp could not hand a sign-in code to Resend (refused after one retry, or the key is missing). The caller was told to try again.');
           return J({ error: 'Could not send the email code. Please try again in a minute.', code: 'email_not_sent' }, 502);
         }
