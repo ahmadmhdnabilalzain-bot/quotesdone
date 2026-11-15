@@ -33,7 +33,7 @@ declare
 begin
   -- the world this probe needs, every value rolled back by the raise
   insert into public.app_secrets (key, value) values ('invite_enabled', 'false'), ('supplier_outreach_golive', 'true'), ('invite_reachable_only', 'true'),
-    ('invite_body', E'Hi {{company}} team,\n\nWould your company like to receive the requests of its trade?')
+    ('invite_body', E'Hi {{company}} team,\n\nWould your company like to receive the requests of its trade?\n\nIf this isn''t relevant, reply "stop" and we won''t contact you again.')
   on conflict (key) do update set value = excluded.value;
   update public.invite_brake set resumed_at = coalesce(resumed_at, now() - interval '40 days'), fired_at = least(fired_at, now() - interval '41 days')
    where resumed_at is null or resumed_at > now() - interval '40 days';
@@ -149,8 +149,13 @@ begin
   returning id into v_bid;
   r := public.fn_ceo_reviews_the_invite_brake();
   if r->>'decided' = 'restart' then
-    if not exists (select 1 from public.invite_brake_decision where brake_id = v_bid and actor = 'ceo' and decision in ('restart', 'restart_refused') and reason like '%Re-judged%') then
+    -- the review's reason is the evidence; the restart itself is still bound by the limit (two were spent in step 8)
+    if r->>'reason' not like 'Re-judged by bounce kind%2 hard of 32 sent%' then
       v_p := v_p || ('the CEO review decided without the evidence as its reason: ' || r::text); end if;
+    if not (coalesce((r->'result'->>'ok')::boolean, false) or r->'result'->>'reason' like '%limit is reached%') then
+      v_p := v_p || ('the CEO review''s restart failed for another reason: ' || r::text); end if;
+    if not exists (select 1 from public.invite_brake_decision where brake_id = v_bid and actor = 'ceo' and decision in ('restart', 'restart_refused')) then
+      v_p := v_p || 'the CEO review''s decision was not recorded'::text; end if;
   elsif r->>'decided' = 'hold' then
     if not exists (select 1 from public.invite_brake_decision where brake_id = v_bid and actor = 'ceo' and decision = 'hold') then v_p := v_p || 'a hold was not recorded'::text; end if;
   else

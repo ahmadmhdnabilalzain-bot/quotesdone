@@ -140,7 +140,8 @@ test('an owed supplier reply goes back to the MODEL\'s answerer: the duty writes
   const d = code(body(REPLY, 'fn_sales_engineer_answers_supplier_replies_same_day'));
   assert.match(d, /set triaged_at = null, ai_category = null, owner_role = null, needs_review = true/);
   assert.doesNotMatch(d, /fn_inbox_send|fn_customer_support_takes_delivery|insert into public\.notifications/, 'the same-day duty writes a reply in code');
-  assert.match(d, /'escalated'/); assert.match(d, /'not_owed'/); assert.match(d, /fn_seat_handoff\('sales_engineer', 'ceo', 'review\.requested'/);
+  assert.match(d, /'escalated'/); assert.match(d, /'not_owed'/); assert.match(d, /fn_seat_handoff\('sales_engineer', 'ceo', 'supplier\.reply_overdue'/);
+  assert.match(REPLY, /\('supplier\.reply_overdue', 'sales_engineer', 'ceo',/, 'the overdue conversation is not registered (fn_seat_handoff files it failed)');
   assert.match(d, /r\.attempts < 3/); assert.match(d, /interval '30 minutes'/);
   assert.match(d, /not r\.may_reply/, 'a reading that refused an answer is overridden');
 });

@@ -61,8 +61,18 @@ begin
   r := public.fn_sales_engineer_answers_supplier_replies_same_day(v_mon);
   r := public.fn_sales_engineer_answers_supplier_replies_same_day(timestamptz '2026-11-16 13:01:00+00');
   if (select state from public.supplier_reply_same_day where inbound_message_id = v_m1) <> 'escalated' then v_p := v_p || ('an overdue reply was not escalated: ' || r::text); end if;
-  if not exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.detail->>'type' = 'review.requested' and a.target_id = v_m1::text) then
-    v_p := v_p || 'the escalation filed no CEO handoff'::text; end if;
+  if not exists (select 1 from public.agent_actions a join public.supplier_reply_same_day x on x.handoff_id = a.id
+                  where x.inbound_message_id = v_m1 and a.kind = 'handoff' and a.agent = 'ceo' and a.status = 'pending'
+                    and a.detail->>'type' = 'supplier.reply_overdue') then
+    v_p := v_p || ('the escalation filed no pending CEO handoff: ' || coalesce((select a.status || ' ' || coalesce(a.detail->>'error', '') from public.agent_actions a
+                     join public.supplier_reply_same_day x on x.handoff_id = a.id where x.inbound_message_id = v_m1), 'none')); end if;
+  -- answered late (by the CEO's hand or the model): recorded, and the CEO's conversation closed by the sales engineer
+  update public.inbound_messages set replied_at = timestamptz '2026-11-16 13:30:00+00', replied_by = 'ceo' where id = v_m1;
+  r := public.fn_sales_engineer_answers_supplier_replies_same_day(timestamptz '2026-11-16 13:31:00+00');
+  if (select state || ':' || reason from public.supplier_reply_same_day where inbound_message_id = v_m1) not like 'answered:%after its due time%' then
+    v_p := v_p || 'a late answer is not recorded as late'::text; end if;
+  if exists (select 1 from public.agent_actions a join public.supplier_reply_same_day x on x.handoff_id = a.id where x.inbound_message_id = v_m1 and a.status = 'pending') then
+    v_p := v_p || 'the CEO''s conversation stayed open after the answer'::text; end if;
 
   -- 4. THE ONE LAST NOTE: the text carries the click-to-chat link and the registration link, and no WhatsApp message is sent
   r := public.fn_supplier_final_touch_text('Probe Parked Trading', 'https://quotesdone.com/en/portal?x=1', '+1 218 316 6814');
@@ -77,7 +87,7 @@ begin
   on conflict (key) do update set value = excluded.value;
   perform set_config('qd.duty_fixtures', 'on', true);
   for i in 1..6 loop
-    insert into public.leads (company_name, email, lifecycle_stage, is_demo) values ('ZZ DEMO Parked ' || i, 'parked' || i || '.' || md5(random()::text) || '@example.invalid', 'no_response', true)
+    insert into public.leads (company_name, email, lifecycle_stage) values ('ZZ DEMO Parked ' || i, 'parked' || i || '.' || md5(random()::text) || '@example.invalid', 'no_response')
     returning id into v_lead;
     v_ids := v_ids || v_lead;
   end loop;

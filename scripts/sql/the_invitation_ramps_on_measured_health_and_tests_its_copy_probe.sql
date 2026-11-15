@@ -26,7 +26,7 @@ declare
   i int; r jsonb; v_cap int; v_a int := 0; v_b int := 0; v_c int := 0;
 begin
   insert into public.app_secrets (key, value) values ('invite_enabled', 'false'), ('supplier_outreach_golive', 'true'), ('invite_reachable_only', 'true'),
-    ('invite_body', E'Hi {{company}} team,\n\nWould your company like to receive the requests of its trade?'), ('invite_lane_enabled', 'false')
+    ('invite_body', E'Hi {{company}} team,\n\nWould your company like to receive the requests of its trade?\n\nIf this isn''t relevant, reply "stop" and we won''t contact you again.'), ('invite_lane_enabled', 'false')
   on conflict (key) do update set value = excluded.value;
   insert into public.email_domain_mx (domain, has_mx, kind, hosts) values (v_dom, true, 'mx', array['aspmx.l.google.com']);
 
@@ -90,6 +90,9 @@ begin
   if v_cap <> 8 then v_p := v_p || ('two hard bounces in 36 did not hold at 8: ' || v_cap || ' ' || coalesce((select note from public.agent_runs where agent = 'invite_ramp' order by id desc limit 1), '')); end if;
   -- 3 of 37 (lower bound 3.3% > 2.5%): back off by half
   perform pg_temp.probe_send(pg_temp.probe_lead(v_dom, 4002), now() - interval '45 minutes', true);
+  -- the third bounce today is a burst the same-day trigger brakes on (3 of 8 today); the ramp still answers for the cap
+  if (select value from public.app_secrets where key = 'invite_enabled') <> 'false' then v_p := v_p || 'three hard bounces of eight today did not stop the campaign'::text; end if;
+  update public.app_secrets set value = 'true' where key = 'invite_enabled';
   v_cap := public.fn_invite_ramp();
   if v_cap <> 4 then v_p := v_p || ('three hard bounces in 37 did not back off to 4: ' || v_cap || ' ' || coalesce((select note from public.agent_runs where agent = 'invite_ramp' order by id desc limit 1), '')); end if;
 

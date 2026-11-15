@@ -29,7 +29,7 @@ begin
   -- 3. a calendar built, unedited, organic, with a post to come: the CEO approves it exactly as built
   insert into public.marketing_campaign (campaign_key, theme, month, spend_policy) values (v_key, 'probe', v_month, 'organic_only') returning id into v_cid;
   insert into public.marketing_post (campaign_id, ingest_key, ingested_by, text_en, channels, scheduled_at, status, is_demo)
-  values (v_cid, v_key || '-1', 'probe', 'Probe post', array['linkedin'], now() + interval '3 days', 'scheduled', false);
+  values (v_cid, v_key || '-1', 'marketing', 'Probe post', array['linkedin'], now() + interval '3 days', 'scheduled', false);
   update public.marketing_campaign set calendar_hash = public.fn_marketing_campaign_hash(v_cid) where id = v_cid;
   r := public.fn_ceo_decides_marketing();
   if (select approved_by from public.marketing_campaign where id = v_cid) is distinct from 'ceo'

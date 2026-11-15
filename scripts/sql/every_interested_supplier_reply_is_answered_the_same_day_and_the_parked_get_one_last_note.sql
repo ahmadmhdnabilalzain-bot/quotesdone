@@ -39,7 +39,7 @@
 -- every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note_probe.sql (LOCAL).
 -- APPLY ORDER: after the_bounce_brake_judges_each_bounce_by_kind_provider_and_sample_and_the_ceo_restarts_within_a_limit.sql
 -- (the final touch reads the judgement).
--- LOCKS: two new tables and new routines; inbound_messages rows are updated one at a time by the duty, as the rescue does.
+-- LOCKS: two new tables, one seat_handoff_kind row and new routines; inbound_messages rows are updated one at a time by the duty, as the rescue does.
 set local lock_timeout = '1500ms';
 
 create table if not exists public.supplier_reply_same_day (
@@ -53,6 +53,7 @@ create table if not exists public.supplier_reply_same_day (
   last_requested_at timestamptz,
   answered_at timestamptz,
   escalated_at timestamptz,
+  handoff_id bigint,
   reason text,
   created_at timestamptz not null default now());
 comment on table public.supplier_reply_same_day is 'Every supplier reply of kind interested or question and what became of it: answered by the model the same working day, escalated to the CEO past its due time, or not owed (with why). Never dropped silently (rulings 1705/1706). every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql';
@@ -116,6 +117,22 @@ begin
 end $fn$;
 revoke execute on function public.fn_supplier_reply_due_by(timestamptz) from public, anon, authenticated;
 
+-- THE CEO'S CONVERSATION FOR AN OVERDUE REPLY: registered here (an unregistered kind is filed 'failed' by fn_seat_handoff). The
+-- handler leaves it waiting on the CEO; the sales engineer closes it once the supplier has been answered (originator_closes).
+create or replace function public.fn_ceo_holds_an_overdue_supplier_reply(p_id bigint)
+returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select jsonb_build_object('waiting', 'the CEO has the supplier answered in the thread today (inbound '
+                            || coalesce(a.detail->>'inbound_message_id', '?') || '); the sales engineer closes this once the answer has gone')
+    from public.agent_actions a where a.id = p_id
+$fn$;
+revoke execute on function public.fn_ceo_holds_an_overdue_supplier_reply(bigint) from public, anon, authenticated;
+insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file) values
+  ('supplier.reply_overdue', 'sales_engineer', 'ceo',
+   'A supplier who wrote back (interested or a question) was not answered by the model by its working-day due time after three requests: the CEO has it answered in the thread today. The sales engineer closes it when the answer has gone.',
+   'fn_ceo_holds_an_overdue_supplier_reply', interval '4 hours', true,
+   'scripts/sql/every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql')
+on conflict do nothing;
+
 -- ── 2. THE SAME-DAY ANSWER ────────────────────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_sales_engineer_answers_supplier_replies_same_day(p_now timestamptz default now())
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -124,7 +141,7 @@ declare
   v_dxb timestamp := p_now at time zone 'Asia/Dubai';
   v_work boolean := public.fn_is_working_day((p_now at time zone 'Asia/Dubai')::date)
                     and extract(hour from v_dxb) >= 8 and extract(hour from v_dxb) < 18;
-  r record; v_new int := 0; v_answered int := 0; v_not int := 0; v_requested int := 0; v_escalated int := 0; v_from text; v_why text;
+  r record; v_new int := 0; v_answered int := 0; v_not int := 0; v_requested int := 0; v_escalated int := 0; v_from text; v_why text; v_hid bigint;
 begin
   -- a. the mail that is owed an answer: a person's reply to the supplier mailbox (owner sales_engineer, or customer_support's
   --    retry), of kind interested or question, unanswered, from the last 7 days
@@ -143,15 +160,24 @@ begin
   for r in select s.*, m.replied_at, m.from_email, m.replied_by, d.may_reply, d.reading, d.hard_rule
              from public.supplier_reply_same_day s join public.inbound_messages m on m.id = s.inbound_message_id
              left join public.mailbox_reply_decision d on d.inbound_message_id = s.inbound_message_id
-            where s.state = 'owed' order by s.due_by limit 50 for update of s skip locked loop
+            where s.state in ('owed', 'escalated') order by s.due_by limit 50 for update of s skip locked loop
     v_from := lower(substring(coalesce(r.from_email, '') from '([^<>[:space:]"]+@[^<>[:space:]"]+)'));
     -- b. answered (by the model through fn_inbox_send, or by a person from the Inbox)
     if r.replied_at is not null then
       update public.supplier_reply_same_day set state = 'answered', answered_at = r.replied_at,
              reason = 'answered by ' || coalesce(r.replied_by, 'the inbox') || case when r.replied_at <= r.due_by then ' on time' else ' after its due time' end
        where inbound_message_id = r.inbound_message_id;
+      -- the CEO's overdue conversation, if there was one, is closed by the seat that opened it
+      if r.handoff_id is not null and exists (select 1 from public.agent_actions a where a.id = r.handoff_id and a.status = 'pending') then
+        -- the originator names itself, as trg_handoff_only_originator_closes asks, only for this close
+        perform set_config('qd.handoff_closer', 'sales_engineer', true);
+        perform public.fn_seat_handoff_complete(r.handoff_id, jsonb_build_object('answered_at', r.replied_at, 'replied_by', r.replied_by,
+                                                'closed_by', 'sales_engineer', 'inbound_message_id', r.inbound_message_id));
+        perform set_config('qd.handoff_closer', '', true);
+      end if;
       v_answered := v_answered + 1; continue;
     end if;
+    continue when r.state = 'escalated';   -- already with the CEO; closed above once answered
     -- c. not owed, and why: the reading refused it (ruling 1633), the sender is a machine, the founder, a fixture or suppressed
     v_why := case
       when r.reading is not null and not r.may_reply then 'the reading refused an answer: ' || r.reading || coalesce(' (' || r.hard_rule || ')', '')
@@ -167,12 +193,12 @@ begin
     end if;
     -- d. past its due time: the CEO seat holds it, with the reason (never a silent drop)
     if p_now >= r.due_by then
-      perform public.fn_seat_handoff('sales_engineer', 'ceo', 'review.requested', 'inbound_messages', r.inbound_message_id::text,
+      v_hid := public.fn_seat_handoff('sales_engineer', 'ceo', 'supplier.reply_overdue', 'inbound_messages', r.inbound_message_id::text,
         jsonb_build_object('inbound_message_id', r.inbound_message_id, 'lead_id', r.lead_id, 'from_email', v_from, 'kind', r.kind,
           'ask', 'A supplier who wrote back (' || r.kind || ') has not been answered by ' || to_char(r.due_by at time zone 'Asia/Dubai', 'DD Mon HH24:MI')
                  || ' Dubai after ' || r.attempts || ' request(s) to the model''s answerer. Decide the answer and have it sent in the thread today.',
           'reading', r.reading));
-      update public.supplier_reply_same_day set state = 'escalated', escalated_at = p_now,
+      update public.supplier_reply_same_day set state = 'escalated', escalated_at = p_now, handoff_id = v_hid,
              reason = 'unanswered at its due time after ' || r.attempts || ' request(s): handed to the CEO seat' where inbound_message_id = r.inbound_message_id;
       v_escalated := v_escalated + 1; continue;
     end if;
