@@ -242,7 +242,7 @@ export function fitQuote(reqs: Requirement[], input: { quote: FitQuote; lines: F
   const itemised = lines.length > 0;
   const cells: Record<string, FitCell> = {}; const asks: Bi[] = []; const fails: FitFail[] = [];
   let brand: QuoteFit['brand'] = { listed: null, generic: null }; let meetsDate: boolean | null = null;
-  const set = (r: Requirement, status: FitStatus, shown: Bi, fail?: Bi) => { cells[r.code] = { status, shown }; if (status === 'differs' && r.hard) fails.push({ code: r.code, noun: lower(r.label), detail: fail ?? bi(`${shown.en}, against ${r.asked.en.toLowerCase()} you asked for`, `${shown.ar}، مقابل ${r.asked.ar} طلبته`) }); };
+  const set = (r: Requirement, status: FitStatus, shown: Bi, fail?: Bi) => { cells[r.code] = { status, shown }; if (status === 'differs' && r.hard) fails.push({ code: r.code, noun: lower(r.label), detail: fail ?? bi(`${shown.en}, against ${r.asked.en.toLowerCase()} you asked for`, `${shown.ar}، والمطلوب: ${r.asked.ar}`) }); };
 
   // The quoted brands, RAW, from the product lines: compared now, and only their generic words leave this function.
   const quotedBrands = [...new Set(product.map((l) => { const raw = S(l.brand) || S((l.spec || {}).brand); return raw ? (brandFact(raw)?.name ?? raw) : brandsIn([l.description, l.specification].map(S).join(' '))[0] ?? ''; }).filter(Boolean))];
@@ -346,7 +346,7 @@ export function fitQuote(reqs: Requirement[], input: { quote: FitQuote; lines: F
         const got = r.code === 'warranty_compressor' ? w.compressor : w.install;
         if (got == null) { set(r, 'not_stated', NOT_STATED); if (r.code === 'warranty_compressor') asks.push(bi(`What warranty does it give on the compressors? You asked for at least ${yearsEn(r.months!)}; the quote does not say.`, `ما مدة ضمان الضواغط؟ طلبت ${yearsAr(r.months!)} على الأقل، ولا يذكرها العرض.`)); break; }
         const ok = got >= r.months!;
-        set(r, ok ? 'meets' : 'differs', bi(yearsEn(got), yearsAr(got)), bi(`${yearsEn(got)} against the ${yearsEn(r.months!)} you asked for`, `${yearsAr(got)} مقابل ${yearsAr(r.months!)} طلبتها`));
+        set(r, ok ? 'meets' : 'differs', bi(yearsEn(got), yearsAr(got)), bi(`${yearsEn(got)} against the ${yearsEn(r.months!)} you asked for`, `${yearsAr(got)}، والمطلوب ${yearsAr(r.months!)} على الأقل`));
         break;
       }
       default: {
