@@ -12,7 +12,7 @@ import { notSureKeys, specHandoffArgs } from '../spec_handoff.ts';
 import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../../_shared/supplier_english.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 import { asLocale, documentLocale } from '../../_shared/registered_locale.ts';
-import { labelQuotes } from '../../_shared/quote_labels.ts';
+import { arrivals, labelQuotes, type QuoteLabel } from '../../_shared/quote_labels.ts';
 import { feeBaseOf, feeBasisLine, priceStated, vatStated } from '../../_shared/stated_price.ts';
 import { requestDelivery } from '../../_shared/deliver.ts';
 import { acceptedMessage, apologyMessage, offerTexts, type OfferForText } from '../../_shared/line_specs/no_exact_spec.ts';
@@ -217,10 +217,12 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       // quoting supplier — a superset of the listed ones, used only through supMeta lookups of quotes
       // that survive the filters, so the answer is unchanged.
       const allSupIds = [...new Set(allQuotes.map((q) => q.supplier_id).filter((x) => x != null))] as (string | number)[];
-      const [sanctionedSup, itemsOf, supRows] = await Promise.all([
+      const [sanctionedSup, itemsOf, supRows, holdsRes] = await Promise.all([
         sanctionedLeads(admin, allSupIds),
         itemsByQuote(admin, allQuotes.map((q) => String(q.id))),
         allSupIds.length ? Promise.all([admin.from('leads').select('id,company_name,app_rating,app_reviews,emirate,founded_year,rv_response_rate,rv_reveals,verified,licence_gate_reason,license_doc_path,license_expiry,company_profile_doc_path').in('id', allSupIds), admin.from('supplier_perf').select('supplier_id,won,win_rate').in('supplier_id', allSupIds)]) : null,
+        // the quality holds that released a quote: when it reached the customer, for its letter (_shared/quote_labels.ts)
+        ids.length ? admin.from('quote_quality_hold').select('quote_id,released_at').in('inquiry_id', ids) : null,
       ]);
       const inqById = new Map<string, any>([...(tops || []), ...kids].map((i: any) => [String(i.id), i]));
       // The requests already re-posted as separate quotes per trade: their question is answered (lib/separate_quotes.ts).
@@ -234,6 +236,16 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       const onHoldByInq: Record<string, number> = {};
       for (const q of allQuotes) if (heldIds.has(String(q.id))) onHoldByInq[String(q.inquiry_id)] = (onHoldByInq[String(q.inquiry_id)] || 0) + 1;
       const quotes: Record<string, any>[] = allQuotes.filter((q) => !heldIds.has(String(q.id)) && !sanctionedSup.has(String(q.supplier_id)));
+      // ONE LETTER PER SUPPLIER PER REQUEST (_shared/quote_labels.ts, 15 Nov 2026): counted over EVERY live quote of the request,
+      // the held and sanctioned ones included, so a quote hidden here or released later never moves another's letter.
+      const holdRows = holdsRes && !holdsRes.error && Array.isArray(holdsRes.data) ? holdsRes.data : [];
+      const labelsByInq = new Map<string, Map<string, QuoteLabel>>();
+      const labelFor = (q: Record<string, any>) => {
+        const iid = String(q.inquiry_id);
+        let m = labelsByInq.get(iid);
+        if (!m) { m = labelQuotes(arrivals(allQuotes.filter((x) => String(x.inquiry_id) === iid) as any[], holdRows)); labelsByInq.set(iid, m); }
+        return m.get(String(q.id));
+      };
       // How many suppliers the request actually reached. Without this the portal cannot tell
       // "waiting for quotes" apart from "this reached nobody", and shows hope either way.
       const matchedBy: Record<string, number> = {};
@@ -342,7 +354,7 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
         // from 60, so the portal offered an Edit button for 23 hours that the server always refused.
         editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < EDIT_WINDOW_MS), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((EDIT_WINDOW_MS - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0,
         // How many quotes are on hold for missing details and are therefore not in the list below.
-        on_hold: onHoldByInq[String(i.id)] || 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx, arr) => { const lab = labelQuotes(arr.map((x: any) => ({ id: String(x.id), supplier_id: x.supplier_id, option_no: x.option_no }))).get(String(q.id)); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(feeBaseOf(q) ?? 0), cfg), price_stated: priceStated(q, 'en'), price_stated_ar: priceStated(q, 'ar'), gross_amount: q.gross_amount ?? null, discount_amount: q.discount_amount ?? null, discount_label: q.discount_label ?? null, vat_treatment: q.vat_treatment ?? null, vat_stated: vatStated(q, 'en'), vat_stated_ar: vatStated(q, 'ar'), fee_basis: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'en'), fee_basis_ar: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'ar'), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, review_notes: (reviewByQuote[String(q.id)] || []).map((n) => ({ code: n.code, severity: n.severity, line_no: n.line_no, en: n.en, ar: n.ar })), source: q.source || 'form', status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
+        on_hold: onHoldByInq[String(i.id)] || 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q, idx) => { const lab = labelFor(q); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : 'Supplier ' + supplierLabel(idx), label_ar: lab ? lab.ar : null, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(feeBaseOf(q) ?? 0), cfg), price_stated: priceStated(q, 'en'), price_stated_ar: priceStated(q, 'ar'), gross_amount: q.gross_amount ?? null, discount_amount: q.discount_amount ?? null, discount_label: q.discount_label ?? null, vat_treatment: q.vat_treatment ?? null, vat_stated: vatStated(q, 'en'), vat_stated_ar: vatStated(q, 'ar'), fee_basis: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'en'), fee_basis_ar: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'ar'), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, review_notes: (reviewByQuote[String(q.id)] || []).map((n) => ({ code: n.code, severity: n.severity, line_no: n.line_no, en: n.en, ar: n.ar })), source: q.source || 'form', status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
           // W9 badges: only measured facts, null when absent. Pre-reveal the response rate is floored
           // to a 10% band and the rating stays out (the banded rating above already shows it), so a
           // badge can never be an exact fingerprint of one company.

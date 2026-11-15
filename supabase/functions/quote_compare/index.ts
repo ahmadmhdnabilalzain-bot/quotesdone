@@ -33,7 +33,7 @@ async function sha256hex(s: string){ const b=await crypto.subtle.digest('SHA-256
 import { rendererView, technicalComparison, type TechnicalComparison } from '../_shared/line_specs/compare.ts';
 import { compareItem, heldQuoteIds } from '../_shared/reveal_guard.ts';
 import { requirementsOf } from '../_shared/line_specs/assess.ts';
-import { labelQuotes } from '../_shared/quote_labels.ts';
+import { arrivals, labelQuotes } from '../_shared/quote_labels.ts';
 import { DATA_NOT_INSTRUCTIONS } from '../_shared/untrusted.ts';
 import { chunks, differingCells } from '../_shared/routine_judgements.ts';
 // 10 Nov 2026 (founder ledger 1588-1590, sales_engineer): the expert review notes per quote, and the generaliser every
@@ -104,7 +104,7 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     const MAX_COMPARE = 120;
     const MAX_ITEMS_PER_QUOTE = 40;
     const MAX_ITEMS_TOTAL = 1200;
-    const { data: qsAll, error: qsErr } = await admin.from('quotes').select('id,supplier_id,option_no,quote_amount,price_ex_vat,gross_amount,discount_amount,vat_treatment,vat_amount,terms_spec,lead_time,validity,warranty,payment_terms,scope,conditions,exclusions,notes,status,source,extracted_by_model,expires_at,quality,submittable').eq('inquiry_id', inquiry_id).order('quote_amount', { ascending: true }).limit(MAX_COMPARE + 40);
+    const { data: qsAll, error: qsErr } = await admin.from('quotes').select('id,supplier_id,option_no,quote_amount,price_ex_vat,gross_amount,discount_amount,vat_treatment,vat_amount,terms_spec,lead_time,validity,warranty,payment_terms,scope,conditions,exclusions,notes,status,source,extracted_by_model,expires_at,quality,submittable,created_at').eq('inquiry_id', inquiry_id).order('quote_amount', { ascending: true }).limit(MAX_COMPARE + 40);
     if (qsErr) { await logRun('error', { compared: 0, quotes_query_ok: 0, quotes_seen: 0 }, 'quote_compare could not read the quotes for inquiry ' + String(inquiry_id).slice(0, 60) + ' (' + String(qsErr.message).slice(0, 120) + '). The customer will be told they need at least two quotes even though suppliers may well have quoted — a query failure presented as an absence of quotes.'); }
     const live = (qsAll || []).filter((q: any) => isLiveQuote(q.status));
     // THE QUALITY CHECK (founder ledger 1018, 29 Sep 2026; scripts/sql/a_quote_is_checked_for_specs_prices_and_terms_
@@ -114,8 +114,11 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     let qualityHeld = 0; let qualityHours = 24;
     // deno-lint-ignore no-explicit-any
     const qualityFlags: Record<string, any[]> = {};
+    // deno-lint-ignore no-explicit-any
+    let holdRows: any[] = [];   // when a hold released a quote: the moment it reached the customer, for its letter
     try {
       const { data: hs, error } = await admin.from('quote_quality_hold').select('quote_id,flags,held_at,release_due,released_at,release_reason,corrected_at,superseded_at').eq('inquiry_id', inquiry_id);
+      if (!error) holdRows = hs || [];
       if (!error) for (const h of (hs || [])) {
         const hrs = Math.round((new Date(h.release_due).getTime() - new Date(h.held_at).getTime()) / 3600000);
         if (Number.isFinite(hrs) && hrs > 0) qualityHours = hrs;
@@ -196,8 +199,10 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     } catch (_e) { /* track record is optional */ }
 
     const nowTs = Date.now();
-    // "Supplier A – Option 1" (founder, 14 Sep 2026: options are separate quotations of one supplier).
-    const labels = labelQuotes(qs.map((q: any) => ({ id: String(q.id), supplier_id: q.supplier_id, option_no: q.option_no })));
+    // "Supplier A – Option 1" (founder, 14 Sep 2026: options are separate quotations of one supplier). The letters are the request's
+    // ONE set (_shared/quote_labels.ts, 15 Nov 2026): every live quote by arrival, so the comparison calls a supplier what its
+    // quotation PDF and its portal card call it (journey A: the PDFs said A and A, this said B and A).
+    const labels = labelQuotes(arrivals(live, holdRows));
     // THE TECHNICAL COMPARISON — line by line, attribute by attribute, against what the customer
     // asked for; held quotes are counted, never shown. Rebuilt on every answer, cached or not.
     let onHold = 0;

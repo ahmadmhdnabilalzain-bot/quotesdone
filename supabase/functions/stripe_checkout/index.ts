@@ -1,7 +1,7 @@
 import { revealDescriptorSuffix } from '../_shared/statement_descriptor.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { NOT_LIVE_QUOTE_IN } from '../_shared/quote_live.ts';
+import { customerQuoteLabels } from '../_shared/quote_labels.ts';
 import { jobNoOf } from '../_shared/quote_documents.ts';
 import { observe } from '../_shared/observe.ts';
 import { siteReturnBase, siteCors } from '../_shared/site_origins.ts';
@@ -91,11 +91,9 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
     // processing is its own line so the invoice says what each part is. No tax on either line.
     const ch = revealCharge(Number(q.quote_amount), Number(cfg?.standard_reveal_rate));
     if (ch.base_fee !== fee) { await logRun('error', { quote_id: qid, fee, base: ch.base_fee }, 'reveal fee disagreement between revealFee and revealCharge - checkout blocked'); return J({ error: 'invalid_fee' }, 400); }
-    // "Reveal fee — QD-XXXXXXXX / Supplier B": the letter is the one the customer's card shows,
-    // the place among the LIVE quotes by ascending price (customer_api letterOf).
-    const { data: sibs } = await admin.from('quotes').select('id').eq('inquiry_id', q.inquiry_id).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true });
-    const idx = Math.max(0, (sibs || []).findIndex((x: { id: string }) => x.id === q.id));
-    const letter = String.fromCharCode(65 + (idx % 26));
+    // "Reveal fee — QD-XXXXXXXX / Supplier B": the letter is the one the customer's card shows, read from the one rule
+    // (_shared/quote_labels.ts customerQuoteLabels: the order the suppliers' quotes reached the customer, stable once given).
+    const letter = (await customerQuoteLabels(admin, String(q.inquiry_id))).get(String(q.id))?.letter ?? 'A';
     // The job number (inquiries.rfq_no): what the customer's card statement says must match the portal (21 Sep 2026).
     const requestRef = 'QD-' + jobNoOf({ id: String(q.inquiry_id || ''), rfq_no: inq?.rfq_no });
     // 27 Jul 2026 — two defects fixed here.
