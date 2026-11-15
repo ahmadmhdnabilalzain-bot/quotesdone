@@ -41,8 +41,18 @@ export function expertFieldsOf(e, specs) {
     if (!codes.has(code)) { refused.push(`${e.id}: spec_guide row "${text(g?.spec)}" names no spec of this checklist`); continue; }
     if (seen.has(code)) continue;
     seen.add(code);
+    // NOT NEEDED WHEN (15 Nov 2026, journey A): the pack names the specs whose answer makes this one unnecessary by their LABELS;
+    // the row carries their codes, and a label that is no spec of this checklist is refused like a blocking one.
+    const nn = g?.not_needed_when && typeof g.not_needed_when === 'object' && text(g.not_needed_when.text) ? g.not_needed_when : null;
+    const answered = [];
+    for (const label of Array.isArray(nn?.answered) ? nn.answered : []) {
+      const c = specCode(label);
+      if (!codes.has(c)) { refused.push(`${e.id}: not_needed_when of "${text(g?.spec)}" names "${text(label)}", no spec of this checklist`); continue; }
+      if (!answered.includes(c)) answered.push(c);
+    }
     spec_guide.push({ code, spec: text(g.spec), why_needed_to_price: text(g.why_needed_to_price), uae_options: text(g.uae_options),
-      follow_up_if: text(g.follow_up_if), blocking: g.blocking === true });
+      follow_up_if: text(g.follow_up_if), blocking: g.blocking === true,
+      ...(nn ? { not_needed_when: { ...(answered.length ? { answered } : {}), text: text(nn.text) } } : {}) });
   }
   const blocking = [];
   for (const label of Array.isArray(e.blocking) ? e.blocking : []) {
