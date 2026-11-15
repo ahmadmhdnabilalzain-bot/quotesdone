@@ -25,8 +25,14 @@
 --         months; working days skip Saturday and Sunday (the UAE week since 2022; public holidays are not known here);
 --         a range ("15-30 days") counts its shorter end; a period counted "from <date>" counts from that date;
 --       - a date: "valid until 30 Nov 2026", "valid till 15/12/2026" (day first, as written in the UAE), "2026-12-15",
---         "Nov 30, 2026", "حتى 30 نوفمبر 2026", "end of November 2026" (its last day); a date without a year takes the
---         first such date on or after the day counted from;
+--         "Nov 30, 2026", "حتى 30 نوفمبر 2026", "end of November 2026" (its last day); a last day without a year takes the
+--         first such date on or after the day counted from only when that is at most 183 days away ("valid until 14 Nov" received
+--         on 15 Nov is NULL, not 14 Nov next year), and a start without a year is never moved forward;
+--       - a period counted from an event we cannot know ("2 weeks from LPO", "30 days from PO / delivery / order confirmation",
+--         «شهر من تاريخ أمر الشراء»): NULL. Only a date, or the quotation itself (its date, issue, submission, today), is a start;
+--       - a fraction before a unit ("validity 1/2 month"): NULL, never two months;
+--       - when the text names the validity ("valid", "validity", صالح, صلاحية, ساري), the period in that clause is read, not the
+--         first period in the text ("Delivery 2 weeks, validity 30 days" is 30 days; "30 days validity" is 30 days);
 --       - the quotation is valid to the END of its last day in Dubai (Asia/Dubai midnight that follows it);
 --       - anything else ("subject to stock", "TBA", blank, "0 days", a period of more than ten years, a date that does not
 --         exist): NULL. No expiry, and the customer reads "Validity: not stated by the supplier" or the supplier's own words.
@@ -38,7 +44,7 @@
 --
 -- Prevented by: scripts/checks/a_quotation_is_valid_for_the_period_the_supplier_states.test.mjs (this file's text, and no
 -- routine source in the repository fills an expiry with a period of its own) and this file's _probe.sql (run on a local
--- Postgres 16: 63 wordings read, 51 that state a validity and 12 that state none, the trigger on insert and update, the three reveal-period routines).
+-- Postgres 16: 94 wordings read (63 of the first draft and 31 from the review of 15 Nov 2026), 66 that state a validity and 28 that state none, the trigger on insert and update, the three reveal-period routines).
 -- Pending until the release applies it: scripts/sql/pending/<this name>.txt
 --
 -- THE APPLY MUST NOT FREEZE THE SITE: it adds a nullable column to quotes (ACCESS EXCLUSIVE, catalogue only, no rewrite) and
@@ -69,16 +75,21 @@ $fn$;
 revoke execute on function public.fn_quote_validity_month(text) from public, anon, authenticated;
 
 -- The first calendar date a NORMALISED text states (fn_quote_validity_until normalises it), or NULL. Numeric dates are read day
--- first, as written in the UAE; a date without a year is the first such date on or after p_from; a date that does not exist
--- (31/02/2026, month 13, a US-style 12/15/2026) is NULL, never a guess.
-create or replace function public.fn_quote_validity_date(p text, p_from date)
+-- first, as written in the UAE; a date that does not exist (31/02/2026, month 13, a US-style 12/15/2026) is NULL, never a guess.
+-- A date WITHOUT A YEAR (review of 15 Nov 2026, item 2): read as a LAST day (p_start false) it is the first such date on or after
+-- p_from, but only when that is at most 183 days (about six months) away, else NULL: "valid until 14 Nov" received on 15 Nov is a
+-- day already past, not 14 Nov next year. Read as a START (p_start true, "30 days from 1 Nov") it is never moved forward: it is
+-- that date in p_from's year, or the year before when that would be more than 183 days after p_from.
+-- Replaces the two-argument form of an earlier draft of this file (never applied); the drop is a no-op where it never existed.
+drop function if exists public.fn_quote_validity_date(text, date);
+create or replace function public.fn_quote_validity_date(p text, p_from date, p_start boolean default false)
  returns date
  language plpgsql
  immutable
  set search_path to 'public', 'pg_temp'
 as $fn$
 declare
-  m text[]; v_dt date; v_year int; v_mon int; v_day int;
+  m text[]; v_dt date; v_year int; v_mon int; v_day int; v_yearless boolean := false; v_eom boolean := false;
   c_months constant text :=
     '(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept|sep|oct|nov|dec'
     || '|يناير|فبراير|مارس|أبريل|ابريل|إبريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر)(?![a-zء-ي])';
@@ -102,19 +113,26 @@ begin
       if m is not null then v_day := m[2]::int; v_mon := public.fn_quote_validity_month(m[1]); m := array[m[2], m[1], m[3]]; end if;
     end if;
     if m is not null then
-      v_year := coalesce(m[3]::int, extract(year from p_from)::int);
-      v_dt := make_date(v_year, v_mon, v_day);
-      if m[3] is null and v_dt < p_from then v_dt := make_date(v_year + 1, v_mon, v_day); end if;
+      v_yearless := m[3] is null;
+      v_dt := make_date(coalesce(m[3]::int, extract(year from p_from)::int), v_mon, v_day);
     end if;
   end if;
   if v_dt is null then
     m := regexp_match(p, '(?:\mend of (?:the )?|(?<![ء-ي])نهاية (?:شهر )?)' || c_months || '(?: (\d{4}))?');
     if m is not null then
-      v_mon := public.fn_quote_validity_month(m[1]); v_year := coalesce(m[2]::int, extract(year from p_from)::int);
-      v_dt := (make_date(v_year, v_mon, 1) + interval '1 month - 1 day')::date;
-      if m[2] is null and v_dt < p_from then v_dt := (make_date(v_year + 1, v_mon, 1) + interval '1 month - 1 day')::date; end if;
+      v_mon := public.fn_quote_validity_month(m[1]); v_yearless := m[2] is null; v_eom := true;
+      v_dt := (make_date(coalesce(m[2]::int, extract(year from p_from)::int), v_mon, 1) + interval '1 month - 1 day')::date;
     elsif p ~ '(\mend of (?:the |this )?month\M|(?<![ء-ي])نهاية (?:هذا )?الشهر(?![ء-ي]))' then
       v_dt := (date_trunc('month', p_from) + interval '1 month - 1 day')::date;   -- the end of the month counted from
+    end if;
+  end if;
+  if v_dt is not null and v_yearless then
+    if not p_start and v_dt < p_from then
+      -- a last day already past in p_from's year: the next one, only if it is near
+      v_dt := case when v_eom then (date_trunc('month', v_dt) + interval '1 year 1 month - 1 day')::date else (v_dt + interval '1 year')::date end;
+      if v_dt > p_from + 183 then return null; end if;
+    elsif p_start and v_dt > p_from + 183 then
+      v_dt := (v_dt - interval '1 year')::date;           -- a start is never moved forward; far ahead means last year's
     end if;
   end if;
   if v_dt is not null and (extract(year from v_dt) < 2000 or extract(year from v_dt) > 2100) then return null; end if;
@@ -122,7 +140,7 @@ begin
 exception when others then
   return null;
 end $fn$;
-revoke execute on function public.fn_quote_validity_date(text, date) from public, anon, authenticated;
+revoke execute on function public.fn_quote_validity_date(text, date, boolean) from public, anon, authenticated;
 
 create or replace function public.fn_quote_validity_until(p_validity text, p_quotation_date date, p_received timestamptz)
  returns timestamptz
@@ -132,8 +150,15 @@ create or replace function public.fn_quote_validity_until(p_validity text, p_quo
 as $fn$
 declare
   v text; m text[]; v_from date; v_end date; v_dt date; v_n numeric; v_unit text; v_until text; v_since text; i int;
+  v_pre text; v_post text; v_anchor text; v_head text;
   c_until constant text := '(\muntil\M|\mtill\M|\mup ?to\M|\mexpir[a-z]*|\mvalid to\M|\mend of\M|(?<![ء-ي])(حتى|لغاية|إلى|الى|ينتهي|تنتهي|نهاية)(?![ء-ي]))';
   c_since constant text := '(\mfrom\M|\mstarting\M|\mw\.?e\.?f\M|(?<![ء-ي])(اعتبارا من|ابتداء من|من)(?![ء-ي]))';
+  c_units constant text := '(working days?|business days?|calendar days?|days?|d(?![a-z])|weeks?|wks?|months?|mos?(?![a-z])|years?|yrs?(?![a-z])'
+    || '|أيام عمل|ايام عمل|يوم عمل|يوما|يوم|أيام|ايام|أسابيع|اسابيع|أسبوع|اسبوع|أشهر|اشهر|شهور|شهرا|شهر|سنوات|سنة|سنه|عام)';
+  -- the word that names the validity itself: the period beside it is the validity, not the delivery or payment one
+  c_valid constant text := '(\mvalid(?:ity)?\M|(?<![ء-ي])(صالح|صالحة|صلاحية|ساري|سارية|سار|يسري|تسري|سريان)(?![ء-ي]))';
+  -- another term begins: delivery, lead time, payment, warranty, installation, completion
+  c_other constant text := '(?:delivery|lead ?time|payment|warranty|installation|completion)\M|(?:التسليم|التوريد|الدفع|الضمان|التركيب|التنفيذ)(?![ء-ي])';
 begin
   v := btrim(coalesce(p_validity, ''));
   if v = '' then return null; end if;
@@ -145,7 +170,10 @@ begin
   v := regexp_replace(v, '[ًٌٍَُِّْـ]', '', 'g');
   v := regexp_replace(v, '[()\[\]{}]', ' ', 'g');
   v := regexp_replace(v, '(\d)(st|nd|rd|th)\M', '\1', 'g');
+  v := regexp_replace(v, '(\d)-(?=(days?|weeks?|months?|years?)\M)', '\1 ', 'g');   -- "30-day validity"
   v := regexp_replace(v, '\s+', ' ', 'g');
+  -- a fraction before a unit ("1/2 month") is not read as a number of its own (review item 4): it becomes 0, which states no validity
+  v := regexp_replace(v, '(?<![\d/.])\d+ ?/ ?\d+(?![\d/.])(?= ?(calendar |working |business )?(days?|weeks?|wks?|months?|mos?|years?|yrs?|يوم|أيام|ايام|أسبوع|اسبوع|أسابيع|اسابيع|شهر|أشهر|اشهر|شهور|سنة|سنوات|عام))', '0', 'g');
 
   -- number words before a unit (English word-bounded; Arabic with no Arabic letter on either side; longest first)
   v := regexp_replace(v, '\mforty[- ]five\M', '45', 'g');
@@ -169,6 +197,22 @@ begin
   v := regexp_replace(v, '(?<![ء-ي])(سنتين|سنتان|عامين|عامان)(?![ء-ي])', '2 سنة', 'g');
   v := regexp_replace(v, '(?<!\d)(?<!\d )(?<![ء-ي])(أسبوع|اسبوع|شهرا|شهر|سنة|سنه)(?![ء-ي])(?! (يناير|فبراير|مارس|أبريل|ابريل|إبريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر))', '1 \1', 'g');
 
+  -- THE VALIDITY'S OWN CLAUSE (review item 5): when the text names the validity ("valid", "validity", صالح, صلاحية, ساري ...),
+  -- only what follows that word is read, up to the next term (";", "|", or delivery / payment / warranty ... and the clause that
+  -- carries it); "Delivery 2 weeks, validity 30 days" is 30 days. When nothing readable follows the word ("30 days validity"),
+  -- the period just before it is read, with whatever follows the word.
+  m := regexp_match(v, '^(.*?)(' || c_valid || '.*)$');
+  if m is not null then
+    v_pre := m[1];
+    v_post := regexp_replace(m[2], '(?:[;|]|[,،.] (?=[^,،;|]*(?:' || c_other || '))| (?=' || c_other || ')).*$', '');
+    if v_post !~ '\d|\mend of\M|(?<![ء-ي])نهاية(?![ء-ي])' then
+      m := regexp_match(regexp_replace(v_pre, '^.*[;|,،]', ''),
+        '(\d+(?:\.\d+)? ?(?:(?:-|to|–) ?\d+(?:\.\d+)? ?)?' || c_units || ') ?[''’]?s? ?(?:(?:price|offer|quote|quotation|العرض) )?$');
+      if m is not null then v_post := m[1] || ' ' || btrim(regexp_replace(v_post, '^' || c_valid, '')); end if;
+    end if;
+    v := btrim(v_post);
+  end if;
+
   -- (a) a stated last day: the first date after "until / till / حتى ..."; else a date with no "from" before it
   m := regexp_match(v, c_until || '(.*)$');
   v_until := case when m is null then null else m[array_length(m, 1)] end;
@@ -179,14 +223,12 @@ begin
     v_dt := public.fn_quote_validity_date(v, v_from);
   end if;
 
-  -- (b) a stated period (the first one; a range counts its shorter end)
-  m := regexp_match(v, '(\d+(?:\.\d+)?) ?(?:(?:-|to|–|إلى|الى) ?\d+(?:\.\d+)? ?)?'
-    || '(working days?|business days?|calendar days?|days?|d(?![a-z])|weeks?|wks?|months?|mos?(?![a-z])|years?|yrs?(?![a-z])'
-    || '|أيام عمل|ايام عمل|يوم عمل|يوما|يوم|أيام|ايام|أسابيع|اسابيع|أسبوع|اسبوع|أشهر|اشهر|شهور|شهرا|شهر|سنوات|سنة|سنه|عام)');
+  -- (b) a stated period (the first one in the validity's clause; a range counts its shorter end), and what follows it
+  m := regexp_match(v, '(\d+(?:\.\d+)?) ?(?:(?:-|to|–|إلى|الى) ?\d+(?:\.\d+)? ?)?' || c_units || '(.*)$');
 
   if v_dt is null and m is null then
     v_dt := public.fn_quote_validity_date(v, v_from);        -- a bare date: "30 Nov 2026"
-    if v_dt is not null and v_since is not null and public.fn_quote_validity_date(v_since, v_from) = v_dt then
+    if v_dt is not null and v_since is not null and public.fn_quote_validity_date(v_since, v_from, true) = v_dt then
       return null;                                          -- "from 1 Nov" names a start and no end: not a validity
     end if;
   end if;
@@ -196,8 +238,25 @@ begin
   elsif m is not null then
     v_n := m[1]::numeric; v_unit := m[2];
     if v_n <= 0 or v_n >= 1000 then return null; end if;     -- "0 days" states no validity; a four-digit number is a year
-    -- a period counted from a date the text names ("30 days from 1 Nov 2026"); else from the quotation's date / the day received
-    v_from := coalesce(public.fn_quote_validity_date(v_since, v_from), v_from);
+    -- WHAT THE PERIOD IS COUNTED FROM (review item 3). "30 days from 1 Nov 2026" counts from that date; "from the date of
+    -- quotation / quote / issue / submission / today" from the quotation's date (else the day received), as does a period with
+    -- no start at all. A start we cannot know ("from LPO / PO / delivery / order confirmation", «من تاريخ أمر الشراء») gives NO
+    -- expiry: counting it from the quotation's date would be a period of our own.
+    v_anchor := substring(m[3] from '^,? ?(?:only |calendar )?(?:(?:from|starting(?: from| on)?|commencing|w\.?e\.?f\.?|upon)\M|(?:after|following)\M(?! which| that| this)|(?:اعتبارا من|ابتداء من|من)(?![ء-ي])|بعد(?![ء-ي])(?! ذلك| هذه| هذا))(.*)$');
+    if v_anchor is not null then
+      v_head := substring(v_anchor from '^[^,،;|]*');
+      if v_head ~ '\m(lpo|po|p\.o|purchase|order|orders|delivery|delivered|dispatch|shipment|confirmation|confirmed|award|awarded|acceptance|accepted|approval|approved|receipt|received|payment|advance|deposit|contract|signing|signed|signature|handover|mobili[sz]ation|commencement|installation|invoice)\M'
+         or v_head ~ '(أمر|امر|الشراء|شراء|تسليم|توريد|تأكيد|ترسية|قبول|موافقة|دفع|دفعة|عقد|توقيع|استلام|تركيب|فاتورة)' then
+        return null;
+      end if;
+      v_dt := public.fn_quote_validity_date(substring(v_anchor from '^[^;|]{0,40}'), v_from, true);
+      if v_dt is not null then
+        v_from := v_dt; v_dt := null;
+      elsif not (v_head ~ '\m(quotation|quote|qtn|offer|proposal|tender|date|dated|hereof|issue|issued|issuance|today|now|submission|submittal|submitted)\M'
+                 or v_head ~ '(تاريخ|عرض|إصدار|اصدار|اليوم|تقديم)') then
+        return null;
+      end if;
+    end if;
     if v_unit ~ '^(working|business|يوم عمل|أيام عمل|ايام عمل)' then
       if v_n <> trunc(v_n) or v_n > 2600 then return null; end if;
       v_end := v_from; i := 0;

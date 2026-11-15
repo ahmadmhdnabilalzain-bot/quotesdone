@@ -6,7 +6,10 @@
 -- PROBE OK only if
 --   R. every wording below (English, Arabic, digits and words, periods, dates, ranges, working days, a period from a named date,
 --      a last day beside a period) gives exactly the last valid day written beside it, counted from the quotation's date when
---      one is given and else from the day received; and every wording that states no readable validity gives NULL;
+--      one is given and else from the day received; and every wording that states no readable validity gives NULL. Since the
+--      review of 15 Nov 2026 also: a date with no year is never moved a year on (only when near, and a start never); a period
+--      counted from an event we cannot know (LPO, PO, delivery, أمر الشراء) is NULL; "1/2 month" is NULL; the period beside
+--      valid / validity / صلاحية wins over a delivery or payment period written first;
 --   I. a quote inserted with no validity has NO expiry; with "valid 15 days" and a quotation date, the end of that day + 15 in
 --      Dubai; a writer that sets expires_at itself keeps it;
 --   U. a validity stated later (an update) sets the expiry; a quotation date added later moves it; a validity cleared clears
@@ -46,6 +49,23 @@ begin
       ('صالح لغاية 2026/11/30', null, '2026-11-30'), ('يسري العرض لمدة شهرين', null, '2027-01-15'),
       ('العرض ساري لمدة 7 أيام', null, '2026-11-22'), ('صالح 10 أيام عمل', null, '2026-11-27'), ('لمدة سنة', null, '2027-11-15'),
       ('خمسة عشر يوما', null, '2026-11-30'),
+      -- review of 15 Nov 2026, item 2: a date with no year is moved forward only when the result is near (183 days), a start never
+      ('valid until 14 Nov', null, null), ('valid until 10 Nov', '2026-11-15', null), ('30 days from 1 Nov', '2026-11-15', '2026-12-01'),
+      ('end of October', null, null), ('valid until 31 Mar', null, '2027-03-31'), ('valid until 1 Jun', null, null),
+      -- item 3: a period counted from an event we cannot know gives no expiry; from the quotation itself, its date
+      ('2 weeks from LPO', null, null), ('30 days from PO', null, null), ('30 days from delivery', null, null),
+      ('30 days from order confirmation', null, null), ('30 days from the date of LPO', null, null), ('شهر من تاريخ أمر الشراء', null, null),
+      ('valid 30 days after receipt of purchase order', null, null), ('valid 30 days, from LPO', null, null),
+      ('30 days from quotation date', '2026-11-01', '2026-12-01'), ('15 days from today', null, '2026-11-30'),
+      ('30 days from submission', null, '2026-12-15'), ('30 days from date of issue', null, '2026-12-15'),
+      ('valid for 30 days after which prices may change', null, '2026-12-15'), ('صالح لمدة شهر من تاريخ العرض', '2026-11-01', '2026-12-01'),
+      -- item 4: a fraction before a unit is not a number of its own
+      ('Validity 1/2 month', null, null), ('1/2 month', null, null), ('صالح 1/2 شهر', null, null),
+      -- item 5: the period beside "valid / validity / صلاحية" is the validity, not the first period in the text
+      ('Delivery 2 weeks, validity 30 days', null, '2026-12-15'), ('Payment 30 days; validity 15 days', null, '2026-11-30'),
+      ('Delivery 2 weeks from LPO, validity 30 days', null, '2026-12-15'), ('validity as per stock, delivery 2 weeks', null, null),
+      ('30 days validity', null, '2026-12-15'), ('30-day validity, delivery 1 week', null, '2026-12-15'),
+      ('التسليم أسبوعين، صلاحية العرض 30 يوما', null, '2026-12-15'), ('Lead time 4 weeks. Prices valid for 10 days', null, '2026-11-25'),
       -- states no validity we can read: no expiry
       ('', null, null), ('   ', null, null), ('subject to stock', null, null), ('TBA', null, null), ('Rates are firm', null, null),
       ('Offer valid until further notice', null, null), ('as per stock availability', null, null), ('0 days', null, null),

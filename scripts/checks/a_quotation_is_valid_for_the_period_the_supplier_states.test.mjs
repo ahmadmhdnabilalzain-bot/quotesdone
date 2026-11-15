@@ -2,7 +2,7 @@
 // Founder ruling, ledger 1697: "Quotation validity depends on what the supplier mentions in his quotation. No specific period".
 //
 // Guards scripts/sql/a_quotation_is_valid_for_the_period_the_supplier_states_and_for_no_period_we_choose.sql and the code
-// beside it. The behaviour (63 wordings read, the trigger on insert and update, the reveal period) is proved by that
+// beside it. The behaviour (every wording of its probe read, the trigger on insert and update, the reveal period) is proved by that
 // file's _probe.sql on a local Postgres 16; this fails when the shape that makes it true is taken away. Reads only the
 // repository.
 //   node --test scripts/checks/a_quotation_is_valid_for_the_period_the_supplier_states.test.mjs
@@ -42,6 +42,22 @@ test('the reading has no default, no cap and no fallback period: what it cannot 
   assert.doesNotMatch(u, /v_end := v_from \+ (14|30|180)\b|least\(v_end|greatest\(v_end/, 'a period or a cap of its own');
 });
 
+test('the review of 15 Nov: no year moved far, no start we cannot know, no fraction read whole, the validity\'s own period', () => {
+  const d = fn('fn_quote_validity_date'), u = fn('fn_quote_validity_until');
+  // item 2: a last day without a year moves forward only when near; a start never moves forward
+  assert.match(d, /if v_dt > p_from \+ 183 then return null; end if;/);
+  assert.match(d, /elsif p_start and v_dt > p_from \+ 183 then\s+v_dt := \(v_dt - interval '1 year'\)::date;/);
+  assert.doesNotMatch(d, /make_date\(v_year \+ 1, v_mon, v_day\)/, 'the unbounded roll forward');
+  // item 3: the old fallback counted an unknown start from the quotation's date
+  assert.doesNotMatch(u, /coalesce\(public\.fn_quote_validity_date\(v_since, v_from\), v_from\)/);
+  assert.match(u, /v_head ~ '\\m\(lpo\|po\|p\\\.o\|purchase\|order/);
+  assert.match(u, /then\s+return null;\s+end if;\s+v_dt := public\.fn_quote_validity_date\(substring\(v_anchor from '\^\[\^;\|\]\{0,40\}'\), v_from, true\);/);
+  // item 4: N/M before a unit states no number of its own
+  assert.ok(u.includes("v := regexp_replace(v, '(?<![\\d/.])\\d+ ?/ ?\\d+(?![\\d/.])"));
+  // item 5: the clause after valid / validity / صلاحية is read
+  assert.match(u, /m := regexp_match\(v, '\^\(\.\*\?\)\(' \|\| c_valid \|\| '\.\*\)\$'\);/);
+});
+
 test('the reveal period counts a quotation with no stated validity as live and fills no period for it', () => {
   for (const name of ['fn_sales_engineer_reveal_period_until', 'fn_sales_engineer_live_quotes_left', 'fn_sales_engineer_tells_unchosen_suppliers']) {
     const b = fn(name);
@@ -52,7 +68,7 @@ test('the reveal period counts a quotation with no stated validity as live and f
 });
 
 test('every routine the file creates is closed to PUBLIC, anon and authenticated, with search_path pinned', () => {
-  for (const sig of ['fn_quote_validity_month(text)', 'fn_quote_validity_date(text, date)', 'fn_quote_validity_until(text, date, timestamptz)',
+  for (const sig of ['fn_quote_validity_month(text)', 'fn_quote_validity_date(text, date, boolean)', 'fn_quote_validity_until(text, date, timestamptz)',
     'trg_quote_expiry()', 'fn_sales_engineer_reveal_period_until(uuid, timestamptz)', 'fn_sales_engineer_live_quotes_left(uuid)',
     'fn_sales_engineer_tells_unchosen_suppliers(uuid, text, timestamptz)']) {
     assert.ok(CODE.includes(`revoke execute on function public.${sig} from public, anon, authenticated;`), sig);
