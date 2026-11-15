@@ -24,6 +24,7 @@
 //   supabase/functions/inquiry_intake/the_customer_is_asked_in_plain_words.test.ts
 
 import { SPEC_OPTION_AR } from './spec_options_ar.ts';
+import { HOME_TRADES } from './customer_questions_home.ts';
 
 export type Lang = 'en' | 'ar';
 type Opt = readonly [en: string, ar: string];
@@ -32,7 +33,7 @@ export interface CustomerQuestion { en: string; ar: string; eg_en?: string; eg_a
 /** The "Not sure" every card offers: tapped, it is read as "does not know", and a blocking spec goes to the suppliers to advise. */
 export const NOT_SURE: Readonly<Record<Lang, string>> = { en: 'Not sure', ar: 'لست متأكداً' };
 
-export const CUSTOMER_QUESTION: Readonly<Record<string, CustomerQuestion>> = {
+const BASE_QUESTION: Readonly<Record<string, CustomerQuestion>> = {
   // ── HVAC: split / ducted split AC (hvac:spec-split-ac), every spec ────────────────────────────────────────────────────
   spec_unit_type: {
     en: 'What kind of AC units are they?', ar: 'ما نوع وحدات التكييف؟',
@@ -279,6 +280,9 @@ export const CUSTOMER_QUESTION: Readonly<Record<string, CustomerQuestion>> = {
     options: [['Part in advance, the rest on completion', 'جزء مقدّمًا والباقي عند الإنجاز'], ['All on completion', 'كامل المبلغ عند الإنجاز'], ['30 days after the invoice', 'بعد 30 يومًا من الفاتورة']],
   },
 };
+
+/** Every spec's plain wording: the base table above, then the trade tables (one file per group of trades). */
+export const CUSTOMER_QUESTION: Readonly<Record<string, CustomerQuestion>> = { ...BASE_QUESTION, ...HOME_TRADES };
 
 /** The label as a plain English question when the table has no entry: its parenthesised list of technical units dropped. */
 export function plainFrame(label: string): string {
