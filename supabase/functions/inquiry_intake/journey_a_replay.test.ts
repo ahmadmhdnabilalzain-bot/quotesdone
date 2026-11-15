@@ -143,7 +143,8 @@ import { requirementQuestions } from '../_shared/intake_requirements.ts';
 const HVAC: SpecField[] = [
   { key: 'system_type', type: 'select', options: ['Wall/floor split', 'Ducted (concealed) split', 'Cassette', 'VRF/VRV', 'Chiller (air/water-cooled)', 'Package unit', 'FAHU/AHU (fresh air)', 'Not sure - need site survey'], question: 'What type of AC system?', required: true, question_plain_en: 'What kind of air conditioning — wall split units, hidden ducted, ceiling cassettes, a central system, or should the supplier survey and advise?' },
   { key: 'application_area', type: 'text', options: [], question: 'What is the space used for (office, villa, retail, restaurant, server room, warehouse), and roughly what area in m² and ceiling height?', required: true, question_plain_en: 'What is the space used for, and roughly how big is it?',
-    not_needed_when: { answered: ['spec_cooling_capacity'], text: "each unit's cooling capacity is stated (BTU/h, TR or kW), or the existing units are replaced like for like" } },
+    not_needed_when: { answered: ['spec_cooling_capacity'], text: "each unit's cooling capacity is stated (BTU/h, TR or kW), or the existing units are replaced like for like" },
+    same_as: 'spec_room_use_and_area_or_heat_load_calc' },
   { key: 'new_or_replace', type: 'select', options: ['New installation', 'Replacement of existing', 'Extension of existing', 'Service / repair / maintenance'], question: 'Is this new, replacement, or a service/repair?', required: true, question_plain_en: 'Is this a new installation, replacing old units, adding more, or a repair?' },
   { key: 'load_basis', type: 'select', options: ['Yes, I have heat-load calc / MEP drawings', 'No - supplier to size it'], question: 'Do you have a cooling-load calculation or MEP drawings?', required: false, question_plain_en: 'Do you have engineering drawings for the cooling, or should the supplier work out the size?' },
   { key: 'brand_tier', type: 'select', options: ['Premium (Daikin/Mitsubishi/Trane/Carrier)', 'Mid (LG/Gree/O-General)', 'Economy', 'Best value - recommend'], question: 'Preferred brand tier / efficiency?', required: false, question_plain_en: 'Would you like a premium brand, mid-range, economy, or the best value?' },
@@ -259,7 +260,30 @@ Deno.test('journey A of 15 Nov: a faithful reading is recorded where it was said
   // room size is never asked once each unit's capacity is known (line 5); ducting is never asked of a service-only ducted scope
   const ROOM = ['application_area', 'spec_room_use_and_area_or_heat_load_calc'];
   assert(!turns.filter((t) => t.n >= 5).some((t) => ROOM.includes(String(t.next?.key))), 'room size asked after every capacity was given: ' + log.join('; '));
+  assert(asked.filter((k) => ROOM.includes(k)).length <= 1, 'room size asked twice under two keys (the slug\'s field and the trade\'s spec): ' + log.join('; '));
+  // once capacity is known, both room-size specs are recorded as not needed, and a supplier reads why
+  const last = turns.at(-1)!;
+  for (const k of ROOM) assert(String(last.details[k] ?? '').startsWith('Not needed for this job: '), k + ' = ' + String(last.details[k]));
   assert(!asked.includes('material.ducting'), 'ducting asked for a service of existing ducted units');
   // it reaches ready within his twelve lines
   assertEquals(turns.at(-1)!.status, 'ready', log.join('\n'));
+});
+
+Deno.test('journey A of 15 Nov: every message\'s buttons belong to the question in it, and the sales engineer is offered at most once', async () => {
+  const turns = await replay15Nov();
+  const fieldOpts = (k: string) => HVAC.find((f) => f.key === k)?.options ?? requirementQuestions('hvac').find((q) => q.key === k)?.options.map((o) => o.en) ?? [];
+  let offers = 0;
+  for (const t of turns) {
+    const written = JSON.stringify(t.writer);
+    if (t.next) {
+      assert(written.includes('THE ONE QUESTION TO ASK NOW') && written.includes(JSON.stringify(t.next.text).slice(1, -1)), `turn ${t.n}: the reply was not written around the question its card asks`);
+      if (t.next.options) {
+        assert(t.next.key, `turn ${t.n}: buttons on a question with no key`);
+        const allowed = new Set([...fieldOpts(String(t.next.key)), ...(((t.next as { suggested?: string }).suggested) ? [String((t.next as { suggested?: string }).suggested)] : [])]);
+        for (const o of t.next.options) assert(allowed.has(o), `turn ${t.n}: button "${o}" does not answer [${t.next.key}] ${t.next.text}`);
+      }
+    } else assert(!written.includes('THE ONE QUESTION TO ASK NOW'), `turn ${t.n}: no question card, but the writer was told to ask one`);
+    if (/sales engineer will help settle/i.test(written)) offers++;
+  }
+  assert(offers <= 1, `the sales engineer was offered on ${offers} turns`);
 });

@@ -346,7 +346,13 @@
           "why_needed_to_price": "Without it suppliers size differently and quotes cannot be compared.",
           "uae_options": "heat-load calculation; room data",
           "follow_up_if": "",
-          "blocking": true
+          "blocking": true,
+          "not_needed_when": {
+            "answered": [
+              "cooling capacity (BTU/h, TR or kW) per unit"
+            ],
+            "text": "each unit's cooling capacity is stated (BTU/h, TR or kW), or the existing units are replaced like for like"
+          }
         },
         {
           "spec": "inverter or fixed speed",
@@ -416,7 +422,10 @@
           "why_needed_to_price": "Ductwork and grilles are large items for ducted units.",
           "uae_options": "Ducts, grilles, plenums.",
           "follow_up_if": "If ducted, ask for the duct scope.",
-          "blocking": false
+          "blocking": false,
+          "not_needed_when": {
+            "text": "the job installs no ducted unit: wall splits only, or only a service or repair of existing ducted units"
+          }
         },
         {
           "spec": "false ceiling opening and making good",

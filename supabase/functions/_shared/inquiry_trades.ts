@@ -41,7 +41,10 @@ export interface TaxTrade { code: string; label: string; label_ar?: string | nul
 export interface TradeService { trade_code: string; code: string; label_en: string; label_ar?: string | null }
 export interface SpecItem { code: string; label_en: string }
 /** One row of a checklist's spec_guide (the loader's shape: scripts/kb/load_trade_spec_checklists.mjs expertFieldsOf). */
-export interface GuideRow { code: string; spec: string; why_needed_to_price: string; uae_options: string; follow_up_if: string; blocking: boolean }
+export interface GuideRow { code: string; spec: string; why_needed_to_price: string; uae_options: string; follow_up_if: string; blocking: boolean;
+  /** When this job does not need the spec (15 Nov 2026, journey A; inquiry_intake/interview.ts SpecField.not_needed_when): `answered`
+   *  holds spec CODES of the same checklist (the loader writes them from the pack's labels), `text` the condition in plain words. */
+  not_needed_when?: { answered?: string[]; text: string } | null }
 /** One checklist of one trade, as public.trade_spec_checklist holds it. */
 export interface TradeChecklist { trade_code: string; topic_id: string; topic: string; specs: SpecItem[]; guide: GuideRow[]; blocking: string[]; site_visit_required_when: string | null; pack_order: number }
 export interface TradeContext { codes: string[]; trades: TaxTrade[]; services: TradeService[]; specs: Record<string, SpecItem[]>; approvals: Record<string, string>; checklists?: Record<string, TradeChecklist[]> }
@@ -123,6 +126,15 @@ async function checklistRows(admin: Admin, cs: string[]): Promise<{ data: any[] 
   return await q('trade_code,topic_id,specs');
 }
 const str = (v: unknown) => (v === undefined || v === null ? '' : String(v));
+/** A guide row's not_needed_when, kept only with a condition in words and only naming specs of its own checklist. */
+// deno-lint-ignore no-explicit-any
+function notNeededOfGuide(g: any, codes: Set<string>): { answered?: string[]; text: string } | null {
+  const n = g?.not_needed_when;
+  const text = str(n?.text).trim();
+  if (!n || typeof n !== 'object' || !text) return null;
+  const answered = (Array.isArray(n.answered) ? n.answered : []).map(String).filter((c: string) => codes.has(c));
+  return answered.length ? { answered, text } : { text };
+}
 /** The rows as checklists per trade, the pack's first checklist first (pack_order, then topic_id). */
 // deno-lint-ignore no-explicit-any
 export function checklistsOf(rows: any[]): Record<string, TradeChecklist[]> {
@@ -133,7 +145,8 @@ export function checklistsOf(rows: any[]): Record<string, TradeChecklist[]> {
     const codes = new Set(specs.map((x) => x.code));
     const blocking = (Array.isArray(r.blocking) ? r.blocking : []).map(String).filter((c: string) => codes.has(c));
     const guide: GuideRow[] = (Array.isArray(r.spec_guide) ? r.spec_guide : []).filter((g: GuideRow) => g?.code && codes.has(String(g.code))).map((g: GuideRow) => ({
-      code: String(g.code), spec: str(g.spec), why_needed_to_price: str(g.why_needed_to_price), uae_options: str(g.uae_options), follow_up_if: str(g.follow_up_if), blocking: blocking.includes(String(g.code)) }));
+      code: String(g.code), spec: str(g.spec), why_needed_to_price: str(g.why_needed_to_price), uae_options: str(g.uae_options), follow_up_if: str(g.follow_up_if), blocking: blocking.includes(String(g.code)),
+      ...(notNeededOfGuide(g, codes) ? { not_needed_when: notNeededOfGuide(g, codes) } : {}) }));
     const svw = str(r.site_visit_required_when).trim();
     (out[r.trade_code] ??= []).push({ trade_code: String(r.trade_code), topic_id: String(r.topic_id), topic: str(r.topic ?? r.topic_id), specs, guide, blocking,
       site_visit_required_when: svw || null, pack_order: Number.isFinite(Number(r.pack_order)) ? Number(r.pack_order) : 0 });
@@ -163,7 +176,7 @@ export function tradeBlock(ctx: TradeContext | null, lang: 'en' | 'ar' = 'en', t
         const line = (s: SpecItem, why: boolean) => {
           const r = g.get(s.code);
           return `   - [${s.code}] ${s.label_en}` + (r ? (why && r.why_needed_to_price ? ` | why: ${cut(r.why_needed_to_price)}` : '') + (r.uae_options ? ` | UAE options: ${cut(r.uae_options)}` : '')
-            + (r.follow_up_if ? ` | then ask: ${cut(r.follow_up_if)}` : '') : '');
+            + (r.follow_up_if ? ` | then ask: ${cut(r.follow_up_if)}` : '') + (r.not_needed_when ? ` | NOT NEEDED (never ask it) when: ${cut(r.not_needed_when.text)}` : '') : '');
         };
         // a universal spec (UNIVERSAL_SPECS) is not this trade's question: it is asked once, in the block after the trades
         const own = c.specs.filter((s) => !universalOf(s.label_en));
@@ -213,7 +226,8 @@ export function validServiceKeys(x: unknown, services: TradeService[] | null | u
  *  optional (a pack lists the core first: passengers before exclusions, dimensions before printing). THE EARLIER RULE,
  *  kept only for a trade whose rows carry no blocking list yet (packFields). */
 export const CHECKLIST_REQUIRED = 6;
-export type PackField = { key: string; question: string; required: boolean; type: string; options: string[]; blocking?: boolean; trade?: string };
+export type PackField = { key: string; question: string; required: boolean; type: string; options: string[]; blocking?: boolean; trade?: string;
+  not_needed_when?: { answered?: string[]; text: string } | null };
 const questionOf = (label: string) => label.charAt(0).toUpperCase() + label.slice(1);
 export function checklistFields(specs: SpecItem[], required = CHECKLIST_REQUIRED): PackField[] {
   return specs.map((s, i) => ({ key: s.code, question: questionOf(s.label_en), required: i < required, type: 'text', options: [] }));
@@ -317,7 +331,8 @@ export function packFields(ctx: TradeContext | null, topics: string[] = [], gene
       if (seen.has(s.code)) continue;
       seen.add(s.code);
       const b = c.blocking.includes(s.code);
-      (b ? blocking : rest).push({ key: s.code, question: questionOf(s.label_en), required: b, type: 'text', options: [], blocking: b, trade: code });
+      const nn = c.guide.find((g) => g.code === s.code)?.not_needed_when;
+      (b ? blocking : rest).push({ key: s.code, question: questionOf(s.label_en), required: b, type: 'text', options: [], blocking: b, trade: code, ...(nn ? { not_needed_when: nn } : {}) });
     }
   }
   // the universal fields, ONCE for the whole request: required when any placed trade blocks on it; payment terms always
