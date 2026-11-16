@@ -281,7 +281,8 @@ as $fn$
         from public.escalation_clock c, who
        where c.state <> 'closed'
          and ((who.e is not null and lower(c.requester) = who.e)
-           or (who.p is not null and length(who.p) = 9 and right(regexp_replace(c.requester, '[^0-9]', '', 'g'), 9) = who.p))), '[]'::jsonb))
+           -- a phone is a WhatsApp clock's requester only: a site visitor is named by an address whose digits must never match a number
+           or (who.p is not null and length(who.p) = 9 and c.channel = 'whatsapp' and right(regexp_replace(c.requester, '[^0-9]', '', 'g'), 9) = who.p))), '[]'::jsonb))
     || public.fn_founder_availability()
 $fn$;
 revoke execute on function public.fn_escalation_case_facts(text, text) from public, anon, authenticated;
@@ -381,7 +382,7 @@ as $fn$
            'statuses_sent', d.statuses_sent, 'status_due', d.status_due_at <= now(), 'last_told_at', d.last_told_at, 'last_told_text', d.last_told_text,
            'ceo_decision', d.ceo_decision, 'ceo_reason', d.ceo_reason, 'founder_reason', d.founder_reason,
            'next_word_in_hours', (select rep_ from pol), 'switch_reads_off', (select v from off),
-           'has_contact', d.requester ~ '@' or length(regexp_replace(d.requester, '[^0-9]', '', 'g')) >= 9,
+           'has_contact', d.requester ~ '@' or (d.channel = 'whatsapp' and length(regexp_replace(d.requester, '[^0-9]', '', 'g')) >= 9),
            'stale_days', d.detail->'stale_days', 'founder', public.fn_founder_availability()) order by d.status_due_at), '[]'::jsonb)
     from (select * from due where due_for is not null order by status_due_at limit greatest(1, least(coalesce(p_limit, 3), 10))) d
 $fn$;
@@ -472,7 +473,8 @@ begin
   v_role := case when c.audience = 'supplier' then 'supplier' else 'customer' end;
   if c.requester ~ '@' then
     v_email := lower(btrim(c.requester));
-  else
+  elsif c.channel = 'whatsapp' then
+    -- only a WhatsApp clock's requester is a number: a site visitor is named by an address whose digits are no one's phone
     v_digits := regexp_replace(c.requester, '[^0-9]', '', 'g');
     if length(v_digits) >= 9 then
       -- WhatsApp only inside the person's own 24-hour window: outside it a free message is refused by Meta, and a template needs an
@@ -583,7 +585,7 @@ begin
     if p_dry_run then
       v_out := v_out || jsonb_build_array(jsonb_build_object('review_request_id', r.id, 'channel', r.channel,
         'days_waiting', floor(extract(epoch from now() - r.created_at) / 86400)::int,
-        'has_contact', r.requester ~ '@' or length(regexp_replace(r.requester, '[^0-9]', '', 'g')) >= 9, 'lang', case when v_ar then 'ar' else 'en' end));
+        'has_contact', r.requester ~ '@' or (r.channel = 'whatsapp' and length(regexp_replace(r.requester, '[^0-9]', '', 'g')) >= 9), 'lang', case when v_ar then 'ar' else 'en' end));
       continue;
     end if;
     v := public.fn_escalation_clock_open(coalesce(r.subject_table, 'decision_review_request'), coalesce(r.subject_id, r.id::text),

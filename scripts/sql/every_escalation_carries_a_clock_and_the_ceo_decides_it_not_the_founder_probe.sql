@@ -130,6 +130,17 @@ begin
     raise exception 'CHK<<PROBE FAILED: a founder-credential finding is not read as a channel down>>';
   end if;
 
+  -- 7b. a site visitor is named by an address whose digits (203011377) are nine: never read as a phone, never matched to a number
+  insert into public.wa_conversation (phone_e164, party_kind, window_opened_at, window_expires_at) values ('971203011377', 'unknown', now(), now() + interval '20 hours');
+  perform set_config('qd.duty_fixtures', '', true);   -- the visitor is not a fixture: delivered as production would
+  v := public.fn_escalation_clock_open('decision_review_request', '-9003', 'person', 'site_chat', v_visitor, null, 'ZZ DEMO a human please', null, '{}'::jsonb);
+  v_due := public.fn_escalation_clock_deliver((v->>'id')::bigint, 'status_1', null, 'ZZ DEMO must not go anywhere');
+  if coalesce((v_due->>'sent')::boolean, false) or jsonb_array_length(public.fn_escalation_case_facts(null, '+971 20 301 1377')->'open_escalations') <> 0 then
+    raise exception 'CHK<<PROBE FAILED: a site visitor''s address digits were read as a phone: % / %>>', v_due, public.fn_escalation_case_facts(null, '+971 20 301 1377');
+  end if;
+  update public.escalation_clock set state = 'closed', closed_at = now(), closed_reason = 'probe' where id = (v->>'id')::bigint;
+  perform set_config('qd.duty_fixtures', 'on', true);
+
   -- 8. a held payer is on a clock with what he was promised; while the switch does not read off, he is owed a status, never "tell"
   if not public.fn_stripe_live_hold_reads_off() then
     insert into public.agent_actions (agent, kind, status, recommendation, detail, target_table, target_id, created_at)
