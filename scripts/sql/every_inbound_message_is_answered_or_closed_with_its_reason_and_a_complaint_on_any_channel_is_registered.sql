@@ -350,8 +350,13 @@ begin
          string_agg(distinct left(i.no_reply_reason, 160), '; ')
     into v_rows, v_open, v_reason
     from public.customer_support_inbound_drive i where i.case_ref = p_case_ref;
-  -- every inbound on the case is one of these rows, and each was closed with its reason
-  if v_rows = 0 or v_open > 0 or c.inbound_count > v_rows then return false; end if;
+  -- every inbound on the case is one of these rows, and each was closed with its reason; or the case is a reserved fixture
+  -- number's (every message on it is test traffic: wa_messages' own case touch counts more inbound than the duty drove)
+  if v_rows = 0 or v_open > 0 then return false; end if;
+  if c.inbound_count > v_rows and not exists (select 1 from public.support_customer_profile p
+                                               where p.id = c.customer_profile_id and public.fn_is_demo_phone('0' || p.phone_tail)) then
+    return false;
+  end if;
   perform public.fn_support_case_close(p_case_ref, left('no reply was owed: ' || coalesce(v_reason, 'see customer_support_inbound_drive'), 900), 'customer_support');
   return true;
 end $fn$;
@@ -526,7 +531,7 @@ begin
     return 'machine_sender';
   end if;
   v_auto := lower(btrim(coalesce(m.raw->>'auto_submitted', '')));
-  if (v_auto not in ('', 'no') and not (v_auto = 'auto-generated' and v_known in ('customer', 'supplier')))
+  if (v_auto not in ('', 'no') and not (v_auto = 'auto-generated' and coalesce(v_known, '') in ('customer', 'supplier')))
      or btrim(coalesce(m.raw->>'x_autoreply', '')) <> ''
      or lower(btrim(coalesce(m.raw->>'precedence', ''))) = 'auto_reply' then
     return 'auto_submitted';
