@@ -307,8 +307,9 @@ Deno.test('7. a short document set is read at once as ONE call for the whole (no
   const lines = [long, ...Array.from({ length: 12 }, (_, i) => `Garden service number ${i} for villas and compounds`)];
   const docs = [{ path: 'p', name: 'p.pdf', kind: 'profile' as const, text: lines.join('\n') }];
   const run = async (d: typeof docs, opts = {}) => {
-    const reads: { sys: string; text: string }[] = []; let inFlight = 0, peak = 0;
+    const reads: { sys: string; text: string }[] = [], maps: string[] = []; let inFlight = 0, peak = 0;
     const r = await readInTwoSteps(d, null, tax, async (step, sys, text) => {
+      if (step === 'map') maps.push(text);
       if (step === 'map') return { ok: true, content: JSON.stringify({ map: [...text.matchAll(/^(\d+)\. /gm)].map((m) => ({ i: Number(m[1]), keys: [] })) }) };
       reads.push({ sys, text }); inFlight++; peak = Math.max(peak, inFlight); await new Promise((res) => setTimeout(res, 5)); inFlight--;
       const part = text.split('[The PART to read:]\n')[1] ?? null;
@@ -316,11 +317,12 @@ Deno.test('7. a short document set is read at once as ONE call for the whole (no
       const ev = lines.filter((l) => (part ?? text).includes(l.slice(0, 60))).map((l) => ({ words: l.slice(0, 40) + (part ? '' : ' whole'), quote: l.slice(0, 60), basis: 'stated', trade: 'landscaping' }));
       return { ok: true, content: answer({ evidence: ev, summary: part === null ? 'The whole.' : 'A part.', also_ask: [{ because: 'x', options: [{ label: part === null ? 'Pools' : 'Fences', trade: null }] }] }) };
     }, opts);
-    return { r, reads, peak };
+    return { r, reads, maps, peak };
   };
   const body = `=== profile: p.pdf ===\n${lines.join('\n')}`;
   assert(body.length > SHORT_PART_CHARS && body.length <= READ_CONTEXT_CHARS);
-  const { r, reads, peak } = await run(docs);
+  const { r, reads, maps, peak } = await run(docs);
+  assert(maps.length > 0 && maps.every((t) => t.includes('The whole.')), 'every phrase is mapped with the summary of the call for the whole');
   assert(r.ok);
   const whole = reads.filter((x) => x.sys === profileReadSystem(tax.trades, 'whole')), parts = reads.filter((x) => x.sys === profileReadSystem(tax.trades, 'part'));
   assertEquals([whole.length, parts.length >= 3, whole.length + parts.length], [1, true, reads.length], 'one call for the whole, the rest parts');

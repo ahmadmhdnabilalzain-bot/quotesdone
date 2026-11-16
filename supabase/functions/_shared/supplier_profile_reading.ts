@@ -576,10 +576,15 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
     await Promise.all(calls.map((ch) => mapCall(ch, summary)));
   };
   const mapping: Promise<void>[] = [];
-  // the mapping's summary: the first job's (with WHOLE, the call for the documents as a whole), never a later part's (see above)
+  // the mapping's summary: the first job's, never a later part's (see above). WHOLE: every part's phrases are mapped with the summary of
+  // the call for the documents as a whole, as the one call's phrases were (measured 16 Nov 2026, run 70eb0bd5: mapped with no summary,
+  // "Hostesses" of an events company went to the labour-supply key and "Facade cleaning" to none), so a part's mapping waits for it
+  let wholeSummary: (s: string) => void = () => {};
+  const summary = new Promise<string>((res) => { wholeSummary = res; });
   const each = await inPool(jobs, PARALLEL, async (p, i) => {
     const r = await readPart(p, i);
-    if (r.ok) mapping.push(mapPart(r.reading, summaryFor(i, r.reading.summary)));
+    if (whole && p === null) wholeSummary(r.ok ? r.reading.summary : '');
+    if (r.ok) mapping.push(whole ? summary.then((s) => mapPart(r.reading, s)) : mapPart(r.reading, summaryFor(i, r.reading.summary)));
     return r;
   });
   const bad = each.find((x) => !x.ok);
