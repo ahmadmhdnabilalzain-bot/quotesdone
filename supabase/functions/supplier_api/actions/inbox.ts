@@ -11,6 +11,7 @@ import { arabicOf } from '../../_shared/reasoned_governance.ts';
 // A DRAWING PAGE THAT FAILS TO SIGN IS COUNTED, LOGGED AND RAISED - never silently dropped from the
 // inbox (18 Sep 2026, sales_engineer). See _shared/drawing_pages.ts for the production measurement.
 import { drawingWithheld, signRedactedDrawings } from '../../_shared/drawing_pages.ts';
+import { releasedSitePhotos, sitePhotosSection } from '../site_photos_door.ts';
 import { jobNo } from '../quote_review.ts';
 // The identity scrubbers (scrubIdentity, inboxField, inboxBoq) live in ./identity_scrub.ts.
 import { supplierCopy } from '../what_a_supplier_receives.ts';
@@ -166,6 +167,17 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
       // Sign every redacted drawing page for the whole inbox page at once. A page that cannot be signed
       // is counted and raised rather than dropped in silence; the pages that did sign are still served.
       const pagesOf = await signRedactedDrawings(admin, (inq || []).map((i) => ({ id: i.id, paths: i.drawing_redacted_paths })));
+      // PHOTOS FROM THE SITE (15 Nov 2026, ledger 1704; ../site_photos_door.ts): only copies the worker's check released and
+      // recorded, signed by the same recorded-path signer as the drawings; the shots provided and not provided; the visit line.
+      const photoDoor = await releasedSitePhotos(admin, (inq || []).map((i) => i.id));
+      const photoJobs = (i: any): string[] => (photoDoor.records.get(String(i.id))?.photos ?? []).map((p) => String(p?.job_id || '')).filter((j) => photoDoor.paths.has(j));
+      const photoPagesOf = await signRedactedDrawings(admin, (inq || []).map((i) => ({ id: i.id, paths: photoJobs(i).map((j) => photoDoor.paths.get(j)) })));
+      const photosOf = (i: any) => {
+        const jobs = photoJobs(i), sp = photoPagesOf[String(i.id)];
+        // a URL is attributed to its job only when every released copy signed (the signer keeps the order of what it served)
+        const signed = new Map<string, string>(sp && sp.served === jobs.length ? jobs.map((j, k) => [j, sp.urls[k]] as [string, string]) : []);
+        return sitePhotosSection(photoDoor.records.get(String(i.id)) ?? null, signed);
+      };
       const out: any[] = [];
       const gatedBoqs: unknown[] = [];
       for (const i of (inq || [])) {
@@ -202,7 +214,7 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
         // loop in one batch (decision point trade_glossary_ar); until it exists — under the model hold — it stays
         // null and the portal shows the customer's own words, never a partial or word-by-word reading.
         const sSummaryAr: string | null = null;
-        out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_withheld: summaryWithheld, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
+        out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_withheld: summaryWithheld, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), site_photos: photosOf(i), status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       // The BOQ read in Arabic (audit 21 Sep 2026, findings 26/27). Which Arabic heading a section means is
       // reasoned (decision point documents.boq_arabic) over the GATED BOQs only — a revealed BOQ is the customer's

@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>> and rolls back everything it writes (ZZ DEMO rows only). Run it on a LOCAL database after a_suppliers_letter_is_kept_from_the_first_time_the_customer_sees_it.sql (never a rehearsal on production); it must print PROBE OK. This note stays for the life of the file. Seat: sales_engineer.

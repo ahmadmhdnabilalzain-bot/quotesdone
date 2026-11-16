@@ -34,7 +34,9 @@ type World = { state?: Record<string, unknown> | null; msgs: Record<string, unkn
   /** the person's open cases (fn_support_open_cases); unset = the stub's default */
   cases?: Record<string, unknown>[];
   /** Twilio refuses every send */
-  twilioFails?: boolean };
+  twilioFails?: boolean;
+  /** extra taxonomy trades and the checklist rows the trade read answers (unset = the staff_transport rows) */
+  tax?: Record<string, unknown>[]; checklists?: Record<string, unknown>[] };
 const world = (audience: Record<string, unknown> = { audience: 'supplier', name: 'ZZ DEMO Glass LLC', claimed: true, approved: true }): World =>
   ({ msgs: [], seen: new Set(), gateway: [], rpcs: [], nextId: 1, audience, replies: [] });
 
@@ -77,8 +79,9 @@ function stubFor(w: World): Stub {
         return undefined;
       }
       if (u.pathname === '/rest/v1/inquiry_state' && req.method === 'GET') return J(w.state ? [w.state] : []);
-      if (u.pathname === '/rest/v1/taxonomy_trade') return J(TAX);
+      if (u.pathname === '/rest/v1/taxonomy_trade') return J([...TAX, ...(w.tax ?? [])]);
       if (u.pathname === '/rest/v1/taxonomy_trade_service') return J([{ trade_code: 'staff_transport', code: 'bus_rental', label_en: 'Bus rental with driver' }]);
+      if (u.pathname === '/rest/v1/trade_spec_checklist' && w.checklists) return J(w.checklists);
       if (u.pathname === '/rest/v1/trade_spec_checklist') return J([{ trade_code: 'staff_transport', topic_id: 'staff_transport:spec-checklist', specs: [{ code: 'spec_number_of_passengers_and_routes', label_en: 'number of passengers and routes' }, { code: 'spec_vehicle_type_and_seating_capacity', label_en: 'vehicle type and seating capacity' }] }]);
       if (u.pathname === '/rest/v1/sales_knowledge') return J([{ tags: ['trade:staff_transport', 'kind:standard', 'lang:en'], content: 'ZZ DEMO In Dubai passenger transport is regulated by the RTA.' }]);
       if (u.pathname === '/rest/v1/review_route') return J([{ decision_type: 'person', meaning: 'an explicit request to speak to a person' }]);
@@ -240,4 +243,56 @@ Deno.test('once said for one trade, another trade does not say it again; the sen
   const { withoutLeadingThanks } = await import('./say.ts');
   assertEquals(withoutLeadingThanks(sentence), 'We are onboarding verified suppliers for Vehicle leasing right now, so requests in this trade are not open yet.');
   assertEquals(withoutLeadingThanks('شكرًا لكم. لم نفتح الطلبات بعد.'), 'لم نفتح الطلبات بعد.');
+});
+
+// ── THE PHOTO ASK ON WHATSAPP (15 Nov 2026, sales_engineer; founder ledger 1704; review of bf8b9ea45, item 8) ──────────────────
+// The request chat asked once for site photos; WhatsApp never did. The state reader now marks the trades whose site-visit condition
+// the job meets ('visit:<code>'); the next reply to a registered customer carries the ask word for word, once, and the conversation
+// is marked said when that reply is delivered. A supplier is never asked; a conversation already asked is never asked again.
+// say.ts is loaded after the function (loadFunction sets the environment its client reads)
+const sayMod = async () => { await fn(); return await import('./say.ts'); };
+const PHOTO_SAID_KEY = 'said:photo_ask';
+const HVAC_TAX = [{ code: 'hvac', label: 'HVAC', group_code: 'mep_building_systems', authority_required: [] }];
+const HVAC_ROWS = [{ trade_code: 'hvac', topic_id: 'hvac:spec-split-ac', specs: [{ code: 'spec_unit_type', label_en: 'unit type' }],
+  site_visit_required_when: 'ZZ DEMO a site visit is needed for replacements, to check drainage',
+  photos_to_ask: [{ shot: 'Each indoor unit, from the front', shot_ar: 'كل وحدة داخلية، من الأمام', from: 'replacements' }, { shot: 'Where the water from the unit drains', shot_ar: 'مكان تصريف المياه', from: 'drainage' }] }];
+const HVAC_CTX = { codes: ['hvac'], checklists: { hvac: [{ topic_id: 'hvac:spec-split-ac', site_visit_required_when: HVAC_ROWS[0].site_visit_required_when, photos: HVAC_ROWS[0].photos_to_ask }] } } as never;
+const HC = 'whatsapp:+971500000034';
+const HSTATE = { ...STATE, conv_key: 'wa:+971500000034', trade_codes: ['hvac'] };
+
+Deno.test('waPhotoAsk: a registered customer whose job meets a site visit is asked once; never a supplier, never twice, never without a visit', async () => {
+  const { waPhotoAsk, PHOTO_SAID_KEY: KEY } = await sayMod();
+  assertEquals(KEY, PHOTO_SAID_KEY);
+  const ask = waPhotoAsk(HVAC_CTX, { 'visit:hvac': { count: 1 } }, 'customer', 'en');
+  assert(ask && ask.includes('Each indoor unit, from the front; Where the water from the unit drains') && /optional/.test(ask) && /checked before any supplier/.test(ask), String(ask));
+  assertEquals(waPhotoAsk(HVAC_CTX, { 'visit:hvac': { count: 1 }, [PHOTO_SAID_KEY]: { count: 1 } }, 'customer', 'en'), null, 'asked twice');
+  assertEquals(waPhotoAsk(HVAC_CTX, { 'visit:hvac': { count: 1 } }, 'supplier', 'en'), null);
+  assertEquals(waPhotoAsk(HVAC_CTX, { 'visit:hvac': { count: 1 } }, 'visitor', 'en'), null, 'a number with no account cannot send a checked photo');
+  assertEquals(waPhotoAsk(HVAC_CTX, {}, 'customer', 'en'), null, 'asked with no site visit');
+  assert(/كل وحدة داخلية/.test(String(waPhotoAsk(HVAC_CTX, { 'visit:hvac': { count: 1 } }, 'customer', 'ar'))));
+});
+
+Deno.test('a WhatsApp customer whose job needs a site visit is asked for the photos once, and the ask is marked said when delivered', async () => {
+  const { waPhotoAsk } = await sayMod();
+  const ask = waPhotoAsk(HVAC_CTX, { 'visit:hvac': { count: 1 } }, 'customer', 'en')!;
+  const w = world({ audience: 'customer', name: 'ZZ DEMO Customer', requests: [] });
+  w.tax = HVAC_TAX; w.checklists = HVAC_ROWS;
+  w.state = { ...HSTATE, asked: { 'visit:hvac': { count: 1 } } };
+  w.script = Array(12).fill('ZZ DEMO noted, three splits to replace. ' + ask);   // every call of the turn answers with it
+  const r = await inbound(w, HC, 'ZZ DEMO I want to replace three split units in my villa');
+  assertEquals(r.status, 200);
+  assert(r.gw.some((g) => g.task_class === 'inquiry_qualification_conversation'), 'the reply was not the expert interview');
+  assert(w.msgs.some((m) => String(m.reply ?? '').includes('Each indoor unit, from the front')), 'the reply does not ask for the photos');
+  const marks = w.rpcs.filter((x) => x.fn === 'fn_inquiry_state_merge').map((x) => (x.args.p_patch as { asked?: string[] }).asked).filter(Boolean);
+  assertEquals(marks, [[PHOTO_SAID_KEY]], 'the conversation was not marked asked, once');
+  // the reader is given the trade's site-visit condition, so it can mark the next job
+  assert(r.gw.some((g) => g.task_class === 'json_extraction' && JSON.stringify(g).includes('SITE VISIT CONDITIONS') && JSON.stringify(g).includes('check drainage')), 'the reader was not given the site-visit condition');
+  // the next turn, once marked: nothing asked again
+  w.state = { ...HSTATE, asked: { 'visit:hvac': { count: 1 }, [PHOTO_SAID_KEY]: { count: 1 } } };
+  w.script = Array(12).fill('ZZ DEMO you are welcome; tell me when the units were installed.');
+  const before = w.rpcs.length;
+  const again = await inbound(w, HC, 'ZZ DEMO ok thanks');
+  assert(!again.gw.some((g) => JSON.stringify(g).includes('it leaves out')), 'a reply without the photo ask was sent back for a rewrite: asked twice');
+  assert(!w.rpcs.slice(before).some((x) => x.fn === 'fn_inquiry_state_merge' && JSON.stringify(x.args).includes(PHOTO_SAID_KEY)), 'marked asked again');
+  assert(!w.msgs.slice(-1).some((m) => String(m.reply ?? '').includes('attach these photos')), 'asked for the photos twice');
 });

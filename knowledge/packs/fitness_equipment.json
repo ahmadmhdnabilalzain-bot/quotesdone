@@ -138,7 +138,24 @@
       ],
       "site_visit_required_when": "a firm price needs the equipment list with grade (commercial or home), models or equivalent level, quantities and delivery floor; a full gym fit-out needs the floor plan and usually a site visit for floor load and access.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "The floor as it is now, with a close-up of its surface",
+          "shot_ar": "الأرضية بحالتها الحالية، مع صورة قريبة لسطحها",
+          "from": "floor load"
+        },
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "access"
+        }
+      ]
     },
     {
       "id": "fitness_equipment:uae-standards-and-approvals",

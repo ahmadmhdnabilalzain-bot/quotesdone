@@ -24,6 +24,7 @@ import { DUTIES, marketingAsk } from './duties.ts';
 import { PAUSED, pausedDuties } from '../_shared/duty_pause.ts';
 import { recallCases } from '../_shared/case_recall.ts';
 import { runLeadBatch } from './lead_sourcing.ts';
+import { isCeoOrder, reportOrClose } from '../_shared/order_report.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -177,5 +178,16 @@ Deno.serve(observe('marketing', async (req) => {
     return J({ started: true }, 202);
   }
 
-  return J({ error: 'unknown action', actions: ['health', 'duties', 'assist', 'lead_sourcing'] }, 400);
+  // ── A CEO ORDER, REPORTED (ceo, 15 Nov 2026; third review item 3; _shared/order_report.ts): the seat says what it did,
+  // fn_seat_reports_done writes it on the CEO's decision, and a supply order's outcome is measured beside it.
+  if (action === 'report_order') {
+    if (caller.kind !== 'marketing') return J({ error: 'an order is reported under the seat credential only' }, 403);
+    const { data: h } = await admin.from('agent_actions').select('id,agent,detail').eq('id', Number(body.id)).eq('kind', 'handoff').maybeSingle();
+    if (!h || h.agent !== 'marketing' || !isCeoOrder(h)) return J({ error: 'not_this_seats_order' }, 404);
+    const r = await reportOrClose((fn, args) => admin.rpc(fn, args), 'marketing', h, body);
+    await run('report_order', r.status === 200 ? 'ok' : 'refused', { handoff_id: Number(body.id) });
+    return J(r.body, r.status);
+  }
+
+  return J({ error: 'unknown action', actions: ['health', 'duties', 'assist', 'lead_sourcing', 'report_order'] }, 400);
 }));

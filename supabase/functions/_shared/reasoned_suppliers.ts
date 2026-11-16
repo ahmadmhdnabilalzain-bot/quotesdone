@@ -19,7 +19,9 @@ const stated = (r: any, k: string) => { const f = r.decision?.fields?.[k]; retur
 /** The commercial terms a quotation states, each with the words that state it. */
 export const QUOTE_TERMS = [
   { key: 'lead_time', question: 'the lead / delivery / completion time the supplier commits to' },
-  { key: 'validity', question: 'how long the offer is valid' },
+  { key: 'validity', question: 'how long the offer is valid, in the quotation\'s own words (nothing when it does not say)' },
+  // Ledger 1697: a stated validity is counted from the quotation's own date (scripts/sql/a_quotation_is_valid_for_the_period_the_supplier_states_and_for_no_period_we_choose.sql).
+  { key: 'quotation_date', question: 'the date printed on the quotation as its date of issue, exactly as written' },
   { key: 'payment_terms', question: 'the payment terms' },
   { key: 'warranty', question: 'the warranty or guarantee given' },
   { key: 'exclusions', question: 'what the quotation excludes' },

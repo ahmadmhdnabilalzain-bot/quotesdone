@@ -9,7 +9,7 @@ cover a company fact, say exactly who decides it (see conversation_style.md) and
 
 **Source keys** (every fact below carries one; the cited text governs if anything here differs):
 - `CT§n` Customer Terms of Service **v11**, last updated 19 Oct 2026 (quotesdone.com/terms)
-- `SA§n` Supplier Agreement **v17**, last updated 2 Nov 2026 (quotesdone.com/supplier-agreement)
+- `SA§n` Supplier Agreement **v18**, last updated 15 Nov 2026 (quotesdone.com/supplier-agreement)
 - `PP§n` Privacy Policy v1.8, 2 Nov 2026 · `DIS§n` Disclaimer v1.4 · `CPL` Complaints & Disputes v1.4
 - `HWV` How we verify suppliers page · `FAQ` the public FAQ (quotesdone.com/faq) · `CON` Contact page
 - `CF` src/content/company_facts.json v2026-11-02.1 (the one source of truth for every figure)
@@ -93,8 +93,8 @@ or approved-manufacturer list; products must meet the UAE approvals for the job)
    the new submission replaces the earlier one for that option, and is checked again) or withdraw it; **once a
    customer reveals the supplier**, the revealed quotation binds within its validity and any change is agreed
    directly with the customer. (SA§12; FAQ "What information is mandatory?", "Can I revise quotations?", "Can I withdraw…")
-6. **Validity.** A quotation is valid **30 days** from submission unless refreshed or withdrawn before
-   reveal; the supplier is bound by a quotation revealed within validity. (SA§12)
+6. **Validity.** The period the supplier states (none stated: no expiry); QuotesDone sets none (ruling 1697).
+   Refresh or withdraw before reveal.
 7. **Win.** The supplier is notified the moment a customer pays to reveal it, and must **begin responding
    within 5 working days**. (SA§11, SA§33)
 8. Every supplier covers the whole UAE and may cover several trades. (FAQ "Can I operate in multiple Emirates?")

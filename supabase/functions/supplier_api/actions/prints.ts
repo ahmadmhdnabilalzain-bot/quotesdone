@@ -119,7 +119,10 @@ export async function printActions(c: ActionCtx): Promise<Response | undefined> 
         const d = inquiryDocuments(i);
         const row: InquiryDocRow = { id: String(i.id), rfq_no: i.rfq_no ?? null, category: i.category ?? null, emirate: i.emirate ?? null, summary: i.summary ?? null, budget: i.budget ?? null,
           scope_type: i.scope_type ?? null, created_at: i.created_at ?? null, brief_source: i.brief_source ?? null, spec: i.spec ?? null, boq: i.boq ?? null, boq_withheld: !!i.boq_withheld,
-          documents: d.documents.map((x: any) => ({ kind: x.kind, name: x.name, lines: x.lines })), drawing_pages_failed: d.drawing_pages_failed };
+          documents: d.documents.map((x: any) => ({ kind: x.kind, name: x.name, lines: x.lines })), drawing_pages_failed: d.drawing_pages_failed,
+          // Photos from the site (ledger 1704): the inbox's section without its signed URLs, so the hash stays stable
+          site_photos: i.site_photos ? { shown: Array.isArray(i.site_photos.urls) ? i.site_photos.urls.length : 0, provided: i.site_photos.provided ?? [], not_provided: i.site_photos.not_provided ?? [],
+            provided_ar: i.site_photos.provided_ar ?? [], not_provided_ar: i.site_photos.not_provided_ar ?? [] } : null };
         const ref = quoteRef(row, 'RFQ');
         // The signed drawing URLs are not on the row, so the hash is stable across signings.
         let heldAr = false;

@@ -37,3 +37,16 @@ test('the review write actions wait for their reasoned answer, and a lost answer
   const chat = readFileSync(new URL('./QuoteReviewChat.tsx', import.meta.url), 'utf8');
   assert.match(chat, /if \(code === 'timeout' \|\| code === 'network'\) \{ const m = \+\+seq\.current; adopt\(await qr\.thread\(token, inquiryId, lang\), m\); \}/);
 });
+
+// Final review of the comparison branch, 16 Nov 2026 (FIX 1): a SUBMITTED supplier with an open comparison point can answer it
+// (thread_view.ts can_write), so the portal must not treat 'submitted' as closed, must list the points, and must not offer a
+// file (a file to a submitted thread gets 409 by design: can_upload is false).
+test('a submitted thread is closed only when the API says he cannot write; the open points are listed; the file button follows can_upload', () => {
+  const src = readFileSync(new URL('./QuoteReviewChat.tsx', import.meta.url), 'utf8');
+  assert.match(src, /const closed = th\.state === 'closed' \|\| \(th\.state === 'submitted' && !th\.can_write\);/);
+  assert.match(src, /th\.open_requests\.filter\(\(q\) => q\.code === 'comparison_point'\)/);
+  assert.match(src, /\{asked\.map\(\(q\) => <li key=\{q\.id\}>/);
+  assert.doesNotMatch(src, /const closed = th\.state === 'submitted' \|\| /);
+  assert.match(src, /title=\{t\.chatFileTip\} disabled=\{!th\.can_upload/);
+  assert.match(src, /onChatFile\(e\.target\.files\?\.\[0\]\)\} disabled=\{!th\.can_upload/);
+});

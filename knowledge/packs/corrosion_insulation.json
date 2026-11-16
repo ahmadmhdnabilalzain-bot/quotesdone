@@ -172,7 +172,24 @@
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page. Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page.",
-      "site_visit_required_when": "coating or insulation of existing plant needs a site survey to see condition, access and quantities before a firm price."
+      "site_visit_required_when": "coating or insulation of existing plant needs a site survey to see condition, access and quantities before a firm price.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site survey"
+        },
+        {
+          "shot": "Close-ups of the surface as it is now (cracks, peeling, rust or old coating)",
+          "shot_ar": "صور قريبة للسطح بحالته الحالية (تشققات، تقشر، صدأ أو طلاء قديم)",
+          "from": "condition"
+        },
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "access"
+        }
+      ]
     },
     {
       "id": "corrosion_insulation:uae-standards-and-approvals",

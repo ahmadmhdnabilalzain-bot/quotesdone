@@ -161,7 +161,29 @@
         }
       ],
       "site_visit_required_when": "A site visit or a topographic survey is unavoidable before a firm price for any road work on existing ground, to see levels, drainage and existing services.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "The ground or floor where the work will stand",
+          "shot_ar": "الأرض أو الأرضية التي سيقوم عليها العمل",
+          "from": "ground"
+        },
+        {
+          "shot": "The surface from a low angle, so slopes and dips show",
+          "shot_ar": "السطح من زاوية منخفضة لتظهر الميول والانخفاضات",
+          "from": "levels"
+        },
+        {
+          "shot": "Where the water drains (the drain point or floor drain)",
+          "shot_ar": "مكان تصريف المياه (نقطة الصرف أو صرف الأرضية)",
+          "from": "drainage"
+        },
+        {
+          "shot": "The pipes, cables and connections at the point where it will be connected",
+          "shot_ar": "الأنابيب والكابلات ونقاط التوصيل في مكان التركيب",
+          "from": "existing services"
+        }
+      ]
     },
     {
       "id": "road_works:uae-standards-and-approvals",

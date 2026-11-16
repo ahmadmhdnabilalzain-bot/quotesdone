@@ -1,5 +1,6 @@
 import { assessQuote, requirementsOf, type Line as SpecLine, type TermsSpec } from '../line_specs/assess.ts';
 import { type Lang } from './base.ts';
+import { feeBaseOf } from '../stated_price.ts';
 
 // ── Types: what the caller hands in ─────────────────────────────────────────────────────────────
 export type QuoteRow = {
@@ -47,7 +48,7 @@ export function completenessOf(q: QuoteRow & { terms_spec?: unknown; lead_time?:
     spec: it.specs ? Object.fromEntries(Object.entries(it.specs).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])) : null }));
   const a = assessQuote({ category: category ?? null, lines, requirements: requirementsOf(inquirySpec),
     terms: { lead_time: q.lead_time ?? null, warranty: q.warranty ?? null, scope: q.scope ?? null, exclusions: q.exclusions ?? null, conditions: q.conditions ?? null, notes: q.notes ?? null,
-      terms_spec: (q.terms_spec && typeof q.terms_spec === 'object' ? q.terms_spec : null) as TermsSpec | null, price_ex_vat: q.price_ex_vat ?? q.quote_amount ?? null } });
+      terms_spec: (q.terms_spec && typeof q.terms_spec === 'object' ? q.terms_spec : null) as TermsSpec | null, price_ex_vat: feeBaseOf(q) } });
   const out = items.map((it, i) => { const r = a.lines[i]; const specs = r && Object.keys(r.spec).length ? { ...(it.specs ?? {}), ...r.spec } : it.specs; return { ...it, specs: specs ?? null }; });
   const inst = a.terms.installation, w = a.terms.warranty;
   const timeline = inst.detail && /^Installation in /.test(inst.detail) ? inst.detail.replace(/^Installation in /, '') : null;
@@ -71,7 +72,8 @@ export type Item = {
 // its scope line: each quote's stated value per attribute, per scope line, with a flag against the
 // request, plus the three commercial completeness checks with an `applicable` flag. Values are keyed
 // by the anonymous label ("Supplier A"). A held quote is never a column: the roster decides.
-export type SpecFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na';
+// 'stated': a value with nothing in the request to compare it with; printed as written, with no mark (15 Nov 2026).
+export type SpecFlag = 'match' | 'differs' | 'missing' | 'optional' | 'na' | 'stated';
 export type SpecCell = { value?: string | null; flag: SpecFlag; note?: string | null };
 export type TechAttribute = { key: string; label?: string | null; unit?: string | null; requested?: string | null; values: Record<string, SpecCell> };
 export type TechLine = { line_no?: number | null; item: string; qty?: string | number | null; unit?: string | null; attributes: TechAttribute[] };
@@ -83,7 +85,8 @@ export type TechnicalComparison = {
 };
 
 /** 'QD-<job number>-<letter>' — the job number is inquiries.rfq_no, the same one both portals print (21 Sep 2026, audit finding 7). */
-export function quoteRef(inq: { id?: string | null; rfq_no?: number | string | null }, letter: string) { return 'QD-' + jobNoOf(inq) + '-' + letter; }
+// No letter (the customer has not been shown this supplier yet, _shared/quote_labels.ts): the job number alone, never a guessed letter.
+export function quoteRef(inq: { id?: string | null; rfq_no?: number | string | null }, letter: string) { return 'QD-' + jobNoOf(inq) + (letter ? '-' + letter : ''); }
 export function clipCell(s: unknown, n: number) { const t = String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; }
 // deno-lint-ignore no-explicit-any
 const arrOf = (x: any) => Array.isArray(x) ? x : [];

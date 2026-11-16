@@ -160,7 +160,24 @@
       ],
       "site_visit_required_when": "a firm price needs the equipment schedule with models or capacities and a layout with services; a fit-out without a layout needs a site survey, and the hood and suppression package needs the hood dimensions and duct route.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "The pipes, cables and connections at the point where it will be connected",
+          "shot_ar": "الأنابيب والكابلات ونقاط التوصيل في مكان التركيب",
+          "from": "services"
+        },
+        {
+          "shot": "Each opening or area, straight on, with a tape measure across it if you have one",
+          "shot_ar": "كل فتحة أو مساحة من الأمام مباشرة، مع شريط قياس عليها إن توفر",
+          "from": "dimensions"
+        },
+        {
+          "shot": "Where the air or exhaust would go out (window, wall or roof)",
+          "shot_ar": "مخرج الهواء أو العادم (نافذة، جدار أو سطح)",
+          "from": "duct route"
+        }
+      ]
     },
     {
       "id": "commercial_kitchen:uae-standards-and-approvals",

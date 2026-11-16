@@ -372,7 +372,24 @@
       ],
       "site_visit_required_when": "a firm price needs outlet count, category, floor plans with rack locations and the containment scope; an existing building needs a site survey.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site survey"
+        },
+        {
+          "shot": "The existing panel or equipment room, with the panel front readable",
+          "shot_ar": "اللوحة أو غرفة الأجهزة الحالية، مع وضوح واجهة اللوحة",
+          "from": "rack locations"
+        },
+        {
+          "shot": "The existing cable trays or trunking",
+          "shot_ar": "حوامل أو مجاري الكابلات الحالية",
+          "from": "containment"
+        }
+      ]
     },
     {
       "id": "it_services:spec-wifi-network",
