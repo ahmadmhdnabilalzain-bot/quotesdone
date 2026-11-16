@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run after every_compliance_source_is_fetched_monthly_and_a_change_reaches_the_seat_it_affects.sql in the same transaction on a local Postgres 16; it must print PROBE OK. This note stays for the life of the file. Seat: it_engineer.
