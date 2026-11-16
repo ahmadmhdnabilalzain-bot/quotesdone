@@ -465,8 +465,10 @@ declare c public.escalation_clock; v_digits text; v_email text; v_role text; o r
   v_ref text; v_secret text; v_req bigint; v_res jsonb;
   v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on';
 begin
-  select * into c from public.escalation_clock where id = p_id;
+  -- locked: two heartbeats working the same clock send one message per stage, not two
+  select * into c from public.escalation_clock where id = p_id for update;
   if not found then return jsonb_build_object('sent', false, 'reason', 'no clock ' || p_id); end if;
+  if coalesce(c.detail->'wa_stages', '[]'::jsonb) ? p_stage then return jsonb_build_object('sent', false, 'reason', 'already written at this stage'); end if;
   if coalesce(btrim(p_body), '') = '' then return jsonb_build_object('sent', false, 'reason', 'empty message'); end if;
   -- ruling 1199: a fixture is written only under the duty-fixture switch, and then only into the capture
   if c.fixture is distinct from v_fx then return jsonb_build_object('sent', false, 'reason', 'fixture: never sent outside the duty-fixture switch'); end if;
@@ -479,7 +481,8 @@ begin
     if length(v_digits) >= 9 then
       -- WhatsApp only inside the person's own 24-hour window: outside it a free message is refused by Meta, and a template needs an
       -- opt-in that a message they sent is not (ruling 1341)
-      select * into w from public.wa_conversation where right(phone_e164, 9) = right(v_digits, 9) order by last_seen_at desc limit 1;
+      -- the exact number (wa_conversation.phone_e164 is the full digits): a nine-digit tail can be another country's number
+      select * into w from public.wa_conversation where phone_e164 = v_digits;
       if w.id is not null and w.window_expires_at > now() then
         select value into v_ref from public.app_secrets where key = 'project_ref';
         select value into v_secret from public.app_secrets where key = 'cred_fn_resilience_ping';
@@ -489,6 +492,7 @@ begin
             headers := jsonb_build_object('Content-Type', 'application/json'),
             body := jsonb_build_object('__secret', v_secret, 'to', '+' || w.phone_e164, 'body', left(p_body, 1500)),
             timeout_milliseconds := 15000) into v_req;
+          update public.escalation_clock set detail = jsonb_set(detail, '{wa_stages}', coalesce(detail->'wa_stages', '[]'::jsonb) || to_jsonb(p_stage)) where id = p_id;
           return jsonb_build_object('sent', true, 'via', 'whatsapp', 'request_id', v_req);
         end if;
       end if;
@@ -504,7 +508,10 @@ begin
                                                                             else 'no e-mail or phone on file for ' || replace(c.channel, '_', ' ') end);
   end if;
   -- e-mail through customer_support's duty send: once per clock and stage, never to a bounced or complained address (fn_email_sendable)
-  v_res := public.fn_customer_support_duty_send('escalation.' || p_stage, c.id::text, v_role, v_email, c.lang,
+  -- customer_support_duty_message.stage must read ^[a-z_]+\.[a-z_]+$ (no digit): a numbered stage (status_2) keeps its number in
+  -- the key, so each status is still sent once
+  v_res := public.fn_customer_support_duty_send('escalation.' || regexp_replace(lower(p_stage), '[^a-z_]', '', 'g'),
+             c.id::text || case when p_stage ~ '[^a-z_]' then ':' || p_stage else '' end, v_role, v_email, c.lang,
              coalesce(nullif(btrim(p_subject), ''), case when c.lang = 'ar' then 'بخصوص طلبكم لدى QuotesDone' else 'About your request to QuotesDone' end),
              p_body, null, null, null);
   return jsonb_build_object('sent', coalesce((v_res->>'sent')::boolean, false), 'via', 'email', 'reason', v_res->>'reason', 'handoff_id', v_res->'handoff_id');

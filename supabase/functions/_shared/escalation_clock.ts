@@ -169,6 +169,12 @@ export function parseMessage(text: string | null): { subject: string; message: s
 /** Customer support writes and sends one message on a clock. Never throws. */
 async function tell(io: ClockIO, c: DueClock, p: Purpose): Promise<Record<string, unknown>> {
   const stage = stageOf(c, p);
+  // no e-mail and no number on file (an anonymous site visitor): no model is asked to write what cannot be sent
+  if (c.has_contact === false) {
+    const reason = 'no open channel: no e-mail or phone on file';
+    await io.told(c.id, stage, { sent: false, reason }, '');
+    return { id: c.id, stage, sent: false, reason };
+  }
   const { system, input } = messagePrompt(c, p, io.now?.() ?? Date.now());
   const a = await io.write(c, system, input);
   const msg = parseMessage(a.content);
@@ -213,7 +219,10 @@ export async function workEscalationClocks(io: ClockIO, limit = 3): Promise<Reco
       }
       out.push(await tell(io, c, purposeOf(c)));
     } catch (e) {
-      out.push({ id: c.id, ok: false, error: String((e as Error)?.message ?? e).slice(0, 500) });
+      const error = String((e as Error)?.message ?? e).slice(0, 500);
+      out.push({ id: c.id, ok: false, error });
+      // a throw is a failed attempt: the clock moves to its retry hour, so one broken clock never holds the queue or re-asks a model every tick
+      await io.told(c.id, 'error', { sent: false, reason: error }, '').catch(() => null);
     }
   }
   return out;
