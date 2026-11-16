@@ -96,8 +96,10 @@ Deno.test('an unrelated question opens a second case; the next message about the
   const mem = await exchange(s, 'How many quotes will I see for my windows?', 11);
   assertEquals(s.cases.length, 2, 'no third case');
   assertEquals(s.versions.filter((v) => v.ref === windows.case_ref).length, before + 1, 'the windows case got this exchange');
-  // review of 12 Nov 2026: two recorded matters, the message names none: the reply gets no single case (never the cleaning one)
-  assertEquals(mem, null, 'the windows question must not be answered from the cleaning case: ' + mem?.ref);
+  // review of 12 Nov 2026: two recorded matters, the message names none: the reply gets no single case (never the cleaning one);
+  // audit of 16 Nov 2026 (WHO_KNOWS_WHAT item 2): but both open cases reach it, so neither's promises are lost
+  assertEquals(mem?.ref, '', 'the windows question must not be answered from the cleaning case: ' + mem?.ref);
+  assertEquals(new Set(mem?.allOpen?.map((l) => l.ref)), new Set([cleaning.case_ref, windows.case_ref]), 'both open cases reach the reply');
 });
 
 Deno.test('the reply never waits for the same-matter decision: a decision that takes 2 s leaves the read instant, and the case is still recorded', async () => {
