@@ -305,10 +305,10 @@ async function modelHeld() {
   } catch (_e) { return true; }
 }
 
-// THE ONE REASONING PATH (28 Sep 2026, instruction 781): the widget, WhatsApp, the portal and e-mail replies are
-// all composed by _shared/support_reply.ts. Every channel is scored through site_assistant, the one endpoint
-// that returns the reply to a caller with no side effect: `channel` sets the channel's format rules in the SAME
-// supportReply call wa_inbound and sales_engineer make, and a zzdemo conversation is a fixture (never queued).
+// THE LIVE PATH: every channel is scored through site_assistant, the one endpoint that returns the reply to a caller
+// with no side effect; `channel` sets the channel's format rules, and a zzdemo conversation is a fixture (never queued).
+// (_shared/support_reply.ts, which once composed every channel, had no runtime importer and was removed on 16 Nov 2026
+// with this file's --stub mode, which drove it.)
 // A reply that took the fallback carries no routed_seat, so it fails the seat grader: a held or broken gateway
 // can never be scored as a pass.
 async function answerLive(s) {
@@ -319,48 +319,12 @@ async function answerLive(s) {
   return { reply: String(j.reply || ''), seat: j.routed === 'reasoned' || j.routed === 'brief' ? (j.routed_seat ?? null) : null };   // 'brief': the widget's model-written reply (rulings 1195/1196); a no-model exit returns no routed
 }
 
-// --stub: the real supportReply() and think() with a STUBBED model that returns each topic's known-good answer
-// and seat. It proves the path carries a composed reply and its routed seat to the graders on every scenario
-// while the founder's hold stays on. It is not a score of the agent: the model's words are ours.
-// The topics whose right reply is a refusal: the stubbed model marks them as a real one would (think.ts `declined`).
-export const DECLINED = { inject_prompt: 'injection', inject_admin: 'injection', inject_ai_word: 'injection', off_topic: 'out_of_scope' };
-
-export async function runStub() {
-  const { supportReply } = await import(pathToFileURL(join(REPO, 'supabase/functions/_shared/support_reply.ts')).href);
-  const byId = Object.fromEntries(T.map((t) => [t.id, t]));
-  const out = [];
-  for (const s of buildScenarios()) {
-    const t = byId[s.topic];
-    let canned = 0;
-    const deps = {
-      gate: async () => ({ allowed: false, rule: 'route_not_registered' }),
-      llm: async (phase) => phase === 'decompose'
-        ? { content: JSON.stringify({ steps: [{ id: 's1', goal: 'the rule', query: s.message }], facts: [], high_stakes: false }), model: 'stub' }
-        : phase === 'verify' ? { content: JSON.stringify({ verdict: 'agree', problems: [] }), model: 'stub' }
-        : { content: JSON.stringify({ answer: t.good[s.lang], reasoning: ['s1: the topic knowledge'], cited: [], confidence: 0.8, route: s.seat, declined: DECLINED[t.id] ?? null }), model: 'stub' },
-      embed: async () => [0.1],
-      rpc: async (fn) => ({ data: fn === 'fn_case_recall' ? { cases: [] } : [], error: null }),
-    };
-    const r = await supportReply(deps, { channel: s.channel === 'widget' ? 'widget' : s.channel, message: s.message, lang: s.lang, audience: s.audience },
-      async () => { canned++; return null; });
-    out.push({ id: s.id, path: r.path, canned, grades: grade(s, { reply: r.reply, seat: r.path === 'reasoned' ? r.seat : null }) });
-  }
-  return out;
-}
-
 async function main() {
   const args = new Set(process.argv.slice(2));
   const scen = buildScenarios();
   const st = selfTest();
   const summary = `support suite: ${scen.length} scenarios (${scen.filter((s) => s.lang === 'ar').length} Arabic; widget ${scen.filter((s) => s.channel === 'widget').length}, WhatsApp ${scen.filter((s) => s.channel === 'whatsapp').length}, email ${scen.filter((s) => s.channel === 'email').length}) · graders self-tested ${st.checks - st.failures.length}/${st.checks}`;
   if (st.failures.length) { console.log(summary + ' · GRADER SELF-TEST FAILED'); for (const f of st.failures) console.log('  ' + f); process.exit(1); }
-  if (args.has('--stub')) {
-    const rows = await runStub();
-    const bad = rows.filter((r) => r.path !== 'reasoned' || r.canned || !Object.values(r.grades).every((v) => v === true));
-    for (const b of bad) console.log('  ' + b.id + ' ' + JSON.stringify(b));
-    console.log(`${summary} · STUBBED model through supportReply: ${rows.length - bad.length}/${rows.length} composed, routed and graded clean (wiring proof, not a score)`);
-    process.exit(bad.length ? 1 : 0);
-  }
   // Ruling 1260 (19 Oct 2026): the live run is the DEFAULT; a run without a model must be asked for by name.
   if (args.has('--dry-run')) { console.log(summary + ' · dry run asked for — no score'); return; }
   if (await modelHeld()) { console.log(summary + ' · model held — live run refused, no score'); return; }

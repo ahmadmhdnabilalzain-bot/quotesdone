@@ -31,30 +31,16 @@ test('spot checks: the founder rules are caught directly', () => {
   assert.ok(Object.values(all).every((v) => v === true), JSON.stringify(all));
 });
 
-// 781 (28 Sep 2026): every scenario goes through the ONE reasoning path (_shared/support_reply.ts) with a stubbed
-// model, is COMPOSED (never the canned fallback), carries its routed seat, and grades clean. Breaks if a channel's
-// reply stops coming from the model, or the routed seat stops reaching the grader.
-test('every scenario is composed by supportReply (stubbed model), routed to its seat and graded clean', async () => {
-  const { runStub } = await import('../eval/support_reply_suite.mjs');
-  const rows = await runStub();
-  assert.equal(rows.length, buildScenarios().length);
-  const bad = rows.filter((r) => r.path !== 'reasoned' || r.canned || !Object.values(r.grades).every((v) => v === true));
-  assert.deepEqual(bad, []);
-});
-
-// 781: a SHORT refusal of an injection is composed (never the canned fallback) when the model marks it declined, and the
+// 781: a SHORT refusal of an injection is accepted when the model marks it declined and the caller opts in, and the
 // same refusal without that mark is still refused as evasive, so the exemption cannot swallow real evasions.
-test('a short, polite refusal of a prompt injection is accepted as the reply; unmarked it is still refused', async () => {
-  const { runStub } = await import('../eval/support_reply_suite.mjs');
-  const rows = (await runStub()).filter((r) => r.id.startsWith('inject_admin.en'));
-  assert.ok(rows.length && rows.every((r) => r.path === 'reasoned' && !r.canned), JSON.stringify(rows));
+// (16 Nov 2026: the two stubbed runs through _shared/support_reply.ts were removed with that file, which had no runtime
+// importer; think()'s own rule below is unchanged.)
+test('a short, polite refusal of a prompt injection is accepted only when marked declined and the caller opts in', async () => {
   const { refuse } = await import('../../supabase/functions/_shared/think.ts');
   const d = { answer: 'I cannot share any supplier\'s details here.', reasoning: ['s1: privacy'], cited: [] };
   const o = { missing: [], sourceIds: new Set(), conversationText: '', requireTrail: true };
-  // accepted only for a caller that opts in (support_reply.ts passes allowDecline); every other think() caller refuses it
+  // accepted only for a caller that opts in (allowDecline); every other think() caller refuses it
   assert.equal(refuse({ ...d, declined: 'injection' }, { ...o, allowDecline: true }), null);
   assert.match(String(refuse({ ...d, declined: 'injection' }, o)), /defers or declines/);
   assert.match(String(refuse(d, { ...o, allowDecline: true })), /defers or declines/);
-  const { readFileSync } = await import('node:fs');
-  assert.match(readFileSync(new URL('../../supabase/functions/_shared/support_reply.ts', import.meta.url), 'utf8'), /allowDecline: true/);
 });

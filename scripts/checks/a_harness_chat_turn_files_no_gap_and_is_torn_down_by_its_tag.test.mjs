@@ -7,7 +7,6 @@
 //   - fn_sales_assist or fn_support_knowledge_gap can reach a gap insert, a counter bump or a task insert/raise for test
 //     traffic (a run tag, or a ZZ DEMO question);
 //   - teardown stops deleting the run's chat turns, or stage2 --verify-clean stops counting them;
-//   - support_reply.ts stops flagging a tagged turn's readability score as demo.
 // Offline over the committed tree, plus (with a management token) a REPLAY: the file and teardown's own statements run
 // inside one aborted transaction against seeded ZZ DEMO rows; nothing can commit (the block always raises).
 import { test } from 'node:test';
@@ -105,12 +104,6 @@ test('teardown deletes the run\'s chat turns, gap and gap task; stage2 --verify-
   assert.match(vc, /chat_turns = await chatTurnCounts\(tag\)/);
   assert.match(vc, /chatLeft === 0/, 'a chat-turn leftover makes the run not clean');
   assert.match(vc, /unverified\.push\(\{ table: 'chat turns'/, 'an unreadable count is unverified, never clean');
-});
-
-test('support_reply.ts flags a tagged turn\'s readability score as demo', () => {
-  const s = code(read('supabase/functions/_shared/support_reply.ts'));
-  assert.match(s, /import \{ e2eRunTag \} from '\.\/e2e_run\.ts';/);
-  assert.match(s, /p_demo: \/\^ZZ DEMO\/\.test\(req\.message\) \|\| !!e2eRunTag\(\)/);
 });
 
 // ---- the replay ------------------------------------------------------------------------------------------------

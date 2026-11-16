@@ -119,7 +119,6 @@ test('support hands a fault over through the model\'s reading, and the engineer 
   for (const f of ['supabase/functions/site_assistant/index.ts', 'supabase/functions/email_triage/index.ts', 'supabase/functions/wa_inbound/classification.ts']) {
     assert.match(read(f), /support_fault_handover\.ts/, `${f} does not hand a fault over`);
   }
-  assert.match(read('supabase/functions/_shared/support_reply.ts'), /r\.route === 'it_engineer' && req\.handover/, 'support_reply only names the IT engineer');
   const rb = read('docs/runbooks/the-code-defect-session.md');
   for (const step of ['fn_it_code_defect_queue', 'fn_it_code_defect_claim', 'FAILING TEST', 'ANOTHER model family', 'npm run gate -- --offline',
     'release-without-ci.md', 'fn_it_code_defect_verified', 'fn_it_attach_learning', 'remedy_routine', 'fn_case_record_verified_resolution',

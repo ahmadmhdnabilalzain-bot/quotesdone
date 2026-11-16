@@ -49,7 +49,7 @@ export const WA_HANDLER = functionFiles('wa_inbound').map((f) => f.replace('supa
 
 /** The reply paths of the two seats (customer- and supplier-facing words). Test files are not reply paths. */
 export const REPLY_PATHS = [
-  '_shared/ai_reply.ts', '_shared/support_reply.ts', '_shared/brief_answer.ts', '_shared/reasoned_delivery.ts', '_shared/clearer_copy.ts',
+  '_shared/ai_reply.ts', '_shared/brief_answer.ts', '_shared/reasoned_delivery.ts', '_shared/clearer_copy.ts',
   ...WA_HANDLER, 'wa_inbound/model_says.ts', 'wa_inbound/menu_flow.ts',
   'site_assistant/index.ts', 'site_assistant/visitor_scope.ts', 'email_triage/index.ts',
   'supplier_api/quote_review_flow.ts',
