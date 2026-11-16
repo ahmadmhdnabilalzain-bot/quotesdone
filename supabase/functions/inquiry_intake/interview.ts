@@ -22,7 +22,7 @@
 // emirates, dates, yes/no, options, AED) normalises what it can recognise; nothing is invented.
 
 import { saysDontKnow } from '../_shared/inquiry_state.ts';
-import { ARABIC_FRAME, NOT_SURE, optionAr, sameArabic, saysNotSureAr } from '../_shared/customer_questions.ts';
+import { ARABIC_FRAME, NOT_SURE, optionAr, sameArabic, saysNotSureAr } from '../_shared/customer_question_words.ts';
 export type SpecField = {
   key?: string; question?: string; required?: boolean; type?: string; options?: string[];
   question_plain_en?: string; question_plain_ar?: string;
