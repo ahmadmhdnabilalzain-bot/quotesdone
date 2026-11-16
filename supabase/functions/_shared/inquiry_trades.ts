@@ -46,8 +46,13 @@ export interface GuideRow { code: string; spec: string; why_needed_to_price: str
   /** When this job does not need the spec (15 Nov 2026, journey A; inquiry_intake/interview.ts SpecField.not_needed_when): `answered`
    *  holds spec CODES of the same checklist (the loader writes them from the pack's labels), `text` the condition in plain words. */
   not_needed_when?: { answered?: string[]; text: string } | null }
+/** One photo a site-visit job asks for (15 Nov 2026, founder ledger 1704; scripts/kb/photos_to_ask.mjs): the shot in plain words,
+ *  in English and Arabic, and `from`, the words of the checklist's own site-visit sentence it shows. */
+export interface PhotoShot { shot: string; shot_ar: string; from: string }
 /** One checklist of one trade, as public.trade_spec_checklist holds it. */
-export interface TradeChecklist { trade_code: string; topic_id: string; topic: string; specs: SpecItem[]; guide: GuideRow[]; blocking: string[]; site_visit_required_when: string | null; pack_order: number }
+export interface TradeChecklist { trade_code: string; topic_id: string; topic: string; specs: SpecItem[]; guide: GuideRow[]; blocking: string[]; site_visit_required_when: string | null; pack_order: number;
+  /** The photos a site-visit job asks for ([] when none, or before a_site_visit_checklist_carries_the_photos_to_ask_for.sql). */
+  photos?: PhotoShot[] }
 export interface TradeContext { codes: string[]; trades: TaxTrade[]; services: TradeService[]; specs: Record<string, SpecItem[]>; approvals: Record<string, string>; checklists?: Record<string, TradeChecklist[]> }
 
 export const GROUP_LABEL: Record<string, string> = {
@@ -118,13 +123,25 @@ export async function tradeContext(admin: Admin, codes: string[], lang: 'en' | '
 
 // The expert columns arrive with a_trades_blocking_specs_and_their_guide_reach_the_interview.sql. Before it is applied the
 // wider select is refused (42703), so the rows are read as before and carry no guide and no blocking list.
-const CHECKLIST_COLS = 'trade_code,topic_id,topic,specs,spec_guide,blocking,site_visit_required_when,pack_order';
+// photos_to_ask arrives with a_site_visit_checklist_carries_the_photos_to_ask_for.sql (15 Nov 2026). Before it is applied the
+// widest select is refused and the 10 Nov columns are read (never the narrowest: the blocking rule must not be lost for a photo).
+const CHECKLIST_COLS = 'trade_code,topic_id,topic,specs,spec_guide,blocking,site_visit_required_when,pack_order,photos_to_ask';
+const CHECKLIST_COLS_10_NOV = 'trade_code,topic_id,topic,specs,spec_guide,blocking,site_visit_required_when,pack_order';
 // deno-lint-ignore no-explicit-any
 async function checklistRows(admin: Admin, cs: string[]): Promise<{ data: any[] | null }> {
   const q = (cols: string) => admin.from('trade_spec_checklist').select(cols).in('trade_code', cs).order('topic_id').limit(50);
   const wide = await q(CHECKLIST_COLS);
   if (!wide.error) return wide;
+  const tenNov = await q(CHECKLIST_COLS_10_NOV);
+  if (!tenNov.error) return tenNov;
   return await q('trade_code,topic_id,specs');
+}
+/** A row's photos_to_ask, kept only as shots with words (the loader already refused any that does not trace to its sentence). */
+// deno-lint-ignore no-explicit-any
+export function photosOfRow(r: any): PhotoShot[] {
+  if (!str(r?.site_visit_required_when).trim()) return [];
+  return (Array.isArray(r?.photos_to_ask) ? r.photos_to_ask : []).map((p: PhotoShot) => ({ shot: str(p?.shot).trim(), shot_ar: str(p?.shot_ar).trim(), from: str(p?.from).trim() }))
+    .filter((p: PhotoShot) => p.shot).slice(0, 6);
 }
 const str = (v: unknown) => (v === undefined || v === null ? '' : String(v));
 /** A guide row's not_needed_when, kept only with a condition in words and only naming specs of its own checklist. */
@@ -150,7 +167,7 @@ export function checklistsOf(rows: any[]): Record<string, TradeChecklist[]> {
       ...(notNeededOfGuide(g, codes) ? { not_needed_when: notNeededOfGuide(g, codes) } : {}) }));
     const svw = str(r.site_visit_required_when).trim();
     (out[r.trade_code] ??= []).push({ trade_code: String(r.trade_code), topic_id: String(r.topic_id), topic: str(r.topic ?? r.topic_id), specs, guide, blocking,
-      site_visit_required_when: svw || null, pack_order: Number.isFinite(Number(r.pack_order)) ? Number(r.pack_order) : 0 });
+      site_visit_required_when: svw || null, pack_order: Number.isFinite(Number(r.pack_order)) ? Number(r.pack_order) : 0, photos: photosOfRow(r) });
   }
   for (const k of Object.keys(out)) out[k].sort((a, b) => a.pack_order - b.pack_order || a.topic_id.localeCompare(b.topic_id));
   return out;

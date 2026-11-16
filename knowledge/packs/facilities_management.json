@@ -139,7 +139,19 @@
       ],
       "site_visit_required_when": "A site visit and asset survey are unavoidable before a firm FM price.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "Each installed unit, with its label or nameplate readable",
+          "shot_ar": "كل وحدة مركّبة مع وضوح ملصقها أو لوحتها التعريفية",
+          "from": "asset survey"
+        }
+      ]
     },
     {
       "id": "facilities_management:uae-standards-and-approvals",

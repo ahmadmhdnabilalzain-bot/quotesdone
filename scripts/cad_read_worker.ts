@@ -35,6 +35,8 @@ const REF = 'htdblwldjkcgjvmqkbeh';
 const BASE = `https://${REF}.supabase.co`;
 const MAX_JOBS = 6;
 const JOB_MS = 5 * 60_000;
+// A site photo's check is cut sooner (_shared/site_photo_gate.ts PHOTO_JOB_MS, 4 minutes), inside JOB_MS.
+const PHOTO_JOB_MS = 4 * 60_000;
 
 let token = '';   // set in main; importing this file (dwg_samples.check.ts) reads no environment
 
@@ -231,6 +233,50 @@ export async function scanDrawing(job: Job, key: string, pages: string[]): Promi
   return publishPages(job, key, seen, { method: 'scan_ocr', pages: detail }, undefined, { boq });
 }
 
+// A CUSTOMER'S SITE PHOTO, CHECKED BEFORE ANY SUPPLIER SEES IT (15 Nov 2026, sales_engineer; founder rulings 1683 and 1704).
+// customer_api site_photo stores the photo and queues it here (why 'site_photo_check'). _shared/site_photo_gate.ts reads it all
+// four ways up (tesseract eng + ara), masks every line that is not plain technical content, reads it again, withholds it for
+// writing nobody read or too much painted, and asks the final look: drawing_redact mode 'gate' with subject 'site_photo' (the
+// photo prompt: faces, plates, house numbers), which paints what it names. Only the gate's own returned JPEG is published (from
+// pixels: no EXIF, no GPS), recorded like a scanned page; anything else is withheld, and the customer's notice says why.
+export async function sitePhoto(job: Job, key: string, bytes: Uint8Array): Promise<Record<string, unknown>> {
+  const seeds = await seedsOf(job);
+  const { Image } = await import('https://deno.land/x/imagescript@1.2.17/mod.ts');
+  const { checkSitePhoto, photoNotice, photoScale } = await import('../supabase/functions/_shared/site_photo_gate.ts');
+  const { tesseractOcr } = await import('./lib/scan_ocr.ts');
+  const engine = await tesseractOcr('eng+ara');
+  const shot = typeof job.boq_in?.shot === 'string' ? job.boq_in.shot : null;
+  let seen: Uint8Array | null = null, lookPainted = false;
+  try {
+    // scaled down first (review item 6): eight OCR reads of a 12-megapixel photo would not fit the job's time
+    const img0 = await Image.decode(bytes);
+    const sz = photoScale(img0.width, img0.height);
+    const img = sz.scaled ? img0.resize(sz.w, sz.h) : img0;
+    const encode = async (x: { w: number; h: number; rgba: Uint8ClampedArray }) => { const o = new Image(x.w, x.h); o.bitmap.set(x.rgba); return await o.encodeJPEG(85); };
+    const look = async (x: { w: number; h: number; rgba: Uint8ClampedArray }) => {
+      const j = await edge(key, { __secret: await internalSecret(key), mode: 'gate', subject: 'site_photo', jpg_b64: b64u(await encode(x)), source_path: job.source_path, spent_usd: spent.get(job.id) ?? 0 });
+      addSpent(job, j?.pixel_usd);
+      if (!j?.ok || typeof j.jpg_b64 !== 'string') return null;
+      seen = Uint8Array.from(atob(j.jpg_b64), (c) => c.charCodeAt(0));
+      lookPainted = j.first_look_clean !== true;
+      return { clean: true, regions: [] };
+    };
+    const r = await checkSitePhoto({ w: img.width, h: img.height, rgba: img.bitmap }, engine.ocr, seeds, look);
+    const v = r.status === 'withheld' ? r : { ...r, status: (lookPainted ? 'masked' : r.status) as 'masked' | 'released', reasons: lookPainted ? [...r.reasons, 'face_or_other' as const] : r.reasons };
+    const photo = (status: string) => ({ status, reasons: v.reasons, shot, notice_en: photoNotice(0, shot, { ...v, status } as never, 'en'), notice_ar: photoNotice(0, shot, { ...v, status } as never, 'ar') });
+    if (v.status === 'withheld' || !seen) return { redaction_complete: false, held_reason: 'site_photo_' + (r.status === 'withheld' ? r.detail : 'not_seen'), photo: photo('withheld') };
+    const out = await publishPages(job, key, [seen], { method: 'site_photo', reasons: v.reasons });
+    return { ...out, photo: photo(out.redaction_complete === true ? v.status : 'withheld') };
+  } finally { await engine.done(); }
+}
+
+/** A photo withheld because its check did not finish (time, or an error): the result the card reads, with the customer's notice. */
+export async function photoWithheld(shot: string | null, why: string): Promise<Record<string, unknown>> {
+  const { photoNotice } = await import('../supabase/functions/_shared/site_photo_gate.ts');
+  const r = { status: 'withheld' as const, reasons: ['not_checked' as const], detail: why };
+  return { redaction_complete: false, held_reason: why, photo: { status: 'withheld', reasons: r.reasons, shot, notice_en: photoNotice(0, shot, r, 'en'), notice_ar: photoNotice(0, shot, r, 'ar') } };
+}
+
 // A JOB THAT FAILS FOR GOOD IS RAISED, NOT ONLY LOGGED (24 Sep 2026, drawings audit finding 4): a customer's
 // drawing that no reader could open was visible only in this runner's log. The same finding helper every
 // seat uses, one deduplicated key; failing to raise it never stops the other jobs.
@@ -271,6 +317,17 @@ async function runJob(job: Job, key: string): Promise<void> {
     const drawing = await Promise.race([scanDrawing(job, key, pages), scanBudget]);
     await sql(`update public.cad_read_jobs set status = 'done', finished_at = now(), error = null, result = ${lit(JSON.stringify({ boq: null, kind: 'scan', ms: Math.round(performance.now() - t0), ...drawing }))}::jsonb where id = ${lit(job.id)}::uuid`);
     console.log(`job ${job.id}: scan ${drawing.redaction_complete ? 'published' : 'held (' + drawing.held_reason + ')'}, ${pages.length} page(s), ${Math.round(performance.now() - t0)} ms`);
+    return;
+  }
+  if (job.why === 'site_photo_check') {
+    // A PHOTO'S CHECK ENDS, ONE WAY OR THE OTHER, INSIDE PHOTO_JOB_MS (review of bf8b9ea45, items 6 and 8): past it, or on any error,
+    // the photo is WITHHELD and the job is done, so the customer's card leaves "checking" with a reason and no retry pays again.
+    // A late publish after the cut is never referenced: only this result's paths reach a supplier (supplier_api/site_photos_door.ts).
+    const shot = typeof job.boq_in?.shot === 'string' ? job.boq_in.shot : null;
+    const photo = await Promise.race([sitePhoto(job, key, bytes), new Promise<Record<string, unknown>>((res) => setTimeout(() => res(photoWithheld(shot, 'site_photo_time')), PHOTO_JOB_MS))])
+      .catch(async (e): Promise<Record<string, unknown>> => ({ ...(await photoWithheld(shot, 'site_photo_failed')), error_detail: String((e as Error)?.message || e).slice(0, 160) }));
+    await sql(`update public.cad_read_jobs set status = 'done', finished_at = now(), error = null, result = ${lit(JSON.stringify({ boq: null, kind: 'site_photo', ms: Math.round(performance.now() - t0), ...photo }))}::jsonb where id = ${lit(job.id)}::uuid`);
+    console.log(`job ${job.id}: site photo ${photo.redaction_complete ? 'published' : 'withheld (' + photo.held_reason + ')'}, ${Math.round(performance.now() - t0)} ms`);
     return;
   }
   if (job.boq_in && Array.isArray(job.boq_in.boq)) {

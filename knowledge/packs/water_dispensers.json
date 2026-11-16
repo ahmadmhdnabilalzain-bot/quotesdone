@@ -147,7 +147,24 @@
         }
       ],
       "site_visit_required_when": "a firm price needs unit type, functions, quantity and, for mains-fed units, the filtration and plumbing scope; mains-fed installation in an existing office usually needs a site check of water point and drain.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site check"
+        },
+        {
+          "shot": "The nearest water point or pipe, and the valve that feeds it",
+          "shot_ar": "أقرب نقطة مياه أو أنبوب، والمحبس الذي يغذيه",
+          "from": "plumbing"
+        },
+        {
+          "shot": "Where the water drains (the drain point or floor drain)",
+          "shot_ar": "مكان تصريف المياه (نقطة الصرف أو صرف الأرضية)",
+          "from": "drain"
+        }
+      ]
     },
     {
       "id": "water_dispensers:uae-standards-and-approvals",

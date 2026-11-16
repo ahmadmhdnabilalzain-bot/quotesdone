@@ -157,7 +157,24 @@
         }
       ],
       "site_visit_required_when": "a firm price needs internal size, temperature, product and daily load; a cold room inside an existing building, a freezer on an existing slab or a roof-mounted condensing unit needs a site visit before the price is firm.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "The ground or floor where the work will stand",
+          "shot_ar": "الأرض أو الأرضية التي سيقوم عليها العمل",
+          "from": "slab"
+        },
+        {
+          "shot": "The roof from one corner, showing its surface and what is on it",
+          "shot_ar": "السطح من إحدى الزوايا، مع إظهار سطحه وما عليه",
+          "from": "roof-mounted"
+        }
+      ]
     },
     {
       "id": "refrigeration_cold_rooms:uae-standards-and-approvals",

@@ -1265,7 +1265,19 @@
       ],
       "site_visit_required_when": "A site visit is genuinely needed for modifications and fault-finding in existing installations.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "The fault or the part to be repaired, close up",
+          "shot_ar": "العطل أو الجزء المطلوب إصلاحه عن قرب",
+          "from": "modifications"
+        }
+      ]
     },
     {
       "id": "electrical:dewa-vs-addc-differences",

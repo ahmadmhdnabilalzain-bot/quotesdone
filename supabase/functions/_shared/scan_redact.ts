@@ -120,7 +120,7 @@ function unturn(b: PB, q: number, W: number, H: number): PB {
 }
 type Read = OcrLine & { q: number };
 /** OCR at all four quarter turns; every line and word comes back in the unturned page's pixels, tagged with q. */
-async function readAllWays(img: Rgba, ocr: Ocr, k = 1): Promise<Read[]> {
+export async function readAllWays(img: Rgba, ocr: Ocr, k = 1): Promise<Read[]> {
   const out: Read[] = [];
   for (const q of [0, 1, 2, 3]) {
     const turned = quarterTurn(img, q);
