@@ -359,3 +359,24 @@ Deno.test('9. the slow tail: a call unanswered after HEDGE_MS is asked once more
   assertEquals((await hedged(failsLate, 10)).v, 'second', 'the first failing after the hedge waits for the second');
   assert(HEDGE_MS.read > HEDGE_MS.map && HEDGE_MS.map >= 10_000);
 });
+
+import { mainTradesOf } from './supplier_profile_reading.ts';
+Deno.test('10. every mapping call is shown the reading\'s main trades: a call of 4 phrases is not blind to the rest of his trade (H11 "Hostesses", run 4c69e153)', async () => {
+  const tax: Taxonomy = { trades: [
+    { code: 'event_management', label: 'Event management', services: svc('event_management', 'corporate_events', 'event_staff_hostesses', 'event_permits') },
+    { code: 'labour_supply', label: 'Labour supply', services: svc('labour_supply', 'general') },
+    { code: 'pro_government_services', label: 'PRO services', services: svc('pro_government_services', 'visas') }], adjacent: [] };
+  const lines = ['Corporate events', 'Gala dinners', 'Staff parties', 'Product launches', 'Hostesses and ushers', 'Event permits from Dubai Police'];
+  const docs = [{ path: 'p', name: 'p.pdf', kind: 'profile' as const, text: lines.join('\n') }];
+  const trade = (l: string) => /Hostesses/.test(l) ? 'labour_supply' : /permits/.test(l) ? 'pro_government_services' : 'event_management';
+  const shown: string[] = [];
+  const r = await readInTwoSteps(docs, null, tax, async (step, sys, text) => {
+    if (step === 'read') return { ok: true, content: answer({ evidence: lines.map((l) => ({ words: l, quote: l, basis: 'stated', trade: trade(l) })) }) };
+    shown.push(sys);
+    return { ok: true, content: JSON.stringify({ map: [...text.matchAll(/^(\d+)\. /gm)].map((m) => ({ i: Number(m[1]), keys: [] })) }) };
+  });
+  assert(r.ok);
+  assertEquals(mainTradesOf(r.reading), ['event_management']);
+  assert(shown.length >= 2, 'more than one mapping call');
+  assert(shown.every((s) => s.includes('event_management.event_staff_hostesses')), 'every call is shown the main trade\'s keys');
+});

@@ -120,7 +120,8 @@ export const LIMITS = { openCards: 5, options: 8, umbrellaChips: 12, umbrellaCar
 // "also ask", supply only, brands, areas, roles; no evidence) and parts of SHORT_PART_CHARS ('part': the evidence and vague lines of
 // that part only, given the parts before and after it for context). Given the whole documents, a part listed beyond itself and the
 // whole call listed every service whatever its shape said (33-41 items, 67-82 s): the prompts, not code, keep each call to its job,
-// and code drops what is not its job. Longer documents keep parts of READ_PART_CHARS and the one prompt. Step B: MAP_PHRASES 4 a call.
+// and code drops what is not its job. Longer documents keep parts of READ_PART_CHARS and the one prompt. Step B: MAP_PHRASES 4 a call,
+// each shown the reading's main trades (mainTradesOf) besides its own; a short set is mapped once all its parts are read.
 // Effort unchanged (effort_policy: step A medium, step B medium). Scores and times: docs/reports/supplier-service-profiling-2026-11-12/
 // speed_2026-11-16.md.
 export const READ_PART_CHARS = 4_000, SHORT_PART_CHARS = 300, READ_CONTEXT_CHARS = 6_000, MAP_PHRASES = 4, PARALLEL = 24;
@@ -129,6 +130,14 @@ export const READ_PART_CHARS = 4_000, SHORT_PART_CHARS = 300, READ_CONTEXT_CHARS
 // once more, the same request, and the first answer is taken: the slow tail is the provider's, not the part's. The later answer is
 // paid for (USD 0.001-0.003 a call) and dropped.
 export const HEDGE_MS = { read: 35_000, map: 16_000 } as const;
+/** A reading's MAIN TRADES: the trades of 2 or more of its claims, most claims first (then first named), at most MAIN_TRADES. Every
+ *  mapping call is shown their part of the catalogue as well as its own phrases' trades (16 Nov 2026, see readInTwoSteps). */
+export const MAIN_TRADES = 3;
+export function mainTradesOf(r: ProfileReading): string[] {
+  const n = new Map<string, number>();
+  for (const e of r.evidence) if (e.trade) n.set(e.trade, (n.get(e.trade) ?? 0) + 1);
+  return [...n].filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, MAIN_TRADES).map(([t]) => t);
+}
 /** `call` once, and once more if it has not answered after `ms`; the first good answer, else the last failure. */
 export function hedged<T extends { ok: boolean }>(call: () => Promise<T>, ms: number): Promise<T> {
   return new Promise((resolve) => {
@@ -557,12 +566,12 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
     return { ok: true, reading: mergeReadings(halves.map((x) => (x as { reading: ProfileReading }).reading)) };
   };
   const owed: Phrase[] = [], refused: { what: string; why: string }[] = [];
-  const mapCall = async (ch: Phrase[], summary: string, depth = 0): Promise<void> => {
+  const mapCall = async (ch: Phrase[], summary: string, main: string[], depth = 0): Promise<void> => {
     mapCalls++;
-    const shown = sliceTrades([...new Set(ch.map((x) => x.trade))], tax);
+    const shown = sliceTrades([...new Set([...ch.map((x) => x.trade), ...main])], tax);
     const a = await ask('map', profileMapSystem(sliceText(shown, tax)), `Company: ${company ?? ''}. ${summary}\n\nPhrases:\n${ch.map((x) => `${x.n}. ${x.text}`).join('\n')}`);
     if (a.ok && applyMapping(a.content, ch, new Set(shown), tax, refused)) return;
-    if (ch.length > 1 && depth < 2) { const h = Math.ceil(ch.length / 2); await Promise.all([mapCall(ch.slice(0, h), summary, depth + 1), mapCall(ch.slice(h), summary, depth + 1)]); return; }
+    if (ch.length > 1 && depth < 2) { const h = Math.ceil(ch.length / 2); await Promise.all([mapCall(ch.slice(0, h), summary, main, depth + 1), mapCall(ch.slice(h), summary, main, depth + 1)]); return; }
     owed.push(...ch);
   };
   const mapPart = async (r: ProfileReading, summary: string) => {
@@ -573,23 +582,24 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
       if (k.length) { ph.ref.keys = [...new Set([...ph.ref.keys, ...k])]; ph.ref.code_keys = k; } else model.push(ph);
     }
     const calls: Phrase[][] = []; for (let i = 0; i < model.length; i += MAP_PHRASES) calls.push(model.slice(i, i + MAP_PHRASES));
-    await Promise.all(calls.map((ch) => mapCall(ch, summary)));
+    const main = mainTradesOf(r);
+    await Promise.all(calls.map((ch) => mapCall(ch, summary, main)));
   };
   const mapping: Promise<void>[] = [];
-  // the mapping's summary: the first job's, never a later part's (see above). WHOLE: every part's phrases are mapped with the summary of
-  // the call for the documents as a whole, as the one call's phrases were (measured 16 Nov 2026, run 70eb0bd5: mapped with no summary,
-  // "Hostesses" of an events company went to the labour-supply key and "Facade cleaning" to none), so a part's mapping waits for it
-  let wholeSummary: (s: string) => void = () => {};
-  const summary = new Promise<string>((res) => { wholeSummary = res; });
+  // the mapping's summary: the first job's, never a later part's (see above). WHOLE: the parts' phrases are mapped once every part is
+  // read, as ONE reading (merged), with the summary of the call for the whole and the reading's main trades (mainTradesOf), as the one
+  // call's phrases were. Measured 16 Nov 2026: mapped part by part, a part's phrases had no summary (run 70eb0bd5) and a call of 4
+  // phrases saw only its own trades (run 4c69e153: an events company's "Hostesses" and "Event permits", read under labour supply and
+  // government services, were shown no event_management key): 98 of 105 stated services against 101 by the one call.
   const each = await inPool(jobs, PARALLEL, async (p, i) => {
     const r = await readPart(p, i);
-    if (whole && p === null) wholeSummary(r.ok ? r.reading.summary : '');
-    if (r.ok) mapping.push(whole ? summary.then((s) => mapPart(r.reading, s)) : mapPart(r.reading, summaryFor(i, r.reading.summary)));
+    if (r.ok && !whole) mapping.push(mapPart(r.reading, summaryFor(i, r.reading.summary)));
     return r;
   });
   const bad = each.find((x) => !x.ok);
   if (bad) { await Promise.allSettled(mapping); return bad as { ok: false; error: string }; }
   const reading = mergeReadings(each.map((x) => (x as { reading: ProfileReading }).reading));
+  if (whole) mapping.push(mapPart(reading, reading.summary));
   // THE LICENCE'S FIT OVER THE PARTS (WHOLE): the call for the whole judges the fit without listing a claim, the parts judge every claim
   // against the licence. Measured 16 Nov 2026 (runs 70eb0bd5, 4c69e153, H11: a garments licence, an events profile): the whole call said
   // "partly" while the parts judged 24 and 26 of 24 and 26 claims not covered, so the mismatch was never asked (the one call said "no").
