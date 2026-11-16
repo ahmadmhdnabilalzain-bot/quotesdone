@@ -162,6 +162,11 @@ select a.id, a.agent, a.kind, a.status, a.title, a.created_at, a.detail, a.evide
             when a.detail ? 'e2e_run_tag' then 'a test run tagged it (' || (a.detail->>'e2e_run_tag') || ')' end as test_reason,
        case when a.kind = 'handoff' and a.agent = 'ceo' and a.detail->>'type' in ('it.finding', 'ceo.authority')
               then 'the CEO judges it on its own surface (ceo.' || replace(a.detail->>'type', 'ceo.', '') || ')'
+            -- review L1/L4 item 2: a fault or a backup hand-over is closed only by the it_engineer's re-verification; its own loop
+            -- chases it daily (fn_it_engineer_finding_chase) and escalates it (support_ceo_report, 98 open rows on 16 Nov), so a CEO
+            -- 'close' here would be re-filed by the next chase and decide nothing
+            when a.kind = 'handoff' and (a.detail->>'type' in ('it.finding', 'backup.refile', 'backup.remediate') or a.detail ? 'escalated_report_id')
+              then 'the it_engineer''s own loop has it (re-verification, daily chase, support_ceo_report)'
             when a.kind = 'held_question' and a.detail ? 'backlog_held_id'
                  and exists (select 1 from public.reasoning_held_question q
                               where q.id = public.fn_handover_ts_id(a.detail->>'backlog_held_id') and q.status = 'held')
@@ -213,8 +218,11 @@ begin
       return 'done';
     end if;
   end if;
+  -- review L1/L4 item 1: a later copy shares its held question with the copy that stays open; that question is not expired
   if a.kind = 'held_question' and exists (select 1 from public.reasoning_held_question q
-                                           where q.id = public.fn_handover_ts_id(a.detail->>'held_id') and q.status = 'held') then
+                                           where q.id = public.fn_handover_ts_id(a.detail->>'held_id') and q.status = 'held')
+     and not exists (select 1 from public.agent_actions o where o.id <> p_id and o.status in ('pending', 'open')
+                       and o.kind like 'held_question%' and o.detail->>'held_id' = a.detail->>'held_id') then
     perform public.fn_reason_held_expire(array[public.fn_handover_ts_id(a.detail->>'held_id')], p_by, left(p_verdict, 500));
   end if;
   update public.agent_actions
@@ -838,7 +846,7 @@ update public.ceo_directive
    set status = 'withdrawn', closed_at = now(),
        evidence = evidence || jsonb_build_object('withdrawn', jsonb_build_object('at', now(), 'by', 'ceo',
          'reason', 'superseded: since 15 Nov 2026 the compliance sources are re-checked by the it_engineer in one monthly batch '
-                   || '(fn_ceo_register_review, source compliance_sources:batch); a per-source re-check owned by the CEO could never be met'))
+                   || '(fn_ceo_register_review, source compliance_sources:batch, directive #2723, which checks the same condition); this per-source copy is withdrawn as superseded'))
  where seat = 'ceo' and source_kind = 'register_review' and status = 'open' and source_ref ~ '^compliance_sources:[0-9]+:';
 
 -- the open seat_audit directives get the corrected check: the seat owes no late hand-over (whichever side of it the seat is on)

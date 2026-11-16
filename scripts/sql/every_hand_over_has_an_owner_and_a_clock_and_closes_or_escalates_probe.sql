@@ -33,8 +33,8 @@ begin
   returning id into v_dead;
   insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, created_at)
   values ('sales_engineer', 'handoff', 'pending', 'low', 'probe live answered',
-          jsonb_build_object('type', 'it.finding', 'from', 'it_engineer', 'to', 'sales_engineer', 'subject_table', 'probe', 'subject_id', 'live:1',
-                             'replied_at', now() - interval '2 days', 'awaiting', 'it_engineer re-verification'), 'probe', 'it.finding:live:1', now() - interval '2 days')
+          jsonb_build_object('type', 'nonresponse.charge_reminder', 'from', 'accountant', 'to', 'sales_engineer', 'subject_table', 'probe', 'subject_id', 'live:1',
+                             'replied_at', now() - interval '2 days', 'awaiting', 'accountant close'), 'probe', 'nonresponse.charge_reminder:live:1', now() - interval '2 days')
   returning id into v_live;
   insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, created_at)
   values ('sales_engineer', 'handoff', 'pending', 'low', 'ZZ DEMO probe test row',
@@ -86,7 +86,7 @@ begin
   -- every open row carries an owner and a due time
   if exists (select 1 from public.agent_actions where status = 'pending' and not (detail->'clock' ?& array['owner_seat', 'due_at'])) then
     raise exception 'CHK<<PROBE FAILED: an open row carries no owner or due time>>'; end if;
-  if (select detail->'clock'->>'owner_seat' from public.agent_actions where id = v_live) <> 'it_engineer' then
+  if (select detail->'clock'->>'owner_seat' from public.agent_actions where id = v_live) <> 'accountant' then
     raise exception 'CHK<<PROBE FAILED: an answered hand-over is not owed by its sender>>'; end if;
 
   -- 3. escalated once, to the CEO, never the founder; the recent parked question is not late yet
@@ -114,10 +114,10 @@ begin
      or (select status from public.agent_actions where id = v_live) <> 'pending' then
     raise exception 'CHK<<PROBE FAILED: an answer that was not offered decided something>>'; end if;
   -- 4b. chase: the late row closes and an order carries the work
-  r := public.fn_reason_apply_ceo__overdue_handoff(v_q, '{"answer":"The IT engineer re-checks the fault and closes it within two days.","decision":{"choice":"chase"},"model":"stub"}'::jsonb);
+  r := public.fn_reason_apply_ceo__overdue_handoff(v_q, '{"answer":"The accountant closes the reminder within two days.","decision":{"choice":"chase"},"model":"stub"}'::jsonb);
   v_order := (r->>'order_handoff')::bigint;
   if (select status from public.agent_actions where id = v_live) not in ('done', 'dismissed') or v_order is null
-     or (select detail->>'type' || '>' || agent from public.agent_actions where id = v_order) <> 'ceo.order>it_engineer' then
+     or (select detail->>'type' || '>' || agent from public.agent_actions where id = v_order) <> 'ceo.order>accountant' then
     raise exception 'CHK<<PROBE FAILED: chase did not close the late row and order its owner: %>>', r; end if;
   if (select status from public.agent_actions where id = v_live) = 'done' then
     raise exception 'CHK<<PROBE FAILED: a hand-over its sender closes was shown as finished by the CEO''s decision>>'; end if;
@@ -170,6 +170,21 @@ begin
   if exists (select 1 from public.v_handover_open h where h.owner_seat = 'sales_engineer' and h.id = v_dup1)
      or not exists (select 1 from public.v_handover_open h where h.owner_seat = 'it_engineer' and h.id = v_dup1 and h.overdue) then
     raise exception 'CHK<<PROBE FAILED: an answered hand-over is still counted against its receiver>>'; end if;
+
+  -- review L1/L4 item 2: a late it.finding is the it_engineer's loop's (re-verification, daily chase), never a CEO overdue case
+  r := public.fn_handover_clock_tick();
+  if (select detail ? 'silence' from public.agent_actions where id = v_dup1) then
+    raise exception 'CHK<<PROBE FAILED: an it.finding the it_engineer''s loop owns was escalated to the CEO>>'; end if;
+  -- review L1/L4 item 1: closing a later copy of a parked question never expires the question the first copy still carries
+  insert into public.reasoning_held_question (seat, surface, question, request, reason, status)
+  values ('accountant', 'accountant.document_kind', 'ZZ DEMO probe shared question', '{}'::jsonb, 'probe', 'held') returning id into v_q;
+  insert into public.agent_actions (agent, kind, status, risk, title, detail)
+  values ('accountant', 'held_question', 'pending', 'low', 'probe shared 1', jsonb_build_object('owner_seat', 'accountant', 'held_id', v_q, 'surface', 'accountant.document_kind')),
+         ('accountant', 'held_question', 'pending', 'low', 'probe shared 2', jsonb_build_object('owner_seat', 'accountant', 'held_id', v_q, 'surface', 'accountant.document_kind'));
+  r := public.fn_handover_clock_tick();
+  if (select status from public.agent_actions where title = 'probe shared 2') <> 'dismissed'
+     or (select status from public.reasoning_held_question where id = v_q) <> 'held' then
+    raise exception 'CHK<<PROBE FAILED: closing a duplicate expired the question its first copy still carries>>'; end if;
 
   raise exception 'CHK<<PROBE OK>>';
 end $probe$;
