@@ -190,6 +190,9 @@ Deno.test('supplierFacts reads his open requests, profile, waiting correction an
     taxonomy_trade: [{ code: 'painting', label: 'Painting' }, { code: 'tiling', label: 'Tiling' }],
     taxonomy_trade_service: [{ trade_code: 'painting', code: 'interior', label_en: 'Interior painting' }],
     quote_quality_hold: [{ quote_id: 'q-1', inquiry_id: 'i-1', flags: [{ code: 'price_far_from_peers', total: 450000 }] }, { quote_id: 'q-2', inquiry_id: 'i-2', flags: [{ code: 'no_validity' }] }],
+    // the reveal door asked him about q-3 (not confirmed) and q-4 (confirmed already)
+    notifications: [{ quote_id: 'q-3', inquiry_id: 'i-2' }, { quote_id: 'q-4', inquiry_id: 'i-2' }],
+    quote_figure_confirmation: [{ quote_id: 'q-4' }],
     inquiries: [{ id: 'i-1', rfq_no: 164810, category: 'painting', status: 'sent' }, { id: 'i-2', rfq_no: 164811, category: 'tiling', status: 'sent' }, { id: 'i-3', rfq_no: 164812, category: 'tiling', status: 'cancelled' }],
   };
   // deno-lint-ignore no-explicit-any
@@ -202,5 +205,5 @@ Deno.test('supplierFacts reads his open requests, profile, waiting correction an
   assertEquals(f.requests.map((r) => [r.ref, r.declined]), [['RFQ-164810', false], ['RFQ-164811', true]]);
   assertEquals(f.services, [{ key: 'painting.interior', label: 'Interior painting' }]);
   assertEquals(f.correction?.id, 5);
-  assertEquals(f.figures, [{ quote_id: 'q-1', ref: 'RFQ-164810', total: 450000 }]);
+  assertEquals(f.figures, [{ quote_id: 'q-1', ref: 'RFQ-164810', total: 450000 }, { quote_id: 'q-3', ref: 'RFQ-164811', total: null }]);
 });

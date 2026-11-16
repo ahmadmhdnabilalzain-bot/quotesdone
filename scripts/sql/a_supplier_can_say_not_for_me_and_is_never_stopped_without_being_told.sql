@@ -699,7 +699,7 @@ as $function$
                    when 'price_far_from_peers' then
                      'Please check your total of AED ' || to_char((f->>'total')::numeric, 'FM999,999,990.00')
                      || ' (before VAT) for a typing error, and that it covers the whole scope of the request and nothing more. '
-                     || 'If it is right, press "Confirm this figure" on the quotation (or reply "the figure is correct"); otherwise correct it.'
+                     || 'If it is right, reply "the figure is correct" to this e-mail or on WhatsApp; otherwise correct the quotation.'
                    when 'no_validity' then 'State how long the quotation is valid (for example, 30 days).'
                    when 'no_delivery_time' then 'State the delivery or lead time (a date, or a number of days from the order).'
                    when 'no_vat_treatment' then 'State whether your price includes or excludes VAT, or that you are not registered for VAT.'
@@ -770,7 +770,7 @@ begin
       'Please confirm the total of your quotation' || coalesce(' for ' || v_rfq, ''),
       'A customer wants to go ahead with your quotation' || coalesce(' for ' || v_rfq, '') || '. Before they pay, please check your total of AED '
         || to_char((v_flag->>'total')::numeric, 'FM999,999,990.00') || ' (before VAT) for a typing error, and that it covers the whole scope of the request.'
-        || E'\n\nIf it is right, press "Confirm this figure" on the quotation in your portal, or reply "the figure is correct". If it is not, correct the quotation.',
+        || E'\n\nIf it is right, reply "the figure is correct" to this e-mail or on WhatsApp. If it is not, correct the quotation in your portal.',
       null, null, '{}'::text[], 'quote_figure_confirm:' || q.id);
     end if;
     return jsonb_build_object('outcome', 'figure_unconfirmed', 'why', 'price_far_from_peers');

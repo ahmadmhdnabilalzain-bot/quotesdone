@@ -26,7 +26,7 @@ export type InquiryDetail = {
   ok: true;
   inquiry: {
     id: string; job_no: string; category: string | null; emirate: string | null; created_at: string; status: string;
-    concluded: boolean; revealed: boolean; you_won: boolean; summary: string | null; summary_ar?: string | null; budget: string | null; scope_type: string | null;
+    concluded: boolean; revealed: boolean; you_won: boolean; /** he answered "Not for me" (16 Nov 2026) */ declined?: boolean; summary: string | null; summary_ar?: string | null; budget: string | null; scope_type: string | null;
     spec: unknown; requested: { en?: { key: string; label: string; value: string }[]; ar?: { key: string; label: string; value: string }[] } | null;
     boq: { boq?: unknown[] } | null; boq_withheld: boolean; boq_confidence: string | null; drawing_pages: string[];
     /** expected = on the inquiry, served = signed and in drawing_pages, failed = missing from this view. */

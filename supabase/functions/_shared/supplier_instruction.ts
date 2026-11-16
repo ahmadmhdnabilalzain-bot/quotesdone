@@ -54,6 +54,11 @@ export async function supplierFacts(admin: Admin, supplierId: number): Promise<F
     admin.from('quote_quality_hold').select('quote_id,inquiry_id,flags').eq('supplier_id', supplierId).is('released_at', null).is('superseded_at', null)
       .then((r: { data: unknown[] | null }) => r.data ?? [], () => []),
   ]);
+  // a quotation the reveal door asked him to confirm (fn_reveal_standing), not yet confirmed: also waiting for his word
+  const asked = await admin.from('notifications').select('quote_id,inquiry_id').eq('lead_id', supplierId).eq('type', 'quote_figure_confirm').limit(20)
+    .then((r: { data: { quote_id: string; inquiry_id: string }[] | null }) => r.data ?? [], () => []) as { quote_id: string; inquiry_id: string }[];
+  const confirmed = new Set<string>(asked.length ? await admin.from('quote_figure_confirmation').select('quote_id').eq('supplier_id', supplierId)
+    .then((r: { data: { quote_id: string }[] | null }) => (r.data ?? []).map((x) => String(x.quote_id)), () => []) : []);
   const trLabel = new Map((tr as { code: string; label: string }[]).map((t) => [t.code, t.label]));
   const svLabel = new Map((sv as { trade_code: string; code: string; label_en: string }[]).map((s) => [s.trade_code + '.' + s.code, s.label_en]));
   const matches = mt as { inquiry_id: string; declined_at: string | null }[];
@@ -68,6 +73,9 @@ export async function supplierFacts(admin: Admin, supplierId: number): Promise<F
   const known = new Set(svLabel.keys());
   const holdRows = (holds as { quote_id: string; inquiry_id: string; flags: { code?: string; total?: number }[] }[])
     .filter((h) => (h.flags ?? []).some((f) => f?.code === 'price_far_from_peers'));
+  for (const a of asked) {
+    if (a.quote_id && !confirmed.has(String(a.quote_id)) && !holdRows.some((h) => String(h.quote_id) === String(a.quote_id))) holdRows.push({ quote_id: String(a.quote_id), inquiry_id: String(a.inquiry_id), flags: [] });
+  }
   const rfqOf = new Map(open.map((i) => [String(i.id), i.rfq_no]));
   const s = st as Record<string, unknown> | null;
   const corr = (s?.open_correction ?? null) as Facts['correction'];
