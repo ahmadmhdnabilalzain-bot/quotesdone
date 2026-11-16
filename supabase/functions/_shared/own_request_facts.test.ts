@@ -53,3 +53,12 @@ Deno.test('the portal chat gets his account (without a second copy of his reques
   assert(/rpc\('fn_wa_context'[\s\S]{0,200}rpc\('fn_contact_timeline'/.test(src) && /customerRecordFacts\(live, events\)/.test(src), 'portal.ts does not read the account and the timeline');
   assert(/\[ownQuote \?[\s\S]{0,300}, record\]/.test(src), 'the portal facts do not carry them');
 });
+
+// 16 Nov 2026: the model read only the first 6,000 characters of a turn's facts, so a customer's later requests never reached it
+Deno.test('the reply reads enough of the facts to hold five detailed requests', async () => {
+  const { FACTS_MAX_CHARS } = await import('./ai_reply.ts');
+  assert(FACTS_MAX_CHARS >= 16_000);
+  const src = await Deno.readTextFile(new URL('./ai_reply.ts', import.meta.url));
+  assertEquals((src.match(/r\.facts\.slice\(0, FACTS_MAX_CHARS\)/g) ?? []).length, 2);
+  assert(!/r\.facts\.slice\(0, 6000\)/.test(src));
+});

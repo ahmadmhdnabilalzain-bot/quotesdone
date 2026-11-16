@@ -261,7 +261,8 @@ returns jsonb language sql stable security definer set search_path to 'public', 
       -- EACH LIVE QUOTE AS HIS PORTAL SHOWS IT (customer_api my_inquiries; the anonymity decision in this file's header)
       'quotes', coalesce((select jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
                     'letter', lt.letter, 'label', case when cfg.lang = 'ar' then lt.label_ar else lt.label_en end,
-                    'letter_source', lt.letter_source,
+                    -- said only when it is not the portal's own derivation (stored, or not yet shown in the portal)
+                    'letter_source', nullif(lt.letter_source, 'derived as the portal does'),
                     'price_ex_vat_aed', coalesce(z.price_ex_vat, z.quote_amount),
                     'price_as_shown', public.fn_aed_words(coalesce(z.price_ex_vat, z.quote_amount)) || ' before VAT'
                        || case when z.vat_treatment in ('exclusive', 'inclusive') and z.vat_amount is not null
@@ -284,7 +285,6 @@ returns jsonb language sql stable security definer set search_path to 'public', 
                     'total_as_stated_aed', z.amount_as_stated,
                     'before_discount_aed', case when z.discount_amount > 0 then z.gross_amount end,
                     'discount_aed', case when z.discount_amount > 0 then z.discount_amount end,
-                    'received_at', z.created_at,
                     'valid_until', z.expires_at, 'expired', case when z.expires_at is not null then z.expires_at < now() end,
                     'validity_as_stated', public.fn_quote_words_for_customer(z.validity, z.id, z.revealed_at is not null),
                     'lead_time_as_stated', public.fn_quote_words_for_customer(z.lead_time, z.id, z.revealed_at is not null),

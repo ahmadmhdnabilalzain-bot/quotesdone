@@ -69,7 +69,9 @@ message, the facts the agent had (his requests: what he asked, each quote's lett
 engineer's notes and the comparison), what a correct answer must and must not contain, and the reply. Judge ONLY against the facts and the criteria:
 the reply passes when it answers his question correctly from the facts in his language, states no price, date, count or brand the facts do not hold,
 names or hints at no supplier that is not revealed, and takes the right action (a change or cancel is never claimed as done). Wording is free; a reply
-that says more than the criteria is fine if it is true. Return ONE JSON object: {"pass": <bool>, "why": "<one sentence>", "invented": ["<figure or claim not in the facts>"], "identity_leak": <bool>}`;
+that says more than the criteria is fine if it is true. His OTHER requests are in all_his_requests: a reply that mentions one of them truthfully
+invents nothing. What the company brief says about QuotesDone itself is true too: the reveal fee is 3% of the chosen quote before VAT with no card fee
+and no VAT on the fee, comparing is free, refunds are decided by the CEO, and he reveals a quote in his portal to get the supplier's contact. Return ONE JSON object: {"pass": <bool>, "why": "<one sentence>", "invented": ["<figure or claim not in the facts>"], "identity_leak": <bool>}`;
 
   const results: Record<string, unknown>[] = []; let stopped = '';
   await openWindow(admin, tag, CAP, 60, 'customer follow-up scenario bank (ledger 1711): WhatsApp reply path + another-family judge; ZZ DEMO facts from a local database');
@@ -87,9 +89,15 @@ that says more than the criteria is fine if it is true. Return ONE JSON object: 
       const code = codeGrade(sc, said.text);
       const req = ((facts.pack as { identity: { requests: { ref: number }[] } }).identity.requests).find((r) => r.ref === facts.refs[sc.req]);
       await guardSpend(c, JUDGE_EST, 'judge ' + sc.id);
-      const j = await inRun(() => defaultDeps(admin, JUDGE_FN).llm('verify', JUDGE_SYS, JSON.stringify({ message: sc.msg, action: sc.action,
-        criteria: sc.judge, ...(sc.timeline ? { timeline: TIMELINE } : {}), must_not: [...(sc.must_not ?? []), 'the name of any supplier not revealed'], facts_for_this_request: req, reply: said.text || '(no reply)' }),
+      const all = (facts.pack as { identity: { requests: Record<string, unknown>[] } }).identity.requests
+        .map((r) => ({ ref: r.ref, category: r.category, emirate: r.emirate, status: r.status, quotes_received: r.quotes_received, budget: (r.asked as Record<string, unknown> | undefined)?.budget_as_he_stated_it }));
+      const judgeOnce = () => inRun(() => defaultDeps(admin, JUDGE_FN).llm('verify', JUDGE_SYS, JSON.stringify({ message: sc.msg, action: sc.action,
+        criteria: sc.judge, ...(sc.timeline ? { timeline: TIMELINE } : {}), must_not: [...(sc.must_not ?? []), 'the name of any supplier not revealed'],
+        facts_for_this_request: req, all_his_requests: all, reply: said.text || '(no reply)' }),
         { taskClass: 'knowledge_validation', seat: 'it_engineer', counterpartModel: said.model ?? 'anthropic/claude-sonnet-5.5', max: 800, subject: { fixture: true } }));
+      let j = await judgeOnce();
+      // a judge cut at the gateway's deadline is asked once more (the reply is not asked again)
+      if (!j.content) { await guardSpend(c, JUDGE_EST, 'judge again ' + sc.id); j = await judgeOnce(); }
       let v: Record<string, unknown> = {};
       try { const s = String(j.content ?? ''); v = JSON.parse(s.slice(s.indexOf('{'), s.lastIndexOf('}') + 1)); } catch { v = { pass: false, why: 'judge unread: ' + String(j.content ?? j.error).slice(0, 160) }; }
       const pass = !!said.text && code.pass && v.pass === true && v.identity_leak !== true;
