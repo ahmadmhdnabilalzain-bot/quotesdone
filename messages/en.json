@@ -404,11 +404,11 @@
     "steps": [
       {
         "title": "Register your company",
-        "body": "Company name, emirate and trade, then a verified mobile and email."
+        "body": "Verify your email and mobile, then accept the supplier terms. Your company name and trade are read from your trade licence and company profile."
       },
       {
         "title": "Get verified",
-        "body": "Upload a current trade licence and company profile and accept the supplier terms. Verification takes up to 3 working days."
+        "body": "Upload a current trade licence and company profile. Verification is automatic: each document is checked the moment it is saved, and if anything needs clarifying we tell you what."
       },
       {
         "title": "Confirm your scope",

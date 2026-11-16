@@ -79,7 +79,7 @@ or approved-manufacturer list; products must meet the UAE approvals for the job)
 2. **The mandatory six** must be complete before any match: business name (licensed legal name), mobile
    (OTP-verified), email (verified), valid UAE trade licence (uploaded), company profile (uploaded), signed
    Supplier Agreement. The licence and the profile are the two required documents. (SA§13; HWV)
-3. **Verification** within **3 working days** of complete documents: licence number, issuing authority and
+3. **Verification** is **automatic**: licence number, issuing authority and
    expiry date are read from the licence and checked. Approval is **automatic** when the six are complete,
    the licence is read and in date, and the supplier has **confirmed the services it provides** (Services tab); until it
    confirms them it is held and the portal says what is left (SA "Automated decisions"; ledger 1469). An expired licence must be renewed first; a

@@ -72,7 +72,7 @@ No. Insurance, ISO, manufacturer authorisation, EGR, and catalogues are all opti
 
 **How long does supplier approval take?**
 
-Within 3 working days of complete documents (Supplier Agreement clause 13). Approval is automatic when the mandatory six are complete, the licence is read and in date, and the supplier has confirmed the services it provides (Services tab); a supplier is held until it confirms them. A licence issued by an authority outside the UAE, or by an authority that cannot be confirmed, is held, and the supplier is asked for a current UAE trade licence or to name the UAE authority or free zone that issued it. An expired licence must be renewed first, and a licence that cannot be read in full is held for review; the supplier is told what is pending.
+Each document is checked automatically the moment it is saved; the Supplier Agreement (clause 13) allows up to 3 working days of complete documents. Approval is automatic when the mandatory six are complete, the licence is read and in date, and the supplier has confirmed the services it provides (Services tab); a supplier is held until it confirms them. A licence issued by an authority outside the UAE, or by an authority that cannot be confirmed, is held, and the supplier is asked for a current UAE trade licence or to name the UAE authority or free zone that issued it. An expired licence must be renewed first, and a licence that cannot be read in full is held for review; the supplier is told what is pending.
 
 ## Matching
 
