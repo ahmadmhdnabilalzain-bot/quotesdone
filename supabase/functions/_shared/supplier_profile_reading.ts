@@ -545,7 +545,8 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
   const who = (company ? `The company registered as: ${company.slice(0, 160)}\n\n` : '') + (opts.said ? `The supplier himself says: ${opts.said.slice(0, 300)}\n\n` : '')
     + (opts.claimsOnly ? 'This is a short text the supplier typed about his own company, not a document. Return "also_ask":[] and give every "vague" entry "options":[].\n\n' : '');
   const t0 = Date.now(); let readCalls = 0, mapCalls = 0;
-  const ask = (step: 'read' | 'map', system: string, text: string) => hedged(() => askOnce(step, system, text), HEDGE_MS[step]);
+  // the re-ask was measured on the short set's 300-character parts only: a long set's 4,000-character parts keep one call each
+  const ask = (step: 'read' | 'map', system: string, text: string) => (step === 'read' && !whole ? askOnce(step, system, text) : hedged(() => askOnce(step, system, text), HEDGE_MS[step]));
   // THE MAPPING'S REQUEST NEVER DEPENDS ON TIMING (review of branch 2, found replaying run c0afdde7): the first part's phrases are mapped
   // with its summary, a later part's without one (each phrase carries its own line), whichever part lands first.
   const summaryFor = (i: number, own: string) => (i === 0 ? own : '');
@@ -560,6 +561,8 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
     const r = a.ok ? checkReading(a.content, own, codes) : a;
     // code keeps each call to its job: the whole lists no evidence, a part gives no "also ask" (the merge takes the rest from the whole)
     if (r.ok && whole) { if (p === null) { r.reading.evidence = []; r.reading.vague = []; r.reading.rejected = []; } else r.reading.also_ask = []; }
+    // one of a short set's many calls failing would lose the whole reading: it is asked once more (depth 2: never halved)
+    if (!r.ok && whole && depth === 0) return readPart(p, i, 2);
     if (r.ok || depth >= 2 || p === null || p.length < 1500 || !/gateway_deadline|546|cut off|timed? ?out|50[24]/i.test(r.error)) return r;
     const halves = await Promise.all(textChunks(p, Math.ceil(p.length / 2) + 200).map((h) => readPart(h, i || 1, depth + 1)));
     const bad = halves.find((x) => !x.ok); if (bad) return bad;
@@ -591,7 +594,7 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
   // call's phrases were. Measured 16 Nov 2026: mapped part by part, a part's phrases had no summary (run 70eb0bd5) and a call of 4
   // phrases saw only its own trades (run 4c69e153: an events company's "Hostesses" and "Event permits", read under labour supply and
   // government services, were shown no event_management key): 98 of 105 stated services against 101 by the one call.
-  const each = await inPool(jobs, PARALLEL, async (p, i) => {
+  const each = await inPool(jobs, whole ? PARALLEL : 5, async (p, i) => {
     const r = await readPart(p, i);
     if (r.ok && !whole) mapping.push(mapPart(r.reading, summaryFor(i, r.reading.summary)));
     return r;
@@ -604,8 +607,8 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
   // against the licence. Measured 16 Nov 2026 (runs 70eb0bd5, 4c69e153, H11: a garments licence, an events profile): the whole call said
   // "partly" while the parts judged 24 and 26 of 24 and 26 claims not covered, so the mismatch was never asked (the one call said "no").
   // When the parts judged every claim not covered, that is the model's own answer for the profile: 'no'.
-  const judged = reading.evidence.filter((e) => e.licence);
-  if (whole && reading.licence.covers_profile === 'partly' && judged.length && judged.every((e) => e.licence === 'not_covered')) reading.licence = { ...reading.licence, covers_profile: 'no' };
+  // EVERY claim judged not covered: a claim with no judgement takes the profile's fit downstream (supplier_doc_trades.licOf)
+  if (whole && reading.licence.covers_profile === 'partly' && reading.evidence.length && reading.evidence.every((e) => e.licence === 'not_covered')) reading.licence = { ...reading.licence, covers_profile: 'no' };
   const read_ms = Date.now() - t0;
   const told = opts.onRead ? opts.onRead(reading).catch(() => {}) : Promise.resolve();
   await Promise.all(mapping); await told;
