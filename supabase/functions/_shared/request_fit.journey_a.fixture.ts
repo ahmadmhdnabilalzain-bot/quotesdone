@@ -11,7 +11,7 @@
 // journeyA(lang) runs the same pieces quote_compare/index.ts runs on these rows (labels, the technical comparison, the
 // review notes, the generaliser, request_fit, the rules ranking, the roster, the last gate), so the report built from it
 // is the report the customer would download now.
-import { labelQuotes } from './quote_labels.ts';
+import { labelQuotes, letter } from './quote_labels.ts';
 import { requirementsOf } from './line_specs/assess.ts';
 import { rendererView, technicalComparison } from './line_specs/compare.ts';
 import { tradeOfCategory } from './line_specs/model.ts';
@@ -136,7 +136,8 @@ export const SUPPLIER_NAMES = QUOTES_A.map((q) => q.supplier_name).concat(['Arab
 // deno-lint-ignore no-explicit-any
 export function journeyA(lang: 'en' | 'ar' = 'en'): { analysis: any; fits: Record<string, QuoteFit> } {
   const inq = INQUIRY_A; const qs = QUOTES_A; const nowTs = NOW.getTime();
-  const labels = labelQuotes(qs.map((q) => ({ id: q.id, supplier_id: q.supplier_id, option_no: q.option_no })));
+  // the letters stored when journey A first showed each supplier (quote_labels.ts): A, B, C in the order listed here
+  const labels = labelQuotes(qs.map((q) => ({ id: q.id, supplier_id: q.supplier_id, option_no: q.option_no })), new Map(qs.map((q, i) => [String(q.supplier_id), letter(i)])));
   const items = (q: typeof qs[number]) => q.items.map((it) => ({ ...it, line: it.line_no }));
   const technical = technicalComparison({ category: inq.category, request_lines: [], requirements: requirementsOf(inq.spec), on_hold: 0, now: NOW, accepted: [],
     quotes: qs.map((q) => { const lab = labels.get(q.id)!; return { quote_id: q.id, label_en: lab.en, label_ar: lab.ar, supplier_letter: lab.letter, option_no: lab.option_no,
