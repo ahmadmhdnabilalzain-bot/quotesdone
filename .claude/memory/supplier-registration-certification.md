@@ -3,7 +3,7 @@ name: supplier-registration-certification
 description: "11 Nov 2026: the certification that decides 'ready to invite' (founder ruling 1620), how to run it free and paid, and what its first free rounds found about the registration a supplier meets"
 metadata:
   type: project
-  modified: 2026-11-11
+  modified: 2026-11-16
 ---
 
 Founder ruling 1620 (10 Nov 2026): he will invite general managers from his own network to register as suppliers only once IT
@@ -100,6 +100,18 @@ It registers eight ZZ DEMO companies, one at a time, from the fixtures in `scrip
   (two limiters in turn; nothing read before the code). Preflights: login_otp and supplier_api send Access-Control-Max-Age 7200 and the
   Login pays supplier_api's preflight beside verify (api.ts preflightNow -> warm door 204). Estimated ~0.6 s off from the US; not
   measured live until deployed.
+
+- **Paid round 16 Nov 15:00-16:18 (main d6589c2a1, tags 9a97074e / 5c5ef298): 680 PASS, 8 FAILED; read from function_edge_logs,
+  edge_logs, ai_cost_log, the relay status (branch `it_engineer-the-registration-certification-passes-on-the-live-system`).**
+  Verify -> form 3,140 / 3,141 ms: not cold starts (login_otp isolates booted 14:58:02 and 15:45:22, 37-38 ms). Run 1 J1: the paid
+  run's Node route dropped its connection during the code wait (Node keeps idle 4 s), so Verify paid a proxy CONNECT + TLS (measured
+  360-630 ms; 25-40 ms held): harness, fixed (`node_keepalive.mjs`). Run 2 J5: GoTrue `POST auth/v1/admin/users` 1,227 ms inside
+  verify (163-178 ms elsewhere). J9 list 120.5 / 123.2 s: the walk looked once per ~9 s loop (fixed: every second); the server part is
+  step A ONE call 74-86 s (~10k output tokens on a 1.8k-character profile) + slowest of 4 mapping calls 28-35 s, so run 2 is ~122 s
+  even timed exactly: the reader's own time is the open item. J10: seven kyc calls held 34-53 s in ONE Supabase edge isolate
+  (execution_id 377d8417, first auth/v1/user out at 16:03:24.04Z; a fresh isolate answered in 730 ms) - platform; the harness now
+  reloads the form after its own write stalls. J6 / J12 240 s: a 502 `text/plain` with no `server: Vercel` / `x-vercel-id` on a chunk
+  and on /supplier - the container's egress, not the site.
 
 Related: [[a-journey-step-is-proved-by-its-outcome]], [[the-registration-walk-reads-the-real-code-through-a-resend-sink]],
 [[supplier-verification-mandatory-six]], [[chromium-in-the-cloud-container-cuts-requests-at-30-seconds]].
