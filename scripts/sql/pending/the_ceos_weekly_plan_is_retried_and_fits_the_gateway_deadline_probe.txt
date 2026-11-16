@@ -1,0 +1,1 @@
+The probe of the_ceos_weekly_plan_is_retried_and_fits_the_gateway_deadline.sql. LOCAL ONLY: it writes plans and always raises CHK<<...>> so they roll back, but it never runs on production (rule of 13 Nov 2026). It moves to MANIFEST.txt with its file.

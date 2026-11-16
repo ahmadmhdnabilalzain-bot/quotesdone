@@ -37,7 +37,7 @@ import { workEscalationClocks } from '../_shared/escalation_clock.ts';
 import { liveClockIO } from '../_shared/escalation_clock_io.ts';
 import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { COVERAGE_ACTIONS, coverageAction } from './coverage.ts';
-import { PLAN_ACTIONS, planAction } from './plan.ts';
+import { PLAN_ACTIONS, planAction, planCallFor } from './plan.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = {
@@ -409,10 +409,10 @@ Deno.serve(observe('ceo_agent', async (req) => {
     const plan = await planAction({
       rpc: (fn, args) => admin.rpc(fn, args),
       model: async (system, user, taskClass) => {
-        const daily = taskClass === 'routine_employee_reasoning';
-        const llm = makeLlmRich(undefined, { json: true, fn: 'ceo_agent', agent: 'ceo', taskClass, max: daily ? 2000 : 8000,
-          timeoutMs: daily ? 40000 : 110000, temperature: 0.2 });
-        const r = await llm(system, user, daily ? 2000 : 8000);
+        // sized to fit the gateway's wall (plan.ts PLAN_CALL, 16 Nov 2026: 8,000 + 8,000 thinking tokens could not)
+        const c = planCallFor(taskClass);
+        const llm = makeLlmRich(undefined, { json: true, fn: 'ceo_agent', agent: 'ceo', taskClass, max: c.max, timeoutMs: c.timeoutMs, temperature: 0.2 });
+        const r = await llm(system, user, c.max);
         return { content: r.content ?? null, error: r.error ?? (r.content ? null : r.outcome ?? 'no answer'), truncated: !!r.truncated, model: r.model ?? null };
       },
       recentPlans: (limit) => admin.from('ceo_plan_week').select('id,kind,period,status,model,error,refusals,created_at,filed_at,ceo_plan_bet(id,revision,ord,channel,seat,what,measure,target,due_at,status,refusal,actual)')

@@ -112,14 +112,72 @@ export const LIMITS = { openCards: 5, options: 8, umbrellaChips: 12, umbrellaCar
 // past the reading's 110 s clock; every other reading call was 18-75 s on profiles of 400-2,000 characters. Step B: 8 phrases a call,
 // every call at once, each part's phrases mapped as soon as that part is read (review of branch 2: 15 phrases a call reached 110.8 s of
 // the 115 s wall in run 1f18dbf5, and a call past it lost its phrases).
-export const READ_PART_CHARS = 4_000, MAP_PHRASES = 8, PARALLEL = 5;
+// THE LIST WITHIN A MINUTE (sales_engineer, 16 Nov 2026; paid certification 16 Nov, J9: the list 117-122 s after upload, of which
+// step A was ONE call of 74-86 s on a 1,800-character profile, ~10k output tokens, mostly reasoning, and the slowest of four mapping
+// calls 28-35 s). Measured on the hard-profile set the same day (luna-pro at medium): a reading call's time grows with the claims it
+// lists, about 2 s each on a 15-25 s floor (a 500-character part listing 21 claims took 45 s). So documents of up to
+// READ_CONTEXT_CHARS are read at once as ONE call for the documents as a whole (profileReadSystem 'whole': summary, licence fit,
+// "also ask", supply only, brands, areas, roles; no evidence) and parts of SHORT_PART_CHARS ('part': the evidence and vague lines of
+// that part only, given the parts before and after it for context). Given the whole documents, a part listed beyond itself and the
+// whole call listed every service whatever its shape said (33-41 items, 67-82 s): the prompts, not code, keep each call to its job,
+// and code drops what is not its job. Longer documents keep parts of READ_PART_CHARS and the one prompt. Step B: MAP_PHRASES 4 a call,
+// each shown the reading's main trades (mainTradesOf) besides its own; a short set is mapped once all its parts are read.
+// Effort unchanged (effort_policy: step A medium, step B medium). Scores and times: docs/reports/supplier-service-profiling-2026-11-12/
+// speed_2026-11-16.md.
+export const READ_PART_CHARS = 4_000, SHORT_PART_CHARS = 300, READ_CONTEXT_CHARS = 6_000, MAP_PHRASES = 4, PARALLEL = 24;
+// THE SLOW TAIL (measured the same day, run 70eb0bd5): the same model on the same size of part answers in 15-35 s, and now and then in
+// 70 s (H06: one 300-character part of 14 claims 69.5 s while a part of 16 took 32 s). A call still unanswered after HEDGE_MS is asked
+// once more, the same request, and the first answer is taken: the slow tail is the provider's, not the part's. The later answer is
+// paid for (USD 0.001-0.003 a call) and dropped.
+export const HEDGE_MS = { read: 35_000, map: 16_000 } as const;
+/** A reading's MAIN TRADES: the trades of 2 or more of its claims, most claims first (then first named), at most MAIN_TRADES. Every
+ *  mapping call is shown their part of the catalogue as well as its own phrases' trades (16 Nov 2026, see readInTwoSteps). */
+export const MAIN_TRADES = 3;
+export function mainTradesOf(r: ProfileReading): string[] {
+  const n = new Map<string, number>();
+  for (const e of r.evidence) if (e.trade) n.set(e.trade, (n.get(e.trade) ?? 0) + 1);
+  return [...n].filter(([, c]) => c >= 2).sort((a, b) => b[1] - a[1]).slice(0, MAIN_TRADES).map(([t]) => t);
+}
+/** `call` once, and once more if it has not answered after `ms`; the first good answer, else the last failure. */
+export function hedged<T extends { ok: boolean }>(call: () => Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve) => {
+    let done = false, pending = 1;
+    const settle = (r: T) => { if (done) return; if (r.ok || --pending === 0) { done = true; clearTimeout(timer); resolve(r); } };
+    const go = () => call().then(settle, (e) => settle({ ok: false, error: String((e as Error)?.message || e) } as unknown as T));
+    const timer = setTimeout(() => { if (!done) { pending++; go(); } }, ms);
+    go();
+  });
+}
 
 const str = (x: unknown) => String(x ?? '').trim();
 const BASES = new Set<Basis>(['stated', 'shown', 'partner', 'brand']);
 const HEADING_ONLY = /^(?:\d+ )?(?:our |core |main |key |list of )*(?:services?|products?|product range|scope(?: of (?:work|works|services|supply))?|activities|what we do|capabilities|divisions|solutions|expertise)$/;
 
 // ── THE PROMPTS (lifted from the prototype measured in report 2.4, run 78f4e8f5: 89 of 91 stated services) ─────────────
-export function profileReadSystem(trades: { code: string; label: string }[]): string {
+/** `mode` (16 Nov 2026, THE LIST WITHIN A MINUTE above): 'all' the one reading of the documents (byte-for-byte the prompt measured
+ *  before); 'whole' the call for the documents as a whole, no evidence; 'part' the evidence and vague lines of one part only. */
+export type ReadMode = 'all' | 'whole' | 'part';
+export function profileReadSystem(trades: { code: string; label: string }[], mode: ReadMode = 'all'): string {
+  const all = readSystemAll(trades);
+  if (mode === 'all') return all;
+  const L = all.split('\n');
+  const at = (k: string) => L.findIndex((l) => l.startsWith(k));
+  const shape = at('Return STRICT JSON only'), rules = at('RULES'), ev = at(' "evidence":'), vg = at(' "vague":');
+  // a part keeps the rules of evidence (1-6) and of language (9); the whole keeps what it judges: never from (4), goods are not works
+  // (5, its supply_only), also ask (7), language (9) - measured 16 Nov 2026: given the evidence rules, the whole call listed every service
+  // anyway (33 and 41 items, 67-82 s) though its shape said "evidence":[]
+  const keep = (l: string) => (mode === 'part' ? !/^(7\. ALSO ASK|8\. NOTHING THERE)/.test(l) : /^[4579]\. /.test(l));
+  const head = L.slice(0, shape + 1), tail = L.slice(rules + 1).filter(keep);
+  if (mode === 'part') {
+    return [...head, '{' + L[ev].slice(1), L[vg].replace(/\],$/, ']}'), '', 'RULES',
+      '0. ONE PART. You are given the lines just before and after it, for context, and below them the PART you read. List "evidence" and "vague" lines from THAT PART ONLY: every quote is a line of the part (read the rest only to judge them: a heading whose service the documents deliver through a partner is partner work). Another reader gives the summary, the licence\'s fit, "also ask", brands, areas and roles. When the part says nothing of what the company offers, return {"evidence":[],"vague":[]}.',
+      ...tail].join('\n');
+  }
+  return [...head, L[shape + 1], ' "evidence":[],', ' "vague":[],', ...L.slice(vg + 1, rules), 'RULES',
+    '0. THE WHOLE. Other readers list each service and each vague line, part by part: you list none, return "evidence":[] and "vague":[]. You give everything else for the documents as a whole; "also ask" never repeats what the documents already show.',
+    ...tail].join('\n');
+}
+function readSystemAll(trades: { code: string; label: string }[]): string {
   return `You are the sales engineer of a UAE business-to-business procurement marketplace. You read ALL the documents one supplier company uploaded (company profile, catalogues, trade licence) the way an experienced person would, to understand everything this company can do for a customer. Your reading decides which customer requests reach this supplier: a service you miss is business the supplier never sees, and a service you invent is a request sent to a company that cannot quote it.
 
 Our trades (code = name). Use them only to say which trade a service belongs to:
@@ -228,7 +286,8 @@ export function mergeReadings(rs: ProfileReading[]): ProfileReading {
     for (const b of r.brands) if (!out.brands.some((x) => x.name.toLowerCase() === b.name.toLowerCase())) out.brands.push(b);
     for (const a of r.areas) if (!out.areas.includes(a)) out.areas.push(a);
     for (const a of r.roles) if (!out.roles.includes(a) && out.roles.length < 2) out.roles.push(a);
-    out.rejected.push(...r.rejected);
+    // a line two calls refused is one refusal (a short set is read in parts, 16 Nov 2026)
+    for (const x of r.rejected) if (!out.rejected.some((y) => y.what === x.what && y.why === x.why)) out.rejected.push(x);
   }
   // a part that read nothing while another read something: its "what does the company do" entry is not a question
   if (out.evidence.length) out.vague = out.vague.filter((v) => v.options.length || v.quote);
@@ -464,40 +523,58 @@ export type TwoStepTimes = { read_ms: number; map_ms: number; read_calls: number
  *  rest in calls of MAP_PHRASES, every call at once; a failed call is retried in halves, twice at most. A phrase that still could not be
  *  mapped is OWED: the reading is not proposed (unavailable, nothing guessed) and the re-read sweep reads it again; never silently left
  *  in his own words. `onRead`: called with the reading as soon as step A has landed, before the mapping ends (the tab shows it). */
-export async function readInTwoSteps(docs: ReadDoc[], company: string | null, tax: Taxonomy, ask: Ask, opts: ReadOpts = {}): Promise<{ ok: true; reading: ProfileReading; times: TwoStepTimes } | { ok: false; error: string }> {
+export async function readInTwoSteps(docs: ReadDoc[], company: string | null, tax: Taxonomy, askOnce: Ask, opts: ReadOpts = {}): Promise<{ ok: true; reading: ProfileReading; times: TwoStepTimes } | { ok: false; error: string }> {
   const codes = new Set(tax.trades.map((t) => t.code));
   const own = docs.filter((d) => d.kind !== 'licence' && d.text.trim());
   if (!own.length) return { ok: false, error: 'no profile or catalogue text to read' };
   const licence = docs.filter((d) => d.kind === 'licence' && d.text.trim()).map((d) => `=== licence: ${d.name} ===\n${d.text}`).join('\n\n');
   const body = own.map((d) => `=== ${d.kind}: ${d.name} ===\n${d.text}`).join('\n\n');
-  const parts = textChunks(body, opts.partChars ?? READ_PART_CHARS);
+  // WHOLE: a document set short enough to give every call whole (his typed text keeps its own parts and the opening as context)
+  const whole = !opts.claimsOnly && !opts.partChars && body.length <= READ_CONTEXT_CHARS && body.length > SHORT_PART_CHARS;
+  // a line longer than a short part is broken at a space, never cut (textChunks keeps only a line's first `max` characters)
+  const wrapped = (t: string, n: number) => t.split('\n').flatMap((l) => { const out: string[] = []; let x = l;
+    while (x.length > n) { const k = x.lastIndexOf(' ', n); const cut = k > n / 2 ? k : n; out.push(x.slice(0, cut)); x = x.slice(cut).trimStart(); }
+    return [...out, x]; }).join('\n');
+  const parts = whole ? textChunks(wrapped(body, SHORT_PART_CHARS), SHORT_PART_CHARS) : textChunks(body, opts.partChars ?? READ_PART_CHARS);
+  // the jobs of step A: with WHOLE, first the call for the documents as a whole (null), then the parts
+  const jobs: (string | null)[] = whole ? [null, ...parts] : parts;
   const head = parts.length > 1 ? parts[0].slice(0, 2000) : '';
-  const sys = profileReadSystem(tax.trades);
+  const sys = profileReadSystem(tax.trades), sysWhole = profileReadSystem(tax.trades, 'whole'), sysPart = profileReadSystem(tax.trades, 'part');
   // `said`: what the supplier himself answered about his company (the Services tab's "We also install" / "We only supply"); it is given
   // above the documents, never inside them, so no claim can be quoted from it (checkReading looks for quotes in the documents only)
   const who = (company ? `The company registered as: ${company.slice(0, 160)}\n\n` : '') + (opts.said ? `The supplier himself says: ${opts.said.slice(0, 300)}\n\n` : '')
     + (opts.claimsOnly ? 'This is a short text the supplier typed about his own company, not a document. Return "also_ask":[] and give every "vague" entry "options":[].\n\n' : '');
   const t0 = Date.now(); let readCalls = 0, mapCalls = 0;
+  // the re-ask was measured on the short set's 300-character parts only: a long set's 4,000-character parts keep one call each
+  const ask = (step: 'read' | 'map', system: string, text: string) => (step === 'read' && !whole ? askOnce(step, system, text) : hedged(() => askOnce(step, system, text), HEDGE_MS[step]));
   // THE MAPPING'S REQUEST NEVER DEPENDS ON TIMING (review of branch 2, found replaying run c0afdde7): the first part's phrases are mapped
   // with its summary, a later part's without one (each phrase carries its own line), whichever part lands first.
   const summaryFor = (i: number, own: string) => (i === 0 ? own : '');
-  const readPart = async (p: string, i: number, depth = 0): Promise<{ ok: true; reading: ProfileReading } | { ok: false; error: string }> => {
+  const readPart = async (p: string | null, i: number, depth = 0): Promise<{ ok: true; reading: ProfileReading } | { ok: false; error: string }> => {
     readCalls++;
-    const text = `${who}The company's documents, each under its own header:\n\n${i && head ? `[The documents open with this, for context only - do not quote it:]\n${head}\n[The part to read and quote from:]\n` : ''}${p}${licence ? `\n\n${licence}` : ''}`;
-    const a = await ask('read', sys, text);
+    // p === null: the call for the documents as a whole (profileReadSystem 'whole', no evidence); a part: its evidence and vague lines
+    // only ('part'), given the whole documents for context
+    const ctx = !whole ? (i && head ? `[The documents open with this, for context only - do not quote it:]\n${head}\n[The part to read and quote from:]\n` : '')
+      : p === null ? '' : `[The lines just before and after the part, for context:]\n${parts[i - 2] ?? ''}\n...\n${parts[i] ?? ''}\n[The PART to read:]\n`;
+    const text = `${who}The company's documents, each under its own header:\n\n${ctx}${p ?? body}${licence ? `\n\n${licence}` : ''}`;
+    const a = await ask('read', !whole ? sys : p === null ? sysWhole : sysPart, text);
     const r = a.ok ? checkReading(a.content, own, codes) : a;
-    if (r.ok || depth >= 2 || p.length < 1500 || !/gateway_deadline|546|cut off|timed? ?out|50[24]/i.test(r.error)) return r;
+    // code keeps each call to its job: the whole lists no evidence, a part gives no "also ask" (the merge takes the rest from the whole)
+    if (r.ok && whole) { if (p === null) { r.reading.evidence = []; r.reading.vague = []; r.reading.rejected = []; } else r.reading.also_ask = []; }
+    // one of a short set's many calls failing would lose the whole reading: it is asked once more (depth 2: never halved)
+    if (!r.ok && whole && depth === 0) return readPart(p, i, 2);
+    if (r.ok || depth >= 2 || p === null || p.length < 1500 || !/gateway_deadline|546|cut off|timed? ?out|50[24]/i.test(r.error)) return r;
     const halves = await Promise.all(textChunks(p, Math.ceil(p.length / 2) + 200).map((h) => readPart(h, i || 1, depth + 1)));
     const bad = halves.find((x) => !x.ok); if (bad) return bad;
     return { ok: true, reading: mergeReadings(halves.map((x) => (x as { reading: ProfileReading }).reading)) };
   };
   const owed: Phrase[] = [], refused: { what: string; why: string }[] = [];
-  const mapCall = async (ch: Phrase[], summary: string, depth = 0): Promise<void> => {
+  const mapCall = async (ch: Phrase[], summary: string, main: string[], depth = 0): Promise<void> => {
     mapCalls++;
-    const shown = sliceTrades([...new Set(ch.map((x) => x.trade))], tax);
+    const shown = sliceTrades([...new Set([...ch.map((x) => x.trade), ...main])], tax);
     const a = await ask('map', profileMapSystem(sliceText(shown, tax)), `Company: ${company ?? ''}. ${summary}\n\nPhrases:\n${ch.map((x) => `${x.n}. ${x.text}`).join('\n')}`);
     if (a.ok && applyMapping(a.content, ch, new Set(shown), tax, refused)) return;
-    if (ch.length > 1 && depth < 2) { const h = Math.ceil(ch.length / 2); await Promise.all([mapCall(ch.slice(0, h), summary, depth + 1), mapCall(ch.slice(h), summary, depth + 1)]); return; }
+    if (ch.length > 1 && depth < 2) { const h = Math.ceil(ch.length / 2); await Promise.all([mapCall(ch.slice(0, h), summary, main, depth + 1), mapCall(ch.slice(h), summary, main, depth + 1)]); return; }
     owed.push(...ch);
   };
   const mapPart = async (r: ProfileReading, summary: string) => {
@@ -508,17 +585,30 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
       if (k.length) { ph.ref.keys = [...new Set([...ph.ref.keys, ...k])]; ph.ref.code_keys = k; } else model.push(ph);
     }
     const calls: Phrase[][] = []; for (let i = 0; i < model.length; i += MAP_PHRASES) calls.push(model.slice(i, i + MAP_PHRASES));
-    await Promise.all(calls.map((ch) => mapCall(ch, summary)));
+    const main = mainTradesOf(r);
+    await Promise.all(calls.map((ch) => mapCall(ch, summary, main)));
   };
   const mapping: Promise<void>[] = [];
-  const each = await inPool(parts, PARALLEL, async (p, i) => {
+  // the mapping's summary: the first job's, never a later part's (see above). WHOLE: the parts' phrases are mapped once every part is
+  // read, as ONE reading (merged), with the summary of the call for the whole and the reading's main trades (mainTradesOf), as the one
+  // call's phrases were. Measured 16 Nov 2026: mapped part by part, a part's phrases had no summary (run 70eb0bd5) and a call of 4
+  // phrases saw only its own trades (run 4c69e153: an events company's "Hostesses" and "Event permits", read under labour supply and
+  // government services, were shown no event_management key): 98 of 105 stated services against 101 by the one call.
+  const each = await inPool(jobs, whole ? PARALLEL : 5, async (p, i) => {
     const r = await readPart(p, i);
-    if (r.ok) mapping.push(mapPart(r.reading, summaryFor(i, r.reading.summary)));
+    if (r.ok && !whole) mapping.push(mapPart(r.reading, summaryFor(i, r.reading.summary)));
     return r;
   });
   const bad = each.find((x) => !x.ok);
   if (bad) { await Promise.allSettled(mapping); return bad as { ok: false; error: string }; }
   const reading = mergeReadings(each.map((x) => (x as { reading: ProfileReading }).reading));
+  if (whole) mapping.push(mapPart(reading, reading.summary));
+  // THE LICENCE'S FIT OVER THE PARTS (WHOLE): the call for the whole judges the fit without listing a claim, the parts judge every claim
+  // against the licence. Measured 16 Nov 2026 (runs 70eb0bd5, 4c69e153, H11: a garments licence, an events profile): the whole call said
+  // "partly" while the parts judged 24 and 26 of 24 and 26 claims not covered, so the mismatch was never asked (the one call said "no").
+  // When the parts judged every claim not covered, that is the model's own answer for the profile: 'no'.
+  // EVERY claim judged not covered: a claim with no judgement takes the profile's fit downstream (supplier_doc_trades.licOf)
+  if (whole && reading.licence.covers_profile === 'partly' && reading.evidence.length && reading.evidence.every((e) => e.licence === 'not_covered')) reading.licence = { ...reading.licence, covers_profile: 'no' };
   const read_ms = Date.now() - t0;
   const told = opts.onRead ? opts.onRead(reading).catch(() => {}) : Promise.resolve();
   await Promise.all(mapping); await told;

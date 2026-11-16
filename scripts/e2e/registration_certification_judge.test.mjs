@@ -167,6 +167,18 @@ test('the walk times "Confirm my services" with its acknowledgement, and looks a
   assert.match(src, /if \(!hasProp\) \{[\s\S]{0,400}getByRole\('button', \{ name: \/\^Services\$\/ \}\)\.click\(\)[\s\S]{0,200}hasProp = await readShown\.first\(\)\.waitFor/);
 });
 
+// Paid certification 9a97074e, 16 Nov 2026, J9 desktop: "the list to tick is on screen" 120,459 ms against 120,000, looked for once a
+// loop of ~9 s (a services_state, five 1 s sleeps, a tab switch). Fails if the list is looked for less often than every second while
+// the walk waits, or if it is timed at the end of the loop instead of the look that found it.
+test('the list to tick is timed at the first look that finds it, a look every second', () => {
+  const src = readFileSync(new URL('./supplier_registration_certification.mjs', import.meta.url), 'utf8');
+  assert.match(src, /const lookList = async \(\) => \{ if \(!hasProp && await readShown\.count\(\)\) \{ hasProp = true; shownAt = Date\.now\(\); \}/);
+  assert.match(src, /const pause = async \(ms\) => \{ for \(const end = Date\.now\(\) \+ ms; Date\.now\(\) < end && !\(await lookList\(\)\);\) \{ await watchSummary\(\); await sleep\(Math\.min\(1000,/);
+  assert.ok(!/for \(let i = 0; i < 5; i\+\+\) \{ await sleep\(1000\); await watchSummary\(\); \}/.test(src), 'the 5 s wait that never looked for the list is back');
+  assert.match(src, /const listMs = hasProp && R\.profile_uploaded_at \? shownAt - R\.profile_uploaded_at : null;/);
+  assert.ok(!/shownAt = Date\.now\(\);\s*\n\s*await watchSummary\(\);\s*\n\s*await sleep\(800\)/.test(src));
+});
+
 test('reproducible compares the right set and the absurd ones, never an acceptable extra (J6, paid run of #1934)', () => {
   const j6 = (acceptable, absurd = []) => ({ id: 'J6', profile: 'mobile', steps: [], licence: { ok: true, ok_count: 5 }, expired: { applies: false }, arabic: [], faults: [], errors: [],
     dead_end: null, expect_verified: true, verified: true, supplier_ms: 1,

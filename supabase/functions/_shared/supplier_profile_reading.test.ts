@@ -18,6 +18,8 @@ const DOCS = [
   { path: 'l.pdf', name: 'licence.pdf', kind: 'licence' as const, text: 'Activities: Readymade Garments Trading' },
 ];
 const CODES = new Set(TAX.trades.map((t) => t.code));
+// a document set within SHORT_PART_CHARS is read in ONE call with the one prompt (a longer short set: test 7, its whole call and parts)
+const ONE_CALL = [{ ...DOCS[0], text: DOCS[0].text.split('\n').slice(0, 3).join('\n') }, DOCS[1]];
 const answer = (o: Record<string, unknown>) => JSON.stringify({ summary: 'A decoration company.', vague: [], also_ask: [], licence: { covers_profile: 'partly', note: '' }, ...o });
 
 Deno.test('checkReading: a quote from the licence alone, or from nowhere, is refused; a basis that is not one of the four is asked, never listed', () => {
@@ -139,7 +141,7 @@ Deno.test('every question row has the table shape of report 3.10, and the same q
 // a failed call is now retried in halves, and a phrase still unmapped is OWED: the reading is not proposed and the sweep reads it again.
 Deno.test('readInTwoSteps: one reading (no vote, no held); a mapping that keeps failing is owed, never left silently in his words', async () => {
   const calls: string[] = [];
-  const r = await readInTwoSteps(DOCS, 'ZZ DEMO Rimal', TAX, async (step, _sys, text) => {
+  const r = await readInTwoSteps(ONE_CALL, 'ZZ DEMO Rimal', TAX, async (step, _sys, text) => {
     calls.push(step);
     if (step === 'read') return { ok: true, content: answer({ evidence: [{ words: 'Garden maintenance', quote: 'Monthly garden maintenance contracts', basis: 'stated', trade: 'landscaping' }, { words: 'Garden lighting', quote: 'ZZ DEMO Rimal Decoration', basis: 'stated', trade: 'landscaping' }] }) };
     assert(text.includes('Garden'));
@@ -200,7 +202,7 @@ Deno.test('a trade is covered by a vague question only through an option that is
 });
 
 // ── review of branch 2 (12 Nov 2026) ─────────────────────────────────────────────────────────────────────────────────────
-import { aboutHash as _ah, codeKeysOf, liveProfileReader } from './supplier_profile_reading.ts';
+import { aboutHash as _ah, codeKeysOf, liveProfileReader, MAP_PHRASES } from './supplier_profile_reading.ts';
 void _ah;
 
 Deno.test('1. a trade is LISTED only when a stated claim mapped to a key in it; caption, brand, own-words and vague trades are asked, never listed', () => {
@@ -212,7 +214,7 @@ Deno.test('1. a trade is LISTED only when a stated claim mapped to a key in it; 
   assertEquals(p.shown.map((x) => [x.key, x.basis]), [['interior_fitout.office', 'shown']], 'shown work is listed (marked), not his trade');
 });
 
-Deno.test('2. mapping: code places a catalogue name or alias; the model gets the rest in calls of 8, all at once; a failed call is retried in halves; still failing is OWED, never silent', async () => {
+Deno.test('2. mapping: code places a catalogue name or alias; the model gets the rest in calls of MAP_PHRASES (4), all at once; a failed call is retried in halves; still failing is OWED, never silent', async () => {
   const tax: Taxonomy = { trades: [{ code: 'landscaping', label: 'Landscaping', services: [{ key: 'landscaping.maintenance', label: 'Garden maintenance', aliases: ['garden upkeep'] }, ...svc('landscaping', ...Array.from({ length: 20 }, (_, i) => 's' + i))] }], adjacent: [] };
   const lines = Array.from({ length: 20 }, (_, i) => `Work number ${i} for gardens`);
   const docs = [{ path: 'p', name: 'p.pdf', kind: 'profile' as const, text: ['Garden upkeep every month', ...lines].join('\n') }];
@@ -222,15 +224,16 @@ Deno.test('2. mapping: code places a catalogue name or alias; the model gets the
     if (step === 'read') return { ok: true as const, content: answer({ evidence }) };
     const ns = [...text.matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1])); sizes.push(ns.length);
     inFlight++; peak = Math.max(peak, inFlight); await new Promise((r) => setTimeout(r, 5)); inFlight--;
-    if (ns.length === 8 && failOnce) { failOnce = false; return { ok: false as const, error: 'model unavailable (502): gateway_deadline' }; }
+    if (ns.length === MAP_PHRASES && failOnce) { failOnce = false; return { ok: false as const, error: 'model unavailable (502): gateway_deadline' }; }
     return { ok: true as const, content: JSON.stringify({ map: ns.map((n) => ({ i: n, keys: [] })) }) };
   };
   const r = await readInTwoSteps(docs, null, tax, ask);
   assert(r.ok);
   const upkeep = r.reading.evidence.find((e) => e.words === 'Garden upkeep')!;
   assertEquals([upkeep.keys, upkeep.code_keys], [['landscaping.maintenance'], ['landscaping.maintenance']], 'an approved alias is mapped by code, not asked');
-  assertEquals(sizes.filter((n) => n > 8).length, 0, 'never more than 8 phrases a call');
-  assert(sizes.includes(4), 'the failed call of 8 was retried in halves');
+  assertEquals(MAP_PHRASES, 4);
+  assertEquals(sizes.filter((n) => n > MAP_PHRASES).length, 0, 'never more than MAP_PHRASES phrases a call');
+  assert(sizes.includes(MAP_PHRASES / 2), 'the failed call was retried in halves');
   assert(peak >= 3, 'the calls run at once');
   // a call that fails every time, down to halves of halves: the reading is not proposed, the phrases are owed and the sweep reads again
   const down = await readInTwoSteps(docs, null, tax, async (step, _s, text) => step === 'read' ? { ok: true, content: answer({ evidence }) }
@@ -241,7 +244,7 @@ Deno.test('2. mapping: code places a catalogue name or alias; the model gets the
 
 Deno.test('4. step A is handed over as soon as it has read, before the mapping ends', async () => {
   const order: string[] = [];
-  const r = await readInTwoSteps(DOCS, null, TAX, async (step) => {
+  const r = await readInTwoSteps(ONE_CALL, null, TAX, async (step) => {
     if (step === 'read') return { ok: true, content: answer({ evidence: [{ words: 'Garden maintenance', quote: 'Monthly garden maintenance contracts', basis: 'stated', trade: 'landscaping' }] }) };
     await new Promise((res) => setTimeout(res, 20)); order.push('mapped');
     return { ok: true, content: JSON.stringify({ map: [{ i: 1, keys: ['landscaping.maintenance'] }] }) };
@@ -293,4 +296,87 @@ Deno.test('8. the licence is judged per claim, as reader @4 judged each service;
     // 12 Nov 2026 (the decoration profile's 124 s in certification e9cea0c7): the mapping asks its own clock's effort, effort_policy SURFACES
     assert(sent.slice(1).every((b) => b.effort === 'medium'), 'the mapping at its clock\'s effort (SURFACES supplier_doc_trades.profile_mapping)');
   } finally { globalThis.fetch = was; }
+});
+
+// ── THE LIST WITHIN A MINUTE (16 Nov 2026, sales_engineer) ─────────────────────────────────────────────────────────────────
+import { profileReadSystem, READ_CONTEXT_CHARS, SHORT_PART_CHARS } from './supplier_profile_reading.ts';
+
+Deno.test('7. a short document set is read at once as ONE call for the whole (no evidence kept) and evidence-only parts given their neighbours; no line is cut; a long set and typed text keep the one prompt', async () => {
+  const tax: Taxonomy = { trades: [{ code: 'landscaping', label: 'Landscaping', services: svc('landscaping', 'a') }], adjacent: [] };
+  const long = 'We design, build and look after gardens across Dubai and the Northern Emirates. '.repeat(9).trim();   // one line, ~730 characters
+  const lines = [long, ...Array.from({ length: 12 }, (_, i) => `Garden service number ${i} for villas and compounds`)];
+  const docs = [{ path: 'p', name: 'p.pdf', kind: 'profile' as const, text: lines.join('\n') }];
+  const run = async (d: typeof docs, opts = {}) => {
+    const reads: { sys: string; text: string }[] = [], maps: string[] = []; let inFlight = 0, peak = 0;
+    const r = await readInTwoSteps(d, null, tax, async (step, sys, text) => {
+      if (step === 'map') maps.push(text);
+      if (step === 'map') return { ok: true, content: JSON.stringify({ map: [...text.matchAll(/^(\d+)\. /gm)].map((m) => ({ i: Number(m[1]), keys: [] })) }) };
+      reads.push({ sys, text }); inFlight++; peak = Math.max(peak, inFlight); await new Promise((res) => setTimeout(res, 5)); inFlight--;
+      const part = text.split('[The PART to read:]\n')[1] ?? null;
+      // every call answers with evidence and "also ask": code keeps the whole's evidence out and a part's "also ask" out
+      const ev = lines.filter((l) => (part ?? text).includes(l.slice(0, 60))).map((l) => ({ words: l.slice(0, 40) + (part ? '' : ' whole'), quote: l.slice(0, 60), basis: 'stated', trade: 'landscaping' }));
+      return { ok: true, content: answer({ evidence: ev, summary: part === null ? 'The whole.' : 'A part.', also_ask: [{ because: 'x', options: [{ label: part === null ? 'Pools' : 'Fences', trade: null }] }] }) };
+    }, opts);
+    return { r, reads, maps, peak };
+  };
+  const body = `=== profile: p.pdf ===\n${lines.join('\n')}`;
+  assert(body.length > SHORT_PART_CHARS && body.length <= READ_CONTEXT_CHARS);
+  const { r, reads, maps, peak } = await run(docs);
+  assert(maps.length > 0 && maps.every((t) => t.includes('The whole.')), 'every phrase is mapped with the summary of the call for the whole');
+  assert(r.ok);
+  const whole = reads.filter((x) => x.sys === profileReadSystem(tax.trades, 'whole')), parts = reads.filter((x) => x.sys === profileReadSystem(tax.trades, 'part'));
+  assertEquals([whole.length, parts.length >= 3, whole.length + parts.length], [1, true, reads.length], 'one call for the whole, the rest parts');
+  assert(peak >= 3, 'the calls run at once');
+  const given = parts.map((x) => x.text.split('[The PART to read:]\n')[1]);
+  // every part is given the parts before and after it for context (a partner sentence below a heading), never the whole documents
+  assert(parts.every((x) => x.text.includes('[The lines just before and after the part, for context:]') && !x.text.includes(body)), 'a part is given its neighbours');
+  assert(given.every((g) => g.length <= SHORT_PART_CHARS), 'a part is at most SHORT_PART_CHARS');
+  assertEquals(given.join(' ').replace(/\s+/g, ' '), body.replace(/\s+/g, ' '), 'the parts hold every word, the long line broken at spaces, never cut');
+  assertEquals(r.reading.summary, 'The whole.', 'the whole call gives the summary');
+  assert(r.reading.evidence.length > 0 && r.reading.evidence.every((e) => !e.words.endsWith('whole')), 'the whole call lists no evidence');
+  assertEquals(r.reading.also_ask.flatMap((a) => a.options.map((o) => o.label)), ['Pools'], 'only the whole call gives "also ask"');
+  // the one prompt, as measured before: a set longer than READ_CONTEXT_CHARS, and his typed text (claimsOnly, its own part size)
+  const longSet = await run([{ ...docs[0], text: Array.from({ length: 120 }, (_, i) => `Garden service number ${i} for villas and compounds`).join('\n') }]);
+  assert(longSet.reads.length >= 2 && longSet.reads.every((x) => x.sys === profileReadSystem(tax.trades)), 'a long set: parts of READ_PART_CHARS, the one prompt');
+  const typed = await run(docs, { claimsOnly: true, partChars: 600 });
+  assert(typed.reads.every((x) => x.sys === profileReadSystem(tax.trades)), 'typed text: the one prompt');
+});
+
+import { hedged, HEDGE_MS } from './supplier_profile_reading.ts';
+Deno.test('9. the slow tail: a call unanswered after HEDGE_MS is asked once more and the first good answer is taken; a fast answer or a fast failure asks nothing more', async () => {
+  const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+  let n = 0;
+  const slowThenFast = () => { n++; return n === 1 ? wait(80).then(() => ({ ok: true as const, v: 'slow' })) : wait(5).then(() => ({ ok: true as const, v: 'fast' })); };
+  assertEquals([(await hedged(slowThenFast, 20) as { v: string }).v, n], ['fast', 2]);
+  await wait(100);   // the slow answer lands after: it is dropped
+  n = 0;
+  assertEquals([(await hedged(() => { n++; return wait(5).then(() => ({ ok: true as const, v: 'one' })); }, 50) as { v: string }).v, n], ['one', 1]);
+  n = 0;
+  assertEquals([(await hedged(() => { n++; return Promise.resolve({ ok: false as const, error: 'model unavailable (502)' }); }, 50)).ok, n], [false, 1], 'a failure before the hedge is the answer (the callers retry it)');
+  n = 0;
+  type R = { ok: boolean; v?: string; error?: string };
+  const failsLate = (): Promise<R> => { n++; return n === 1 ? wait(40).then(() => ({ ok: false, error: 'x' })) : wait(60).then(() => ({ ok: true, v: 'second' })); };
+  assertEquals((await hedged(failsLate, 10)).v, 'second', 'the first failing after the hedge waits for the second');
+  assert(HEDGE_MS.read > HEDGE_MS.map && HEDGE_MS.map >= 10_000);
+});
+
+import { mainTradesOf } from './supplier_profile_reading.ts';
+Deno.test('10. every mapping call is shown the reading\'s main trades: a call of 4 phrases is not blind to the rest of his trade (H11 "Hostesses", run 4c69e153)', async () => {
+  const tax: Taxonomy = { trades: [
+    { code: 'event_management', label: 'Event management', services: svc('event_management', 'corporate_events', 'event_staff_hostesses', 'event_permits') },
+    { code: 'labour_supply', label: 'Labour supply', services: svc('labour_supply', 'general') },
+    { code: 'pro_government_services', label: 'PRO services', services: svc('pro_government_services', 'visas') }], adjacent: [] };
+  const lines = ['Corporate events', 'Gala dinners', 'Staff parties', 'Product launches', 'Hostesses and ushers', 'Event permits from Dubai Police'];
+  const docs = [{ path: 'p', name: 'p.pdf', kind: 'profile' as const, text: lines.join('\n') }];
+  const trade = (l: string) => /Hostesses/.test(l) ? 'labour_supply' : /permits/.test(l) ? 'pro_government_services' : 'event_management';
+  const shown: string[] = [];
+  const r = await readInTwoSteps(docs, null, tax, async (step, sys, text) => {
+    if (step === 'read') return { ok: true, content: answer({ evidence: lines.map((l) => ({ words: l, quote: l, basis: 'stated', trade: trade(l) })) }) };
+    shown.push(sys);
+    return { ok: true, content: JSON.stringify({ map: [...text.matchAll(/^(\d+)\. /gm)].map((m) => ({ i: Number(m[1]), keys: [] })) }) };
+  });
+  assert(r.ok);
+  assertEquals(mainTradesOf(r.reading), ['event_management']);
+  assert(shown.length >= 2, 'more than one mapping call');
+  assert(shown.every((s) => s.includes('event_management.event_staff_hostesses')), 'every call is shown the main trade\'s keys');
 });
