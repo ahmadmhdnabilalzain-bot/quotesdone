@@ -164,7 +164,9 @@ Deno.test('a scan read on a busy worker is a scan after its probe pages, never "
 Deno.test('a part the gateway cannot answer before its deadline is read in halves, so the document is still read (85 MB brochure, 3 of 5 runs proposed nothing)', async () => {
   const { readInTwoSteps } = await import('./supplier_profile_reading.ts');
   const line = 'Pest control and fumigation for homes, offices and food outlets';
-  const text = Array.from({ length: 70 }, (_, k) => `Project reference ${k}: ZZ DEMO tower, client ZZ DEMO Properties`).join('\n') + '\nOUR SERVICES\n' + line;
+  // longer than READ_CONTEXT_CHARS, so it is read in parts of READ_PART_CHARS (a short set is read in small parts at once: test 7 of
+  // supplier_profile_reading.test.ts)
+  const text = Array.from({ length: 110 }, (_, k) => `Project reference ${k}: ZZ DEMO tower, client ZZ DEMO Properties`).join('\n') + '\nOUR SERVICES\n' + line;
   const tax = { trades: [{ code: 'pest_control', label: 'Pest control', services: [{ key: 'pest_control.general_pest_control', label: 'General pest control' }] }], adjacent: [] as [string, string][] };
   const seen: number[] = [];
   const r = await readInTwoSteps([{ path: 'p', name: 'p.pdf', kind: 'profile', text }], 'ZZ DEMO Pest LLC', tax, async (step, _sys, t) => {
