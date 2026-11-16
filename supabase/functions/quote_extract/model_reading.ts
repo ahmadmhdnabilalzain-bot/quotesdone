@@ -55,7 +55,7 @@ export type ModelAnswer = {
   amount?: unknown; total?: unknown; subtotal?: unknown; vat_amount?: unknown; vat_treatment?: unknown;
   gross_amount?: unknown; discount_amount?: unknown; discount_label?: unknown;
   line_items?: unknown; options?: unknown;
-  lead_time?: unknown; validity?: unknown; payment_terms?: unknown; warranty?: unknown; scope?: unknown; conditions?: unknown;
+  lead_time?: unknown; validity?: unknown; quotation_date?: unknown; payment_terms?: unknown; warranty?: unknown; scope?: unknown; conditions?: unknown;
   exclusions?: unknown; notes?: unknown; description_anonymized?: unknown; masked_terms?: unknown; confidence?: unknown;
 };
 /** The proposal shape every caller already reads, plus what the model decided about the document. */
@@ -188,7 +188,7 @@ export function proposalFromModel(ai: ModelAnswer, gen: (v: unknown) => string):
   const foreign = !!currency && !AED.test(currency);
   const p: ModelProposal = {
     amount: options.length ? options[0].amount : layout === 'unknown' ? null : (sp.price_ex_vat ?? total), currency: 'AED', line_items: lines,
-    lead_time: gen(ai.lead_time), validity: gen(ai.validity), payment_terms: gen(ai.payment_terms), warranty: gen(ai.warranty),
+    lead_time: gen(ai.lead_time), validity: gen(ai.validity), quotation_date: str(ai.quotation_date, 40), payment_terms: gen(ai.payment_terms), warranty: gen(ai.warranty),
     scope: gen(ai.scope), conditions: gen(ai.conditions), exclusions: gen(ai.exclusions), notes: gen(ai.notes),
     description_anonymized: gen(ai.description_anonymized), masked_terms: [], confidence: 'low', method: 'document',
     subtotal: sub, vat_amount: sp.vat_amount, total_incl_vat: layout === 'unknown' ? null : sp.vat_amount && totalWithVat ? totalWithVat : null,

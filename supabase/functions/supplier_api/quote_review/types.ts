@@ -29,6 +29,8 @@ export type Working = {
   /** Ruling 1207: the supplier's discount, as stated — a price field, never folded into the conditions. */
   gross_amount?: number | null; discount_amount?: number | null; discount_label?: string | null;
   lead_time: string; validity: string; payment_terms: string; warranty: string;
+  /** The date printed on the quotation, as written (ledger 1697: a stated validity counts from it). Absent: the day received. */
+  quotation_date?: string;
   scope: string; conditions: string; exclusions: string; notes: string;
   terms_spec: TermsSpec; masked_terms: string[]; option_totals: Record<string, number>;
   /** A currency other than AED seen in the file, until the supplier confirms the prices are AED. */

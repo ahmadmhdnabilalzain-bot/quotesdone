@@ -122,7 +122,7 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
 
   section('Commercial terms', 'الشروط التجارية');
   blocks.push({ t: 'terms', cols: 3, cells: [
-    [T('Lead time', 'مدة التنفيذ'), lead || '—'], [T('Quote validity', 'صلاحية العرض'), validity || '—'], [T('Warranty', 'الضمان'), warranty || '—'],
+    [T('Lead time', 'مدة التنفيذ'), lead || '—'], [T('Quote validity', 'صلاحية العرض'), validity || T('Not stated by the supplier', 'لم يذكرها المورّد')], [T('Warranty', 'الضمان'), warranty || '—'],
     [T('Payment terms', 'شروط الدفع'), k.pay(q.payment_terms)],
     [T('Installation', 'التركيب'), q.installation_applicable === false ? T('N/A', 'لا ينطبق') : q.installation_included === true ? T('Included', 'مشمول') : q.installation_included === false ? T('Not included', 'غير مشمول') : T('Not stated', 'غير مذكور')],
     [T('Delivery to', 'التسليم إلى'), emirate || '—'],

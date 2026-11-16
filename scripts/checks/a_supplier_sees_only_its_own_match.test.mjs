@@ -71,9 +71,12 @@ test('SP-N-04: the prefix rule is the upload paths\' own prefix, and rejects tra
 test('SP-F-02: the quotation review runs inside submit_quote, before the first write', () => {
   const a = action('submit_quote');
   const review = a.indexOf('reviewQuotation(');
+  // 15 Nov 2026 (sales_engineer, validity fix 1): the row is written through writeQuoteRow (lib/quote_acceptance.ts), which
+  // retries once without a column the SQL has not applied yet; the write itself is still the insert/update below.
   const insert = a.indexOf("from('quotes').insert(");
-  const update = a.indexOf("from('quotes').update(det)");
+  const update = a.search(/from\('quotes'\)\.update\((?:det|d)\)/);
   assert.notEqual(review, -1, 'submit_quote must run reviewQuotation — the chat rules are not the chat\'s alone');
+  assert.ok(insert !== -1 && update !== -1, 'submit_quote writes the quotes row by insert and by update');
   assert.ok(review < insert && review < update, 'the verdict must be known before the row is written');
 });
 
@@ -148,7 +151,10 @@ test('SP-C-02: the dry run snapshots the row and its lines, and puts them back',
   const a = action('submit_quote');
   assert.match(a, /const dryRun = body\.dry_run === true;/);
   const snap = a.indexOf('snapCols');
-  const write = a.indexOf("from('quotes').update(det)");
+  // 16 Nov 2026 (sales_engineer, validity fix round 2): the same regex SP-F-02 reads, since the row is written through
+  // writeQuoteRow (lib/quote_acceptance.ts); a missing write is a failure of its own, not a -1 that passes the order test.
+  const write = a.search(/from\('quotes'\)\.update\((?:det|d)\)/);
+  assert.ok(write !== -1, 'submit_quote writes the quotes row by update');
   assert.ok(snap !== -1 && snap < write, 'the snapshot must be taken before the write it undoes');
   assert.match(a, /if \(se \|\| sle \|\| !sr\) return J\(\{ error: 'preflight_unavailable'/, 'a snapshot we could not take refuses the check');
   assert.match(a, /if \(dryRun\) \{[\s\S]{0,1400}update\(snapRow\)[\s\S]{0,400}insert\(snapLines\)/, 'the prior row and its lines are restored');

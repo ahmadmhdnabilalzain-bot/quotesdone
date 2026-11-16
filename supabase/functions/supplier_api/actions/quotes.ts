@@ -21,6 +21,7 @@ import { requirementsOf } from '../../_shared/line_specs/assess.ts';
 import { answerStands } from '../../_shared/line_specs/vat.ts';
 import { optionAmount, splitOptions } from '../../_shared/line_specs/options.ts';
 import { statedPrice, storedPrice } from '../../_shared/stated_price.ts';
+import { quotationDateOf } from '../../_shared/quotation_date.ts';
 import { findTrn } from '../../_shared/identity_numbers.ts';
 import { deriveLineFields, deriveTermsFromScope } from '../../_shared/line_specs/derive.ts';
 import { jobNo, readWorking, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from '../quote_review.ts';
@@ -34,7 +35,7 @@ import type { Recorded } from '../../_shared/recorded_write.ts';
 import { CONCLUDED, UUID_RE, clip, numOrNull } from '../lib/fields.ts';
 import { isRequestRevealed, REQUEST_REVEALED } from '../lib/request_revealed.ts';
 import { NOT_MY_FILE, matchedInquiry, ownQuoteFile, sameVerdict, specChecklist } from '../lib/quote_gate.ts';
-import { QUOTE_NOT_SAVED, QUOTE_NOT_SENT, QUOTE_NOT_SENT_APPROVE, type QuoteSnapshot, acceptForRelease, acceptLive, acceptRule, kickDelivery, notifyNewQuote, restoreQuote, snapshotQuote, storeReviewNotes, supersedeQualityHold, supplierOf, writeQuoteLines } from '../lib/quote_acceptance.ts';
+import { QUOTE_NOT_SAVED, QUOTE_NOT_SENT, QUOTE_NOT_SENT_APPROVE, type QuoteSnapshot, acceptForRelease, acceptLive, acceptRule, kickDelivery, notifyNewQuote, restoreQuote, snapshotQuote, storeReviewNotes, supersedeQualityHold, supplierOf, writeQuoteLines, writeQuoteRow } from '../lib/quote_acceptance.ts';
 import { regenRender } from '../lib/arabic_quotation.ts';
 
 export async function quoteActions(c: ActionCtx): Promise<Response | undefined> {
@@ -407,9 +408,14 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
           // that is exactly his lines plus 5% has VAT in it, whatever the form's basis said, so the review asks before any fee.
           lines_sum: multi ? null : (p.lines as { amount?: unknown }[]).reduce((a, l) => a + (Number(l?.amount) > 0 ? Number(l.amount) : 0), 0),
           lines_count: multi ? null : (p.lines as { amount?: unknown }[]).filter((l) => Number(l?.amount) > 0).length, trn, answered: vatAnswered });
+        const qDate = quotationDateOf(body.quotation_date);
         const det = { inquiry_id: inquiryId, supplier_id: sup.id, option_no: p.option_no, submission_id, ...storedPrice(vat, p.amount), supplier_trn: trn,
           discount_label: vat.discount_label ? scrub(vat.discount_label, 80) : null,
-          notes: sNotes, lead_time: scrub(body.lead_time, 200), validity: scrub(body.validity, 200), payment_terms: scrub(body.payment_terms, 400), warranty: scrub(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: (() => { const m = [...allMasked, ...maskHits.filter((h) => !allMasked.includes(h))]; return m.length ? m : null; })(), structured: p.lines.length > 0 };
+          notes: sNotes, lead_time: scrub(body.lead_time, 200), validity: scrub(body.validity, 200),
+          // Ledger 1697: the date printed on his quotation, when it was read for certain; his stated validity counts from it
+          // (fn_quote_validity_until), else from the day received. No validity of ours is ever written here. The key is written
+          // only with a date, and writeQuoteRow drops it once if the column is not applied yet (deploy before the SQL).
+          ...(qDate ? { quotation_date: qDate } : {}), payment_terms: scrub(body.payment_terms, 400), warranty: scrub(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: (() => { const m = [...allMasked, ...maskHits.filter((h) => !allMasked.includes(h))]; return m.length ? m : null; })(), structured: p.lines.length > 0 };
         // Delivery / installation / warranty the supplier confirmed in the quotation review, cleaned
         // (quote_review.ts) — the hold gate reads them exactly as it reads the portal's fill-in.
         if (confirmedTerms) (det as Record<string, unknown>).terms_spec = confirmedTerms;
@@ -437,12 +443,13 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         let snap: QuoteSnapshot | null = null;
         if (prior) {
           snap = await snapshotQuote(String(prior.id), snapCols);
+          for (const c of snap?.dropped || []) delete (det as Record<string, unknown>)[c];   // its column is not applied yet
           if (!snap && dryRun) return J({ error: 'preflight_unavailable', code: 'preflight_unavailable', message: 'We could not run the check just now. Please try again in a moment.' }, 503);
           if (!snap) return J({ ok: false, error: 'quote_not_saved', ...QUOTE_NOT_SAVED }, 503);   // nothing written yet
         }
         let qid: string;
-        if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return failed(String(action), error); qid = String(prior.id); }
-        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error && isRequestRevealed(error)) return J(REQUEST_REVEALED, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
+        if (prior) { const { error } = await writeQuoteRow(det, (d) => admin.from('quotes').update(d).eq('id', prior.id)); if (error) return failed(String(action), error); qid = String(prior.id); }
+        else { const { data: ins, error } = await writeQuoteRow(det, (d) => admin.from('quotes').insert({ ...d, status: 'draft' }).select('id').single()); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error && isRequestRevealed(error)) return J(REQUEST_REVEALED, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
         let linesW: Recorded;
         try {
           // A line's own words fill brand / model / specification where the caller sent none; a scope

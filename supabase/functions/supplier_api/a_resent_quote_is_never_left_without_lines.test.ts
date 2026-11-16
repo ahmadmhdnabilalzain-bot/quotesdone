@@ -72,7 +72,7 @@ Deno.test('submit_quote snapshots every prior quotation and puts it back before 
   const s = src.slice(src.indexOf("if (action === 'submit_quote')"));
   assert(s.includes('if (prior) {\n          snap = await snapshotQuote(String(prior.id), snapCols);'), 'every prior, not only a dry run');
   assert(!s.includes('if (dryRun && prior) {'), 'the dry-run-only snapshot is gone');
-  const snapAt = s.indexOf('snap = await snapshotQuote('), writeAt = s.indexOf("await admin.from('quotes').update(det).eq('id', prior.id)");
+  const snapAt = s.indexOf('snap = await snapshotQuote('), writeAt = s.indexOf("await writeQuoteRow(det, (d) => admin.from('quotes').update(d).eq('id', prior.id))");
   assert(snapAt > 0 && writeAt > snapAt, 'the snapshot is taken before the header is written');
   const restoreAt = s.indexOf('const restored = dryRun || snap ? await restore() : null;'), answerAt = s.indexOf("return J({ ok: false, error: 'quote_not_saved', ...QUOTE_NOT_SAVED, quote_id: qid");
   assert(restoreAt > 0 && answerAt > restoreAt, 'put back before he is answered');

@@ -18,7 +18,7 @@ export function submitPayload(inq: SafeInquiry, r: Pick<ReviewRow, 'original_fil
   return {
     action: 'submit_quote', inquiry_id: inq.id, source: 'upload', amount: rv.price_ex_vat ?? w.amount,
     items: w.lines.map((l) => ({ description: l.description, specification: l.specification ?? undefined, qty: parseQty(l.qty).n, unit: l.unit || null, unit_price: l.unit_price, amount: l.amount, spec: l.spec ?? undefined, country_of_origin: l.country_of_origin ?? undefined })),
-    lead_time: w.lead_time, validity: w.validity, payment_terms: w.payment_terms, warranty: w.warranty,
+    lead_time: w.lead_time, validity: w.validity, quotation_date: w.quotation_date || undefined, payment_terms: w.payment_terms, warranty: w.warranty,
     scope: w.scope, conditions: w.conditions, exclusions: w.exclusions, notes: w.notes, terms_spec: w.terms_spec,
     original_file_path: r.original_file_path, original_file_name: r.original_file_name, masked_terms: w.masked_terms,
     vat_treatment: vt, price_ex_vat: rv.price_ex_vat ?? undefined, subtotal: w.subtotal ?? undefined, vat_amount: w.vat_amount ?? undefined, trn: w.trn ?? undefined,

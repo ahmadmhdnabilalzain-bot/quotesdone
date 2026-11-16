@@ -62,7 +62,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Founder mail goes through founder_mail_policy](founder-mail-goes-through-founder-mail-policy.md) — fn_notify_founder needs p_kind
 - [The estate could not email a file](the-estate-could-not-email-a-file.md) — fixed 9 Sep: notifications.attachments + send_outbox v43
 - [Founder's landline and mobile](founder-landline-and-mobile.md) — 2 Nov: no longer public (ledger 1482)
-- [A contact-only terms version asks nobody to sign again](a-contact-only-terms-version-asks-nobody-to-sign-again.md) — 2 Nov: Supplier Agreement v17 + app_secrets supplier_terms_carries_from; deploy functions BEFORE the apply
+- [A contact-only terms version asks nobody to sign again](a-contact-only-terms-version-asks-nobody-to-sign-again.md) — 2 Nov: Supplier Agreement v17 + app_secrets supplier_terms_carries_from; deploy functions BEFORE the apply (v18, 15 Nov, carries v17 the same way)
 - [No observe mode — plain login](no-observe-mode-plain-login.md) — mobile number + OTP
 - [Links he shares are standing, not per-task](links-he-shares-are-standing-not-per-task.md)
 - [Expenses email is the source of truth](expenses-email-source-of-truth.md) · [Resend inbound keeps ~1 month](resend-inbound-retention-is-about-a-month.md) · [Accountant only sees what was forwarded](the-accountant-only-sees-what-was-forwarded.md)
@@ -85,6 +85,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Payments are the accountant; talks to sales](payments-are-the-accountant-and-talk-to-sales.md) — payment paths owned by accountant, portals speak only as sales engineer
 - [No exact spec → offer alternatives](no-exact-spec-offer-alternatives.md) — support asks; yes = accepted spec, no = apology
 - [Exact specs or the quote is held](exact-specs-or-the-quote-is-held.md) — per-line specs per trade; missing → hold; PDFs pro + fully Arabic
+- [Quotation validity is what the supplier states (15 Nov)](quotation-validity-is-what-the-supplier-states.md) — ledger 1697: no period of ours anywhere; none stated = no expiry, "not stated by the supplier"; Supplier Agreement v18 §12 says the same and carries v17 (nobody re-signs)
 - [Code extremely well built](code-extremely-well-built.md) — PERMANENT: independent review before EVERY merge; what can be coded is coded, EXCEPT understanding a document or a person (corrected 12 Nov, ledger 1664)
 - [Nothing is one-way](nothing-is-one-way.md) — every handoff/report tracked, replied, re-verified and closed by the originator
 - [Always name the seat](always-name-the-seat.md) — never say "an agent"; commits signed by the owning seat
