@@ -10,9 +10,10 @@
 // believing it, which let any holder of an in-scope credential present as the CEO — a real
 // confused-deputy defect, fixed the same day. Nothing in this file reads a seat name off the payload.
 //
-// NO MODEL CALL, ANYWHERE IN HERE, and that is not a limitation for these actions. Every one of them
-// is a database read: whether a seat is registered, what its standing grants say, what a routine
-// answers when asked. There is no judgement in any of it, which is why none is faked.
+// NO MODEL CALL IN HERE EXCEPT THE WEEKLY SEAT EXAM ('seat_exam', seat_exam.ts, 16 Nov 2026, ledger 1084/1443). Every
+// other action is a database read: whether a seat is registered, what its standing grants say, what a routine
+// answers when asked. There is no judgement in any of it, which is why none is faked. The exam is the one action
+// whose whole purpose is the model's real answer; its calls are fn knowledge_exam (its own gateway credential).
 //
 // WHAT IS DELIBERATELY ABSENT — THE SEAM, NAMED, so nobody mistakes silence for capability.
 // This file holds NO monitoring action. It does not probe the website, does not read health_checks,
@@ -420,6 +421,67 @@ Deno.serve(async (req) => {
       return J({ seat: 'it_engineer', ...out });
     }
 
+    // ── THE WEEKLY SEAT EXAM (seat_exam.ts) ───────────────────────────────────────────────────────────
+    // Posted by the duty it_engineer.seat_exam (scripts/sql/the_company_runs_its_own_weekly_seat_exam.sql) with the run's
+    // id until every planned item is asked. The database chooses the items and holds the week's AED cap; this asks.
+    if (action === 'seat_exam') {
+      const runId = Number(body.run_id);
+      if (!Number.isInteger(runId) || runId <= 0) return J({ error: 'run_id_required' }, 400);
+      const { runExamBatch } = await import('./seat_exam.ts');
+      const { think, defaultDeps } = await import('../_shared/think.ts');
+      const { makeLlmRich } = await import('../_shared/llm.ts');
+      const { embedLine } = await import('../_shared/gte_embed.ts');
+      const live = defaultDeps(admin as never, 'knowledge_exam');
+      const call = (taskClass: string, temperature: number) => makeLlmRich([], { fn: 'knowledge_exam', agent: 'it_engineer', taskClass,
+        max: 400, timeoutMs: 30_000, json: true, temperature, internalDuty: true });
+      const ask = async (c: ReturnType<typeof call>, system: string, input: string) => {
+        const r = await c(system, input, 400); return { content: r.content, error: r.error };
+      };
+      const result = await runExamBatch({
+        next: async (id, n) => {
+          const { data, error } = await admin.rpc('fn_seat_exam_next', { p_run_id: id, p_n: n });
+          if (error) return { items: [], stop: 'next_failed: ' + error.message };
+          const d = (data || {}) as { items?: unknown[]; stop?: string | null };
+          return { items: (d.items ?? []) as never, stop: d.stop ?? null };
+        },
+        reword: (system, input) => ask(call('routine_employee_reasoning', 0.9), system, input),
+        judge: (system, input) => ask(call('knowledge_validation', 0), system, input),
+        answer: async (seat, wording, itemId) => {
+          try {
+            const r = await think(live as never, { seat: seat as never, surface: 'think.answer', question: wording,
+              context: { audience: 'internal' } as never, subject: { seat_exam_item: itemId } as never,
+              internalDuty: true, queueWhenHeld: false } as never) as { status: string; answer?: string; model?: string | null; reason?: string | null };
+            return { status: r.status, answer: r.answer ?? '', model: r.model ?? null, reason: r.reason ?? null };
+          } catch (e) { return { status: 'error', answer: '', model: null, reason: (e as Error).message }; }
+        },
+        record: async (r) => {
+          const { data, error } = await admin.rpc('fn_seat_exam_record', { p_run_id: r.run_id, p_item_id: r.item_id, p_seat: r.seat,
+            p_wording: r.wording, p_answer: r.answer, p_model: r.model, p_status: r.status, p_pass: r.pass, p_graded_by: r.graded_by,
+            p_missing: r.missing });
+          if (error) return { asked_id: 0, fix_id: null, lesson_needed: false, error: error.message };
+          const d = (data || {}) as { asked_id: number; fix_id: number | null; lesson_needed: boolean };
+          return { asked_id: d.asked_id, fix_id: d.fix_id ?? null, lesson_needed: d.lesson_needed === true, error: null };
+        },
+        lesson: async (fixId) => {
+          const { data, error } = await admin.rpc('fn_seat_exam_fix_lesson', { p_fix_id: fixId });
+          if (error) return { knowledge_id: null, error: error.message };
+          const d = (data || {}) as { knowledge_id?: number; content?: string };
+          // the vector the seat's retrieval ranks by (fn_reason_retrieve reads agent_knowledge.embedding_gte); a lesson
+          // without one is still recorded and still closes nothing until a pass, so a failed embed is reported, not hidden
+          const v = d.content ? await embedLine(d.content).catch(() => null) : null;
+          if (d.knowledge_id && v) await admin.from('agent_knowledge').update({ embedding_gte: JSON.stringify(v) }).eq('id', d.knowledge_id);
+          return { knowledge_id: d.knowledge_id ?? null, error: d.knowledge_id ? (v ? null : 'written without a vector') : 'no row' };
+        },
+        now: () => Date.now(),
+      }, runId, { budgetMs: 110_000, max: 4 });
+      // a batch that could not read or record is a failed post (502): the duty counts it and closes the run after three
+      const broken = !!(result.stop?.startsWith('record_failed') || result.stop?.startsWith('next_failed'));
+      await run('seat_exam', broken ? 'error' : 'ok',
+        { run_id: runId, asked: result.asked, passed: result.passed, missed: result.missed, no_wording: result.no_wording,
+          lessons: result.lessons, stop: result.stop });
+      return J({ ok: !broken, seat: 'it_engineer', run_id: runId, ...result }, broken ? 502 : 200);
+    }
+
     if (action === 'authority') {
       const cls = String(body.action_class || '').trim();
       if (!cls) return J({ error: 'action_class_required', classes: CLASSES }, 400);
@@ -446,7 +508,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return J({ error: 'unknown_action', action, actions: ['health', 'status', 'authority', 'assist', 'triage', 'incident_pdf', 'inbox_placement', 'exo_roles (service_role)', 'exo_transport_rule_apply (service_role)'],
+    return J({ error: 'unknown_action', action, actions: ['health', 'status', 'authority', 'assist', 'triage', 'incident_pdf', 'inbox_placement', 'seat_exam', 'exo_roles (service_role)', 'exo_transport_rule_apply (service_role)'],
       note: 'The monitoring, diagnosis and escalation actions are a separate build. See the seam '
         + 'described at the top of supabase/functions/it_engineer/index.ts.' }, 400);
   } catch (e) {
