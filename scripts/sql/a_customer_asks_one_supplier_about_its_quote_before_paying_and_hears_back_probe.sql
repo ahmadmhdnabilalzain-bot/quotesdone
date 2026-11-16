@@ -95,7 +95,7 @@ begin
    where f.j ->> 'id' = i::text and jsonb_typeof(z.q -> 'questions_and_answers') = 'array';
   if qa is null or jsonb_array_length(qa) <> 2 then fails := fails || ' [4: the thread is not under the quote: ' || coalesce(qa::text, 'null') || ']';
   else
-    if not (qa -> 0 ->> 'asked_by' like 'you%' and qa -> 0 ->> 'answered_by' like 'your sales engineer%') then fails := fails || ' [4: who asked / answered: ' || (qa -> 0)::text || ']'; end if;
+    if not (qa -> 0 ? 'you_asked_about_this_quote' and qa -> 0 ->> 'answered_by' like 'your sales engineer%' and not (qa -> 0 ? 'supplier_asked')) then fails := fails || ' [4: who asked / answered: ' || (qa -> 0)::text || ']'; end if;
     if qa -> 1 ->> 'state' not like 'asked of the supplier, answer due by%' then fails := fails || ' [4: no due date: ' || (qa -> 1)::text || ']'; end if;
   end if;
   if (select f.j -> 'asked' ->> 'revision' from jsonb_array_elements(public.fn_customer_inquiry_facts(c, 10)) f(j) where f.j ->> 'id' = i::text) is distinct from '1' then

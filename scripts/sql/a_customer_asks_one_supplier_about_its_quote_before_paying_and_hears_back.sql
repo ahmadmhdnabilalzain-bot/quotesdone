@@ -335,19 +335,22 @@ on conflict (duty) do update set owner_seat = excluded.owner_seat, every = exclu
 -- 5. THE THREAD WITH ONE SUPPLIER, AS THE CUSTOMER'S FACTS CARRY IT
 create or replace function public.fn_customer_quote_thread(p_inquiry uuid, p_supplier bigint)
 returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  select jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
+  -- a supplier's question keeps the keys every reader already knows (supplier_asked, he_answered); his own question about this
+  -- quote is told apart by its own keys, with who answered it and when the supplier's answer is due
+  select jsonb_agg(case when c.asked_by = 'customer' then jsonb_strip_nulls(jsonb_build_object(
            'asked_at', c.asked_at,
-           'asked_by', case c.asked_by when 'customer' then 'you (the customer), about this quote' else 'the supplier' end,
-           'question', left(case when c.asked_by = 'customer' then coalesce(c.question_as_written, c.question) else c.question end, 400),
+           'you_asked_about_this_quote', left(coalesce(c.question_as_written, c.question), 400),
+           'answer', left(c.answer, 400), 'answered_at', c.answered_at,
            'answered_by', case when c.answered_at is null then null
                                when c.answered_by = 'sales_engineer' then 'your sales engineer, from the quote itself'
-                               when c.answered_by = 'supplier' or c.asked_by = 'customer' then 'the supplier'
-                               else 'you (the customer)' end,
-           'answer', left(coalesce(c.answer_as_written, c.answer), 400), 'answered_at', c.answered_at,
+                               else 'the supplier' end,
            'state', case when c.answered_at is not null then 'answered'
-                         when c.asked_by = 'customer' and c.relayed_at is not null then 'asked of the supplier, answer due by ' || to_char(c.reply_by at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' UAE time'
-                         when c.asked_by = 'customer' then 'with your sales engineer, who answers from the quote or asks the supplier'
-                         else 'waiting for your answer' end)) order by c.asked_at)
+                         when c.relayed_at is not null then 'asked of the supplier, answer due by ' || to_char(c.reply_by at time zone 'Asia/Dubai', 'DD Mon YYYY HH24:MI') || ' UAE time'
+                         else 'with your sales engineer, who answers from the quote or asks the supplier' end))
+         else jsonb_strip_nulls(jsonb_build_object('asked_at', c.asked_at,
+           'supplier_asked', left(c.question, 400),
+           'he_answered', left(coalesce(c.answer_as_written, c.answer), 400), 'answered_at', c.answered_at)) end
+         order by c.asked_at)
     from (select * from public.rfq_clarification c0
            where c0.inquiry_id = p_inquiry and c0.kind = 'question' and c0.supplier_id = p_supplier
            order by c0.asked_at desc limit 8) c
