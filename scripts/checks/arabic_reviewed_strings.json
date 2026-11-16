@@ -4153,6 +4153,7 @@
   "5af9cad10162",
   "5c174a8af4ea",
   "5e4992364cc0",
+  "6025d6ddc57c",
   "606ff8f1f04d",
   "63a5702c7fef",
   "63bb7a637e18",
@@ -8213,6 +8214,7 @@
   "41fffe0e12af",
   "4cda3eff8bef",
   "605a93533c3b",
+  "7ca31ec48d43",
   "81313df707ef",
   "81add0237226",
   "90032d0e95ed",
@@ -9141,6 +9143,7 @@
   "0183560e12a8",
   "318701cc6ae5",
   "626dd59f122f",
+  "65ceafc3df93",
   "89ad4a98f47d",
   "e00773da115b"
  ],
@@ -9971,5 +9974,16 @@
   "d99cd47fba2a",
   "d9a9b884d813",
   "f7049682f252"
+ ],
+ "scripts/sql/every_flag_and_sanctions_hit_is_reasoned_by_its_seat_and_frozen_until_decided.sql": [
+  "6735032a73cf",
+  "6832be7fd6a6",
+  "acc837e191ee",
+  "b7ee3ad72336",
+  "d4449be038fd",
+  "e0a35df75c44"
+ ],
+ "supabase/functions/_shared/quotes_being_checked.ts": [
+  "530b4efbaf2d"
  ]
 }

@@ -182,6 +182,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
             {/* A quote withheld with no word said is its own defect: my_inquiries counts the ones
                 on hold for missing details (audit CP-01) and the customer is told they exist. */}
             {Number(inq.on_hold) > 0 ? <div className={cn(S.sub, 'border-t border-border px-2.5 pt-2 text-muted-foreground sm:px-3')}>{tf(lang, 'rc_on_hold', { n: Number(inq.on_hold) })}</div> : null}
+            {Number(inq.being_checked) > 0 ? <div className={cn(S.sub, 'border-t border-border px-2.5 pt-2 text-muted-foreground sm:px-3')}>{tf(lang, 'rc_being_checked', { n: Number(inq.being_checked) })}</div> : null}
             <div className="flex flex-col gap-2.5 border-t border-border p-2.5 sm:p-3">{quotes.map((q) => <QuoteCard key={q.id} q={q} token={token} lang={lang} concluded={concluded} onChange={onChange} vscore={shownValue[q.id]} best={q.id === bestId} hired={inq.hired_supplier_id} terms={terms} focus={q.id === focusQuote} highlight={q.id === linkQuote} />)}</div>
           </section>
         : null}

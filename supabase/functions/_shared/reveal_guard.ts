@@ -19,7 +19,7 @@
 import { rankable } from './line_specs/compare.ts';
 import { isLiveQuote } from './quote_live.ts';
 import { requirementsOf, type Line, type Terms } from './line_specs/assess.ts';
-import { sanctionedLead } from './sanctioned.ts';
+import { sanctionedLead, screeningOpen } from './sanctioned.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = { from: (t: string) => any; rpc: (fn: string, args: Record<string, unknown>) => any };
@@ -137,6 +137,14 @@ const REFUSALS: Record<string, { status: number; en: string; ar: string }> = {
     en: 'Requests in this trade are paused while we onboard more verified suppliers, so a supplier cannot be revealed on it right now. You have not been charged, and your quotes are kept.',
     ar: 'أوقفنا الطلبات في هذا التخصص مؤقتًا ريثما نسجّل مزيدًا من الموردين المعتمدين، لذلك لا يمكن كشف مورّد فيه الآن. لم يُخصم منكم أي مبلغ، وعروضكم محفوظة.',
   },
+  // AN OPEN SANCTIONS-SCREENING HIT ON EITHER PARTY (16 Nov 2026, sanctioned.ts screeningOpen): the party is frozen until
+  // the CEO decides, within a day. No reason is stated (a screening is never explained to a third party, and telling the
+  // party itself would tip it off); what is said is true: nothing is charged and the reveal waits.
+  compliance_review: {
+    status: 409,
+    en: 'This reveal is paused while we complete a routine account check. Please try again later.',
+    ar: 'هذا الكشف متوقف مؤقتًا ريثما نُكمل تحققًا اعتياديًا من الحساب. يُرجى المحاولة لاحقًا.',
+  },
   account_sanctioned: {
     status: 403,
     en: 'This supplier account is permanently closed and cannot be revealed.',
@@ -177,6 +185,8 @@ export async function canReveal(
   if (!already && inq.reveal_open_until && Date.parse(String(inq.reveal_open_until)) <= Date.now()) return refuse('reveal_period_ended');
   // Sanctions bite even on an already-paid reveal: instruction 516 is "never shown to a customer".
   if (await sanctionedLead(admin, q.supplier_id)) return refuse('account_sanctioned');
+  // Frozen pending the CEO's sanctions decision, on either side, paid or not (the freeze is on dealing with the party).
+  if (await screeningOpen(admin, { leadId: q.supplier_id, customerId: opts.customerId })) return refuse('compliance_review');
   // A quote already paid for is never re-held: the customer owns that disclosure.
   if (!already) {
     const held = heldQuoteIds([{ quote: q, items: (await itemsByQuote(admin, [qid]))[qid] || [] }], inq.category ?? null, inq.spec);
