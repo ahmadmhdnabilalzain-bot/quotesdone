@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run after every_hand_over_has_an_owner_and_a_clock_and_closes_or_escalates.sql in the same transaction on a local Postgres 16; it must print PROBE OK. This note stays for the life of the file. Seat: ceo.
