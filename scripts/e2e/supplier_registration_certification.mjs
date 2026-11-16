@@ -339,6 +339,8 @@ async function journey(run, J, runNo) {
         kycState: async () => (await call('kyc', tok, { action: 'state' })).json,
         sendSms: async () => (await call('kyc', tok, { action: 'send_sms', phone: mobile })).json,
         formShowsVerified: () => M.getByText(/^Mobile verified$/).first().waitFor({ timeout: 25000 }).then(() => true).catch(() => false),
+        // only after a harness fault (fixture_mobile.mjs): a reload before Submit reopens the registration form
+        reloadForm: async () => { await p.reload({ waitUntil: 'domcontentloaded' }); await formHeading.waitFor({ timeout: 45000 }); },
         sleep,
       });
       harnessMs += Date.now() - tm - tOpen;
@@ -526,17 +528,24 @@ async function journey(run, J, runNo) {
         if (SENTENCE.test(t)) { firstSummaryAt = Date.now(); firstSummary = t; firstSummaryWhere = where; return; }
       }
     };
-    const tp = Date.now(); let hasProp = false, st = null;
+    // THE LIST IS TIMED WHEN IT IS ON SCREEN, NOT AT THE NEXT LOOK (16 Nov 2026, it_engineer; paid certification 9a97074e J9 desktop,
+    // 120,459 ms against 120,000). The list was looked for once a loop, and a loop was a services_state, five 1 s sleeps, a tab switch
+    // and 1.9 s more: up to ~9 s after the tab had drawn it. ai_cost_log for that reading: the last mapping call ended 15:23:02.97Z and
+    // the tab asks every 2 s once step A has landed (servicesPoll.ts), while the walk saw the list at 15:23:09.8Z. It is now looked for
+    // every second, during the waits too, and timed at the first look that finds it. The ceiling is unchanged.
+    const tp = Date.now(); let hasProp = false, st = null, shownAt = null;
+    const lookList = async () => { if (!hasProp && await readShown.count()) { hasProp = true; shownAt = Date.now(); } return hasProp; };
+    const pause = async (ms) => { for (const end = Date.now() + ms; Date.now() < end && !(await lookList());) { await watchSummary(); await sleep(Math.min(1000, Math.max(0, end - Date.now()))); } };
     while (Date.now() - tp < CEILING_MS.proposals[J.profile]) {
       await watchSummary();
-      if (await readShown.count()) { hasProp = true; break; }
+      if (await lookList()) break;
       st = (await call('supplier_api', tok, { action: 'services_state' }).catch(() => null))?.json || null;
       const docs = st?.capability?.source_docs?.docs || [];
       if (docs.length && !docs.some((d) => d.status === 'reading') && Date.now() - tp > 10000) break;   // read, and nothing proposed
-      for (let i = 0; i < 5; i++) { await sleep(1000); await watchSummary(); }
+      await pause(5000); if (hasProp) break;
       await wsNav.first().getByRole('button', { name: /^Inquiries received$/ }).click().catch(() => {}); await sleep(400);
       await wsNav.first().getByRole('button', { name: /^Services$/ }).click().catch(() => {});
-      await sleep(1500);
+      await pause(1500); if (hasProp) break;
     }
     // The loop can stop on the read that stored the proposals while the tab still shows the state it loaded before them (paid run 2,
     // J4: 4 services proposed in services_state, none on screen at the last look). Open the tab once more before the last look.
@@ -544,8 +553,10 @@ async function journey(run, J, runNo) {
       await wsNav.first().getByRole('button', { name: /^Inquiries received$/ }).click().catch(() => {}); await sleep(400);
       await wsNav.first().getByRole('button', { name: /^Services$/ }).click().catch(() => {});
       hasProp = await readShown.first().waitFor({ timeout: 8000 }).then(() => true).catch(() => false);
+      if (hasProp) shownAt = Date.now();
     }
-    const propMs = Date.now() - tp, shownAt = Date.now();
+    if (shownAt == null) shownAt = Date.now();
+    const propMs = shownAt - tp;
     await watchSummary();
     await sleep(800); await look('services tab'); await shot('services_proposed');
     const tSt = Date.now();

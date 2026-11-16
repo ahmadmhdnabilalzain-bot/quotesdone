@@ -100,10 +100,12 @@ test('recordFixtureMobileBeforeTheForm: one mount, the read held across the fast
   }
 });
 
-test('the certification uses the one-mount path, never a reload', () => {
+test('the certification uses the one-mount path; a reload only after a harness fault, and only into the registration form', () => {
   const src = readFileSync(new URL('./supplier_registration_certification.mjs', import.meta.url), 'utf8');
   assert.match(src, /recordFixtureMobileBeforeTheForm\(\{/);
-  assert.ok(!/reloadForm:/.test(src), 'a reload after Create company lands in the workspace');
+  assert.ok(!/await recordFixtureMobile\(/.test(src), 'the reload-first path is back');
+  // 16 Nov 2026: since 11 Nov a reload before Submit reopens the form (Dashboard `registering`); the reload waits for the form itself
+  assert.match(src, /reloadForm: async \(\) => \{ await p\.reload\(\{ waitUntil: 'domcontentloaded' \}\); await formHeading\.waitFor\(\{ timeout: 45000 \}\); \}/);
 });
 
 // 11 Nov 2026, free certification run 1, J4 mobile: the harness's kyc whatsapp_choose ran 54,590 ms at the edge (16:01:07.720Z).
@@ -116,6 +118,7 @@ test('a harness write slower than the portal\'s abort never holds the form\'s re
   const deps = { ...w.deps,
     holdFormRead: async () => { gate = new Promise((r) => { release = r; }); return () => release(); },
     openForm: async () => { mounted = w.mountForm(gate); await sleep(2); },
+    reloadForm: undefined,   // no reload given: the fault stands (the reload case is the next test)
     formShowsVerified: async () => { await mounted; return w.form.shown === true; } };
   const r = await recordFixtureMobileBeforeTheForm(deps, { holdMaxMs: 15000 / SCALE, everyMs: 1 });
   await mounted;
@@ -127,4 +130,24 @@ test('a harness write slower than the portal\'s abort never holds the form\'s re
   assert.match(r.detail, /whatsapp_choose/);
   assert.equal(w.db.phone_verified, true, 'the writes still finish, so the server holds the truth for Submit');
   assert.equal(w.db.opt, 'same');
+});
+
+// 16 Nov 2026, paid certification 5c5ef298 J10 mobile: the harness's kyc whatsapp_choose took 53,110 ms (a Supabase edge isolate held
+// seven kyc calls before our code). The writes did land, so the form is loaded again and its own read judged; it fails only when that
+// read does not show the truth, and a fault with no reload given still fails as before.
+test('when the harness\'s writes outlast the hold, the form is loaded again once kyc reads verified, and that read is judged', async () => {
+  for (const reloadShows of [true, false]) {
+    const w = world({ sendSmsMs: 1, chooseMs: 53110 / SCALE });
+    let gate = null, release = null, mounted = null;
+    const deps = { ...w.deps,
+      holdFormRead: async () => { gate = new Promise((r) => { release = r; }); return () => release(); },
+      openForm: async () => { mounted = w.mountForm(gate); await sleep(2); },
+      reloadForm: async () => { await mounted; if (reloadShows) await w.mountForm(); else w.form.shown = null; },   // false: the reload never showed the form
+      formShowsVerified: async () => { await mounted; return w.form.shown === true; } };
+    const r = await recordFixtureMobileBeforeTheForm(deps, { holdMaxMs: 15000 / SCALE, everyMs: 1 });
+    assert.equal(r.harnessFault, true); assert.equal(r.reloaded, true);
+    assert.match(r.detail, /the harness's own writes outlasted the hold[\s\S]*loaded again once kyc read verified/);
+    assert.equal(r.ok, reloadShows, r.detail);
+    assert.equal(w.form.reads, reloadShows ? 2 : 1);
+  }
 });

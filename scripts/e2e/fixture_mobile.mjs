@@ -51,7 +51,8 @@ export async function recordFixtureMobile(deps, { timeoutMs = 60000, everyMs = 1
 // waited on. The step passes only when the form itself shows "Mobile verified".
 // deps: holdFormRead() -> release(): from now until release, the page's kyc 'state' requests wait; openForm(): the action that
 //   mounts the form (Create company, or Verify on an invitation), resolves when the supplier's lead exists; markVerified();
-//   chooseWhatsapp(); kycState(); sendSms(); formShowsVerified(); sleep(ms).
+//   chooseWhatsapp(); kycState(); sendSms(); formShowsVerified(); sleep(ms); reloadForm() (optional): loads the page again and waits
+//   for the registration form, used only when the harness's own writes outlasted the hold.
 // Prevented by: scripts/e2e/fixture_mobile.test.mjs
 export async function recordFixtureMobileBeforeTheForm(deps, { holdMaxMs = 15000, everyMs = 500, settleMaxMs = holdMaxMs + 30000 } = {}) {
   const release = await deps.holdFormRead();
@@ -81,6 +82,18 @@ export async function recordFixtureMobileBeforeTheForm(deps, { holdMaxMs = 15000
   else if (settledAt > heldMs) why = `the harness's own writes outlasted the hold: the form's read went on at ${heldMs} ms, the writes settled at ${settledAt} ms (${JSON.stringify(took)} ms); the form read before the fixture mobile was recorded`;
   const sms = await deps.sendSms().catch((e) => ({ ok: false, error: String(e?.message || e) }));
   const smsRefused = !(sms && sms.ok === true);
+  // THE FORM IS LOADED AGAIN WHEN THE HARNESS'S OWN WRITES OUTLASTED THE HOLD (16 Nov 2026, it_engineer; paid certification 5c5ef298,
+  // J10 mobile). Its kyc whatsapp_choose took 53,110 ms at the edge, and so did six kyc 'state' reads beside it: function_edge_logs
+  // shows all seven in ONE isolate (execution_id 377d8417), their first outgoing call (auth/v1/user) leaving it only at 16:03:24.04Z,
+  // while a fresh isolate booted at 16:03:08Z answered a kyc call in 730 ms. A Supabase edge-runtime hold before our code, met by the
+  // harness's write. Since 11 Nov a reload before Submit reopens the registration form (Dashboard `registering`), so the form is read
+  // again once the server says verified, and the step judges what that read shows. Only when the server never said so does it fail.
+  if (why && settled(k) && deps.reloadForm) {
+    await deps.reloadForm();
+    const again = await deps.formShowsVerified();
+    return { ok: !!again, smsRefused, heldMs, harnessFault: true, reloaded: true,
+      detail: `${why}; the form was loaded again once kyc read verified and ${again ? 'shows' : 'does NOT show'} Mobile verified` };
+  }
   if (why) return { ok: false, smsRefused, heldMs, harnessFault: true, detail: why };
   const shown = await deps.formShowsVerified();
   return { ok: !!shown, smsRefused, heldMs, detail: shown ? `the form's own read came after the writes (held ${heldMs} ms) and shows Mobile verified` : `kyc state verified, but the form does not show Mobile verified (held ${heldMs} ms)` };
