@@ -635,14 +635,14 @@
   "1390254fa3fe",
   "6795f24f47d7"
  ],
- "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes_probe.sql": [
-  "1143523d828f"
- ],
  "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes.sql": [
   "3c2dc612880a",
   "7741094dd3ef",
   "d0466f61047f",
   "fae3d0feb457"
+ ],
+ "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes_probe.sql": [
+  "1143523d828f"
  ],
  "scripts/sql/a_customer_with_no_supplier_is_told_the_truth_and_nothing_is_left_waiting.sql": [
   "01676ef8c54f",
@@ -1579,6 +1579,17 @@
   "71425d07f632",
   "735f3f9ff862"
  ],
+ "scripts/sql/every_escalation_carries_a_clock_and_the_ceo_decides_it_not_the_founder.sql": [
+  "004b0c6ae209",
+  "0c59694035a7",
+  "50821cf06cba",
+  "92fd5e18c333",
+  "993c61d77fe2",
+  "a3ccb2a17bbd",
+  "cd8fa5a44aad",
+  "d892ff992be1",
+  "e480cc80be8a"
+ ],
  "scripts/sql/every_inbound_message_is_answered_or_closed_with_its_reason_and_a_complaint_on_any_channel_is_registered.sql": [
   "00a9866295f2",
   "18d04f89f17b",
@@ -1594,9 +1605,6 @@
  ],
  "scripts/sql/every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql": [
   "624819270073"
- ],
- "scripts/sql/every_social_message_is_answered_probe.sql": [
-  "debfd4865d39"
  ],
  "scripts/sql/every_social_message_is_answered.sql": [
   "02256d55e97b",
@@ -1619,6 +1627,9 @@
   "dc3f2e9543fc",
   "e78dcea14391",
   "ee4a1456561a"
+ ],
+ "scripts/sql/every_social_message_is_answered_probe.sql": [
+  "debfd4865d39"
  ],
  "scripts/sql/every_support_conversation_is_one_case_measured_rated_and_recovered.sql": [
   "13b1399ef1f4",
@@ -2402,18 +2413,13 @@
   "71425d07f632",
   "735f3f9ff862"
  ],
+ "scripts/sql/the_marketing_seat_publishes_measures_and_reports_spend.sql": [
+  "ae01b7bef25b"
+ ],
  "scripts/sql/the_marketing_seat_publishes_measures_and_reports_spend_probe.sql": [
   "3d46bb7cf9ae",
   "4a41caa50bac",
   "f19c38d9dfce"
- ],
- "scripts/sql/the_marketing_seat_publishes_measures_and_reports_spend.sql": [
-  "ae01b7bef25b"
- ],
- "scripts/sql/the_marketing_seat_writes_articles_and_drafts_linkedin_outreach_probe.sql": [
-  "00d300590c94",
-  "3c96f2625036",
-  "d89298a99de9"
  ],
  "scripts/sql/the_marketing_seat_writes_articles_and_drafts_linkedin_outreach.sql": [
   "11944e41c9b3",
@@ -2421,6 +2427,11 @@
   "970b8be5a31a",
   "c7d01c40da27",
   "f3dc20d0e14d"
+ ],
+ "scripts/sql/the_marketing_seat_writes_articles_and_drafts_linkedin_outreach_probe.sql": [
+  "00d300590c94",
+  "3c96f2625036",
+  "d89298a99de9"
  ],
  "scripts/sql/the_missing_trades_join_the_taxonomy_under_twelve_groups.sql": [
   "00eac1e24bfd",
@@ -3977,11 +3988,46 @@
   "9df48cd36fa8",
   "fe7b178e690e"
  ],
- "src/components/me/auth/CustomerPortalView.tsx": [
-  "4b0c472fa944"
+ "src/components/PriceGuide.tsx": [
+  "0f70841ffbde"
+ ],
+ "src/components/QuoteBadges.tsx": [
+  "aa7ef1d629ad"
+ ],
+ "src/components/ServiceDoc.tsx": [
+  "00970d07e4bb",
+  "22118abc2237",
+  "497ebcd71a0a",
+  "499c7c57d3de",
+  "4ec19094e9ab",
+  "569b1074b737",
+  "5c6cef2786bf",
+  "6c1659ba4e35",
+  "749feb1d8678",
+  "8bc4aed040a9",
+  "a689a4cf0af7",
+  "abec5f925a16",
+  "e46de96ffa56",
+  "fd4a3bdaef87"
+ ],
+ "src/components/WorkedCase.tsx": [
+  "1bfd692ec1f2"
  ],
  "src/components/me/Clarifications.tsx": [
   "0d508d1cd7ec"
+ ],
+ "src/components/me/NewRequest.tsx": [
+  "15b233b4ba6e",
+  "328cc7584c8c",
+  "4a7b99474bf7",
+  "72ef00ac7f7b"
+ ],
+ "src/components/me/PortalShell.tsx": [
+  "ad9ba68b566f",
+  "f01251ebcbc3"
+ ],
+ "src/components/me/auth/CustomerPortalView.tsx": [
+  "4b0c472fa944"
  ],
  "src/components/me/dashboard/AccountSettings.tsx": [
   "197fe926594c"
@@ -4004,18 +4050,8 @@
   "60e23efe864f",
   "dbe2feb7df27"
  ],
- "src/components/me/NewRequest.tsx": [
-  "15b233b4ba6e",
-  "328cc7584c8c",
-  "4a7b99474bf7",
-  "72ef00ac7f7b"
- ],
  "src/components/me/newRequest/helpers.ts": [
   "1a648010caf1"
- ],
- "src/components/me/PortalShell.tsx": [
-  "ad9ba68b566f",
-  "f01251ebcbc3"
  ],
  "src/components/me/portalText.ts": [
   "00883d7920a3",
@@ -4304,6 +4340,23 @@
   "8fa3e6f9daa1",
   "a743561960f9"
  ],
+ "src/components/me/requestTracker.ts": [
+  "0b9e3ae1240b",
+  "18ae7d240bf7",
+  "50b73bfb238b",
+  "517cfcac321f",
+  "62780f4637b4",
+  "669c7c28f4fc",
+  "6ce78f65aec8",
+  "70401eb4ce96",
+  "91e0f4759901",
+  "a1f9e2218451",
+  "b5eb4f5ef591",
+  "c1a7fe86f818",
+  "cfa563ec3771",
+  "de2f9e06f9ad",
+  "e99cf34c18d0"
+ ],
  "src/components/me/requests/Comparison.tsx": [
   "0f53f77eca4a",
   "15fa7e41f8ac",
@@ -4333,27 +4386,26 @@
   "9a6e6a098915",
   "da814493fcc3"
  ],
- "src/components/me/requestTracker.ts": [
-  "0b9e3ae1240b",
-  "18ae7d240bf7",
-  "50b73bfb238b",
-  "517cfcac321f",
-  "62780f4637b4",
-  "669c7c28f4fc",
-  "6ce78f65aec8",
-  "70401eb4ce96",
-  "91e0f4759901",
-  "a1f9e2218451",
-  "b5eb4f5ef591",
-  "c1a7fe86f818",
-  "cfa563ec3771",
-  "de2f9e06f9ad",
-  "e99cf34c18d0"
- ],
  "src/components/me/shell/AssistantPanel.tsx": [
   "91262f796854",
   "9d0e14c86252",
   "f085945a9a01"
+ ],
+ "src/components/portal/DocActions.tsx": [
+  "34452a2b6bf7",
+  "40bdf683dccf",
+  "6fcd83d59040",
+  "75216f28bd3b"
+ ],
+ "src/components/portal/SupplierPortal.tsx": [
+  "8d1c703ac22d"
+ ],
+ "src/components/portal/SupportRatingPrompt.tsx": [
+  "673f59b738c1",
+  "77e50b3a7df0",
+  "d55ca7b0dbca",
+  "e79be550b823",
+  "f939d90328f3"
  ],
  "src/components/portal/comms/CommunicationCenter.tsx": [
   "0365898286df",
@@ -4414,12 +4466,6 @@
   "f47dd705c83b",
   "f67ca02703f6",
   "fcc1235b8539"
- ],
- "src/components/portal/DocActions.tsx": [
-  "34452a2b6bf7",
-  "40bdf683dccf",
-  "6fcd83d59040",
-  "75216f28bd3b"
  ],
  "src/components/portal/documentActions.ts": [
   "1298feb53b9f",
@@ -4767,6 +4813,305 @@
   "fb6be4c9724a",
   "ff9f8bf97538"
  ],
+ "src/components/portal/supplier/EmirateCheckboxes.tsx": [
+  "5dbc8d742f0a"
+ ],
+ "src/components/portal/supplier/GetMatched.tsx": [
+  "2eaae6e48efb",
+  "2ef2dfb06a94",
+  "33ef4896c076",
+  "38368a565fcf",
+  "514970c6fd0a",
+  "6c7caafa5918",
+  "75c658deb74b",
+  "d3f84a08b1e4",
+  "fcfd8b64593b"
+ ],
+ "src/components/portal/supplier/InquiriesTab.tsx": [
+  "03f7c97f2ad9",
+  "090f162950d4",
+  "1e74622e4080",
+  "280b6f85d748",
+  "2943316af514",
+  "3be1254d5861",
+  "4258028eb7e4",
+  "4bb16f1044df",
+  "4f4d61a63f15",
+  "c64b150d0a8d",
+  "d23a9f520b6f",
+  "f19fc2d617ac",
+  "fd9c7e4977ce"
+ ],
+ "src/components/portal/supplier/Insights.tsx": [
+  "0b3b27a19170",
+  "31ae80195abb",
+  "389ec0d60c74",
+  "3cc88798665c",
+  "41ef03f17afd",
+  "6e82b9544694",
+  "86da0489c6fc",
+  "937e512bf5ab",
+  "96793c22610e",
+  "c09af6667ba4",
+  "d1fc866c8f4b",
+  "d5bff3ee0cbe",
+  "dbbce0425309",
+  "e14d455ab288"
+ ],
+ "src/components/portal/supplier/MarketIntelligence.tsx": [
+  "01f5044c7069",
+  "035dcc4f6cea",
+  "140408021938",
+  "1ab421518a28",
+  "303411fd8d76",
+  "5664b6b1cf4d",
+  "7c76d2ef17d4",
+  "89eb47d3a3b0",
+  "a9a9d861ff7a",
+  "b39dfd16f4af",
+  "d4797b0e3301",
+  "ea011bdb68d1",
+  "fd04ba1aa312"
+ ],
+ "src/components/portal/supplier/PanelState.tsx": [
+  "1c8bc6d0e50f",
+  "4412dcef47b8",
+  "5384b5379126",
+  "5429a0f5721e",
+  "a0bf9f0d7037",
+  "a2a959ec5db4",
+  "ac3e20e6edf7"
+ ],
+ "src/components/portal/supplier/QuotationsTab.tsx": [
+  "1a4c027ad6a0",
+  "28d650e3603b",
+  "429839599eca",
+  "5559a277be19",
+  "6bd4c0a57cc5",
+  "8702824e1c05"
+ ],
+ "src/components/portal/supplier/QuoteReviewChat.tsx": [
+  "08c666a414c8",
+  "23f60749f5f6",
+  "2479cc717644",
+  "4bd37d926d3c",
+  "4e6c5e101e79",
+  "52f59a016649",
+  "919a4a166942",
+  "aa07c2a5992a",
+  "b0b241145a94",
+  "bd5811efe30f",
+  "e891f30339be",
+  "f866ccb5e1be"
+ ],
+ "src/components/portal/supplier/RfqParts.tsx": [
+  "06d96c2c610d",
+  "0dc0e36fad72",
+  "1dc3f8b995da",
+  "21c9ea8c50e0",
+  "29e80fdeb1f0",
+  "2a2ac0c178d5",
+  "2fe5d4483243",
+  "32a00e8ebe44",
+  "34b7167b8120",
+  "43212b641868",
+  "4a7583bd456b",
+  "4cdc4192b9c4",
+  "665fb06311bf",
+  "7ac19c268dc3",
+  "7b73d121800e",
+  "7db006988159",
+  "7e3f31b7bc8c",
+  "835040b34a5f",
+  "86367b49953f",
+  "929be7c05297",
+  "93b03fcec653",
+  "988d2ed34b8c",
+  "a2a0eb6f49b4",
+  "a527060366ec",
+  "a67f0680d58f",
+  "a8a3c9fcf2a1",
+  "a98474f596ec",
+  "aaee95781b4d",
+  "b4163c911048",
+  "ba3c8af2747c",
+  "be7e9511d0c5",
+  "bf30e6681178",
+  "c53573dbd067",
+  "ca6e4a374008",
+  "dca3f034d6c8",
+  "dea375ede3bd",
+  "e913b54ad9fa",
+  "e95204cfe570",
+  "e98cf21c08f2",
+  "efaaa7e8c432",
+  "f29de1d77145",
+  "f86a20c4df07"
+ ],
+ "src/components/portal/supplier/SpecHold.tsx": [
+  "054ddef43c36",
+  "0ed083f75f51",
+  "1ad2a214cf70",
+  "4bfbd0edcedc",
+  "5e8e70ae4872",
+  "5eee544e1cea",
+  "6e497b136e9a",
+  "734c79eae698",
+  "d72f46513ffc",
+  "e247151d2b38",
+  "fac2ec8840a3",
+  "fb98a91904f8"
+ ],
+ "src/components/portal/supplier/SupplierAdvisor.tsx": [
+  "03d00160f5d2",
+  "139fc45dfcdf",
+  "1c21d7eb7762",
+  "3797dbb7295c",
+  "4f7f3116aeb3",
+  "5452241863c7",
+  "6c37f8e5f1a7",
+  "702ae240425b",
+  "b4acfe583e3e"
+ ],
+ "src/components/portal/supplier/SupplierCertifications.tsx": [
+  "19433cc9da86",
+  "33c12fd68e02",
+  "542b66148bfc",
+  "591693d04902",
+  "7a75d3d4c5d0",
+  "9daaa4feb91f",
+  "b2f7fd89abec"
+ ],
+ "src/components/portal/supplier/SupplierCommandPalette.tsx": [
+  "d618d1aeda12"
+ ],
+ "src/components/portal/supplier/SupplierDocumentImpact.tsx": [
+  "073892d71e44",
+  "16db39323f90",
+  "3a90886f25c4",
+  "4b11f40b44cf",
+  "4c2dae1201b4",
+  "693305166530",
+  "903ea0c3d8c7",
+  "916eb2aba058",
+  "9a9e6b0bc7cd",
+  "bb48e3509ae7",
+  "bceafaf54f50",
+  "c85cdd98f510",
+  "ce70458a7b86",
+  "d9028c053d3a",
+  "e3d79f3b08a2",
+  "e54485f1e472"
+ ],
+ "src/components/portal/supplier/SupplierEntryHero.tsx": [
+  "0937105b3ced",
+  "18ca9480dc4c",
+  "2da9a56c06cf",
+  "399266743f99",
+  "399788c2cc20",
+  "4218e8fd77b4",
+  "4cb48313fe98",
+  "68e444216711",
+  "75ccb0f018d8",
+  "935eb5e44b9b",
+  "bc0bd1ac2bec",
+  "c2b367f9dfdb",
+  "d12786f8e901",
+  "ed961be130fa"
+ ],
+ "src/components/portal/supplier/SupplierInsightBoard.tsx": [
+  "486a77d61f59",
+  "645e2b53ad3d",
+  "66ff0152c2cc",
+  "9bb484bab9a3",
+  "a387718893e2",
+  "b42a32fe770f",
+  "c321b6c0f32c",
+  "d8f4b22c3de8",
+  "f217f7562747"
+ ],
+ "src/components/portal/supplier/SupplierInsightsSummary.tsx": [
+  "1a18dc621cd6",
+  "e6be3abd3f7e"
+ ],
+ "src/components/portal/supplier/SupplierInventory.tsx": [
+  "2674ac10b272",
+  "55c5955554f3",
+  "56043e8d60a5",
+  "5e05e60c7e03",
+  "71c5602d43fa",
+  "83d38fdba095",
+  "adf3ee14759e",
+  "e4d1e4411d9e"
+ ],
+ "src/components/portal/supplier/SupplierKnowledgeGraph.tsx": [
+  "1af30b92696b",
+  "4b074062215a",
+  "81d942e55ba8",
+  "9734932aab13",
+  "9f22d8a1f78c",
+  "c3fbd682b001",
+  "cfc4b39c2cac",
+  "ec32d16f9612"
+ ],
+ "src/components/portal/supplier/SupplierOpportunities.tsx": [
+  "1e584d3868b0",
+  "5d20a91a9dd7",
+  "7b8f4d372b69",
+  "84e15248f2af",
+  "85a44e7cf589",
+  "874e74d6f7b7",
+  "99000e4ac235",
+  "b48a8408a399",
+  "b4a86e72e624",
+  "ba4a11888e0b",
+  "d73c13900f64"
+ ],
+ "src/components/portal/supplier/SupplierQuoteBuilder.tsx": [
+  "00413865a3e0",
+  "0fe54e40099c",
+  "14a8f8d4b4ce",
+  "3891f53af2d5",
+  "64307823c7ed",
+  "6f6c0d6dad27",
+  "762510e19aa4",
+  "845f4d327cd0",
+  "8c9a68929751",
+  "b6334dfa7313",
+  "c49f85d2a5ac",
+  "cd2f3127488e",
+  "d98a3f4a8151",
+  "f59d16e9c39e",
+  "fafebc7c22cd",
+  "fd98f35d5359"
+ ],
+ "src/components/portal/supplier/SupplierSettings.tsx": [
+  "1067b7e0858c",
+  "2afafebecd11",
+  "4087601bcb91",
+  "4691aac59704",
+  "4ab7e3b0d01c",
+  "50cf1116b916",
+  "554623ec35bd",
+  "5c70786d5795",
+  "6a69f2230c1e",
+  "6bc762ae410b",
+  "7ae078605b8b",
+  "cd36c18ceb8f",
+  "f7b7249d7026"
+ ],
+ "src/components/portal/supplier/SupplierTier.tsx": [
+  "1273077c2a67",
+  "13f6604a0e45",
+  "1b6014f011af",
+  "4893c8bc1293",
+  "af883756237b",
+  "b5bb6e9d7a02",
+  "c31956f5cc8b",
+  "d3a3773f4324",
+  "da77c67d5132",
+  "fe2f85d333ab"
+ ],
  "src/components/portal/supplier/core/Agreement.tsx": [
   "046575a9088f",
   "0814a17fd4a1",
@@ -4817,39 +5162,6 @@
   "b7ce8dfa74d8",
   "c66836318b5a"
  ],
- "src/components/portal/supplier/core/copy.ts": [
-  "1cf52c5d56dc",
-  "3400b6ea3613",
-  "390d23edb8ab",
-  "3bb20716fc51",
-  "4378ff304f5c",
-  "49b83d887375",
-  "4ee5b4e1a205",
-  "53f7a15a0773",
-  "5a58aa543fe4",
-  "63ecac856a93",
-  "661c103a83c4",
-  "6c780f2adcbb",
-  "6d1058d1d4d0",
-  "6d923c669f49",
-  "853d3d13fa40",
-  "86fd348b8681",
-  "8eacb647588a",
-  "9e7644e4de9a",
-  "a43cdbb27e9d",
-  "b4921e0cceb0",
-  "b4c40d52d1f5",
-  "b8d847277b35",
-  "c28cf78d6c1e",
-  "c9abcfc325f6",
-  "d4f9020d1628",
-  "ddde980fe772",
-  "de0f41194812",
-  "e1f538311cd0",
-  "f342a6b85da7",
-  "fd3788506791",
-  "fd4d1114538b"
- ],
  "src/components/portal/supplier/core/Dashboard.tsx": [
   "238ed688d68e",
   "f94da1fbe6c6"
@@ -4893,15 +5205,6 @@
   "9f047b633034",
   "c336e0135404",
   "d6533a1a3c68"
- ],
- "src/components/portal/supplier/core/helpers.tsx": [
-  "4186c6691252",
-  "448c7a1eb876",
-  "9259d7bb2b52",
-  "92a4570f09ee",
-  "a31def4d5799",
-  "f022727c4601",
-  "fd9cfbba2824"
  ],
  "src/components/portal/supplier/core/Login.tsx": [
   "153f7d6d7e82",
@@ -4969,85 +5272,50 @@
   "f46615c0e6c6",
   "f84e57255e6f"
  ],
- "src/components/portal/supplier/EmirateCheckboxes.tsx": [
-  "5dbc8d742f0a"
+ "src/components/portal/supplier/core/copy.ts": [
+  "1cf52c5d56dc",
+  "3400b6ea3613",
+  "390d23edb8ab",
+  "3bb20716fc51",
+  "4378ff304f5c",
+  "49b83d887375",
+  "4ee5b4e1a205",
+  "53f7a15a0773",
+  "5a58aa543fe4",
+  "63ecac856a93",
+  "661c103a83c4",
+  "6c780f2adcbb",
+  "6d1058d1d4d0",
+  "6d923c669f49",
+  "853d3d13fa40",
+  "86fd348b8681",
+  "8eacb647588a",
+  "9e7644e4de9a",
+  "a43cdbb27e9d",
+  "b4921e0cceb0",
+  "b4c40d52d1f5",
+  "b8d847277b35",
+  "c28cf78d6c1e",
+  "c9abcfc325f6",
+  "d4f9020d1628",
+  "ddde980fe772",
+  "de0f41194812",
+  "e1f538311cd0",
+  "f342a6b85da7",
+  "fd3788506791",
+  "fd4d1114538b"
  ],
- "src/components/portal/supplier/GetMatched.tsx": [
-  "2eaae6e48efb",
-  "2ef2dfb06a94",
-  "33ef4896c076",
-  "38368a565fcf",
-  "514970c6fd0a",
-  "6c7caafa5918",
-  "75c658deb74b",
-  "d3f84a08b1e4",
-  "fcfd8b64593b"
- ],
- "src/components/portal/supplier/InquiriesTab.tsx": [
-  "03f7c97f2ad9",
-  "090f162950d4",
-  "1e74622e4080",
-  "280b6f85d748",
-  "2943316af514",
-  "3be1254d5861",
-  "4258028eb7e4",
-  "4bb16f1044df",
-  "4f4d61a63f15",
-  "c64b150d0a8d",
-  "d23a9f520b6f",
-  "f19fc2d617ac",
-  "fd9c7e4977ce"
- ],
- "src/components/portal/supplier/Insights.tsx": [
-  "0b3b27a19170",
-  "31ae80195abb",
-  "389ec0d60c74",
-  "3cc88798665c",
-  "41ef03f17afd",
-  "6e82b9544694",
-  "86da0489c6fc",
-  "937e512bf5ab",
-  "96793c22610e",
-  "c09af6667ba4",
-  "d1fc866c8f4b",
-  "d5bff3ee0cbe",
-  "dbbce0425309",
-  "e14d455ab288"
- ],
- "src/components/portal/supplier/MarketIntelligence.tsx": [
-  "01f5044c7069",
-  "035dcc4f6cea",
-  "140408021938",
-  "1ab421518a28",
-  "303411fd8d76",
-  "5664b6b1cf4d",
-  "7c76d2ef17d4",
-  "89eb47d3a3b0",
-  "a9a9d861ff7a",
-  "b39dfd16f4af",
-  "d4797b0e3301",
-  "ea011bdb68d1",
-  "fd04ba1aa312"
+ "src/components/portal/supplier/core/helpers.tsx": [
+  "4186c6691252",
+  "448c7a1eb876",
+  "9259d7bb2b52",
+  "92a4570f09ee",
+  "a31def4d5799",
+  "f022727c4601",
+  "fd9cfbba2824"
  ],
  "src/components/portal/supplier/money.ts": [
   "52cf8a81f287"
- ],
- "src/components/portal/supplier/PanelState.tsx": [
-  "1c8bc6d0e50f",
-  "4412dcef47b8",
-  "5384b5379126",
-  "5429a0f5721e",
-  "a0bf9f0d7037",
-  "a2a959ec5db4",
-  "ac3e20e6edf7"
- ],
- "src/components/portal/supplier/QuotationsTab.tsx": [
-  "1a4c027ad6a0",
-  "28d650e3603b",
-  "429839599eca",
-  "5559a277be19",
-  "6bd4c0a57cc5",
-  "8702824e1c05"
  ],
  "src/components/portal/supplier/quoteReviewApi.ts": [
   "32f6d7c5140a",
@@ -5059,64 +5327,6 @@
   "c3e091fea420",
   "e0c72607aaa6",
   "e4001dfd7360"
- ],
- "src/components/portal/supplier/QuoteReviewChat.tsx": [
-  "08c666a414c8",
-  "23f60749f5f6",
-  "2479cc717644",
-  "4bd37d926d3c",
-  "4e6c5e101e79",
-  "52f59a016649",
-  "919a4a166942",
-  "aa07c2a5992a",
-  "b0b241145a94",
-  "bd5811efe30f",
-  "e891f30339be",
-  "f866ccb5e1be"
- ],
- "src/components/portal/supplier/RfqParts.tsx": [
-  "06d96c2c610d",
-  "0dc0e36fad72",
-  "1dc3f8b995da",
-  "21c9ea8c50e0",
-  "29e80fdeb1f0",
-  "2a2ac0c178d5",
-  "2fe5d4483243",
-  "32a00e8ebe44",
-  "34b7167b8120",
-  "43212b641868",
-  "4a7583bd456b",
-  "4cdc4192b9c4",
-  "665fb06311bf",
-  "7ac19c268dc3",
-  "7b73d121800e",
-  "7db006988159",
-  "7e3f31b7bc8c",
-  "835040b34a5f",
-  "86367b49953f",
-  "929be7c05297",
-  "93b03fcec653",
-  "988d2ed34b8c",
-  "a2a0eb6f49b4",
-  "a527060366ec",
-  "a67f0680d58f",
-  "a8a3c9fcf2a1",
-  "a98474f596ec",
-  "aaee95781b4d",
-  "b4163c911048",
-  "ba3c8af2747c",
-  "be7e9511d0c5",
-  "bf30e6681178",
-  "c53573dbd067",
-  "ca6e4a374008",
-  "dca3f034d6c8",
-  "dea375ede3bd",
-  "e913b54ad9fa",
-  "e95204cfe570",
-  "e98cf21c08f2",
-  "efaaa7e8c432",
-  "f29de1d77145",
-  "f86a20c4df07"
  ],
  "src/components/portal/supplier/serverCopy.ts": [
   "0151de5dd667",
@@ -5578,170 +5788,6 @@
   "fb9318ae80fc",
   "fc761eec8620"
  ],
- "src/components/portal/supplier/SpecHold.tsx": [
-  "054ddef43c36",
-  "0ed083f75f51",
-  "1ad2a214cf70",
-  "4bfbd0edcedc",
-  "5e8e70ae4872",
-  "5eee544e1cea",
-  "6e497b136e9a",
-  "734c79eae698",
-  "d72f46513ffc",
-  "e247151d2b38",
-  "fac2ec8840a3",
-  "fb98a91904f8"
- ],
- "src/components/portal/supplier/SupplierAdvisor.tsx": [
-  "03d00160f5d2",
-  "139fc45dfcdf",
-  "1c21d7eb7762",
-  "3797dbb7295c",
-  "4f7f3116aeb3",
-  "5452241863c7",
-  "6c37f8e5f1a7",
-  "702ae240425b",
-  "b4acfe583e3e"
- ],
- "src/components/portal/supplier/SupplierCertifications.tsx": [
-  "19433cc9da86",
-  "33c12fd68e02",
-  "542b66148bfc",
-  "591693d04902",
-  "7a75d3d4c5d0",
-  "9daaa4feb91f",
-  "b2f7fd89abec"
- ],
- "src/components/portal/supplier/SupplierCommandPalette.tsx": [
-  "d618d1aeda12"
- ],
- "src/components/portal/supplier/SupplierDocumentImpact.tsx": [
-  "073892d71e44",
-  "16db39323f90",
-  "3a90886f25c4",
-  "4b11f40b44cf",
-  "4c2dae1201b4",
-  "693305166530",
-  "903ea0c3d8c7",
-  "916eb2aba058",
-  "9a9e6b0bc7cd",
-  "bb48e3509ae7",
-  "bceafaf54f50",
-  "c85cdd98f510",
-  "ce70458a7b86",
-  "d9028c053d3a",
-  "e3d79f3b08a2",
-  "e54485f1e472"
- ],
- "src/components/portal/supplier/SupplierEntryHero.tsx": [
-  "0937105b3ced",
-  "18ca9480dc4c",
-  "2da9a56c06cf",
-  "399266743f99",
-  "399788c2cc20",
-  "4218e8fd77b4",
-  "4cb48313fe98",
-  "68e444216711",
-  "75ccb0f018d8",
-  "935eb5e44b9b",
-  "bc0bd1ac2bec",
-  "c2b367f9dfdb",
-  "d12786f8e901",
-  "ed961be130fa"
- ],
- "src/components/portal/supplier/SupplierInsightBoard.tsx": [
-  "486a77d61f59",
-  "645e2b53ad3d",
-  "66ff0152c2cc",
-  "9bb484bab9a3",
-  "a387718893e2",
-  "b42a32fe770f",
-  "c321b6c0f32c",
-  "d8f4b22c3de8",
-  "f217f7562747"
- ],
- "src/components/portal/supplier/SupplierInsightsSummary.tsx": [
-  "1a18dc621cd6",
-  "e6be3abd3f7e"
- ],
- "src/components/portal/supplier/SupplierInventory.tsx": [
-  "2674ac10b272",
-  "55c5955554f3",
-  "56043e8d60a5",
-  "5e05e60c7e03",
-  "71c5602d43fa",
-  "83d38fdba095",
-  "adf3ee14759e",
-  "e4d1e4411d9e"
- ],
- "src/components/portal/supplier/SupplierKnowledgeGraph.tsx": [
-  "1af30b92696b",
-  "4b074062215a",
-  "81d942e55ba8",
-  "9734932aab13",
-  "9f22d8a1f78c",
-  "c3fbd682b001",
-  "cfc4b39c2cac",
-  "ec32d16f9612"
- ],
- "src/components/portal/supplier/SupplierOpportunities.tsx": [
-  "1e584d3868b0",
-  "5d20a91a9dd7",
-  "7b8f4d372b69",
-  "84e15248f2af",
-  "85a44e7cf589",
-  "874e74d6f7b7",
-  "99000e4ac235",
-  "b48a8408a399",
-  "b4a86e72e624",
-  "ba4a11888e0b",
-  "d73c13900f64"
- ],
- "src/components/portal/supplier/SupplierQuoteBuilder.tsx": [
-  "00413865a3e0",
-  "0fe54e40099c",
-  "14a8f8d4b4ce",
-  "3891f53af2d5",
-  "64307823c7ed",
-  "6f6c0d6dad27",
-  "762510e19aa4",
-  "845f4d327cd0",
-  "8c9a68929751",
-  "b6334dfa7313",
-  "c49f85d2a5ac",
-  "cd2f3127488e",
-  "d98a3f4a8151",
-  "f59d16e9c39e",
-  "fafebc7c22cd",
-  "fd98f35d5359"
- ],
- "src/components/portal/supplier/SupplierSettings.tsx": [
-  "1067b7e0858c",
-  "2afafebecd11",
-  "4087601bcb91",
-  "4691aac59704",
-  "4ab7e3b0d01c",
-  "50cf1116b916",
-  "554623ec35bd",
-  "5c70786d5795",
-  "6a69f2230c1e",
-  "6bc762ae410b",
-  "7ae078605b8b",
-  "cd36c18ceb8f",
-  "f7b7249d7026"
- ],
- "src/components/portal/supplier/SupplierTier.tsx": [
-  "1273077c2a67",
-  "13f6604a0e45",
-  "1b6014f011af",
-  "4893c8bc1293",
-  "af883756237b",
-  "b5bb6e9d7a02",
-  "c31956f5cc8b",
-  "d3a3773f4324",
-  "da77c67d5132",
-  "fe2f85d333ab"
- ],
  "src/components/portal/supplier/workspaceCopy.ts": [
   "056f9d47a1bc",
   "09afb3d59c67",
@@ -5801,9 +5847,6 @@
   "ff5dc2bb103f",
   "ffb5e25ce324"
  ],
- "src/components/portal/SupplierPortal.tsx": [
-  "8d1c703ac22d"
- ],
  "src/components/portal/suppliers/SupplierRelationship.tsx": [
   "005339379cfe",
   "044dee7369de",
@@ -5854,13 +5897,6 @@
   "f6945c3ba072",
   "fa4109b15368",
   "fa8d9448a055"
- ],
- "src/components/portal/SupportRatingPrompt.tsx": [
-  "673f59b738c1",
-  "77e50b3a7df0",
-  "d55ca7b0dbca",
-  "e79be550b823",
-  "f939d90328f3"
  ],
  "src/components/portal/twin/CompanyTwin.tsx": [
   "0ca7cc5dff08",
@@ -5994,28 +6030,6 @@
   "fc3e168e47e3",
   "ff154735736c"
  ],
- "src/components/PriceGuide.tsx": [
-  "0f70841ffbde"
- ],
- "src/components/QuoteBadges.tsx": [
-  "aa7ef1d629ad"
- ],
- "src/components/ServiceDoc.tsx": [
-  "00970d07e4bb",
-  "22118abc2237",
-  "497ebcd71a0a",
-  "499c7c57d3de",
-  "4ec19094e9ab",
-  "569b1074b737",
-  "5c6cef2786bf",
-  "6c1659ba4e35",
-  "749feb1d8678",
-  "8bc4aed040a9",
-  "a689a4cf0af7",
-  "abec5f925a16",
-  "e46de96ffa56",
-  "fd4a3bdaef87"
- ],
  "src/components/visual/AnonymityFlow.tsx": [
   "0350b5fc4422",
   "4aeed5637090",
@@ -6044,9 +6058,6 @@
   "9b22f365a0b8",
   "abe994d5f590",
   "d9e9aeefaaec"
- ],
- "src/components/WorkedCase.tsx": [
-  "1bfd692ec1f2"
  ],
  "supabase/functions/_shared/ai_reply.ts": [
   "2957ed89877e",
@@ -6148,6 +6159,160 @@
   "c22295fa2d71",
   "c3f2f283e9d8",
   "cb9f8dad80b5"
+ ],
+ "supabase/functions/_shared/customer_questions.ts": [
+  "004bae9d5c2b",
+  "00b6703a7e82",
+  "00d43a966532",
+  "02dcdc8f5571",
+  "04b2091fadb3",
+  "057a81fb0490",
+  "065c47882b8e",
+  "06750ed0e37a",
+  "0886a3cab8b6",
+  "09f824a620cc",
+  "0cd555664ad2",
+  "0e1c02fec210",
+  "1135c76714cd",
+  "116889a8c42f",
+  "138bd2f09881",
+  "15d642c3f6b0",
+  "17712e5c5b02",
+  "17e473c4b8b9",
+  "1a52439265bb",
+  "1ab1ba7e299d",
+  "1d25918571c7",
+  "1f03a32f1c42",
+  "1f1c0f526610",
+  "1ff1aeaf876e",
+  "2062b8846cb6",
+  "2141d76390a1",
+  "214417dcd29f",
+  "238ca9108aad",
+  "23f67faff5fe",
+  "271c862168e2",
+  "2765e0e11f65",
+  "2a7e8e2604c6",
+  "2c8362c1bda6",
+  "2def00307b1c",
+  "32e732d78d79",
+  "38a2e14c2a13",
+  "3a1f7e9e290f",
+  "3e7d991d30a7",
+  "434d5e5946ee",
+  "45bb20f01168",
+  "4ad0af82964b",
+  "4ad56f924d57",
+  "4cfdf257634a",
+  "4f067e3673fe",
+  "528e821e4bff",
+  "52a88753c8e1",
+  "541130ac0c5f",
+  "5899efe08a1f",
+  "59c87f9d9b39",
+  "59ffd6831eb0",
+  "64a6f82198a7",
+  "659c36560463",
+  "66251d18d0c7",
+  "66cc0104e299",
+  "66de5427c21c",
+  "6754a6836259",
+  "6928b110196c",
+  "6bd6f80e6039",
+  "6bde302ca6a8",
+  "6bf855293d43",
+  "6c67515789a0",
+  "6ca8a28ffc4c",
+  "6dd68a748b75",
+  "6e9cec5889a1",
+  "70ac1a471ce0",
+  "70e07f792aed",
+  "719b0bcd1371",
+  "73ceec5fca55",
+  "7668ffdde9ee",
+  "76dbdf787e10",
+  "7b6b6a67c987",
+  "7ff32301d011",
+  "80244e0019b1",
+  "80e9f69bd14b",
+  "81ec4b8bd184",
+  "82f5f10eec9c",
+  "8384748505ff",
+  "840476bef5c0",
+  "85ebf4bab9c8",
+  "8744ad27deb0",
+  "8903425a67d2",
+  "8aba8a5b3704",
+  "8b8ec2edffb3",
+  "8ba8819d04c7",
+  "8baea8f14e4a",
+  "8cc83b35857c",
+  "8cf90e6d940c",
+  "8d4fc0ca5f94",
+  "8dcb65276f03",
+  "8e3920a357fd",
+  "8e4742551076",
+  "8e8c31f2f2de",
+  "8fcd7173f5e6",
+  "95804fb9f96a",
+  "95e5d03e53af",
+  "97d06717226e",
+  "9838edad9521",
+  "9c498ea5c1de",
+  "9c9bae089b9d",
+  "a18b66646aaa",
+  "a209cd7d0413",
+  "a3246360ff33",
+  "a45d3e56f283",
+  "a59210163ba0",
+  "ad1db39b0bf5",
+  "ad8444481253",
+  "b2caf665f102",
+  "b46bd838012d",
+  "b481f2b05793",
+  "b531dbaed3a5",
+  "b6085b09e695",
+  "b6da554db6d4",
+  "b8b625b17796",
+  "bd2d094b68c9",
+  "bded13ee6802",
+  "beeb5c331724",
+  "c0d704fc9b2a",
+  "c1045f276d43",
+  "c170da421cfa",
+  "c17eebc065cf",
+  "c34787e8098f",
+  "c7fe3cb515c1",
+  "c8ac66608b8b",
+  "c96bcce23ae5",
+  "cc32a408cbbf",
+  "cd4b809c7121",
+  "cecb3e604c76",
+  "cf13d8efe02d",
+  "d139b4a6c45b",
+  "d2dea156f748",
+  "d3f788b52728",
+  "d549534471b9",
+  "d59d78a9db55",
+  "dabcf21e5b0c",
+  "df04e63d2824",
+  "df1b7a5c138a",
+  "e05def71d17a",
+  "e2ff2bf5d930",
+  "e6379ba072f1",
+  "e97299d85e04",
+  "ed87ef9283a0",
+  "edb2a8d95959",
+  "edd16dd62e5f",
+  "ef02f361cb43",
+  "efaaf46fbb42",
+  "f13c33ec5355",
+  "f805d8928211",
+  "f92337b5352d",
+  "faace3c758f7",
+  "fdaae7674ad1",
+  "ff353f8d300d",
+  "ffd9db164e58"
  ],
  "supabase/functions/_shared/customer_questions_building.ts": [
   "01991052310b",
@@ -7384,160 +7549,6 @@
   "fbc3e1e8a091",
   "fbe41091d1be",
   "fe990ccc5cc6"
- ],
- "supabase/functions/_shared/customer_questions.ts": [
-  "004bae9d5c2b",
-  "00b6703a7e82",
-  "00d43a966532",
-  "02dcdc8f5571",
-  "04b2091fadb3",
-  "057a81fb0490",
-  "065c47882b8e",
-  "06750ed0e37a",
-  "0886a3cab8b6",
-  "09f824a620cc",
-  "0cd555664ad2",
-  "0e1c02fec210",
-  "1135c76714cd",
-  "116889a8c42f",
-  "138bd2f09881",
-  "15d642c3f6b0",
-  "17712e5c5b02",
-  "17e473c4b8b9",
-  "1a52439265bb",
-  "1ab1ba7e299d",
-  "1d25918571c7",
-  "1f03a32f1c42",
-  "1f1c0f526610",
-  "1ff1aeaf876e",
-  "2062b8846cb6",
-  "2141d76390a1",
-  "214417dcd29f",
-  "238ca9108aad",
-  "23f67faff5fe",
-  "271c862168e2",
-  "2765e0e11f65",
-  "2a7e8e2604c6",
-  "2c8362c1bda6",
-  "2def00307b1c",
-  "32e732d78d79",
-  "38a2e14c2a13",
-  "3a1f7e9e290f",
-  "3e7d991d30a7",
-  "434d5e5946ee",
-  "45bb20f01168",
-  "4ad0af82964b",
-  "4ad56f924d57",
-  "4cfdf257634a",
-  "4f067e3673fe",
-  "528e821e4bff",
-  "52a88753c8e1",
-  "541130ac0c5f",
-  "5899efe08a1f",
-  "59c87f9d9b39",
-  "59ffd6831eb0",
-  "64a6f82198a7",
-  "659c36560463",
-  "66251d18d0c7",
-  "66cc0104e299",
-  "66de5427c21c",
-  "6754a6836259",
-  "6928b110196c",
-  "6bd6f80e6039",
-  "6bde302ca6a8",
-  "6bf855293d43",
-  "6c67515789a0",
-  "6ca8a28ffc4c",
-  "6dd68a748b75",
-  "6e9cec5889a1",
-  "70ac1a471ce0",
-  "70e07f792aed",
-  "719b0bcd1371",
-  "73ceec5fca55",
-  "7668ffdde9ee",
-  "76dbdf787e10",
-  "7b6b6a67c987",
-  "7ff32301d011",
-  "80244e0019b1",
-  "80e9f69bd14b",
-  "81ec4b8bd184",
-  "82f5f10eec9c",
-  "8384748505ff",
-  "840476bef5c0",
-  "85ebf4bab9c8",
-  "8744ad27deb0",
-  "8903425a67d2",
-  "8aba8a5b3704",
-  "8b8ec2edffb3",
-  "8ba8819d04c7",
-  "8baea8f14e4a",
-  "8cc83b35857c",
-  "8cf90e6d940c",
-  "8d4fc0ca5f94",
-  "8dcb65276f03",
-  "8e3920a357fd",
-  "8e4742551076",
-  "8e8c31f2f2de",
-  "8fcd7173f5e6",
-  "95804fb9f96a",
-  "95e5d03e53af",
-  "97d06717226e",
-  "9838edad9521",
-  "9c498ea5c1de",
-  "9c9bae089b9d",
-  "a18b66646aaa",
-  "a209cd7d0413",
-  "a3246360ff33",
-  "a45d3e56f283",
-  "a59210163ba0",
-  "ad1db39b0bf5",
-  "ad8444481253",
-  "b2caf665f102",
-  "b46bd838012d",
-  "b481f2b05793",
-  "b531dbaed3a5",
-  "b6085b09e695",
-  "b6da554db6d4",
-  "b8b625b17796",
-  "bd2d094b68c9",
-  "bded13ee6802",
-  "beeb5c331724",
-  "c0d704fc9b2a",
-  "c1045f276d43",
-  "c170da421cfa",
-  "c17eebc065cf",
-  "c34787e8098f",
-  "c7fe3cb515c1",
-  "c8ac66608b8b",
-  "c96bcce23ae5",
-  "cc32a408cbbf",
-  "cd4b809c7121",
-  "cecb3e604c76",
-  "cf13d8efe02d",
-  "d139b4a6c45b",
-  "d2dea156f748",
-  "d3f788b52728",
-  "d549534471b9",
-  "d59d78a9db55",
-  "dabcf21e5b0c",
-  "df04e63d2824",
-  "df1b7a5c138a",
-  "e05def71d17a",
-  "e2ff2bf5d930",
-  "e6379ba072f1",
-  "e97299d85e04",
-  "ed87ef9283a0",
-  "edb2a8d95959",
-  "edd16dd62e5f",
-  "ef02f361cb43",
-  "efaaf46fbb42",
-  "f13c33ec5355",
-  "f805d8928211",
-  "f92337b5352d",
-  "faace3c758f7",
-  "fdaae7674ad1",
-  "ff353f8d300d",
-  "ffd9db164e58"
  ],
  "supabase/functions/_shared/customer_terms.ts": [
   "bb6521bace53"
@@ -9333,6 +9344,9 @@
   "d7bd1ebf3d69",
   "e97a73caf6ff"
  ],
+ "supabase/functions/marketing/profile_text.ts": [
+  "16e51f0d9e83"
+ ],
  "supabase/functions/marketing_channels/index.ts": [
   "b2a80e50ec94"
  ],
@@ -9343,9 +9357,6 @@
   "577fa9aae70e",
   "6dd7f3371c68",
   "d3396e86f6d5"
- ],
- "supabase/functions/marketing/profile_text.ts": [
-  "16e51f0d9e83"
  ],
  "supabase/functions/messages_api/index.ts": [
   "5b52ac04d364",
@@ -9669,12 +9680,6 @@
  "supabase/functions/supplier_api/lib/services_check.ts": [
   "37e54704721b"
  ],
- "supabase/functions/supplier_api/quote_review_flow/submit.ts": [
-  "0c4b45efc9bf",
-  "265323a0e5fd",
-  "6fbb7fb79755",
-  "c7f983efeafb"
- ],
  "supabase/functions/supplier_api/quote_review/match.ts": [
   "1314b4ec29ef",
   "151c1ec0cbf5",
@@ -9806,6 +9811,12 @@
   "fa22358733e6",
   "fd6f0db18deb"
  ],
+ "supabase/functions/supplier_api/quote_review_flow/submit.ts": [
+  "0c4b45efc9bf",
+  "265323a0e5fd",
+  "6fbb7fb79755",
+  "c7f983efeafb"
+ ],
  "supabase/functions/supplier_api/quote_template.ts": [
   "62ef1b50197e"
  ],
@@ -9856,21 +9867,13 @@
  "supabase/functions/wa_inbound/general_turn.ts": [
   "caa8dfdaf4f5"
  ],
+ "supabase/functions/wa_inbound/media.ts": [
+  "cf33dc96c4fc"
+ ],
  "supabase/functions/wa_inbound/media_in.ts": [
   "52100b6c66c6",
   "7fea49861151",
   "de8343fdff3d"
- ],
- "supabase/functions/wa_inbound/media.ts": [
-  "cf33dc96c4fc"
- ],
- "supabase/functions/wa_inbound/menu_flow.ts": [
-  "386dbf2e64e2",
-  "489ec0996c40",
-  "8355f2db4e26",
-  "b97e70303a1e",
-  "bf7fb4e77ce8",
-  "dd8eecf60984"
  ],
  "supabase/functions/wa_inbound/menu.ts": [
   "027ef5367e8d",
@@ -9926,6 +9929,14 @@
   "f1e0a31d8277",
   "fbc23836418d",
   "fe741877988e"
+ ],
+ "supabase/functions/wa_inbound/menu_flow.ts": [
+  "386dbf2e64e2",
+  "489ec0996c40",
+  "8355f2db4e26",
+  "b97e70303a1e",
+  "bf7fb4e77ce8",
+  "dd8eecf60984"
  ],
  "supabase/functions/wa_inbound/model_says.ts": [
   "036a6e41b969",

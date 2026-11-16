@@ -46,7 +46,8 @@ Deno.test('the widget (signed-in customer): the person is resolved by id and e-m
   const open = a.rpcs().find((c) => c.fn === 'fn_support_open_cases')!.args;
   assertEquals([open.p_party_kind, open.p_party_id, open.p_email], ['customer', 'c0ffee00-0000-4000-8000-000000000001', 'zz@example.invalid']);
   // 12 Nov 2026 (final audit W3): nothing is decided or routed before the reply; the channel reaches the route after it
-  assertEquals(a.rpcs().map((c) => c.fn), ['fn_support_open_cases'], 'one read before the reply, no route, no model');
+  // 16 Nov 2026 (escalation_clock.ts): the escalation facts are a second read, side by side with the case read, inside the same bound
+  assertEquals(a.rpcs().map((c) => c.fn).sort(), ['fn_escalation_case_facts', 'fn_support_open_cases'], 'two reads side by side before the reply, no route, no model');
   assertEquals(k.memory?.ref, 'QD-C1001');
   assert(k.withCase && k.sys.startsWith('SYS\n\nTHIS CASE (QD-C1001)') && k.sys.includes('send the quotes as they arrive'), 'the summary rides in sys');
   assertEquals(k.past, history.slice(-CASE_TURNS), 'only the last turns, verbatim');
@@ -155,4 +156,22 @@ Deno.test('several recorded open cases, none named: every case and its open prom
   // and the exchange is still recorded after the reply
   await recordCaseExchange(a.d, k, { theirMessage: 'any news?', ourReply: 'The supplier confirms the slot by Thursday.' });
   assert(a.rpcs().some((c) => c.fn === 'fn_support_case_summary_write'));
+});
+
+Deno.test('the person\'s open escalation and the founder\'s availability reach the reply, with or without a case summary (16 Nov 2026)', async () => {
+  const facts = { open_escalations: [{ ref: 'ESC-9', kind: 'person', channel: 'email', promised: 'ZZ DEMO a member of the team will reply',
+    promised_at: '2026-11-15T08:00:00Z', next_word_due: '2099-01-01T00:00:00Z', state: 'open' }], founder_last_answered_at: '2026-11-07T09:00:00Z', channels_down_founder_credential: [] };
+  const withFacts = (cases: OpenCase[]) => {
+    const a = deps({ cases });
+    const rpc = a.d.rpc;
+    a.d.rpc = ((fn: string, args: Record<string, unknown>) => fn === 'fn_escalation_case_facts' ? Promise.resolve({ data: facts, error: null }) : rpc(fn, args)) as ThinkDeps['rpc'];
+    return a;
+  };
+  const summarised = await loadCaseContext(withFacts([windows]).d, { channel: 'email', seat: 'customer_support', audience: 'customer', message: 'any news?', email: 'zz@example.invalid', sys: 'SYS', past: history });
+  assert(summarised.standing.includes('ESC-9') && summarised.sys.includes('THIS CASE (QD-C1001)') && summarised.sys.endsWith(summarised.standing), 'after the case block');
+  const fresh_ = await loadCaseContext(withFacts([fresh]).d, { channel: 'widget', seat: 'customer_support', audience: 'customer', message: 'hello?', email: 'zz@example.invalid', sys: 'SYS', past: [] });
+  assertEquals(fresh_.sys, 'SYS\n\n' + fresh_.standing, 'a case with no summary still reads its open escalation');
+  assert(fresh_.standing.includes('founder last answered the company on 07 Nov 2026'));
+  const none = await loadCaseContext(deps().d, { channel: 'email', seat: 'customer_support', audience: 'customer', message: 'hi', email: 'zz@example.invalid', sys: 'S', past: [] });
+  assertEquals(none.standing, '', 'nothing open: nothing added');
 });

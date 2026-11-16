@@ -5,6 +5,7 @@
 import { fileReviewRequest } from '../_shared/review_request.ts';
 import { acknowledgeIfCarried, complaintFact } from '../_shared/complaint_register.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
+import { readEscalationFacts } from '../_shared/escalation_clock.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { composeSituation } from './compose.ts';
 import { laneDeclines, laneOf } from './status_lane.ts';
@@ -37,6 +38,9 @@ import type { WaTurn } from './turn.ts';
 export async function answerTurn(t: WaTurn): Promise<Response> {
   const { From, Body, Profile, MessageSid, media, audience, timelineEvents, timings, mark, receivedAt, logRun, waInsert, menuDeps, needsPersonP, speculative, specAbort, adopt, say, heldTurn } = t;
   let route: Record<string, unknown> | null = null;
+  // THE PERSON'S OPEN ESCALATIONS AND THE FOUNDER'S AVAILABILITY (16 Nov 2026, escalation_clock.ts): one database read started now, beside
+  // the classification; '' (nothing added, the speculative draft still adoptable) unless they have an open escalation or a channel is down.
+  const escalationP = readEscalationFacts((fn, args) => admin.rpc(fn, args), { phone: From }).catch(() => '');
   // WHETHER THIS NEEDS A PERSON IS REASONED, NOT MATCHED (23 Sep 2026, founder_instruction 886-903).
   // fn_wa_route used to decide it with a word list over the body ('legal' escalated "is it legal to
   // build a pool?"; "you took my money and vanished" was not escalated). think() reads the message; under
@@ -98,9 +102,12 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
   // (the hold, every model in the chain failing) nothing conversational is sent; the meaning waits in the queue.
 
   const { situation: composed, ids, lean } = await composeSituation(t, route);
+  let escTimer: ReturnType<typeof setTimeout> | undefined;
+  const escalationFacts = await Promise.race([escalationP, new Promise<string>((r) => { escTimer = setTimeout(() => r(''), 1_500); })])
+    .finally(() => clearTimeout(escTimer));
   // A REGISTERED COMPLAINT IS NAMED IN THE REPLY (complaint_register.ts): the ticket rides as a fact the model words; the reply
   // that carried it is the acknowledgement (stamped after the send). A complaint is never adoptable as a speculative draft.
-  const situation = t.complaint ? composed + '\n\n' + complaintFact(t.complaint) : composed;
+  const situation = [composed, escalationFacts, t.complaint ? complaintFact(t.complaint) : ''].filter(Boolean).join('\n\n');
   // THE LANE (status_lane.ts, ruling 1571): a status, invoice-copy or code ask is worded on status_reply from the sender's own
   // facts; a new job gets the request chat's link; everything else, and every turn needing a person, takes the full path.
   const lane = laneOf(routedIntent, needsPerson === true || route?.needs_a_person === true);
@@ -111,6 +118,7 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
   // The speculative draft is the reply whenever the facts the real route gives are the facts it was composed on (speculation.ts,
   // 10 Nov 2026: it was adopted only for intent 'none', 0 of 7 real turns), on the conversation lane, with no person needed.
   // An empty draft (rate-limited, aborted, refused) is no draft: the reply is then asked on the real route, as before.
+  // (an escalation block appended above makes `situation` differ from the facts the draft was composed on: never adopted then)
   const sameFacts = speculative ? (await t.specFacts) === situation : false;   // a complaint's facts carry its ticket, so they never match a draft
   const adoptable = speculative && sameFacts && lane === 'conversation' && needsPerson !== true && route?.needs_a_person !== true && !t.factsAnswer;
   const spec = adoptable ? await speculative : null;
@@ -176,8 +184,9 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
     // AN ESCALATION GOES TO THE CEO. This wrote an email to the founder and a founder_alerts
     // row saying a message "needs a human". Under constitution 1.2 there is no human queue and
     // no founder escalation: the CEO is the final internal authority and the one that can act.
+    let reportId: number | null = null;
     try {
-      await admin.rpc('fn_support_report_to_ceo', {
+      const { data: rep } = await admin.rpc('fn_support_report_to_ceo', {
         p_idempotency_key: 'wa:escalation:' + (MessageSid || From),
         p_severity: 'serious',
         p_subject: 'A WhatsApp conversation needs a decision support cannot make',
@@ -185,7 +194,16 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
         p_attempted: ['answered from live account facts and approved knowledge', 'checked the standing grant'],
         p_requested: 'Decide the outcome, or issue a standing grant that covers it.',
       });
+      reportId = Number((rep as { report_id?: number } | null)?.report_id) || null;
     } catch (_e) { /* */ }
+    // ...AND IT CARRIES A CLOCK (16 Nov 2026, escalation_clock.ts; SELECT: 137 such reports accepted, 0 completed). What we promised is
+    // the reply that went; the CEO seat decides on its heartbeat, customer_support tells them (in their window) or writes an honest status
+    // when the clock runs out, and the report is completed when the decision is told. A person request filed above lands on the same clock.
+    try {
+      await admin.rpc('fn_escalation_clock_open', { p_source_table: 'wa_conversation', p_source_id: From, p_kind: 'escalation', p_channel: 'whatsapp',
+        p_requester: From, p_promised: sent && reply ? reply.slice(0, 2000) : null, p_request_text: Body.slice(0, 4000), p_subject_line: null,
+        p_detail: { lang, audience: audienceFinal === 'supplier' ? 'supplier' : 'customer', report_id: reportId, message_sid: MessageSid || null } });
+    } catch (_e) { /* the clock never costs the turn */ }
   }
 
   const counts = { audience: audienceFinal, lang, escalated: escalate, autoreply_enabled: enabled, sent, llm_failed: llmFailed, faq_matches: ids.length, row_saved: rowSaved, provenance_verified: 1 };

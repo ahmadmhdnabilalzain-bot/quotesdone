@@ -41,6 +41,7 @@ import { J } from '../_shared/json_response.ts';
 import { loadCaseContext, recordCaseExchange } from '../_shared/case_context.ts';
 import { mailComplaint } from './complaint.ts';
 import { acknowledgeIfCarried, complaintFact } from '../_shared/complaint_register.ts';
+import { holdingRules, isStanding, type Standing } from '../_shared/escalation_clock.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 const llm = makeLlm(SONNET_FIRST, TRIAGE_LLM); // shared OpenRouter client (Sonnet-first ladder + 25s timeout); never served another mail's triage from the cache (triage_llm.ts)
@@ -109,11 +110,21 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
     if (f === 'fn_reason_hold' && args?.p_surface === 'email_triage.reply') { keptBack.push(args); return { data: null, error: null }; }
     return await deps.rpc(f, args);
   } };
+  // the person's open escalations and the founder's availability (case_context.ts `standing`) are facts both reply roads read
+  const replyFacts = [facts, kase.standing].filter(Boolean).join('\n\n');
+  const standing: Standing | null = isStanding(person.standing) ? person.standing : null;
   try {
     const direct = async (note: string) => (await aiReply(deps, { ...kase.reply, seat: 'customer_support', channel: 'e-mail', audience, lang, message: q,
-      subject, forbidden, ...(facts ? { facts } : {}), rules: 'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
-    if (person.value === true) {
-      const body = await direct(' They asked to speak to a person: say plainly that a member of the team will reply to them in this same thread, and answer whatever else they asked.');
+      subject, forbidden, ...(replyFacts ? { facts: replyFacts } : {}), rules: 'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
+    if (standing) {
+      // A JOURNALIST, A LAWYER OR A REGULATOR (16 Nov 2026, hole hunt item 4): the model's reading of who writes (needsAPerson's
+      // `standing`, the same call) gives the company's holding line (knowledge/brief/press_and_legal.md), never a new-customer answer; the case
+      // goes to the CEO on a clock (below, after the send).
+      const body = await direct(holdingRules(standing));
+      if (!body) throw new Error('no model answered the e-mail');
+      text = composeMailReply({ lang, answer: withClaimLink(body, facts) }); how = standing;
+    } else if (person.value === true) {
+      const body = await direct(' They asked to speak to a person: say plainly that their request is now with the manager who decides at QuotesDone and that we will write back to them by e-mail, and answer whatever else they asked.');
       if (!body) throw new Error('no model answered the e-mail');
       text = composeMailReply({ lang, answer: withClaimLink(body, facts) }); how = 'person';
       // a person asked to review an automated decision (ledger 1152): filed with the seat that owns it (review_route)
@@ -123,7 +134,7 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
       const r = await think(replyDeps, { seat: 'customer_support', surface: 'email_triage.reply', stakes: 'high', dedupeKey: 'email_reply:' + m.id, subject,
         question: `Answer this e-mail to QuotesDone as its customer support, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}, plain text, `
           + 'without a greeting or a sign-off (they are added). Never name another customer or supplier, never quote an unpublished price, never promise a date.\n\n' + q,
-        context: { audience, language: lang, ...(facts ? { profile: { own_account: facts } } : {}), ...kase.context } });
+        context: { audience, language: lang, ...(facts || kase.standing ? { profile: { ...(facts ? { own_account: facts } : {}), ...(kase.standing ? { escalations_and_availability: kase.standing } : {}) } } : {}), ...kase.context } });
       // a reasoned answer naming a counterpart is not sent: the direct reply below is held to the same list by aiReply
       const verified = r.status === 'answered' && r.verified?.status === 'agreed' && r.answer.trim() && !namesForbidden(r.answer, forbidden) ? r.answer.trim() : null;
       const body = verified ?? await direct('');
@@ -137,6 +148,10 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
     await acknowledgeIfCarried((fn, args) => deps.rpc(fn, args), ticket, text, 'e-mail reply carried the ticket');
     // the case summary after the reply that went (runs past the response; never awaited)
     recordCaseExchange(deps, kase, { theirMessage: q, ourReply: text, subject });
+    // THE PROMISE GETS ITS CLOCK (16 Nov 2026, escalation_clock.ts): a person asked for, or a journalist, lawyer or regulator answered
+    // with the holding line, is a case the CEO seat decides; what we just sent is what we promised. Same subject as the review
+    // request's clock (inbound_messages, this id), so the two land on one clock. A failure never costs the reply that went.
+    if (how === 'person' || isStanding(how)) await openMailClock(m, how as 'person' | Standing, text, lang, audience);
   } catch (e) {
     for (const args of keptBack) await deps.rpc('fn_reason_hold', args).catch(() => null);   // nothing went: the replay answers it
     throw e;
@@ -144,9 +159,21 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
   // Filed AFTER the send: fn_inbox_send closes the message's open review items, and this one must stay open.
   if (how === 'person') await admin.from('agent_actions').insert({ agent: 'email', kind: 'inbound_review', status: 'pending', risk: 'low',
     title: 'Inbox: a customer asked for a person — ' + String(m.subject || '(no subject)').slice(0, 60),
-    recommendation: 'The customer asked to speak to a person and was told a member of the team will reply in the same thread. Reply from the Inbox.',
+    recommendation: 'The customer asked to speak to a person. The CEO seat decides it on its escalation clock and customer_support writes them the decision, or an honest status when the clock runs out (visibility only).',
     target_table: 'inbound_messages', target_id: String(m.id), detail: { from: m.from_email, reasoning: person.result.answer.slice(0, 500) } });
   return how;
+}
+
+/** The clock for an e-mail escalation (fn_escalation_clock_open). Never throws: the reply has already gone. */
+async function openMailClock(m: Mail, kind: 'person' | Standing, text: string, lang: string, audience: 'customer' | 'supplier'): Promise<void> {
+  try {
+    const { error } = await admin.rpc('fn_escalation_clock_open', { p_source_table: 'inbound_messages', p_source_id: String(m.id), p_kind: kind,
+      p_channel: 'email', p_requester: String(m.from_email || ''), p_promised: text.slice(0, 2000), p_request_text: String(m.body || '').slice(0, 4000),
+      p_subject_line: String(m.subject || '').slice(0, 300),
+      p_detail: { lang: lang === 'ar' ? 'ar' : 'en', audience: kind === 'press' ? 'press' : kind === 'legal' ? 'counsel' : kind === 'regulator' ? 'regulator' : audience,
+                  inbound_message_id: m.id } });
+    if (error) console.error('email_triage clock', m.id, error.message);
+  } catch (e) { console.error('email_triage clock', m.id, String((e as Error)?.message || e)); }
 }
 
 Deno.serve(observe('email_triage', async (req) => {
