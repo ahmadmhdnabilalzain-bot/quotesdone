@@ -72,7 +72,8 @@ Deno.test('the refusal states no reason and promises nothing it cannot keep', as
   const r = await canReveal(fakeAdmin({ ...BASE, supplier_screening_hit: [{ id: 1 }] }), { quoteId: 'q1', customerId: 'c1' });
   assert(!r.ok);
   for (const t of [r.message, r.message_ar]) assert(!/sanction|عقوب/i.test(t), 'a screening is never explained to a party: ' + t);
-  assert(/not been charged/.test(r.message));
+  // an already-paid reveal reaches this refusal too, so it must not say "you have not been charged"
+  assert(!/charged/.test(r.message) && !/يُخصم/.test(r.message_ar), 'the same refusal answers a reveal already paid for: ' + r.message);
 });
 
 Deno.test('a customer with an open hit is not matched; his request waits on the re-match schedule', async () => {

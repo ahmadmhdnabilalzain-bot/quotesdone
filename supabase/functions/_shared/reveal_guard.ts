@@ -142,8 +142,8 @@ const REFUSALS: Record<string, { status: number; en: string; ar: string }> = {
   // party itself would tip it off); what is said is true: nothing is charged and the reveal waits.
   compliance_review: {
     status: 409,
-    en: 'This reveal is paused while we complete a routine account check. You have not been charged. Please try again later.',
-    ar: 'هذا الكشف متوقف مؤقتًا ريثما نُكمل تحققًا اعتياديًا من الحساب. لم يُخصم منكم أي مبلغ. يُرجى المحاولة لاحقًا.',
+    en: 'This reveal is paused while we complete a routine account check. Please try again later.',
+    ar: 'هذا الكشف متوقف مؤقتًا ريثما نُكمل تحققًا اعتياديًا من الحساب. يُرجى المحاولة لاحقًا.',
   },
   account_sanctioned: {
     status: 403,

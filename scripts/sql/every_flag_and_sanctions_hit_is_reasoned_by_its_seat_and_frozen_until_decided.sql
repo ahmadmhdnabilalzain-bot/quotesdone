@@ -145,8 +145,9 @@ begin
       join public.screening_entry e
         on e.run_id = any(p_run_ids)
        and ((s.field <> 'email_domain' and s.norm = e.name_norm and length(s.norm) >= 6)
-         or (s.field <> 'email_domain' and cardinality(s.toks) >= 2 and cardinality(e.tokens) >= 2
-             and (s.toks <@ e.tokens or e.tokens <@ s.toks))
+         -- a person's two common names inside a four-part listing is not a match (SELECT 16 Nov: 61 of 64 hits on 22 common
+         -- names were that direction); the listing's own tokens must all be in the customer's name
+         or (s.field <> 'email_domain' and cardinality(s.toks) >= 2 and cardinality(e.tokens) >= 2 and e.tokens <@ s.toks)
          or (s.field = 'email_domain' and length(s.norm) >= 6 and replace(e.name_norm, ' ', '') = s.norm))
   loop
     insert into public.customer_screening_hit (run_id, customer_id, field, customer_value, entry_id, entry_name, entry_source, entry_reference, entry_type, match_kind, score)
@@ -770,7 +771,8 @@ begin
   for l in select x::bigint
              from public.fraud_flags f, jsonb_array_elements_text(coalesce(f.detail->'lead_ids', '[]'::jsonb)) x
             where f.kind = 'customer_matches_supplier' and f.subject_type = 'customer' and f.subject_id = p_customer::text
-              and f.status in ('open', 'escalated') and x ~ '^[0-9]+$' loop
+              and f.status in ('open', 'escalated') and x ~ '^[0-9]+$'
+              and (f.status = 'escalated' or coalesce(f.detail->'on', '[]'::jsonb) ?| array['phone', 'email']) loop
     v_flags := v_flags + 1;
     t := public.fn_supplier_trade_codes(l);
     if cardinality(t) = 0 then v_all := true; else v_trades := v_trades || t; end if;
@@ -849,7 +851,7 @@ begin
   select * into b from public.notifications n
    where n.type = 'new_inquiry' and n.lead_id = new.lead_id and coalesce(n.channel, 'email') = coalesce(new.channel, 'email')
      -- 'suppressed' (a suppressed or demo address) counts too: such a row is never sent, so folding into it sends nothing either
-     and n.status in ('queued', 'pending', 'suppressed') and n.dedupe_key = 'new_job_batch' and n.not_before > now()
+     and n.status in ('queued', 'pending', 'suppressed') and n.dedupe_key like 'new_job_batch:%' and n.not_before > now()
    order by n.id desc limit 1 for update;
   if found then
     if coalesce(new.channel, 'email') = 'email' then
@@ -869,7 +871,8 @@ begin
      and n.status in ('queued', 'pending', 'sending', 'sent', 'suppressed') and n.created_at > now() - interval '1 hour';
   if v_last is not null then
     new.not_before := greatest(coalesce(new.not_before, now()), v_last + interval '1 hour');
-    new.dedupe_key := 'new_job_batch';
+    -- notifications_dedupe_key_uidx is UNIQUE over every row: the marker names this batch row alone
+    new.dedupe_key := 'new_job_batch:' || new.lead_id || ':' || coalesce(new.channel, 'email') || ':' || gen_random_uuid();
   end if;
   return new;
 end $fn$;
@@ -903,7 +906,9 @@ begin
      group by c.id
   loop
     insert into public.fraud_flags (kind, subject_type, subject_id, severity, detail, status, created_at, updated_at)
-    values ('customer_matches_supplier', 'customer', r.customer_id::text, 'high',
+    -- equal terms IP (an office, a carrier's NAT) or company domain alone is a question, not a hold: medium, so neither the
+    -- money screen (high only) nor fn_customer_quotes_being_checked (phone/e-mail or a genuine verdict) bites before the verdict
+    values ('customer_matches_supplier', 'customer', r.customer_id::text, 'medium',
             jsonb_build_object('lead_ids', r.lead_ids, 'on', r.on_what, 'raised_by', 'accountant', 'owner_seat', 'accountant'), 'open', now(), now())
     on conflict (kind, subject_type, subject_id) do update
        set detail = fraud_flags.detail || jsonb_build_object(
@@ -929,7 +934,7 @@ begin
   -- 3. a flag still open past its close-by date goes to the CEO, once, with its facts and what the reasoning said
   for r in
     select f.* from public.fraud_flags f
-     where f.status = 'open' and (f.detail->>'close_by')::timestamptz < now() and not (f.detail ? 'overdue_reported_at')
+     where f.status in ('open', 'escalated') and (f.detail->>'close_by')::timestamptz < now() and not (f.detail ? 'overdue_reported_at')
        and f.kind not in ('hired_without_fee', 'refund_after_supplier_contact', 'silent_after_reveal')
      order by f.created_at limit 50
   loop

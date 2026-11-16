@@ -150,6 +150,11 @@ begin
   if not coalesce((v->'suppliers_it_matches'->0->>'same_terms_ip')::boolean, false) then f := f || ('F2: the facts do not carry the IP equality: ' || left(v::text, 400))::text; end if;
   if not coalesce(v->'suppliers_it_matches'->0->'trades' ? v_trade, false) then f := f || 'F2: the facts do not carry the supplier''s trades'::text; end if;
   if coalesce((v->'suppliers_it_matches'->0->>'customer_requests_in_these_trades')::int, 0) <> 1 then f := f || 'F2: the customer''s requests in the trade are not counted'::text; end if;
+  -- an equal IP alone (a shared office, a carrier's NAT) holds nothing before the verdict
+  v := public.fn_customer_quotes_being_checked(v_c3);
+  if coalesce(jsonb_array_length(v->'inquiry_ids'), 0) <> 0 then f := f || ('F2: an equal IP alone held a customer''s quotes before any verdict: ' || v::text)::text; end if;
+  if exists (select 1 from public.fraud_flags where kind = 'customer_matches_supplier' and subject_id = v_c3::text and severity = 'high') then f := f || 'F2: an equal IP alone raised a HIGH flag (the money screen holds reveals on it)'::text; end if;
+  update public.fraud_flags set status = 'escalated' where kind = 'customer_matches_supplier' and subject_id = v_c3::text;   -- a genuine verdict
   v := public.fn_customer_quotes_being_checked(v_c3);
   if not coalesce(v->'inquiry_ids' ? v_i3a::text, false) then f := f || ('F2: the request in the supplier''s trade is not held: ' || v::text)::text; end if;
   if coalesce(v->'inquiry_ids' ? v_i3b::text, false) then f := f || 'F2: a request in another trade is held'::text; end if;
@@ -183,10 +188,19 @@ begin
   select * into x from public.notifications where id = v_nid1;
   if x.not_before is not null and x.not_before > now() then f := f || 'B1: the first notice of the hour was delayed'::text; end if;
   select * into x from public.notifications where id = v_nid2;
-  if x.not_before is null or x.not_before < now() + interval '59 minutes' or x.dedupe_key is distinct from 'new_job_batch' then f := f || ('B1: the second notice did not wait for the hour: ' || coalesce(x.not_before::text, 'null'))::text; end if;
+  if x.not_before is null or x.not_before < now() + interval '59 minutes' or coalesce(x.dedupe_key, '') not like 'new_job_batch:%' then f := f || ('B1: the second notice did not wait for the hour: ' || coalesce(x.not_before::text, 'null'))::text; end if;
   if x.body not like '%ZZ DEMO job three%' or x.subject not like '%(2)%' then f := f || ('B1: the third job was not folded into the batch: ' || coalesce(x.subject, ''))::text; end if;
   select * into x from public.notifications where id = v_nid3;
   if x.status <> 'merged' then f := f || ('B1: the folded notice is ' || coalesce(x.status, 'null') || ', not merged')::text; end if;
+  -- B2 a SECOND supplier's batch row in the same hour lands too (notifications_dedupe_key_uidx is unique over every row)
+  insert into public.notifications (type, to_email, to_role, lead_id, subject, body, status, channel)
+  values ('new_inquiry', 'zzprobe-l4@example.invalid', 'supplier', v_l4, 'New job request on QuotesDone', 'ZZ DEMO other one', 'queued', 'email');
+  begin
+    insert into public.notifications (type, to_email, to_role, lead_id, subject, body, status, channel)
+    values ('new_inquiry', 'zzprobe-l4@example.invalid', 'supplier', v_l4, 'New job request on QuotesDone', 'ZZ DEMO other two', 'queued', 'email') returning id into v_nid3;
+    if not exists (select 1 from public.notifications where id = v_nid3 and not_before > now() + interval '59 minutes') then f := f || 'B2: the second supplier''s second notice did not wait'::text; end if;
+  exception when unique_violation then f := f || 'B2: the second supplier''s batch row was refused (unique dedupe_key): the notice is lost'::text;
+  end;
 
   raise exception 'CHK<<%>>', (jsonb_build_object('ok', cardinality(f) = 0, 'failures', to_jsonb(f)) || o)::text;
 end $probe$;
