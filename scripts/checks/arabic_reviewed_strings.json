@@ -596,6 +596,12 @@
   "9f58c87ea448",
   "f0a8de3ec78a"
  ],
+ "scripts/sql/a_code_defect_goes_to_the_engineer_session.sql": [
+  "022d29d285b2",
+  "34298c4b2763",
+  "83600cbde690",
+  "fec783e3f934"
+ ],
  "scripts/sql/a_confirmed_service_is_a_taxonomy_key_not_a_word.sql": [
   "496a302c86b0",
   "ec42828d58cb"
@@ -1580,6 +1586,9 @@
   "71425d07f632",
   "735f3f9ff862"
  ],
+ "scripts/sql/every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql": [
+  "624819270073"
+ ],
  "scripts/sql/every_social_message_is_answered_probe.sql": [
   "debfd4865d39"
  ],
@@ -1836,6 +1845,11 @@
   "fb978336c061",
   "fc89cb827cc1",
   "fea22eb87ec7"
+ ],
+ "scripts/sql/support_and_the_it_engineer_hand_a_fault_both_ways.sql": [
+  "5cca7ba6f35d",
+  "7afc7b80daa2",
+  "e4bac6715bad"
  ],
  "scripts/sql/ten_uae_trades_the_taxonomy_still_missed_join_it.sql": [
   "07f0baa140c2",
