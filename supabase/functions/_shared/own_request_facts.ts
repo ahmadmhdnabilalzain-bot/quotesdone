@@ -23,7 +23,7 @@ export const OWN_REQUEST_RULE = 'HIS OWN REQUESTS. His own record in these facts
   + 'the emirate and his site, the materials and brands he asked for, the alternatives he accepted), and `changes_he_sent_after`. Each live quote '
   + 'carries what his portal shows him: its letter, its price before VAT and with VAT as the supplier stated it, how long it is valid, its lead time and '
   + 'warranty as stated, the sales engineer\'s notes against his request, and `questions_and_answers` (what that supplier asked him and what '
-  + 'he answered); a live quote his portal has not shown yet is only counted (`quotes_not_yet_on_his_portal`), never priced. Give amounts as `price_as_shown` writes them (AED and the figure). '
+  + 'he answered); `his_follow_up_answer` is what he last told us after a reveal (hired or not decided yet, his words, the day): read it and never ask him what happened when it already says. A live quote his portal has not shown yet is only counted (`quotes_not_yet_on_his_portal`), never priced. Give amounts as `price_as_shown` writes them (AED and the figure). '
   + 'Answer any question about his own request by reasoning over these: a price against his budget (say whether you compare before or with VAT, '
   + 'following how he stated his budget), who can deliver by a date (from the lead times; one that is not stated is not stated), which quote matches '
   + 'a brand he asked for (before the reveal no brand is named: say what the notes say and that the exact brand shows after the reveal), what is still '

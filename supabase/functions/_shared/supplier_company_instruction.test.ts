@@ -7,6 +7,7 @@
 // reading a model returns for that message, in English or Arabic, and proves what code does with it.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import { type Ask, type Facts, INSTRUCTION_SYS, supplierInstructionTurn } from './supplier_instruction.ts';
+import { memberMayInstruct } from './supplier_company.ts';
 
 const BASE: Facts = {
   supplier_id: 42, standing: null,
@@ -173,4 +174,85 @@ Deno.test('S15 EN estimator: "stop sending us painting" is the owner\'s to decid
   const { r, a } = await turn({ kind: 'remove_work', trades: ['painting'] }, 'stop sending us painting jobs', BASE, ESTIMATOR);
   assertEquals(fns(a), []);
   assertMatch(r.outcome!.facts, /change what work the company receives/);
+});
+
+// W3_PEOPLE, 16 Nov 2026 (wave-3 items 2 and 4): "can I invite another company?" and "our owner has left" on any channel.
+Deno.test('S16 EN viewer: "can I invite my friend\'s company?" gives the company\'s own referral link; we send nothing ourselves', async () => {
+  const { r, a } = await turn({ kind: 'refer_company' }, 'can I invite my friend\'s company?', BASE, VIEWER,
+    { fn_supplier_referral_link: { ok: true, referral_code: 'qdabc123def4', url: 'https://quotesdone.com/en/supplier?utm_source=referral&utm_medium=supplier&utm_content=qdabc123def4', registered: 1, approved: 0 } });
+  assertEquals(fns(a), ['fn_supplier_referral_link']);
+  assertEquals(a.calls[0].args, { p_lead: 42 });
+  assertMatch(r.outcome!.facts, /utm_content=qdabc123def4/);
+  assertMatch(r.outcome!.facts, /we do not write to them ourselves/);
+  assertMatch(r.outcome!.facts, /1 compan/);
+});
+
+Deno.test('S17 EN: a company not yet approved is told the link comes with approval; nothing is promised', async () => {
+  const { r } = await turn({ kind: 'refer_company' }, 'send me a referral link', BASE, OWNER, { fn_supplier_referral_link: { ok: false, code: 'not_approved' } });
+  assertMatch(r.outcome!.facts, /once the company is approved/);
+});
+
+Deno.test('S18 AR estimator: "the owner left the company" opens the case for the sales engineer, in his name, and he is told what happens next', async () => {
+  const { r, a } = await turn({ kind: 'owner_left', reason: 'the owner sold his share and left the UAE in October' }, 'المالك ترك الشركة وسافر، أريد إدارة الحساب', BASE, ESTIMATOR,
+    { fn_supplier_ownership_claim_open: { ok: true, claim_id: 9, state: 'open' } });
+  assertEquals(fns(a), ['fn_supplier_ownership_claim_open']);
+  assertEquals(a.calls[0].args, { p_lead: 42, p_actor: 'zz-demo-est@example.invalid', p_reason: 'the owner sold his share and left the UAE in October', p_channel: 'email' });
+  assertMatch(r.outcome!.facts, /sales engineer/);
+  assertMatch(r.outcome!.facts, /owner has been told/);
+  assertMatch(r.outcome!.facts, /Nothing changes/);
+});
+
+Deno.test('S19 EN owner: the owner himself saying "the owner left" opens nothing; a stranger\'s refusal is said plainly', async () => {
+  const own = await turn({ kind: 'owner_left', reason: 'my partner left' }, 'my partner left the company', BASE, OWNER);
+  assertEquals(fns(own.a), []);
+  assertMatch(own.r.outcome!.facts, /already the owner/);
+  const no = await turn({ kind: 'owner_left', reason: 'he left' }, 'the owner left', BASE, VIEWER,
+    { fn_supplier_ownership_claim_open: { ok: false, code: 'not_a_member', error: 'Only a member of this company can ask to take it over.' } });
+  assertMatch(no.r.outcome!.facts, /Only a member of this company/);
+});
+
+// THE OWNER'S REPLY KEEPS HIS COMPANY, AND ONLY THE OWNER'S (REVIEW2 W3PEOPLE, 16 Nov 2026). Both owner notices of a claim say "or
+// reply to this e-mail"; the reader kind owner_keeps calls fn_supplier_ownership_claim_object, which closes the member's claim. A
+// member who writes the very same words, and whom the model reads the very same way, must reach no routine at all: he is not the
+// owner, and keeping the company is the owner's word alone. ZZ DEMO addresses only; the model is a stub.
+const KEEP_EN = 'I have not left. I am still the owner of this company and I do not agree that anyone takes it over.';
+const KEEP_AR = 'لم أترك الشركة، ما زلت المالك ولا أوافق على نقل الحساب لأي شخص.';
+const KEPT = { ok: true, claim_id: 9, state: 'objected' };
+
+Deno.test('S20 the reader knows owner_keeps, and only the owner may give it', () => {
+  assert(INSTRUCTION_SYS.includes('- owner_keeps:'));
+  assert(memberMayInstruct('owner', 'owner_keeps'));
+  assert(!memberMayInstruct('estimator', 'owner_keeps') && !memberMayInstruct('viewer', 'owner_keeps'));
+});
+
+Deno.test('S20 EN/AR owner: "I am still the owner" keeps the company in his own name, and he is told so', async () => {
+  for (const msg of [KEEP_EN, KEEP_AR]) {
+    const { r, a } = await turn({ kind: 'owner_keeps' }, msg, BASE, OWNER, { fn_supplier_ownership_claim_object: KEPT });
+    assertEquals(fns(a), ['fn_supplier_ownership_claim_object']);
+    assertEquals(a.calls[0].args, { p_lead: 42, p_actor: 'zz-demo-owner@example.invalid' });
+    assertEquals(r.outcome!.done, true);
+    assertMatch(r.outcome!.facts, /He keeps the company/);
+  }
+  const none = await turn({ kind: 'owner_keeps' }, KEEP_EN, BASE, OWNER, { fn_supplier_ownership_claim_object: { ok: true, nothing_waiting: true } });
+  assertMatch(none.r.outcome!.facts, /No member has asked/);
+});
+
+Deno.test('S20 EN/AR estimator and viewer: the same words, read the same way, reach no routine and keep nothing', async () => {
+  for (const sender of [ESTIMATOR, VIEWER]) {
+    for (const msg of [KEEP_EN, KEEP_AR]) {
+      const { r, a, m } = await turn({ kind: 'owner_keeps' }, msg, BASE, sender, { fn_supplier_ownership_claim_object: KEPT });
+      assertEquals(m.seen.length, 1);              // the model did read it as owner_keeps
+      assertEquals(fns(a), []);                    // and code stopped it before any routine
+      assertEquals(r.outcome!.kind, 'owner_keeps');
+      assertEquals(r.outcome!.done, false);
+      assertMatch(r.outcome!.facts, /not its owner/);
+    }
+  }
+});
+
+Deno.test('S20 a sender the door took for the owner, whom the routine does not (the owner changed): refused plainly, nothing kept', async () => {
+  const { r, a } = await turn({ kind: 'owner_keeps' }, KEEP_EN, BASE, OWNER, { fn_supplier_ownership_claim_object: { ok: false, code: 'owner_only' } });
+  assertEquals(fns(a), ['fn_supplier_ownership_claim_object']);
+  assertEquals(r.outcome!.done, false);
+  assertMatch(r.outcome!.facts, /Only the owner of the company can keep it\. Nothing was changed\./);
 });

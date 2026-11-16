@@ -83,7 +83,11 @@ export function startSpeculation(t: WaTurn): void {
       // AND THE COMPANY'S OWN ASKS (16 Nov 2026, customer_support; SUPPLIER holes 5, 6, 10, 12)
       + '"job_question" if he asks a question about the details or scope of a job request we sent him; "close_account" if he asks to close, '
       + 'delete or leave his QuotesDone account or answers about closing it; "customer_silent" if a customer who revealed him is not answering him; '
-      + '"paid_leads" if he offers or asks to pay for more requests, priority, ranking or exclusivity; otherwise "none". Example: {"change":false,"instruction":"not_for_me"}.';
+      + '"paid_leads" if he offers or asks to pay for more requests, priority, ranking or exclusivity; '
+      // AND THE WAVE-3 ASKS (16 Nov 2026, review W3PEOPLE round 2: this reading never named them, so on WhatsApp they never reached the reader)
+      + '"refer_company" if he asks how to invite or refer another company, or for his referral link; "owner_left" if he says the owner of his '
+      + 'company has left or cannot be reached and asks to take over its account; "owner_keeps" if he says he is still the owner or does not agree '
+      + 'that a member takes the company over; otherwise "none". Example: {"change":false,"instruction":"not_for_me"}.';
     const cr = await fetch(GATEWAY, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ __secret: gsecret, fn: 'supplier_directive', sys: csys, input: Body.slice(0, 600), temperature: 0, task_class: 'json_extraction', cache_ttl_min: 0 }),

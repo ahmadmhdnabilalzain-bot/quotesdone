@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run after the_ceos_weekly_figures_read_referrals_and_offers_to_pay_for_leads.sql on a LOCAL Postgres 16 built from the mirror plus the newer MANIFEST files (never on production), and must print PROBE OK. This note therefore stays for the life of the file. Seat: ceo.

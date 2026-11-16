@@ -34,6 +34,13 @@ export function tmplKey(type:string):string|null{
   // comparison's open points, scripts/sql/the_comparison_hands_its_open_points_to_the_sales_engineer.sql). A notice about his
   // own quote, like the hold above: {{1}} is its subject, {{2}} the portal, where the conversation holds the points.
   if(t==='quote_comparison_points') return 'supplier_account_notice';
+  // 16 Nov 2026 (W3_PEOPLE, wave-3 item 6): the unanswered-requests warning (one short of the stop) and the stop itself, notices
+  // about the supplier's own account. Their twin (fn_wa_fanout) and the copy sent when the e-mail bounced
+  // (fn_supplier_strike_warning_redeliver) had no template, so neither could go outside the 24-hour window. {{1}} subject, {{2}} portal.
+  if(t==='supplier_strike_warning' || t==='supplier_strike_stopped') return 'supplier_account_notice';
+  // REVIEW W3PEOPLE: a member asks to take over the company: the OWNER is told on his confirmed number too (fn_wa_fanout twins it
+  // to the company's number). Only the owner's notice: the member's own notices must never reach the owner's phone.
+  if(t==='supplier_ownership_claim_owner_notice') return 'supplier_account_notice';
   // 24 Sep 2026 (sales_engineer): the approval notice, twinned from its email to the confirmed number.
   // {{1}} is its subject ("You are verified on QuotesDone: please confirm your categories"), {{2}} the portal.
   if(t==='supplier_approved') return 'supplier_account_notice';
