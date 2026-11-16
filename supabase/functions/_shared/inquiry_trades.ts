@@ -34,6 +34,7 @@
 //   supabase/functions/inquiry_intake/a_request_is_ready_only_when_every_blocking_spec_is_answered.test.ts
 import { COMPOSITE, tradeOfCategory } from './line_specs/model.ts';
 import { SAME_AS } from './line_specs/taxonomy_trades.ts';
+import { plainOf } from './customer_questions.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
@@ -227,10 +228,19 @@ export function validServiceKeys(x: unknown, services: TradeService[] | null | u
  *  kept only for a trade whose rows carry no blocking list yet (packFields). */
 export const CHECKLIST_REQUIRED = 6;
 export type PackField = { key: string; question: string; required: boolean; type: string; options: string[]; blocking?: boolean; trade?: string;
-  not_needed_when?: { answered?: string[]; text: string } | null };
+  not_needed_when?: { answered?: string[]; text: string } | null;
+  /** WHAT THE CUSTOMER READS (15 Nov 2026; _shared/customer_questions.ts): `question` stays the supplier-facing label; the card
+   *  shows these plain questions, with card_options to tap (each list ending with "Not sure"). `options` stays [] so the
+   *  interview's own readers treat a pack spec as free text, exactly as before. plain=false: no vetted wording for this spec. */
+  question_plain_en?: string; question_plain_ar?: string; card_options?: string[]; card_options_ar?: string[]; plain?: boolean };
+/** A pack spec's customer-facing wording beside its label (customer_questions.ts plainOf). */
+function withPlain(code: string, label: string): Pick<PackField, 'question_plain_en' | 'question_plain_ar' | 'card_options' | 'card_options_ar' | 'plain'> {
+  const p = plainOf(code, label);
+  return { question_plain_en: p.question_plain_en, ...(p.question_plain_ar ? { question_plain_ar: p.question_plain_ar } : {}), card_options: p.options, card_options_ar: p.options_ar, plain: p.plain };
+}
 const questionOf = (label: string) => label.charAt(0).toUpperCase() + label.slice(1);
 export function checklistFields(specs: SpecItem[], required = CHECKLIST_REQUIRED): PackField[] {
-  return specs.map((s, i) => ({ key: s.code, question: questionOf(s.label_en), required: i < required, type: 'text', options: [] }));
+  return specs.map((s, i) => ({ key: s.code, question: questionOf(s.label_en), required: i < required, type: 'text', options: [], ...withPlain(s.code, s.label_en) }));
 }
 
 // ── THE BLOCKING RULE (founder ledger 1587) ──────────────────────────────────────────────────────────────────────────
@@ -332,7 +342,7 @@ export function packFields(ctx: TradeContext | null, topics: string[] = [], gene
       seen.add(s.code);
       const b = c.blocking.includes(s.code);
       const nn = c.guide.find((g) => g.code === s.code)?.not_needed_when;
-      (b ? blocking : rest).push({ key: s.code, question: questionOf(s.label_en), required: b, type: 'text', options: [], blocking: b, trade: code, ...(nn ? { not_needed_when: nn } : {}) });
+      (b ? blocking : rest).push({ key: s.code, question: questionOf(s.label_en), required: b, type: 'text', options: [], blocking: b, trade: code, ...(nn ? { not_needed_when: nn } : {}), ...withPlain(s.code, s.label_en) });
     }
   }
   // the universal fields, ONCE for the whole request: required when any placed trade blocks on it; payment terms always
@@ -340,7 +350,7 @@ export function packFields(ctx: TradeContext | null, topics: string[] = [], gene
   for (const [u, b] of universal) {
     if (!UNIVERSAL_FIELD[u] || seen.has(u)) continue;
     seen.add(u);
-    (b ? blocking : rest).push({ key: u, question: UNIVERSAL_QUESTION[u], required: b, type: 'text', options: [], blocking: b, trade: 'universal' });
+    (b ? blocking : rest).push({ key: u, question: UNIVERSAL_QUESTION[u], required: b, type: 'text', options: [], blocking: b, trade: 'universal', ...withPlain(u, UNIVERSAL_QUESTION[u]) });
   }
   return [...blocking, ...rest];
 }

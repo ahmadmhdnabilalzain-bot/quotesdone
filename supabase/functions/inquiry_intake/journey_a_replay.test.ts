@@ -7,6 +7,7 @@
 // (_shared/intake_requirements.ts) — and reports, turn by turn, what was asked and what was filled.
 //
 // ALUMINIUM is production's category_specs row for `aluminium`, read 14 Sep 2026.
+import { NOT_SURE, plainOf } from '../_shared/customer_questions.ts';
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { utilityText } from './classify.ts';
 import { interviewStep, type SpecField, type InterviewState } from './interview.ts';
@@ -276,7 +277,8 @@ Deno.test('journey A of 15 Nov: a faithful reading is recorded where it was said
 
 Deno.test('journey A of 15 Nov: every message\'s buttons belong to the question in it, and the sales engineer is offered at most once', async () => {
   const turns = await replay15Nov();
-  const fieldOpts = (k: string) => HVAC.find((f) => f.key === k)?.options ?? requirementQuestions('hvac').find((q) => q.key === k)?.options.map((o) => o.en) ?? [];
+  // a pack spec's own card options (_shared/customer_questions.ts, 15 Nov: "Not sure" and the plain choices) belong to it too
+  const fieldOpts = (k: string) => HVAC.find((f) => f.key === k)?.options ?? requirementQuestions('hvac').find((q) => q.key === k)?.options.map((o) => o.en) ?? (k.startsWith('spec_') || k === 'location' || k === 'payment_terms' ? plainOf(k, k).options : []);
   let offers = 0;
   for (const t of turns) {
     const written = JSON.stringify(t.writer);
@@ -284,7 +286,7 @@ Deno.test('journey A of 15 Nov: every message\'s buttons belong to the question 
       assert(written.includes('THE ONE QUESTION TO ASK NOW') && written.includes(JSON.stringify(t.next.text).slice(1, -1)), `turn ${t.n}: the reply was not written around the question its card asks`);
       if (t.next.options) {
         assert(t.next.key, `turn ${t.n}: buttons on a question with no key`);
-        const allowed = new Set([...fieldOpts(String(t.next.key)), ...(((t.next as { suggested?: string }).suggested) ? [String((t.next as { suggested?: string }).suggested)] : [])]);
+        const allowed = new Set([...fieldOpts(String(t.next.key)), NOT_SURE.en, ...(((t.next as { suggested?: string }).suggested) ? [String((t.next as { suggested?: string }).suggested)] : [])]);
         for (const o of t.next.options) assert(allowed.has(o), `turn ${t.n}: button "${o}" does not answer [${t.next.key}] ${t.next.text}`);
       }
     } else assert(!written.includes('THE ONE QUESTION TO ASK NOW'), `turn ${t.n}: no question card, but the writer was told to ask one`);

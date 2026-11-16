@@ -18,7 +18,7 @@ export const docName = (ref: string, kind: string, lang: Lang) => `${ref}-${DOC_
 export const isCurrentDoc = (path: unknown) => String(path ?? '').includes(`-${DOC_VERSION}-`);
 const PREPARED_BY = { en: 'Prepared by the QuotesDone sales engineer', ar: 'أعدّه مهندس مبيعات QuotesDone' };
 
-/** A, B … Z, AA, AB … — the anonymous label for the i-th live quote by ascending price. */
+/** A, B … Z, AA, AB … — the i-th letter. WHICH quote is i-th is quote_labels.ts customerQuoteLabels' rule (arrival), never this file's. */
 export function supplierLabel(i: number): string { let n = Number(i) || 0, out = ''; do { out = String.fromCharCode(65 + (n % 26)) + out; n = Math.floor(n / 26) - 1; } while (n >= 0); return out; }
 
 // ── Anonymity ─────────────────────────────────────────────────────────────────────────────────
