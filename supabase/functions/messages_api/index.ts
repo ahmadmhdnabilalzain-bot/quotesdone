@@ -13,16 +13,18 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 import { observe } from '../_shared/observe.ts';
 import { isCustomerCorrespondence } from '../_shared/customer_mail.ts';
-import { asLocale } from '../_shared/registered_locale.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 // The supplier's alias on this job is the same one its own quotation prints (audit 21 Sep 2026, finding 29).
 import { jobAlias, NO_LETTER, recordShown } from '../_shared/quote_labels.ts';
 import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
 import { buildSupplierMailbox } from './mailbox.ts';
-import { stripContact, stripSupplierQuestion } from './strip_contact.ts';
+import { stripContact } from './strip_contact.ts';
 import { sanctionedLead } from '../_shared/sanctioned.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { isClosedRequest } from '../_shared/request_closed.ts';
+import { fileJobQuestion, firstAnswerLater } from '../_shared/job_question.ts';
+import { companyOf } from '../_shared/supplier_company.ts';
+import { defaultDeps } from '../_shared/think.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
@@ -124,7 +126,7 @@ async function otherChannels(cust: { id: string; phone?: string | null; phone_ve
 type Res = { status: number; body: Record<string, unknown> };
 const R = (status: number, body: Record<string, unknown>): Res => ({ status, body });
 
-async function clarify(action: string, b: Record<string, unknown>, supLead: any, cust: any): Promise<Res> {
+async function clarify(action: string, b: Record<string, unknown>, supLead: any, cust: any, supEmail: string | null = null): Promise<Res> {
   if (action === 'clarify_answer') {
     if (!cust) return R(403, { error: 'forbidden' });
     const id = Number(b.id);
@@ -185,36 +187,18 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     if (!isMatched) return R(403, { error: 'not_matched' });
     if (supLead.banned === true) return R(403, { error: 'suspended' });
     if (isClosedRequest(inq.status)) return R(409, { error: 'inquiry_closed' });
-    // The supplier's question: contacts AND brands out before the customer reads it (strip_contact.ts stripSupplierQuestion).
-    const text = stripSupplierQuestion(b.text, [supLead.company_name]);
-    if (text.replace(/\[removed\]/g, '').trim().length < 3) return R(400, { error: 'text_required' });
-    // Five a day per supplier per request: enough to scope a job, too few to turn it into a chat.
-    const since = new Date(Date.now() - 24 * 3600e3).toISOString();
-    const { count } = await admin.from('rfq_clarification').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiry_id).eq('supplier_id', supLead.id).gte('asked_at', since);
-    if ((count || 0) >= 5) return R(429, { error: 'too_many_questions' });
+    // ONE QUESTION, ONE ROW, WHATEVER THE CHANNEL (16 Nov 2026, SUPPLIER hole 5; _shared/job_question.ts). The portal files it the
+    // way an e-mail or a WhatsApp question is filed (stripped of contacts and his brand, five a day), and the sales engineer reads
+    // it first, after this response: answered from the request's own facts for every invited supplier, or asked of the customer
+    // by the letter his quote cards use, and reminded once. The customer is no longer e-mailed here before anyone looked.
     const source = b.source === 'rfq_flag' ? 'rfq_flag' : 'portal';
-    const { data: ins, error } = await admin.from('rfq_clarification').insert({ inquiry_id, supplier_id: supLead.id, kind: 'question', question: text, source }).select('id').single();
-    if (error || !ins) return R(500, { error: 'save_failed' });
+    const filed = await fileJobQuestion(admin, { supplierId: Number(supLead.id), inquiryId: inquiry_id, text: String(b.text ?? ''), source, askedBy: supEmail ?? null });
+    if (!filed.ok) return R(filed.code === 'too_many_questions' ? 429 : filed.code === 'save_failed' ? 500 : filed.code === 'inquiry_closed' ? 409 : filed.code === 'text_required' ? 400 : 403, { error: filed.code });
+    const deps = defaultDeps(admin, 'messages_api');
+    firstAnswerLater(admin, async (sys, input) => (await deps.llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'sales_engineer', max: 500, timeoutMs: 25_000,
+      subject: { inquiry_id, channel: 'portal' }, internal: true })).content ?? null, filed.id);
     const label = jobAlias(order, Number(supLead.id));   // the supplier's own alias on this job, what the supplier is shown
-    try {
-      // THE CUSTOMER'S LETTER for this supplier (_shared/quote_labels.ts, 15 Nov 2026): this question is the customer's first sight
-      // of the supplier if it has not quoted yet, so its letter is recorded here, and his quote cards, quotation and comparison use
-      // the same one: "Supplier B asked..." is the Supplier B whose quote arrives later. Unrecorded or unreadable: no letter at all.
-      const rec = await recordShown(admin, { [inquiry_id]: [{ id: String(ins.id), supplier_id: Number(supLead.id), created_at: new Date().toISOString() }] }, 'question');
-      const custLetter = rec?.get(inquiry_id)?.get(String(supLead.id));
-      const custLabel = custLetter ? 'Supplier ' + custLetter : 'A supplier';
-      const { data: c } = await admin.from('customers').select('email,full_name,locale').eq('id', inq.customer_id).maybeSingle();
-      if (c?.email && /@/.test(c.email)) {
-        // customers.locale through the one helper: 'ar-AE' is Arabic too, which the exact test missed.
-        const ar = asLocale(c.locale) === 'ar';
-        await notify([{ type: 'clarification_requested', to_email: c.email, to_role: 'customer', inquiry_id, channel: 'email', status: 'queued',
-          subject: ar ? 'استفسار من أحد المورّدين بشأن طلبكم' : 'A supplier has a question about your request',
-          body: ar
-            ? ('حضرة ' + (c.full_name || 'العميل الكريم') + '،\n\nتحية طيبة وبعد،\n\nوردنا من ' + (custLetter ? 'المورّد ' + custLetter : 'أحد المورّدين') + ' استفسار بشأن طلبكم (' + (inq.category || '') + '):\n\n«' + text + '»\n\nيُرجى فتح طلبكم على QuotesDone والرد على الاستفسار من هناك؛ إذ يصل ردّكم إلى جميع المورّدين المدعوّين دون اسمكم أو رقمكم، ليسعّروا جميعًا النطاق نفسه.')
-            : ('Hi ' + (c.full_name || 'there') + ',\n\n' + custLabel + ' asked about your ' + (inq.category || '') + ' request:\n\n"' + text + '"\n\nOpen your request on QuotesDone and answer it there. Your answer reaches every invited supplier without your name or number, so they can all quote the same scope.') }]);
-      }
-    } catch (_e) { /* the question is stored either way; the portal shows it on the next load */ }
-    return R(200, { ok: true, id: ins.id, supplier_label: label });
+    return R(200, { ok: true, id: filed.id, supplier_label: label });
   }
 
   if (action === 'clarify_list') {
@@ -253,7 +237,13 @@ Deno.serve(siteCors(observe('messages_api', async (req) => {
     const { email } = who;
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
 
-    const { data: supLead } = await admin.from('leads').select('id,company_name,banned').eq('claimed_by', email).maybeSingle();
+    const { data: ownLead } = await admin.from('leads').select('id,company_name,banned').eq('claimed_by', email).maybeSingle();
+    // A COMPANY'S MEMBER (16 Nov 2026, SUPPLIER hole 4; _shared/supplier_company.ts) reads and asks for his company; a viewer only reads.
+    const member = ownLead ? null : (await companyOf(admin, email)).company;
+    if (member && member.role === 'viewer' && action === 'clarify_ask') return J({ error: 'read_only', code: 'read_only' }, 403);
+    if (member && await sanctionedLead(admin, member.lead_id)) return J({ error: 'forbidden', code: 'account_sanctioned' }, 403);
+    const supLead = ownLead ?? (member ? (await admin.from('leads').select('id,company_name,banned').eq('id', member.lead_id).maybeSingle()).data : null);
+    const supEmail = email;
     // phone_verified is read here because waPhoneOf gates the WhatsApp channel on it — see the note
     // above otherChannels. Selecting `phone` without it is what made an unverified number usable.
     const { data: cust } = await admin.from('customers').select('id,banned,phone,email,phone_verified').eq('email', email).maybeSingle();
@@ -368,7 +358,7 @@ Deno.serve(siteCors(observe('messages_api', async (req) => {
     // Pre-reveal Q&A is keyed on the inquiry alone, never on a supplier the customer has paid to
     // see, so it is answered before the reveal gate below.
     if (action === 'clarify_list' || action === 'clarify_ask' || action === 'clarify_answer') {
-      const res = await clarify(action, body, supLead, cust);
+      const res = await clarify(action, body, supLead, cust, supLead ? supEmail : null);
       return J(res.body, res.status);
     }
 

@@ -9,6 +9,7 @@ import { repriceOutagePlan } from './reprice_outage.ts';
 import { type Ask, outcomeFacts, supplierInstructionTurn } from '../_shared/supplier_instruction.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
+import { waSenderRole } from '../_shared/supplier_company.ts';
 
 // ---- A SUPPLIER ASKING FOR A CHANGE, NOT AN ANSWER (v18) ---------------
 // "Adjust my quotation price" is the one verb on the supplier's list, and until now this
@@ -100,7 +101,9 @@ async function supplierInstruction(t: WaTurn): Promise<Response | undefined> {
   const deps = defaultDeps(admin, 'wa_inbound');
   const ask: Ask = async (sys, input) => (await deps.llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'sales_engineer', max: 400, timeoutMs: 25_000,
     subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, internal: true })).content ?? null;
-  const r = await supplierInstructionTurn(admin, ask, { supplierId: sid, message: Body, channel: 'whatsapp' });
+  // who is writing: a company member's confirmed number carries his role; otherwise the number is the owner's (16 Nov 2026)
+  const sender = await waSenderRole(admin, From);
+  const r = await supplierInstructionTurn(admin, ask, { supplierId: sid, message: Body, channel: 'whatsapp', sender });
   if (!r.handled || !r.outcome) return undefined;   // not one of his instructions, or unreadable: the ordinary reply answers it
   const situation = 'The supplier wrote to us about his job requests or the work we send him. ' + outcomeFacts(r.outcome);
   const out = await sayFor('supplier')(situation, 'en');

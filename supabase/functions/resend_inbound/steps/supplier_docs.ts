@@ -22,6 +22,7 @@ import { SYS } from '../lib/classify_prompt.ts';
 import { SAFE_DOCS } from '../../_shared/attachment.ts';
 import { isClosedRequest } from '../../_shared/request_closed.ts';
 import { quoteByEmail, type MailFile, type OpenRequest } from '../quote_by_email.ts';
+import { mailSenderCompany } from '../../_shared/supplier_company.ts';
 
 export async function supplierDocs(ctx: ReceiptsOut) {
     const { hdrs, resendEmailId, rkey, providerEmailId, from, atts, emailId, key, subject, text, inbSecret, d, to, fullText, fullHtml, receiptish, reasoningHeld, handToBookkeeper, receiptReason, owner } = ctx;
@@ -35,6 +36,16 @@ export async function supplierDocs(ctx: ReceiptsOut) {
     // ---- Supplier document handling (store + classify + AUTO-EXTRACT + apply) ----
     let lead: any = null;
     if (orSafeEmail(from)) { const { data } = await admin.from('leads').select('id,company_name,claimed_by,email,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified,license_doc_path').or(`email.eq.${from},claimed_by.eq.${from}`).limit(1).maybeSingle(); lead = data; }
+    // A COMPANY MEMBER'S OWN ADDRESS (16 Nov 2026, SUPPLIER hole 4; _shared/supplier_company.ts): his mail is his company's. An
+    // estimator's quotation is read like the owner's; a member never changes the company's record by e-mail (the papers stay the owner's).
+    let memberRole: string | null = null;
+    if (!lead && from) {
+      const co = await mailSenderCompany(admin, from);
+      if (co && co.role !== 'owner') {
+        const { data } = await admin.from('leads').select('id,company_name,claimed_by,email,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified,license_doc_path').eq('id', co.lead_id).maybeSingle();
+        if (data) { lead = data; memberRole = co.role; }
+      }
+    }
     let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = []; const unreadDocs: string[] = []; const notLicences: string[] = [];
     let lostAttachments = 0; let uploadFailures = 0; let classifyFailures = 0; let refusedAttachments = 0; let classifySkipped = 0;
     const hv = (k: string) => { const v = hdrs?.[k] ?? hdrs?.[k.toLowerCase()]; return v == null ? null : String(Array.isArray(v) ? v[0] : v); };
@@ -61,7 +72,7 @@ export async function supplierDocs(ctx: ReceiptsOut) {
         if (sc.ok) files.push({ index: i, filename: fname, mime: sc.result.mime, bytes: sc.result.bytes });
       }
       try {
-        quoteRoute = await quoteByEmail({ from, subject, text: fullText.slice(0, 20000), inReplyTo: hv('in-reply-to'), references: hv('references'), senderAuth: senderAuth }, lead, files, {
+        quoteRoute = await quoteByEmail({ from, subject, text: fullText.slice(0, 20000), inReplyTo: hv('in-reply-to'), references: hv('references'), senderAuth: senderAuth, quotingMember: memberRole === 'estimator' }, lead, files, {
           openRequests: async (leadId) => {
             const { data: ms } = await admin.from('inquiry_matches').select('inquiry_id').eq('supplier_id', leadId);
             const ids = [...new Set((ms || []).map((m: { inquiry_id: string }) => String(m.inquiry_id)).filter(Boolean))];
@@ -153,7 +164,7 @@ export async function supplierDocs(ctx: ReceiptsOut) {
       const cat = String(ai.category||'other');
       let extracted:any = null; const fields:string[] = [];
       if (lead && inbSecret) {
-        if (cat === 'trade_license' && leadWritable(lead, senderAuth)) {
+        if (cat === 'trade_license' && (leadWritable(lead, senderAuth) && !memberRole)) {
           const ex = await extractDoc('license', bytes, mime, fname, inbSecret);
           if (!ex?.doc) unreadDocs.push(fname);   // ruling 1177: nothing read at all -> ask for a clearer copy (a low-confidence read WAS read; it goes to review)
           // THE READER SAID IT IS NOT A LICENCE, OR A PERSON MUST LOOK (13 Nov 2026, founder rulings 1668 and 1681; licence_extract.ts
@@ -186,7 +197,7 @@ export async function supplierDocs(ctx: ReceiptsOut) {
             if (w.licenceSetAside) { const i = fields.findIndex((f) => f.startsWith('licence no ')); if (i >= 0) fields[i] = 'licence no set aside for review (held by another claimed company)'; }
             if (w.error) { console.error('resend_inbound: licence readings not saved —', String(w.error.message ?? '')); fields.length = 0; }
           }
-        } else if ((cat === 'company_profile' || cat === 'catalogue') && leadWritable(lead, senderAuth)) {
+        } else if ((cat === 'company_profile' || cat === 'catalogue') && (leadWritable(lead, senderAuth) && !memberRole)) {
           const ex = await extractDoc('profile', bytes, mime, fname, inbSecret);
           if (!ex?.profile) unreadDocs.push(fname);
           const u:any = { doc_extracted_at: new Date().toISOString() };

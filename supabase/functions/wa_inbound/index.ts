@@ -54,6 +54,7 @@ import { founderTurn } from './founder.ts';
 import { mediaIn } from './media_in.ts';
 import { hearVoiceNote } from './hear.ts';
 import { supplierDirective } from './supplier_directive.ts';
+import { memberPhone } from './member_phone.ts';
 import { answerTurn } from './general_turn.ts';
 import { turnGate } from './burst.ts';
 import { endTurnHolding } from './holding.ts';
@@ -82,6 +83,7 @@ async function handleTurn(req: Request): Promise<Response> {
     makeSay(t);
     const specOffer = await specOfferReply(t); if (specOffer) return specOffer;
     await identify(t);
+    const memberCode = await memberPhone(t); if (memberCode) return memberCode;   // a company member confirming his number (member_phone.ts)
     await startClassification(t);
     startSpeculation(t);
     const fromMenu = await answerFromTheMenu(t); if (fromMenu) return fromMenu;

@@ -38,9 +38,25 @@ async function rematchSweepCall(): Promise<unknown> {
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
+// THE SUPPLIER'S OPEN LOOPS (16 Nov 2026, SUPPLIER holes 5 and 9; sales_engineer actions/duties.ts supplier_loops_sweep): job questions
+// read first and reminded once, losing suppliers told why. The same 15-minute beat, nested beside the two above, so its failure is its
+// own finding and never hides theirs.
+async function supplierLoopsSweepCall(): Promise<unknown> {
+  try {
+    const secret = await sec('cred_fn_resilience_ping');
+    const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const r = await fetch(FN + '/sales_engineer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, apikey: key },
+      body: JSON.stringify({ __secret: secret, action: 'supplier_loops_sweep', limit: 8 }), signal: AbortSignal.timeout(55000),
+    });
+    const j = await r.json().catch(() => null);
+    return j && j.ok === false ? { ok: false, error: 'supplier loops sweep failed', result: j } : { status: r.status, result: j };
+  } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
 export async function specOfferAndRematchTick(): Promise<unknown> {
-  const [spec_offer, rematch] = await Promise.all([specOfferSweepCall(), rematchSweepCall()]);
-  return { spec_offer, rematch };
+  const [spec_offer, rematch, supplier_loops] = await Promise.all([specOfferSweepCall(), rematchSweepCall(), supplierLoopsSweepCall()]);
+  return { spec_offer, rematch, supplier_loops };
 }
 
 // THE SALES ENGINEER'S DAILY SUPPLIER OUTREACH LEFT THIS TICK ON 28 OCT 2026 (sales_engineer). It ran here as the step

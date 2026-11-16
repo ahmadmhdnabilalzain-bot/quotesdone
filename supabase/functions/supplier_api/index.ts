@@ -16,7 +16,7 @@ import { requireInternal } from '../_shared/internal_auth.ts';
 import { safeInquiry } from './quote_review_actions.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { type ActionCtx, J, admin, cors, failed } from './context.ts';
-import { atTheDoor, warmOnly } from './lib/door.ts';
+import { atTheDoor, emailClaimOf, warmOnly } from './lib/door.ts';
 import { arabicFinish } from './lib/arabic_quotation.ts';
 import { emailedQuotationThread, quoteReviewChatActions } from './actions/quote_review_chat.ts';
 import { accountActions } from './actions/account.ts';
@@ -28,13 +28,15 @@ import { printActions } from './actions/prints.ts';
 import { askQuoteExtract, quoteActions } from './actions/quotes.ts';
 import { notForMeActions } from './actions/not_for_me.ts';
 import { emailQuote, emailQuoteRead } from './email_quote.ts';
+import { teamActions } from './actions/team.ts';
+import { companyOf, memberMay } from '../_shared/supplier_company.ts';
 
 // The action groups, in the order their first action appeared in the old single if-chain. Each group is that
 // chain's own `if (…)` blocks, moved verbatim, and answers undefined when none of its actions is asked. The
 // quotation review's REVIEW_ACTIONS stay first, as they were; every other condition is a distinct string equality,
 // and the four-document print block (quote_pdf | inquiry_pdf | receipts | receipt_pdf) stays one unit.
 const ACTION_GROUPS: readonly ((c: ActionCtx) => Promise<Response | undefined>)[] = [
-  quoteReviewChatActions, accountActions, capabilityActions, documentActions, profileActions, inboxActions, printActions,
+  teamActions, quoteReviewChatActions, accountActions, capabilityActions, documentActions, profileActions, inboxActions, printActions,
   quoteActions, notForMeActions,
 ];
 
@@ -116,12 +118,31 @@ const handle = async (req: Request): Promise<Response> => {
     // reaching supplier_pay to clear it.
     // The ban read leaves beside the sign-in check for the address the token names, and is used only for the address getUser
     // verified (15 Nov 2026: one round trip fewer on every action; ./lib/door.ts says why it decides exactly what it did).
+    // the company read leaves beside the sign-in check for the address the token names, like the ban read (lib/door.ts), and is
+    // used only for the address getUser verified: a member's portal pays no extra round trip
+    const hinted = emailClaimOf(jwt);
+    const earlyCompany = hinted ? companyOf(admin, hinted) : null;
+    earlyCompany?.catch(() => {});
     const door = await atTheDoor(jwt, { getUser: async (t) => (await admin.auth.getUser(t)).data.user, sanctioned: (e) => sanctionedEmail(admin, e) });
     if (door.kind === 'unauthorized') return J({ error: 'unauthorized' }, 401);
     if (door.kind === 'sanctioned') return J(SANCTIONED_REFUSAL, 403);
-    const { user, email } = door;
+    const { user, email: signedIn } = door;
     const body = await req.json().catch(() => ({})); const action = body.action; actionName = String(action ?? '').slice(0, 40);
-    const ctx: ActionCtx = { req, jwt, user, email, body, action, handle, safeInquiryOf };
+    // A COMPANY HAS MEMBERS (16 Nov 2026, SUPPLIER hole 4; _shared/supplier_company.ts). The signed-in address is resolved to the
+    // company it acts for: a member acts for the company's address, so every action below that scopes by claimed_by scopes by
+    // his company; his role decides what he may do, and a sanctioned company refuses its members as it refuses its owner.
+    const reading = await (earlyCompany && hinted === signedIn ? earlyCompany : companyOf(admin, signedIn));
+    let email = signedIn;
+    if (reading.company && reading.company.role !== 'owner') {
+      if (await sanctionedEmail(admin, reading.company.company_email)) return J(SANCTIONED_REFUSAL, 403);
+      const may = memberMay(reading.company.role, String(action ?? ''));
+      if (!may.ok) return J(may, 403);
+      email = String(reading.company.company_email).toLowerCase();
+    }
+    // an invited person must not start a company of his own under the address his company invited (the portal opens
+    // registration for an account with no company): he is shown the invitation instead
+    if (reading.invitation && action === 'create_company') return J({ ok: false, code: 'team_invitation', invitation: reading.invitation }, 409);
+    const ctx: ActionCtx = { req, jwt, user, email, body, action, handle, safeInquiryOf, signedIn, reading };
     for (const group of ACTION_GROUPS) {
       // awaited inside the try, so an action that throws still reaches the catch below
       const answer = await group(ctx);

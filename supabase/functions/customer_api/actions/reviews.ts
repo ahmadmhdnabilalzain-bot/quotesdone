@@ -1,4 +1,4 @@
-// customer_api — after the job: rate_supplier, add_review_photos, review_photos, supplier_history.
+// customer_api — after the job: decision_reason, rate_supplier, add_review_photos, review_photos, supplier_history.
 //
 // The if-chain below is index.ts's own, moved line for line with its original indentation, so each
 // `if (action === …)` reads exactly as it did and the checks that locate a handler by that line still find it.
@@ -22,6 +22,17 @@ export async function reviewActions(c: ActionCtx): Promise<Response | undefined>
     // (scripts/sql/a_customer_is_never_blocked_from_rating.sql) and this handler refuses a short one
     // BEFORE the write, in words the customer can read, rather than letting the database refuse it
     // as a 500. Who may rate and when is unchanged: a transaction on this quote, 1..5, one per job.
+    // WHAT DECIDED IT (16 Nov 2026, SUPPLIER hole 9; agent SUPPLIER_W2). At the reveal the customer is asked ONE optional question;
+    // his words are kept for the request (fn_customer_decision_reason_save: only a customer who revealed on it) and the sales
+    // engineer's model writes each losing supplier's reason from them (supplier_api/loss_feedback.ts), never naming anyone.
+    if (action === 'decision_reason') {
+      const qid = String(body.quote_id || '');
+      const reason = String(body.reason || '').trim().slice(0, 1000);
+      if (reason.length < 2) return J({ error: 'Write a few words, or skip the question.', code: 'empty' }, 400);
+      const { data, error } = await admin.rpc('fn_customer_decision_reason_save', { p_customer: cust.id, p_quote: qid, p_reason: reason, p_lang: body.lang === 'ar' ? 'ar' : 'en' });
+      if (error) return J({ error: 'We could not save that. Please try again.', code: 'save_failed' }, 500);
+      return J(data, (data as { ok?: boolean })?.ok ? 200 : 403);
+    }
     if (action === 'rate_supplier') {
       const qid = String(body.quote_id || '');
       // The rule (stars alone suffice; a comment, if given, is 10+ characters) lives in

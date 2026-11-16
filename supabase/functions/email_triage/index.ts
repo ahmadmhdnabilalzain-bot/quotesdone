@@ -44,6 +44,7 @@ import { mailComplaint } from './complaint.ts';
 import { acknowledgeIfCarried, complaintFact } from '../_shared/complaint_register.ts';
 import { holdingRules, isStanding, type Standing } from '../_shared/escalation_clock.ts';
 import { type Ask, outcomeFacts, supplierInstructionTurn } from '../_shared/supplier_instruction.ts';
+import { mailSenderCompany } from '../_shared/supplier_company.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 const llm = makeLlm(SONNET_FIRST, TRIAGE_LLM); // shared OpenRouter client (Sonnet-first ladder + 25s timeout); never served another mail's triage from the cache (triage_llm.ts)
@@ -75,12 +76,14 @@ async function mailForbidden(m: Mail, audience: 'customer' | 'supplier'): Promis
 async function supplierMailInstruction(m: Mail, deps: ThinkDeps): Promise<string> {
   if (!m.lead_id || (m.raw as { sender_authenticated?: unknown } | null)?.sender_authenticated !== true) return '';
   try {
-    const { data: lead } = await admin.from('leads').select('claimed_by').eq('id', Number(m.lead_id)).maybeSingle();
-    if (!lead?.claimed_by || String(lead.claimed_by).trim().toLowerCase() !== String(m.from_email || '').trim().toLowerCase()) return '';
+    // the company's own address, or (16 Nov 2026, SUPPLIER hole 4) one of its members' own addresses, with his role
+    const co = await mailSenderCompany(admin, String(m.from_email || ''));
+    if (!co || Number(co.lead_id) !== Number(m.lead_id)) return '';
+    const sender = { role: co.role, email: co.role === 'owner' ? null : co.member_email, name: co.member_name ?? null };
     const fixture = /@example\.invalid$/i.test(String(m.from_email || ''));
     const ask: Ask = async (sys, input) => (await deps.llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'sales_engineer', max: 400, timeoutMs: 25_000,
       subject: { message_id: m.id, channel: 'email', ...(fixture ? { fixture: true } : {}) }, internal: true })).content ?? null;
-    const r = await supplierInstructionTurn(admin, ask, { supplierId: Number(m.lead_id), message: 'Subject: ' + String(m.subject || '') + '\n\n' + String(m.body || '').slice(0, 2400), channel: 'email' });
+    const r = await supplierInstructionTurn(admin, ask, { supplierId: Number(m.lead_id), message: 'Subject: ' + String(m.subject || '') + '\n\n' + String(m.body || '').slice(0, 2400), channel: 'email', sender });
     return r.handled ? outcomeFacts(r.outcome) : '';
   } catch (e) { console.error('email_triage supplier instruction', m.id, String((e as Error)?.message || e)); return ''; }
 }
