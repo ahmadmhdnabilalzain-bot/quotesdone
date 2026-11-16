@@ -47,13 +47,8 @@ export const REQUESTS = {
     ],
     note_after: 'Two of the units are for bedrooms and one for the living room.',
     thread: [{ s: 's2', q: 'Is the living room unit wall-mounted or ducted?', a: 'Wall-mounted, please.' }],
-    comparison: { considered: 3, not_comparable: false, bottom_line: 'Supplier A is cheapest but quotes a lower brand tier than asked; Supplier C matches everything and is fastest but is above the budget; Supplier B fits the budget before VAT with a 1-year warranty.',
-      cheapest_label: 'Supplier A', best_value_label: 'Supplier C',
-      top3: [{ rank: 1, label: 'Supplier C', why: 'Matches the brand tier and warranty asked, fastest', tradeoff: 'AED 1,300 above the next quote' },
-        { rank: 2, label: 'Supplier A', why: 'Cheapest', tradeoff: 'Lower brand tier than asked' }, { rank: 3, label: 'Supplier B', why: 'Within budget before VAT', tradeoff: '1-year warranty' }],
-      quotes: [{ label: 'Supplier A', price: 4600, missing_from_request: [], spec_deviation: ['mid-range Chinese brand instead of premium Japanese brand'], flags: [] },
-        { label: 'Supplier B', price: 4900, missing_from_request: [], spec_deviation: ['warranty 1 year, 2 asked'], flags: [] },
-        { label: 'Supplier C', price: 6200, missing_from_request: [], spec_deviation: [], flags: [] }] } },
+    // REVIEW 16 Nov: no comparison in the facts (the cache holds raw model output; the portal is its one door).
+  },
   PAINT: { category: 'painting', emirate: 'Dubai', status: 'quoted', sent_hours_ago: 30, summary: 'ZZ DEMO paint a two-bedroom apartment interior',
     budget: 'around 3k', required_by_days: 14, matched: ['s4', 's1', 's2'],
     quotes: [{ s: 's4', ex: 3400, vat: null, vat_amount: null, lead: '5 days', warranty: '6 months', validity: '14 days', valid_days: 14, brand: null, notes: [] }] },
@@ -109,8 +104,8 @@ export const SCENARIOS = [
     needs: A('suppliers_received', 'quotes_received', 'late', 'quotes_due_by'),
     judge: 'Says it was sent to 3 suppliers and 1 has quoted so far, the quote time has passed (late), and what happens next; invents no reason for the others.' },
   { id: 'en_a_or_b', lang: 'en', req: 'AC', action: 'answer', msg: 'is A or B better?',
-    needs: A('comparison.bottom_line', 'quotes.*.notes_against_your_request'),
-    judge: 'Weighs A (AED 4,600, lower brand tier than asked) against B (AED 4,900, 1-year warranty shorter than the 2 years asked) from the notes and the comparison, and may mention the comparison\'s best value (Supplier C). Names no supplier.' },
+    needs: A('quotes.*.notes_against_your_request', 'quotes.*.warranty_as_stated'),
+    judge: 'Weighs A (AED 4,600, lower brand tier than asked) against B (AED 4,900, 1-year warranty shorter than the 2 years asked) from the notes; may say the full comparison is on his portal. Names no supplier.' },
   { id: 'en_cancel', lang: 'en', req: 'FLOOR', action: 'cancel', msg: 'cancel my flooring request',
     needs: A('ref', 'status'),
     judge: 'Does not say it is cancelled on this turn; asks him to confirm with the request number (or states how cancelling works). Names the flooring request.' },
@@ -136,10 +131,10 @@ export const SCENARIOS = [
     needs: A('quotes.*.price_ex_vat_aed', 'quotes.*.vat_as_stated'), must: [['3,400', '3400']],
     judge: 'Gives the one quote: AED 3,400, VAT not stated; may note it is above his "around 3k". Names no supplier.' },
   { id: 'en_what_next', lang: 'en', req: 'AC', action: 'answer', msg: 'what happens next?',
-    needs: A('quotes_received', 'comparison.bottom_line'),
-    judge: 'Explains the next step from where the request is: 3 quotes in, compare (the comparison is ready), reveal the one he chooses to get the supplier\'s contact. No invented fee figure beyond what the facts or company give.' },
+    needs: A('quotes_received', 'quotes.*.letter'),
+    judge: 'Explains the next step from where the request is: 3 quotes in, compare them (on his portal), reveal the one he chooses to get the supplier\'s contact. No invented fee figure beyond what the facts or company give.' },
   { id: 'en_whats_missing', lang: 'en', req: 'AC', action: 'answer', msg: 'is anything missing from the quotes compared to what I asked?',
-    needs: A('quotes.*.notes_against_your_request', 'comparison.per_quote'),
+    needs: A('quotes.*.notes_against_your_request'),
     judge: 'Names the gaps: A a lower brand tier than asked, B a shorter warranty (1 year vs 2); C matches. Names no supplier.' },
   { id: 'en_validity', lang: 'en', req: 'AC', action: 'answer', msg: 'how long are the quotes valid?',
     needs: A('quotes.*.valid_until', 'quotes.*.validity_as_stated'),
@@ -214,8 +209,8 @@ export const SCENARIOS = [
     needs: A('quotes_received', 'quotes.*.price_ex_vat_aed'),
     judge: 'Status of the painting request: 1 quote of AED 3,400 so far from 3 suppliers reached, past the quote time.' },
   { id: 'portal_compare_a_c', lang: 'en', req: 'AC', action: 'answer', channel: 'portal', msg: 'Compare A and C for me',
-    needs: A('comparison.per_quote', 'quotes.*.notes_against_your_request'),
-    judge: 'A: AED 4,600, lower brand tier than asked, 3 days, 2 years; C: AED 6,200, matches, 2 days, 3 years, the comparison\'s best value. Names no supplier.' },
+    needs: A('quotes.*.notes_against_your_request', 'quotes.*.lead_time_as_stated'),
+    judge: 'A: AED 4,600, lower brand tier than asked, 3 days, 2 years; C: AED 6,200, matches, 2 days, 3 years. Names no supplier.' },
   { id: 'en_when_quotes', lang: 'en', req: 'FLOOR', action: 'answer', msg: 'when will I get quotes?',
     needs: A('quotes_due_by', 'suppliers_received'),
     judge: 'Gives the time quotes are due by (from the facts) and that 3 suppliers have it; no promise beyond that.' },
@@ -257,6 +252,12 @@ export const COVERAGE = {
 
 const sq = (s) => (s == null ? 'null' : "'" + String(s).replace(/'/g, "''") + "'");
 
+// THE ROUTE EACH SCENARIO IS ANSWERED ON (REVIEW 16 Nov, item 5). Production composes the reply on fn_wa_route's output, whose
+// deterministic_reply carries the database's own answer for the intent the classifier reasoned (a change sent, a cancel to
+// confirm). The classifier is a model, so the bank states the intent a correct classification gives each action, and the fixture
+// reads fn_wa_route_dry (every write rolled back) for it; the paid eval composes on that route, never on the pack alone.
+export const INTENT_OF = { answer: 'my_requests', change: 'change_request', cancel: 'cancel_request', identity: 'none' };
+
 /** The fixture as SQL, run inside a transaction the caller rolls back. Ends with the WhatsApp fact pack and the own record. */
 export function fixtureSql() {
   const out = [];
@@ -280,6 +281,9 @@ export function fixtureSql() {
   insert into zz_cf_inq select ${sq(k)}, id from x;`);
     out.push(`insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, sent_at, match_reason)
   select (select id from zz_cf_inq where k = ${sq(k)}), s.id, 0.9, now() - interval '${r.sent_hours_ago} hours', 'ZZ DEMO casefacts' from zz_cf_ids s where s.k in (${r.matched.map(sq).join(', ')});`);
+    // REVIEW 16 Nov: the paid reveal is written AFTER every quote of the request: from the first paid reveal a request takes no
+    // new quotation (main's trigger a05, REQUEST_REVEALED, a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql).
+    const reveals = [];
     r.quotes.forEach((q, n) => {
       const qid = `'00000000-0000-4000-8000-${String(0xcf0000 + Object.keys(REQUESTS).indexOf(k) * 16 + n).padStart(12, '0')}'`;
       out.push(`insert into public.quote_items (quote_id, line_no, description, brand, model, specification, qty, unit, unit_price, labour)
@@ -288,21 +292,27 @@ export function fixtureSql() {
   values (${qid}, (select id from zz_cf_inq where k = ${sq(k)}), (select id from zz_cf_ids where k = ${sq(q.s)}), ${q.ex}, ${q.ex}, ${sq(q.vat)}, ${q.vat_amount ?? 'null'}, 'submitted',
           now() - interval '${Math.max(1, r.sent_hours_ago - 2 - n)} hours', ${sq(q.lead)}, ${sq(q.warranty)}, ${sq(q.validity)}, now() + interval '${q.valid_days} days', '50% advance', ${sq(JSON.stringify(q.notes))}::jsonb);`);
       if (q.revealed) {
-        out.push(`insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, fee_status, revealed_at, refund_deadline)
+        reveals.push(`insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, fee_status, revealed_at, refund_deadline)
   values (${qid}, (select id from zz_cf_inq where k = ${sq(k)}), (select id from zz_cf_ids where k = ${sq(q.s)}), '00000000-0000-4000-8000-0000000c0071', ${q.ex}, 'paid', now() - interval '1 day', now() + interval '6 days');`);
       }
     });
     if (r.quotes.length) {
       out.push(`update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id in (select q.id from public.quotes q where q.inquiry_id = (select id from zz_cf_inq where k = ${sq(k)}));`);
       out.push(`update public.quotes set status = 'submitted' where inquiry_id = (select id from zz_cf_inq where k = ${sq(k)});`);
+      // the portal records each supplier's letter the first time it shows the quotes (customer_api my_inquiries -> recordShown ->
+      // fn_customer_supplier_letters, arrival order); the facts list only quotes with a stored letter or a reveal
+      const shown = r.quotes.map((q) => `jsonb_build_object('inquiry_id', (select id from zz_cf_inq where k = ${sq(k)}), 'supplier_id', (select id from zz_cf_ids where k = ${sq(q.s)}))`);
+      out.push(`do $l$ begin perform public.fn_customer_supplier_letters(array[(select id from zz_cf_inq where k = ${sq(k)})], jsonb_build_array(${shown.join(', ')}), 'quote_card'); end $l$;`);
     }
+    out.push(...reveals);
     out.push(`update public.inquiries set status = ${sq(r.status)} where id = (select id from zz_cf_inq where k = ${sq(k)});`);
     if (r.note_after) out.push(`insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answered_at, source) values ((select id from zz_cf_inq where k = ${sq(k)}), null, 'note', ${sq(r.note_after)}, now() - interval '3 hours', 'rfq_note');`);
     for (const th of r.thread ?? []) out.push(`insert into public.rfq_clarification (inquiry_id, supplier_id, kind, question, answer, source, asked_at, answered_at) values ((select id from zz_cf_inq where k = ${sq(k)}), (select id from zz_cf_ids where k = ${sq(th.s)}), 'question', ${sq(th.q)}, ${sq(th.a)}, 'portal', now() - interval '10 hours', now() - interval '9 hours');`);
-    if (r.comparison) out.push(`insert into public.qd_compare_cache (inquiry_id, quotes_hash, lang, analysis, created_at) values ((select id::text from zz_cf_inq where k = ${sq(k)}), 'zz-demo-casefacts', 'en', ${sq(JSON.stringify(r.comparison))}::jsonb, now() - interval '1 hour');`);
   }
   out.push(`select jsonb_build_object('refs', (select jsonb_object_agg(z.k, i.rfq_no) from zz_cf_inq z join public.inquiries i on i.id = z.id),
-  'pack', public.fn_wa_fact_pack('whatsapp:${CUSTOMER.phone}'), 'mine', public.fn_wa_context('customer', 'whatsapp:${CUSTOMER.phone}'))::text as result;`);
+  'pack', public.fn_wa_fact_pack('whatsapp:${CUSTOMER.phone}'), 'mine', public.fn_wa_context('customer', 'whatsapp:${CUSTOMER.phone}'),
+  'routes', (select jsonb_object_agg(v.id, public.fn_wa_route_dry('whatsapp:${CUSTOMER.phone}', v.msg, false, v.intent))
+               from (values ${SCENARIOS.map((sc) => `(${sq(sc.id)}, ${sq(sc.msg)}, ${sq(INTENT_OF[sc.action])})`).join(', ')}) v(id, msg, intent)))::text as result;`);
   return out.join('\n');
 }
 

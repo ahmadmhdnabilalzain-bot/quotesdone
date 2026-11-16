@@ -100,4 +100,12 @@ test('local database: every fact each scenario needs is in the WhatsApp pack and
   assert.deepEqual(ac.quotes.map((q) => [q.letter, q.price_ex_vat_aed, q.total_with_vat_aed]), [['A', 4600, 4830], ['B', 4900, 5145], ['C', 6200, 6510]]);
   assert.equal(ac.asked.budget_as_he_stated_it, 'AED 5,000 excluding VAT');
   assert.equal(packReqs.find((x) => x.ref === out.refs.FLOOR).quotes.length, 0);
+  // REVIEW 16 Nov: no comparison in the facts; every quote the portal showed has its stored letter, so none is merely counted
+  for (const req of [...packReqs, ...mineReqs]) assert.ok(!('comparison' in req), `request ${req.ref} carries a comparison`);
+  assert.equal(ac.quotes_not_yet_on_his_portal, 0);
+  // the paid eval composes on each scenario's route, as production does: a change or a cancel carries the database's answer
+  for (const s of SCENARIOS) assert.ok(out.routes?.[s.id], `${s.id}: no route`);
+  for (const s of SCENARIOS.filter((x) => ['change', 'cancel'].includes(x.action))) {
+    assert.ok(String(out.routes[s.id].deterministic_reply || '').trim(), `${s.id}: the ${s.action} route gives no database answer`);
+  }
 });

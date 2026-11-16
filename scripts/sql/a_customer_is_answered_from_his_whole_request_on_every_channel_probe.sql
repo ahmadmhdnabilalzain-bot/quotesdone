@@ -17,7 +17,8 @@
 --      its own brand value and an e-mail address; the sales engineer's notes ride with the quote;
 --   P4 a revealed quote names its supplier; the other stays a letter and a price;
 --   P5 a sanctioned supplier's sealed quote is not shown and takes no letter (the letters run A, B with no gap);
---   P6 the comparison is the newest GOOD reading (a newer failure record is skipped);
+--   P6 no comparison rides in the facts (a cache row is raw model output; the portal is its one door), and every live quote
+--      has its stored letter, so none is merely counted;
 --   P7 an old closed request (fifth newest, completed) keeps the summary keys only;
 --   P8 the 3 Nov keys keep their meaning (quotes_received counts live quotes, price_band from two sealed quotes, ref), and a
 --      sanctioned supplier's sealed quote is no longer counted or averaged (three shown, three counted, not late);
@@ -91,6 +92,13 @@ begin
   values (iA::text, 'zz-probe-good', 'en', '{"considered":3,"bottom_line":"ZZ DEMO good reading","cheapest_label":"Supplier A","quotes":[{"label":"Supplier A","price":4600,"spec_deviation":["lower brand tier"]}]}'::jsonb, now() - interval '2 hours'),
          (iA::text, 'zz-probe-failed', 'en', '{"__failed":{"count":1,"detail":"ZZ DEMO"}}'::jsonb, now() - interval '1 hour');
 
+  -- REVIEW 16 Nov: the portal records the letters the first time it shows the quotes (customer_api my_inquiries ->
+  -- recordShown -> fn_customer_supplier_letters, arrival order, never a held or sanctioned one); the facts read only those.
+  -- The sanctioned supplier is passed too: the function refuses it, as it does for any caller.
+  perform public.fn_customer_supplier_letters(array[iA, iB], jsonb_build_array(
+            jsonb_build_object('inquiry_id', iA, 'supplier_id', s1), jsonb_build_object('inquiry_id', iA, 'supplier_id', s2),
+            jsonb_build_object('inquiry_id', iA, 'supplier_id', s3),
+            jsonb_build_object('inquiry_id', iB, 'supplier_id', s4), jsonb_build_object('inquiry_id', iB, 'supplier_id', s2)), 'quote_card');
   v := public.fn_wa_context('customer', ph);
   w := public.fn_wa_fact_pack(ph);
   r := (select x from jsonb_array_elements(v -> 'inquiries') x where (x ->> 'ref')::int = refA);
@@ -110,21 +118,21 @@ begin
   -- P2 (letters by price over the shown quotes: Glacier 4,600 -> A, Tundra 4,900 -> B, Glacier option 2 -> A)
   select jsonb_object_agg(x ->> 'label', jsonb_build_array(x -> 'price_ex_vat_aed', x -> 'total_with_vat_aed', x ->> 'vat_as_stated')) into qa
     from jsonb_array_elements(r -> 'quotes') x;
-  if qa is null or qa -> 'Supplier A - Option 1' -> 0 <> '4600'::jsonb or qa -> 'Supplier A - Option 1' -> 1 <> '4830'::jsonb
+  if qa is null or qa -> 'Supplier A – Option 1' -> 0 <> '4600'::jsonb or qa -> 'Supplier A – Option 1' -> 1 <> '4830'::jsonb
      or qa -> 'Supplier B' -> 0 <> '4900'::jsonb or qa -> 'Supplier B' -> 1 <> '4900'::jsonb
-     or qa -> 'Supplier A - Option 2' -> 0 <> '5200'::jsonb or qa -> 'Supplier A - Option 2' -> 1 <> 'null'::jsonb
-     or qa -> 'Supplier A - Option 2' ->> 2 <> 'VAT not stated' then
+     or qa -> 'Supplier A – Option 2' -> 0 <> '5200'::jsonb or qa -> 'Supplier A – Option 2' -> 1 <> 'null'::jsonb
+     or qa -> 'Supplier A – Option 2' ->> 2 <> 'VAT not stated' then
     fails := fails || ' P2:quotes(' || coalesce(qa::text, 'null') || ')'; end if;
-  t := (select x ->> 'price_as_shown' from jsonb_array_elements(r -> 'quotes') x where x ->> 'label' = 'Supplier A - Option 1');
+  t := (select x ->> 'price_as_shown' from jsonb_array_elements(r -> 'quotes') x where x ->> 'label' = 'Supplier A – Option 1');
   if t is distinct from 'AED 4,600 before VAT, AED 230 VAT, AED 4,830 with VAT' then fails := fails || ' P2:price_as_shown(' || coalesce(t, 'null') || ')'; end if;
   o := o || jsonb_build_object('P2_quotes', qa);
 
   -- P3
   t := (select x ->> 'lead_time_as_stated' || ' | ' || (x ->> 'warranty_as_stated') || ' | ' || (x ->> 'validity_as_stated')
-          from jsonb_array_elements(r -> 'quotes') x where x ->> 'label' = 'Supplier A - Option 1');
+          from jsonb_array_elements(r -> 'quotes') x where x ->> 'label' = 'Supplier A – Option 1');
   if t is null or t ~* 'glacier|midea|@' or t !~ 'the supplier' or t !~ 'a brand \(shown after reveal\)' then fails := fails || ' P3:words(' || coalesce(t, 'null') || ')'; end if;
   if v::text ~* 'Glacier Cooling|Tundra Air|Banned Breeze' or w::text ~* 'Glacier Cooling|Tundra Air|Banned Breeze' then fails := fails || ' P3:name_leak'; end if;
-  if (select x -> 'notes_against_your_request' ->> 0 from jsonb_array_elements(r -> 'quotes') x where x ->> 'label' = 'Supplier A - Option 1') not like 'Quotes a mid-range Chinese brand%' then
+  if (select x -> 'notes_against_your_request' ->> 0 from jsonb_array_elements(r -> 'quotes') x where x ->> 'label' = 'Supplier A – Option 1') not like 'Quotes a mid-range Chinese brand%' then
     fails := fails || ' P3:notes'; end if;
   o := o || jsonb_build_object('P3_words', t);
 
@@ -149,7 +157,7 @@ begin
     fails := fails || ' P10:thread(' || coalesce((r -> 'quotes')::text, 'null') || ')'; end if;
 
   -- P6
-  if r -> 'comparison' ->> 'bottom_line' is distinct from 'ZZ DEMO good reading' or r -> 'comparison' -> 'per_quote' -> 0 ->> 'label' <> 'Supplier A' then
+  if r ? 'comparison' or (r ->> 'quotes_not_yet_on_his_portal')::int <> 0 then
     fails := fails || ' P6:comparison(' || coalesce((r -> 'comparison')::text, 'null') || ')'; end if;
 
   -- P7

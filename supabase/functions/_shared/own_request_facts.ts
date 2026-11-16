@@ -4,7 +4,8 @@
 // happened with my inquiry? Did you find anyone below 5,000?" — "I don't want the system to be rule-based only, like 1 + 1 = 2.
 // No, it's scenarios". So the database supplies the facts and the model reasons over them: public.fn_customer_inquiry_facts
 // (scripts/sql/a_customer_is_answered_from_his_whole_request_on_every_channel.sql) gives each request what he asked (`asked`,
-// `changes_he_sent_after`) and each live quote what his portal shows him (`quotes`, `comparison`), and this file holds the two
+// `changes_he_sent_after`) and each live quote his portal shows him (`quotes`; one not yet shown is only counted, `quotes_not_yet_on_his_portal`; the
+// comparison stays on the portal, REVIEW 16 Nov), and this file holds the two
 // things every channel that hands those facts to a model shares:
 //   OWN_REQUEST_RULE          what the model is told to do with them (WhatsApp wa_inbound/compose.ts, the widget and the
 //                             signed-in site chat site_assistant/turn_facts.ts, the portal chat sales_engineer/actions/portal.ts,
@@ -22,7 +23,7 @@ export const OWN_REQUEST_RULE = 'HIS OWN REQUESTS. His own record in these facts
   + 'the emirate and his site, the materials and brands he asked for, the alternatives he accepted), and `changes_he_sent_after`. Each live quote '
   + 'carries what his portal shows him: its letter, its price before VAT and with VAT as the supplier stated it, how long it is valid, its lead time and '
   + 'warranty as stated, the sales engineer\'s notes against his request, and `questions_and_answers` (what that supplier asked him and what '
-  + 'he answered); `comparison` is the comparison report his portal shows. Give amounts as `price_as_shown` writes them (AED and the figure). '
+  + 'he answered); a live quote his portal has not shown yet is only counted (`quotes_not_yet_on_his_portal`), never priced. Give amounts as `price_as_shown` writes them (AED and the figure). '
   + 'Answer any question about his own request by reasoning over these: a price against his budget (say whether you compare before or with VAT, '
   + 'following how he stated his budget), who can deliver by a date (from the lead times; one that is not stated is not stated), which quote matches '
   + 'a brand he asked for (before the reveal no brand is named: say what the notes say and that the exact brand shows after the reveal), what is still '

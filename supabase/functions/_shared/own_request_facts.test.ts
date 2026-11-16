@@ -9,7 +9,7 @@ const PACK = { identity: { kind: 'customer', requests: [{ ref: 14, asked: { budg
 ] }] } };
 
 Deno.test('the rule names every fact the scenarios need and forbids invention, identity and a claimed change', () => {
-  for (const k of ['asked', 'changes_he_sent_after', 'comparison', 'budget', 'VAT', 'lead time', 'brand', 'AED', '3.6725', 'reveal', 'cancel']) assert(OWN_REQUEST_RULE.includes(k), k);
+  for (const k of ['asked', 'changes_he_sent_after', 'quotes_not_yet_on_his_portal', 'budget', 'VAT', 'lead time', 'brand', 'AED', '3.6725', 'reveal', 'cancel']) assert(OWN_REQUEST_RULE.includes(k), k);
   assertMatch(OWN_REQUEST_RULE, /Never ask again/);
   assertMatch(OWN_REQUEST_RULE, /Never state a price, date, count or brand the record does not hold/);
   assertMatch(OWN_REQUEST_RULE, /never a supplier's name, contact or brand/);

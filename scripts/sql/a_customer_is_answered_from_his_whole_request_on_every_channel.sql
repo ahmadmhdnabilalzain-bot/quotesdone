@@ -78,43 +78,25 @@ create or replace function public.fn_customer_quote_letters(p_inquiry uuid)
 returns table(quote_id uuid, letter text, label_en text, label_ar text, option_no integer, letter_source text)
 language plpgsql stable security definer set search_path to 'public', 'pg_temp'
 as $fn$
-declare
-  v_stored boolean := to_regclass('public.customer_supplier_letter') is not null;
-  v_map jsonb := '{}'::jsonb;
 begin
-  if v_stored then
-    -- the letter recorded the first time his portal showed that supplier, never changed afterwards
-    execute 'select coalesce(jsonb_object_agg(l.supplier_id::text, l.letter), ''{}''::jsonb) from public.customer_supplier_letter l where l.inquiry_id = $1'
-      into v_map using p_inquiry;
-  else
-    -- my_inquiries: quotes not draft/withdrawn (_shared/quote_live.ts), sanctioned suppliers out, cheapest first;
-    -- labelQuotes: one letter per supplier in order of first appearance; A..Z, AA, AB ... (_shared/quote_labels.ts letter)
-    select coalesce(jsonb_object_agg(y.k, case when y.seq < 26 then chr(65 + y.seq)
-                                               else chr(65 + (y.seq / 26 - 1) % 26) || chr(65 + y.seq % 26) end), '{}'::jsonb)
-      into v_map
-      from (select x.k, (row_number() over (order by min(x.rn)) - 1)::int as seq
-              from (select coalesce(q.supplier_id::text, 'q:' || q.id::text) as k,
-                           row_number() over (order by q.quote_amount, q.created_at, q.id) as rn
-                      from public.quotes q
-                     where q.inquiry_id = p_inquiry and coalesce(q.status, '') not in ('draft', 'withdrawn')
-                       and not exists (select 1 from public.sanctions_ban b where b.lead_id = q.supplier_id)) x
-             group by x.k) y;
-  end if;
+  -- REVIEW 16 Nov: customer_supplier_letter is LIVE (batch B). The letter is ONLY the stored one (recorded the first time his
+  -- portal, the comparison or the question thread showed that supplier, never changed): no derivation, no dynamic SQL. A
+  -- supplier never shown has no letter. "Option N" exactly as _shared/quote_labels.ts labelQuotes prints it (an en dash),
+  -- counted over the request's live quotes of that supplier (the portal's siblings: allQuotes, not draft/withdrawn).
   return query
     with pq as (
-      select q.id, coalesce(q.supplier_id::text, 'q:' || q.id::text) as k, coalesce(q.option_no, 1) as opt
+      select q.id, q.supplier_id, coalesce(q.option_no, 1) as opt
         from public.quotes q
        where q.inquiry_id = p_inquiry and coalesce(q.status, '') not in ('draft', 'withdrawn')
          and not exists (select 1 from public.sanctions_ban b where b.lead_id = q.supplier_id)),
-    cnt as (select pq.k, count(*) as n from pq group by pq.k)
-    select pq.id, v_map ->> pq.k,
-           case when v_map ->> pq.k is null then null else 'Supplier ' || (v_map ->> pq.k) || case when c.n > 1 then ' - Option ' || pq.opt else '' end end,
-           case when v_map ->> pq.k is null then null else 'المورّد ' || (v_map ->> pq.k) || case when c.n > 1 then ' - الخيار ' || pq.opt else '' end end,
+    cnt as (select pq.supplier_id, count(*) as n from pq group by pq.supplier_id)
+    select pq.id, l.letter,
+           case when l.letter is null then null else 'Supplier ' || l.letter || case when c.n > 1 then ' – Option ' || pq.opt else '' end end,
+           case when l.letter is null then null else 'المورّد ' || l.letter || case when c.n > 1 then ' – الخيار ' || pq.opt else '' end end,
            pq.opt,
-           case when v_stored and v_map ->> pq.k is not null then 'stored'
-                when v_stored then 'not yet shown in the portal'
-                else 'derived as the portal does' end
-      from pq join cnt c on c.k = pq.k;
+           case when l.letter is null then 'not yet shown in the portal' else 'stored' end
+      from pq join cnt c on c.supplier_id is not distinct from pq.supplier_id
+      left join public.customer_supplier_letter l on l.inquiry_id = p_inquiry and l.supplier_id = pq.supplier_id;
 end
 $fn$;
 revoke execute on function public.fn_customer_quote_letters(uuid) from public, anon, authenticated;
@@ -185,6 +167,10 @@ returns jsonb language sql stable security definer set search_path to 'public', 
     select q.id, q.inquiry_id, q.supplier_id, q.quote_amount, q.price_ex_vat, q.vat_treatment, q.vat_amount, q.amount_as_stated,
            q.gross_amount, q.discount_amount, q.expires_at, q.created_at, q.lead_time, q.warranty, q.validity, q.review_notes,
            q.option_no,
+           -- REVIEW 16 Nov: the price base exactly as _shared/stated_price.ts feeBaseOf (the portal's figure): none while the
+           -- VAT basis is unsettled (not stated, or VAT-inclusive with no ex-VAT figure), else quote_amount, else price_ex_vat
+           case when coalesce(q.price_ex_vat, 0) <= 0 and q.vat_treatment in ('not_stated', 'inclusive') then null
+                else coalesce(nullif(greatest(q.quote_amount, 0), 0), nullif(greatest(q.price_ex_vat, 0), 0)) end as fee_base,
            (select min(t.revealed_at) from public.transactions t where t.quote_id = q.id and t.revealed_at is not null) as revealed_at,
            -- founder instruction 516: a sanctioned party is never shown to a customer (customer_api refuses it too)
            exists (select 1 from public.sanctions_ban sb where sb.lead_id = q.supplier_id) as sanctioned
@@ -262,26 +248,26 @@ returns jsonb language sql stable security definer set search_path to 'public', 
       'quotes', coalesce((select jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
                     'letter', lt.letter, 'label', case when cfg.lang = 'ar' then lt.label_ar else lt.label_en end,
                     -- said only when it is not the portal's own derivation (stored, or not yet shown in the portal)
-                    'letter_source', nullif(lt.letter_source, 'derived as the portal does'),
-                    'price_ex_vat_aed', coalesce(z.price_ex_vat, z.quote_amount),
-                    'price_as_shown', public.fn_aed_words(coalesce(z.price_ex_vat, z.quote_amount)) || ' before VAT'
-                       || case when z.vat_treatment in ('exclusive', 'inclusive') and z.vat_amount is not null
-                               then ', ' || public.fn_aed_words(z.vat_amount) || ' VAT, ' || public.fn_aed_words(coalesce(z.price_ex_vat, z.quote_amount) + z.vat_amount) || ' with VAT'
-                               when z.vat_treatment in ('not_registered', 'zero_rated', 'exempt') then ', no VAT: ' || public.fn_aed_words(coalesce(z.price_ex_vat, z.quote_amount)) || ' in total'
+                    'letter_source', nullif(lt.letter_source, 'stored'),
+                    'price_ex_vat_aed', z.fee_base,
+                    'price_as_shown', case when z.fee_base is null then 'price being confirmed with the supplier (its VAT basis is not settled)' else public.fn_aed_words(z.fee_base) || ' before VAT'
+                       || case when z.vat_treatment in ('exclusive', 'confirmed_on_portal', 'inclusive') and z.vat_amount is not null
+                               then ', ' || public.fn_aed_words(z.vat_amount) || ' VAT, ' || public.fn_aed_words(z.fee_base + z.vat_amount) || ' with VAT'
+                               when z.vat_treatment in ('not_registered', 'zero_rated', 'exempt') then ', no VAT: ' || public.fn_aed_words(z.fee_base) || ' in total'
                                else ', VAT not stated' end
                        || case when z.discount_amount > 0 and z.gross_amount is not null
-                               then ' (after a discount of ' || public.fn_aed_words(z.discount_amount) || ' from ' || public.fn_aed_words(z.gross_amount) || ')' else '' end,
-                    'vat_as_stated', case z.vat_treatment when 'exclusive' then 'VAT added on top of the price'
+                               then ' (after a discount of ' || public.fn_aed_words(z.discount_amount) || ' from ' || public.fn_aed_words(z.gross_amount) || ')' else '' end end,
+                    'vat_as_stated', case z.vat_treatment when 'exclusive' then 'VAT added on top of the price' when 'confirmed_on_portal' then 'VAT added on top of the price'
                                                           when 'inclusive' then 'the supplier''s total includes VAT'
                                                           when 'not_registered' then 'supplier not VAT registered: no VAT'
                                                           when 'zero_rated' then 'zero-rated: no VAT'
                                                           when 'exempt' then 'exempt: no VAT'
                                                           else 'VAT not stated' end,
-                    'vat_aed', case when z.vat_treatment in ('exclusive', 'inclusive') then z.vat_amount end,
-                    'total_with_vat_aed', case when z.vat_treatment in ('exclusive', 'inclusive') and z.vat_amount is not null
-                                                 then coalesce(z.price_ex_vat, z.quote_amount) + z.vat_amount
+                    'vat_aed', case when z.vat_treatment in ('exclusive', 'confirmed_on_portal', 'inclusive') then z.vat_amount end,
+                    'total_with_vat_aed', case when z.vat_treatment in ('exclusive', 'confirmed_on_portal', 'inclusive') and z.vat_amount is not null
+                                                 then z.fee_base + z.vat_amount
                                                when z.vat_treatment in ('not_registered', 'zero_rated', 'exempt')
-                                                 then coalesce(z.price_ex_vat, z.quote_amount) end,
+                                                 then z.fee_base end,
                     'total_as_stated_aed', z.amount_as_stated,
                     'before_discount_aed', case when z.discount_amount > 0 then z.gross_amount end,
                     'discount_aed', case when z.discount_amount > 0 then z.discount_amount end,
@@ -308,22 +294,15 @@ returns jsonb language sql stable security definer set search_path to 'public', 
                     'supplier', case when z.revealed_at is null then null
                                      when z.sanctioned then 'a supplier no longer on QuotesDone'
                                      else coalesce((select l.company_name from public.leads l where l.id = z.supplier_id), 'the supplier') end))
-                    order by coalesce(z.price_ex_vat, z.quote_amount), z.created_at)
+                    order by z.fee_base, z.created_at)
                   from q z left join public.fn_customer_quote_letters(i.id) lt on lt.quote_id = z.id
-                 where z.inquiry_id = i.id), '[]'::jsonb),
-      -- THE COMPARISON HIS PORTAL SHOWS (quote_compare's last good reading for this request; its labels are the portal's)
-      'comparison', (select jsonb_strip_nulls(jsonb_build_object(
-                        'as_of', cc.created_at, 'quotes_considered', cc.analysis -> 'considered',
-                        'not_comparable', cc.analysis -> 'not_comparable', 'not_comparable_reason', cc.analysis ->> 'not_comparable_reason',
-                        'bottom_line', cc.analysis ->> 'bottom_line', 'top3', cc.analysis -> 'top3',
-                        'cheapest_label', cc.analysis ->> 'cheapest_label', 'best_value_label', cc.analysis ->> 'best_value_label',
-                        'per_quote', (select jsonb_agg(jsonb_strip_nulls(jsonb_build_object('label', e ->> 'label', 'price', e -> 'price',
-                                                'missing_from_request', e -> 'missing_from_request', 'spec_deviation', e -> 'spec_deviation',
-                                                'flags', e -> 'flags')))
-                                        from jsonb_array_elements(case when jsonb_typeof(cc.analysis -> 'quotes') = 'array' then cc.analysis -> 'quotes' else '[]'::jsonb end) e)))
-                      from public.qd_compare_cache cc
-                     where cc.inquiry_id = i.id::text and not (cc.analysis ? '__failed')
-                     order by (cc.lang = cfg.lang) desc, cc.created_at desc limit 1),
+                 where z.inquiry_id = i.id and (lt.letter is not null or z.revealed_at is not null)), '[]'::jsonb),
+      -- REVIEW 16 Nov: a live quote his portal has not shown (held for missing details by code, or not yet opened) is counted, not priced
+      'quotes_not_yet_on_his_portal', (select count(*) from q z left join public.fn_customer_quote_letters(i.id) lt on lt.quote_id = z.id
+                                         where z.inquiry_id = i.id and lt.letter is null and z.revealed_at is null),
+      -- REVIEW 16 Nov: no 'comparison' here. qd_compare_cache holds quote_compare's RAW model output (index.ts:582 writes `parsed`);
+      -- the brand/name gate (generaliseDeep, hideBrandPhrases) and the stored letters are applied only when it is served, and a
+      -- cache row is not tied to the current quotes. The portal remains the comparison's one door.
       'price_rule', 'Each quote''s price is given under its letter, exactly as his portal shows it. The supplier''s name, contacts and brand unlock only when he reveals that quote.')
       end as j
       from inq i cross join cfg

@@ -1,8 +1,9 @@
 // THE CUSTOMER FOLLOW-UP EVAL, PAID, ONCE (customer_support, 16 Nov 2026; founder ledger 1711).
 //
 // Each scenario of scripts/eval/customer_follow_up_bank.mjs is answered by the WhatsApp reply path's model exactly as a turn is
-// composed in production: wa_inbound/compose.ts composeSituation (the customer audience block with OWN_REQUEST_RULE, his own
-// record, the fact pack, the live company block) and wa_inbound/model_says.ts modelSays (the conversation path: the company
+// composed in production: wa_inbound/compose.ts composeSituation on the scenario's route (fn_wa_route_dry for the intent the bank
+// states: its deterministic_reply and needs_a_person; the customer audience block with OWN_REQUEST_RULE, his own record, the fact
+// pack, the live company block) and wa_inbound/model_says.ts modelSays (the conversation path: the company
 // brief, the model chain, the figure and reply guard), through the production gateway. Then a judge of ANOTHER model family
 // (knowledge_validation with counterpart_model = the replying model, the gateway's review router; model_routing/harness.ts)
 // grades it against the scenario's must / must-not, and the bank's code grader checks figures and identities. A scenario
@@ -42,8 +43,12 @@ if (import.meta.main) {
   if (!PAID) { console.error('refused: this eval calls paid models; pass --paid to run it (and --facts <file>)'); Deno.exit(2); }
   if (!(CAP > 0 && CAP <= MAX_CAP_USD)) { console.error(`refused: the cap is at most USD ${MAX_CAP_USD} (the brief); got ${CAP}`); Deno.exit(2); }
   if (!FACTS) { console.error('refused: --facts <file> (written by the bank check against a LOCAL database)'); Deno.exit(2); }
-  const facts = JSON.parse(await Deno.readTextFile(FACTS)) as { refs: Record<string, number>; pack: Record<string, unknown>; mine: Record<string, unknown> };
+  const facts = JSON.parse(await Deno.readTextFile(FACTS)) as { refs: Record<string, number>; pack: Record<string, unknown>; mine: Record<string, unknown>;
+    routes?: Record<string, Record<string, unknown>> };
   if ((facts.pack as { identity?: { kind?: string } }).identity?.kind !== 'customer') throw new Error('the facts file holds no customer pack');
+  // REVIEW 16 Nov: the reply is composed on the scenario's ROUTE (deterministic_reply, needs_a_person), as production composes it
+  const noRoute = list.filter((s: { id: string }) => !facts.routes?.[s.id]).map((s: { id: string }) => s.id);
+  if (noRoute.length) { console.error(`refused: the facts file has no route for ${noRoute.slice(0, 5).join(', ')}; regenerate it with the bank check`); Deno.exit(2); }
 
   const { admin, secret } = await connect();
   const { defaultDeps } = await import('../../../supabase/functions/_shared/think.ts');
@@ -66,7 +71,7 @@ if (import.meta.main) {
   const sealed = Object.entries(SUPPLIERS).filter(([k]) => k !== 's5').map(([, n]) => n as string);
   const JUDGE_SYS = `You judge one reply a UAE procurement marketplace's support agent sent a customer on WhatsApp about his own request. You get the customer's
 message, the facts the agent had (his requests: what he asked, each quote's letter, price before and with VAT, lead time, warranty, validity, the sales
-engineer's notes and the comparison), what a correct answer must and must not contain, and the reply. Judge ONLY against the facts and the criteria:
+engineer's notes and the request thread), what a correct answer must and must not contain, and the reply. Judge ONLY against the facts and the criteria:
 the reply passes when it answers his question correctly from the facts in his language, states no price, date, count or brand the facts do not hold,
 names or hints at no supplier that is not revealed, and takes the right action (a change or cancel is never claimed as done). Wording is free; a reply
 that says more than the criteria is fine if it is true. His OTHER requests are in all_his_requests: a reply that mentions one of them truthfully
@@ -82,7 +87,7 @@ and no VAT on the fee, comparing is free, refunds are decided by the CEO, and he
         prefetch: { timeline: Promise.resolve({ data: sc.timeline ? { event_count: TIMELINE.length, events: TIMELINE } : null }), mine: Promise.resolve({ data: facts.mine }), company: Promise.resolve(company),
           faq: Promise.resolve({ ctx: '', ids: [] as number[] }) } };
       // deno-lint-ignore no-explicit-any
-      const { situation } = await composeSituation(t as any, { fact_pack: facts.pack });
+      const { situation } = await composeSituation(t as any, { ...facts.routes![sc.id], fact_pack: facts.pack });
       const lang = /[؀-ۿ]/.test(sc.msg) ? 'ar' : 'en';
       const said = await inRun(() => modelSays(deps, { audience: 'customer', lang, message: sc.msg, situation,
         subject: { fixture: true, phone: 'whatsapp:' + CUSTOMER.phone, scenario: sc.id }, forbidden: sealed, budgetMs: 90_000 }));

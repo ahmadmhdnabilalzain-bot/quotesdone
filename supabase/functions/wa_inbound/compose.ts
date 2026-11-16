@@ -81,18 +81,22 @@ export async function composeSituation(t: WaTurn, rt: Record<string, unknown> | 
   // (conversation_reply: claude-sonnet-5.5 -> gemini -> another family; ruling 1219), the figure and reply guard with a model rewrite, suppliers in English.
   // Everything code knows about this message goes in as facts: who they are, their own record, the database's own
   // answer for the intent it recognised, the approved FAQ for it, the live company block.
+  // REVIEW 16 Nov: what was decided on THIS turn rides first. aiReply reads only FACTS_MAX_CHARS of the facts, and a
+  // customer's pack of detailed requests passes it (19,572 composed for five), so a database answer placed after the pack
+  // (a change sent, a cancel to confirm) was cut away and the model wrote its own policy.
   const situation = [audienceBlock,
-    ownRecord.trim(), brainPack.trim(),
     detReply ? 'OUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\n' + detReply : '',
-    ctx ? 'APPROVED FAQ FOR THIS MESSAGE (may be for the other audience; apply the audience rules):\n' + ctx : '',
     // they are writing to +1 218 316 6814 already (final audit 12 Nov 2026, W5; model_says.ts WA_PERSON_RULE says what the hand-off is)
     rt?.needs_a_person === true ? 'They need a person: say their message has been passed to our team (working hours Mon-Fri 9am-6pm GST). For a member of the team to reply to them here on WhatsApp, they can send MENU and choose "Talk to a person". By e-mail: management@quotesdone.com. Never give them a phone or WhatsApp number: they are writing to ours.' : '',
+    ownRecord.trim(), brainPack.trim(),
+    ctx ? 'APPROVED FAQ FOR THIS MESSAGE (may be for the other audience; apply the audience rules):\n' + ctx : '',
     'Never volunteer supplier-side commercial terms to a customer. Do not promise that quote requests arrive immediately.',
     companyBlock ? 'COMPANY BLOCK (live):\n' + companyBlock : ''].filter(Boolean).join('\n\n');
   // THE STATUS LANE'S FACTS (status_lane.ts, ruling 1571): who they are, their own record, the database's answer, and nothing
   // about the company beyond what that answer says. No FAQ and no company block: a status answer states their rows.
-  const lean = [audienceBlock, ownRecord.trim(), brainPack.trim(),
+  const lean = [audienceBlock,
     detReply ? 'OUR DATABASE ANSWER FOR THIS MESSAGE (facts to use; the words are yours):\n' + detReply : '',
+    ownRecord.trim(), brainPack.trim(),
     'Never volunteer supplier-side commercial terms to a customer. Do not promise that quote requests arrive immediately.'].filter(Boolean).join('\n\n');
   return { situation, ids, lean };
 }
