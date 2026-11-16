@@ -162,5 +162,17 @@ begin
   -- the e-mail case summary catch-up lists nothing for a fixture outside a rehearsal window (and does not fail)
   if jsonb_typeof(public.fn_support_case_email_summaries_owed(3)) <> 'array' then v_p := v_p || 'the e-mail catch-up list'::text; end if;
 
+  -- SILENT CLOSE (review of 16 Nov 2026, ledger 1338): an out-of-office mail closes with its reason and the sender is told nothing
+  -- (no rating request, no "no reply was owed: <internal text>")
+  insert into public.inbound_messages (from_email, to_email, subject, body, created_at, triaged_at, ai_category, ai_summary, needs_review, raw)
+  values ('Pat <pat@silent-probe.test>', 'supplier@quotesdone.com', 'Automatic reply: your quote', 'Out of office.', now() - interval '3 days', now() - interval '3 days',
+          'no_auto_reply', 'Not answered automatically: auto_submitted (customer_mail.ts noAutoReply).', false, '{"auto_submitted":"auto-replied"}'::jsonb) returning id into m7;
+  r := public.fn_support_touch('email', 'in', 'unknown', null, 'pat@silent-probe.test', null, 'Automatic reply');
+  v_case := r->>'case_ref';
+  insert into public.customer_support_inbound_drive (channel, message_id, case_ref, acknowledged, outcome, fixture) values ('email', m7, v_case, false, 'case opened', false);
+  r := public.fn_customer_support_unanswered_inbound_tick();
+  if v_case is null or (select state from public.support_case where case_ref = v_case) <> 'closed' then v_p := v_p || ('the out-of-office case did not close: ' || r::text); end if;
+  if exists (select 1 from public.notifications n where n.to_email ilike 'pat@silent-probe.test') then v_p := v_p || 'a closed no-reply case told its sender something'::text; end if;
+
   raise exception 'CHK<<%>>', jsonb_build_object('verdict', case when cardinality(v_p) = 0 then 'PROBE OK' else 'PROBE FAILED' end, 'problems', to_jsonb(v_p));
 end $probe$;
