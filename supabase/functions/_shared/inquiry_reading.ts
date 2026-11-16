@@ -18,7 +18,7 @@ import { placeTrades, taxonomyBlock, validCodes, validServiceKeys, type TaxTrade
 import type { StatePatch } from './inquiry_state.ts';
 
 export interface ReadingInput { taxonomy: TaxTrade[]; problems: Problem[]; services?: TradeService[]; lastSeat: string; message: string; heldCodes?: string[] }
-export interface Reading extends SolutionReading { trade_codes: string[]; service_keys: string[] }
+export interface Reading extends SolutionReading { trade_codes: string[]; service_keys: string[]; /** the model's one sentence when the customer's message complains, '' otherwise (complaint_register.ts) */ complaint?: string }
 
 /** The reading call's prompt: the taxonomy, the options the reply could offer, our last reply and their message. */
 export function readingPrompt(i: ReadingInput): { sys: string; input: string } {
@@ -27,13 +27,15 @@ export function readingPrompt(i: ReadingInput): { sys: string; input: string } {
   return {
     sys: 'You read one turn of a UAE procurement chat (our sales engineer and a customer) and report, as JSON only, what it establishes. '
       + 'Never guess: leave a field empty when the turn does not show it. Return {"trade_codes":[], "problem":"", "options_offered":[], "chosen_option":"", '
-      + '"condition":{"object":"","material":"","condition":"","location":"","use":"","constraint":""}, "budget":"", "service_keys":[]}.\n'
+      + '"condition":{"object":"","material":"","condition":"","location":"","use":"","constraint":""}, "budget":"", "service_keys":[], "complaint":""}.\n'
       // re-check of 12 Nov 2026 (R4): "my cousin runs a cleaning company" set the WhatsApp number's trade to cleaning
       + '- trade_codes: the one to four taxonomy codes below that do the job the customer wants done for themselves, most central first. A business they only mention (their own, a relative\'s or a friend\'s company, or one that wants to register as a supplier) is not a job: leave it out' + (i.heldCodes?.length ? ` (held so far: ${i.heldCodes.join(', ')}; keep them unless the job changed)` : '') + '.\n'
       + '- options_offered: the solutions OUR LAST REPLY put to them, as the option keys below when one fits, else a few words each.\n'
       + '- chosen_option: the one the customer\'s MESSAGE chooses (an option key below, or a few words), "" when they chose none.\n'
       + '- problem: the situation key below their job is, "" when none fits. condition: their own words for the thing and its state. budget: only a budget they state.\n'
-      + '- service_keys: the service keys below the job needs, only when the turn makes it clear.\n\n'
+      + '- service_keys: the service keys below the job needs, only when the turn makes it clear.\n'
+      // THE SAME CALL SAYS WHETHER IT IS A COMPLAINT (customer_support, 16 Nov 2026, COO hole H2): the portal registers it
+      + '- complaint: when the customer\'s MESSAGE complains (dissatisfaction they want us to address: about QuotesDone, a supplier, a quote, a charge, a refund, a delay or how they were treated), one short sentence saying what about, in English; "" otherwise. A question about how complaints or refunds work is not a complaint.\n\n'
       + taxonomyBlock(i.taxonomy)
       + (opts.length ? '\n\nOPTION KEYS (problem/option):\n' + opts.join('\n') : '')
       + (svc.length ? '\n\nSERVICE KEYS:\n' + svc.join('\n') : ''),
@@ -50,7 +52,9 @@ export function parseReading(text: string | null | undefined, i: Pick<ReadingInp
   const codes = validCodes(o.trade_codes, i.taxonomy), keys = validServiceKeys(o.service_keys, i.services);
   // The placement follows the services, as in the request chat (inquiry_trades.ts placeTrades, finding b1 of 10 Nov 2026).
   const placed = codes.length ? placeTrades(codes, keys) : null;
-  return { ...readSolution(o), trade_codes: placed?.by === 'services' ? placed.codes : codes, service_keys: placed?.by === 'services' ? placed.keys : keys };
+  const complaint = typeof o.complaint === 'string' ? o.complaint.trim().slice(0, 300) : '';
+  return { ...readSolution(o), trade_codes: placed?.by === 'services' ? placed.codes : codes, service_keys: placed?.by === 'services' ? placed.keys : keys,
+           ...(complaint ? { complaint } : {}) };
 }
 
 /** The state patch of a reading: the solution half (solution_catalogue.solutionPatch) plus the trade codes, and the service
@@ -77,7 +81,7 @@ export function gatewayAsk(o: { gateway: string; secret: string; fn: string; age
     try {
       const r = await f(o.gateway, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(ms),
         body: JSON.stringify({ __secret: o.secret, fn: o.fn, agent: o.agent, task_class: 'json_extraction', sys, input,
-          max: 400, temperature: 0, cache_ttl_min: 0, try_faq: false, client_timeout_ms: ms }) });
+          max: 450, temperature: 0, cache_ttl_min: 0, try_faq: false, client_timeout_ms: ms }) });
       const j = await r.json().catch(() => null) as { content?: unknown } | null;
       return typeof j?.content === 'string' ? j.content : null;
     } catch { return null; }

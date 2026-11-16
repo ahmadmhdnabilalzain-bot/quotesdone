@@ -2,6 +2,7 @@
 // later block read; split into modules (9 Nov 2026, customer_support) those locals live on this object, created once
 // per request by newTurn() and passed to each phase in index.ts. Per request, never module scope: turns overlap.
 // A field marked "set by X" is filled by that phase and read only by the phases after it.
+import type { Ticket } from '../_shared/complaint_register.ts';
 import type { DirectiveReading } from './reprice_outage.ts';
 import type { waConversation } from '../_shared/wa_history.ts';
 import type { holdUnwritten, modelSays } from './model_says.ts';
@@ -28,6 +29,8 @@ export interface WaTurn {
   signatureVerified: boolean;
   // the reply state, written by the says (say.ts)
   modelEscalate: boolean;
+  /** the complaint ticket this turn's reading opened (complaint_register.ts), named in the reply and acknowledged once it went */
+  complaint?: Ticket | null;
   sayOutage: boolean;
   sayProblems: string[];
   sayAttempts: string[];

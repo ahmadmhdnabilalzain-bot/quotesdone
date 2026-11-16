@@ -1,6 +1,6 @@
 // resilience_ping ticks owned by the customer_support seat. Moved out of index.ts unchanged (9 Nov 2026);
 // the order they run in is still set in index.ts (STEP_RUN).
-import { heartbeatDeps } from '../../_shared/think.ts';
+import { heartbeatDeps, type ThinkDeps } from '../../_shared/think.ts';
 import { renderPdfAndAttach } from './ceo.ts';
 import { admin } from '../shared.ts';
 
@@ -61,11 +61,37 @@ export async function caseCatchupTick(): Promise<unknown> {
     const since = () => new Date(Date.now() - 86_400_000).toISOString();
     // heartbeatDeps, never defaultDeps: an embedding this step asks for runs in embed_ml, not in this worker (2 s CPU cap, #1678).
     // Measured 12 Nov 2026 on main 2f6074958: held_replay_keeps_gte_out_of_the_worker.test.ts failed on this line after #1953.
-    return await catchUpOwedSummaries(heartbeatDeps(admin), async (tail) => {
+    const whatsapp = await catchUpOwedSummaries(heartbeatDeps(admin), async (tail) => {
       if (!/^[0-9]{9}$/.test(tail)) return null;
       const { data, error } = await admin.from('wa_messages').select('inbound,reply,created_at').like('wa_from', '%' + tail)
         .gte('created_at', since()).order('created_at', { ascending: true }).limit(40);
       return error || !Array.isArray(data) ? null : (data as { inbound: string | null; reply: string | null }[]).map((r) => ({ inbound: String(r.inbound ?? ''), reply: String(r.reply ?? '') }));
     }, 3);
+    return { ...(whatsapp as Record<string, unknown>), email: await emailCaseCatchup(heartbeatDeps(admin), 3) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
+}
+
+// THE E-MAIL CASE SUMMARY A REPLY OWES (customer_support, 16 Nov 2026). email_triage writes it after the reply, past the response
+// (recordCaseExchange, never awaited), so a worker ended first leaves it owed exactly as on WhatsApp, and the beat above read only
+// WhatsApp. public.fn_support_case_email_summaries_owed lists the owed e-mail cases with the exchange itself (their last answered
+// mail and the reply that went); the same summariseExchange writes it. At most `limit` a beat, one case_summary call each.
+// prevented by: resilience_ping/email_case_catchup.test.ts
+type Summarise = (deps: ThinkDeps, o: { memory: { ref: string; summaryText: string; version: number; profile: number }; theirMessage: string; ourReply: string; seat?: string }) => Promise<{ ok: boolean; reason?: string }>;
+export async function emailCaseCatchup(deps: ThinkDeps, limit = 3, summarise?: Summarise): Promise<{ ok: boolean; owed: number; written: number; failed: number; reason?: string }> {
+  try {
+    const write = summarise ?? (await import('../../_shared/support_case_memory.ts')).summariseExchange;
+    const { data, error } = await deps.rpc('fn_support_case_email_summaries_owed', { p_limit: limit });
+    if (error) return { ok: false, owed: 0, written: 0, failed: 0, reason: String(error.message ?? error).slice(0, 200) };
+    // deno-lint-ignore no-explicit-any
+    const owed = (Array.isArray(data) ? data : []) as any[];
+    let written = 0, failed = 0;
+    for (const c of owed) {
+      const their = String(c.their_message ?? '').trim(), ours = String(c.our_reply ?? '').trim();
+      if (!their || !ours) continue;
+      const r = await write(deps, { memory: { ref: String(c.case_ref), summaryText: String(c.summary_text ?? ''), version: Number(c.summary_version ?? 0), profile: Number(c.profile ?? 0) },
+        theirMessage: their, ourReply: ours, seat: 'customer_support' });
+      if (r.ok) written++; else failed++;
+    }
+    return { ok: failed === 0, owed: owed.length, written, failed };
+  } catch (e) { return { ok: false, owed: 0, written: 0, failed: 0, reason: 'threw: ' + String((e as Error)?.message || e).slice(0, 200) }; }
 }

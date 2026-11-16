@@ -32,6 +32,7 @@ import { turnContent, turnFacts } from './turn_facts.ts';
 import { gteReads } from '../_shared/ml_embed_recipe.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { hashedKey } from '../_shared/complaint_register.ts';
 import { caseKeyOf } from '../_shared/support_fault_handover.ts';
 import { fileReviewRequest } from '../_shared/review_request.ts';
 import { siteReplyCheck, siteReplyLanguage } from './reply_check.ts';
@@ -408,6 +409,11 @@ async function handle(req: Request, T: Timer): Promise<Response> {
         dedupeKey: 'widget:person:' + ip + ':' + hour + ':' + msgKey, subject: { path },
         fault: { channel: 'widget', caseKey: await caseKeyOf('widget', (who ? accountKey(who.audience, who.id) : ip) + ':' + hour), lang: uiLang === 'ar' ? 'ar' : 'en',
                  email: who?.email ?? null, audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor' },
+        // A COMPLAINT ENTERS THE REGISTER (16 Nov 2026, COO hole H2): read in the same call; the ticket is opened once for this
+        // message, keyed on a hash (no address in the key), linked to the signed-in person when there is one (complaint_register.ts)
+        complaint: { channel: 'widget', sourceKey: await hashedKey('widget', (who ? accountKey(who.audience, who.id) : ip) + ':' + hour + ':' + msgKey),
+                     email: who?.email ?? null, partyKind: who?.audience === 'supplier' ? 'supplier' : who?.audience === 'customer' ? 'customer' : null,
+                     partyId: who ? String(who.id) : null, lang: uiLang === 'ar' ? 'ar' : 'en', fixture: /^ZZ ?DEMO/i.test(message) },
       })).value;
       // Ledger 1152 / ruling 1264: a contested decision goes to its owning seat; an explicit ask for a person to the founder.
       if (person === true) {

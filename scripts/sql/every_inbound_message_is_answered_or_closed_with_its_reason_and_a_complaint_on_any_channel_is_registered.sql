@@ -38,7 +38,7 @@
 --   reading in the same model call (reasoned_decisions.ts COMPLAINT_OPTIONS on e-mail, WhatsApp and the widget; the portal's
 --   turn reading, inquiry_reading.ts) and opens the ticket through fn_complaint_open_from_message: idempotent per message
 --   (complaint_tickets.source_key), linked to the person (party, e-mail or phone as the channel holds them, never an e-mail
---   looked up from a phone) and to their open case, and to the job numbers they name that are THEIR OWN (an exact match on
+--   looked up from a phone; on WhatsApp the confirmed owner of the number) and to their open case, and to the job numbers they name that are THEIR OWN (an exact match on
 --   inquiries.rfq_no of their requests or quotes; another person's number is never linked). The acknowledgement is owed on the
 --   channel: the reply the model writes carries the ticket (fn_complaint_acknowledge once it went), else the deadline duty has
 --   the model write it by e-mail when an address is known (customer_support_voice_owed, ruling 1339).
@@ -116,7 +116,14 @@ begin
   end if;
   if v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then v_email := null; end if;
   -- the person: what the door knows; else an e-mail the channel itself holds names a customer or a supplier (exact address).
-  -- A phone never selects a person here ("a phone may confirm, never select"): WhatsApp passes the party it already resolved.
+  -- On WhatsApp the person is the CONFIRMED owner of the number, exactly as the door identifies them (fn_whatsapp_owner, the
+  -- reading behind fn_identify_contact; #322: only a confirmed WhatsApp number names a supplier or a customer). No e-mail is
+  -- ever looked up from a phone, and an unconfirmed number names nobody.
+  if v_kind is null and p_channel = 'whatsapp' and length(v_digits) >= 9 then
+    select o.party_kind, coalesce(o.lead_id::text, o.customer_id::text) into v_kind, v_id
+      from public.fn_whatsapp_owner(p_phone) o where o.party_kind in ('customer', 'supplier') limit 1;
+    if v_id is null then v_kind := null; end if;
+  end if;
   if v_kind is null and v_email is not null then
     select 'customer', c.id::text into v_kind, v_id from public.customers c where lower(c.email) = v_email order by c.created_at limit 1;
     if v_kind is null then

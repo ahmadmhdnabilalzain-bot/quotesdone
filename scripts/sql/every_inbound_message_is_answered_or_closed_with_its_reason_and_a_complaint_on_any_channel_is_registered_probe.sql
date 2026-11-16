@@ -46,6 +46,9 @@ begin
   select * into t from public.complaint_tickets where ticket_no = v_t2;
   if t.id is null or t.email is not null or t.phone <> '+971500000071' or t.party_id <> v_cust::text or t.lang <> 'ar' or t.inquiry_refs <> array[v_rfq1::text] then
     v_p := v_p || ('the WhatsApp complaint is not registered as the channel holds it: ' || r::text); end if;
+  -- 3b. an unconfirmed number names nobody, and no e-mail is looked up from it
+  r := public.fn_complaint_open_from_message('whatsapp', 'whatsapp:SMprobe2' || v_dom, 'ZZ DEMO bad service', 'complaint', null, '+971 50 000 0073', null, null, null, null, 'en', true);
+  if (select party_kind is not null or email is not null from public.complaint_tickets where ticket_no = r->>'ticket') then v_p := v_p || 'an unconfirmed number selected a person'::text; end if;
   -- 4. an anonymous widget visitor: registered on its own key, nothing to link
   r := public.fn_complaint_open_from_message('widget', 'widget:probe' || md5(v_dom), 'ZZ DEMO your site charged me twice', 'complaint', null, null, null, null, null, null, 'en', true);
   v_t3 := r->>'ticket';
