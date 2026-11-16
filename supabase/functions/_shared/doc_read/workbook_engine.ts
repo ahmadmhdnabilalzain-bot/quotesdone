@@ -17,9 +17,10 @@
 //
 // THE TWO ENGINES, and who registers which (scripts/checks/every_office_reader_has_an_engine.test.mjs holds it):
 //   workbook_local.ts   SheetJS in this isolate. Registered by importing it, at the entry of every function
-//                       whose graph reaches office.ts or ole.ts, except supplier_api.
+//                       whose graph reaches office.ts or ole.ts, except supplier_api and wa_inbound.
 //   workbook_remote.ts  POSTs the bytes to doc_extract ({op:'read_workbook' | 'read_compound_file'}), which reads
-//                       them with workbook_local. Registered by supplier_api, so SheetJS leaves its upload.
+//                       them with workbook_local. Registered by supplier_api and wa_inbound (16 Nov 2026), so SheetJS
+//                       leaves their uploads.
 // NO ENGINE is a refusal ('unreadable', NO_WORKBOOK_READER), never an empty read: a function that forgot to
 // register one says so on the first workbook rather than reporting a supplier's BOQ as a blank sheet.
 import { LIMITS, type Cell } from './types.ts';

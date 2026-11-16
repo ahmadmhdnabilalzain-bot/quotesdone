@@ -40,10 +40,11 @@
 //   general_turn.ts  the database answers first, the model words it, send, record, report
 //   burst.ts         the turn gate: several messages in a few seconds get one reply; a loop with an auto-responder stops
 //   holding.ts       the typing indicator and the holding line while the reply is written (ruling 1636)
-import '../_shared/doc_read/workbook_local.ts'; // reads workbooks and .doc/.msg here with SheetJS (why one line: that file's header)
 import { observe } from '../_shared/observe.ts';
 import { ackThenWork, detach } from '../_shared/async_webhook.ts';
-import { admin, TW, withTurnSecrets } from './shared.ts';
+import { admin, sec, TW, withTurnSecrets } from './shared.ts';
+import { registerWorkbookEngine } from '../_shared/doc_read/workbook_engine.ts';
+import { remoteWorkbookEngine } from '../_shared/doc_read/workbook_remote.ts';
 import { newTurn } from './turn.ts';
 import { acceptArrival } from './arrival.ts';
 import { makeSay } from './say.ts';
@@ -59,6 +60,14 @@ import { memberPhone } from './member_phone.ts';
 import { answerTurn } from './general_turn.ts';
 import { turnGate } from './burst.ts';
 import { endTurnHolding } from './holding.ts';
+
+// WORKBOOKS AND .doc/.msg ARE READ IN doc_extract, NOT HERE (16 Nov 2026, it_engineer, DUP item 1). SheetJS was 503,237 of
+// this function's 4,345,532 bytes of local graph (deno info --json), the second-largest upload after supplier_api, which hit
+// 413 at 4,695,339. A WhatsApp workbook (or Outlook .msg / Word 97 .doc) now goes, base64, to doc_extract under
+// cred_fn_wa_inbound, whose scope must name doc_extract (scripts/sql/whatsapp_reads_workbooks_through_doc_extract.sql).
+// Same read, same refusal of that one file on failure (_shared/doc_read/workbook_remote.ts). SheetJS must not come back:
+// scripts/checks/every_office_reader_has_an_engine.test.mjs holds that, and the 4.4 MB budget.
+registerWorkbookEngine(remoteWorkbookEngine({ url: Deno.env.get('SUPABASE_URL')!, credential: async () => (await sec('cred_fn_wa_inbound')) || null }));
 
 // TWILIO IS ANSWERED AT ONCE; THE MESSAGE IS HANDLED AFTER (23 Sep 2026). Reasoning (think()) is several
 // model calls and Twilio allows 15 s, so a Twilio form post gets its empty <Response/> immediately and the

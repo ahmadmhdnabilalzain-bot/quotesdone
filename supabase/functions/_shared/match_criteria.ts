@@ -11,7 +11,7 @@
 //     request was matched against nobody in its own emirate.
 // Both are exact, never nearest: the category is a slug from the intake's fixed list (resolved by
 // fn_taxonomy_trades_for, exact only), and an emirate is one of eight names in two scripts.
-import { parseEmirate } from '../inquiry_intake/interview.ts';
+import { parseEmirate } from './answer_parse.ts';
 
 const list = (v: unknown): string[] =>
   (Array.isArray(v) ? v : []).map((x) => String(x).trim().toLowerCase()).filter(Boolean);

@@ -36,7 +36,7 @@
 // rows (14 Sep 2026). A category added later gets DEFAULT_PROFILE until it is given its own row.
 // When the per-trade spec model lands (branch exact-specs-or-hold) it can adopt PROFILES as its
 // customer-side attribute list.
-import { parseWhen, parseYesNo, isUnknown, normDigits } from '../inquiry_intake/interview.ts';
+import { parseWhen, parseYesNo, isUnknown, normDigits } from './answer_parse.ts';
 
 export const ACTOR = 'sales_engineer' as const;
 export const VERSION = 2;

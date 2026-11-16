@@ -2,7 +2,7 @@
 // 24 Sep 2026: the acceptance row kept time, version, IP and hash but never the browser that accepted.
 import { assertEquals } from 'jsr:@std/assert';
 import { clientIp, supplierTermsRecord } from './supplier_terms.ts';
-import { SUPPLIER_AGREEMENT_VERSION } from './supplier_agreement.ts';
+import { SUPPLIER_AGREEMENT_VERSION } from './supplier_agreement_hash.ts';
 
 const sec = (v: string | null) => (k: string) => Promise.resolve(k === 'supplier_terms_version' ? v : null);
 
@@ -48,4 +48,20 @@ Deno.test('the carried list is read from app_secrets, trimmed, and absent means 
   assertEquals(await supplierTermsCarriedFrom(s(null)), []);
   assertEquals(await supplierAcceptanceStands(s('v16'), 'v16'), true);
   assertEquals(await supplierAcceptanceStands(s(null), 'v16'), false);
+});
+
+// THE STORED HASH IS THE CONSTANT, AND THE CONSTANT IS THE TEXT'S (16 Nov 2026, it_engineer, DUP item 1). supplier_terms
+// hashed the 87,725-byte agreement module on every acceptance only to arrive at SUPPLIER_AGREEMENT_SHA256, which the
+// generator already writes; carrying that text put it in supplier_api, customer_api and kyc. It now imports the small
+// hash module the same generator writes, and this test holds the two equal.
+Deno.test('the recorded hash is the SHA-256 of the exported agreement text, and supplier_terms does not carry the text', async () => {
+  const hashMod = await import('./supplier_agreement_hash.ts');
+  const text = await import('./supplier_agreement.ts');
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text.SUPPLIER_AGREEMENT_EN + '\n' + text.SUPPLIER_AGREEMENT_AR));
+  const sha = Array.from(new Uint8Array(d)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  assertEquals(hashMod.SUPPLIER_AGREEMENT_SHA256, sha);
+  assertEquals(hashMod.SUPPLIER_AGREEMENT_VERSION, text.SUPPLIER_AGREEMENT_VERSION);
+  assertEquals((await supplierTermsRecord(sec(text.SUPPLIER_AGREEMENT_VERSION), '', ''))?.accepted_terms_sha256, sha);
+  const src = await Deno.readTextFile(new URL('./supplier_terms.ts', import.meta.url));
+  assertEquals(/from '\.\/supplier_agreement\.ts'/.test(src), false, 'supplier_terms.ts imports the 88 KB agreement text again');
 });
