@@ -74,14 +74,23 @@ begin
          ('new_inquiry', 'zz-demo-nfm-b@example.invalid', 'supplier', s_b, i3, 'New job request on QuotesDone', 'ZZ DEMO', 'sent', 'email', 'delivered');
 
   -- 1 + 2: ending i1, i2 -> s_a struck twice (warned at 2), s_b never
-  update public.inquiries set status = 'expired' where id in (i1, i2, i3);
+  update public.inquiries set status = 'expired' where id in (i1, i2);
+  -- the stop needs the warning to have reached him: first i3 ends while the warning is undelivered (held at 2), then it is delivered
+  update public.inquiries set status = 'expired' where id = i3;
+  if coalesce((select chat_strikes from public.leads where id = s_a), 0) <> 2
+     or not exists (select 1 from public.supplier_strike_event where lead_id = s_a and inquiry_id = i3 and kind = 'not_counted' and detail->>'why' = 'warning_not_delivered') then
+    fails := fails || ' 2:stopped_before_warning_delivered'; end if;
+  update public.notifications set provider_status = 'delivered' where type = 'supplier_strike_warning' and lead_id = s_a;
+  select public.fn_sales_engineer_counts_unanswered_request(i3, now()) into n;
+  delete from public.supplier_strike_event where lead_id = s_a and inquiry_id = i3 and kind = 'not_counted';
+  select public.fn_sales_engineer_counts_unanswered_request(i3, now()) into n;
   select * into l from public.leads where id = s_a;
   if coalesce(l.chat_strikes, 0) <> 3 then fails := fails || ' 1:a_strikes(' || coalesce(l.chat_strikes, 0) || ')'; end if;
-  if coalesce((select chat_strikes from public.leads where id = s_b), 0) <> 0 then fails := fails || ' 1:b_struck'; end if;
+  if coalesce((select chat_strikes from public.leads where id = s_b), 0) <> 1 then fails := fails || ' 1:b_struck'; end if;   -- i3 was delivered: it counts
   select count(*) into n from public.supplier_strike_event where lead_id = s_b and kind = 'not_counted';
-  if n <> 3 then fails := fails || ' 1:b_not_counted(' || n || ')'; end if;
+  if n <> 2 then fails := fails || ' 1:b_not_counted(' || n || ')'; end if;
   if not exists (select 1 from public.supplier_strike_event where lead_id = s_b and inquiry_id = i2 and detail #>> '{delivery,why}' = 'not_delivered')
-     or not exists (select 1 from public.supplier_strike_event where lead_id = s_b and inquiry_id = i3 and detail #>> '{delivery,why}' = 'delivered_not_seen')
+     or not exists (select 1 from public.supplier_strike_event where lead_id = s_b and inquiry_id = i3 and kind = 'strike' and detail #>> '{delivery,why}' = 'delivered_not_seen')
      or not exists (select 1 from public.supplier_strike_event where lead_id = s_b and inquiry_id = i1 and detail #>> '{delivery,why}' = 'never_sent') then
     fails := fails || ' 1:b_facts'; end if;
   if not exists (select 1 from public.notifications where type = 'supplier_strike_warning' and lead_id = s_a and body ~ 'Not for me' and body ~ 'available') then

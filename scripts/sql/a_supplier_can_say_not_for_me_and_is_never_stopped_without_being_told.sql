@@ -94,14 +94,18 @@ create or replace function public.fn_supplier_request_reached_him(p_supplier big
  set search_path to 'public', 'pg_temp'
 as $fn$
 declare
-  v_claimed text; v_notices int; v_delivered int; v_undelivered int; v_read int; v_opened int; v_login timestamptz;
+  v_claimed text; v_notices int; v_delivered int; v_undelivered int; v_read int; v_opened int; v_login timestamptz; v_accepted int;
 begin
   select lower(btrim(coalesce(l.claimed_by, ''))) into v_claimed from public.leads l where l.id = p_supplier;
   select count(*),
          count(*) filter (where n.provider_status in ('delivered', 'read')),
          count(*) filter (where n.provider_status in ('undelivered', 'failed') or n.status in ('failed', 'suppressed', 'bounced')),
-         count(*) filter (where n.provider_status = 'read')
-    into v_notices, v_delivered, v_undelivered, v_read
+         count(*) filter (where n.provider_status = 'read'),
+         -- accepted by the provider 3+ days ago with no bounce since: an RFQ e-mail is never open-tracked (send_outbox/open_tracking.ts
+         -- OPEN_TRACKED_TYPES) and most WhatsApp read receipts are off, so "seen" alone would almost never be known (review 16 Nov 2026)
+         count(*) filter (where n.status = 'sent' and coalesce(n.sent_at, n.created_at) <= now() - interval '3 days'
+                            and coalesce(n.provider_status, '') not in ('undelivered', 'failed', 'bounced', 'complained'))
+    into v_notices, v_delivered, v_undelivered, v_read, v_accepted
     from public.notifications n
    where n.lead_id = p_supplier and n.inquiry_id = p_inquiry and coalesce(n.to_role, 'supplier') = 'supplier';
   select count(*) into v_opened
@@ -112,6 +116,8 @@ begin
   end if;
   return jsonb_build_object(
     'seen', v_read > 0 or v_opened > 0 or (v_login is not null and v_login >= p_sent_at),
+    -- REACHED HIM: seen, or delivered and not bounced. Only a request never sent or not delivered is not his silence.
+    'counts', v_read > 0 or v_opened > 0 or (v_login is not null and v_login >= p_sent_at) or v_delivered > 0 or v_accepted > 0,
     'delivered', v_delivered > 0,
     'undelivered', v_notices > 0 and v_undelivered = v_notices,
     'notices', v_notices, 'opened', v_opened, 'read_on_whatsapp', v_read,
@@ -189,8 +195,8 @@ begin
        and not exists (select 1 from public.quotes q where q.inquiry_id = p_inquiry and q.supplier_id = m.supplier_id)
   loop
     v_reach := public.fn_supplier_request_reached_him(r.supplier_id, p_inquiry, r.sent_at);
-    if coalesce((v_reach->>'seen')::boolean, false) is not true then
-      -- it never reached him, or reached him unopened: not his silence. Recorded with the facts, never a strike.
+    if coalesce((v_reach->>'counts')::boolean, false) is not true then
+      -- it never reached him (never sent, or not delivered): not his silence. Recorded with the facts, never a strike.
       insert into public.supplier_strike_event (lead_id, inquiry_id, kind, strikes_after, detail)
       select r.supplier_id, p_inquiry, 'not_counted', coalesce(l.chat_strikes, 0),
              jsonb_build_object('sent_at', r.sent_at, 'ended_at', p_ended_at, 'delivery', v_reach)
@@ -206,13 +212,30 @@ begin
           insert into public.agent_actions (agent, kind, status, risk, title, recommendation, detail, target_table, target_id)
           select 'sales_engineer', 'supplier_unreachable', 'pending', 'low',
                  left('Job requests are not reaching supplier #' || r.supplier_id, 200),
-                 'The last ' || v_unseen || ' requests sent to this supplier were not delivered or not opened, so none counted against him. Check his e-mail and WhatsApp number, and reach him on the other channel.',
+                 'The last ' || v_unseen || ' requests sent to this supplier were never sent or not delivered, so none counted against him. Check his e-mail and WhatsApp number, and reach him on the other channel.',
                  jsonb_build_object('supplier_id', r.supplier_id, 'unseen_requests', v_unseen, 'last_delivery', v_reach),
                  'leads', 'supplier_unreachable:' || r.supplier_id
            where not exists (select 1 from public.agent_actions a where a.kind = 'supplier_unreachable'
                               and a.target_id = 'supplier_unreachable:' || r.supplier_id and a.status = 'pending');
         end if;
       end if;
+      continue;
+    end if;
+    -- NEVER STOPPED WITHOUT BEING TOLD: the strike that would pause him counts only when the warning at limit-1 itself reached him
+    -- (provider delivered or read, or accepted 3+ days ago with no bounce). Otherwise it is recorded, not counted, and he stays at limit-1.
+    if coalesce((select chat_strikes from public.leads where id = r.supplier_id), 0) >= v_limit - 1
+       and not exists (select 1 from public.notifications w
+                        where w.type = 'supplier_strike_warning' and w.lead_id = r.supplier_id
+                          and w.created_at > coalesce((select max(x.created_at) from public.supplier_strike_event x
+                                                        where x.lead_id = r.supplier_id and x.kind = 'cleared'), '-infinity'::timestamptz)
+                          and (w.provider_status in ('delivered', 'read')
+                               or (w.status = 'sent' and coalesce(w.sent_at, w.created_at) <= now() - interval '3 days'
+                                   and coalesce(w.provider_status, '') not in ('undelivered', 'failed', 'bounced', 'complained')))) then
+      insert into public.supplier_strike_event (lead_id, inquiry_id, kind, strikes_after, detail)
+      select r.supplier_id, p_inquiry, 'not_counted', coalesce(l.chat_strikes, 0),
+             jsonb_build_object('sent_at', r.sent_at, 'ended_at', p_ended_at, 'delivery', v_reach, 'why', 'warning_not_delivered')
+        from public.leads l where l.id = r.supplier_id
+      on conflict do nothing;
       continue;
     end if;
     insert into public.supplier_strike_event (lead_id, inquiry_id, kind, strikes_after, detail)
@@ -492,7 +515,8 @@ begin
   v_away := a.supplier_id is not null and not public.fn_supplier_available(a.state, a.busy_until);
   select c.trades, c.services into v_trades, v_services from public.supplier_capabilities c where c.supplier_id = p_supplier;
   select public.fn_supplier_trade_correction_view(c.id) into v_open
-    from public.supplier_trade_correction c where c.supplier_id = p_supplier and c.status = 'proposed';
+    from public.supplier_trade_correction c where c.supplier_id = p_supplier and c.status = 'proposed'
+     and c.proposed_at > now() - interval '14 days';   -- a "yes" weeks later answers something else, never this (review 16 Nov 2026)
   return jsonb_build_object(
     'supplier_id', p_supplier,
     'approved', coalesce(l.approval_status, '') = 'approved',

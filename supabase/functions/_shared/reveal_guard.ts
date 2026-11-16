@@ -147,8 +147,8 @@ const REFUSALS: Record<string, { status: number; en: string; ar: string }> = {
   },
   figure_unconfirmed: {
     status: 409,
-    en: 'This quote\'s total is far from the other quotes on your request, so we have asked the supplier to confirm it before you pay anything. You have not been charged. We will let you know when it is confirmed or corrected.',
-    ar: 'إجمالي هذا العرض بعيد جدًا عن بقية العروض على طلبك، لذلك طلبنا من المورّد تأكيده قبل أن تدفعوا أي مبلغ. لم يُخصم منكم شيء، وسنُعلمكم حين يؤكده أو يصحّحه.',
+    en: 'This quote\'s total is far from the other quotes on your request, so we have asked the supplier to confirm it before you pay anything. You have not been charged. Please try again later, or choose another quote.',
+    ar: 'إجمالي هذا العرض بعيد جدًا عن بقية العروض على طلبك، لذلك طلبنا من المورّد تأكيده قبل أن تدفعوا أي مبلغ. لم يُخصم منكم شيء. يُرجى المحاولة لاحقًا، أو اختيار عرض آخر.',
   },
   account_sanctioned: {
     status: 403,
