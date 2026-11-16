@@ -6,6 +6,7 @@ one copy: read this index first, and change these files by PR when you learn som
 Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 
 ## Standing rules and founder facts
+- [Find the real-company holes yourself, and build them (16 Nov)](find-the-real-company-holes-yourself.md) — ledgers 1711-1713: the founder is never the one who finds a hole; every session hunts (customer, supplier, operations, failures), ranks by likelihood × harm, and builds the fix as a colleague reading the shared record, never a keyword rule
 - [A rehearsal on production holds the locks of a real change (13 Nov)](a-rehearsal-on-production-holds-the-locks-of-a-real-change.md) — 28 rolled-back rehearsals queued 103 live requests and 11 cron jobs; the 8 s timeout cancelled a certificate, an approval and a customer's acceptance; local first (`scripts/db/local_pg16.mjs`), a production replay is never the default and is cut at 5 s, the real apply uses lock_timeout and a quiet minute
 - [GitHub is the single source of truth (26 Oct)](github-is-the-single-source-of-truth.md) — ledger 1278: nothing lives only on the laptop; memory here, text reports in docs/reports/, binaries and third-party files in the private `evidence` bucket, licence PDF stays in Dropbox
 - [The LLM understands; code only checks (12 Nov)](the-llm-understands-code-only-checks.md) — ledger 1663, 1664, 1666: licences, profiles, the sales agent, any chat: the model reads and code never interprets first or overrides; the bar is the model's own app; "code first" was never the rule for these
