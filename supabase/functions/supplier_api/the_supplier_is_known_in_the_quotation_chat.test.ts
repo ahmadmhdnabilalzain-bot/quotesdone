@@ -22,8 +22,8 @@ Deno.test('a review that says "ready to submit" reaches the model with his expir
       collaboration: { unanswered_in_a_row: 3, on_hold: true, held_at: '2026-11-14T10:00:00Z' },
       why_no_jobs: [{ code: 'licence_expired', says: 'His trade licence expired on 06 Nov 2026. He should upload the renewed licence in the Documents tab.' },
         { code: 'strike_limit', says: 'Matching is paused: he has 3 unanswered-request strikes (limit 3). A quotation clears the run.' }] } };
-  const db = { rpc: async (fn: string) => fn === 'fn_wa_context' ? { data: reading, error: null }
-    : { data: { events: [{ kind: 'collaboration', at: '2026-11-14T10:00:00Z', summary: 'held — 3 in a row — RFQ 1A2B3C4D' }] }, error: null } };
+  const db = { rpc: (fn: string) => Promise.resolve(fn === 'fn_wa_context' ? { data: reading, error: null }
+    : { data: { events: [{ kind: 'collaboration', at: '2026-11-14T10:00:00Z', summary: 'held — 3 in a row — RFQ 1A2B3C4D' }] }, error: null }) };
   const facts = withSupplierKnown('Job 164941: the quotation is complete and ready to submit.', await supplierKnownFacts(db, 'zz-demo-supknown-b@example.invalid'));
   for (const s of ['Job 164941', 'EXPIRED 10 day(s) ago', 'renewed licence in the Documents tab', '3 unanswered-request strikes', 'on hold since 2026-11-14',
     'held — 3 in a row', 'never tell him he is verified, ready to submit']) assert(facts.includes(s), `missing "${s}":\n${facts}`);

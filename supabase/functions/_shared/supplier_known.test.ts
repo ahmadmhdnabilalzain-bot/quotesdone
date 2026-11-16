@@ -57,8 +57,8 @@ Deno.test('the reading before the SQL is applied (no services/matching keys) sti
 
 const stubDb = (reading: unknown, events: unknown[] = []) => {
   const calls: { fn: string; args: Record<string, unknown> }[] = [];
-  return { calls, rpc: async (fn: string, args: Record<string, unknown>) => { calls.push({ fn, args });
-    return fn === 'fn_wa_context' ? { data: reading, error: null } : { data: { events }, error: null }; } };
+  return { calls, rpc: (fn: string, args: Record<string, unknown>) => { calls.push({ fn, args });
+    return Promise.resolve(fn === 'fn_wa_context' ? { data: reading, error: null } : { data: { events }, error: null }); } };
 };
 
 Deno.test('readSupplier asks fn_wa_context for the supplier by his own address, and nothing else', async () => {
