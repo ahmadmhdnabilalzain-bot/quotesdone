@@ -22,7 +22,7 @@ export type ComplaintChannel = 'email' | 'whatsapp' | 'widget' | 'portal';
 /** The second choice of the needs-a-person reading. Chosen by the model, never by a word list. */
 export const COMPLAINT_OPTIONS = [
   { id: 'complaint', meaning: 'they express dissatisfaction they want QuotesDone to address: a complaint about QuotesDone, a supplier, a customer, a quote, a charge, a refund, a delay, the service or how they were treated, including a dispute or an accusation, whether or not they also ask for a person -- however it is worded, in any language' },
-  { id: 'not_a_complaint', meaning: 'anything else: a question (including how complaints, refunds or disputes work), a request, a fault report with no dissatisfaction aimed at us, thanks, or a request for a person with no complaint' },
+  { id: 'not_a_complaint', meaning: 'anything else: a question (including how complaints, refunds or disputes work), a request, a status chase ("any update?", "still waiting for quotes"), haggling over a price or asking for more or cheaper quotes, a fault report with no dissatisfaction aimed at us, thanks, or a request for a person with no complaint' },
 ];
 export const isComplaint = (choice: unknown): boolean => choice === 'complaint';
 

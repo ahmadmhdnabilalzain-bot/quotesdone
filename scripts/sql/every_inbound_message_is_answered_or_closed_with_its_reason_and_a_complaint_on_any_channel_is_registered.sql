@@ -365,10 +365,61 @@ begin
                                                where p.id = c.customer_profile_id and public.fn_is_demo_phone('0' || p.phone_tail)) then
     return false;
   end if;
+  -- SILENT (review 16 Nov 2026): nobody was owed a reply, so nobody is asked to rate it (trg_support_case_closed_asks_for_the_rating)
+  -- or told it closed (trg_support_case_closed_tells_the_reporter). Measured: the first run would have mailed "How did we do?" to an
+  -- out-of-office sender, an auto-generated sender and a Microsoft vendor address, and the reason above is internal text (ledger 1338).
+  update public.support_case set csat_requested_at = now(), csat_request_error = 'not asked: closed because no reply was owed'
+   where case_ref = c.case_ref and csat_requested_at is null;
+  perform set_config('qd.support_case_close_silently', 'on', true);
   perform public.fn_support_case_close(p_case_ref, left('no reply was owed: ' || coalesce(v_reason, 'see customer_support_inbound_drive'), 900), 'customer_support');
+  perform set_config('qd.support_case_close_silently', '', true);
   return true;
 end $fn$;
 revoke execute on function public.fn_customer_support_close_case_nothing_owed(text) from public, anon, authenticated;
+
+-- The reporter is told of a close, except a silent one (above). Live body (nothing_a_person_sends_us_waits_without_a_seat_that_acts.sql)
+-- with only the qd.support_case_close_silently test added; the hand-off is still completed.
+create or replace function public.fn_support_case_closed_tells_the_reporter()
+returns trigger
+language plpgsql security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+
+declare v_h public.agent_actions; v_email text; v_lang text; v_notif bigint;
+begin
+  if new.state <> 'closed' or old.state = 'closed' then return null; end if;
+  select * into v_h from public.agent_actions where kind = 'handoff'
+     and target_id in ('support.case_open:' || new.case_ref, 'support.case_open:' || new.case_id) limit 1;
+  v_lang := coalesce(v_h.detail ->> 'lang', 'en');
+  if new.party_kind = 'customer' then
+    select c.email into v_email from public.customers c where c.id::text = new.party_id;
+  elsif new.party_kind = 'supplier' then
+    select l.email into v_email from public.leads l where l.id::text = new.party_id;
+  end if;
+  if v_email ~ '@' and coalesce(current_setting('qd.support_case_close_silently', true), '') <> 'on' then
+   begin   -- a refused notice (a guard on notifications) must never undo the close itself
+    insert into public.notifications (type, kind, to_email, to_role, channel, lang, subject, body, requested_by, sender)
+    values ('support_case_closed', 'support_case_closed', v_email, new.party_kind, 'email', v_lang,
+            case when v_lang = 'ar' then 'إغلاق البلاغ رقم ' || new.case_ref else 'Your case ' || new.case_ref || ' is closed' end,
+            case when v_lang = 'ar'
+                 then 'نفيدكم بإغلاق البلاغ رقم ' || new.case_ref || '، وملخص المعالجة: ' || new.close_reason
+                      || E'.\nإن لم تُحلّ المشكلة فتفضلوا بالرد على هذه الرسالة وسنعيد فتحه.'
+                 else 'Your case ' || new.case_ref || ' is now closed: ' || new.close_reason
+                      || E'.\nIf the problem is not solved, just reply to this message and we will reopen it.' end,
+            'customer_support', 'customer_support')
+    returning id into v_notif;
+   exception when others then
+    raise warning 'fn_support_case_closed_tells_the_reporter: the email for % was refused: %', new.case_ref, sqlerrm;
+   end;
+  end if;
+  if v_h.id is not null and v_h.status <> 'done' then
+    perform public.fn_seat_handoff_complete(v_h.id, jsonb_build_object(
+      'closed_at', new.closed_at, 'close_reason', new.close_reason,
+      'reporter_email_notification', v_notif, 'reporter_phone_digits', v_h.detail ->> 'phone_digits'));
+  end if;
+  return null;
+end $fn$;
+revoke execute on function public.fn_support_case_closed_tells_the_reporter() from public, anon, authenticated;
 
 -- ── H1.2 THE DUTY: A REPLY, OR A CLOSE WITH ITS REASON, WITHIN THE SLA ────────────────────────────────────────────────
 create or replace function public.fn_customer_support_unanswered_inbound_tick()
@@ -396,11 +447,16 @@ begin
       select case when x.id is null then 'gone'
                   when x.reply is not null and coalesce(x.sent, false) then 'answered'
                   when public.fn_is_demo_phone(x.wa_from) then 'fixture'
-                  else 'owed' end
-        into v_state from (select 1) one left join public.wa_messages x on x.id = d.message_id;
+                  when coalesce(btrim(x.meta->>'no_autoreply_reason'), '') <> '' then 'recorded'
+                  else 'owed' end,
+             left(x.meta->>'no_autoreply_reason', 300)
+        into v_state, v_why from (select 1) one left join public.wa_messages x on x.id = d.message_id;
+      -- 'recorded': wa_inbound kept it with no reply of its own and said why (a burst answered by its first message, a thank-you,
+      -- a stopped machine loop, an unverified webhook: wa_inbound/burst.ts, arrival.ts)
       v_why := case v_state when 'gone' then 'the WhatsApp message is no longer on file'
-                            when 'fixture' then 'a reserved fixture number (+97150000000xx): test traffic, never sent to a person' end;
-      if v_state in ('gone', 'fixture') then v_state := 'no_reply_needed'; end if;
+                            when 'fixture' then 'a reserved fixture number (+97150000000xx): test traffic, never sent to a person'
+                            when 'recorded' then 'wa_inbound recorded it with no reply of its own: ' || v_why end;
+      if v_state in ('gone', 'fixture', 'recorded') then v_state := 'no_reply_needed'; end if;
     end if;
     if v_state = 'answered' then
       update public.customer_support_inbound_drive set answered_at = now() where channel = d.channel and message_id = d.message_id;
@@ -479,6 +535,7 @@ begin
   for w in select x.* from public.wa_messages x
             where x.created_at < v_cut and x.created_at > now() - interval '30 days'
               and coalesce(btrim(x.inbound), '') <> '' and (x.reply is null or not coalesce(x.sent, false))
+              and coalesce(btrim(x.meta->>'no_autoreply_reason'), '') = ''
               and not (right(regexp_replace(coalesce(x.wa_from, ''), '[^0-9]', '', 'g'), 9) = any (v_founder))
               and (coalesce(x.profile_name, '') like 'ZZ DEMO%' or public.fn_is_demo_phone(x.wa_from)) = v_fx
               and not exists (select 1 from public.customer_support_inbound_drive i where i.channel = 'whatsapp' and i.message_id = x.id)
@@ -708,6 +765,8 @@ begin
     into v_wa
     from public.wa_messages w
    where w.created_at >= v_from and coalesce(btrim(w.inbound), '') <> ''
+     -- a row kept on purpose with no reply of its own (burst, thank-you, loop, unverified) is not a message waiting for one
+     and coalesce(btrim(w.meta->>'no_autoreply_reason'), '') = ''
      and not (right(regexp_replace(coalesce(w.wa_from, ''), '[^0-9]', '', 'g'), 9) = any (v_founder))
      and (coalesce(w.profile_name, '') like 'ZZ DEMO%' or public.fn_is_demo_phone(w.wa_from)) = v_fx;
 
