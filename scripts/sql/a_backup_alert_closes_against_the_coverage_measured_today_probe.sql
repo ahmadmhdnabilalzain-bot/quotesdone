@@ -22,11 +22,11 @@ begin
   r := public.fn_it_backup_alerts_settle(jsonb_build_object('ok', false, 'failing', jsonb_build_array('not_done_after_48h'),
          'not_done_after_48h', 344, 'not_done_ids', jsonb_build_array(1, 2), 'sources_without_a_row', 0, 'refiles_open_past_48h', 0));
   if (r->>'mirror_stale')::boolean is not true then raise exception 'CHK<<PROBE FAILED: a 3-day-old run read as fresh: %>>', r; end if;
-  if (select status from public.agent_actions where id = v_a) <> 'dismissed'
-     or (select status from public.agent_actions where id = v_c) <> 'dismissed' then
+  if (select status from public.agent_actions where id = v_a) is distinct from 'dismissed'
+     or (select status from public.agent_actions where id = v_c) is distinct from 'dismissed' then
     raise exception 'CHK<<PROBE FAILED: an older copy was not closed as superseded: %>>', r; end if;
-  if (select status from public.agent_actions where id = v_b) <> 'pending'
-     or (select status from public.agent_actions where id = v_d) <> 'pending' then
+  if (select status from public.agent_actions where id = v_b) is distinct from 'pending'
+     or (select status from public.agent_actions where id = v_d) is distinct from 'pending' then
     raise exception 'CHK<<PROBE FAILED: the newest alert of a live condition was closed: %>>', r; end if;
   if (select recommendation from public.agent_actions where id = v_b) not like '%344 queued row(s) not done after 48 hours%' then
     raise exception 'CHK<<PROBE FAILED: the kept coverage alert does not carry today''s measurement>>'; end if;
@@ -36,7 +36,7 @@ begin
   -- 2. the mirror runs again and coverage is measured ok: both kept alerts close 'done' with the measurement
   insert into public.agent_runs (agent, status, started_at, finished_at) values ('dropbox_backup', 'ok', now() - interval '1 hour', now() - interval '1 hour');
   r := public.fn_it_backup_alerts_settle(jsonb_build_object('ok', true, 'failing', '[]'::jsonb));
-  if (select status from public.agent_actions where id = v_b) <> 'done' or (select status from public.agent_actions where id = v_d) <> 'done' then
+  if (select status from public.agent_actions where id = v_b) is distinct from 'done' or (select status from public.agent_actions where id = v_d) is distinct from 'done' then
     raise exception 'CHK<<PROBE FAILED: a recovered condition left its alert open: %>>', r; end if;
   if (select evidence->'coverage'->>'ok' from public.agent_actions where id = v_b) <> 'true' then
     raise exception 'CHK<<PROBE FAILED: the close does not carry the coverage it was judged on>>'; end if;
