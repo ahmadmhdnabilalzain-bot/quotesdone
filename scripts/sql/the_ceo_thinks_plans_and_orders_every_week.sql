@@ -10,6 +10,9 @@
 -- https://quotesdone.com/portal?join=1&utm_source=founder&utm_medium=whatsapp&utm_campaign=2026-11 (src/lib/firstTouch.ts keeps
 -- the tags; supplier_api writes them to marketing_first_touch at registration). The CEO counts his people by that tag and tells
 -- him daily who started, submitted and was approved, and who is stuck at which step, so he can call them.
+-- Founder, ledger 1710 (16 Nov 2026): "don't wait on me ... don't rely on me. You have to deliver the app as I'm expecting." So
+-- no bet is addressed to the founder or depends on him: registrations with his tag are a bonus the CEO counts (the pack, the
+-- channel register's reading, his daily summary), never a bet or a target (REVIEW2_ceoplan, fix 1).
 --
 -- MEASURED BEFORE THIS FILE (the CEO seat audit, SP/audit/CEO.md, SELECT 15 Nov 2026):
 --   * the CEO was 40 duties of fixed SQL rules. The daily plan's model slot (app_secrets.ceo_model_slot) has been off since
@@ -50,9 +53,9 @@
 --      seat has today (only a build order may name it), switched-off invitations, an open order on the same measure, and any
 --      question to the founder. A passed bet is a ceo.order hand-over with its measure, target and due date; a refused bet goes
 --      back to the model ONCE with the reasons; a second refusal is recorded and the bet dropped.
---   5. THE FIRST PLAN AS DATA (week of 16 Nov 2026, the audit's plan, revised for ruling 1709): the 16 Nov bets per seat and the
---      CEO's trade priorities. It is a ceo_plan_week row of kind 'seed'; the loop's first run files it through the same checks as
---      any model plan. Nothing here sends anything. The operating target (30 verified suppliers in three focus trades by 20 Dec:
+--   5. THE FIRST PLAN AS DATA (week of 16 Nov 2026, the audit's plan, revised for rulings 1709 and 1710): the 16 Nov bets per
+--      seat and the CEO's trade priorities. It is a ceo_plan_week row of kind 'seed'; the loop's first run files it through the
+--      same checks as any model plan. Nothing here sends anything. The operating target (30 verified suppliers in three focus trades by 20 Dec:
 --      hvac, interior_fitout, building_materials) is the coverage file's decision_policy 'ceo_focus_trades' (review 4): that run
 --      confirms only those targets, so there is one count, beside the year-one milestone; the plan may change the focus
 --      (CEO action set_focus_trades -> fn_ceo_sets_focus_trades).
@@ -80,6 +83,10 @@
 --      own decision (with the accountant's challenge); he reads it in the daily summary.
 --   6. (the base files) a conversation and any WhatsApp, SMS or e-mail action is a message; an address alone meets the placement bar;
 --      the three-argument rule refuses money with no amount; service_role no longer writes ceo_standing_grant or decision_policy.
+-- REVIEW2 OF 16 NOV (SP/show/REVIEW2_ceoplan.md, fix 1, ruling 1710): the seed's founder_network bet is gone (moved to its
+--   "dropped" list with the reason); the bet check refuses ANY bet whose seat is the founder or whose channel is founder_network
+--   (before, one shape was allowed: seat founder counting his own tagged registrations); the contract says his registrations are
+--   a bonus counted, never a bet, and the seat is never the founder. The register row and his reading stay, as an unowned count.
 -- NOT HERE (ruling 1709): no hire request. The channel register records a hired caller as refused, with the alternative.
 -- FIXTURES: qd.duty_fixtures = 'on' (the estate's probe seam) makes every reading see ONLY demo rows; without it ONLY real ones.
 -- prevented by: scripts/checks/the_ceo_plans_every_week_and_code_checks_every_order.test.mjs (text),
@@ -739,15 +746,13 @@ begin
       v_out := v_out || ('the bet''s words describe ' || r.channel || ' (' || coalesce(substring(v_act from r.act_terms), '?') || '), which is refused: ' || r.refused_because || ' The alternative: ' || r.alternative);
     end if;
   end loop;
-  -- THE FOUNDER IS TOLD, NEVER ASKED (ledger 1696), whatever flag the model set: no ask of him in the words, no bet addressed to
-  -- him; only his own network is his (ledger 1709), and on it the CEO only counts his registrations
+  -- THE FOUNDER IS TOLD, NEVER ASKED (ledger 1696), whatever flag the model set: no ask of him in the words, and no bet addressed
+  -- to him or depending on him (ledger 1710): his tagged registrations are a bonus the pack counts, never a bet
   if coalesce(lower(p_bet->>'asks_founder'), 'false') not in ('false', 'f', 'no', '0') or public.fn_ceo_plan_text_asks_founder(v_said) then
     v_out := v_out || 'the founder is not asked for anything (ledger 1696): the CEO decides; a bet never asks, tells or waits for him'::text;
   end if;
-  if (v_seat = 'founder' or c.channel = 'founder_network')
-     and not (v_seat = 'founder' and c.channel = 'founder_network' and v_measure in ('registrations_by_source', 'submitted_by_source')
-              and lower(coalesce(p_bet->'measure_args'->>'source', '')) = 'founder') then
-    v_out := v_out || 'no bet is addressed to the founder (ledger 1696): only his own network is his (ledger 1709), and on it the CEO counts his registrations (seat founder, measure registrations_by_source or submitted_by_source, source founder)'::text;
+  if v_seat = 'founder' or c.channel = 'founder_network' then
+    v_out := v_out || 'no bet is addressed to the founder or depends on him (ledgers 1696, 1710): registrations with his tag are counted as a bonus in the pack, never a bet; plan supply from channels the company runs itself'::text;
   end if;
   -- people are named only by lead id, so each one is read against the gates; no address or number in the words
   if v_act ~ '[a-z0-9._%+-]+@(?!quotesdone\.com\M)[a-z0-9.-]+\.[a-z]{2,}' or v_act ~ '(\+|\m00)[1-9][0-9 ().-]{7,}[0-9]|\m0?5[0-9][ -]?[0-9]{3}[ -]?[0-9]{4}\M' then
@@ -1072,13 +1077,13 @@ returns jsonb language sql stable security definer set search_path to 'public', 
     'system', 'You are the chief executive of QuotesDone, a UAE B2B procurement marketplace before launch. The founder gave you full authority '
       || '(ledger 1696) and you do not rely on him; profitability is your main concern: first enough verified suppliers, then a customer '
       || 'campaign (1701). Bring solutions, not issues (1705/1706): for every obstacle say what you will do, whether it is safe, and if not, '
-      || 'the alternative. No hire (1709): the founder personally messages and calls his own network with his tracked link, and you track them. '
+      || 'the alternative. No hire (1709); the founder''s tagged registrations are a bonus you count, never a bet (1710). '
       || case when p_kind = 'daily' then 'This is the DAILY light review: code found the anomalies listed; propose at most two bets that fix them, or none. '
               else 'This is the WEEKLY plan: first score last week''s bets against what happened (last_plan, calibration), then decide this week. ' end
       || 'Read the pack: the funnel, registrations by first-touch source, placement by provider, replies, coverage and the operating target, '
       || 'demand, the pool, spend against the company limits and runway, each seat''s board and open orders, the rulings, the channel register '
       || '(verdicts, alternatives, capabilities, priors) and the measures code can read. Use only channels in the register; a refused channel will be '
-      || 'refused by code with its alternative. Every bet names its seat (one of capabilities.order_seats; seat "founder" only for founder_network), '
+      || 'refused by code with its alternative. Every bet names its seat (one of capabilities.order_seats; never the founder), '
       || 'a measure from capabilities.measures with measure_args, a numeric target, direction, a due_at (ISO, 12 hours to 6 weeks ahead), the '
       || 'expected range from the priors (say the assumption), the cost in AED (0 if none), the legal and platform analysis naming the rule (PDPL, TDRA, '
       || 'Meta, LinkedIn, Google or Microsoft sender rules, a founder ruling), and a kill criterion. Never ask the founder anything. A capability no '
@@ -1515,7 +1520,8 @@ update public.ceo_directive
  where seat = 'ceo' and source_kind = 'register_review' and source_ref like 'compliance_sources:%' and status in ('open', 'escalated');
 
 -- ── 16. THE FIRST PLAN AS DATA (week of 16 Nov 2026): filed by the loop's first run through fn_ceo_plan_file ───────────────
--- The audit's 16 Nov orders (SP/audit/CEO.md section 8), revised for ruling 1709: the founder's own network is bet 1 and no hire.
+-- The audit's 16 Nov orders (SP/audit/CEO.md section 8), revised for rulings 1709 (no hire) and 1710 (no bet on the founder's
+-- network: his tagged registrations are a bonus the pack counts).
 -- Due dates are absolute; the checks run when it is filed, so a bet whose date has passed by then is refused with the reason.
 insert into public.ceo_plan_week (kind, period, status, task_class, output, pack)
 select 'seed', date '2026-11-16', 'asked', 'seed',
@@ -1523,7 +1529,6 @@ select 'seed', date '2026-11-16', 'asked', 'seed',
   "binding_constraint": {"stage": "registrations", "evidence": "1 submitted of 115 delivered invitations; every reply lost; the only open mailbox class is Google (2,730 never-invited)"},
   "decision": {
    "bets": [
-    {"channel": "founder_network", "seat": "founder", "what": "The founder messages and calls his own network from his own number with his tracked link; the CEO tells him every morning who started, submitted and was approved, and who is stuck at which step.", "how": "https://quotesdone.com/portal?join=1&utm_source=founder&utm_medium=whatsapp&utm_campaign=2026-11", "why": "Ledger 1709: his estimate is 20 to 100 registrations; people he knows convert far above cold mail.", "measure": "registrations_by_source", "measure_args": {"source": "founder"}, "target": 20, "direction": "at_least", "due_at": "2026-12-06T18:00:00+04:00", "expected_low": 20, "expected_high": 100, "cost_aed": 0, "legal": "Safe: people he knows, personal messages from his own number (PDPL: business contacts he holds; no list is taken).", "kill_criterion": "none: it is his network; the CEO reports the numbers"},
     {"channel": "reply_within_1h", "seat": "sales_engineer", "what": "Answer every supplier reply since 1 Nov with the registration link (5 replies dropped), and every new reply within one business hour.", "how": "Through the supplier mailbox reply path; answer only what they wrote; a STOP is honoured.", "why": "5 of 5 replies were dropped by the reply path; each answered reply is the warmest lead we have.", "measure": "replies_unanswered", "measure_args": {}, "target": 0, "direction": "at_most", "due_at": "2026-11-17T18:00:00+04:00", "expected_low": 1, "expected_high": 2, "cost_aed": 0, "legal": "Safe: a reply to their own mail; ledger 1301 covers the cold invitation only.", "kill_criterion": "never: the 1-hour answer is permanent"},
     {"channel": "email_invitation_google", "seat": "sales_engineer", "what": "Invitation batches in the three focus trades, Dubai, Google-hosted and verified addresses only, up to the 1231 schedule.", "how": "The existing invitation duty and the outbox: fn_email_sendable, suppressions, the placement bar.", "why": "The only open mailbox class; 1,248 never-invited Dubai Google addresses.", "measure": "invitations", "measure_args": {"trades": ["hvac", "interior_fitout", "building_materials"]}, "target": 100, "direction": "at_least", "due_at": "2026-11-23T18:00:00+04:00", "expected_low": 1, "expected_high": 3, "cost_aed": 0, "legal": "Safe at: 1231 schedule, bounce under 3%, checked-only, STOP line, one-click unsubscribe, no link (1301); Google class only (1537).", "kill_criterion": "bounce over 3% in 7 days, or 0 registrations from 250 delivered", "providers": ["google"]},
     {"channel": "registration_unblock", "seat": "sales_engineer", "what": "Every submitted registration decided within two days, so none of the founder''s people waits on us.", "how": "The registration review the sales engineer already owns; ask the supplier for what is missing through his own channel.", "why": "The founder''s people will arrive in a burst; a held registration is the next leak.", "measure": "held_registrations", "measure_args": {}, "target": 0, "direction": "at_most", "due_at": "2026-11-20T18:00:00+04:00", "expected_low": 0, "expected_high": 0, "cost_aed": 0, "legal": "Safe: e-mail through the outbox; WhatsApp only with his opt-in (1341).", "kill_criterion": "never"},
@@ -1536,13 +1541,14 @@ select 'seed', date '2026-11-16', 'asked', 'seed',
     {"kind": "set_trade_priority", "add": ["hvac", "electrical", "mep_general", "gypsum", "building_materials"], "remove": ["painting", "signage", "upholstery"], "reason": "The focus trades (hvac, interior_fitout, building_materials) come from the only recorded demand (2 HVAC customers waiting, 1 electrical intake), fee size and the Google-reachable pool; painting, signage and upholstery were chosen on pool size alone."}
    ],
    "dropped": [
-    {"option": "hire a part-time caller", "why": "ruling 1709: no hire; the founder calls his own network"},
+    {"option": "hire a part-time caller", "why": "ruling 1709: no hire"},
+    {"option": "a bet on the founder''s own network", "why": "ruling 1710: the plan never depends on the founder; registrations with his tag are counted as a bonus (registrations_by_source, source founder), never a target"},
     {"option": "WhatsApp templates to scraped mobiles", "why": "refused: Meta policy (1341); click-to-chat instead"},
     {"option": "LinkedIn or other ads", "why": "refused: ledger 1456"},
     {"option": "bulk SMS", "why": "refused: ledger 1185"},
     {"option": "mail Microsoft or Yahoo hosts now", "why": "refused while they fail placement; fix Microsoft first"}
    ]}}'::jsonb,
-  jsonb_build_object('source', 'the CEO seat audit of 15 Nov 2026 (SP/audit/CEO.md sections 7 and 8), revised for founder ledger 1709')
+  jsonb_build_object('source', 'the CEO seat audit of 15 Nov 2026 (SP/audit/CEO.md sections 7 and 8), revised for founder ledgers 1709 and 1710')
  where not exists (select 1 from public.ceo_plan_week where kind = 'seed');
 
 -- ── 17. ONE DUTY (measure and learn even when the heartbeat's model call does not run) ─────────────────────────────────────

@@ -28,7 +28,7 @@ function depsOf(opts: { answers?: string[]; file?: Array<Record<string, unknown>
   };
   return { deps, calls, asked };
 }
-const PLAN = JSON.stringify({ situation: 's', decision: { bets: [{ channel: 'founder_network', seat: 'founder', measure: 'registrations_by_source', target: 20 }] } });
+const PLAN = JSON.stringify({ situation: 's', decision: { bets: [{ channel: 'reply_within_1h', seat: 'sales_engineer', measure: 'replies_unanswered', target: 0 }] } });
 
 Deno.test('plan: the model is asked on the request\'s class with the pack, and its answer is filed through code', async () => {
   const m = depsOf({ answers: [PLAN] });

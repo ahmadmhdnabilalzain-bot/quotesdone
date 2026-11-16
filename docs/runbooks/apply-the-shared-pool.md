@@ -71,9 +71,16 @@ How it stays short:
 - RLS, policies, indexes, columns and constraints are created only when missing (a `do` block reads the catalogue first), so a
   re-run takes nothing stronger than SHARE ROW EXCLUSIVE anywhere.
 - The order of the tail: the triggers on `seat_judgement`, `customers` and `agent_actions` (the locks that may WAIT for a long
-  writer); then the DDL and seed of `event_subscription` and `event_delivery` (ACCESS EXCLUSIVE on the first apply, which the
-  event stream's readers need, so it is taken only after every lock that may wait); then the trigger on `company_event`; then
-  the commit.
+  writer); then `lock table company_event in share row exclusive mode`; then the DDL and seed of `event_subscription` and
+  `event_delivery` (ACCESS EXCLUSIVE on the first apply, which the event stream's readers need, so it is taken only after every
+  lock that may wait); then the trigger on `company_event`; then the commit.
+- Why `company_event` is locked before those two (REVIEW2_ceoplan fix 2, 16 Nov 2026): an event insert holds ROW EXCLUSIVE on
+  `company_event` and then reads and writes `event_subscription`/`event_delivery` in its dispatch trigger. Locked last, an
+  insert in flight and the first apply waited on each other: `40P01 deadlock detected`, the apply the victim, rolled back
+  whole (the review: 4 of 6 runs at one event every 50 ms, 6 of 6 at four writers every 10 ms; here, LOCAL, 3 of 3 at four
+  writers, each writer stalled about 1.0 s, no writer saw an error). Locked first: 0 deadlocks (the review 9 of 9; here 4 of 4,
+  101-169 ms, worst event write 29 ms). With a writer holding `company_event` open 4 s the apply still fails at 1,580 ms on its
+  lock timeout, worst write 1.49 s, as before.
 - The department dispatcher's trigger is NOT dropped by this file: its function's body becomes `return null` (no table lock).
   `scripts/sql/the_department_dispatcher_trigger_goes_once_its_body_is_a_no_op.sql` drops the trigger and the function later,
   alone (ACCESS EXCLUSIVE on `company_event` for the drop; it refuses to run while the old body is still there).
@@ -94,7 +101,9 @@ worst insert). The earlier figure here, 198 ms / 54 ms, was wrong: it measured t
 | coverage, first apply | either | 80–115 ms, applies | 13 ms | 12 ms |
 
 So each failed attempt of the pool file stalls ONE write of each kind it queues behind for about 1.5 s (the third review
-measured 1.45–1.67 s); three attempts stall up to about 4.5–5 s of writes in all. The limits and coverage files touch no busy
+measured 1.45–1.67 s). `apply_sql` makes up to 6 attempts per run (it retries a lock timeout 5 times, 10 s apart), so one
+failed run stalls one write of each kind for up to about 1.5 s six times, each at least 10 s apart; no write waits longer than
+about 2.3 s (the chained-writer case), under the 8 s request limit (REVIEW2_ceoplan). The limits and coverage files touch no busy
 table. With no writer: limits 55–95 ms, pool 116–225 ms, coverage 62–115 ms.
 
 Back-fill (the last 30 days of links) is not in the apply. The duty does it in batches of 2,000 per table per tick, downward
@@ -104,6 +113,13 @@ from the oldest linked row: a key range, no update of the source tables, no expo
 
 The money and sales branches are on main (15 Nov). The three CEO files re-apply cleanly in the order below (LOCAL, twice,
 each probe PROBE OK both times).
+
+THE WHOLE ORDER (REVIEW2_ceoplan, 16 Nov 2026): the growth branch's files FIRST (`sales_engineer-the-supplier-funnel-runs-itself`,
+its own runbook: the bounce brake's `fn_ceo_restarts_invites` is the CEO's first decision and may set `invite_enabled` true),
+then the CEO files below (limits, pool, coverage), the planning file LAST of them (1c), then the order conversations (1d, which
+read the planning file's tables). The seed is inserted `where not exists` and has no revision round: filed by the loop's first
+run while `invite_enabled` is false, its invitation bet stays refused for good. Without the growth branch, the first plan's
+company-run supply is replies, the registration unblock, the referral/click-to-chat build and the page/Chamber listing.
 
 0. Merge. Apply the limits file (any minute: no busy table):
    `node scripts/apply_sql.mjs scripts/sql/the_company_limits_bind_every_seat_and_the_ceo_changes_one_only_after_a_day.sql --apply --ddl --seat ceo`,
@@ -122,7 +138,10 @@ each probe PROBE OK both times).
    the probe runs, the probe checks that a second change is refused instead (it no longer fails on it).
 1. At a minute the money runbook's rule 2 read shows no transaction open longer than 5 s, apply the pool file:
    `node scripts/apply_sql.mjs scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql --apply --ddl --seat ceo`.
-   On `55P03 lock timeout`: wait 30 s, read again, re-run; at most 3 times. Then delete
+   `apply_sql` already retries a `55P03 lock timeout` 5 times, 10 s apart (6 attempts in one run). After a run that still
+   fails: wait 2 minutes, read `pg_stat_activity` again (rule 2), and re-run ONCE; if that fails too, stop and hand over with
+   the rows. A `40P01 deadlock detected` applied nothing (the file rolls back whole): re-run it. Avoid minute :00 (SELECT, 16
+   Nov: events arrive in bursts of 12-18 a minute, about 30-52 an hour at 00-02 UTC). Then delete
    `scripts/sql/pending/every_seat_reads_one_pool_and_every_hand_over_comes_back.txt` and append the file to the END of
    `MANIFEST.txt`. Check: `pg_trigger` has `zz_pool_link` on `company_event`, `agent_actions`, `seat_judgement` and
    `z41_customer_verified_is_told_to_the_pool` on `customers`; `pg_get_functiondef('public.trg_company_event_dispatch()')`
@@ -145,7 +164,11 @@ each probe PROBE OK both times).
    the seed. The file also redefines `trg_high_stakes_review` (no lock on `seat_deliberation_turn`, LOCAL): an accountant's
    agreement marks the CEO's pricing decision instead of e-mailing the founder. The probe keeps its own world (its own seed
    copy, plans, orders and planted spend), so it passes after the hourly duty has filed the real seed, with real orders open,
-   real spend over the cap or a limit change waiting (LOCAL). File it BEFORE 17 Nov 02:00 UTC: the seed's reply bet is due
+   real spend over the cap or a limit change waiting (LOCAL). Since REVIEW2_ceoplan (16 Nov, ruling 1710): the seed has NO bet
+   on the founder or his network (check: `select count(*) from ceo_plan_bet b join ceo_plan_week w on w.id = b.plan_id where
+   w.kind = 'seed' and (b.seat = 'founder' or b.channel = 'founder_network')` is 0); any such bet is refused ("no bet is
+   addressed to the founder or depends on him"); his tagged registrations stay in the pack and his summary as a bonus.
+   File it BEFORE 17 Nov 02:00 UTC: the seed's reply bet is due
    17 Nov 18:00 Dubai and a due date under 12 hours ahead is refused (by design; only that bet).
 1d. Apply the order conversations (any minute, after 1c; 16 Nov 2026, founder: "how do they talk to each other?"):
    `node scripts/apply_sql.mjs scripts/sql/an_order_is_a_conversation_until_its_outcome.sql --apply --ddl --seat ceo`, its two
@@ -171,7 +194,7 @@ each probe PROBE OK both times).
    `fn_ceo_plan_due` opens the first weekly plan on the first Monday after the apply, from 07:00 Dubai.
 4. A later quiet minute, the dispatcher's trigger, alone:
    `node scripts/apply_sql.mjs scripts/sql/the_department_dispatcher_trigger_goes_once_its_body_is_a_no_op.sql --apply --ddl --seat ceo`
-   (same retry rule), then its pending note goes and the file is appended to `MANIFEST.txt`.
+   (same retry rule as step 1), then its pending note goes and the file is appended to `MANIFEST.txt`.
 5. Regenerate the mirror: `node scripts/checks/export_from_either_source_is_identical.mjs --write`.
 
 ## 3. The founder is told, never asked (founder ledger 1696, 15 Nov 2026)

@@ -1727,8 +1727,9 @@ revoke execute on function public.fn_emit_customer_verified() from public, anon,
 --     scripts/sql/the_department_dispatcher_trigger_goes_once_its_body_is_a_no_op.sql (its own pending note);
 --   * the least busy table first: seat_judgement, customers, agent_actions; then section 1's DDL on event_subscription and
 --     event_delivery and the seed (the department dispatcher's trigger and fn_priority_backlog_reorder read those two on every
---     company_event insert, so their ACCESS EXCLUSIVE, first apply only, is taken after every lock that may wait); then
---     company_event. Each lock waits at most lock_timeout (1,500 ms) and the file rolls back whole on a timeout.
+--     company_event insert, so their ACCESS EXCLUSIVE, first apply only, is taken after every lock that may wait), with
+--     company_event locked JUST BEFORE them (REVIEW2_ceoplan fix 2: taken after them, an event insert in flight deadlocked the
+--     first apply). Each lock waits at most lock_timeout (1,500 ms) and the file rolls back whole on a timeout or a deadlock.
 -- The lock table, measured LOCAL from pg_locks, is in docs/runbooks/apply-the-shared-pool.md.
 create or replace function public.trg_company_event_dispatch()
 returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -1743,6 +1744,13 @@ create or replace trigger zz_pool_link after insert on public.seat_judgement for
 create or replace trigger z41_customer_verified_is_told_to_the_pool after update of tos_accepted_at on public.customers for each row
   when (old.tos_accepted_at is null and new.tos_accepted_at is not null) execute function public.fn_emit_customer_verified();
 create or replace trigger zz_pool_link after insert on public.agent_actions for each row when (new.kind = 'handoff') execute function public.trg_pool_link();
+-- REVIEW2_ceoplan fix 2 (16 Nov 2026, LOCAL): company_event is locked HERE, before section 1 takes ACCESS EXCLUSIVE on
+-- event_subscription and event_delivery at the first apply. Every event insert holds ROW EXCLUSIVE on company_event and then
+-- reads and writes those two in its dispatch trigger; with company_event taken last, an insert in flight and this apply waited
+-- on each other: 40P01 deadlock in 4 of 6 first applies at one event every 50 ms (the apply the victim, rolled back whole).
+-- Taken first, event writers queue behind the apply for its remaining 100-200 ms instead: 0 deadlocks in 9 of 9 (97-216 ms,
+-- worst event write 45 ms). SHARE ROW EXCLUSIVE is the mode the zz_pool_link trigger below takes anyway; readers never wait.
+lock table public.company_event in share row exclusive mode;
 -- ── 1 (continued). THE POOL'S TABLE AND ITS SEED: after the triggers whose locks may WAIT, before the company_event one ──
 -- (section 1, applied here, last but one: see the note at its head) The table gains its columns, rules, RLS and policy, each
 -- only when missing, so a re-run takes no ACCESS EXCLUSIVE on event_subscription or event_delivery (the department

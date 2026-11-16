@@ -125,8 +125,15 @@ begin
         v_fail := v_fail || 'seed bet ' || v_b.ord || ' filed without its order or with a refusal; '; end if;
       if v_b.status = 'refused' and cardinality(v_b.refusal) = 0 then v_fail := v_fail || 'seed bet ' || v_b.ord || ' refused with no reason; '; end if;
     end loop;
-    if (select status from public.ceo_plan_bet where plan_id = v_seed and channel = 'founder_network') <> 'filed'
-      then v_fail := v_fail || 'the founder''s network is not bet 1 of the first plan; '; end if;
+    -- ruling 1710 (REVIEW2_ceoplan fix 1): the seed has no bet on the founder or his network
+    if exists (select 1 from public.ceo_plan_bet where plan_id = v_seed and (seat = 'founder' or channel = 'founder_network'))
+      then v_fail := v_fail || 'the first plan carries a bet on the founder or his network (ruling 1710); '; end if;
+    -- the one shape the check used to let through (seat founder counting his own tagged registrations) is refused too
+    if array_to_string(public.fn_ceo_plan_bet_check(jsonb_build_object('channel', 'founder_network', 'seat', 'founder', 'what', 'his network',
+         'measure', 'registrations_by_source', 'measure_args', jsonb_build_object('source', 'founder'), 'target', 20, 'direction', 'at_least',
+         'due_at', to_char(now() + interval '20 days', 'YYYY-MM-DD"T"HH24:MI:SSOF'))), ' | ')
+       not like 'no bet is addressed to the founder or depends on him (ledgers 1696, 1710)%'
+      then v_fail := v_fail || 'a founder_network bet counting his registrations is not refused (ruling 1710); '; end if;
     if (select array_to_string(refusal, ' ') from public.ceo_plan_bet where plan_id = v_seed and measure = 'invitations') not like '%invite_enabled%'
       then v_fail := v_fail || 'an invitation order was filed while invitations are off; '; end if;
     if exists (select 1 from public.ceo_invite_trade_priority where trade = 'painting' and cleared_at is null)

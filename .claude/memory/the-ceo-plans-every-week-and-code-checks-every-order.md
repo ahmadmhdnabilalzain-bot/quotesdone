@@ -24,8 +24,13 @@ src/lib/firstTouch.ts and written to marketing_first_touch at registration).
   open order, any ask of the founder. One revision, then refused bets are dropped and recorded.
 - `ceo_growth_channel` holds each channel's verdict (safe / safe_if / refused), rule, rulings, alternative, and its Beta prior,
   learned daily from recorded outcomes with a lag and a watermark (never a window twice).
-- The first plan (week of 16 Nov) is DATA (`ceo_plan_week` kind seed), filed by the loop's first run: the founder's network is
-  bet 1; operating target 30 verified in three Dubai focus trades by 20 Dec (`ceo_operating_target`).
+- The first plan (week of 16 Nov) is DATA (`ceo_plan_week` kind seed), filed by the loop's first run; operating target 30
+  verified in three Dubai focus trades by 20 Dec (the coverage file's `ceo_focus_trades`).
+- Ruling 1710 (16 Nov: "don't wait on me ... don't rely on me"; REVIEW2_ceoplan fix 1): NO bet is addressed to the founder or
+  depends on him. The seed's founder_network bet is gone (listed under "dropped"); `fn_ceo_plan_bet_check` refuses any bet with
+  seat founder or channel founder_network. His tagged registrations are a measured, unowned bonus (pack, register, summary).
+  Apply order: the growth branch first (its invite restart may set invite_enabled), then limits, pool, coverage, planning, then
+  the order conversations; the seed has no revision round, so a seed filed while invitations are off keeps that bet refused.
 - The forecast no longer offers "tell_founder": a forecast decision is `ceo_own_decision`. Compliance re-checks are one monthly
   directive to the it_engineer (nothing updates compliance_sources.last_checked_at; 72 self-addressed ones were unmeetable).
 - Invitations never go to Microsoft or Yahoo (ruling 1537, whatever GlockApps says): the register refuses that channel by rule.

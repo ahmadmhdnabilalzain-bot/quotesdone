@@ -110,12 +110,16 @@ test('5. nothing asks the founder', () => {
   assert.match(summary, /YOUR PEOPLE/, 'the founder reads his people in the daily summary');
 });
 
-test('6. the first plan is data filed by the loop\'s first run, the founder\'s network first', () => {
+test('6. the first plan is data filed by the loop\'s first run, with no bet on the founder (ruling 1710)', () => {
   const seed = C.slice(C.indexOf("insert into public.ceo_plan_week (kind, period, status, task_class, output, pack)"));
   assert.match(seed, /'seed', date '2026-11-16', 'asked'/);
   const bets = seed.slice(seed.indexOf('"bets"'));
-  assert.ok(bets.indexOf('"channel": "founder_network"') > 0 && bets.indexOf('"channel": "founder_network"') < bets.indexOf('"channel": "reply_within_1h"'), 'the founder\'s network is bet 1');
-  assert.match(seed, /utm_source=founder&utm_medium=whatsapp&utm_campaign=2026-11/);
+  const betList = bets.slice(0, bets.indexOf('"ceo_actions"'));
+  assert.ok(betList.indexOf('"channel": "reply_within_1h"') > 0, 'the seed files its bets');
+  assert.doesNotMatch(betList, /"channel": "founder_network"|"seat": "founder"/, 'no seed bet is on the founder or his network (ruling 1710)');
+  assert.match(seed, /"option": "a bet on the founder''s own network", "why": "ruling 1710/, 'the founder bet is dropped with its reason');
+  assert.match(fnBody('fn_ceo_plan_bet_check'), /if v_seat = 'founder' or c\.channel = 'founder_network' then\s+v_out := v_out \|\| 'no bet is addressed to the founder or depends on him \(ledgers 1696, 1710\)/,
+    'every bet on the founder or his network is refused');
   assert.match(fnBody('fn_ceo_plan_due'), /fn_ceo_plan_file\(s\.id, s\.output/, 'the seed goes through fn_ceo_plan_file like any plan');
   const cover = code(read('scripts/sql/the_ceo_reads_supplier_coverage_and_orders_the_seats_to_grow_it.sql'));
   assert.match(cover, /'ceo_focus_trades', '\{"trades": \["hvac", "interior_fitout", "building_materials"\]/, 'the operating target is the coverage file\'s focus, as data');
