@@ -1,0 +1,3 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back its ZZ DEMO jobs and findings. Run LOCALLY after
+a_cad_drawing_left_unread_is_an_alarm_whether_or_not_anyone_is_watching.sql, 16 Nov 2026: CHK<<PROBE OK: an unread or failed CAD drawing is a
+finding without a poll, and clears when read>> twice. This note stays for the life of the file. Seat: sales_engineer.
