@@ -136,6 +136,8 @@ begin
   v := public.fn_accountant_flag_review_tick();
   o := o || jsonb_build_object('flag_tick', v);
   if not exists (select 1 from public.fraud_flags where kind = 'refund_pattern' and subject_id = v_c5::text and detail ? 'review' and detail ? 'close_by') then f := f || 'F1: the backlog flag was not filed by the tick'::text; end if;
+  -- a flag 13 days old gets its 5 days from filing, and is not reported overdue in the hour it is first filed
+  if exists (select 1 from public.fraud_flags where kind = 'refund_pattern' and subject_id = v_c5::text and ((detail->>'close_by')::timestamptz < now() + interval '4 days' or detail ? 'overdue_reported_at')) then f := f || 'F1: a backlog flag was reported overdue as soon as it was filed'::text; end if;
   if not exists (select 1 from public.fraud_flags where kind = 'disposable_email' and subject_id = v_c4::text and detail ? 'overdue_reported_at') then f := f || 'F1: an overdue flag was not reported to the CEO'::text; end if;
 
   -- ── F2 a supplier posing as a customer ──

@@ -679,8 +679,10 @@ begin
     return jsonb_build_object('ok', true, 'skipped', 'reasoned on accountant.circumvention');
   end if;
   if f.status not in ('open', 'escalated') then return jsonb_build_object('ok', true, 'skipped', 'flag is ' || f.status); end if;
+  -- the period runs from when the reasoning first gets the flag: a backlog flag of 47 days gets its days too, not an
+  -- overdue report in the same hour it is first filed
   v_close := coalesce((f.detail->>'close_by')::timestamptz,
-                      coalesce(f.created_at, now()) + case f.severity when 'high' then interval '2 days' when 'medium' then interval '5 days' else interval '10 days' end);
+                      now() + case f.severity when 'high' then interval '2 days' when 'medium' then interval '5 days' else interval '10 days' end);
   v_facts := public.fn_accountant_flag_facts(f.kind, f.subject_type, f.subject_id) || jsonb_build_object('close_by', v_close);
   v_subj := jsonb_strip_nulls(jsonb_build_object('kind', f.kind, 'subject_type', f.subject_type, 'subject_id', f.subject_id,
               'customer_id', case when f.subject_type = 'customer' then f.subject_id end,

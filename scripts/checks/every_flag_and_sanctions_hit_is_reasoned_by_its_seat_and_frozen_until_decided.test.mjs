@@ -71,7 +71,7 @@ test('every new fraud flag is reasoned with a close-by date; the backlog and the
   assert.match(src, /after insert on public\.fraud_flags\s+for each row execute function public\.fn_fraud_flag_goes_to_the_accountants_reasoning\(\)/, 'a new flag files nothing');
   assert.match(src, /public\.fn_seat_duty_reason\('accountant', 'accountant\.fraud_flag'/);
   assert.match(src, /create or replace function public\.fn_reason_apply_accountant__fraud_flag\(p_id bigint, p_result jsonb\)/);
-  assert.match(src, /when 'high' then interval '2 days' when 'medium' then interval '5 days' else interval '10 days'/, 'no close-by date by severity');
+  assert.match(src, /now\(\) \+ case f\.severity when 'high' then interval '2 days' when 'medium' then interval '5 days' else interval '10 days'/, 'no close-by date by severity');
   assert.match(src, /\('accountant\.flag_review', 'accountant', interval '1 hour', 'fn_accountant_flag_review_tick'/, 'the hourly pass is not registered');
   assert.match(src, /p_idempotency_key => 'fraud_flag_overdue:'/, 'an overdue flag is not reported to the CEO');
 });
