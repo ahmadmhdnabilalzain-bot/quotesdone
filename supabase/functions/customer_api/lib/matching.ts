@@ -7,6 +7,7 @@ import { awardedOtherBody, newInquiryBody, readOwner, type OwnerRead } from '../
 import { withoutPartnerWhy } from '../../_shared/partner_match.ts';
 import { SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
 import { failedState, matcherFindingKey, rematchSchedule, type RematchState } from './rematch.ts';
+import { customerFrozen, heldForComplianceReview } from './compliance_hold.ts';
 
 // 29 Jul 2026 - ANONYMITY. The scrubber lived only in supplier_api's portal READ path, so every
 // write path out of here shipped the customer's raw words straight to suppliers: the new-inquiry
@@ -137,6 +138,14 @@ export async function matchAndNotify(inqId: string, opts: { category: string; em
     if (!Number.isFinite(n) || max <= 0) return null;
     return Math.round(Math.min(1, Math.max(0, n / max)) * 1000) / 1000;
   };
+  // A CUSTOMER WITH AN OPEN SANCTIONS HIT IS NOT MATCHED UNTIL THE CEO DECIDES (16 Nov 2026; lib/compliance_hold.ts).
+  if (await customerFrozen(admin, inqId)) {
+    let held = rematchSchedule(null);
+    try { const { data: pol } = await admin.from('decision_policy').select('value').eq('key', 'rematch_backoff_minutes').maybeSingle(); held = rematchSchedule(pol?.value); } catch (_e) { /* the default schedule */ }
+    const r = heldForComplianceReview(prior, extra, new Date(), held);
+    try { await admin.from('inquiries').update({ routing: r }).eq('id', inqId); } catch (_e) { /* the next step of the schedule writes it again */ }
+    return { matches: 0, routing: r };
+  }
   let fits: { id: number; company_name?: string; reason?: string; sim?: number | null }[] = [];
   let routing: Record<string, any> = {};
   let routerAnswered = false;

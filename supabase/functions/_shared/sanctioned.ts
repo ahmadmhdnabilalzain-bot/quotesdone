@@ -78,3 +78,22 @@ export async function sanctionedEmail(admin: Admin, email: string | null | undef
   if (must<Array<unknown>>(a, 'by account e-mail').length) return true;
   return must<Array<unknown>>(c, 'by contact e-mail').length > 0;
 }
+
+// A PARTY WITH AN OPEN SANCTIONS HIT IS FROZEN UNTIL THE CEO DECIDES (16 Nov 2026, FAILURES item 3). The weekly screen
+// and the accountant's daily re-screen write a hit for a supplier (supplier_screening_hit) or a customer
+// (customer_screening_hit); the CEO's reasoning decides it within a day (ceo.sanctions_hit). Until then nobody deals with
+// the party: matching is blocked in the database (matching_blocked 'compliance_review'; a customer's request is not
+// dispatched), and every reveal door asks this. A customer whose hit was CONFIRMED stays refused too (his account is
+// banned; this is the polite sentence before the ban's own refusal). Fails closed like the reads above.
+export async function screeningOpen(
+  admin: Admin, opts: { leadId?: number | string | null; customerId?: string | null },
+): Promise<boolean> {
+  const [s, c] = await Promise.all([
+    opts.leadId == null ? null
+      : admin.from('supplier_screening_hit').select('id').eq('lead_id', opts.leadId).eq('status', 'open').limit(1),
+    !opts.customerId ? null
+      : admin.from('customer_screening_hit').select('id').eq('customer_id', opts.customerId).in('status', ['open', 'confirmed']).limit(1),
+  ]);
+  if (s && must<Array<unknown>>(s, 'open hit by lead ' + opts.leadId).length) return true;
+  return !!c && must<Array<unknown>>(c, 'hit by customer').length > 0;
+}
