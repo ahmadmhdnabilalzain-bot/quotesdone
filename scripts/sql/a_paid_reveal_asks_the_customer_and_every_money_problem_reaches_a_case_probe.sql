@@ -3,12 +3,12 @@
 -- survives. Every subject is created here, ZZ DEMO, with an @example.invalid address and a number no person holds; the duty fixtures
 -- switch is on (the ticks select only demo rows), and every message is demo-captured (written suppressed, never sent). The one
 -- escalation to the CEO is filed under qd.probe_files_demo_handoff for this transaction only, so its row can be read.
--- 20 scenarios, each named in its failure. Run on a local Postgres 16 built from the schema mirror (scripts/db/local_pg16.mjs),
+-- 21 scenarios, each named in its failure. Run on a local Postgres 16 built from the schema mirror (scripts/db/local_pg16.mjs),
 -- twice, 16 Nov 2026: PROBE OK both times.
 do $probe$
 declare
   v_cust uuid; v_other uuid; v_lead bigint; v_inq uuid; v_inq2 uuid; v_q uuid; v_q2 uuid; v_q3 uuid; v_q4 uuid;
-  v_tx uuid; v_tx2 uuid; v_tx3 uuid; v_tx4 uuid; v_tx5 uuid; v_tok uuid; v_h bigint; v_d bigint; v_rev timestamptz; k int;
+  v_tx uuid; v_tx2 uuid; v_tx3 uuid; v_tx4 uuid; v_tx5 uuid; v_tx6 uuid; v_q5 uuid; v_tok uuid; v_h bigint; v_d bigint; v_rev timestamptz; k int;
   r jsonb; w jsonb; st jsonb; v_n int; v_real_refunds int; v_real_disputes int; v_real_statements int;
   v_phone constant text := '+971 50 000 7313';
 begin
@@ -115,6 +115,15 @@ begin
   if public.fn_refund_rating_shows_dealing(v_tx3) then raise exception 'CHK<<PROBE FAILED 8: the answer reads as dealing>>'; end if;
   r := public.fn_refund_open_from_customer(v_tx3, 'customer', null, 'portal');
   if not coalesce((r->>'ok')::boolean, false) then raise exception 'CHK<<PROBE FAILED 8: our own survey still bars the refund: %>>', r; end if;
+
+  -- 8b. a 1-star rating pressed in the portal, then "he never contacted me": the rating is not a record of dealing, the door opens
+  insert into public.quotes (inquiry_id, supplier_id, quote_amount, status, option_no) values (v_inq, v_lead, 17500, 'revealed', 3) returning id into v_q5;
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, total_charged, payment_ref, fee_status, revealed_at)
+  values (v_q5, v_inq, v_lead, v_cust, 17500, 525, 525, 'pi_zzdemo_afrev_6', 'paid', now() - interval '3 days') returning id into v_tx6;
+  insert into public.reviews (supplier_id, customer_id, inquiry_id, transaction_id, rating) values (v_lead, v_cust, v_inq, v_tx6, 1);
+  r := public.fn_reveal_contact_record(v_tx6, 'no', 'widget', 'ZZ DEMO I rated him one star because he never called', 'probe');
+  r := public.fn_refund_open_from_customer(v_tx6, 'customer', null, 'widget');
+  if not coalesce((r->>'ok')::boolean, false) then raise exception 'CHK<<PROBE FAILED 8b: a rating given for silence bars the refund: %>>', r; end if;
 
   -- 9. a REAL rating (contact confirmed) still bars a non-response refund: the exclusion stays for dealing
   insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, total_charged, payment_ref, fee_status, revealed_at)
@@ -273,5 +282,5 @@ begin
      or has_function_privilege('authenticated', 'public.fn_customer_after_reveal_message(uuid, text, text, uuid)', 'execute') then
     raise exception 'CHK<<PROBE FAILED 20: a public role can reach the new table or routines>>'; end if;
 
-  raise exception 'CHK<<PROBE OK %>>', jsonb_build_object('scenarios', 20, 'conflict_handoff', true, 'disputes', 2);
+  raise exception 'CHK<<PROBE OK %>>', jsonb_build_object('scenarios', 21, 'conflict_handoff', true, 'disputes', 2);
 end $probe$;
