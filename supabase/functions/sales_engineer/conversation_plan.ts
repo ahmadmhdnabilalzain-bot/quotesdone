@@ -479,7 +479,7 @@ export async function extractSlots(o: { gateway: string; secret: string; st: Sta
   try {
     const r = await f(o.gateway, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(ms),
       body: JSON.stringify({ __secret: o.secret, fn: 'sales_engineer', agent: 'sales_engineer', task_class: 'json_extraction', sys: p.sys, input: p.input,
-        max: 200, temperature: 0, cache_ttl_min: 0, try_faq: false, client_timeout_ms: ms }) });
+        max: 200, temperature: 0, cache_ttl_min: 0, client_timeout_ms: ms }) });
     const j = await r.json().catch(() => null) as { content?: unknown } | null;
     if (typeof j?.content !== 'string') return null;
     return { slots: parseExtraction(j.content, o.st, o.message), ms: Date.now() - t0 };

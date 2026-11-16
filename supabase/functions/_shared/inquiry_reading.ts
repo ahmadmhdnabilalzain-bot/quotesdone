@@ -101,7 +101,7 @@ export function gatewayAsk(o: { gateway: string; secret: string; fn: string; age
     try {
       const r = await f(o.gateway, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(ms),
         body: JSON.stringify({ __secret: o.secret, fn: o.fn, agent: o.agent, task_class: 'json_extraction', sys, input,
-          max: 450, temperature: 0, cache_ttl_min: 0, try_faq: false, client_timeout_ms: ms }) });
+          max: 450, temperature: 0, cache_ttl_min: 0, client_timeout_ms: ms }) });
       const j = await r.json().catch(() => null) as { content?: unknown } | null;
       return typeof j?.content === 'string' ? j.content : null;
     } catch { return null; }

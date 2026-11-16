@@ -92,7 +92,7 @@ const body = (c: BriefCall, extra: Record<string, unknown>) => JSON.stringify({
   // one cached prefix for every language and channel: the knowledge block (sys_shared), then the caller's stable half,
   // both on the 1-hour cache tier (ai_gateway/system_message.ts); the language rules ride in sys, after them
   sys_shared: splitBrief(c.brief).shared, sys_stable: splitBrief(c.brief).stable, cache_ttl: '1h', sys: c.sys, input: withLastImages(c.input, c.images), ...(c.input.length > 1 ? { cache_history: true } : {}),   // the earlier turns are the third cached block (chat_history.ts)
-  max: c.max, temperature: 0.3, cache_ttl_min: 0, try_faq: false, ...(c.effort ? { effort: c.effort } : {}), ...(c.subject ? { subject: c.subject } : {}),
+  max: c.max, temperature: 0.3, cache_ttl_min: 0, ...(c.effort ? { effort: c.effort } : {}), ...(c.subject ? { subject: c.subject } : {}),
   ...(c.rateKey ? { rate_key: c.rateKey, rate_limit: c.rateLimit, rate_window_s: 3600 } : {}), ...extra,
 });
 

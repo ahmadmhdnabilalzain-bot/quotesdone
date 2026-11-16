@@ -18,7 +18,7 @@ function gateway(replies: Response[]) {
 }
 
 // prevented by: this test. One call, streamed: each checked sentence is emitted as it is written, the brief rides as
-// sys_stable (the cacheable prefix), the model is always asked (try_faq false) and nothing is replayed (cache 0).
+// sys_stable (the cacheable prefix), the model is always asked (the gateway has no canned answer since 16 Nov 2026) and nothing is replayed (cache 0).
 Deno.test('a correct answer streams sentence by sentence from one call', async () => {
   const g = gateway([sse(['The reveal fee ', 'is 3% of the quote. ', 'No card fee is added, and no VAT.'])]);
   const shown: string[] = [];
@@ -26,7 +26,7 @@ Deno.test('a correct answer streams sentence by sentence from one call', async (
   assertEquals(shown, ['The reveal fee is 3% of the quote. ', 'No card fee is added, and no VAT.']);
   assertEquals(a.reply, 'The reveal fee is 3% of the quote. No card fee is added, and no VAT.');
   assertEquals(g.bodies.length, 1);
-  assertEquals([g.bodies[0].stream, g.bodies[0].sys_stable, g.bodies[0].try_faq, g.bodies[0].cache_ttl_min], [true, C.brief, false, 0]);
+  assertEquals([g.bodies[0].stream, g.bodies[0].sys_stable, g.bodies[0].cache_ttl_min], [true, C.brief, 0]);
 });
 
 // prevented by: this test. A figure the brief does not state is never shown: the stream stops at that sentence and the

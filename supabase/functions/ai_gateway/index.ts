@@ -21,7 +21,7 @@
 //
 // ORDER OF OPERATIONS — cheapest possible outcome first, every time:
 //   1. rate limit        - refuse abuse before spending anything
-//   2. Level 0           - templates and the approved FAQ answer with NO model at all
+//   2. (Level 0)         - removed 16 Nov 2026: no canned FAQ answer; the model writes every reply (rulings 781, 1339)
 //   3. routing           - fn_ai_route picks the tier from the calling function or task_class,
 //                          then substitutes for capability if the payload needs it
 //   4. refusal           - tier='none' means deterministic code is correct; we decline

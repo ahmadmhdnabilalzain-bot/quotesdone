@@ -13,7 +13,7 @@ export interface Body {
   input?: string | Msg[];
   messages?: Msg[];                       // full OpenAI-shape passthrough (multimodal, tool turns)
   max?: number; temperature?: number; confidence?: number;
-  cache_ttl_min?: number; try_faq?: boolean; faq_text?: string;
+  cache_ttl_min?: number;
   rate_key?: string; rate_limit?: number; rate_window_s?: number;
   stream?: boolean; dry_run?: boolean; escalate?: boolean;
   client_timeout_ms?: number;             // how long the caller will actually wait; the gateway finishes inside it
