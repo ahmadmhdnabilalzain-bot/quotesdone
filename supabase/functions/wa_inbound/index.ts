@@ -57,6 +57,7 @@ import { mediaIn } from './media_in.ts';
 import { hearVoiceNote } from './hear.ts';
 import { supplierDirective } from './supplier_directive.ts';
 import { memberPhone } from './member_phone.ts';
+import { optinCode } from './optin_code.ts';
 import { answerTurn } from './general_turn.ts';
 import { turnGate } from './burst.ts';
 import { endTurnHolding } from './holding.ts';
@@ -94,6 +95,7 @@ async function handleTurn(req: Request): Promise<Response> {
     const specOffer = await specOfferReply(t); if (specOffer) return specOffer;
     await identify(t);
     const memberCode = await memberPhone(t); if (memberCode) return memberCode;   // a company member confirming his number (member_phone.ts)
+    const optin = await optinCode(t); if (optin) return optin;   // a supplier confirming the number for job requests on WhatsApp (optin_code.ts)
     await startClassification(t);
     startSpeculation(t);
     const fromMenu = await answerFromTheMenu(t); if (fromMenu) return fromMenu;

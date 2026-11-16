@@ -10,6 +10,9 @@ import { admin, alertThrottled, itFinding, sec, TW } from './shared.ts';
 import { verifyProvenance, verifyTwilioSignature } from './signature.ts';
 import { mediaItems, waRow } from './wa_row.ts';
 import type { WaTurn } from './turn.ts';
+import { readConsentReply } from '../_shared/whatsapp_offer.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { isDemoPhone } from '../_shared/demo_identity.ts';
 
 export async function acceptArrival(t: WaTurn, req: Request): Promise<Response | undefined> {
   const { logRun, receivedAt, waInsert } = t;
@@ -184,7 +187,15 @@ export async function acceptArrival(t: WaTurn, req: Request): Promise<Response |
   // then. ButtonPayload is passed as Twilio sent it, so a typed "Set up my page" (no payload) is not a tap. When the
   // lead was invited on any channel and has no company page yet the message is still filed as 'invite.reply'
   // marketing -> sales_engineer. It never ends the turn: the supplier still gets the normal answer.
+  // 16 Nov 2026 (marketing, ledger 1184/1373; rulings 1663/1664): a reply to the consent question is READ BY A MODEL
+  // (consentReadBy, _shared/whatsapp_offer.ts readConsentReply), never by a keyword. Its name is put on the open ask
+  // (fn_supplier_whatsapp_consent_read), and the rule (fn_wa_optin_counts) records the yes only with it.
   if (!isStop(Body)) {
+    const readBy = ButtonPayload ? null : await consentReadBy(From, Body);
+    if (readBy) {
+      const { error: readErr } = await admin.rpc('fn_supplier_whatsapp_consent_read', { p_from: From, p_read_by: readBy });
+      if (readErr) await logRun('error', { consent_read: 0 }, 'a WhatsApp yes to the consent question was read but not recorded on the ask: ' + readErr.message);
+    }
     const { error: repErr } = await admin.rpc('fn_marketing_files_wa_invite_reply', { p_from: From, p_body: Body.slice(0, 4000), p_button_payload: ButtonPayload || null });
     if (repErr) await logRun('error', { invite_reply: 0 }, 'a WhatsApp message from a possible supplier lead was not filed: ' + repErr.message + '; the turn continues.');
   }
@@ -198,4 +209,28 @@ export function locationText(form: Record<string, string> | null, json: Record<s
   if (!/^-?\d{1,3}(\.\d+)?$/.test(lat) || !/^-?\d{1,3}(\.\d+)?$/.test(lng)) return '';
   const place = [f.Label, f.Address].map((x) => String(x || '').trim().slice(0, 200)).filter(Boolean).join(', ');
   return 'Shared a location: ' + (place ? place + ' ' : '') + '(' + lat + ', ' + lng + ')';
+}
+
+/** The model that read this reply as a yes to the consent question asked of this number, or null (no open ask, not a yes, no model).
+ *  Only a number we asked in the last 7 days is read (fn_marketing_files_wa_invite_reply closes the ask with this reply either way). */
+export async function consentReadBy(from: string, body: string,
+  o: { ask?: Parameters<typeof readConsentReply>[0]; db?: typeof admin } = {}): Promise<string | null> {
+  const db = o.db ?? admin;
+  const phone = '+' + String(from || '').replace(/\D/g, '');
+  if (!/^\+[0-9]{8,15}$/.test(phone) || !String(body || '').trim()) return null;
+  try {
+    const { data: asked } = await db.from('supplier_whatsapp_consent_ask').select('question').eq('phone', phone).is('answered_at', null)
+      .gte('asked_at', new Date(Date.now() - 7 * 86_400_000).toISOString()).order('asked_at', { ascending: false }).limit(1).maybeSingle();
+    const question = String((asked as { question?: unknown } | null)?.question ?? '');
+    if (!question) return null;
+    let model: string | null = null;
+    const ask = o.ask ?? (async (sys: string, input: string) => {
+      const res = await defaultDeps(admin, 'wa_inbound').llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'marketing', max: 200, timeoutMs: 20_000,
+        subject: isDemoPhone(phone) ? { fixture: true, phone } : { phone }, internal: true });
+      model = res.model ?? null;
+      return res.content ?? null;
+    });
+    const r = await readConsentReply(ask, question, body);
+    return r?.agrees ? (model ?? 'the consent reader') : null;
+  } catch (_e) { return null; }   // unreadable: nothing is recorded, the message is still filed and answered
 }

@@ -19,17 +19,22 @@
 --     read by nobody when a job request was sent.
 --
 -- WHAT THIS CHANGES
---   1. fn_wa_job_request_offer(): the offer sentence, word for word, that every invitation and every e-mail reply to a
+--   1. fn_wa_job_request_offer(): the offer sentence, word for word, that every invitation (and app_secrets.invite_body, the
+--      stored copy of variant A) and every e-mail reply to a
 --      supplier now carries (_shared/whatsapp_offer.ts WHATSAPP_OFFER is the same text; whatsapp_offer.test.ts compares).
 --      English only: suppliers are written to in English (founder, 28 Sep 2026); they may answer in Arabic.
 --   2. supplier_whatsapp_optin gains answer_read_by (the model that read the yes), phone_confirmed_at and
 --      phone_confirmed_how. A WhatsApp-sourced row is confirmed by its origin (the number wrote to us); an e-mail or call
 --      row is confirmed only when the supplier sends its code from that WhatsApp (5 below).
---   3. fn_wa_optin_rule(source, payload, question, answer, read_by): the 4-argument rule is DROPPED (DROPPED.txt) and
---      replaced. The button is unchanged. For a consent reply the message answered must carry the consent question
---      (fn_wa_consent_question) or the offer (fn_wa_job_request_offer) - a fact code checks - and the ANSWER counts only
---      when a model read it as a yes (read_by names it). No keyword decides consent any more; fn_wa_is_affirmative has
---      no caller after this file. The trigger and the three writers pass read_by.
+--   3. fn_wa_optin_counts(source, payload, question, answer, read_by): THE RULE, under a new name so no overload is created (a
+--      re-apply of the 27 Oct file can never make a call "not unique"). The button is unchanged. For a consent reply the message
+--      answered must carry the consent question (fn_wa_consent_question) or the offer (fn_wa_job_request_offer) - a fact code
+--      checks - and the ANSWER counts only when a model read it as a yes (read_by names it). No keyword decides consent any more.
+--      fn_wa_optin_rule (same signature) now answers through it with no reader, so it counts only the button; nothing calls it
+--      after this file. The table's trigger and the writers call fn_wa_optin_counts. Signatures of the writers are unchanged:
+--      fn_marketing_files_wa_invite_reply reads the model's name from the ask (supplier_whatsapp_consent_ask.answer_read_by,
+--      written by fn_supplier_whatsapp_consent_read from wa_inbound's reader); fn_supplier_whatsapp_optin_record is called by the
+--      sales engineer seat, which is the reader of the answer it records, and its row is unconfirmed until the code arrives.
 --   4. fn_supplier_whatsapp_offer_state(email): what the reply to this supplier must say about WhatsApp (offer, pending,
 --      consented, declined). fn_supplier_whatsapp_optin_from_mail(inbound_id, answer, read_by): the mailbox reading
 --      model said this e-mail agrees; code checks the sender is a lead by his exact address, that one of our mails to
@@ -71,6 +76,24 @@ insert into public.decision_policy (key, value, description)
 values ('wa_job_request_offer', jsonb_build_object('since', now()),
         'When every supplier invitation began to carry fn_wa_job_request_offer (every_supplier_invitation_offers_whatsapp_and_a_model_read_yes_opens_job_requests_there.sql).')
 on conflict (key) do nothing;
+
+-- 1b. the stored copy of the invitation (app_secrets.invite_body) follows the text the lane sends, offer included
+-- (scripts/checks/the_supplier_invitation_carries_no_link.test.mjs compares them). Only the offer paragraph is new.
+update public.app_secrets set value = $body$Hi {{company}} team,
+
+I'm Ahmad, founder of QuotesDone in Dubai. QuotesDone is a platform where companies in the UAE post requests for quotation, and each request goes only to suppliers who work in that exact trade.
+
+We are putting together our list of suppliers now, before buyers start sending requests. Would your company like to receive the requests that match your trade when they come in?
+
+Want job requests on WhatsApp too? Reply "WhatsApp" and we will send you a code to confirm your number.
+
+Best regards,
+Ahmad Alzain
+Founder, QuotesDone
+QuotesDone Technologies · Dubai, UAE
+
+If this isn't relevant, reply "stop" and we won't contact you again.$body$, updated_at = now()
+ where key = 'invite_body';
 
 -- 2. who read the yes, and whether the number is confirmed
 alter table public.supplier_whatsapp_optin add column if not exists answer_read_by text;
@@ -114,11 +137,8 @@ create policy supplier_whatsapp_optin_code_miss_service_role_only on public.supp
   as permissive for all to public using (false) with check (false);
 revoke all on public.supplier_whatsapp_optin_code_miss from anon, authenticated;
 
--- 3. THE RULE. One signature: the 4-argument rule is dropped so no call is ever ambiguous; a 4-argument call (an edge
--- function deployed before this file) resolves here with read_by null, which a consent reply does not pass.
-drop function if exists public.fn_wa_optin_rule(text, text, text, text);
-create or replace function public.fn_wa_optin_rule(p_source text, p_button_payload text, p_question text, p_answer text,
-                                                   p_read_by text default null)
+-- 3. THE RULE (a new name: no overload of fn_wa_optin_rule is created)
+create or replace function public.fn_wa_optin_counts(p_source text, p_button_payload text, p_question text, p_answer text, p_read_by text)
 returns jsonb language plpgsql immutable set search_path to 'public', 'pg_temp' as $fn$
 declare
   v_q text := lower(regexp_replace(translate(coalesce(p_question, ''), '’‘“”', '''''""'), '\s+', ' ', 'g'));
@@ -138,16 +158,43 @@ begin
     -- meaning: a model read the answer as a yes (rulings 1663/1664); the writer calls only when it did, and names it
     if btrim(coalesce(p_read_by, '')) = '' then
       return jsonb_build_object('counts', false, 'why', 'no model read the answer as a yes (a yes is understood by a model, never by a keyword)'); end if;
-    return jsonb_build_object('counts', true, 'why', 'the supplier answered yes to the WhatsApp offer, read by ' || btrim(p_read_by));
+    return jsonb_build_object('counts', true, 'why', 'the supplier answered yes to the consent question or the WhatsApp offer, read by ' || btrim(p_read_by));
   end if;
   return jsonb_build_object('counts', false, 'why', 'not a consent source: only the button or a yes to the consent question counts (ledger 1341)');
 end $fn$;
-revoke execute on function public.fn_wa_optin_rule(text, text, text, text, text) from public, anon, authenticated;
+revoke execute on function public.fn_wa_optin_counts(text, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_wa_optin_counts(text, text, text, text, text) to service_role;
+
+-- the old name answers through the rule with no reader: the button counts, a typed yes never does by a keyword
+create or replace function public.fn_wa_optin_rule(p_source text, p_button_payload text, p_question text, p_answer text)
+returns jsonb language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select public.fn_wa_optin_counts(p_source, p_button_payload, p_question, p_answer, null)
+$fn$;
+-- the ACL production has (create or replace keeps it; restated so a fresh database matches)
+revoke execute on function public.fn_wa_optin_rule(text, text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_wa_optin_rule(text, text, text, text) to service_role;
+
+-- which model read the reply to a consent ask as a yes (wa_inbound, before it files the reply)
+alter table public.supplier_whatsapp_consent_ask add column if not exists answer_read_by text;
+create or replace function public.fn_supplier_whatsapp_consent_read(p_from text, p_read_by text)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_phone text := '+' || regexp_replace(coalesce(p_from, ''), '\D', '', 'g'); v_id bigint;
+begin
+  if v_phone !~ '^\+[0-9]{8,15}$' or btrim(coalesce(p_read_by, '')) = '' then return jsonb_build_object('ok', false, 'reason', 'no number or no reader'); end if;
+  update public.supplier_whatsapp_consent_ask set answer_read_by = btrim(p_read_by)
+   where id = (select a.id from public.supplier_whatsapp_consent_ask a
+                where a.phone = v_phone and a.answered_at is null and a.asked_at > now() - interval '7 days'
+                order by a.asked_at desc, a.id desc limit 1)
+  returning id into v_id;
+  return jsonb_build_object('ok', v_id is not null, 'ask_id', v_id);
+end $fn$;
+revoke execute on function public.fn_supplier_whatsapp_consent_read(text, text) from public, anon, authenticated;
+grant execute on function public.fn_supplier_whatsapp_consent_read(text, text) to service_role;
 
 -- the rule on the table itself, reading who read the yes; a WhatsApp-sourced row is confirmed by its origin
 create or replace function public.fn_supplier_whatsapp_optin_obeys_the_rule()
 returns trigger language plpgsql set search_path to 'public', 'pg_temp' as $fn$
-declare v jsonb := public.fn_wa_optin_rule(new.source, new.button_payload, new.consent_question, new.consent_answer, new.answer_read_by);
+declare v jsonb := public.fn_wa_optin_counts(new.source, new.button_payload, new.consent_question, new.consent_answer, new.answer_read_by);
 begin
   if not (v->>'counts')::boolean then
     raise exception 'supplier_whatsapp_optin refused (ledger 1341): %', v->>'why' using errcode = 'check_violation';
@@ -159,11 +206,9 @@ begin
   return new;
 end $fn$;
 
--- the WhatsApp writer: production body; a reply to the consent question counts only when wa_inbound's model read it as a
--- yes and passes p_consent_read_by. One signature (the 3-argument one is dropped).
-drop function if exists public.fn_marketing_files_wa_invite_reply(text, text, text);
-create or replace function public.fn_marketing_files_wa_invite_reply(p_from text, p_body text, p_button_payload text default null,
-                                                                     p_consent_read_by text default null)
+-- the WhatsApp writer: production body; a reply to the consent question counts only when wa_inbound's model read it as a yes
+-- (the ask carries the model's name, fn_supplier_whatsapp_consent_read). Same signature: create or replace keeps its grants.
+create or replace function public.fn_marketing_files_wa_invite_reply(p_from text, p_body text, p_button_payload text default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_phone text := '+' || regexp_replace(coalesce(p_from, ''), '\D', '', 'g');
   v_optins int := 0; l public.leads; v_reply text := btrim(coalesce(p_body, '')); v_id bigint;
@@ -172,7 +217,7 @@ begin
   if v_phone !~ '^\+[0-9]{8,15}$' then return jsonb_build_object('due', false, 'reason', 'no number'); end if;
   -- (a) the button
   if btrim(coalesce(p_button_payload, '')) <> '' then
-    v_source := 'wa_button'; v_rule := public.fn_wa_optin_rule('wa_button', p_button_payload, null, null);
+    v_source := 'wa_button'; v_rule := public.fn_wa_optin_counts('wa_button', p_button_payload, null, null, null);
   else
     -- (b) the first reply after an open consent ask on this number (7 days) answers it, yes or not; the ask closes
     select * into v_ask from public.supplier_whatsapp_consent_ask
@@ -181,7 +226,7 @@ begin
     if v_ask.id is not null then
       update public.supplier_whatsapp_consent_ask set answered_at = now(), answer = left(v_reply, 500)
        where phone = v_phone and answered_at is null;
-      v_source := 'wa_consent_reply'; v_rule := public.fn_wa_optin_rule('wa_consent_reply', null, v_ask.question, v_reply, p_consent_read_by);
+      v_source := 'wa_consent_reply'; v_rule := public.fn_wa_optin_counts('wa_consent_reply', null, v_ask.question, v_reply, v_ask.answer_read_by);
     else
       v_rule := jsonb_build_object('counts', false, 'why', 'a message that is neither the button nor a reply to the consent question');
     end if;
@@ -190,7 +235,7 @@ begin
     insert into public.supplier_whatsapp_optin (lead_id, phone, source, button_payload, consent_question, consent_answer, answer_read_by, evidence)
     select x.id, v_phone, v_source, nullif(btrim(coalesce(p_button_payload, '')), ''), v_ask.question,
            case when v_source = 'wa_consent_reply' then left(v_reply, 500) end,
-           case when v_source = 'wa_consent_reply' then nullif(btrim(coalesce(p_consent_read_by, '')), '') end,
+           case when v_source = 'wa_consent_reply' then v_ask.answer_read_by end,
            (v_rule->>'why') || ' on WhatsApp at ' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24:MI') || ' Dubai'
       from public.leads x
      where (x.phone_e164 = v_phone or x.whatsapp_phone = v_phone) and coalesce(x.whatsapp_opt, '') <> 'none'
@@ -217,17 +262,16 @@ begin
   return jsonb_build_object('due', true, 'reason', 'an invited supplier wrote on WhatsApp', 'lead_id', l.id,
                             'handoff_id', v_id, 'optins', v_optins, 'optin_why', v_rule->>'why');
 end $fn$;
-revoke execute on function public.fn_marketing_files_wa_invite_reply(text, text, text, text) from public, anon, authenticated;
-grant execute on function public.fn_marketing_files_wa_invite_reply(text, text, text, text) to service_role;
+revoke execute on function public.fn_marketing_files_wa_invite_reply(text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_marketing_files_wa_invite_reply(text, text, text) to service_role;
 
--- the sales engineer's writer (a yes on a call or by e-mail he read): production body plus who read the yes; such a row is
--- NOT confirmed until the supplier sends a code from the number (fn_supplier_whatsapp_optin_confirm). One signature.
-drop function if exists public.fn_supplier_whatsapp_optin_record(bigint, text, text, text, text);
+-- the sales engineer's writer (a yes on a call or by e-mail): production body; the seat that calls it is the model that read the
+-- answer, and is named as its reader. Its row is NOT confirmed until the supplier sends a code from the number. Same signature.
 create or replace function public.fn_supplier_whatsapp_optin_record(p_lead_id bigint, p_source text, p_question text, p_answer text,
-                                                                    p_phone text default null, p_read_by text default null)
+                                                                    p_phone text default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare l public.leads; v_phone text; v_id bigint;
-  v_rule jsonb := public.fn_wa_optin_rule(p_source, null, p_question, p_answer, p_read_by);
+declare l public.leads; v_phone text; v_id bigint; v_read_by constant text := 'the sales engineer seat';
+  v_rule jsonb := public.fn_wa_optin_counts(p_source, null, p_question, p_answer, v_read_by);
 begin
   if p_source not in ('email_consent_reply', 'call_consent_reply') then
     return jsonb_build_object('ok', false, 'reason', 'p_source is email_consent_reply or call_consent_reply'); end if;
@@ -238,7 +282,7 @@ begin
   v_phone := '+' || regexp_replace(coalesce(p_phone, l.phone_e164, ''), '\D', '', 'g');
   if v_phone !~ '^\+[0-9]{8,15}$' then return jsonb_build_object('ok', false, 'reason', 'no usable number'); end if;
   insert into public.supplier_whatsapp_optin (lead_id, phone, source, consent_question, consent_answer, answer_read_by, evidence)
-  values (l.id, v_phone, p_source, p_question, p_answer, btrim(p_read_by),
+  values (l.id, v_phone, p_source, p_question, p_answer, v_read_by,
           'answered yes to the consent question (' || replace(p_source, '_consent_reply', '') || ') at '
           || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD HH24:MI') || ' Dubai')
   on conflict (lead_id, phone) do nothing
@@ -246,8 +290,8 @@ begin
   return jsonb_build_object('ok', true, 'lead_id', l.id, 'phone', v_phone, 'new', v_id is not null, 'why', v_rule->>'why',
                             'confirmed', false, 'next', 'the number is used for job requests only after the supplier sends a code from it');
 end $fn$;
-revoke execute on function public.fn_supplier_whatsapp_optin_record(bigint, text, text, text, text, text) from public, anon, authenticated;
-grant execute on function public.fn_supplier_whatsapp_optin_record(bigint, text, text, text, text, text) to service_role;
+revoke execute on function public.fn_supplier_whatsapp_optin_record(bigint, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_supplier_whatsapp_optin_record(bigint, text, text, text, text) to service_role;
 
 -- 4. what a reply to this supplier says about WhatsApp. One lead by his exact address (the invitation's address, or the
 -- address that claimed it); a second match is nobody (an address never joins two companies).
@@ -303,7 +347,7 @@ begin
     return jsonb_build_object('ok', false, 'code', 'not_offered', 'why', 'none of our mails to this address offered WhatsApp, so his words answer no consent question');
   end if;
   v_question := public.fn_wa_job_request_offer();
-  v_rule := public.fn_wa_optin_rule('email_consent_reply', null, v_question, p_answer, p_read_by);
+  v_rule := public.fn_wa_optin_counts('email_consent_reply', null, v_question, p_answer, p_read_by);
   if not (v_rule->>'counts')::boolean then return jsonb_build_object('ok', false, 'code', 'rule', 'why', v_rule->>'why'); end if;
   -- one open code per supplier: a newer yes replaces the older code
   update public.supplier_whatsapp_optin_pending set closed_at = now(), closed_why = 'replaced by a newer yes'

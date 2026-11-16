@@ -30,13 +30,25 @@ begin
   values ('ZZ DEMO L2 Optin B', eb, eb, 'Dubai', '+971500000772', '+971500000772', now() - interval '2 days', false) returning id into b;
   insert into public.leads (company_name, email, claimed_by, emirate, phone, phone_e164, owner_phone_verified, whatsapp_opt, whatsapp_asked_at)
   values ('ZZ DEMO L2 Optin Portal', ep, ep, 'Dubai', '+971500000773', '+971500000773', true, 'same', now() - interval '1 day') returning id into p;
+  insert into public.leads (company_name, email, emirate, phone, phone_e164, invited_at)
+  values ('ZZ DEMO L2 Optin W', 'zz-demo-l2optin-w@example.invalid', 'Dubai', '+971500000774', '+971500000774', now() - interval '2 days');
 
   -- 1. the rule
-  if (public.fn_wa_optin_rule('email_consent_reply', null, 'Hello. ' || v_offer, 'yes put me on WhatsApp', 'stub-model')->>'counts')::boolean is not true then fails := fails || ' 1:model_yes'; end if;
-  if (public.fn_wa_optin_rule('email_consent_reply', null, 'Hello. ' || v_offer, 'yes put me on WhatsApp', null)->>'counts')::boolean then fails := fails || ' 1:keyword_counted'; end if;
-  if (public.fn_wa_optin_rule('email_consent_reply', null, 'Which trades do you cover?', 'yes', 'stub-model')->>'counts')::boolean then fails := fails || ' 1:not_asked'; end if;
-  if (public.fn_wa_optin_rule('wa_consent_reply', null, v_q, 'نعم', 'stub-model')->>'counts')::boolean is not true then fails := fails || ' 1:consent_question'; end if;
+  if (public.fn_wa_optin_counts('email_consent_reply', null, 'Hello. ' || v_offer, 'yes put me on WhatsApp', 'stub-model')->>'counts')::boolean is not true then fails := fails || ' 1:model_yes'; end if;
+  if (public.fn_wa_optin_counts('email_consent_reply', null, 'Hello. ' || v_offer, 'yes put me on WhatsApp', null)->>'counts')::boolean then fails := fails || ' 1:keyword_counted'; end if;
+  if (public.fn_wa_optin_counts('email_consent_reply', null, 'Which trades do you cover?', 'yes', 'stub-model')->>'counts')::boolean then fails := fails || ' 1:not_asked'; end if;
+  if (public.fn_wa_optin_counts('wa_consent_reply', null, v_q, 'yes', 'stub-model')->>'counts')::boolean is not true then fails := fails || ' 1:consent_question'; end if;
   if (public.fn_wa_optin_rule('wa_button', 'supplier_invite_yes', null, null)->>'counts')::boolean is not true then fails := fails || ' 1:button'; end if;
+  if (public.fn_wa_optin_rule('wa_consent_reply', null, v_q, 'yes')->>'counts')::boolean then fails := fails || ' 1:old_name_keyword_yes'; end if;
+  -- on WhatsApp: a reply to the consent question counts only once the model read it as a yes (fn_supplier_whatsapp_consent_read)
+  perform public.fn_supplier_whatsapp_consent_ask_record('whatsapp:+971500000774', 'Thanks. ' || v_q, 'sales_engineer');
+  perform public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000774', 'Yes please', null);
+  if exists (select 1 from public.supplier_whatsapp_optin where phone = '+971500000774') then fails := fails || ' 1:wa_yes_without_model'; end if;
+  perform public.fn_supplier_whatsapp_consent_ask_record('whatsapp:+971500000774', 'Thanks. ' || v_q, 'sales_engineer');
+  if not coalesce((public.fn_supplier_whatsapp_consent_read('whatsapp:+971500000774', 'stub-model')->>'ok')::boolean, false) then fails := fails || ' 1:consent_read'; end if;
+  perform public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000774', 'yes put me on WhatsApp', null);
+  if not exists (select 1 from public.supplier_whatsapp_optin where phone = '+971500000774' and source = 'wa_consent_reply' and answer_read_by = 'stub-model'
+                  and phone_confirmed_at is not null) then fails := fails || ' 1:wa_model_yes_not_recorded'; end if;
   begin
     insert into public.supplier_whatsapp_optin (lead_id, phone, source, consent_question, consent_answer, evidence)
     values (a, wa_a, 'email_consent_reply', v_offer, 'yes', 'ZZ DEMO direct insert with no model');
