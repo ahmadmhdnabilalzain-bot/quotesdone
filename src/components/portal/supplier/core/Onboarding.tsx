@@ -64,7 +64,7 @@ function Onboarding({ token, onDone, lang, onExpired = null, initial = undefined
 // turns; a refusal is said in plain words with "Try again", 44 px tall.
 // Prevented by: scripts/checks/signup_trade_codes_are_the_taxonomy.test.mjs and the_registration_form_answers_where_he_looks.test.mjs.
 function NewCompany({ token, onReady, onExists, lang }) {
-  const [busy, setBusy] = useState(true); const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(true); const [msg, setMsg] = useState(''); const [invitation, setInvitation] = useState(null);
   const asked = useRef(false);
   const create = async () => {
     setBusy(true); setMsg('');
@@ -74,6 +74,8 @@ function NewCompany({ token, onReady, onExists, lang }) {
     if (j && j.ok) { onReady(j); return; }
     // the account already has its company (a second tab, a slow `me`): it is read, not created twice
     if (j && j.code === 'company_exists') { onExists(); return; }
+    // INVITED TO A COMPANY (16 Nov 2026, SUPPLIER hole 4): his address was added by a company's owner; he joins it, never starts a second one
+    if (j && j.code === 'team_invitation' && j.invitation) { setInvitation(j.invitation); return; }
     // THE DEPLOY WINDOW (review of #1987, S1): this page can be live a few minutes before supplier_api, whose older create_company still
     // refuses a registration with no name ("Enter your company name."). He has no name box to type in, so he is told it is ours and
     // brief, with "Try again", never that sentence.
@@ -82,12 +84,32 @@ function NewCompany({ token, onReady, onExists, lang }) {
   };
   // once per mount (React may run an effect twice in development)
   useEffect(() => { if (asked.current) return; asked.current = true; create(); }, []);
+  if (invitation) return <InvitationAccept token={token} invitation={invitation} lang={lang} onJoined={onExists} />;
   return (<Card className="qd-panel p-5">
     <h2 className={S.h2}>{t(lang, 'onboard_title')}</h2>
     <div className={cn(S.sub, 'mb-2')}>{t(lang, 'onboard_sub')}</div>
     {!msg && <div role="status" data-testid="registration-opening" className={cn(S.sub, 'mt-2 flex min-h-11 items-center gap-2 font-semibold text-foreground')}><span aria-hidden="true" className="qd-spin" />{t(lang, 'onboard_starting')}</div>}
     {msg && <div role="alert" data-testid="registration-open-error" className={cn(S.err, 'font-semibold')}>{msg}</div>}
     {msg && <Button className="w-full mt-3 min-h-11" busy={busy} disabled={busy} onClick={create}>{busy ? t(lang, 'sending') : t(lang, 'try_again')}</Button>}
+  </Card>);
+}
+// THE INVITATION, ACCEPTED BY THE PERSON IT NAMES (16 Nov 2026, SUPPLIER hole 4). He signed in with his own address (the code proved
+// it); one press joins the company as the role the owner chose. English for a supplier's words; the frame follows the portal.
+function InvitationAccept({ token, invitation, lang, onJoined }) {
+  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
+  const role = invitation.role === 'estimator' ? 'an estimator (you can read its requests and send quotations)' : 'a viewer (you can read its requests and quotations)';
+  const accept = async () => {
+    setBusy(true); setMsg('');
+    const j = await call('supplier_api', { action: 'member_accept' }, token).catch(() => null);
+    setBusy(false);
+    if (j && j.ok) { onJoined(); return; }
+    setMsg((j && j.error) || t(lang, 'err_generic'));
+  };
+  return (<Card className="qd-panel p-5" dir="ltr" lang="en">
+    <h2 className={S.h2}>You have been invited to {invitation.company_name || 'a company'}</h2>
+    <div className={cn(S.sub, 'mb-2')}>{invitation.invited_by} added you as {role}. Accept to work in its portal with your own sign-in.</div>
+    {msg && <div role="alert" className={cn(S.err, 'font-semibold')}>{msg}</div>}
+    <Button className="w-full mt-3 min-h-11" busy={busy} disabled={busy} onClick={accept}>Accept</Button>
   </Card>);
 }
 export { ProfilePanel, Onboarding };

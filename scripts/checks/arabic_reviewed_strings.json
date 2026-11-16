@@ -4195,6 +4195,7 @@
   "322a12781811",
   "329abf7ff2ca",
   "3314ce991269",
+  "340b9f3518aa",
   "3489e61a0ada",
   "35cc22f1e03c",
   "35f171f7e8a2",
@@ -5025,10 +5026,10 @@
   "fd9cfbba2824"
  ],
  "src/components/portal/supplier/core/Login.tsx": [
+  "1001a2c3d8be",
   "153f7d6d7e82",
   "1db0fac3efdf",
   "3a25c7d31b16",
-  "666b9e5a1fdd",
   "da90623057d9",
   "e1502368a718",
   "fab082d190e8"
@@ -10095,5 +10096,15 @@
   "d99cd47fba2a",
   "d9a9b884d813",
   "f7049682f252"
+ ],
+ "scripts/sql/a_supplier_company_has_members_asks_on_any_channel_and_can_leave.sql": [
+  "23ae12e593e9",
+  "6215aefac92a",
+  "abb4c5e80788"
+ ],
+ "supabase/functions/_shared/job_question.ts": [
+  "7c879e9e9afb",
+  "937894f98aea",
+  "c910d0c45fd0"
  ]
 }

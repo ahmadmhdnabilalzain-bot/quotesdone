@@ -14,6 +14,7 @@ export function classifyPrompt(supplier: string, subject: unknown, body: unknown
     + untrustedMail(subject, body);
 }
 
-export function leadWritable(lead: { id?: unknown } | null, senderAuthenticated: boolean): boolean {
-  return !!lead?.id && senderAuthenticated === true;
+export function leadWritable(lead: { id?: unknown; member_role?: unknown } | null, senderAuthenticated: boolean): boolean {
+  // a company MEMBER's mail (16 Nov 2026, SUPPLIER hole 4; steps/supplier_docs.ts) never writes the company's record: its papers are the owner's
+  return !!lead?.id && senderAuthenticated === true && !lead.member_role;
 }

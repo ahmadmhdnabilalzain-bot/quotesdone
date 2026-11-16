@@ -14,7 +14,11 @@ Deno.test('brands pass; the supplier\'s own name, contacts and the place below t
   assert(out.includes('premium paint') && out.includes('Dubai'), out);
 });
 Deno.test('clarify_ask runs stripSupplierQuestion, not the answer scrub', async () => {
+  // since 16 Nov 2026 every channel files a question through _shared/job_question.ts fileJobQuestion (SUPPLIER hole 5): the portal's
+  // clarify_ask calls it, and it strips with stripSupplierQuestion and the supplier's own company name
   const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
-  const ask = src.slice(src.indexOf("action === 'clarify_ask'"), src.indexOf("action === 'clarify_ask'") + 600);
-  assert(/stripSupplierQuestion\(b\.text, \[supLead\.company_name\]\)/.test(ask), 'clarify_ask must use stripSupplierQuestion');
+  const ask = src.slice(src.indexOf("action === 'clarify_ask'"), src.indexOf("action === 'clarify_ask'") + 1400);
+  assert(/fileJobQuestion\(admin, \{ supplierId: Number\(supLead\.id\)/.test(ask), 'clarify_ask must file through fileJobQuestion');
+  const shared = await Deno.readTextFile(new URL('../_shared/job_question.ts', import.meta.url));
+  assert(/stripSupplierQuestion\(q\.text, \[lead\?\.company_name\]\)/.test(shared), 'fileJobQuestion must use stripSupplierQuestion');
 });

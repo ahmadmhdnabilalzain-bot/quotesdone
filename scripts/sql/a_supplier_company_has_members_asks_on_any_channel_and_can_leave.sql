@@ -43,7 +43,7 @@
 --      the CEO. Nobody is offered paid ranking.
 --
 -- Prevented by: a_supplier_company_has_members_asks_on_any_channel_and_can_leave_probe.sql (local Postgres 16), the deno
--- tests named in each edge file, and scripts/eval/supplier_company_bank.mjs (scenarios EN/AR).
+-- tests named in each edge file, and _shared/supplier_company_instruction.test.ts (15 scenarios EN/AR).
 -- fn_whatsapp_owner: redefined from the PRODUCTION body (md5 7c230a4015e017cd1d6ab84b91af4098, read 16 Nov 2026, equal to
 -- a_phone_tail_never_joins_two_people.sql); only the member branch is added.
 

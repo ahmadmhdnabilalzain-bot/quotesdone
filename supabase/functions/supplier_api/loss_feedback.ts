@@ -65,7 +65,7 @@ export function lossLeaks(text: string, d: LossDue): string | null {
   for (const x of digits(t)) if (!own.has(x) && !own.has(String(Number(x)))) return 'figure ' + x;
   const name = String(d.chosen_name || '').toLowerCase().trim();
   if (name && t.toLowerCase().includes(name)) return 'chosen supplier named';
-  for (const tok of name.split(/[^a-z0-9؀-ۿ]+/).filter((w) => w.length >= 4 && !STOP.has(w))) {
+  for (const tok of name.split(/[^a-z0-9\u0600-\u06ff]+/).filter((w) => w.length >= 4 && !STOP.has(w))) {
     if (new RegExp('(^|[^a-z0-9])' + tok + '([^a-z0-9]|$)', 'i').test(t)) return 'chosen supplier word ' + tok;
   }
   return null;

@@ -11,7 +11,7 @@ import type { WaTurn } from './turn.ts';
 
 /** The six-digit code in a short message from an unknown number, or null (a longer message is a conversation, not a code). */
 export function codeIn(body: string): string | null {
-  const b = String(body || '').replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660)).trim();
+  const b = String(body || '').replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660)).trim();
   if (b.length > 60) return null;
   const m = b.match(/(?:^|\D)(\d{6})(?:\D|$)/);
   return m ? m[1] : null;

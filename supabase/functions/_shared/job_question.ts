@@ -14,7 +14,7 @@
 //   * an answer reaches EVERY invited supplier, anonymised (the asker is never named);
 //   * what the facts cannot answer goes to the customer, once, and the sweep reminds him once after the clock
 //     (fn_job_questions_due, policy job_question_chase_hours, 24 by default).
-// prevented by: _shared/job_question.test.ts, scripts/eval/supplier_company_bank.mjs
+// prevented by: _shared/job_question.test.ts
 import { stripSupplierQuestion } from '../messages_api/strip_contact.ts';
 import { forSuppliers, readOwner } from '../supplier_api/what_a_supplier_receives.ts';
 import { isClosedRequest } from './request_closed.ts';

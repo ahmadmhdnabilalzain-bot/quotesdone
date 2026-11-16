@@ -7,7 +7,7 @@
 //   * close_account: PROPOSED with what the law keeps; closed only on his "yes" (close_confirm), by the owner; written confirmation.
 //   * customer_silent: one nudge to a customer who revealed him, kept as evidence for the refund ladder.
 //   * paid_leads: recorded as a demand signal the CEO reads; he is told plainly that nobody can pay to rank or for exclusivity.
-// prevented by: _shared/supplier_company_instruction.test.ts, scripts/eval/supplier_company_bank.mjs
+// prevented by: _shared/supplier_company_instruction.test.ts
 import type { Channel, Facts, Outcome, Reading } from './supplier_instruction.ts';
 import { fileJobQuestion } from './job_question.ts';
 

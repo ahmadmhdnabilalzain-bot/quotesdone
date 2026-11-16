@@ -43,7 +43,7 @@ export async function supplierDocs(ctx: ReceiptsOut) {
       const co = await mailSenderCompany(admin, from);
       if (co && co.role !== 'owner') {
         const { data } = await admin.from('leads').select('id,company_name,claimed_by,email,emirate,trn,services,products,capability_summary,service_emirates,catalog_doc_paths,verified,license_doc_path').eq('id', co.lead_id).maybeSingle();
-        if (data) { lead = data; memberRole = co.role; }
+        if (data) { lead = { ...data, member_role: co.role }; memberRole = co.role; }
       }
     }
     let stored = 0; const reviews: number[] = []; const appliedSummary: string[] = []; const unreadDocs: string[] = []; const notLicences: string[] = [];
@@ -164,7 +164,7 @@ export async function supplierDocs(ctx: ReceiptsOut) {
       const cat = String(ai.category||'other');
       let extracted:any = null; const fields:string[] = [];
       if (lead && inbSecret) {
-        if (cat === 'trade_license' && (leadWritable(lead, senderAuth) && !memberRole)) {
+        if (cat === 'trade_license' && leadWritable(lead, senderAuth)) {
           const ex = await extractDoc('license', bytes, mime, fname, inbSecret);
           if (!ex?.doc) unreadDocs.push(fname);   // ruling 1177: nothing read at all -> ask for a clearer copy (a low-confidence read WAS read; it goes to review)
           // THE READER SAID IT IS NOT A LICENCE, OR A PERSON MUST LOOK (13 Nov 2026, founder rulings 1668 and 1681; licence_extract.ts
@@ -197,7 +197,7 @@ export async function supplierDocs(ctx: ReceiptsOut) {
             if (w.licenceSetAside) { const i = fields.findIndex((f) => f.startsWith('licence no ')); if (i >= 0) fields[i] = 'licence no set aside for review (held by another claimed company)'; }
             if (w.error) { console.error('resend_inbound: licence readings not saved —', String(w.error.message ?? '')); fields.length = 0; }
           }
-        } else if ((cat === 'company_profile' || cat === 'catalogue') && (leadWritable(lead, senderAuth) && !memberRole)) {
+        } else if ((cat === 'company_profile' || cat === 'catalogue') && leadWritable(lead, senderAuth)) {
           const ex = await extractDoc('profile', bytes, mime, fname, inbSecret);
           if (!ex?.profile) unreadDocs.push(fname);
           const u:any = { doc_extracted_at: new Date().toISOString() };
