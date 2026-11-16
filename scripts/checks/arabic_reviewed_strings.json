@@ -1579,6 +1579,19 @@
   "71425d07f632",
   "735f3f9ff862"
  ],
+ "scripts/sql/every_inbound_message_is_answered_or_closed_with_its_reason_and_a_complaint_on_any_channel_is_registered.sql": [
+  "00a9866295f2",
+  "18d04f89f17b",
+  "21bf22d9fb43",
+  "2a26f033805e",
+  "438552204aa8",
+  "59288b902a9c",
+  "7dcd7ec7bc41",
+  "88b7dfc1ab3d",
+  "953f91966a02",
+  "bc287616e7a5",
+  "d726abe2cba1"
+ ],
  "scripts/sql/every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql": [
   "624819270073"
  ],

@@ -3,6 +3,7 @@
 // the CEO seat, and log the run. Moved out of index.ts's handleInbound (9 Nov 2026, customer_support); the reply state is read from and
 // written to the turn as t.<name>.
 import { fileReviewRequest } from '../_shared/review_request.ts';
+import { acknowledgeIfCarried, complaintFact } from '../_shared/complaint_register.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { composeSituation } from './compose.ts';
@@ -96,7 +97,10 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
   // welcome, not an FAQ row, not even under the hold. They are FACTS the model answers from (below). With no model
   // (the hold, every model in the chain failing) nothing conversational is sent; the meaning waits in the queue.
 
-  const { situation, ids, lean } = await composeSituation(t, route);
+  const { situation: composed, ids, lean } = await composeSituation(t, route);
+  // A REGISTERED COMPLAINT IS NAMED IN THE REPLY (complaint_register.ts): the ticket rides as a fact the model words; the reply
+  // that carried it is the acknowledgement (stamped after the send). A complaint is never adoptable as a speculative draft.
+  const situation = t.complaint ? composed + '\n\n' + complaintFact(t.complaint) : composed;
   // THE LANE (status_lane.ts, ruling 1571): a status, invoice-copy or code ask is worded on status_reply from the sender's own
   // facts; a new job gets the request chat's link; everything else, and every turn needing a person, takes the full path.
   const lane = laneOf(routedIntent, needsPerson === true || route?.needs_a_person === true);
@@ -107,7 +111,7 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
   // The speculative draft is the reply whenever the facts the real route gives are the facts it was composed on (speculation.ts,
   // 10 Nov 2026: it was adopted only for intent 'none', 0 of 7 real turns), on the conversation lane, with no person needed.
   // An empty draft (rate-limited, aborted, refused) is no draft: the reply is then asked on the real route, as before.
-  const sameFacts = speculative ? (await t.specFacts) === situation : false;
+  const sameFacts = speculative ? (await t.specFacts) === situation : false;   // a complaint's facts carry its ticket, so they never match a draft
   const adoptable = speculative && sameFacts && lane === 'conversation' && needsPerson !== true && route?.needs_a_person !== true && !t.factsAnswer;
   const spec = adoptable ? await speculative : null;
   if (!(spec && spec.text)) specAbort.abort();   // discarded: stop paying for it
@@ -141,6 +145,8 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
     const h = await heldTurn(audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor', lang, situation, t.sayOutage ? 'no_model_answer' : t.sayProblems.length || !llmFailed ? 'guard_refused' : 'no_usable_answer_in_budget');
     reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; heldNotice = !!h.notice;
   }
+
+  if (sent && t.complaint) await acknowledgeIfCarried((fn, args) => admin.rpc(fn, args), t.complaint, reply, 'WhatsApp reply carried the ticket');
 
   let rowSaved = true;
   try { const { error: wErr } = await waInsert(receivedAt, { wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile, inbound: Body, reply, lang, escalated: escalate, sent, meta: { timings, enabled, reply_attempts: t.sayAttempts, matched_faq_ids: ids, timeline_events: timelineEvents, route_action: routeAction || null, held_notice: heldNotice, model_written: !heldNotice, route_intent: route?.deterministic_intent ?? null, inference_held: route?.inference_held === true, asked_for_a_person: route?.needs_a_person === true, bidi_isolated: /[⁦]/.test(reply), audience: audienceFinal, audience_source: audience !== 'unknown' ? 'phone_lookup' : 'inferred', send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null, ...(t.voice ? { voice: t.voice } : {}) } }); if (wErr) rowSaved = false; } catch (_e) { rowSaved = false; }

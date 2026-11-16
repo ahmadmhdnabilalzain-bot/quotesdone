@@ -29,6 +29,7 @@ import { answerFromOwnQuotes } from '../lib/own_quotes.ts';
 import { run } from '../lib/run.ts';
 import { conversationEffort } from '../../_shared/effort_policy.ts';
 import { lastTurn, replayOf } from '../../_shared/turn_replay.ts';
+import { portalComplaintReport, registerComplaint } from '../../_shared/complaint_register.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 import { loadCaseContext, recordCaseExchange } from '../../_shared/case_context.ts';
 
@@ -282,6 +283,13 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
         // the reader's answer (started beside the reads; by now normally done), bounded so the turn never waits long for it
         const reading = await Promise.race([pReading, new Promise<null>((r) => setTimeout(() => r(null), Math.max(0, Math.min(8_000, deadline - Date.now()))))]);
         const rp = reading ? readingPatch(reading) : {};
+        // A COMPLAINT ENTERS THE REGISTER (customer_support, 16 Nov 2026, COO hole H2): the turn reading above says it in the same
+        // call; the ticket is opened once for this turn, linked to the signed-in customer (complaint_register.ts). Its
+        // acknowledgement is the model-written e-mail the deadline duty owes (the reply has already streamed). Never throws.
+        if (reading?.complaint && caller.kind === 'customer') {
+          await registerComplaint((fn, args) => admin.rpc(fn, args), await portalComplaintReport({ episodeKey, turn: turns.length, customerId: String(caller.customerId),
+            email: caller.email ?? null, message, reading: reading.complaint, lang: lang === 'ar' ? 'ar' : 'en' }));
+        }
         const statePatch = { turn: theirs.length, party_key: acct, episode_from: from, message_count: reply ? replyNo : replyNo - 1,
           ...rp,
           specs: { ...Object.fromEntries([...plan.filled].map(([id, v]) => [id, String(v).slice(0, 300)])), ...(rp.specs ?? {}) },

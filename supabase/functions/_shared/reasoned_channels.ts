@@ -34,6 +34,7 @@
 import { think, type ThinkDeps, type ThinkRequest, type ThinkResult, type Turn } from './think.ts';
 import { FIELD_LABEL, FIELDS, figures, type QuoteForAnswer } from './chat_answers.ts';
 import { NEEDS_PERSON_OPTIONS, type Reasoned } from './reasoned_decisions.ts';
+import { COMPLAINT_OPTIONS, isComplaint } from './complaint_register.ts';
 import { menuOptions } from './reasoned_menus.ts';
 import { fitHistory } from './chat_history.ts';
 import { surfaceEffort } from './effort_policy.ts';
@@ -130,7 +131,9 @@ export const whatsappMeaning = (deps: ThinkDeps, o: WaMeaningInput) => choose(de
  *  applies to the turn. Held or failed: every value is null and each caller falls back exactly as before. */
 export async function whatsappReadings<M extends string>(deps: ThinkDeps, o: WaMeaningInput & { menu: { id: M; title: string; description: string }[] }) {
   const req = waRequest(o, false);
-  const result = await think(deps, { ...req, also: [{ key: 'needs_a_person', options: NEEDS_PERSON_OPTIONS }, { key: 'menu_meaning', options: menuOptions<M>(true, o.menu) }] });
+  const result = await think(deps, { ...req, also: [{ key: 'needs_a_person', options: NEEDS_PERSON_OPTIONS }, { key: 'menu_meaning', options: menuOptions<M>(true, o.menu) },
+    // whether it is a complaint, in the same call (complaint_register.ts, 16 Nov 2026): the surface registers it
+    { key: 'complaint', options: COMPLAINT_OPTIONS }] });
   const ok = result.status === 'answered';
   const needsPerson = ok && result.also?.needs_a_person ? result.also.needs_a_person === 'needs_a_person' : null;
   // ONE CALL, ONE READING (customer_support, 3 Nov 2026): when the same call says a person is needed and no intent row fits,
@@ -140,7 +143,8 @@ export async function whatsappReadings<M extends string>(deps: ThinkDeps, o: WaM
   const intent = choice === 'none' && needsPerson === true && o.intents.some((i) => i.intent_key === 'contact_human') ? 'intent:contact_human' : choice;
   // a fault the person reports (site_fault, reasoned_decisions.ts) is the it_engineer's: the surface hands it over (ruling 1705)
   const fault = ok && result.also?.needs_a_person === 'site_fault';
-  return { intent, needsPerson, fault,
+  const complaint = ok && isComplaint(result.also?.complaint);
+  return { intent, needsPerson, fault, complaint,
            menu: ok ? result.also?.menu_meaning ?? null : null, result };
 }
 /** The meaning, filed in customer_support's queue for replay when nothing else answered the message — WITHOUT a

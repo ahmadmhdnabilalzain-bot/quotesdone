@@ -32,6 +32,7 @@ import { turnContent, turnFacts } from './turn_facts.ts';
 import { gteReads } from '../_shared/ml_embed_recipe.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { widgetComplaintReport } from '../_shared/complaint_register.ts';
 import { caseKeyOf } from '../_shared/support_fault_handover.ts';
 import { fileReviewRequest } from '../_shared/review_request.ts';
 import { siteReplyCheck, siteReplyLanguage } from './reply_check.ts';
@@ -410,6 +411,9 @@ async function handle(req: Request, T: Timer): Promise<Response> {
                  email: who?.email ?? null, audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor',
                  // a signed-in person's fault goes onto their case too, so WhatsApp and the e-mail see it (ledgers 1711-1713)
                  ...(who ? { person: { partyId: String(who.id), email: who.email ?? null } } : {}) },
+        // A COMPLAINT ENTERS THE REGISTER (16 Nov 2026, COO hole H2): read in the same call; the ticket is opened once for this
+        // message, keyed on a hash (no address in the key), linked to the signed-in person when there is one (complaint_register.ts)
+        complaint: await widgetComplaintReport({ caller: who ? accountKey(who.audience, who.id) : ip, hour, msgKey, who, lang: uiLang === 'ar' ? 'ar' : 'en', message }),
       })).value;
       // Ledger 1152 / ruling 1264: a contested decision goes to its owning seat; an explicit ask for a person to the founder.
       if (person === true) {
