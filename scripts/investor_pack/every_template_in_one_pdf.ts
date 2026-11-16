@@ -18,8 +18,12 @@
 //
 // Run (fonts are the committed copies; the lockup, signature and stamp PNGs are read from QD_BRAND_DIR when given, and
 // otherwise the renderer's text letterhead stands):
-//   deno run --no-lock --node-modules-dir=none --allow-read=. --allow-write=docs/reports --allow-env=QD_BRAND_DIR \
-//     scripts/investor_pack/every_template_in_one_pdf.ts [out.pdf]
+//   deno run --no-lock --node-modules-dir=none --allow-read=. --allow-write=<out dir> --allow-env=QD_BRAND_DIR \
+//     scripts/investor_pack/every_template_in_one_pdf.ts <out.pdf>
+// THE PDF IS NOT KEPT IN GIT (docs/reports/README.md: PDFs go to the private `evidence` bucket). It is written outside the
+// repository and uploaded to `evidence` under EVIDENCE_KEY; docs/reports/EVIDENCE_INDEX.md carries its size and sha256.
+// It carries QuotesDone's OWN letterhead (DET licence, TDRA permit, the company's numbers, the founder as signatory): it is
+// the company's own document, and the cover says so; every counterparty in it is ZZ DEMO.
 import { PDFDocument } from 'https://esm.sh/pdf-lib@1.17.1';
 import { renderPdf } from '../../supabase/functions/pdf_native/render.ts';
 import { docs as fixtureDocs, type Doc } from '../../supabase/functions/pdf_native/every_document_we_issue.fixtures.ts';
@@ -33,7 +37,7 @@ import { CUSTOMER, FILE_NAME, zzPdfSheet } from '../../supabase/functions/_share
 const REPO = new URL('../../', import.meta.url);
 const FONTS = new URL('supabase/functions/pdf_native/fixtures/brand/', REPO);
 const EXPENSES = new URL('docs/reports/expenses_statement_2026/QuotesDone_Operating_Expenses_Statement_2026.pdf', REPO);
-export const DEFAULT_OUT = 'docs/reports/investor_pack_2026/QuotesDone_every_template_ZZ_DEMO.pdf';
+export const EVIDENCE_KEY = 'docs/reports/investor_pack_2026/QuotesDone_every_template_ZZ_DEMO.pdf';
 
 const brandDir = (() => { try { return Deno.env.get('QD_BRAND_DIR') || null; } catch { return null; } })();
 async function fetchBytes(p: string): Promise<Uint8Array | null> {
@@ -156,6 +160,7 @@ export async function buildPack(): Promise<{ bytes: Uint8Array; rows: string[][]
   // The cover + contents is rendered twice: once to learn its own length, then with the final page numbers.
   const coverOf = (start: (i: number) => number) => ({ title: 'QuotesDone — every document we issue', options: { letterhead: true }, blocks: [
     { t: 'p', text: 'Every document QuotesDone generates and sends, drawn by the platform\'s own template and builders with ZZ DEMO data (no real customer, supplier or figure), followed by the operating expenses statement as filed. Arabic copies follow the English where the document is issued in both.' },
+    { t: 'p', text: 'Each page carries QuotesDone\'s own letterhead as the company issues it: its trade licence and TDRA permit, its published email and telephone numbers, and its founder as the signatory. Those are the company\'s own details; every customer, supplier, amount and drawing in this pack is ZZ DEMO.' },
     { t: 'table', head: ['#', 'Document', 'Language', 'Who receives it', 'Page'],
       rows: parts.map((p, i) => [String(i + 1), p.title, p.lang, p.to, String(start(i))]), widths: [0.06, 0.48, 0.12, 0.26, 0.08] },
   ] });
@@ -176,7 +181,8 @@ export async function buildPack(): Promise<{ bytes: Uint8Array; rows: string[][]
 }
 
 if (import.meta.main) {
-  const out = Deno.args[0] ?? DEFAULT_OUT;
+  const out = Deno.args[0];
+  if (!out) { console.error('usage: every_template_in_one_pdf.ts <out.pdf>  (outside the repository; upload to evidence as ' + EVIDENCE_KEY + ')'); Deno.exit(2); }
   const { bytes, rows } = await buildPack();
   await Deno.mkdir(out.replace(/\/[^/]+$/, ''), { recursive: true });
   await Deno.writeFile(out, bytes);

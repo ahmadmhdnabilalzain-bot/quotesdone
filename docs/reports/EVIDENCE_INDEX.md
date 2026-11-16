@@ -2975,3 +2975,15 @@ Before the laptop was cleared, the ceo seat uploaded these under the prefix `lap
 | `laptop_home/Downloads/google.com_quotesdone.com_1782345600_1782431999.zip` | 747 | `d720347fccd124042e64877772dda2ea9ecd1af8ba36d0e42c3c927f68b98116` |
 | `laptop_home/Downloads/quotesdone-export-2026-07-29.zip` | 1957857 | `439d7b1048d19f06d63268fc106a74dbf3dcd159514d2d66d68ba5670c506919` |
 | `laptop_home/Downloads/QuotesDone_Customer_Support_Knowledge_v1_2_Full_Autonomy.zip` | 578659 | `bda2464b1dc81068f81a09b1be98e7c9df7c60764fce84af57ae1a518f202c9e` |
+
+## Added 16 Nov 2026: the investor pack of every template (ledger 1547)
+
+Written by `scripts/investor_pack/every_template_in_one_pdf.ts` (accountant seat, L6_BOOKS) outside the repository. It is a
+PDF, so it lives here and not in git. The pack holds 97 pages: 56 documents rendered with ZZ DEMO data, plus the filed
+expenses statement. It carries QuotesDone's own letterhead: the licence, the TDRA permit, the company's numbers and the
+founder as signatory. **Upload pending:** the main session uploads it with the service role. Until then the file is in the
+session scratchpad, `investor_pack/QuotesDone_every_template_ZZ_DEMO.pdf`.
+
+| object key | bytes | sha256 |
+|---|---:|---:|
+| `docs/reports/investor_pack_2026/QuotesDone_every_template_ZZ_DEMO.pdf` | 1706113 | `3288039f2ac6773eacae4c9b1d0e73b4fe3f93701423162487487bae33bf129d` |

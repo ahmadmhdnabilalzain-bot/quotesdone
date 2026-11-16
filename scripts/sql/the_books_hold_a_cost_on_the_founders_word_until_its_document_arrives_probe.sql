@@ -30,12 +30,14 @@ begin
     v_fail := v_fail || ' dry-run:' || r::text || ';';
   end if;
 
-  -- 3. live: one entry, posted Dr 6300 / Cr 1000, one awaiting row
+  -- 3. live: one entry, posted Dr 6300 / Cr 2200 (owed to the bank until the statement shows it taken; since
+  --    a_mashreq_fee_the_bank_has_not_taken_is_owed_not_paid_and_the_1_august_fee_is_booked.sql), one awaiting row
   r := public.fn_accountant_expense_on_founder_word('Mashreq', v_d - 2, 77.77, 'AED', null, null, 'probe fee', v_fi, 'bank_statement', false);
   v_held := (r->>'entry_id')::bigint; v_held_j := (r->>'journal_id')::bigint;
   if not coalesce((r->>'booked')::boolean, false) or v_held_j is null
      or (select count(*) from public.gl_journal_lines where journal_id = v_held_j and account_code = '6300' and debit = 77.77) <> 1
-     or (select count(*) from public.gl_journal_lines where journal_id = v_held_j and account_code = '1000' and credit = 77.77) <> 1
+     or (select count(*) from public.gl_journal_lines where journal_id = v_held_j and account_code = '2200' and credit = 77.77) <> 1
+     or exists (select 1 from public.gl_journal_lines where journal_id = v_held_j and account_code = '1000')
      or not exists (select 1 from public.expense_awaiting_document where expense_entry_id = v_held and state = 'awaiting' and founder_instruction_id = v_fi)
      or not exists (select 1 from public.expense_entries where id = v_held and source = 'founder_reported' and doc_kind = 'founder_statement') then
     v_fail := v_fail || ' live:' || r::text || ';';
@@ -61,6 +63,14 @@ begin
      or not exists (select 1 from public.expense_awaiting_document where expense_entry_id = v_held and state = 'attached'
                      and attached_kind = 'bank_statement_line' and attached_ref = v_line::text) then
     v_fail := v_fail || ' statement-not-attached:' || r::text || ';';
+  end if;
+  -- the attached line pays the debt: one Dr 2200 / Cr 1000 of 77.77 on the line's date, and attaching again adds none
+  perform public.fn_accountant_attach_statement_line(v_line);
+  if (select count(*) from public.gl_journal g where g.source = 'bank_charge_settles_accrual' and g.source_ref = v_line::text) <> 1
+     or (select count(*) from public.gl_journal g join public.gl_journal_lines jl on jl.journal_id = g.id
+          where g.source = 'bank_charge_settles_accrual' and g.source_ref = v_line::text
+            and ((jl.account_code = '2200' and jl.debit = 77.77) or (jl.account_code = '1000' and jl.credit = 77.77))) <> 2 then
+    v_fail := v_fail || ' statement-did-not-settle-the-accrual;';
   end if;
   -- the unheld line books as before
   if not exists (select 1 from public.gl_journal where source = 'bank_charge' and source_ref = v_line2::text) then
