@@ -115,6 +115,12 @@ export async function profileActions(c: ActionCtx): Promise<Response | undefined
         p_supplier_id: sup.id, p_state: String(body.state ?? ''), p_busy_until: until, p_by: 'supplier (portal)',
       });
       if (error) return failed(String(action), error);
+      // GOING ON LEAVE (16 Nov 2026, SUPPLIER hole 3): his quotations still in front of a customer are listed, so the portal can
+      // offer to keep them (a customer is told "back on <date>" before paying: reveal_guard) or withdraw them (leave_quotes).
+      if (data?.ok && String(body.state) !== 'available') {
+        const { data: live } = await admin.rpc('fn_supplier_live_quotes', { p_supplier: sup.id }).then((r: { data: unknown }) => r, () => ({ data: null }));
+        return J({ ...data, live_quotes: Array.isArray(live) ? live : [] });
+      }
       return J(data, data?.ok ? 200 : 400);
     }
 
