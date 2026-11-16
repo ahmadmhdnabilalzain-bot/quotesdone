@@ -49,7 +49,9 @@ begin
   perform public.fn_ceo_growth_review(v_at, jsonb_build_object('bounce_rate_7d', 0.5, 'max_bounce', 0.03, 'sent_7d', 40, 'complained_48h', 0), false);
   if (select verdict from public.ceo_growth_action where dedupe_key = 'probe:off') <> 'pending' then raise exception 'CHK<<PROBE FAILED: switch off changed a verdict>>'; end if;
 
-  -- the report: off queues nothing; on queues one email and no WhatsApp
+  -- the report: off queues nothing; on queues one email and no WhatsApp. 16 Nov 2026: the CEO turned the switch on
+  -- (the_ceo_writes_its_weekly_plan_with_a_model_and_carries_it_out.sql), so the probe sets "off" itself before reading it
+  update public.app_secrets set value = 'false' where key = 'ceo_daily_number_golive';
   select count(*) into v_mail0 from public.notifications where kind = 'ceo_daily_number';
   v_off := public.fn_ceo_daily_number_report(v_at + interval '2 hours');
   select count(*) into v_mail1 from public.notifications where kind = 'ceo_daily_number';

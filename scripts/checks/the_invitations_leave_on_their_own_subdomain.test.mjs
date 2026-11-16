@@ -38,6 +38,16 @@ const body = (src, name) => {
   if (i < 0) return null;
   return src.slice(i, src.indexOf('$fn$;', i));
 };
+// 16 Nov 2026 (ceo): a file that copies production's body writes CREATE OR REPLACE ... $function$ (pg_get_functiondef); the
+// winning ramp is looked for in either spelling, or a later file in capitals is skipped and an older body is checked.
+const anyBody = (src, name) => {
+  const i = src.toLowerCase().indexOf('create or replace function public.' + name.toLowerCase() + '(');
+  if (i < 0) return null;
+  const open = /\$(fn|function)\$/.exec(src.slice(i));
+  if (!open) return null;
+  const close = src.indexOf(open[0], i + open.index + open[0].length);   // the body ends at its own closing tag
+  return src.slice(i, close < 0 ? undefined : close);
+};
 const squash = (s) => s.replace(/\s+/g, ' ').trim();
 // The lane scope on a restart/growth read: since activation, and only an invitation that actually left.
 const LANE_SCOPE = " and invited_at >= v_since and (v_since = '-infinity'::timestamptz or public.fn_invite_lane_sent(id))";
@@ -76,21 +86,22 @@ function winningRamp() {
   const pend = readdirSync(join(REPO, 'scripts/sql/pending')).filter((f) => f.endsWith('.txt'))
     .map((f) => 'scripts/sql/' + f.replace(/\.txt$/, '.sql')).filter((f) => existsSync(join(REPO, f))).sort();
   let win = null;
-  for (const f of [...manifest, ...pend]) if (body(code(read(f)), 'fn_invite_ramp')) win = f;
+  for (const f of [...manifest, ...pend]) if (anyBody(code(read(f)), 'fn_invite_ramp')) win = f;
   return win;
 }
 
 test('the winning ramp counts only the lane\'s own sends while the lane is on', () => {
   const f = winningRamp();
-  const ramp = body(code(read(f)), 'fn_invite_ramp');
+  const ramp = anyBody(code(read(f)), 'fn_invite_ramp');
   assert.match(ramp, /v_since timestamptz := public\.fn_invite_lane_since\(\)/, f + ' does not read the lane stamp');
-  const reads = [...ramp.matchAll(/from leads where ([^;]*);/g)].map((m) => m[1]).filter((w) => /invited_at/.test(w) && !/invited_at is null and coalesce/.test(w));
-  const health = reads.filter((w) => /interval '48 hours'/.test(w));
-  const history = reads.filter((w) => !/interval '48 hours'/.test(w));
+  // ISSUED MEANS SENT (3 Nov 2026): the restart/growth history is read from the invitations that left (notifications), since
+  // the lane's stamp; the 48 h complaint/bounce health is fn_invite_send_health and is never lane-scoped.
+  const history = [...ramp.matchAll(/from public\.notifications n join public\.leads l on l\.id = n\.lead_id\s+where ([^;]*);/g)].map((m) => m[1]);
+  assert.equal(history.length, 2, f + ': expected the two restart/growth reads of what left, found ' + history.length);
+  for (const w of history) assert.match(w, /n\.status = 'sent' and n\.sent_at >= v_since/, f + ' reads restart/growth history unscoped: ' + squash(w).slice(0, 140));
+  const health = ramp.match(/select h\.sent, h\.bounced, h\.complained into v_s48, v_b48, v_c48\s+from public\.fn_invite_send_health\(now\(\) - interval '48 hours'\) h;/g) || [];
   assert.equal(health.length, 1, 'expected one 48 h health read');
   assert.doesNotMatch(health[0], /v_since|fn_invite_lane_sent/, 'the 48 h complaint/bounce read is lane-scoped: switching the lane on would hide complaints from the pause');
-  assert.equal(history.length, 3, 'expected the three restart/growth reads, found ' + history.length);
-  for (const w of history) assert.ok(w.includes(LANE_SCOPE.trim()), f + ' reads restart/growth history unscoped: ' + squash(w).slice(0, 140));
   assert.match(ramp, /\|\| case when v_since > '-infinity'::timestamptz then jsonb_build_object\('lane_since', v_since\) else '\{\}'::jsonb end/,
     'the flag-off run log must carry no lane key');
   assert.doesNotMatch(ramp, /'lane_since', case/, 'lane_since written as null with the flag off');

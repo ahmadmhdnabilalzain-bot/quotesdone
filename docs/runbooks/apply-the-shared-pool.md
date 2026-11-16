@@ -195,6 +195,12 @@ company-run supply is replies, the registration unblock, the referral/click-to-c
    `resilience_ping` (its CEO plan step calls `fn_ceo_plan_due` and hands a due plan to `ceo_agent` action `plan`, detached); a
    `resilience_ping` deployed first would call an action the old `ceo_agent` answers `unknown_action` (400, logged, retried).
    `fn_ceo_plan_due` opens the first weekly plan on the first Monday after the apply, from 07:00 Dubai.
+   16 Nov 2026 (`the_ceo_writes_its_weekly_plan_with_a_model_and_carries_it_out.sql`, ledger 1448): that heartbeat call built
+   the planning pack inside the API's 8 s statement timeout and was cancelled every Monday tick, so no weekly plan was ever
+   opened by the loop. After that file, the hourly duty `ceo.planning_loop` (pg_cron, 60 s) opens the plan with its pack and
+   the heartbeat calls only `fn_ceo_plan_handover`: apply the file, then deploy `resilience_ping`; `ceo_agent` is unchanged.
+   The signal: a `ceo_plan_week` weekly row with `model` set and status `filed`, `ceo_plan_bet` rows with `handoff_id`, and an
+   `ai_cost_log` row (fn `ceo_agent`, task class `ceo_strategic_planning`) within an hour of the deploy (id 12 is answered first).
 4. A later quiet minute, the dispatcher's trigger, alone:
    `node scripts/apply_sql.mjs scripts/sql/the_department_dispatcher_trigger_goes_once_its_body_is_a_no_op.sql --apply --ddl --seat ceo`
    (same retry rule as step 1), then its pending note goes and the file is appended to `MANIFEST.txt`.

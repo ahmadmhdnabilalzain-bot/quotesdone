@@ -19,6 +19,18 @@ export function failureOf(r: unknown): string | null {
   return null;
 }
 
+// ceoPlan (16 Nov 2026, ceo): plan C and the CEO's planning loop run as one step.
+/** Plan C's result with the planning loop's under 'loop'. A loop that failed fails the step (16 Nov 2026): it was nested and
+ *  silent, so the hourly timeouts of fn_ceo_plan_due read as a healthy ceoPlan step and no weekly plan was ever written. */
+export function withLoop(planC: unknown, loop: unknown): Record<string, unknown> {
+  const p = (planC ?? {}) as Record<string, unknown>;
+  const l = (loop ?? {}) as Record<string, unknown>;
+  const loopFailed = l.ok === false || typeof l.error === 'string';
+  if (!loopFailed) return { ...p, loop };
+  const why = 'planning loop: ' + String(l.error ?? 'failed');
+  return { ...p, loop, ok: false, error: p.error ? String(p.error) + '; ' + why : why };
+}
+
 // The error a failed HTTP hop records, with the error the callee gave (22 Sep 2026). backupVerify
 // recorded only "dropbox_backup reconcile answered HTTP 500" for two days while the body said
 // "apply canceling statement due to statement timeout" -- the cause was in the reply and not in the row.
