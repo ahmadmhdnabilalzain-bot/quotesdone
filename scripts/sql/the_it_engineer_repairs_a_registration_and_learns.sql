@@ -115,14 +115,20 @@ create table if not exists public.it_route_failover (
   check (until <= started_at + interval '1 hour')
 );
 create unique index if not exists it_route_failover_one_live_idx on public.it_route_failover (task_class) where restored_at is null;
-do $rls$ declare t text; begin
-  foreach t in array array['it_rerunnable_job', 'it_route_plan_b', 'it_route_failover'] loop
-    execute format('alter table public.%I enable row level security', t);
-    execute format('drop policy if exists %I on public.%I', t || '_service_role_only', t);
-    execute format('create policy %I on public.%I as permissive for all to public using (false) with check (false)', t || '_service_role_only', t);
-    execute format('revoke all on public.%I from anon, authenticated', t);
-  end loop;
-end $rls$;
+-- Row level security, written out per table (16 Nov 2026): scripts/apply_sql.mjs never sends an EXECUTE built from a
+-- variable to production, and the loop this replaced was refused at the first apply. Same statements, same order.
+alter table public.it_rerunnable_job enable row level security;
+drop policy if exists it_rerunnable_job_service_role_only on public.it_rerunnable_job;
+create policy it_rerunnable_job_service_role_only on public.it_rerunnable_job as permissive for all to public using (false) with check (false);
+revoke all on public.it_rerunnable_job from anon, authenticated;
+alter table public.it_route_plan_b enable row level security;
+drop policy if exists it_route_plan_b_service_role_only on public.it_route_plan_b;
+create policy it_route_plan_b_service_role_only on public.it_route_plan_b as permissive for all to public using (false) with check (false);
+revoke all on public.it_route_plan_b from anon, authenticated;
+alter table public.it_route_failover enable row level security;
+drop policy if exists it_route_failover_service_role_only on public.it_route_failover;
+create policy it_route_failover_service_role_only on public.it_route_failover as permissive for all to public using (false) with check (false);
+revoke all on public.it_route_failover from anon, authenticated;
 
 insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
   ('it_rerunnable_job', true, 'company', 'which reader the IT engineer may re-run, with the fact that makes a second run harmless (ruling 1705)', 'it_engineer'),
