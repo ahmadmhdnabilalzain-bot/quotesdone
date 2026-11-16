@@ -185,8 +185,14 @@ Deno.test('the size and ink guards judge a { mime, data } page, not the text of 
 
 Deno.test('the portal still sends pages as { mime, data } (the shape the tests above replay)', async () => {
   // The whole supplier portal: SupplierPortal.tsx was split into src/components/portal/supplier/core/ on 9 Nov 2026.
+  // 16 Nov 2026 (simplification wave B): the supplier portal no longer builds { mime: file.type, data: b64 } itself; its
+  // pages come from the ONE converter both portals use (me/fileImages.ts), whose PageImage is { mime, data }.
   const src = readSupplierPortal();
-  assertEquals(/images:\s*\[\{\s*mime:\s*file\.type,\s*data:\s*b64\s*\}\]/.test(src), true);
+  assertEquals(/\(await toPages\(file\)\)\.images/.test(src), true);
+  const conv = await Deno.readTextFile(new URL('../../../src/components/me/fileImages.ts', import.meta.url));
+  assertEquals(/images:\s*PageImage\[\]/.test(conv), true);
+  const ocr = await Deno.readTextFile(new URL('../../../src/components/me/ocrClient.ts', import.meta.url));
+  assertEquals(/export type PageImage = \{\s*mime:\s*string;\s*data:\s*string\s*\}/.test(ocr), true);
   const raster = await Deno.readTextFile(new URL('../../../src/components/me/pdfRaster.ts', import.meta.url));
   assertEquals(/Promise<\{\s*mime:\s*string;\s*data:\s*string\s*\}\[\]>/.test(raster), true);
 });
