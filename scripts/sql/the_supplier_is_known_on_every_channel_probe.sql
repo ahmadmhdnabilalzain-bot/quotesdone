@@ -70,6 +70,7 @@ begin
   codes := array(select x ->> 'code' from jsonb_array_elements(a -> 'matching' -> 'why_no_jobs') x);
   if (a -> 'matching' ->> 'requests_in_his_trades_30d') is distinct from '1' then fails := fails || ' P2:demand=' || coalesce(a -> 'matching' ->> 'requests_in_his_trades_30d', 'null'); end if;
   if codes is distinct from array['trades_not_open_to_customers', 'requests_matched_others'] then fails := fails || ' P2:why=' || array_to_string(codes, ','); end if;
+  if position('every approved supplier whose confirmed trade' in a::text) = 0 or position('fit what was asked best' in a::text) > 0 then fails := fails || ' P2:wording'; end if;
 
   -- P3: it reaches him, and he quotes
   perform set_config('session_replication_role', 'replica', true);
@@ -99,6 +100,28 @@ begin
      then fails := fails || ' P4:collaboration'; end if;
   if (b -> 'matching' -> 'availability' ->> 'state') is distinct from 'busy' then fails := fails || ' P4:availability'; end if;
   if jsonb_array_length(b -> 'recent_jobs') <> 1 or (b -> 'recent_jobs' -> 0 ->> 'my_quote') is not null then fails := fails || ' P4:recent'; end if;
+
+  -- P8 (review fix): a paused reason a supplier must never be told is not repeated; a hard gate hides the demand reasons
+  perform set_config('session_replication_role', 'replica', true);
+  update public.leads set collaboration_hold_at = null, matching_blocked = true,
+         matching_block_reason = 'Banned: sanctions screening hit confirmed (ZZ DEMO list)' where id = sB;
+  perform set_config('session_replication_role', 'origin', true);
+  b := public.fn_wa_context('supplier', 'zz-demo-supknown-b@example.invalid');
+  codes := array(select x ->> 'code' from jsonb_array_elements(b -> 'matching' -> 'why_no_jobs') x);
+  if position('sanctions' in b::text) > 0 or position('Banned' in b::text) > 0 then fails := fails || ' P8:reason leaked'; end if;
+  if not ('matching_paused' = any (codes)) or position('our team will explain' in b::text) = 0 then fails := fails || ' P8:generic words'; end if;
+  if (b -> 'matching' ->> 'paused_reason') is not null then fails := fails || ' P8:paused_reason'; end if;
+  if codes && array['trades_not_open_to_customers', 'no_requests_in_his_trades', 'requests_matched_others'] then fails := fails || ' P8:demand beside gates=' || array_to_string(codes, ','); end if;
+  perform set_config('session_replication_role', 'replica', true);
+  update public.leads set matching_block_reason = 'insurance_expired' where id = sB;
+  perform set_config('session_replication_role', 'origin', true);
+  b := public.fn_wa_context('supplier', 'zz-demo-supknown-b@example.invalid');
+  if (b -> 'matching' ->> 'paused_reason') is distinct from 'insurance_expired' or position('insurance certificate' in b::text) = 0 then fails := fails || ' P8:insurance'; end if;
+  perform set_config('session_replication_role', 'replica', true);
+  update public.leads set matching_block_reason = 'compliance_review' where id = sB;
+  perform set_config('session_replication_role', 'origin', true);
+  b := public.fn_wa_context('supplier', 'zz-demo-supknown-b@example.invalid');
+  if (b -> 'matching' ->> 'paused_reason') is not null or position('compliance_review' in b::text) > 0 or position('our team will explain' in b::text) = 0 then fails := fails || ' P8:compliance_review'; end if;
 
   -- P5
   c := public.fn_wa_context('supplier', 'zz-demo-supknown-c@example.invalid');

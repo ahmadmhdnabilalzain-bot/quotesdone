@@ -166,7 +166,11 @@ begin
         (7, 'held_for_unanswered_requests', v_lead.collaboration_hold_at is not null,
             'Matching is paused because ' || coalesce(v_col.consecutive_ignored, 3) || ' quotations in a row were left unanswered at the customer''s decision; it is lifted only on review.'),
         (8, 'matching_paused', coalesce(v_lead.matching_blocked, false) and v_lead.collaboration_hold_at is null,
-            'Matching is paused (reason: ' || coalesce(v_lead.matching_block_reason, 'not recorded') || '). It resumes when his documents are in order again.'),
+            case v_lead.matching_block_reason
+              when 'licence_expired'   then 'Matching is paused because his trade licence expired. He should upload the renewed licence in the Documents tab; it resumes when the licence is verified again.'
+              when 'insurance_expired' then 'Matching is paused because his insurance certificate expired. He should upload the renewed certificate in the Documents tab; it resumes when it is verified again.'
+              else 'Matching is paused on his account; our team will explain; he can reply here to reach support.'
+            end),
         (9, 'strike_limit', coalesce(v_lead.chat_strikes, 0) >= v_limit,
             'Matching is paused: he has ' || coalesce(v_lead.chat_strikes, 0) || ' unanswered-request strikes (limit ' || v_limit || '). A quotation clears the run.'),
         (10, 'marked_unavailable', not public.fn_supplier_available(v_av_state, v_av_until),
@@ -181,9 +185,16 @@ begin
         (14, 'no_requests_in_his_trades', v_jobs30 = 0 and cardinality(v_trades) > 0 and v_demand30 = 0,
             'No customer posted a request in his trades' || case when cardinality(v_areas) > 0 then ' and emirates' else '' end || ' in the last 30 days.'),
         (15, 'requests_matched_others', v_jobs30 = 0 and v_demand30 > 0,
-            v_demand30 || ' request(s) in his trades were posted in the last 30 days and none reached him: each request goes to the suppliers whose confirmed services and emirates fit what was asked best.')
+            v_demand30 || ' request(s) in his trades were posted in the last 30 days and none was sent to him: a request is sent to every approved supplier whose confirmed trade, services, role, value range and required approvals fit it, so one of these did not fit, or it was posted before he qualified.')
       ) as r(n, code, applies, says)
      where r.applies;
+
+    -- A hard gate (1-12) already explains the silence; the demand reasons (13-15) would sit beside it as a false second cause.
+    if exists (select 1 from jsonb_array_elements(v_why) x
+                where x ->> 'code' not in ('trades_not_open_to_customers', 'no_requests_in_his_trades', 'requests_matched_others')) then
+      v_why := coalesce((select jsonb_agg(x order by o) from jsonb_array_elements(v_why) with ordinality as t(x, o)
+                          where x ->> 'code' not in ('trades_not_open_to_customers', 'no_requests_in_his_trades', 'requests_matched_others')), '[]'::jsonb);
+    end if;
 
     return jsonb_build_object(
       'scope','supplier', 'known', true,
@@ -225,7 +236,7 @@ begin
         'strikes',              coalesce(v_lead.chat_strikes, 0),
         'strike_limit',         v_limit,
         'matching_paused',      coalesce(v_lead.matching_blocked, false),
-        'paused_reason',        v_lead.matching_block_reason,
+        'paused_reason',        case when v_lead.matching_block_reason in ('licence_expired', 'insurance_expired') then v_lead.matching_block_reason end,
         'collaboration',        jsonb_build_object(
                                   'unanswered_in_a_row', coalesce(v_col.consecutive_ignored, 0),
                                   'unanswered_total',    coalesce(v_col.total_ignored, 0),
