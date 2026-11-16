@@ -35,8 +35,7 @@ import { decideOpenReviews } from '../_shared/review_decide.ts';
 import { liveReviewIO } from '../_shared/review_request.ts';
 import { workEscalationClocks } from '../_shared/escalation_clock.ts';
 import { liveClockIO } from '../_shared/escalation_clock_io.ts';
-import { precedentBlock, recallCases, recallTrace } from '../_shared/case_recall.ts';
-import { seatPool } from '../_shared/seat_pool.ts';
+import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { COVERAGE_ACTIONS, coverageAction } from './coverage.ts';
 import { PLAN_ACTIONS, planAction } from './plan.ts';
 

@@ -33,7 +33,7 @@
 --     approvals are from CEO. nothing goes to me."
 --   1696 (15 Nov): "CEO is having full authority. He can do whatever is needed to achieve the target we have for the
 --     company. He doesnt rely on me in anything." 1710 (15 Nov): "I don't want you to wait on me ... don't rely on me."
---   7 Sep 2026 and 1089: seats, no departments (the six seats of public.org_role).
+--   7 Sep 2026 and 907: seats, no departments (the six seats of public.org_role).
 --   1175 (7 Oct): "from now on keep open router always on". 1205 (12 Oct): leads are sourced monthly by Claude "not by the
 --     automated daily lead_sourcing job". 1614: "open a trade to customers as soon as it has enough verified suppliers".
 --
@@ -123,7 +123,7 @@ begin
          coalesce(max(verified_registered_suppliers),0) || ' is the highest verified-registered count in any category)'
     into v_cat_open from public.v_category_open;
 
-  -- the six seats (rulings of 7 Sep 2026 and 1089: seats, no departments), live from org_role
+  -- the six seats (rulings of 7 Sep 2026 and 907: seats, no departments), live from org_role
   select count(*), string_agg('  - ' || r.role_id || ' (' || coalesce(r.display_name, r.role_id) || '): ' || left(coalesce(r.responsibilities, ''), 320), E'\n' order by r.role_id)
     into v_seat_n, v_seats from public.org_role r where r.status = 'active';
   -- the CEO-tuned opening level (ruling 1614: trade by trade), else the platform's own level
@@ -292,7 +292,7 @@ begin
       'title','QuotesDone — How the Company Governs Itself',
       'kw', to_jsonb(array['governance','who approves','who decides','autonomy','refund approval','founder','ceo authority','escalation','boundaries','decisions','authority','seats']),
       'content',
-        'QuotesDone runs as ' || coalesce(v_seat_n, 6) || ' AI seats and no departments (rulings of 7 Sep 2026 and 1089): '
+        'QuotesDone runs as ' || coalesce(v_seat_n, 6) || ' AI seats and no departments (rulings of 7 Sep 2026 and 907): '
         'ceo, sales_engineer, customer_support, accountant, it_engineer and marketing. The CEO seat has full authority to reach '
         'the company target and is responsible for its decisions and their outcomes (ruling 1696): it decides every approval '
         'a seat needs, refunds of any amount included (8 Sep 2026), and the marketing month (15 Nov 2026), and it does not '
@@ -305,7 +305,7 @@ begin
       'title','QuotesDone — The Organization: the Seats, Colleagues and Roles',
       'kw', to_jsonb(array['organization','org chart','seats','how many agents','who works here','colleagues','roles','team','who does what','are there departments','departments','list the seats','who decides']),
       'content', 'THE COMPANY YOU WORK IN (live roster from org_role — these are your colleagues; know who does what).' || E'\n' ||
-        'THERE ARE NO DEPARTMENTS: the company is ' || coalesce(v_seat_n, 0) || ' seats (rulings of 7 Sep 2026 and 1089). The CEO seat leads and decides (ruling 1696).' || E'\n' ||
+        'THERE ARE NO DEPARTMENTS: the company is ' || coalesce(v_seat_n, 0) || ' seats (rulings of 7 Sep 2026 and 907). The CEO seat leads and decides (ruling 1696).' || E'\n' ||
         coalesce(v_seats, '  (org_role is empty)')),
 
     -- DYNAMIC: the live snapshot every run.
@@ -489,7 +489,7 @@ declare s record; v_social text; v_blog text; v_web text; v_cat text;
         v_legal text; v_compl text; v_biz jsonb; v_n int := 0;
 begin
   -- 1. 16 NOV 2026 (ceo, wave D) -- REMOVED. This loop wrote one qd-company:org-<dept> record per row of
-  --    the departments table. There are no departments (rulings of 7 Sep 2026 and 1089); the table has 0 rows, so the loop
+  --    the departments table. There are no departments (rulings of 7 Sep 2026 and 907); the table has 0 rows, so the loop
   --    wrote nothing since 7 Sep and the eleven org-* records it left are marked superseded by the file that carries
   --    this routine. The seats are described once, in qd-company:organization (fn_company_self_knowledge_sync).
 
@@ -596,10 +596,11 @@ update public.company_policy_decision set decision_text =
   || '(8 Sep 2026, "all approvals are from CEO"; rulings 1696 and 1710), and he is told the result; (2) he is emailed exceptions only '
   || '(founder_mail_policy) — everything else becomes the owning seat''s task; (3) he is never asked technical questions — engineering '
   || 'decides, does, and records the reasoning; he sets boundaries, not methods; (4) a session reports one completion line only when '
-  || 'everything is verified and deployed, otherwise an honest hand-over; (5) WhatsApp is his command channel; (6) money above AED '
-  || '10,000, destructive production changes and facts only he holds are the three things that escalate to him; (7) paid inference '
+  || 'everything is verified and deployed, otherwise an honest hand-over; (5) WhatsApp is his command channel; (6) money moves only '
+  || 'within the company limits the CEO seat sets (public.company_limit_change, ruling 1696; a raise takes effect a day later), and only '
+  || 'a fact or a credential that he alone holds is asked of him; his emergency stops stay his; (7) paid inference '
   || 'is on (ruling 1175) and he recharges the credit himself; (8) the OS stays signed in for him and the company solves its own '
-  || 'problems. (Restated 16 Nov 2026: items 1 and 7 from the rulings that superseded them.)'
+  || 'problems. (Restated 16 Nov 2026: items 1, 6 and 7 from the rulings that superseded them.)'
  where decision_key = 'founder_standing_rules';
 
 update public.company_policy_decision set decision_text =

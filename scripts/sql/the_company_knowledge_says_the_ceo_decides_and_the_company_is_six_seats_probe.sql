@@ -14,7 +14,7 @@ do $probe$
 declare fails text := ''; r record; n int; v_stale text :=
   'Customer Success Director|founder''s (final call|approval)|founder is notified|final call \+ approval = the founder|ONLY approver of refunds'
   || '|founder-approved|ten (autonomous )?(AI )?departments|\m10 departments|THE TEN DEPARTMENTS|Paid inference \(OpenRouter\) is HELD'
-  || '|nothing needs the founder''s approval except|the CFO opens|AI departments';
+  || '|nothing needs the founder''s approval except|the CFO opens|AI departments|money above AED 10,000';
 begin
   if not exists (select 1 from public.pricing_config) or not exists (select 1 from public.org_role) then
     raise exception 'CHK<<PROBE FAILED: seed pricing_config, company_goals and org_role from production first (no secret rows)>>';

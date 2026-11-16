@@ -255,8 +255,9 @@ begin
   o := o || jsonb_build_object(
     'text_review_held', coalesce(public.fn_ai_route_review('ceo_judgement', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5')->>'model', 'held'),
     'vision_review', coalesce(public.fn_ai_route_review_for('identity_redaction_verify', 'openai/gpt-5.6-sol,anthropic/claude-opus-5.5',
-                                null, null, null, array['vision'])->>'model', 'held'),
-    'ceo_authors', public.fn_ceo_judgement_counterparts(-1));
+                                null, null, null, array['vision'])->>'model', 'held'));
+  -- 'ceo_authors' (fn_ceo_judgement_counterparts) was read here; the routine was dropped 16 Nov 2026 with the unsent daily
+  -- judgement (the_ceos_unsent_daily_judgement_request_is_retired.sql).
   raise exception 'CHK<<%>>', o::text;
 end $p$;`;
 
@@ -281,5 +282,4 @@ test('production, one aborted transaction: #880 review follow-ups hold', { skip:
   assert.equal(out.text_review_fourth_family, 'qwen', 'ruling 1571: with Gemini and luna down, a Sol+Opus author is reviewed by Qwen');
   assert.equal(out.text_review_held, 'held', 'no retired model is a last-resort family: with every other family down the review is held');
   assert.equal(out.vision_review, 'held', 'a vision review never lands on a text-only reviewer');
-  assert.equal(out.ceo_authors, 'deterministic', 'no plan => no authors');
 });
