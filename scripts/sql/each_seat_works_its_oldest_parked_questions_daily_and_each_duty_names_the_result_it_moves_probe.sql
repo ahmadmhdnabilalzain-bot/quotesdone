@@ -45,6 +45,11 @@ begin
   select id into a_cl from public.agent_actions where kind = 'held_question' and detail->>'held_id' = q_cl::text;
   select id into a_un from public.agent_actions where kind = 'held_question' and detail->>'held_id' = q_un::text;
   select id into a_again from public.agent_actions where kind = 'held_question' and detail->>'held_id' = q_again::text;
+  -- the earlier retry of q_again, as the queue's history holds it (a failed try replaces result, so the marker lives here)
+  insert into public.agent_actions (agent, kind, status, risk, title, detail, evidence, target_table, target_id, created_at, decided_at)
+  values ('it_engineer', 'held_question', 'dismissed', 'low', 'an earlier parked row', jsonb_build_object('held_id', q_again, 'surface', 'it_engineer.knowledge_refresh'),
+          jsonb_build_object('verdict', 'asked again by the seat''s backlog review: probe', 'held_id', q_again, 'review_held_id', 0),
+          'reasoning_held_question', q_again::text, now() - interval '20 days', now() - interval '3 days');
 
   -- 1. the seat's model is given its oldest overdue items, once
   r := public.fn_seat_backlog_review(8);
@@ -77,8 +82,10 @@ begin
     raise exception 'CHK<<PROBE FAILED: the answered postmortem did not reach its incident>>'; end if;
   -- a person-facing answer is recorded, never applied (a days-old reply never reaches a person unreviewed)
   if (select status from public.reasoning_held_question where id = q_wa) is distinct from 'failed'
-     or (select evidence->>'answer' from public.agent_actions where id = a_wa) is distinct from 'tell him his quote is ready' then
-    raise exception 'CHK<<PROBE FAILED: a person-facing answer was applied or lost>>'; end if;
+     or (select detail->>'draft_answer' from public.agent_actions where id = a_wa) is distinct from 'tell him his quote is ready'
+     or (select status from public.agent_actions where id = a_wa) is distinct from 'pending'
+     or (select detail->>'needs_founder' from public.agent_actions where id = a_wa) is distinct from 'true' then
+    raise exception 'CHK<<PROBE FAILED: a person-facing answer was applied, lost or closed>>'; end if;
   -- retry: back to held with fresh tries, once
   if (select status || '/' || attempts from public.reasoning_held_question where id = q_kr) is distinct from 'held/0'
      or (select status from public.agent_actions where id = a_kr) is distinct from 'dismissed' then

@@ -28,23 +28,26 @@ begin
   if not exists (select 1 from public.agent_runs where agent = 'it_engineer' and counts->>'job' = 'duty:compliance_watch') then
     raise exception 'CHK<<PROBE FAILED: the run was not recorded, so the step would be due for ever>>'; end if;
 
-  -- 3. the first read since the old watcher: checked AND asked of the CEO seat's model, with the old summary and the new text
+  -- 3a. a 200 whose text is a challenge page: asked, read as not the source, NOT checked
+  r := public.fn_compliance_sources_record(jsonb_build_object('id', v_src, 'ok', true, 'signature', 'v2:cccccccccccccccc3333',
+         'excerpt', 'ZZ DEMO Request unsuccessful. Incapsula incident ID: 000.', 'final_url', 'https://www.example.invalid/code'));
+  v_res := public.fn_reason_held_resolve((r->>'held_id')::bigint, jsonb_build_object('status', 'answered', 'model', 'stub',
+             'answer', 'A firewall challenge page, not the code.', 'decision', jsonb_build_object('choice', 'not_the_page')));
+  if (select last_checked_at from public.compliance_sources where id = v_src) > now() - interval '90 days'
+     or (select last_signature from public.compliance_sources where id = v_src) like 'v2:%' then
+    raise exception 'CHK<<PROBE FAILED: a challenge page counted as a check>>'; end if;
+  update public.compliance_sources set last_fetch_at = null where id = v_src;
+  -- 3. the first read since the old watcher: asked of the CEO seat's model, with the old summary and the new text; checked
+  --    only once the model has read it as the source
   r := public.fn_compliance_sources_record(jsonb_build_object('id', v_src, 'ok', true, 'signature', 'v2:aaaaaaaaaaaaaaaa1111',
          'excerpt', 'ZZ DEMO: the 2026 fire code applies from 1 January; sprinkler rules changed.', 'final_url', 'https://www.example.invalid/code'));
   select last_checked_at, change_held_id into v_checked, v_q from public.compliance_sources where id = v_src;
-  if v_checked < now() - interval '1 minute' or (r->>'outcome') is distinct from 'asked' or v_q is null then
-    raise exception 'CHK<<PROBE FAILED: a changed page was not checked and asked: %>>', r; end if;
-  if (select fetch_failures from public.compliance_sources where id = v_src) <> 0 then raise exception 'CHK<<PROBE FAILED: a good fetch kept the failure count>>'; end if;
+  if v_checked > now() - interval '90 days' or (r->>'outcome') is distinct from 'asked' or v_q is null then
+    raise exception 'CHK<<PROBE FAILED: a changed page was not asked, or was checked before it was read: %>>', r; end if;
   if (select surface from public.reasoning_held_question where id = v_q) is distinct from 'ceo.compliance_change'
      or (select request->'context'->'case'->>'what_we_last_recorded' from public.reasoning_held_question where id = v_q) not like 'ZZ DEMO: the 2018%'
      or (select request->'context'->'case'->>'page_text_today' from public.reasoning_held_question where id = v_q) not like '%sprinkler%' then
     raise exception 'CHK<<PROBE FAILED: the question lacks the old summary or the new text>>'; end if;
-
-  -- 4. the same page again: checked, not asked again
-  update public.compliance_sources set last_checked_at = now() - interval '40 days', last_fetch_at = null where id = v_src;
-  r := public.fn_compliance_sources_record(jsonb_build_object('id', v_src, 'ok', true, 'signature', 'v2:aaaaaaaaaaaaaaaa1111', 'excerpt', 'same'));
-  if (r->>'outcome') is distinct from 'unchanged' or (select last_checked_at from public.compliance_sources where id = v_src) < now() - interval '1 minute' then
-    raise exception 'CHK<<PROBE FAILED: an unchanged page was not stamped checked: %>>', r; end if;
 
   -- 5. the model names a department: nothing applied; it names the sales_engineer: the change is routed there
   v_res := public.fn_reason_apply_ceo__compliance_change(v_q, jsonb_build_object('answer', 'x', 'decision', jsonb_build_object('choice', 'Legal')));
@@ -58,6 +61,14 @@ begin
   if (select last_changed_at from public.compliance_sources where id = v_src) < now() - interval '1 minute'
      or (select last_summary from public.compliance_sources where id = v_src) not like 'ZZ DEMO: the 2026 code%' then
     raise exception 'CHK<<PROBE FAILED: the change was not recorded on the source>>'; end if;
+  if (select last_checked_at from public.compliance_sources where id = v_src) < now() - interval '1 minute' then
+    raise exception 'CHK<<PROBE FAILED: a page the model read was not stamped checked>>'; end if;
+  if (select fetch_failures from public.compliance_sources where id = v_src) <> 0 then raise exception 'CHK<<PROBE FAILED: a good read kept the failure count>>'; end if;
+  -- 4. the same page again: checked, not asked again
+  update public.compliance_sources set last_checked_at = now() - interval '40 days', last_fetch_at = null where id = v_src;
+  r := public.fn_compliance_sources_record(jsonb_build_object('id', v_src, 'ok', true, 'signature', 'v2:aaaaaaaaaaaaaaaa1111', 'excerpt', 'same'));
+  if (r->>'outcome') is distinct from 'unchanged' or (select last_checked_at from public.compliance_sources where id = v_src) < now() - interval '1 minute' then
+    raise exception 'CHK<<PROBE FAILED: an unchanged page was not stamped checked: %>>', r; end if;
 
   -- 6. a later change the model reads as immaterial records its reading and routes nothing
   r := public.fn_compliance_sources_record(jsonb_build_object('id', v_src, 'ok', true, 'signature', 'v2:bbbbbbbbbbbbbbbb2222', 'excerpt', 'ZZ DEMO: a new footer.'));

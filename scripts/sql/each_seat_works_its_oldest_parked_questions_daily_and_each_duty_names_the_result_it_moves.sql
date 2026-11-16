@@ -77,12 +77,17 @@ begin
                    public.fn_held_question_is_person_facing(x.detail->>'surface') person,
                    exists (select 1 from public.reasoning_held_question r2 where r2.seat = x.agent and r2.surface = r.surface
                             and r2.subject is not distinct from r.subject and r2.created_at > r.created_at and r2.id <> r.id) later,
-                   coalesce(r.result ? 'backlog_retried_at', false) retried,
+                   -- the retry is read from the queue's own history: a failed try REPLACES result (fn_reason_held_resolve)
+                   exists (select 1 from public.agent_actions y where y.kind = 'held_question' and y.detail->>'held_id' = r.id::text
+                            and y.evidence ? 'review_held_id' and y.evidence->>'verdict' like 'asked again%') retried,
                    x.detail->>'raised_by' raised_by, x.detail->>'raised_reason' raised_reason
               from public.agent_actions x
               left join public.reasoning_held_question r on r.id = (x.detail->>'held_id')::bigint
              where x.kind = 'held_question' and x.status = 'pending' and x.agent = s.role_id
                and not x.detail ? 'backlog_held_id' and not coalesce((x.detail->>'needs_founder')::boolean, false)
+               -- a question this review put back is in flight: fn_reason_held_escalate refiles it at once (it is old), not ours to judge yet
+               and not (coalesce(r.status, '') = 'held' and exists (select 1 from public.agent_actions y where y.kind = 'held_question' and y.detail->>'held_id' = r.id::text
+                            and y.evidence ? 'review_held_id' and y.evidence->>'verdict' like 'asked again%'))
                and (x.detail ? 'overdue_at' or x.detail ? 'raised_by' or x.created_at < now() - interval '7 days')
              order by x.created_at
              limit greatest(1, least(coalesce(p_per_seat, 8), 20))) z;
@@ -143,13 +148,20 @@ begin
       n := jsonb_set(n, '{unclear}', to_jsonb((n->>'unclear')::int + 1));
       continue;
     end if;
-    if v_verb = 'retry' and (h.id is null or coalesce(h.result ? 'backlog_retried_at', false)) then
+    if v_verb = 'retry' and (h.id is null or exists (select 1 from public.agent_actions y where y.kind = 'held_question'
+                               and y.detail->>'held_id' = h.id::text and y.evidence ? 'review_held_id' and y.evidence->>'verdict' like 'asked again%')) then
       v_verb := 'raise';
       v_txt := case when h.id is null then 'the question no longer exists to retry; ' else 'already retried once on '
-                 || coalesce(h.result->>'backlog_retried_at', '?') || ' and it failed again; ' end || v_txt;
+                 || 'an earlier review and it failed again; ' end || v_txt;
     end if;
 
-    if v_verb = 'answer' then
+    if v_verb = 'answer' and public.fn_held_question_is_person_facing(coalesce(h.surface, a.detail->>'surface')) then
+      -- a person is waiting: the seat's answer is a draft, kept on the open item for the founder; it is never sent from here
+      update public.agent_actions
+         set detail = (detail - 'backlog_held_id') || jsonb_build_object('draft_answer', left(v_txt, 4000), 'needs_founder', true,
+                        'raised_by', r.seat, 'raised_reason', 'a person is waiting; the seat drafted an answer that is not sent', 'raised_at', now())
+       where id = x;
+    elsif v_verb = 'answer' then
       v_applied := null;
       if h.id is not null and h.status in ('failed', 'held', 'reasoned') and not coalesce(h.request ? 'decision', false)
          and not public.fn_held_question_is_person_facing(h.surface) then

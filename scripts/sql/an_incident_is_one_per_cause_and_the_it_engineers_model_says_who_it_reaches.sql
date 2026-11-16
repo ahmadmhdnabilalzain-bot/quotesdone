@@ -68,16 +68,23 @@ as $fn$
 declare i record; v_key text; v_root public.it_incident; n_root int := 0; n_occ int := 0;
 begin
   for i in
-    select inc.id, inc.issue_key, inc.playbook_class, inc.cause, inc.started_at, inc.created_at, inc.ended_at, a.detail
+    select inc.id, inc.issue_key, inc.playbook_class, inc.cause, inc.started_at, inc.created_at, inc.ended_at, inc.impact, a.detail
       from public.it_incident inc join public.agent_actions a on a.id = inc.handoff_id
      where inc.cause_key is null and inc.created_at > now() - interval '3 days'
      order by inc.id
      limit greatest(1, least(coalesce(p_limit, 2000), 5000))
   loop
-    v_key := coalesce('playbook:' || i.playbook_class, 'class:' || public.fn_it_postmortem_class_key(i.detail), 'issue:' || i.issue_key);
+    -- a playbook class is a remedy, not a cause: run_failure covers stripe_checkout and quote_extract alike (SELECT 16 Nov),
+    -- so the failing subject is part of the cause
+    v_key := coalesce('playbook:' || i.playbook_class || ':' || coalesce(i.detail->>'subject', i.detail->>'where_it_is', '-'),
+                      'class:' || public.fn_it_postmortem_class_key(i.detail), 'issue:' || i.issue_key);
     select r.* into v_root from public.it_incident r
      where r.cause_key = v_key and r.same_cause_as is null and r.id < i.id
        and coalesce(r.last_seen_at, r.started_at, r.created_at) > coalesce(i.started_at, i.created_at) - interval '24 hours'
+       -- never hide what customers may feel: a customer-facing occurrence folds only into a customer-facing root, and an
+       -- open customer-facing occurrence never into a root that has ended (it is a new outage, judged and told on its own)
+       and (coalesce(i.impact, '') not like 'Customer-facing%'
+            or (coalesce(r.impact, '') like 'Customer-facing%' and (r.ended_at is null or i.ended_at is not null)))
      order by r.id desc limit 1;
     if v_root.id is null then
       update public.it_incident set cause_key = v_key, last_seen_at = coalesce(started_at, created_at), updated_at = now() where id = i.id;
@@ -151,9 +158,10 @@ begin
       into v_runs from public.agent_runs r
      where r.started_at >= v_from and (r.agent = i.aagent or r.agent = coalesce(i.adetail->>'subject', '-') or r.agent = 'fn:' || coalesce(i.adetail->>'subject', '-'));
     v_q := 'Incident ' || i.id || ': who outside the company does it reach? ' || coalesce(i.title, i.issue_key)
-        || '. Pick none, customers, suppliers or everyone. Then write, for the people it reaches, one or two plain sentences saying '
-        || 'what part of QuotesDone is affected for them right now; no cause, no internal names, no promised time. If none, '
-        || 'write in one sentence why no customer or supplier could see or feel it.';
+        || '. Pick none, customers, suppliers or everyone. Then write, for the people it reaches, a short noun phrase (under 12 '
+        || 'words) naming what is affected for them, as it completes "a temporary problem affecting ...", for example "sending '
+        || 'quote requests"; no cause, no internal names, no promised time. If none, write in one sentence why no customer or '
+        || 'supplier could see or feel it.';
     v_hid := public.fn_reason_hold('it_engineer', 'it_engineer.incident_impact', v_q,
       jsonb_build_object('seat', 'it_engineer', 'surface', 'it_engineer.incident_impact', 'research', false, 'stakes', 'normal',
         'question', v_q,

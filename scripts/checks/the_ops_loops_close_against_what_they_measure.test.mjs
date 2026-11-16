@@ -98,7 +98,10 @@ test('H7: a calendar owner is a live seat, and Big 5 Global keeps marketing and 
 test('H4: the backlog review never applies a person-facing answer and allows one retry', () => {
   const b = body(SQL.backlog, 'fn_seat_backlog_apply');
   assert.match(b, /not public\.fn_held_question_is_person_facing\(h\.surface\)/, 'a person-facing answer can be applied');
-  assert.match(b, /coalesce\(h\.result \? 'backlog_retried_at', false\)\) then\s+v_verb := 'raise'/, 'a second retry is allowed');
+  // the earlier retry is read from the queue's history: a failed try replaces result, so a marker there is lost (review 16 Nov)
+  assert.match(b, /y\.evidence->>'verdict' like 'asked again%'\)\) then\s+v_verb := 'raise'/, 'a second retry is allowed');
+  assert.doesNotMatch(b, /h\.result \? 'backlog_retried_at'/, 'the retry marker is read from result, which a failed try replaces');
+  assert.match(b, /'draft_answer', left\(v_txt, 4000\), 'needs_founder', true/, 'a person-facing answer is closed instead of kept for the founder');
   assert.match(body(SQL.backlog, 'fn_seat_backlog_review'), /public\.fn_reason_hold\(s\.role_id, s\.role_id \|\| '\.backlog_review'/, 'the review is not the seat\'s own model');
 });
 

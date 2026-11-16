@@ -98,7 +98,8 @@ begin
 
   -- changed, or the first read since the old watcher: checked now, and what changed is the CEO seat's model's to say
   select coalesce(jsonb_agg(jsonb_build_object('id', o.role_id, 'meaning', left(o.responsibilities, 300)) order by o.role_id), '[]'::jsonb)
-           || jsonb_build_array(jsonb_build_object('id', 'none', 'meaning', 'nothing material changed for the company'))
+           || jsonb_build_array(jsonb_build_object('id', 'none', 'meaning', 'nothing material changed for the company'),
+                                jsonb_build_object('id', 'not_the_page', 'meaning', 'the text is not this source''s content (a block or challenge page, a login, an error, an empty app shell, or a document whose text we do not have): nothing was read'))
     into v_seats from public.org_role o where o.status = 'active';
   v_q := format('The %s page on %s was read again today. Compared with what we last recorded about it, what changed that matters to '
                 || 'QuotesDone (a UAE marketplace where customers get quotes from licensed suppliers and contractors), in two or three '
@@ -114,9 +115,11 @@ begin
       'subject', jsonb_build_object('compliance_source_id', c.id), 'dedupeKey', 'compliance_change:' || c.id || ':' || left(v_sig, 19)),
     jsonb_build_object('filed_by', 'it_engineer.compliance_watch'), jsonb_build_object('compliance_source_id', c.id),
     'seat_duty', 'compliance_change:' || c.id || ':' || left(v_sig, 19));
+  -- NOT CHECKED YET: a fetch is a check only once the text was read as this source's content. The signature and the stamp
+  -- are written by the CEO seat's answer (a WAF challenge page or an app shell is a 200 with text too).
   update public.compliance_sources
-     set last_checked_at = now(), last_fetch_at = now(), last_fetch_error = null, fetch_failures = 0,
-         last_signature = v_sig, change_held_id = coalesce(v_hid, change_held_id)
+     set last_fetch_at = now(), last_fetch_error = null, change_held_id = coalesce(v_hid, change_held_id),
+         last_review = coalesce(last_review, '{}'::jsonb) || jsonb_build_object('pending_signature', v_sig, 'pending_held_id', v_hid, 'fetched_at', now())
    where id = c.id;
   return jsonb_build_object('outcome', 'asked', 'held_id', v_hid);
 end $fn$;
@@ -134,12 +137,20 @@ begin
   select * into r from public.reasoning_held_question where id = p_id;
   select * into c from public.compliance_sources where id = nullif(r.subject->>'compliance_source_id', '')::bigint;
   if c.id is null or v_choice is null or v_ans = ''
-     or (v_choice <> 'none' and not exists (select 1 from public.org_role o where o.role_id = v_choice and o.status = 'active')) then
+     or (v_choice not in ('none', 'not_the_page') and not exists (select 1 from public.org_role o where o.role_id = v_choice and o.status = 'active')) then
     return null;                                   -- stays 'reasoned' for the CEO seat to read
+  end if;
+  if v_choice = 'not_the_page' then
+    update public.compliance_sources
+       set fetch_failures = fetch_failures + 1, last_fetch_error = left('read as not the source: ' || v_ans, 500),
+           last_review = coalesce(last_review, '{}'::jsonb) - 'pending_signature' || jsonb_build_object('not_the_page_at', now(), 'held_id', p_id)
+     where id = c.id;
+    return jsonb_build_object('compliance_source_id', c.id, 'checked', false);
   end if;
   if v_choice = 'none' then
     update public.compliance_sources
-       set last_review = jsonb_build_object('reviewed_at', now(), 'by', 'ceo.compliance_change', 'model', p_result->>'model',
+       set last_checked_at = now(), last_signature = coalesce(last_review->>'pending_signature', last_signature), fetch_failures = 0,
+           last_review = jsonb_build_object('reviewed_at', now(), 'by', 'ceo.compliance_change', 'model', p_result->>'model',
                                             'held_id', p_id, 'material_change', false, 'reading', left(v_ans, 2000)),
            last_summary = coalesce(last_summary, left(v_ans, 2000))
      where id = c.id;
@@ -147,6 +158,7 @@ begin
   end if;
   update public.compliance_sources
      set last_summary = left(v_ans, 2000), last_changed_at = now(),
+         last_checked_at = now(), last_signature = coalesce(last_review->>'pending_signature', last_signature), fetch_failures = 0,
          last_review = jsonb_build_object('reviewed_at', now(), 'by', 'ceo.compliance_change', 'model', p_result->>'model',
                                           'held_id', p_id, 'material_change', true, 'seat', v_choice)
    where id = c.id;                                -- last_changed_at moving emits regulation.changed to its subscribers
