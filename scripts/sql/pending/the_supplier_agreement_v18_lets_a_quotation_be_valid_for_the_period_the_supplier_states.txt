@@ -1,5 +1,0 @@
-Committed, not applied. Assigned: sales_engineer. 15 Nov 2026 (founder ruling, ledger 1697; the CEO's decision under ruling 1696 that v18 carries v17).
-
-Why it waits: GitHub Actions is off, so the release applies it after the merge (docs/runbooks/release-without-ci.md). It publishes Supplier Agreement v18 in the signed registry (clause 12: a quotation is valid for the period the supplier states in it; if it states none, QuotesDone asks him to state one, and until he does, the quotation may be shown to the Customer marked “Validity: not stated by the supplier”), archives v17 byte-exact, and sets app_secrets supplier_terms_carries_from = 'v17' so no supplier is asked to sign again. Order: merge (the web build), then apply:
-  node scripts/apply_sql.mjs scripts/sql/the_supplier_agreement_v18_lets_a_quotation_be_valid_for_the_period_the_supplier_states.sql --apply
-then deploy supplier_api, kyc, customer_api and compliance_archive straight after (they carry the v18 text and its hash). It ends with a PROBE OK / PROBE FAILED verdict row. Delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.
