@@ -95,17 +95,50 @@ export type InboxDeps = {
   inboundToken: string | undefined;
   signingSecret: string | undefined;
   inboundUrl: string;
-  /** provider ids already in inbound_messages, out of those asked. */
+  /** provider ids already handed (inbound_messages, or waiting in inbound_mail_queue), out of those asked. */
   onFile: (providerIds: string[]) => Promise<Set<string>>;
   fileFinding: (args: Record<string, unknown>) => Promise<unknown>;
   record: (status: 'ok' | 'held' | 'error', counts: Record<string, unknown>, note: string) => Promise<unknown>;
   now?: () => number;
   /** Who wrote: the founder or staff, a known lead or customer, or a stranger. Throws when it cannot tell. */
   sender?: (address: string) => Promise<SenderKind>;
-  /** Of these RFC Message-IDs, those inbound_messages already holds, from any mailbox. */
+  /** Of these RFC Message-IDs, those already handed from any mailbox: read (inbound_messages) or queued (inbound_mail_queue). */
   messageOnFile?: (ids: string[]) => Promise<Set<string>>;
 };
 export type SenderKind = 'founder' | 'known' | null;
+
+// deno-lint-ignore no-explicit-any
+type Rows = PromiseLike<{ data: any[] | null; error: { message: string } | null }>;
+/** The two tables a lookup reads: supabase-js's from(...).select(...).in(...), and nothing more. */
+export type OnFileDb = { from: (table: string) => { select: (cols: string) => { in: (col: string, ids: string[]) => Rows } } };
+
+/**
+ * WHAT IS ALREADY HANDED: READ, OR WAITING TO BE READ (it_engineer, 15 Nov 2026, review of the inbound queue). resend_inbound now
+ * records a delivery in public.inbound_mail_queue and reads it later (scripts/sql/an_inbound_burst_is_accepted_at_once_and_read_in_turn.sql).
+ * Before, supplier@'s hand-over was read inside the request, so its inbound_messages row was there when pollTenantMailboxes,
+ * run right after it, looked for the same Message-ID; now it is only queued, and the tenant's copy (another Graph id, another
+ * queue key) would be queued and read again: two rows, possibly two answers. So both lookups read both tables.
+ */
+export function inboundOnFile(db: OnFileDb) {
+  const union = async (reads: Array<[string, string, string, (r: Record<string, unknown>) => unknown]>, ids: string[]) => {
+    const out = new Set<string>();
+    if (!ids.length) return out;
+    const res = await Promise.all(reads.map(([t, cols, col]) => db.from(t).select(cols).in(col, ids)));
+    res.forEach((r, i) => {
+      if (r.error) throw new Error(reads[i][0] + ': ' + r.error.message);
+      for (const row of r.data || []) { const v = reads[i][3](row); if (v) out.add(String(v)); }
+    });
+    return out;
+  };
+  return {
+    onFile: (ids: string[]) => union([
+      ['inbound_messages', 'provider_email_id', 'provider_email_id', (r) => r.provider_email_id],
+      ['inbound_mail_queue', 'provider_email_id', 'provider_email_id', (r) => r.provider_email_id]], ids),
+    messageOnFile: (ids: string[]) => union([
+      ['inbound_messages', 'message_id:raw->>message_id', 'raw->>message_id', (r) => r.message_id],
+      ['inbound_mail_queue', 'message_id', 'message_id', (r) => r.message_id]], ids),
+  };
+}
 export type TenantDeps = Omit<InboxDeps, 'mailbox' | 'fileFinding' | 'sender'> & {
   /** supplier@: read by pollReplyInbox, skipped here. */
   inviteMailbox: string | undefined;

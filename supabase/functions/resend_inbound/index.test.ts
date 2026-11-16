@@ -53,7 +53,12 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
   return one ? json(row) : json([row]);
 }) as typeof fetch;
 
-const { handler, useThinkDeps } = await import('./index.ts');
+const { useThinkDeps } = await import('./index.ts');
+// The webhook records a delivery and the queue's reader reads it after the answer (15 Nov 2026, lib/queue.ts); this test reads
+// it at once through the same two halves the reader is built from: the signature check, then pipeline.ts.
+const { authenticate } = await import('./steps/authenticate.ts');
+const { readDelivery } = await import('./pipeline.ts');
+const handler = async (req: Request) => { const a = await authenticate({ req }); return a instanceof Response ? a : await readDelivery(a); };
 // The reasoning engine, MOCKED (23 Sep 2026): KIND.v is what the email is reasoned to be; KIND.held puts the model on
 // hold. What the email IS was a /mashreq/ + /statement/ word test until then; now it is this decision.
 const KIND = { v: 'bank_statement', held: false };

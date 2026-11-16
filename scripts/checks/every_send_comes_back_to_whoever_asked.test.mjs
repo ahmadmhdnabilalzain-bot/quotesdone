@@ -52,13 +52,44 @@ const TABLE_CHAIN = /\.from\(\s*(['"`])notifications\1\s*\)([^;]*)/g;
 const WRITE_IN_CHAIN = /\.(insert|upsert)\s*\(/;
 const RAW_SQL_WRITE = /insert\s+into\s+(public\.)?notifications\b/i;
 
+// THE ONE DOCUMENTED EXCEPTION (customer_support, 15 Nov 2026). The WhatsApp holding line ("one moment",
+// wa_inbound/holding.ts, founder ruling 1636) is SENT INLINE by the turn and the row is written already carrying its outcome.
+// Through the door it would be a 'queued' row the dispatcher drains minutes later (after the answer, which is worse than no
+// line) and a delivery.request that the watch reports to the CEO as 'sent_unconfirmed' (no provider id on an inline send:
+// read from the live triggers 12 Nov, review round 2). It still comes back: the outcome is on the row ('sent', or 'cancelled'
+// with the reason, never retried), the next turn reads it (earlierLines) to pick its wording and to hold the quiet window, an
+// unwritable row is an it_engineer finding, and a turn that sent the line and then died files the re-ask. The SQL side exempts it
+// by name: the adoption routine returns on requested_by 'platform'. The exception is pinned to that one file, that one insert,
+// and to the properties above, so it cannot widen: any change to them turns this red again.
+const HOLDING = 'supabase/functions/wa_inbound/holding.ts';
+const holdingStillByDesign = () => {
+  const src = readFileSync(join(REPO, HOLDING), 'utf8');
+  const inserts = [...src.matchAll(TABLE_CHAIN)].filter((m) => WRITE_IN_CHAIN.test(m[2]));
+  const body = inserts.length === 1 ? inserts[0][2] : '';
+  const sql = readFileSync(join(REPO, 'scripts', 'sql', 'a_handoff_closes_only_when_its_receiver_cites_the_note_or_says_why_not.sql'), 'utf8');
+  return {
+    one_insert: inserts.length === 1,
+    platform_requester: /export const HOLDING_REQUESTER = 'platform'/.test(src) && /requested_by:\s*HOLDING_REQUESTER/.test(body),
+    never_queued: /status:\s*claimed/.test(body) && !/status:\s*'queued'/.test(body) && /const claimed = fixture \? 'suppressed' : 'skipped'/.test(src),
+    outcome_on_row: /status:\s*'cancelled'/.test(src) && /status:\s*'sent'/.test(src) && /last_error:/.test(src),
+    unrecorded_is_a_finding: /wa_inbound:holding_unrecorded/.test(src),
+    sql_exempts_platform: /coalesce\(NEW\.requested_by, ''\) = 'platform' then return null/.test(sql),
+  };
+};
+
+test('the holding line is the one documented inline send, and it keeps the properties that make it come back', () => {
+  const p = holdingStillByDesign();
+  assert.deepEqual(Object.entries(p).filter(([, ok]) => !ok).map(([k]) => k), [],
+    'the holding line no longer has the properties that exempt it from the door (see the comment above this test)');
+});
+
 test('no edge function writes the outbox table except through the door', () => {
   const offenders = [];
   let callers = 0;
   for (const f of walk(FNS)) {
     const src = readFileSync(f, 'utf8');
     for (const m of src.matchAll(TABLE_CHAIN)) {
-      if (WRITE_IN_CHAIN.test(m[2])) offenders.push(`${rel(f)}:${src.slice(0, m.index).split('\n').length}`);
+      if (WRITE_IN_CHAIN.test(m[2]) && rel(f) !== HOLDING) offenders.push(`${rel(f)}:${src.slice(0, m.index).split('\n').length}`);
     }
     if (RAW_SQL_WRITE.test(src)) offenders.push(`${rel(f)}: raw SQL`);
     if (f !== DOOR && /\brequestDelivery\(/.test(src)) callers++;

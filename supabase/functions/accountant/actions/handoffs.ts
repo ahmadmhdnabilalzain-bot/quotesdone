@@ -5,6 +5,7 @@
 // index.ts calls this group with the request's context and returns the first Response a group gives.
 // Moved here verbatim from index.ts on 9 Nov 2026 (the 1,715-line index.ts split into modules, a pure move).
 import { type ActionCtx, J, admin, run } from '../context.ts';
+import { isCeoOrder, reportOrClose } from '../../_shared/order_report.ts';
 
 export async function handoffActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, action } = c;
@@ -17,11 +18,13 @@ export async function handoffActions(c: ActionCtx): Promise<Response | undefined
       return J({ ok: true, seat: 'accountant', open: data || [] });
     }
     if (action === 'complete_handoff') {
-      const { data: h } = await admin.from('agent_actions').select('id,agent').eq('id', Number(body.id)).eq('kind', 'handoff').maybeSingle();
+      const { data: h } = await admin.from('agent_actions').select('id,agent,detail').eq('id', Number(body.id)).eq('kind', 'handoff').maybeSingle();
       if (!h || h.agent !== 'accountant') return J({ error: 'not_this_seats_handoff' }, 404);
-      const { data, error } = await admin.rpc('fn_seat_handoff_complete', { p_id: Number(body.id), p_evidence: body.evidence ?? {} });
-      if (error) return J({ ok: false, error: error.message }, 400);
-      await run('complete_handoff', 'ok', { handoff_id: Number(body.id) });
-      return J(data);
+      // a CEO order is REPORTED with what was done (fn_seat_reports_done), any other hand-over closes as before
+      // (ceo, 15 Nov 2026, third review item 3; _shared/order_report.ts)
+      const r = await reportOrClose((fn, args) => admin.rpc(fn, args), 'accountant', h, body);
+      if (r.status !== 200) return J(r.body, r.status);
+      await run('complete_handoff', 'ok', { handoff_id: Number(body.id), reported: isCeoOrder(h) });
+      return J(r.body);
     }
 }
