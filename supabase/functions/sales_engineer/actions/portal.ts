@@ -29,7 +29,7 @@ import { answerFromOwnQuotes } from '../lib/own_quotes.ts';
 import { run } from '../lib/run.ts';
 import { conversationEffort } from '../../_shared/effort_policy.ts';
 import { lastTurn, replayOf } from '../../_shared/turn_replay.ts';
-import { hashedKey, registerComplaint } from '../../_shared/complaint_register.ts';
+import { portalComplaintReport, registerComplaint } from '../../_shared/complaint_register.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 import { loadCaseContext, recordCaseExchange } from '../../_shared/case_context.ts';
 
@@ -287,9 +287,8 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
         // call; the ticket is opened once for this turn, linked to the signed-in customer (complaint_register.ts). Its
         // acknowledgement is the model-written e-mail the deadline duty owes (the reply has already streamed). Never throws.
         if (reading?.complaint && caller.kind === 'customer') {
-          await registerComplaint((fn, args) => admin.rpc(fn, args), { channel: 'portal', sourceKey: await hashedKey('portal', episodeKey + ':' + turns.length),
-            message, reading: reading.complaint, email: caller.email ?? null, partyKind: 'customer', partyId: String(caller.customerId),
-            lang: lang === 'ar' ? 'ar' : 'en', fixture: /^ZZ ?DEMO/i.test(message) });
+          await registerComplaint((fn, args) => admin.rpc(fn, args), await portalComplaintReport({ episodeKey, turn: turns.length, customerId: String(caller.customerId),
+            email: caller.email ?? null, message, reading: reading.complaint, lang: lang === 'ar' ? 'ar' : 'en' }));
         }
         const statePatch = { turn: theirs.length, party_key: acct, episode_from: from, message_count: reply ? replyNo : replyNo - 1,
           ...rp,

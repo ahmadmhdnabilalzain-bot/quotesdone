@@ -99,3 +99,17 @@ export async function hashedKey(channel: ComplaintChannel, raw: string): Promise
   const d = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('complaint:' + channel + ':' + raw)));
   return channel + ':' + Array.from(d.slice(0, 12), (b) => b.toString(16).padStart(2, '0')).join('');
 }
+
+/** The widget's report (site_assistant): keyed on a hash of the caller, the hour and the message; the signed-in person when known. */
+export async function widgetComplaintReport(o: { caller: string; hour: string; msgKey: string; who: { email: string; audience: 'customer' | 'supplier'; id: string } | null;
+  lang: 'en' | 'ar'; message: string }): Promise<Omit<ComplaintReport, 'message' | 'reading'>> {
+  return { channel: 'widget', sourceKey: await hashedKey('widget', o.caller + ':' + o.hour + ':' + o.msgKey), email: o.who?.email ?? null,
+    partyKind: o.who?.audience ?? null, partyId: o.who ? String(o.who.id) : null, lang: o.lang, fixture: /^ZZ ?DEMO/i.test(o.message) };
+}
+
+/** The portal's report (sales_engineer portal chat): one ticket per turn of the episode, the signed-in customer. */
+export async function portalComplaintReport(o: { episodeKey: string; turn: number; customerId: string; email: string | null; message: string; reading: string;
+  lang: 'en' | 'ar' }): Promise<ComplaintReport> {
+  return { channel: 'portal', sourceKey: await hashedKey('portal', o.episodeKey + ':' + o.turn), message: o.message, reading: o.reading,
+    email: o.email, partyKind: 'customer', partyId: o.customerId, lang: o.lang, fixture: /^ZZ ?DEMO/i.test(o.message) };
+}

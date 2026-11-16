@@ -71,3 +71,13 @@ Deno.test('the reading takes the trade of the customer\'s own job, not of a busi
   const p = readingPrompt({ taxonomy: [], problems: [], lastSeat: '', message: 'my cousin runs a cleaning company' });
   assert(/done for themselves/.test(p.sys) && /A business they only mention[^.]*is not a job: leave it out/.test(p.sys), p.sys.slice(0, 600));
 });
+
+Deno.test('the portal\'s turn reading carries the complaint in the same call (complaint_register.ts, 16 Nov 2026)', () => {
+  const p = readingPrompt({ taxonomy: TAX, problems, lastSeat: '', message: 'the supplier took my deposit and never came' });
+  assert(p.sys.includes('"complaint":""') && /complaint: when the customer/.test(p.sys));
+  const r = parseReading(JSON.stringify({ trade_codes: ['joinery'], complaint: ' The supplier took the deposit and did not come. ' }), { taxonomy: TAX, services: SVC })!;
+  assertEquals(r.complaint, 'The supplier took the deposit and did not come.');
+  const n = parseReading(JSON.stringify({ trade_codes: ['joinery'], complaint: '' }), { taxonomy: TAX, services: SVC })!;
+  assertEquals(n.complaint, undefined, 'no complaint, no field');
+  assertEquals(parseReading(JSON.stringify({ trade_codes: ['joinery'], complaint: 42 }), { taxonomy: TAX, services: SVC })!.complaint, undefined);
+});

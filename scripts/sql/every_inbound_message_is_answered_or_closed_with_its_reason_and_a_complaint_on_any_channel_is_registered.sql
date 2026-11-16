@@ -45,7 +45,8 @@
 --
 -- prevented by: every_inbound_message_is_answered_or_closed_with_its_reason_and_a_complaint_on_any_channel_is_registered_probe.sql
 -- (LOCAL, run twice), _shared/complaint_register.test.ts, _shared/complaint_register_scenarios.test.ts,
--- email_triage/supplier_mailbox_second_reading.test.ts, _shared/inquiry_reading.test.ts.
+-- email_triage/supplier_mailbox_second_reading.test.ts, email_triage/complaint.test.ts, _shared/inquiry_reading.test.ts,
+-- resilience_ping/email_case_catchup.test.ts.
 -- APPLY ORDER: after every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql (reads
 -- supplier_reply_same_day). Deploy email_triage, wa_inbound, site_assistant and sales_engineer AFTER this apply (they call
 -- fn_complaint_open_from_message / fn_complaint_acknowledge; before it they get "function does not exist" and file nothing,

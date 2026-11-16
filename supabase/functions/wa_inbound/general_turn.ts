@@ -111,7 +111,7 @@ export async function answerTurn(t: WaTurn): Promise<Response> {
   // The speculative draft is the reply whenever the facts the real route gives are the facts it was composed on (speculation.ts,
   // 10 Nov 2026: it was adopted only for intent 'none', 0 of 7 real turns), on the conversation lane, with no person needed.
   // An empty draft (rate-limited, aborted, refused) is no draft: the reply is then asked on the real route, as before.
-  const sameFacts = speculative && !t.complaint ? (await t.specFacts) === situation : false;
+  const sameFacts = speculative ? (await t.specFacts) === situation : false;   // a complaint's facts carry its ticket, so they never match a draft
   const adoptable = speculative && sameFacts && lane === 'conversation' && needsPerson !== true && route?.needs_a_person !== true && !t.factsAnswer;
   const spec = adoptable ? await speculative : null;
   if (!(spec && spec.text)) specAbort.abort();   // discarded: stop paying for it

@@ -3,8 +3,8 @@
 // Moved out of index.ts's handleInbound (9 Nov 2026, customer_support); history and sayOutage are read from the turn.
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { caseKeyOf, handFaultToIt } from '../_shared/support_fault_handover.ts';
-import { hashedKey, registerComplaint } from '../_shared/complaint_register.ts';
-import { isDemoPhone } from '../_shared/demo_identity.ts';
+import { registerComplaint } from '../_shared/complaint_register.ts';
+import { waComplaintReport } from './complaint.ts';
 import { queueWhatsAppMeaning, whatsappReadings, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
 import { menuMeaning } from '../_shared/reasoned_menus.ts';
 import { defaultDeps, type Phase } from '../_shared/think.ts';
@@ -82,10 +82,9 @@ export async function startClassification(t: WaTurn): Promise<void> {
     // same call read it (whatsappReadings `complaint`); the ticket is opened once for this message, linked to the confirmed owner
     // of the number (fn_complaint_open_from_message), and the reply names it (general_turn.ts). Never throws.
     if (r.complaint && audience !== 'founder') {
-      const opened = await registerComplaint((fn, args) => admin.rpc(fn, args), {
-        channel: 'whatsapp', sourceKey: MessageSid ? 'whatsapp:' + MessageSid : await hashedKey('whatsapp', From + ':' + receivedAt + ':' + Body.slice(0, 200)),
-        message: Body, reading: String(r.result.answer ?? '').slice(0, 600) || 'read as a complaint (wa_inbound)', phone: From.replace(/^whatsapp:/, ''),
-        name: (known?.name as string) || null, lang: audience !== 'supplier' && langOf(Body.trim(), 'en') === 'ar' ? 'ar' : 'en', fixture: isDemoPhone(From) });
+      const opened = await registerComplaint((fn, args) => admin.rpc(fn, args), await waComplaintReport({ from: From, body: Body, messageSid: MessageSid,
+        receivedAt, reading: String(r.result.answer ?? ''), name: (known?.name as string) || null,
+        arabic: audience !== 'supplier' && langOf(Body.trim(), 'en') === 'ar' }));
       t.complaint = opened.ticket ?? null;
     }
     return { intent: r.intent, needsPerson: r.needsPerson, menu: r.menu, why: r.result.reason ?? r.result.status };
