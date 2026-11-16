@@ -338,6 +338,8 @@ export function m365FinalTouchSubject(who: Who = {}): string {
   const t = tradeLabel(who.trade);
   return t ? `One last note about ${t} requests` : 'One last note from QuotesDone';
 }
+/** The company's number, written out (src/content/company.json `phone.number`; the check the_supplier_funnel_runs_itself compares them). */
+export const FINAL_TOUCH_PHONE = '+1 218 316 6814';
 export function m365FinalTouchText(who: Who = {}): string {
   const c = companyName(who.company); const t = tradeLabel(who.trade);
   return [
@@ -346,6 +348,8 @@ export function m365FinalTouchText(who: Who = {}): string {
       'before buyers start sending requests for quotation; each request will go only to suppliers who work in that exact trade.',
     'This is the last time I will write about it. If your company would like to receive ' + (t ? t + ' requests' : 'the requests that match your trade') +
       ", reply to this email and I will send you your company's own sign-up link.",
+    // The number as plain text, no link and no tel: (founder ruling 1301 of 27 Oct 2026, applied 16 Nov); src/content/company.json `phone`.
+    `If you would rather talk on WhatsApp, our number is ${FINAL_TOUCH_PHONE}.`,
     SIGNATURE,
     STOP_LINE,
   ].join('\n\n');

@@ -3,6 +3,7 @@
 // scripts/sql/the_invitation_ramps_on_measured_health_and_tests_its_copy.sql fixes each lead's variant and writes the kind.
 import { assert, assertEquals, assertNotEquals } from 'jsr:@std/assert@1';
 import { campaignMail, claimsBuyersExist, FINAL_TOUCH_KIND, INVITE_VARIANTS, m365CopyLint, m365FinalTouchSubject, m365FinalTouchText, m365InvitationText, m365Subject, M365_SEED_KIND, PROMISE_WE_DO_NOT_KEEP, SIGNATURE, STOP_LINE, variantOfKind } from './m365_lane.ts';
+import { invitationHtml } from './open_tracking.ts';
 import { campaignStep, isCampaignRow } from './invite_lane.ts';
 
 const WHO = [{}, { company: 'Sigma Ceramics' }, { company: 'Sigma Ceramics', trade: 'tiling' }, { trade: 'fire_safety' }];
@@ -44,7 +45,13 @@ Deno.test('the last note to a parked lead is a nudge of kind invite_final_touch:
     const body = m365FinalTouchText(who); const subject = m365FinalTouchSubject(who);
     for (const l of m365CopyLint({ subject, body })) assert(l.ok, `final touch ${JSON.stringify(who)}: ${l.rule}: ${l.detail}`);
     assert(!/https?:|wa\.me|www\.|\/portal/i.test(body + subject), 'the last note carries a link');
-    assert(!/\b(free|join|register|commission|1,000|invitation|exclusive|whatsapp)\b/i.test(body + ' ' + subject), 'the last note carries an offer phrase or a channel');
+    assert(!/\b(free|join|register|commission|1,000|invitation|exclusive)\b/i.test(body + ' ' + subject), 'the last note carries an offer phrase');
+    // the WhatsApp number is plain text: no link, no tel:, no markup (founder ruling 1301, applied 16 Nov)
+    assert(body.includes('If you would rather talk on WhatsApp, our number is +1 218 316 6814.'), 'the last note lacks the plain number');
+    assert(!/tel:|<a\b|href|\]\(/i.test(body), 'the number is wrapped in a link');
+    const html = invitationHtml(body, '');
+    assert(html.includes('our number is +1 218 316 6814.') && !/<a\b|href|tel:/i.test(html), 'the HTML twin links the number or lacks it');
+    assert(body.indexOf('our number is') < body.indexOf('Best regards'), 'the number line is not before the signature');
   }
   const f = campaignMail({ type: 'supplier_invite_nudge', kind: FINAL_TOUCH_KIND, body: 'Hi Sigma Ceramics team,' }, { company: 'Sigma Ceramics' });
   assertEquals(f.text, m365FinalTouchText({ company: 'Sigma Ceramics' }));

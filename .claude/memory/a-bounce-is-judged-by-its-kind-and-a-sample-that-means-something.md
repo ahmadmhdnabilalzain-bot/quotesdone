@@ -27,7 +27,7 @@ unchecked ones 8 of 38. One 3-day number mixed both (the lesson of 12 Aug, again
 **How to apply:**
 - Never brake on a rate without its sample: read the lower bound, by kind and by the segment actually being sent.
 - A reply to a person is the model's (ruling 1339): a duty that owes an answer puts the mail back to email_triage, it never
-  writes one. The final touch to a parked lead is campaign mail and may be code text; WhatsApp only as a click-to-chat link.
+  writes one. The final touch to a parked lead is campaign mail and may be code text; The WhatsApp number appears as plain text, no link (founder ruling 1301 of 27 Oct, applied 16 Nov).
 - The founder's emergency stop (`marketing_publishing_enabled`) is never written by the CEO.
 - `scripts/checks/the_invitations_leave_on_their_own_subdomain.test.mjs` reads the newest `fn_invite_ramp` only in the
   lowercase `$fn$` spelling, so it still judges an August file; definitions copied from `pg_get_functiondef` (uppercase,
