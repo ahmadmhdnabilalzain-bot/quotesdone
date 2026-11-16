@@ -112,8 +112,8 @@ const AGREEMENT_CHANGES = {
   // supplier's freedom, so v18 carries v17 (app_secrets supplier_terms_carries_from = 'v17'): a v17 supplier is not asked. Shown to a
   // supplier asked to accept v18 who last accepted v16 or earlier.
   18: {
-    en: ['A quotation is valid for the period you state in it, no longer 30 days from submission; if it states none, we ask you to state one before the quotation is shown (clause 12). No other clause, fee or charge changes.'],
-    ar: ['يكون عرض السعر ساريًا للمدة التي تذكرونها فيه، ولم يعد ساريًا لمدة 30 يومًا من تاريخ تقديمه؛ وإذا لم يذكر مدة، نطلب منكم ذكرها قبل أن يُعرض عرض السعر (البند 12). لا تغيير في أي بند آخر أو رسم أو مبلغ.'],
+    en: ['A quotation is valid for the period you state in it, no longer 30 days from submission; if it states none, we ask you to state one, and until you do, the quotation may be shown to the Customer marked “Validity: not stated by the supplier” (clause 12). No other clause, fee or charge changes.'],
+    ar: ['يكون عرض السعر ساريًا للمدة التي تذكرونها فيه، ولم يعد ساريًا لمدة 30 يومًا من تاريخ تقديمه؛ وإذا لم يذكر مدة، نطلب منكم ذكرها، وإلى أن تذكروها يجوز أن يُعرض عرض السعر على العميل مع عبارة «صلاحية العرض: لم يذكرها المورّد» (البند 12). لا تغيير في أي بند آخر أو رسم أو مبلغ.'],
   },
 };
 export function agreementChanges(accepted, current, ar) {

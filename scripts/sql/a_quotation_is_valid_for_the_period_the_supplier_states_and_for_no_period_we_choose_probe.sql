@@ -10,6 +10,8 @@
 --      review of 15 Nov 2026 also: a date with no year is never moved a year on (only when near, and a start never); a period
 --      counted from an event we cannot know (LPO, PO, delivery, أمر الشراء) is NULL; "1/2 month" is NULL; the period beside
 --      valid / validity / صلاحية wins over a delivery or payment period written first;
+--      since the delta review of 16 Nov 2026: a warranty's period ("warranty validity 2 years") is never the validity, and
+--      "valid" inside another term's clause ("Delivery: 2 weeks (valid for stock items)") states none;
 --   I. a quote inserted with no validity has NO expiry; with "valid 15 days" and a quotation date, the end of that day + 15 in
 --      Dubai; a writer that sets expires_at itself keeps it;
 --   U. a validity stated later (an update) sets the expiry; a quotation date added later moves it; a validity cleared clears
@@ -66,6 +68,9 @@ begin
       ('Delivery 2 weeks from LPO, validity 30 days', null, '2026-12-15'), ('validity as per stock, delivery 2 weeks', null, null),
       ('30 days validity', null, '2026-12-15'), ('30-day validity, delivery 1 week', null, '2026-12-15'),
       ('التسليم أسبوعين، صلاحية العرض 30 يوما', null, '2026-12-15'), ('Lead time 4 weeks. Prices valid for 10 days', null, '2026-11-25'),
+      -- delta review of 16 Nov 2026: a warranty's period, or another term's clause that says "valid", is never the validity
+      ('Warranty validity 2 years, offer 30 days', null, '2026-12-15'), ('Warranty valid for 12 months; offer valid for 30 days', null, '2026-12-15'),
+      ('Delivery: 2 weeks (valid for stock items)', null, null),
       -- states no validity we can read: no expiry
       ('', null, null), ('   ', null, null), ('subject to stock', null, null), ('TBA', null, null), ('Rates are firm', null, null),
       ('Offer valid until further notice', null, null), ('as per stock availability', null, null), ('0 days', null, null),

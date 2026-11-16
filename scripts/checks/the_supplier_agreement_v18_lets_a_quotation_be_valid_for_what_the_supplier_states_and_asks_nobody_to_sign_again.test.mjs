@@ -29,8 +29,8 @@ const sha = (s) => createHash('sha256').update(s, 'utf8').digest('hex');
 const docSha = (k) => sha(legal[k].en.html + '\n' + legal[k].ar.html);
 const V17_SIGNED = '54f23ad7935ca84f0ca5b7bcb10c8c00337e76154d934983211dc82aa6d9a47d';   // supplier_agreement.ts v17, on every v17 acceptance
 const NAME = 'the_supplier_agreement_v18_lets_a_quotation_be_valid_for_the_period_the_supplier_states';
-const CL12_EN = 'A quotation is valid for <b>the period the Supplier states in it</b> unless the Supplier refreshes or withdraws it before Reveal, and the Supplier is bound by a quotation that is revealed within that validity period. If a quotation states no period, QuotesDone asks the Supplier to state one before the quotation is shown.';
-const CL12_AR = 'ويكون عرض السعر ساريًا <b>للمدة التي يذكرها المورّد فيه</b> ما لم يُحدّثه المورّد أو يسحبه قبل الكشف، ويكون المورّد ملزَمًا بعرض السعر الذي يُكشف عنه خلال مدة السريان تلك. وإذا لم يذكر عرض السعر مدة، تطلب QuotesDone من المورّد أن يذكرها قبل أن يُعرض عرض السعر.';
+const CL12_EN = 'A quotation is valid for <b>the period the Supplier states in it</b> unless the Supplier refreshes or withdraws it before Reveal, and the Supplier is bound by a quotation that is revealed within that validity period. If a quotation states no period, QuotesDone asks the Supplier to state one; until the Supplier does, the quotation may be shown to the Customer marked “Validity: not stated by the supplier”.';
+const CL12_AR = 'ويكون عرض السعر ساريًا <b>للمدة التي يذكرها المورّد فيه</b> ما لم يُحدّثه المورّد أو يسحبه قبل الكشف، ويكون المورّد ملزَمًا بعرض السعر الذي يُكشف عنه خلال مدة السريان تلك. وإذا لم يذكر عرض السعر مدة، تطلب QuotesDone من المورّد أن يذكرها؛ وإلى أن يذكرها، يجوز أن يُعرض عرض السعر على العميل مع عبارة «صلاحية العرض: لم يذكرها المورّد».';
 
 test('v17 is archived byte-exact: the hash recorded on every v17 acceptance still matches', () => {
   assert.equal(docSha('supplier-agreement-v17'), V17_SIGNED);

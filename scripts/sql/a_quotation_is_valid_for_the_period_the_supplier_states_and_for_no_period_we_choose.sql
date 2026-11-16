@@ -33,6 +33,8 @@
 --       - a fraction before a unit ("validity 1/2 month"): NULL, never two months;
 --       - when the text names the validity ("valid", "validity", صالح, صلاحية, ساري), the period in that clause is read, not the
 --         first period in the text ("Delivery 2 weeks, validity 30 days" is 30 days; "30 days validity" is 30 days);
+--       - a warranty's or guarantee's own period ("Warranty validity 2 years, offer 30 days", «الضمان سنة») is never the validity,
+--         and "valid" inside another term's clause ("Delivery: 2 weeks (valid for stock items)") states none (delta review, 16 Nov);
 --       - the quotation is valid to the END of its last day in Dubai (Asia/Dubai midnight that follows it);
 --       - anything else ("subject to stock", "TBA", blank, "0 days", a period of more than ten years, a date that does not
 --         exist): NULL. No expiry, and the customer reads "Validity: not stated by the supplier" or the supplier's own words.
@@ -44,7 +46,7 @@
 --
 -- Prevented by: scripts/checks/a_quotation_is_valid_for_the_period_the_supplier_states.test.mjs (this file's text, and no
 -- routine source in the repository fills an expiry with a period of its own) and this file's _probe.sql (run on a local
--- Postgres 16: 94 wordings read (63 of the first draft and 31 from the review of 15 Nov 2026), 66 that state a validity and 28 that state none, the trigger on insert and update, the three reveal-period routines).
+-- Postgres 16: 97 wordings read (63 of the first draft, 31 from the review of 15 Nov 2026 and 3 from the delta review of 16 Nov), 68 that state a validity and 29 that state none, the trigger on insert and update, the three reveal-period routines).
 -- Pending until the release applies it: scripts/sql/pending/<this name>.txt
 --
 -- THE APPLY MUST NOT FREEZE THE SITE: it adds a nullable column to quotes (ACCESS EXCLUSIVE, catalogue only, no rewrite) and
@@ -197,6 +199,11 @@ begin
   v := regexp_replace(v, '(?<![ء-ي])(سنتين|سنتان|عامين|عامان)(?![ء-ي])', '2 سنة', 'g');
   v := regexp_replace(v, '(?<!\d)(?<!\d )(?<![ء-ي])(أسبوع|اسبوع|شهرا|شهر|سنة|سنه)(?![ء-ي])(?! (يناير|فبراير|مارس|أبريل|ابريل|إبريل|مايو|يونيو|يوليو|أغسطس|اغسطس|سبتمبر|أكتوبر|اكتوبر|نوفمبر|ديسمبر))', '1 \1', 'g');
 
+  -- a warranty's own period is never the validity (delta review of 16 Nov 2026): "1 year warranty", "warranty validity 2 years",
+  -- "warranty valid for 12 months", «الضمان سنة» are taken out, up to the next separator, before the validity's clause is found
+  v := regexp_replace(v, '\d+(?:\.\d+)? ?' || c_units || ' ?(?:warranty|guarantee)\M|(?:\mwarranty\M|\mguarantee\M|(?<![ء-ي])(?:الضمان|ضمان)(?![ء-ي]))[^;|,،.]*', ' ', 'g');
+  v := btrim(regexp_replace(v, '\s+', ' ', 'g'));
+
   -- THE VALIDITY'S OWN CLAUSE (review item 5): when the text names the validity ("valid", "validity", صالح, صلاحية, ساري ...),
   -- only what follows that word is read, up to the next term (";", "|", or delivery / payment / warranty ... and the clause that
   -- carries it); "Delivery 2 weeks, validity 30 days" is 30 days. When nothing readable follows the word ("30 days validity"),
@@ -205,7 +212,8 @@ begin
   if m is not null then
     v_pre := m[1];
     v_post := regexp_replace(m[2], '(?:[;|]|[,،.] (?=[^,،;|]*(?:' || c_other || '))| (?=' || c_other || ')).*$', '');
-    if v_post !~ '\d|\mend of\M|(?<![ء-ي])نهاية(?![ء-ي])' then
+    -- ... unless that clause is another term's ("Delivery: 2 weeks (valid for stock items)" states no validity)
+    if v_post !~ '\d|\mend of\M|(?<![ء-ي])نهاية(?![ء-ي])' and regexp_replace(v_pre, '^.*[;|,،]', '') !~ c_other then
       m := regexp_match(regexp_replace(v_pre, '^.*[;|,،]', ''),
         '(\d+(?:\.\d+)? ?(?:(?:-|to|–) ?\d+(?:\.\d+)? ?)?' || c_units || ') ?[''’]?s? ?(?:(?:price|offer|quote|quotation|العرض) )?$');
       if m is not null then v_post := m[1] || ' ' || btrim(regexp_replace(v_post, '^' || c_valid, '')); end if;
