@@ -14,7 +14,7 @@
 //   * A PHOTO REACHES A SUPPLIER ONLY AS ITS CHECKED COPY (founder ruling 1683): a photo is recorded here by its check job
 //     (cad_read_jobs, why 'site_photo_check', _shared/site_photo_gate.ts on the worker); the supplier door shows only a copy
 //     that job released and recorded, never the original (supplier_api/what_a_supplier_receives.ts supplierSitePhotos).
-import { activeChecklists, type PhotoShot, type TradeContext } from './inquiry_trades.ts';
+import { activeChecklists, type PhotoShot, type TradeContext } from './trade_context.ts';
 
 /** One shot asked of this request: the checklist's shot, and the trade and checklist it came from. */
 export interface AskedShot extends PhotoShot { trade: string; topic_id: string }
