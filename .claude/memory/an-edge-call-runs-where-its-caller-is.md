@@ -16,7 +16,7 @@ Pacific (~0.2-0.25 s each).
 - With the model cap hit (f5d32825 after 15:56Z, every call refused, no model time at all) a WhatsApp turn still took 29-37 s.
 
 **The fix.** `_shared/db_region.ts` `inDbRegion(url)` adds `?forceFunctionRegion=ap-southeast-1`; `_shared/llm.ts` and
-`wa_inbound/shared.ts` (ai_gateway), `_shared/ml_embed_client.ts` and `_shared/meaning_embed.ts` (embed_ml) use it. The callee
+`wa_inbound/shared.ts` (ai_gateway), `_shared/ml_embed_client.ts` (embed_ml) use it (`_shared/meaning_embed.ts` was removed 16 Nov 2026). The callee
 reads only the pathname, so nothing else changes. Keep the literal `'/functions/v1/<slug>'` in the caller's source:
 `no_function_calls_an_undeployed_function` reads callees from it.
 
