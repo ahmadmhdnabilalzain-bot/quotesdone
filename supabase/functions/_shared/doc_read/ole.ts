@@ -21,25 +21,22 @@
 // compressed RTF (10090102) yields no body; an attached .msg (embedded storage, 3701000D) is not read;
 // in a .doc an EMPTY table cell reads as a row end, because the row-end mark is told apart from a cell
 // mark only by paragraph properties this reader does not parse.
-// SheetJS's CFB reader is loaded on the first OLE2 file, not at boot — see ../vendor/xlsx_lazy.ts.
-import { loadXlsx } from '../vendor/xlsx_lazy.ts';
-import { capText, empty, LIMITS, ok, refuse, type Cell, type ReadContext, type ReadResult } from './types.ts';
+// The CFB read itself comes from the registered workbook engine (workbook_engine.ts, 16 Nov 2026): this file does not
+// import SheetJS, so a function that registers the remote engine (supplier_api) does not upload it.
+import { NO_WORKBOOK_READER, workbookEngine } from './workbook_engine.ts';
+import { capText, empty, LIMITS, ok, refuse, type Cell, type ReadContext, type ReadResult, type Refusal } from './types.ts';
 import { attacher, stripHtml } from './email.ts';
 
-type Entry = { name: string; type: number; content?: ArrayLike<number> };
 const dec16 = new TextDecoder('utf-16le');
 const dec1252 = new TextDecoder('windows-1252');
 
-/** Every stream and storage keyed by its lowercased path below the root ('worddocument', 'macros/'). */
-async function openOle(bytes: Uint8Array): Promise<Map<string, Uint8Array> | null> {
-  const { CFB } = await loadXlsx();
-  let c: { FullPaths: string[]; FileIndex: Entry[] };
-  try { c = CFB.read(bytes, { type: 'array' }); } catch { return null; }
-  if (!c?.FullPaths?.length) return null;
-  const root = c.FullPaths[0];
-  const m = new Map<string, Uint8Array>();
-  c.FullPaths.forEach((p, i) => { if (i) m.set(p.slice(root.length).toLowerCase(), new Uint8Array(c.FileIndex[i].content ?? [])); });
-  return m;
+/** Every stream and storage keyed by its lowercased path below the root ('worddocument', 'macros/'), or why not. */
+async function openOle(bytes: Uint8Array): Promise<Map<string, Uint8Array> | Refusal> {
+  const engine = workbookEngine();
+  if (!engine) return refuse('unreadable', NO_WORKBOOK_READER);
+  let m: Map<string, Uint8Array> | null;
+  try { m = await engine.compoundFile(bytes); } catch (e) { return refuse('unreadable', `the compound file could not be read: ${(e as Error).message}`); }
+  return m ?? refuse('unreadable_file', 'not an OLE2 compound file');
 }
 
 /** The document's characters in CP order, from the piece table; null when it cannot be trusted. */
@@ -112,7 +109,7 @@ function printableRuns(wd: Uint8Array): string {
 
 export async function readDoc(bytes: Uint8Array, _ctx: ReadContext): Promise<ReadResult> {
   const ole = await openOle(bytes);
-  if (!ole) return refuse('unreadable_file', 'not an OLE2 compound file');
+  if (!(ole instanceof Map)) return ole;
   const wd = ole.get('worddocument');
   if (!wd || wd.length < 0x1AA) return refuse('unreadable_file', 'no Word 97-2003 WordDocument stream');
   if ([...ole.keys()].some((k) => k.startsWith('macros/') || /(^|\/)_vba_project$/.test(k))) {
@@ -135,7 +132,7 @@ export async function readDoc(bytes: Uint8Array, _ctx: ReadContext): Promise<Rea
 
 export async function readMsg(bytes: Uint8Array, ctx: ReadContext): Promise<ReadResult> {
   const ole = await openOle(bytes);
-  if (!ole) return refuse('unreadable_file', 'not an OLE2 compound file');
+  if (!(ole instanceof Map)) return ole;
   if (![...ole.keys()].some((k) => k.startsWith('__substg1.0_'))) return refuse('unreadable_file', 'no Outlook message properties');
   const str = (dir: string, id: string): string => {
     const w = ole.get(`${dir}__substg1.0_${id}001f`);

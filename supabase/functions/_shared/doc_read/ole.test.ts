@@ -1,6 +1,7 @@
 // ole.test — the .doc and .msg readers proved on in-memory fixtures, plus every refusal and cap.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { readDoc, readMsg } from './ole.ts';
+import './workbook_local.ts'; // the SheetJS engine, as every function but supplier_api registers it (workbook_engine.ts)
 import { MAX_ATTACHMENTS } from './email.ts';
 import { docFixture, docMacroFixture, msgFixture, MSG_SUBJECT } from './ole.fixtures.ts';
 import { ARABIC_LINE, BOQ_CSV, BOQ_LINE } from './email.fixtures.ts';

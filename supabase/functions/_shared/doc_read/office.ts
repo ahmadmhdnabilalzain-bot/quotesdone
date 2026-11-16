@@ -11,16 +11,18 @@
 //                table:table rows; number-columns-repeated capped at 1024 cells, trailing blanks and
 //                empty repeated rows dropped (an .ods pads a sheet to 1,048,576 rows that way). Kind
 //                comes from the `mimetype` entry.
-//   readWorkbook xlsx / xls / ods through the vendored SheetJS 0.20.3: the first 20 sheets, CACHED cell
-//                values only (cellFormula:false), capped at LIMITS.maxTableRows rows via sheetRows.
+//   readWorkbook xlsx / xls / ods through the REGISTERED workbook engine (workbook_engine.ts; SheetJS 0.20.3,
+//                in this isolate or in doc_extract): the first 20 sheets, CACHED cell values only
+//                (cellFormula:false), capped at LIMITS.maxTableRows rows via sheetRows.
 //
 // WHAT IT NEVER DOES. It never evaluates a formula, never loads or runs a macro — a file carrying a
 // vbaProject.bin part (xlsm/docm/pptm, whatever it is named) is REFUSED as unsafe_file_content — and
 // never resolves an external link, embedded object or template. Password-protected files (an OOXML
 // "EncryptedPackage" inside OLE2, an ODF manifest with encryption-data) are refused as 'encrypted'.
 // Deleted revisions (w:delText) and field codes (w:instrText) are not text.
-// SheetJS (~1 MB of source) is loaded on the first workbook, not at boot — see ../vendor/xlsx_lazy.ts.
-import { loadXlsx } from '../vendor/xlsx_lazy.ts';
+// This file does not import SheetJS (16 Nov 2026): supplier_api's upload hit Supabase's limit (413 at 4.70 MB) and SheetJS was
+// 503 KB of it. readWorkbook gets the parsed sheets from workbook_engine.ts; with no engine registered it refuses.
+import { NO_WORKBOOK_READER, SHEET_LIMITS, workbookEngine, type SheetsRead } from './workbook_engine.ts';
 import { looksMacroEnabled } from '../attachment.ts';
 import { empty, LIMITS, ok, refuse, type Cell, type ReadContext, type ReadResult, type Refusal } from './types.ts';
 import { findAll, local, parseXml, type XmlNode } from './xml.ts';
@@ -233,10 +235,11 @@ export async function readWorkbook(bytes: Uint8Array, _ctx: ReadContext): Promis
       const m = looksMacroEnabled(bytes, 'application/vnd.ms-excel');
       if (m) return refuse('unsafe_file_content', m);
     }
-    const XLSX = await loadXlsx();
-    let wb: ReturnType<typeof XLSX.read>;
+    const engine = workbookEngine();
+    if (!engine) return refuse('unreadable', NO_WORKBOOK_READER);
+    let wb: SheetsRead;
     try {
-      wb = XLSX.read(bytes, { type: 'array', cellFormula: false, cellHTML: false, cellNF: false, cellStyles: false, bookVBA: false, sheetRows: LIMITS.maxTableRows + 1 });
+      wb = await engine.sheets(bytes);
     } catch (e) {
       const msg = (e as Error).message;
       return /password|encrypt/i.test(msg) ? refuse('encrypted', 'the workbook is password-protected; an unprotected copy is needed')
@@ -244,11 +247,11 @@ export async function readWorkbook(bytes: Uint8Array, _ctx: ReadContext): Promis
     }
     const doc = empty(kind);
     const s = textSink();
-    if (wb.SheetNames.length > 20) doc.notes.push(`${wb.SheetNames.length} sheets; only the first 20 were read`);
-    for (const name of wb.SheetNames.slice(0, 20)) {
-      const ws = wb.Sheets[name];
-      if (!ws) continue;
-      const rows = capRows(XLSX.utils.sheet_to_json<Cell[]>(ws, { header: 1, raw: true, defval: '', blankrows: false }), doc.notes);
+    if (wb.names.length > SHEET_LIMITS.maxSheets) doc.notes.push(`${wb.names.length} sheets; only the first ${SHEET_LIMITS.maxSheets} were read`);
+    for (const [i, name] of wb.names.slice(0, SHEET_LIMITS.maxSheets).entries()) {
+      const sheet = wb.rows[i];
+      if (!sheet) continue;
+      const rows = capRows(sheet, doc.notes);
       if (!rows.length) continue;
       s.line(`# ${name}`);
       for (const r of rows) s.line(r.map((c) => (c ?? '')).join('\t'));
