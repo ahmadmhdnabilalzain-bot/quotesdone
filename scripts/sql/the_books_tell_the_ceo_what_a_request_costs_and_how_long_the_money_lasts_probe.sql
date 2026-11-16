@@ -1,4 +1,4 @@
--- PROBE, ROLLED BACK: founder funding feeds the runway; cost per request excludes test spend; break-even and cuts compute.
+-- PROBE, ROLLED BACK: the runway is cash only unless a commitment is recorded; cost per request excludes test spend; break-even and cuts compute.
 -- For scripts/sql/the_books_tell_the_ceo_what_a_request_costs_and_how_long_the_money_lasts.sql. Seat: accountant.
 -- Pure probe, no DDL: it always ends in raise exception 'CHK<<...>>'. LOCAL Postgres 16 ONLY (built from the schema mirror,
 -- whose money tables are empty): it asserts absolute figures on the rows it seeds, so it is never run on production.
@@ -147,6 +147,6 @@ begin
     v_fail := v_fail || ' duty;';
   end if;
 
-  raise exception 'CHK<<%>>', case when v_fail = '' then 'PROBE OK: founder funding feeds the runway, test spend is out of the cost per request, break-even and cuts compute'
+  raise exception 'CHK<<%>>', case when v_fail = '' then 'PROBE OK: the runway is cash only unless a commitment is recorded, test spend is out of the cost per request, break-even and cuts compute'
                                      else 'PROBE FAILED:' || v_fail end;
 end $probe$;

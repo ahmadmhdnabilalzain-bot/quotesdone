@@ -306,12 +306,12 @@ set search_path to 'public', 'pg_temp'
 as $fn$
 declare v_held bigint; d public.expense_entries;
 begin
-  v_held := public.fn_expense_held_entry_for(p_entry_id, 'bank_statement', false);
+  v_held := coalesce(public.fn_expense_held_entry_for(p_entry_id, 'bank_statement', false), public.fn_expense_held_entry_for(p_entry_id, 'receipt', false));
   if v_held is null then return false; end if;
   select * into d from public.expense_entries where id = p_entry_id;
   perform public.fn_it_engineer_finding_upsert('acct:bank_charges:held_fee_document:' || p_entry_id,
     'Expense #' || p_entry_id || ' (' || coalesce(d.vendor, '?') || ' ' || d.amount || ' ' || coalesce(d.currency, 'AED') || ', ' || d.charged_on
-      || ') matches the fee #' || v_held || ' booked on the founder''s word and waiting for its bank statement; it was NOT posted. '
+      || ') matches the fee #' || v_held || ' booked on the founder''s word and waiting for its bank statement / receipt; it was NOT posted. '
       || 'The bank statement books bank fees: its line attaches to #' || v_held || ', and a genuine second charge books from its own statement line. '
       || 'Move this row''s file onto #' || v_held || ' as evidence and remove the row.',
     'Accountant duty: bank_charges', 'agent_facing', 1,
@@ -497,16 +497,16 @@ begin
     end;
   end loop;
   -- a document row matching a fee held for its statement stays unposted and stays this duty's finding (review item 2)
-  for d in select e.id, e.vendor, e.amount, e.currency, e.charged_on, public.fn_expense_held_entry_for(e.id, 'bank_statement', false) as held
+  for d in select e.id, e.vendor, e.amount, e.currency, e.charged_on, coalesce(public.fn_expense_held_entry_for(e.id, 'bank_statement', false), public.fn_expense_held_entry_for(e.id, 'receipt', false)) as held
              from public.expense_entries e
             where e.source is distinct from 'founder_reported'
               and e.charged_on > (now() at time zone 'Asia/Dubai')::date - 400
-              and exists (select 1 from public.expense_awaiting_document x where x.awaits = 'bank_statement')
+              and exists (select 1 from public.expense_awaiting_document x)
               and not exists (select 1 from public.gl_journal g where g.source = 'expense' and g.source_ref = e.id::text) loop
     continue when d.held is null;
     v_items := v_items || jsonb_build_object('item', 'held_fee_document:' || d.id, 'owner_seat', 'accountant', 'subject', 'expense_entries',
       'title', 'Expense #' || d.id || ' (' || coalesce(d.vendor, '?') || ' ' || d.amount || ' ' || coalesce(d.currency, 'AED') || ', ' || d.charged_on
-               || ') matches the fee #' || d.held || ' booked on the founder''s word and waiting for its bank statement; it was NOT posted. '
+               || ') matches the fee #' || d.held || ' booked on the founder''s word and waiting for its bank statement / receipt; it was NOT posted. '
                || 'The bank statement books bank fees: its line attaches to #' || d.held || ', and a genuine second charge books from its own statement line. '
                || 'Move this row''s file onto #' || d.held || ' as evidence and remove the row.',
       'blast', 'agent_facing', 'affected', 1,

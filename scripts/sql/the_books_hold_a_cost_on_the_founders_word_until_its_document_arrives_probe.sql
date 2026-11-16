@@ -122,7 +122,7 @@ begin
   -- REVIEW FIXES (15 Nov 2026, evening). Each block below failed on the file before the fixes.
   declare
     v_a bigint; v_b_old bigint; v_b_new bigint; v_l55 bigint; v_l44 bigint; v_l33 bigint; v_c bigint; v_cl bigint; v_doc bigint;
-    v_s bigint; v_short bigint; v_sdoc bigint; v_vat bigint; v_usd bigint; v_ok boolean;
+    v_s bigint; v_re bigint; v_short bigint; v_sdoc bigint; v_vat bigint; v_usd bigint; v_ok boolean;
   begin
     -- 10. item 1: a statement line weeks late still attaches; the OLDEST held fee of that amount takes it; a line of another
     --     amount while a fee still waits is not booked and is the accountant's finding
@@ -223,6 +223,18 @@ begin
     perform public.fn_expense_post_to_gl(v_usd);
     r := public.fn_accountant_expense_on_founder_word('Probeanthropic', v_d - 3, 799.00, 'AED', null, 'Subscription', 'probe aed 799', v_fi, 'receipt', false);
     if r->>'refused' is distinct from 'already_booked' then v_fail := v_fail || ' cross-currency-duplicate:' || r::text || ';'; end if;
+    -- 13. review 2, fix 1: the SAME receipt forwarded again (new email id) after it was folded (step 6, survivor 'Probecloud'
+    --     dated v_d - 5, receipt 'Probecloud Inc' dated v_d - 3) is held out too: not posted, a finding, no second journal
+    insert into public.expense_entries (vendor, category, amount, currency, charged_on, source, doc_path, doc_name, doc_kind, source_msg_id, note)
+    values ('Probecloud Inc', 'Subscription', 20.00, 'USD', v_d - 3, 'receipt', 'receipts/probe-again.pdf', 'probe-again.pdf', 'vendor_document', 'probe:msg:held-again', 'probe forwarded again')
+    returning id into v_re;
+    v_j := public.fn_expense_post_to_gl(v_re);
+    if v_j is not null
+       or exists (select 1 from public.gl_journal where source = 'expense' and source_ref = v_re::text)
+       or not exists (select 1 from public.it_engineer_finding where issue_key = 'acct:bank_charges:held_fee_document:' || v_re and closed_at is null) then
+      v_fail := v_fail || ' receipt-forwarded-again-posted:' || coalesce(v_j::text, 'null') || ';';
+    end if;
+
   end;
 
   raise exception 'CHK<<%>>', case when v_fail = '' then 'PROBE OK: held on the founder''s word, joined by its statement line and by its receipt, never booked twice'
