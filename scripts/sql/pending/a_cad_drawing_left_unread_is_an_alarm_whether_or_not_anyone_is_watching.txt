@@ -1,0 +1,4 @@
+Committed, not applied (it_engineer for sales_engineer, L7_JOBS, 16 Nov 2026). Applied by the release operator after the merge:
+node scripts/apply_sql.mjs scripts/sql/a_cad_drawing_left_unread_is_an_alarm_whether_or_not_anyone_is_watching.sql --apply --ddl, then delete
+this note and append the file to the END of MANIFEST.txt in the same commit. No deploy. Proved locally: verdict PROBE OK and the probe's
+CHK<<PROBE OK ...>> twice (Postgres 16 from the mirror); before the file the probe fails (the routine does not exist).
