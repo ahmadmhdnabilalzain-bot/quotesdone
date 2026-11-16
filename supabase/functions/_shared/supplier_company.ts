@@ -44,13 +44,15 @@ export const OWNER_ONLY = new Set([
   // upload_url signs a path for the licence, profile or catalogue, so it is the owner's as process_docs is (review supplierw2).
   'services_rewrite', 'services_save_rewrite', 'transcribe_service_note', 'upload_url', 'process_docs', 'pay_registration', 'dispute_charge',
   'set_availability', 'leave_quotes', 'remove_work', 'correction_decide',
-  'member_invite', 'transfer_start', 'transfer_confirm', 'close_account', 'reopen_account',
+  'member_invite', 'transfer_start', 'transfer_confirm', 'close_account', 'reopen_account', 'ownership_claim_object',
 ]);
 // What a viewer may do: read.
 export const VIEWER_MAY = new Set([
   'me', 'search', 'inbox', 'inquiries_list', 'inquiry_detail', 'inquiry_documents', 'inquiry_pdf', 'quote_pdf', 'receipt_pdf', 'receipts',
   'projects', 'settings', 'services_state', 'services_questions', 'capability_state', 'standing', 'template_list', 'review_thread',
   'support_rating_due', 'team', 'member_remove', 'member_phone_code', 'account_closure', 'warm',
+  // W3_PEOPLE 16 Nov 2026: any member may read the referral link and say the owner left (the routine checks he is a member)
+  'referral_link', 'ownership_claim',
 ]);
 
 export type May = { ok: true } | { ok: false; code: 'owner_only' | 'read_only'; error: string };
@@ -73,7 +75,8 @@ const ESTIMATOR_KINDS = new Set(['not_for_me', 'available', 'confirm_figure', 'j
 /** May this role give this instruction? A viewer gives none; a paid-leads offer is only recorded, so anyone's is kept. */
 export function memberMayInstruct(role: Role, kind: string): boolean {
   if (role === 'owner') return true;
-  if (kind === 'paid_leads') return true;
+  // an offer to pay is only recorded; the referral link and "our owner left" are any member's to ask (the routine checks he is one)
+  if (kind === 'paid_leads' || kind === 'refer_company' || kind === 'owner_left') return true;
   if (role === 'viewer') return false;
   return ESTIMATOR_KINDS.has(kind) && !OWNER_KINDS.has(kind);
 }

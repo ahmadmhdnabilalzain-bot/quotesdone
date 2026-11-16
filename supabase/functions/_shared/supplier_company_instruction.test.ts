@@ -174,3 +174,38 @@ Deno.test('S15 EN estimator: "stop sending us painting" is the owner\'s to decid
   assertEquals(fns(a), []);
   assertMatch(r.outcome!.facts, /change what work the company receives/);
 });
+
+// W3_PEOPLE, 16 Nov 2026 (wave-3 items 2 and 4): "can I invite another company?" and "our owner has left" on any channel.
+Deno.test('S16 EN viewer: "can I invite my friend\'s company?" gives the company\'s own referral link; we send nothing ourselves', async () => {
+  const { r, a } = await turn({ kind: 'refer_company' }, 'can I invite my friend\'s company?', BASE, VIEWER,
+    { fn_supplier_referral_link: { ok: true, referral_code: 'qdabc123def4', url: 'https://quotesdone.com/en/supplier?utm_source=referral&utm_medium=supplier&utm_content=qdabc123def4', registered: 1, approved: 0 } });
+  assertEquals(fns(a), ['fn_supplier_referral_link']);
+  assertEquals(a.calls[0].args, { p_lead: 42 });
+  assertMatch(r.outcome!.facts, /utm_content=qdabc123def4/);
+  assertMatch(r.outcome!.facts, /we do not write to them ourselves/);
+  assertMatch(r.outcome!.facts, /1 compan/);
+});
+
+Deno.test('S17 EN: a company not yet approved is told the link comes with approval; nothing is promised', async () => {
+  const { r } = await turn({ kind: 'refer_company' }, 'send me a referral link', BASE, OWNER, { fn_supplier_referral_link: { ok: false, code: 'not_approved' } });
+  assertMatch(r.outcome!.facts, /once the company is approved/);
+});
+
+Deno.test('S18 AR estimator: "the owner left the company" opens the case for the sales engineer, in his name, and he is told what happens next', async () => {
+  const { r, a } = await turn({ kind: 'owner_left', reason: 'the owner sold his share and left the UAE in October' }, 'المالك ترك الشركة وسافر، أريد إدارة الحساب', BASE, ESTIMATOR,
+    { fn_supplier_ownership_claim_open: { ok: true, claim_id: 9, state: 'open' } });
+  assertEquals(fns(a), ['fn_supplier_ownership_claim_open']);
+  assertEquals(a.calls[0].args, { p_lead: 42, p_actor: 'zz-demo-est@example.invalid', p_reason: 'the owner sold his share and left the UAE in October', p_channel: 'email' });
+  assertMatch(r.outcome!.facts, /sales engineer/);
+  assertMatch(r.outcome!.facts, /owner has been told/);
+  assertMatch(r.outcome!.facts, /Nothing changes/);
+});
+
+Deno.test('S19 EN owner: the owner himself saying "the owner left" opens nothing; a stranger\'s refusal is said plainly', async () => {
+  const own = await turn({ kind: 'owner_left', reason: 'my partner left' }, 'my partner left the company', BASE, OWNER);
+  assertEquals(fns(own.a), []);
+  assertMatch(own.r.outcome!.facts, /already the owner/);
+  const no = await turn({ kind: 'owner_left', reason: 'he left' }, 'the owner left', BASE, VIEWER,
+    { fn_supplier_ownership_claim_open: { ok: false, code: 'not_a_member', error: 'Only a member of this company can ask to take it over.' } });
+  assertMatch(no.r.outcome!.facts, /Only a member of this company/);
+});

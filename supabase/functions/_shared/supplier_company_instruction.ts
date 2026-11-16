@@ -7,13 +7,19 @@
 //   * close_account: PROPOSED with what the law keeps; closed only on his "yes" (close_confirm), by the owner; written confirmation.
 //   * customer_silent: one nudge to a customer who revealed him, kept as evidence for the refund ladder.
 //   * paid_leads: recorded as a demand signal the CEO reads; he is told plainly that nobody can pay to rank or for exclusivity.
+//   * refer_company (W3_PEOPLE, 16 Nov 2026; SUPPLIER #11): his company's own referral link (fn_supplier_referral_link, approved
+//     companies only). HE sends it to whom he knows; we write to nobody, so it is consented mail, never cold mail from us.
+//   * owner_left (W3_PEOPLE, 16 Nov 2026; wave-3 item 4): a member whose owner has left asks to take the company over. It opens the
+//     case the sales engineer decides (fn_supplier_ownership_claim_open; sales_engineer/lib/ownership_claim.ts); the owner is told
+//     at once and keeps three days. The owner himself opens nothing.
 // prevented by: _shared/supplier_company_instruction.test.ts
 import type { Channel, Facts, Outcome, Reading } from './supplier_instruction.ts';
 import { fileJobQuestion } from './job_question.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
-export const COMPANY_KINDS = new Set(['job_question', 'close_account', 'close_confirm', 'close_cancel', 'customer_silent', 'paid_leads']);
+export const COMPANY_KINDS = new Set(['job_question', 'close_account', 'close_confirm', 'close_cancel', 'customer_silent', 'paid_leads',
+  'refer_company', 'owner_left']);
 const plain = (s: string) => s.replace(/\s+/g, ' ').trim();
 const ref = (rfq: unknown, id: string) => (rfq != null && String(rfq) !== '' ? 'RFQ-' + String(rfq).replace(/^RFQ-/i, '') : 'request ' + id.slice(0, 8));
 
@@ -88,6 +94,19 @@ export async function applyCompanyInstruction(admin: Admin, f: Facts, r: Reading
   if (r.kind === 'paid_leads') {
     await rpc('fn_supplier_demand_signal_record', { p_lead: sid, p_channel: channel, p_asked_for: r.asked_for || 'more requests', p_trade: r.trade, p_size: r.size, p_words: r.reason });
     return { kind: r.kind, done: true, facts: 'His offer was passed to management as interest. Tell him plainly and politely: on QuotesDone nobody can pay to rank higher, to get more requests or to be the only supplier on a request; every matched supplier receives the request and the customer chooses. Quoting fast and completely, and keeping his trades and areas accurate, is what wins work. Promise nothing else.' };
+  }
+  if (r.kind === 'refer_company') {
+    const d = await rpc('fn_supplier_referral_link', { p_lead: sid });
+    if (!d.ok) return { kind: r.kind, done: false, facts: d.code === 'not_approved' ? 'A referral link is given once the company is approved on QuotesDone. Tell him so, and that he can ask again then. Nothing else is promised.' : 'His referral link could not be read just now; tell him a colleague will send it.', detail: d };
+    const n = Number(d.registered ?? 0);
+    return { kind: r.kind, done: true, detail: d, facts: plain(`His company's own referral link is ${d.url} . Give it to him exactly. He sends it to companies he knows in his trade; we do not write to them ourselves. When one registers through it, it is recorded that his company referred it (${n} compan${n === 1 ? 'y has' : 'ies have'} so far). Registration is free, and nobody can pay to rank higher or for more requests.`) };
+  }
+  if (r.kind === 'owner_left') {
+    if ((f.sender?.role ?? 'owner') === 'owner') return { kind: r.kind, done: false, facts: 'He is already the owner of this company on QuotesDone, so there is nothing to take over. If a colleague has left, he can remove him in Settings, Team; to hand the company to someone else he uses Settings, Team, Hand over. Nothing was changed.' };
+    const d = await rpc('fn_supplier_ownership_claim_open', { p_lead: sid, p_actor: actorOf(f), p_reason: r.reason ?? 'the owner has left the company', p_channel: channel });
+    if (!d.ok) return { kind: r.kind, done: false, facts: String(d.error || 'His request could not be recorded just now; tell him a colleague will follow up. Nothing was changed.'), detail: d };
+    if (d.state === 'approved_waiting') return { kind: r.kind, done: true, detail: d, facts: plain(`His request is already approved: the company passes to him on ${d.effective_at ?? 'the date we wrote'} unless the owner keeps it before then. Nothing else is needed from him.`) };
+    return { kind: r.kind, done: true, detail: d, facts: plain(`${d.already ? 'Added to his open request' : 'Recorded his request'} to take over the company because the owner has left. Our sales engineer reads the company's record and decides within two working days, and may ask him for proof (for example the trade licence page that names the manager). The owner has been told at the addresses we hold and can keep the company; if it is approved, the hand-over still waits three days for him. Nothing changes until then.`) };
   }
   return { kind: 'none', done: false, facts: '' };
 }
