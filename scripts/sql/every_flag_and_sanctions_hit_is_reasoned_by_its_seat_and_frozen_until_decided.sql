@@ -23,7 +23,11 @@
 --      public.customer_screening_hit (sealed like the supplier record). An OPEN hit freezes the party: a supplier's
 --      matching_blocked is set with reason 'compliance_review' (fn_is_matchable already reads it; the supplier portal shows the
 --      neutral "set by our team" line, no tipping-off), and the reveal refuses while any hit on either party is open
---      (_shared/sanctioned.ts screeningOpen, reveal_guard.ts). A customer with an open hit is not matched (customer_api).
+--      (_shared/sanctioned.ts screeningOpen, reveal_guard.ts). A customer with an open hit is not matched (customer_api):
+--      his request waits with no next try and is never exhausted, so the 14-day closer cannot close it as our fault, and
+--      fn_customer_screening_decide releases it to the re-match sweep when his last hit is decided false_positive.
+--      A person (customer, supplier owner or contact) matches a listing exactly, or when every word of the listing is in
+--      his name; a common two-word name inside a longer listing does not (16 Nov measurement, below the screen).
 --      The duty ceo.sanctions_review (hourly) files every party with open hits for the CEO's reasoning
 --      (ceo.sanctions_hit) with the screening facts: each hit, the list entry, the party's own record. The model decides
 --      confirmed / false_positive / cannot_tell; fn_reason_apply_ceo__sanctions_hit applies it through
@@ -161,7 +165,7 @@ begin
 end $fn$;
 revoke execute on function public.fn_customer_sanctions_screen(bigint[], text) from public, anon, authenticated;
 
--- ── 2b. the supplier screen, unchanged except that it screens the customers at the end and keeps an entry a customer hit cites ──
+-- ── 2b. the supplier screen: it screens the customers at the end, keeps an entry a customer hit cites, and matches a person (owner, contact) as it matches a customer ──
 create or replace function public.fn_supplier_sanctions_screen(p_run_ids bigint[], p_rehearsal_tag text default null)
 returns jsonb
 language plpgsql
@@ -198,8 +202,13 @@ begin
       join public.screening_entry e
         on e.run_id = any(p_run_ids)
        and ((s.field <> 'email_domain' and s.norm = e.name_norm and length(s.norm) >= 6)
-         or (s.field <> 'email_domain' and cardinality(s.toks) >= 2 and cardinality(e.tokens) >= 2
+         -- a company name matches by shared tokens either way (a listed firm inside a longer trade name, or the reverse)
+         or (s.field in ('legal_name', 'licence_name') and cardinality(s.toks) >= 2 and cardinality(e.tokens) >= 2
              and (s.toks <@ e.tokens or e.tokens <@ s.toks))
+         -- a PERSON (owner, contact) matches as a customer does: exact, or every word of the listing in his name. An open hit
+         -- now freezes matching, and an owner's two common names inside a four-part listing is not a match (the customer
+         -- measurement of 16 Nov: 61 of 64 hits on 22 common names were that direction; the same names, the same list)
+         or (s.field in ('owner', 'contact') and cardinality(s.toks) >= 2 and cardinality(e.tokens) >= 2 and e.tokens <@ s.toks)
          or (s.field = 'email_domain' and length(s.norm) >= 6 and replace(e.name_norm, ' ', '') = s.norm))
   loop
     insert into public.supplier_screening_hit (run_id, lead_id, field, supplier_value, entry_id, entry_name, entry_source, entry_reference, entry_type, match_kind, score)
@@ -309,7 +318,7 @@ create trigger z10_screening_hit_freezes_the_supplier after insert or update of 
 -- refuses sign-in and refresh at the identity provider; every other open hit on him is decided by the same fact.
 create or replace function public.fn_customer_screening_decide(p_hit_id bigint, p_decision text, p_actor text default 'ceo')
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-declare h public.customer_screening_hit; c public.customers; v_open int;
+declare h public.customer_screening_hit; c public.customers; v_open int; v_released int := 0;
 begin
   if p_decision not in ('confirmed', 'false_positive') then
     raise exception 'fn_customer_screening_decide: decision must be confirmed or false_positive, not %', p_decision;
@@ -331,7 +340,21 @@ begin
      where lower(u.email) = nullif(lower(btrim(coalesce(c.email, ''))), '');
   end if;
   select count(*) into v_open from public.customer_screening_hit where customer_id = h.customer_id and status = 'open';
-  return jsonb_build_object('ok', true, 'hit_id', p_hit_id, 'decision', p_decision, 'customer_id', h.customer_id, 'open_hits_left', v_open);
+  -- THE DECISION RELEASES HIS HELD REQUESTS (review of 16 Nov, residual risk). customer_api (lib/compliance_hold.ts) holds a
+  -- frozen customer's request with its own wait: rematch.next_at null, never exhausted, so neither the re-match sweep nor
+  -- the 14-day "our fault" closer takes it. Once his last open hit is decided false_positive (and none is confirmed) the
+  -- next try is set to now: the sweep matches it on its next 15-minute beat and the customer hears it reached suppliers.
+  -- A confirmed customer is banned; his held request stays held, and nobody tells him why.
+  if v_open = 0 and p_decision = 'false_positive'
+     and not exists (select 1 from public.customer_screening_hit x where x.customer_id = h.customer_id and x.status = 'confirmed') then
+    update public.inquiries
+       set routing = jsonb_set(routing, '{rematch}', coalesce(routing->'rematch', '{}'::jsonb)
+                       || jsonb_build_object('next_at', now(), 'released_at', now(), 'released_by', p_actor))
+     where customer_id = h.customer_id and routing->>'held_for' = 'compliance_review' and coalesce(status, '') = 'sent';
+    get diagnostics v_released = row_count;
+  end if;
+  return jsonb_build_object('ok', true, 'hit_id', p_hit_id, 'decision', p_decision, 'customer_id', h.customer_id, 'open_hits_left', v_open,
+                            'requests_released', v_released);
 end $fn$;
 revoke execute on function public.fn_customer_screening_decide(bigint, text, text) from public, anon, authenticated;
 

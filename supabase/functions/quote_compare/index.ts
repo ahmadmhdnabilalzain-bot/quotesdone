@@ -35,6 +35,7 @@ import { compareItem, heldQuoteIds } from '../_shared/reveal_guard.ts';
 import { requirementsOf } from '../_shared/line_specs/assess.ts';
 import { labelQuotes, recordShown } from '../_shared/quote_labels.ts';
 import { sanctionedLeads } from '../_shared/sanctioned.ts';
+import { withheldWhileChecked } from '../_shared/quotes_being_checked.ts';
 import { DATA_NOT_INSTRUCTIONS } from '../_shared/untrusted.ts';
 import { chunks, differingCells } from '../_shared/routine_judgements.ts';
 // 10 Nov 2026 (founder ledger 1588-1590, sales_engineer): the expert review notes per quote, and the generaliser every
@@ -171,9 +172,21 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
       await logRun('error', { compared: 0, sanctions_unread: 1 }, 'quote_compare could not read the sanctions list (' + String((e as Error)?.message || e).slice(0, 120) + '), so no comparison was served rather than one that might show a banned supplier; the portal retries.');
       return J({ ok: false, error: 'try_again', code: 'try_again', retry: true, message: lang === 'ar' ? 'يُرجى المحاولة بعد قليل.' : 'Please try again in a moment.' }, 503);
     }
+    // BEING CHECKED (review of 16 Nov 2026, hole 5 through compare; _shared/quotes_being_checked.ts). While the accountant's
+    // customer_matches_supplier flag names this request, its quotes are not ranked, lettered, priced or benchmarked here, as on
+    // the portal's cards, whoever asks (the customer's JWT, or customer_api for compare_pdf / compare_csv / the Arabic report):
+    // they go to the same customer. A quote he already paid to reveal stays his. Unreadable: refuse, the portal retries.
+    let beingChecked: Set<string> = new Set();
+    try {
+      beingChecked = await withheldWhileChecked(admin, inq.customer_id ? String(inq.customer_id) : null, String(inquiry_id), qs.map((q: any) => String(q.id)));
+      qs = qs.filter((q: any) => !beingChecked.has(String(q.id)));
+    } catch (e) {
+      await logRun('error', { compared: 0, being_checked_unread: 1 }, 'quote_compare could not read whether this request\'s quotes are being checked (' + String((e as Error)?.message || e).slice(0, 120) + '), so no comparison was served rather than one that might show a rival\'s price to a supplier posing as a customer; the portal retries.');
+      return J({ ok: false, error: 'try_again', code: 'try_again', retry: true, message: lang === 'ar' ? 'يُرجى المحاولة بعد قليل.' : 'Please try again in a moment.' }, 503);
+    }
     if (qs.length < 2) {
-      await logRun('ok', { compared: 0, quotes_seen: qs.length, held_at_ranking: heldAtRanking, need_two: 1 }, 'Customer asked to compare quotes but only ' + qs.length + ' complete quote(s) exist for this RFQ (' + heldAtRanking + ' more are on hold for missing details), so no comparison was produced.');
-      return J({ ok: false, error: 'need_two', code: 'need_two', on_hold: heldAtRanking + qualityHeld, note: NEED_TWO[lang === 'ar' ? 'ar' : 'en'], message: NEED_TWO[lang === 'ar' ? 'ar' : 'en'] }, 409);
+      await logRun('ok', { compared: 0, quotes_seen: qs.length, held_at_ranking: heldAtRanking, being_checked: beingChecked.size, need_two: 1 }, 'Customer asked to compare quotes but only ' + qs.length + ' complete quote(s) exist for this RFQ (' + heldAtRanking + ' more are on hold for missing details, ' + beingChecked.size + ' being checked), so no comparison was produced.');
+      return J({ ok: false, error: 'need_two', code: 'need_two', on_hold: heldAtRanking + qualityHeld, being_checked: beingChecked.size, note: NEED_TWO[lang === 'ar' ? 'ar' : 'en'], message: NEED_TWO[lang === 'ar' ? 'ar' : 'en'] }, 409);
     }
 
     const trackBySupplier: Record<string, any> = {};
@@ -370,7 +383,7 @@ Deno.serve(siteCors(observe('quote_compare', async (req) => {
     // says why when it is well above or below. Until real data exists every line reads no_benchmark_yet.
     // Not applied yet -> the rpc errors and the comparison simply carries no benchmark block.
     let priceBenchmarks: any[] | null = null;
-    try { const { data, error } = await admin.rpc('fn_price_benchmark_flags_for_inquiry', { p_inquiry_id: inquiry_id }); if (!error && Array.isArray(data)) priceBenchmarks = data; } catch (_e) { priceBenchmarks = null; }
+    try { const { data, error } = await admin.rpc('fn_price_benchmark_flags_for_inquiry', { p_inquiry_id: inquiry_id }); if (!error && Array.isArray(data)) priceBenchmarks = data.filter((b: any) => !beingChecked.has(String(b?.quote_id))); } catch (_e) { priceBenchmarks = null; }
     // the check's flags beside each quote released after its wait, under the label the customer sees (ledger 1018)
     const qualityCheck = { held: qualityHeld, hours: qualityHours,
       notes: qs.filter((q: any) => qualityFlags[String(q.id)]).map((q: any) => ({ quote_id: String(q.id), label: labels.get(String(q.id))?.en ?? null, label_ar: labels.get(String(q.id))?.ar ?? null, flags: qualityFlags[String(q.id)] })) };

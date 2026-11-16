@@ -18,3 +18,28 @@ export async function quotesBeingChecked(admin: Admin, customerId: string | null
   const ids = (r?.data && Array.isArray((r.data as { inquiry_ids?: unknown[] }).inquiry_ids)) ? (r.data as { inquiry_ids: unknown[] }).inquiry_ids : [];
   return new Set(ids.map((x) => String(x)));
 }
+
+type AdminWithFrom = Admin & { from: (t: string) => any };
+
+/** THE COMPARISON AND THE QUOTE DOCUMENTS TOO (review of 16 Nov 2026, hole 5 through compare). my_inquiries held these
+ *  quotes, but quote_compare (and so compare_pdf, compare_csv and the Arabic report's finisher, which read its analysis)
+ *  and quote_pdf still showed their prices. Of these quotes on ONE request, the ones withheld while its customer is being
+ *  checked: every quote on a request fn_customer_quotes_being_checked names, except a quote he already paid to reveal (a
+ *  transaction on it: that disclosure is his, as on the cards). Empty when the request is not named. Fails closed: an
+ *  unreadable flag answer or transaction read throws, and the caller refuses rather than show a rival's price. */
+export async function withheldWhileChecked(admin: AdminWithFrom, customerId: string | null | undefined, inquiryId: string, quoteIds: string[]): Promise<Set<string>> {
+  if (!customerId || !quoteIds.length) return new Set();
+  const checking = await quotesBeingChecked(admin, customerId);
+  if (!checking.has(String(inquiryId))) return new Set();
+  const { data, error } = await admin.from('transactions').select('quote_id').eq('customer_id', customerId).in('quote_id', quoteIds);
+  if (error) throw new Error('transactions read failed while withholding quotes being checked: ' + JSON.stringify(error));
+  const paid = new Set(((data || []) as Array<{ quote_id: unknown }>).map((t) => String(t.quote_id)));
+  return new Set(quoteIds.map(String).filter((id) => !paid.has(id)));
+}
+
+/** What a customer reads when the one quote he asked for is withheld while it is checked (the portal's own sentence). */
+export const BEING_CHECKED_REFUSAL = {
+  error: 'being_checked', code: 'being_checked',
+  message: 'This quote is being checked by our team. It appears here once the check is done.',
+  message_ar: 'يتحقق فريقنا من هذا العرض، وسيظهر هنا فور انتهاء التحقق.',
+} as const;

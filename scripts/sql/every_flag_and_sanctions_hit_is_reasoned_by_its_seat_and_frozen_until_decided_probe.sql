@@ -16,6 +16,12 @@
 --      trade are held and in another trade are not; benign releases them; equal terms IP raises the flag in the tick;
 --   V1 the fifth request in an hour carries plausibility.velocity and raises request_velocity;
 --   B1 a supplier's second new-job notice in an hour waits, and the third is folded into it.
+--   N1 common names: a supplier owner and contact, and a customer, whose two common names sit inside a longer listing are
+--      NOT hit (and the supplier is not frozen); an owner whose name holds every word of the listing IS hit (control).
+--   H1 a frozen customer's held request (its own wait) is not closed by the 14-day closer while an ordinary unreached one
+--      is (control), and the CEO's false_positive releases it to the re-match sweep (next_at now).
+--   The common-name customer is the one party not called 'ZZ DEMO' (the name is the subject); it is demo by its reserved
+--   @example.invalid address, as fn_is_demo_email reads it.
 do $probe$
 declare
   f text[] := '{}'; o jsonb := '{}'::jsonb; v jsonb; x record;
@@ -24,6 +30,7 @@ declare
   v_i2 uuid := gen_random_uuid(); v_i3a uuid := gen_random_uuid(); v_i3b uuid := gen_random_uuid();
   v_q2 uuid := gen_random_uuid(); v_h bigint; v_ids bigint[]; v_n int; v_nid1 bigint; v_nid2 bigint; v_nid3 bigint;
   v_trade text := 'zzprobe_trade_' || substr(md5(random()::text), 1, 6);
+  v_l6 bigint; v_l7 bigint; v_c6 uuid := gen_random_uuid(); v_c7 uuid := gen_random_uuid(); v_i7 uuid := gen_random_uuid(); v_i7b uuid := gen_random_uuid();
 begin
   -- ── fixtures (no trigger) ──
   set local session_replication_role = replica;
@@ -31,6 +38,16 @@ begin
   insert into public.screening_entry (run_id, source, entry_type, reference, name, name_norm, tokens)
   values (v_run, 'un_consolidated', 'entity', 'ZZPROBE.01', 'Zzprobe Listed Holdings',
           public.fn_screening_normalise('Zzprobe Listed Holdings'), public.fn_screening_tokens('Zzprobe Listed Holdings'));
+  -- a listed PERSON whose four common names include the two most common Gulf given names (the 16 Nov measurement's shape)
+  insert into public.screening_entry (run_id, source, entry_type, reference, name, name_norm, tokens)
+  values (v_run, 'un_consolidated', 'individual', 'ZZPROBE.02', 'Mohammed Ahmed Ali Hassan Zzprobeperson',
+          public.fn_screening_normalise('Mohammed Ahmed Ali Hassan Zzprobeperson'), public.fn_screening_tokens('Mohammed Ahmed Ali Hassan Zzprobeperson'));
+  insert into public.leads (company_name, email, lifecycle_stage, approval_status, verified, banned, matching_blocked, claimed, claimed_by, signatory_name, contact_name)
+  values ('ZZ DEMO — Probe Common Owner', 'zzprobe-l6@example.invalid', 'registered', 'approved', true, false, false, true, 'zzprobe-l6@example.invalid', 'Mohammed Ahmed', 'Ali Hassan')
+  returning id into v_l6;
+  insert into public.leads (company_name, email, lifecycle_stage, approval_status, verified, banned, matching_blocked, claimed, claimed_by, signatory_name)
+  values ('ZZ DEMO — Probe Listed Owner', 'zzprobe-l7@example.invalid', 'registered', 'approved', true, false, false, true, 'zzprobe-l7@example.invalid', 'Mohammed Zzprobeperson Ahmed Ali Hassan Saleh')
+  returning id into v_l7;
   insert into public.leads (company_name, email, lifecycle_stage, approval_status, verified, banned, matching_blocked, claimed, claimed_by)
   values ('ZZ DEMO — Zzprobe Listed Holdings Contracting', 'zzprobe-l1@example.invalid', 'registered', 'approved', true, false, false, true, 'zzprobe-l1@example.invalid')
   returning id into v_l1;
@@ -52,7 +69,17 @@ begin
     (v_c2, 'ZZ DEMO Probe Buyer Two', 'zzprobe-c2@example.invalid', now()),
     (v_c3, 'ZZ DEMO Probe Buyer Three', 'zzprobe-c3@example.invalid', now()),
     (v_c4, 'ZZ DEMO Probe Buyer Four', 'zzprobe-c4@example.invalid', now()),
-    (v_c5, 'ZZ DEMO Probe Buyer Five', 'zzprobe-c5@example.invalid', now());
+    (v_c5, 'ZZ DEMO Probe Buyer Five', 'zzprobe-c5@example.invalid', now()),
+    (v_c6, 'Mohammed Ahmed', 'zzprobe-c6@example.invalid', now()),
+    (v_c7, 'ZZ DEMO Zzprobe Listed Holdings Trading', 'zzprobe-c7@example.invalid', now());
+  -- H1: a request held for the screening decision exactly as customer_api writes it (lib/compliance_hold.ts), 20 days old,
+  -- and an ordinary unreached request of the same age (the control the closer must take)
+  insert into public.inquiries (id, customer_id, category, summary, status, created_at, routing) values
+    (v_i7, v_c7, 'zzprobe_other_trade', 'ZZ DEMO probe held request', 'sent', now() - interval '20 days',
+     jsonb_build_object('matcher_unavailable', true, 'waiting_for', 'compliance_review', 'held_for', 'compliance_review', 'outcome', 'held', 'fanout', 0,
+                        'rematch', jsonb_build_object('attempts', 0, 'first_failed_at', now() - interval '20 days', 'failed_at', now() - interval '20 days',
+                                                      'next_at', null, 'exhausted', false, 'extra', '', 'held_for', 'compliance_review'))),
+    (v_i7b, v_c7, 'zzprobe_other_trade', 'ZZ DEMO probe unreached request', 'sent', now() - interval '20 days', '{}'::jsonb);
   update public.customers set tos_ip = '198.51.100.23' where id = v_c3;
   update public.customers set tos_ip = '198.51.100.77' where id = v_c4;
   insert into public.inquiries (id, customer_id, category, summary, status) values
@@ -71,6 +98,33 @@ begin
   if not exists (select 1 from public.supplier_screening_hit where lead_id = v_l2 and status = 'open') then f := f || 'S1: the second ZZ DEMO supplier was not hit'::text; end if;
   if not exists (select 1 from public.customer_screening_hit where customer_id = v_c1 and status = 'open') then f := f || 'S1: the ZZ DEMO customer was not screened'::text; end if;
   if exists (select 1 from public.customer_screening_hit where customer_id = v_c2) then f := f || 'S1: a customer with an unrelated name was hit'::text; end if;
+
+  -- ── N1 common names: a person's two common names inside a longer listing are not a match ──
+  if not exists (select 1 from public.supplier_screening_hit where lead_id = v_l7 and field = 'owner' and entry_reference = 'ZZPROBE.02') then
+    f := f || 'N1: control: an owner whose name holds every word of the listing was not hit'::text;
+  end if;
+  if exists (select 1 from public.supplier_screening_hit where lead_id = v_l6) then
+    f := f || ('N1: a supplier owner or contact with common names inside a longer listing was hit: '
+               || (select string_agg(field || '=' || supplier_value, ', ') from public.supplier_screening_hit where lead_id = v_l6))::text;
+  end if;
+  if (select matching_blocked from public.leads where id = v_l6) then f := f || 'N1: a common-name owner froze the supplier'::text; end if;
+  if exists (select 1 from public.customer_screening_hit where customer_id = v_c6) then f := f || 'N1: a customer with two common names inside a longer listing was hit'::text; end if;
+
+  -- ── H1 a frozen customer's held request has its own wait; the decision releases it ──
+  if not exists (select 1 from public.customer_screening_hit where customer_id = v_c7 and status = 'open') then f := f || 'H1: control: the held customer was not hit'::text; end if;
+  v := public.fn_sales_engineer_closes_unreached_requests(now());
+  o := o || jsonb_build_object('closer', v);
+  if (select status from public.inquiries where id = v_i7b) <> 'expired' then f := f || 'H1: control: the closer did not take an ordinary unreached request'::text; end if;
+  if (select status from public.inquiries where id = v_i7) <> 'sent' then f := f || 'H1: the 14-day closer closed a request held for the screening decision'::text; end if;
+  select array_agg(id order by id) into v_ids from public.customer_screening_hit where customer_id = v_c7 and status = 'open';
+  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key)
+  values ('ceo', 'ceo.sanctions_hit', 'ZZ DEMO probe', '{}'::jsonb, '{}'::jsonb,
+          jsonb_build_object('party', 'customer', 'customer_id', v_c7, 'hit_ids', to_jsonb(v_ids)), 'probe', 'zzprobe:' || v_c7) returning id into v_h;
+  v := public.fn_reason_held_resolve(v_h, jsonb_build_object('status', 'answered', 'decision', jsonb_build_object('choice', 'false_positive'), 'answer', 'ZZ DEMO a different party', 'model', 'probe'));
+  select routing into v from public.inquiries where id = v_i7;
+  if (v#>>'{rematch,next_at}') is null or (v#>>'{rematch,next_at}')::timestamptz > now() or coalesce((v#>>'{rematch,exhausted}')::boolean, false) then
+    f := f || ('H1: the CEO''s false_positive did not release the held request to the re-match sweep: ' || left(coalesce(v::text, 'null'), 300))::text;
+  end if;
 
   -- ── S2 the freeze ──
   select * into x from public.leads where id = v_l1;
