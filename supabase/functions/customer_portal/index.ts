@@ -63,14 +63,8 @@ Deno.serve(siteCors(observe('customer_portal', async (req) => {
       const alerts: any[] = [];
       const degraded: string[] = [];
 
-      const editable = inqs.filter((x: any) => x.editable);
-      for (const e of editable) {
-        const cat = e.category || (ar ? 'طلبك' : 'your request');
-        alerts.push({ kind: 'edit_window', severity: 'medium',
-          title: ar ? ('ما زال بإمكانك تعديل «' + cat + '»') : ('You can still edit “' + cat + '”'),
-          detail: ar ? ('يمكنك تعديله خلال ' + e.edit_minutes_left + ' دقيقة متبقية، ثم تُقفل التعديلات ويواصل المورّدون التسعير وفق النطاق الأصلي.') : ('Editable for another ' + e.edit_minutes_left + ' minutes. After that, edits are locked and suppliers keep quoting the original scope.'),
-          inquiry_id: e.id });
-      }
+      // NO "EDIT WINDOW" ALERT (16 Nov 2026): a request is revised until a supplier is revealed (fn_edit_inquiry), so the
+      // countdown this alert carried ("edits are locked after N minutes") is no longer true.
       // 21 Sep 2026 (customer audit, finding 17): a request whose quote the customer already PAID to
       // reveal is decided, not "to review", and it is no longer collecting quotes. fn_customer_stats
       // knows nothing about transactions, so the revealed set is read here and applied to both the

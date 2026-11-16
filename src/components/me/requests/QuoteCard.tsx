@@ -124,6 +124,8 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     {/* W9: anonymous facts about the supplier, served per quote; each badge hides when its value is absent. */}
     {/* Rulings 1207/1208: the supplier's price exactly as stated ("AED 2,000, after discount AED 1,700") and its VAT as
         stated, served by my_inquiries from _shared/stated_price.ts; QuotesDone is not responsible for those details. */}
+    {/* THE REVISION THIS PRICE ANSWERS (16 Nov 2026): a quote priced before the request last changed says so. */}
+    {q.priced_older ? <div className={cn(S.sub, 'mt-1 text-warn-fg')}>{tf(lang, 'q_priced_rev', { n: q.priced_revision })}</div> : null}
     {q.discount_amount ? <div className={cn(S.sub, 'mt-1 font-medium text-foreground')}>{lang === 'ar' ? q.price_stated_ar : q.price_stated}</div> : null}
     {q.vat_stated ? <div className={cn(S.sub, 'mt-0.5')}>{lang === 'ar' ? q.vat_stated_ar : q.vat_stated}</div> : null}
     <div className={cn(S.sub, 'mt-0.5 italic')}>{t(lang, 'q_not_responsible')}</div>

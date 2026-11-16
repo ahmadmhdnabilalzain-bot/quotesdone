@@ -17,10 +17,9 @@ export function inquiryNotSaved(err: any): [Record<string, unknown>, number] {
     message_ar: refused ? 'تعذّر قبول هذا الطلب. يُرجى مراجعة ما أدخلته والمحاولة مرة أخرى.' : 'تعذّر حفظ طلبك الآن. لم يُرسل شيء — يُرجى المحاولة بعد لحظات.' },
     refused ? 400 : 500];
 }
-// THE EDIT WINDOW, ONCE. public.fn_edit_inquiry refuses an edit more than one hour after the request
-// was created; this constant is what the portal is told, so the button and the routine agree
-// (customer-portal audit CP-06, 22 Sep 2026 — the portal said 24 hours).
-export const EDIT_WINDOW_MS = 60 * 60e3;
+// NO EDIT WINDOW (16 Nov 2026). The one-hour edit window that lived here is gone: public.fn_edit_inquiry revises a request
+// until it is revealed, paid or closed (scripts/sql/a_change_to_a_sent_request_is_a_revision_every_quote_names_and_every_supplier_is_told.sql),
+// and my_inquiries' `editable` follows the same rule.
 // Anonymised quote labels must stay alphabetic beyond 26 quotes. String.fromCharCode(65 + i)
 // emits '[', '\\', ']' from the 27th, so a customer with 30 quotes saw "Supplier [" and the
 // comparison report referenced a label that did not exist in their list.
