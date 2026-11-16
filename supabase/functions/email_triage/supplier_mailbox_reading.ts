@@ -296,6 +296,14 @@ export async function routeMail(admin: Db, m: Mail, d: MailboxDecision): Promise
       inbound_message_id: m.id, mailbox: d.box ?? m.to_email, from_email: m.from_email, subject: String(m.subject ?? '').slice(0, 200),
       reading: d.reading, why: d.why, ask: 'customer_support read this mail and did not answer it: it is yours to act on as the ' + o.seat + ' seat.',
       body_untrusted: String(m.body ?? '').slice(0, 3000) } }).then((x: { error?: unknown }) => x, (e: unknown) => ({ error: e }));
+  // review 16 Nov: a lawyer, regulator or journalist keeps the company's escalation clock (escalation_clock.ts): the CEO decides on
+  // it, customer_support writes the person the decision or an honest status, and only what the law reserves reaches the founder
+  if (d.reading === 'legal_or_press') {
+    await admin.rpc('fn_escalation_clock_open', { p_source_table: 'inbound_messages', p_source_id: String(m.id), p_kind: 'legal',
+      p_channel: 'email', p_requester: String(m.from_email ?? ''), p_promised: null, p_request_text: String(m.body ?? '').slice(0, 4000),
+      p_subject_line: String(m.subject ?? '').slice(0, 300), p_detail: { lang: 'en', audience: 'counsel', inbound_message_id: m.id } })
+      .then((x: unknown) => x, (e: unknown) => console.error('email_triage legal clock', m.id, String(e)));
+  }
   return error ? 'failed' : 'routed';
 }
 

@@ -283,9 +283,11 @@ Deno.serve(observe('send_outbox', async (req) => {
     // (m365_lane.ts) whether the Microsoft 365 lane or the Resend fallback carries the row. ledger 1113: the note
     // names the company and its trade, read from the lead (a seed has none: its body's opening).
     const campaignFor = async (n: any) => {
-      const { data: lead } = n.kind === M365_SEED_KIND ? { data: null } : await admin.from('leads').select('id,company_name,invite_trades').ilike('email', String(n.to_email).trim().replace(/[\\%_]/g, '\\$&')).limit(1).maybeSingle();
+      const { data: lead } = n.kind === M365_SEED_KIND ? { data: null } : await admin.from('leads').select('id,company_name,invite_trades,whatsapp_opt').ilike('email', String(n.to_email).trim().replace(/[\\%_]/g, '\\$&')).limit(1).maybeSingle();
       // HE SAID NO TO WHATSAPP (16 Nov 2026, marketing): a nudge or last note to him carries no WhatsApp offer again
-      const declinedWhatsapp = !!(lead as any)?.id && ((await admin.from('supplier_whatsapp_offer_declined').select('id').eq('lead_id', (lead as any).id).limit(1)).data ?? []).length > 0;
+      // ...and a supplier whose WhatsApp is set to 'none' (a STOP, or he said he has none) is never offered it either (review relL)
+      const declinedWhatsapp = !!(lead as any)?.id && ((lead as any).whatsapp_opt === 'none'
+        || ((await admin.from('supplier_whatsapp_offer_declined').select('id').eq('lead_id', (lead as any).id).limit(1)).data ?? []).length > 0);
       // NO TRADE IS GUESSED (1 Nov 2026, ledger 1423): invite_trades[0] is the first slug alphabetically, so on 30 Oct a cleaning
       // company and a fire-safety trainer were asked about their "civil works work". GlockApps tested the neutral wording.
       return campaignMail(n, { company: (lead as any)?.company_name ?? undefined, declinedWhatsapp });
