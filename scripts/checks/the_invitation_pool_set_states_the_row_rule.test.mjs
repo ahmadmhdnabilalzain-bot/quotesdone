@@ -90,13 +90,17 @@ test('every definition of fn_supplier_invite_candidates from #964 on, applied or
 // a_listing_whose_company_registered_itself_is_not_invited.sql: the latest applied (integer, text[]) body with ONE line added in
 // `cand`, the registered-twin rule, and nothing removed. Nothing else may differ. (The names keep their old meaning: the lines
 // this pending file removes and adds.)
+// That file is APPLIED now (MANIFEST 2338; the live body matched it on 16 Nov 2026). 16 Nov 2026 (it_engineer): the pending
+// redefinition this pins is the_supplier_outreach_duty_never_slows_a_suppliers_page.sql: the latest applied body with ONE line
+// added in the header, the SET clause that keeps its joins off nested loops (the 09:00 open beat took 18.6-25.3 s). The body
+// itself is unchanged.
 const EMPTY_GONE = [];
-const EMPTY_ADDED = ['and not public.fn_supplier_listing_has_registered_twin(l.id, l.company_name)'];
+const EMPTY_ADDED = ["set enable_nestloop to 'off'"];
 const candidatesDiff = (canon, mine) => ({
   gone: canon.filter((l) => !mine.includes(l)).map((l) => l.trim().toLowerCase()),
   added: mine.filter((l) => !canon.includes(l)).map((l) => l.trim().toLowerCase()).filter((l) => !l.startsWith("--")),
 });
-test('a pending fn_supplier_invite_candidates is the latest applied body with only its own line changed (now: the registered-twin rule)', () => {
+test('a pending fn_supplier_invite_candidates is the latest applied body with only its own line changed (now: the SET clause that keeps hash joins)', () => {
   const lines = (f) => fnText(read(f), 'fn_supplier_invite_candidates').split('\n').map((l) => l.trimEnd());
   const canonFile = [...manifest].reverse().find((f) => defines('fn_supplier_invite_candidates').test(code(read(f))));
   const canon = lines(canonFile);
