@@ -169,12 +169,9 @@ await add('2 · COMPANY_OPERATIONS', 'roles carry an authority tier', 96,
   await one('select count(*) n from ops_kb_stage.roles where authority_tier is not null'),
   'fn_ops_department_context',
   `select count(*) n from jsonb_array_elements((${OPSCTX})->'roles') r where coalesce(r->>'authority_tier','') <> ''`, '');
-await add('2 · COMPANY_OPERATIONS', 'decision rules enabled + in decider context', 240,
-  await one('select count(*) n from ops_kb_stage.decision_rules where enabled'),
-  'fn_agent_context emits them to the employee',
-  `select count(*) n from (select public.fn_agent_context('procurement', 24000) c) z
-    where position('TARGET OPERATING MODEL' in z.c) > 0 and position('RULE ' in z.c) > 0`,
-  'the digest is capped at ~1,037 chars; the full text is one call away');
+// 16 Nov 2026 (simplification audit, ledgers 1714/1715): the row 'decision rules enabled + in decider context' is
+// gone. It measured fn_agent_context's department digest — departments were dismantled 7 Sep 2026 and
+// fn_agent_context has no production caller (it moved to the retired schema; context is built in the edge functions).
 await add('2 · COMPANY_OPERATIONS', 'live departments with authority declared',
   await one('select count(*) n from org_departments'),
   await one('select count(distinct dept_key) n from org_authority where dept_key in (select dept_key from org_departments)'),

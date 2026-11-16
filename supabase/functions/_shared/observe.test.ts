@@ -16,7 +16,7 @@ Deno.test('4xx is a warn, 5xx is an error, 2xx is ok', () => {
   assertEquals(classify(200), 'ok');
   assertEquals(classify(302), 'ok');
   assertEquals(classify(399), 'ok');
-  // The whole reason this function exists: fn_watch_failed_runs pages on 'error'. A rejected
+  // The whole reason this function exists: fn_it_detect counts 'error' as a failure. A rejected
   // password, an expired link and an unauthenticated poke are 4xx and must never page.
   assertEquals(classify(400), 'warn');
   assertEquals(classify(401), 'warn');

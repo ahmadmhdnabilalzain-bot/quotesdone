@@ -6,19 +6,20 @@
 // have been noticed first by a customer complaining. That is what this closes.
 //
 // WHY agent_runs AND NOT error_events. agent_runs is the estate's existing run log: send_outbox,
-// login_otp, accountant and sales_engineer already write it, `fn_agents_board`, `fn_watch_failed_runs`,
-// `fn_runner_silence_watch`, `v_ai_agent_health` and a dozen other routines already read it, and
+// login_otp, accountant and sales_engineer already write it, `fn_it_detect` (the IT engineer's detector, run
+// by resilience_ping's detect tick) and a dozen other routines already read it, and
 // `trg_audit_agent_run` already mirrors every row into os_audit_log. error_events has one index and
 // no readers. Writing somewhere new would have created a second, unwatched ledger — the exact
 // failure this file exists to fix. Nothing new was needed, so nothing new was built.
 //
 // THE NAMESPACE. Rows go in under `fn:<slug>` (e.g. `fn:customer_api`), never a bare slug. That
-// keeps them out of `fn_agents_board` (which LEFT JOINs org_agents.agent_key, so an unmatched name
-// is invisible) and makes them trivially selectable for the detection agent. Functions that already
+// keeps them apart from the seats' own rows (which use org_agents.agent_key) and makes them trivially
+// selectable for the detection agent. Functions that already
 // logged under a bare name — send_outbox, login_otp, accountant, sales_engineer — keep it.
 //
 // STATUS IS CLASSIFIED, NOT COPIED. A 401 from someone typing the wrong password is not an outage.
-// `fn_watch_failed_runs` pages on status='error' and `trg_health_check_agent_threshold` counts
+// `fn_it_detect` (D1) raises a finding on a run whose status is not on its ok list ('error' included), and
+// `trg_health_check_agent_threshold` counts
 // anything outside ('ok','success','completed','skipped','warn') as a failure, so:
 //     5xx or a thrown exception -> 'error'   (a real fault; the watchers may page)
 //     4xx                       -> 'warn'    (the caller's fault; recorded, never paged)
@@ -85,7 +86,7 @@ export type ObserveStatus = 'ok' | 'warn' | 'error' | 'skipped' | 'held';
  * HTTP status -> agent_runs.status. Exported because it is the one decision in this file that
  * changes who gets paged, and observe.test.ts asserts it directly.
  *
- * `fn_watch_failed_runs` pages on 'error' and `trg_health_check_agent_threshold` counts anything
+ * `fn_it_detect` (D1) counts 'error' as a failure and `trg_health_check_agent_threshold` counts anything
  * outside ('ok','success','completed','skipped','warn') as a failure. So 4xx MUST NOT be 'error':
  * a wrong password, an expired unsubscribe link and an unauthenticated poke are the system working.
  */

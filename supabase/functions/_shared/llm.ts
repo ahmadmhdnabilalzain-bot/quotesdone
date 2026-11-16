@@ -155,7 +155,7 @@ function guessFn(): string {
 // have produced no error anywhere. A withdrawn credential returns 403; the code below reads the
 // body, finds no `content`, and returns `null` - which is this module's documented contract for
 // "the model legitimately declined". Every one of the 32 callers handles null by moving on. No
-// exception, no agent_runs row, no page from fn_watch_failed_runs. The whole AI layer would have
+// exception, no agent_runs row, no finding from fn_it_detect. The whole AI layer would have
 // gone quiet and every monitor would have reported normal.
 //
 // Two changes, and the second matters more than the first:

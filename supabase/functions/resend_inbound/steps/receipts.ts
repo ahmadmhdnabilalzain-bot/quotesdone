@@ -352,7 +352,7 @@ export async function receipts(ctx: BounceUnsubscribeOut) {
           try{ await requestDelivery(admin, { type:'expense_logged', to_email: owner, to_role:'admin', channel:'email', subject:`Expense logged: ${vendor} ${amount} ${currency}`, body:`Logged from your forwarded email.\n\nVendor: ${vendor}\nAmount: ${amount} ${currency}\nDate: ${charged}\nType: ${recurring?(cad+' subscription'):'one-off'}` }); }catch(_e){}
           // v15: keyed on docPath, not upErr. upErr now holds the LAST error of up to three
           // attempts, so a retry that eventually succeeded would otherwise be reported as failed -
-          // and fn_watch_failed_runs pages on any error row.
+          // and fn_it_detect counts any error row as a failure.
           await logRun(docPath ? 'ok' : 'error', { receipt: true, booked: true, entry_id: posted.entry ?? entryId, folded_from: posted.entry && posted.entry !== entryId ? entryId : undefined, vendor, amount, currency, vat: vatAmt, trn: !!trn, recurring, cadence: cad, doc_archived: !!docPath, dropbox_queued: posted.filed, gl_journal: posted.journal, upload_attempts: upAttempts, msg_key: msgKey }, docPath ? '' : ('expense booked but the receipt document failed to archive after ' + upAttempts + ' attempt(s): ' + upErr + '. Re-forward the vendor email to the inbound address - v15 will archive it onto the existing entry without booking a second expense.'));
           return J({ ok: true, receipt: true, entry_id: posted.entry ?? entryId, vendor, amount, currency, vat: vatAmt, trn, charged_on: charged, recurring, cadence: cad, booked_subscription: bookedSub, doc: docPath, gl_journal: posted.journal });
         }

@@ -19,8 +19,8 @@
 // A REFUSAL IS TOLD, NOT ONLY FILED (independent review of #849). Recording a failed signature and
 // telling nobody is how wa_inbound lost twelve days: the rows existed and no instrument read them.
 // So a refusal does what wa_inbound does - one throttled founder_alerts row per 30 minutes, and an
-// agent_runs row at status 'error'. agent_runs IS the reader: fn_it_detect and fn_watch_failed_runs
-// both read it, the throttle only ever limits founder_alerts, and sms_inbound is registered in
+// agent_runs row at status 'error'. agent_runs IS the reader: fn_it_detect reads it
+// (D1 failures, D9 refusals), the throttle only ever limits founder_alerts, and sms_inbound is registered in
 // public.it_watch_subject (public_surface, verify_jwt false, no secret gate) by the same commit.
 //
 // ── THE ORDER OF THIS HANDLER IS ITS FLOOD BOUND, AND IT IS NOT DECORATIVE ────────────────────
