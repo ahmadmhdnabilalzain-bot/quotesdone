@@ -79,6 +79,8 @@ export function refuse(d: Draft | null, o: { allowDecline?: boolean; missing: Fa
     const hay = o.conversationText.toLowerCase();
     for (const [k, f] of Object.entries(d.decision?.fields ?? {})) {
       if (!o.decision.fields.some((x) => x.key === k)) return `field ${k} was not asked for`;
+      // the seat's own writing (an order turn) quotes nobody; its content is checked by code after the answer
+      if (o.decision.authored) continue;
       const bad = fieldProblem(k, f, hay, o.minEvidence ?? 8); if (bad) return bad;
     }
   }

@@ -20,6 +20,10 @@ export interface DecisionSpec {
   name: string;
   options?: { id: string; meaning: string }[];          // pick exactly one
   fields?: { key: string; question: string }[];          // fill from the conversation, with the words that say so
+  /** The fields are the seat's OWN writing beside its choice (a plan, a status, a retro: an order conversation's turn,
+   *  scripts/sql/an_order_is_a_conversation_until_its_outcome.sql), not facts read from someone's words: the prompt asks for
+   *  them with the choice and no verbatim evidence is required. Code checks their content after the answer. */
+  authored?: boolean;
 }
 export interface ThinkRequest {
   seat: Seat;
