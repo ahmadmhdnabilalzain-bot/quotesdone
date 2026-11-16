@@ -3,7 +3,7 @@
 import { timedFetch } from '../../../_shared/timed_fetch.ts';
 import { integrationItems } from '../../../_shared/integration_watch.ts';
 import { placementTick } from '../../../_shared/inbox_placement.ts';
-import { pollReplyInbox, pollTenantMailboxes, PROOF_LABEL, type SenderKind } from '../../../_shared/m365_reply_inbox.ts';
+import { inboundOnFile, pollReplyInbox, pollTenantMailboxes, PROOF_LABEL, type OnFileDb, type SenderKind } from '../../../_shared/m365_reply_inbox.ts';
 import { pollM365SentStatus } from '../../../_shared/m365_sent_status.ts';
 import { FN, admin, sec } from '../../shared.ts';
 
@@ -88,16 +88,9 @@ async function m365SentStatus(): Promise<Record<string, unknown>> {
 // REPLIES TO supplier@quotesdone.com (6 Oct 2026, it_engineer + customer_support; _shared/m365_reply_inbox.ts).
 // The invitation lane sends without a Reply-To once this reader is proven, so a supplier's answer lands in that
 // mailbox; this reads it and hands every new message to resend_inbound, the handler every other reply goes through.
-const m365OnFile = async (ids: string[]) => {
-  const { data, error } = await admin.from('inbound_messages').select('provider_email_id').in('provider_email_id', ids);
-  if (error) throw new Error('inbound_messages: ' + error.message);
-  return new Set((data || []).map((r) => String(r.provider_email_id)));
-};
-const m365MessageOnFile = async (ids: string[]) => {
-  const { data, error } = await admin.from('inbound_messages').select('message_id:raw->>message_id').in('raw->>message_id', ids);
-  if (error) throw new Error('inbound_messages: ' + error.message);
-  return new Set((data || []).map((r) => String((r as { message_id: unknown }).message_id)));
-};
+// Handed once: read (inbound_messages) or still waiting in resend_inbound's queue (inbound_mail_queue), by Graph id and by
+// Message-ID across every mailbox (_shared/m365_reply_inbox.ts inboundOnFile, 15 Nov 2026).
+const { onFile: m365OnFile, messageOnFile: m365MessageOnFile } = inboundOnFile(admin as unknown as OnFileDb);
 // Who wrote, read only: the founder or staff; a lead (leads.email or claimed_by) or a customer; else a stranger.
 async function m365Sender(address: string): Promise<SenderKind> {
   const [own, rel] = await Promise.all([admin.rpc('fn_is_founder_own_inbox', { p_addr: address }), admin.rpc('fn_mail_sender_known', { p_email: address })]);
