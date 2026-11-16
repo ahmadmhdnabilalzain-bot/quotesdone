@@ -1,0 +1,1 @@
+Committed, not applied (built by it_engineer agent L3_IT, 16 Nov 2026, ledger 1557). Apply at release with apply_sql after the base release; re-diff the routine body against production first (md5 in the file header); then delete this note and append the file to the END of MANIFEST.txt in the same commit.
