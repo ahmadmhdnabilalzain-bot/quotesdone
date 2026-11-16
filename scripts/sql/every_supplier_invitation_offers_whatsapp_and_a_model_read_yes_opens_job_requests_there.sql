@@ -49,6 +49,23 @@
 --      rfq_addendum). WhatsApp only to a number the supplier agreed to and confirmed: the portal answer (as before), else
 --      his latest confirmed opt-in. 'none' (he said no, or STOP) wins over both. a03 and fn_wa_fanout read it for those
 --      types; every other type is exactly as before.
+--   FIX ROUND (16 Nov 2026, independent review REVIEW_L2, every hole reproduced LOCAL first):
+--   7. an opt-in opens job requests only when a model read the yes (answer_read_by): the "Set up my page" tap asks for a
+--      company page, not for job requests on WhatsApp, and opened them with no model and no code;
+--   8. a number another company also holds an opt-in on names nobody (7 numbers are shared by 14 leads on production, SELECT
+--      16 Nov 2026): one yes from a shared listing number opened the gate for every company on it;
+--   9. 'none' (STOP, or "I do not use WhatsApp") cancels that supplier's WhatsApp job requests still queued, pending or held
+--      (a09 may hold a new_inquiry twin up to an hour; send_whatsapp re-checks only marketing rows as they leave);
+--  10. a NO to the offer by e-mail, read by the same mailbox reading as the yes, is recorded
+--      (supplier_whatsapp_offer_declined, fn_supplier_whatsapp_offer_declined_from_mail) and the offer is never shown to that
+--      supplier again (fn_supplier_whatsapp_offer_state 'declined'). It does not touch whatsapp_opt: he refused an offer, he
+--      did not say he has no WhatsApp; a later yes of his own still counts.
+--  11. fn_wa_job_request_offer and fn_supplier_job_request_types are granted to service_role. The one caller that needs it:
+--      fn_wa_optin_counts, run by the opt-in table's rule trigger, which is NOT security definer, so a row written as
+--      service_role calls fn_wa_job_request_offer as service_role (LOCAL: "permission denied for function
+--      fn_wa_job_request_offer" without the grant). On production postgres's default privileges already grant every new
+--      public function to service_role (pg_default_acl, SELECT 16 Nov 2026), so there it changes nothing; it makes a fresh
+--      database match and says so.
 -- NOT CHANGED: the WhatsApp marketing invitation and its switches (fn_wa_supplier_invite_queue still needs
 -- wa_supplier_invite_golive); fn_whatsapp_destination and every non-job notice; the STOP path.
 -- Apply AFTER send_outbox, email_triage and wa_inbound are deployed (the 'since' below is the apply time: a campaign mail
@@ -69,6 +86,7 @@ returns text language sql immutable set search_path to 'public', 'pg_temp' as $f
   select 'Want job requests on WhatsApp too? Reply "WhatsApp" and we will send you a code to confirm your number.'::text
 $fn$;
 revoke execute on function public.fn_wa_job_request_offer() from public, anon, authenticated;
+grant execute on function public.fn_wa_job_request_offer() to service_role;
 
 -- When the offer went live in the campaign mail: send_outbox builds the campaign text in code (campaignMail) and stores the
 -- row's old body, so a campaign row SENT after this time carried the offer. Set once, at apply.
@@ -305,6 +323,42 @@ $fn$;
 revoke execute on function public.fn_supplier_whatsapp_lead_by_email(text) from public, anon, authenticated;
 grant execute on function public.fn_supplier_whatsapp_lead_by_email(text) to service_role;
 
+-- 10. a model-read NO to the offer: recorded, and the offer is not shown to him again
+create table if not exists public.supplier_whatsapp_offer_declined (
+  id bigint generated always as identity primary key,
+  lead_id bigint not null references public.leads(id) on delete cascade,
+  inbound_id bigint,
+  answer text not null,
+  answer_read_by text not null check (btrim(answer_read_by) <> ''),
+  declined_at timestamptz not null default now()
+);
+create index if not exists supplier_whatsapp_offer_declined_lead_idx on public.supplier_whatsapp_offer_declined (lead_id, declined_at desc);
+alter table public.supplier_whatsapp_offer_declined enable row level security;
+drop policy if exists supplier_whatsapp_offer_declined_service_role_only on public.supplier_whatsapp_offer_declined;
+create policy supplier_whatsapp_offer_declined_service_role_only on public.supplier_whatsapp_offer_declined
+  as permissive for all to public using (false) with check (false);
+revoke all on public.supplier_whatsapp_offer_declined from anon, authenticated;
+
+create or replace function public.fn_supplier_whatsapp_offer_declined_from_mail(p_inbound_id bigint, p_answer text, p_read_by text)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare m public.inbound_messages; v_addr text; v_lead bigint; v_id bigint;
+begin
+  if btrim(coalesce(p_read_by, '')) = '' then return jsonb_build_object('ok', false, 'code', 'no_reader', 'why', 'a no is recorded only when a model read it'); end if;
+  select * into m from public.inbound_messages where id = p_inbound_id;
+  if m.id is null then return jsonb_build_object('ok', false, 'code', 'no_mail'); end if;
+  v_addr := lower(coalesce(substring(m.from_email from '<([^<>[:space:]]+@[^<>[:space:]]+)>'), substring(m.from_email from '([^<>[:space:]"]+@[^<>[:space:]"]+)'), ''));
+  v_lead := public.fn_supplier_whatsapp_lead_by_email(v_addr);
+  if v_lead is null then return jsonb_build_object('ok', false, 'code', 'not_a_lead'); end if;
+  -- his no closes any code still waiting for his number
+  update public.supplier_whatsapp_optin_pending set closed_at = now(), closed_why = 'he said no to the WhatsApp offer'
+   where lead_id = v_lead and closed_at is null;
+  insert into public.supplier_whatsapp_offer_declined (lead_id, inbound_id, answer, answer_read_by)
+  values (v_lead, m.id, left(btrim(coalesce(p_answer, '')), 500), btrim(p_read_by)) returning id into v_id;
+  return jsonb_build_object('ok', true, 'code', 'declined', 'lead_id', v_lead, 'declined_id', v_id);
+end $fn$;
+revoke execute on function public.fn_supplier_whatsapp_offer_declined_from_mail(bigint, text, text) from public, anon, authenticated;
+grant execute on function public.fn_supplier_whatsapp_offer_declined_from_mail(bigint, text, text) to service_role;
+
 create or replace function public.fn_supplier_whatsapp_offer_state(p_email text)
 returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_lead bigint := public.fn_supplier_whatsapp_lead_by_email(p_email); l public.leads; v_gate jsonb;
@@ -316,6 +370,9 @@ begin
   if v_gate->>'to' is not null then return jsonb_build_object('state', 'consented', 'lead_id', v_lead, 'source', v_gate->>'source'); end if;
   if exists (select 1 from public.supplier_whatsapp_optin_pending p where p.lead_id = v_lead and p.closed_at is null and p.code_expires > now()) then
     return jsonb_build_object('state', 'pending', 'lead_id', v_lead); end if;
+  -- he said no to the offer: it is never shown to him again
+  if exists (select 1 from public.supplier_whatsapp_offer_declined d where d.lead_id = v_lead) then
+    return jsonb_build_object('state', 'declined', 'lead_id', v_lead); end if;
   return jsonb_build_object('state', 'offer', 'lead_id', v_lead, 'offer', public.fn_wa_job_request_offer());
 end $fn$;
 revoke execute on function public.fn_supplier_whatsapp_offer_state(text) from public, anon, authenticated;
@@ -418,6 +475,7 @@ returns text[] language sql immutable set search_path to 'public', 'pg_temp' as 
   select array['new_inquiry', 'rfq_invite', 'rfq_addendum']::text[]
 $fn$;
 revoke execute on function public.fn_supplier_job_request_types() from public, anon, authenticated;
+grant execute on function public.fn_supplier_job_request_types() to service_role;
 
 create or replace function public.fn_supplier_job_request_whatsapp(p_lead bigint, p_email text default null)
 returns jsonb language plpgsql stable security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -434,8 +492,12 @@ begin
   if v_to is not null then
     return jsonb_build_object('to', v_to, 'source', 'portal_whatsapp_choice', 'at', coalesce(l.whatsapp_verified_at, l.whatsapp_asked_at)); end if;
   -- a yes to the offer or the consent question, with the number confirmed (it wrote to us, or sent its code)
+  -- REVIEW FIX 1 (item 7): only a yes a model read (answer_read_by) opens job requests; the "Set up my page" tap is no consent to them.
+  -- REVIEW FIX 3 (item 8): a number another company also confirmed names nobody (a phone never joins two companies).
   select * into o from public.supplier_whatsapp_optin x
-   where x.lead_id = l.id and x.phone_confirmed_at is not null order by x.phone_confirmed_at desc, x.id desc limit 1;
+   where x.lead_id = l.id and x.phone_confirmed_at is not null and btrim(coalesce(x.answer_read_by, '')) <> ''
+     and not exists (select 1 from public.supplier_whatsapp_optin y where y.phone = x.phone and y.lead_id <> x.lead_id)
+   order by x.phone_confirmed_at desc, x.id desc limit 1;
   if o.id is not null then
     return jsonb_build_object('to', o.phone, 'source', o.source, 'at', o.opted_in_at, 'optin_id', o.id); end if;
   return jsonb_build_object('to', null, 'reason', 'not sent on WhatsApp: the supplier has not agreed to job requests on WhatsApp with a confirmed number; email carries this job request');
@@ -502,3 +564,19 @@ begin
   values (new.type, new.to_email, new.to_role, v_dest, new.lead_id, new.inquiry_id, new.quote_id, new.subject, new.body, 'whatsapp', 'queued');
   return new;
 end $fn$;
+
+-- REVIEW FIX 2 (item 9): a "no" to WhatsApp (STOP, or the portal's "I don't use WhatsApp") cancels the job requests already queued there:
+-- send_whatsapp re-checks only marketing rows as they leave, and a new_inquiry twin may wait up to an hour in its batch.
+create or replace function public.fn_supplier_whatsapp_no_cancels_queued_job_requests()
+returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+begin
+  update public.notifications set status = 'cancelled', last_error = 'the supplier said no to WhatsApp before it was sent; email carries this job request'
+   where lead_id = new.id and channel = 'whatsapp' and type = any (public.fn_supplier_job_request_types())
+     and status in ('queued', 'pending', 'held');
+  return new;
+end $fn$;
+revoke execute on function public.fn_supplier_whatsapp_no_cancels_queued_job_requests() from public, anon, authenticated;
+drop trigger if exists z_supplier_whatsapp_no_cancels_queued_job_requests on public.leads;
+create trigger z_supplier_whatsapp_no_cancels_queued_job_requests after update of whatsapp_opt on public.leads
+  for each row when (new.whatsapp_opt = 'none' and old.whatsapp_opt is distinct from 'none')
+  execute function public.fn_supplier_whatsapp_no_cancels_queued_job_requests();

@@ -17,9 +17,18 @@
 --   6. a supplier with a mobile on record and no consent is never messaged on WhatsApp for a job request;
 --   7. STOP (whatsapp_opt 'none') closes the gate again; a supplier who chose WhatsApp in the portal still gets job requests there;
 --   8. the reply state: offer / pending / consented / declined.
+-- FIX ROUND (independent review REVIEW_L2, 16 Nov 2026), each reproduced LOCAL on the previous head first:
+--   9. the "Set up my page" button records its opt-in but opens NO job requests on WhatsApp (no model read a yes to them);
+--  10. one model-read yes from a number two companies share opens the gate for neither;
+--  11. STOP cancels a WhatsApp job request already queued for that supplier;
+--  12. the unconfirmed row the sales engineer's writer leaves opens nothing until the code comes from the number;
+--  13. a model-read NO by e-mail is recorded, closes his waiting code, and the reply state is 'declined' (no offer again);
+--      a no with no model reading records nothing;
+--  14. the rule runs as service_role (fn_wa_job_request_offer is granted to it: the opt-in trigger is not security definer).
 do $probe$
 declare
   fails text := ''; a bigint; b bigint; p bigint; j jsonb; n int; v_code text; v_in bigint; v_in2 bigint;
+  k_btn bigint; k_s1 bigint; k_s2 bigint; k_d bigint; k_r bigint; k_n bigint; v_in3 bigint;
   v_offer text := public.fn_wa_job_request_offer(); v_q text := public.fn_wa_consent_question();
   ea text := 'zz-demo-l2optin-a@example.invalid'; eb text := 'zz-demo-l2optin-b@example.invalid'; ep text := 'zz-demo-l2optin-p@example.invalid';
   wa_a text := '+971500000771';
@@ -42,7 +51,10 @@ begin
   if (public.fn_wa_optin_rule('wa_consent_reply', null, v_q, 'yes')->>'counts')::boolean then fails := fails || ' 1:old_name_keyword_yes'; end if;
   -- on WhatsApp: a reply to the consent question counts only once the model read it as a yes (fn_supplier_whatsapp_consent_read)
   perform public.fn_supplier_whatsapp_consent_ask_record('whatsapp:+971500000774', 'Thanks. ' || v_q, 'sales_engineer');
-  perform public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000774', 'Yes please', null);
+  begin
+    perform public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000774', 'Yes please', null);
+  exception when others then fails := fails || ' 1:wa_yes_without_model_errored(' || sqlerrm || ')';
+  end;
   if exists (select 1 from public.supplier_whatsapp_optin where phone = '+971500000774') then fails := fails || ' 1:wa_yes_without_model'; end if;
   perform public.fn_supplier_whatsapp_consent_ask_record('whatsapp:+971500000774', 'Thanks. ' || v_q, 'sales_engineer');
   if not coalesce((public.fn_supplier_whatsapp_consent_read('whatsapp:+971500000774', 'stub-model')->>'ok')::boolean, false) then fails := fails || ' 1:consent_read'; end if;
@@ -69,8 +81,11 @@ begin
   update public.notifications set status = 'sent', sent_at = now() - interval '1 hour' where to_email = ea and type = 'inbound_reply';
   insert into public.inbound_messages (from_email, to_email, subject, body, created_at)
   values (ea, 'supplier@quotesdone.com', 'Re: a question', 'yes put me on WhatsApp', now()) returning id into v_in2;
-  j := public.fn_supplier_whatsapp_optin_from_mail(v_in2, 'yes put me on WhatsApp', null);
-  if j->>'code' <> 'rule' then fails := fails || ' 3:no_model_recorded(' || j::text || ')'; end if;
+  begin
+    j := public.fn_supplier_whatsapp_optin_from_mail(v_in2, 'yes put me on WhatsApp', null);
+    if j->>'code' <> 'rule' then fails := fails || ' 3:no_model_recorded(' || j::text || ')'; end if;
+  exception when others then fails := fails || ' 3:no_model_errored(' || sqlerrm || ')';
+  end;
   j := public.fn_supplier_whatsapp_optin_from_mail(v_in2, 'yes put me on WhatsApp', 'stub-model');
   v_code := j->>'code_to_send';
   if j->>'code' <> 'pending' or coalesce(v_code, '') !~ '^[0-9]{8}$' then fails := fails || ' 3:pending(' || j::text || ')'; end if;
@@ -124,9 +139,80 @@ begin
   j := public.fn_supplier_job_request_whatsapp(p);
   if j->>'to' is distinct from '+971500000773' or j->>'source' <> 'portal_whatsapp_choice' then fails := fails || ' 7:portal(' || j::text || ')'; end if;
 
+  -- 9. the button: an opt-in to the marketing invitation, not to job requests on WhatsApp
+  insert into public.leads (company_name, email, emirate, phone, phone_e164, invited_at)
+  values ('ZZ DEMO L2 Optin Btn', 'zz-demo-l2optin-btn@example.invalid', 'Dubai', '+971500000781', '+971500000781', now() - interval '2 days') returning id into k_btn;
+  perform public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000781', '', 'supplier_invite_yes');
+  if not exists (select 1 from public.supplier_whatsapp_optin where lead_id = k_btn and source = 'wa_button') then fails := fails || ' 9:button_not_recorded'; end if;
+  if public.fn_supplier_job_request_whatsapp(k_btn)->>'to' is not null then fails := fails || ' 9:button_opened_job_requests'; end if;
+
+  -- 10. a number two companies share
+  insert into public.leads (company_name, email, emirate, phone, phone_e164, invited_at)
+  values ('ZZ DEMO L2 Optin S1', 'zz-demo-l2optin-s1@example.invalid', 'Dubai', '+971500000782', '+971500000782', now() - interval '2 days') returning id into k_s1;
+  insert into public.leads (company_name, email, emirate, phone, phone_e164, invited_at)
+  values ('ZZ DEMO L2 Optin S2', 'zz-demo-l2optin-s2@example.invalid', 'Dubai', '+971500000782', '+971500000782', now() - interval '2 days') returning id into k_s2;
+  perform public.fn_supplier_whatsapp_consent_ask_record('whatsapp:+971500000782', v_q, 'sales_engineer');
+  perform public.fn_supplier_whatsapp_consent_read('whatsapp:+971500000782', 'stub-model');
+  perform public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000782', 'yes', null);
+  if public.fn_supplier_job_request_whatsapp(k_s1)->>'to' is not null or public.fn_supplier_job_request_whatsapp(k_s2)->>'to' is not null then
+    fails := fails || ' 10:shared_number_opened'; end if;
+
+  -- 11. STOP cancels a job request already queued on WhatsApp
+  insert into public.leads (company_name, email, emirate, phone, phone_e164, invited_at)
+  values ('ZZ DEMO L2 Optin D', 'zz-demo-l2optin-d@example.invalid', 'Dubai', '+971500000784', '+971500000784', now() - interval '2 days') returning id into k_d;
+  perform public.fn_supplier_whatsapp_consent_ask_record('whatsapp:+971500000784', v_q, 'sales_engineer');
+  perform public.fn_supplier_whatsapp_consent_read('whatsapp:+971500000784', 'stub-model');
+  perform public.fn_marketing_files_wa_invite_reply('whatsapp:+971500000784', 'sure, send them here', null);
+  insert into public.notifications (type, to_email, to_role, lead_id, subject, body, channel, status)
+  values ('rfq_invite', 'zz-demo-l2optin-d@example.invalid', 'supplier', k_d, 'ZZ DEMO job', 'ZZ DEMO job body', 'email', 'queued');
+  -- a demo row is captured on insert; put the twin back to queued as a real one would be, past the triggers
+  perform set_config('session_replication_role', 'replica', true);
+  update public.notifications set status = 'queued' where lead_id = k_d and channel = 'whatsapp';
+  perform set_config('session_replication_role', 'origin', true);
+  if not exists (select 1 from public.notifications where lead_id = k_d and channel = 'whatsapp' and status = 'queued' and to_phone = '+971500000784') then
+    fails := fails || ' 11:no_twin_to_cancel'; end if;
+  perform public.fn_wa_supplier_invite_opt_out('whatsapp:+971500000784');
+  if exists (select 1 from public.notifications where lead_id = k_d and channel = 'whatsapp' and status in ('queued', 'pending', 'held')) then
+    fails := fails || ' 11:stop_left_it_queued'; end if;
+
+  -- 12. the sales engineer's writer: recorded, not confirmed, opens nothing
+  insert into public.leads (company_name, email, emirate, phone, phone_e164, invited_at)
+  values ('ZZ DEMO L2 Optin R', 'zz-demo-l2optin-r@example.invalid', 'Dubai', '+971500000785', '+971500000785', now() - interval '2 days') returning id into k_r;
+  j := public.fn_supplier_whatsapp_optin_record(k_r, 'call_consent_reply', v_q, 'Yes, send them on WhatsApp');
+  if not coalesce((j->>'ok')::boolean, false) then fails := fails || ' 12:record(' || j::text || ')'; end if;
+  if public.fn_supplier_job_request_whatsapp(k_r)->>'to' is not null then fails := fails || ' 12:unconfirmed_opened'; end if;
+
+  -- 13. a model-read no by e-mail
+  insert into public.leads (company_name, email, emirate, phone, phone_e164, invited_at)
+  values ('ZZ DEMO L2 Optin N', 'zz-demo-l2optin-n@example.invalid', 'Dubai', '+971500000786', '+971500000786', now() - interval '2 days') returning id into k_n;
+  insert into public.inbound_messages (from_email, to_email, subject, body, created_at)
+  values ('zz-demo-l2optin-n@example.invalid', 'supplier@quotesdone.com', 'Re: a question', 'No WhatsApp please, e-mail only', now()) returning id into v_in3;
+  begin
+    if public.fn_supplier_whatsapp_offer_state('zz-demo-l2optin-n@example.invalid')->>'state' <> 'offer' then fails := fails || ' 13:state_before'; end if;
+    if coalesce((public.fn_supplier_whatsapp_offer_declined_from_mail(v_in3, 'No WhatsApp please', null)->>'ok')::boolean, false) then fails := fails || ' 13:no_without_model'; end if;
+    if public.fn_supplier_whatsapp_offer_state('zz-demo-l2optin-n@example.invalid')->>'state' <> 'offer' then fails := fails || ' 13:declined_without_model'; end if;
+    j := public.fn_supplier_whatsapp_offer_declined_from_mail(v_in3, 'No WhatsApp please, e-mail only', 'stub-model');
+    if not coalesce((j->>'ok')::boolean, false) then fails := fails || ' 13:declined(' || j::text || ')'; end if;
+    if public.fn_supplier_whatsapp_offer_state('zz-demo-l2optin-n@example.invalid')->>'state' <> 'declined' then fails := fails || ' 13:offer_shown_again'; end if;
+    if (select whatsapp_opt from public.leads where id = k_n) is not null then fails := fails || ' 13:touched_whatsapp_opt'; end if;
+  exception when others then fails := fails || ' 13:(' || sqlerrm || ')';
+  end;
+
+  -- 14. a row written as service_role runs the rule trigger as service_role
+  begin
+    set local role service_role;
+    -- the rule the opt-in trigger runs (it is not security definer): it calls fn_wa_job_request_offer as the writer's role
+    if (public.fn_wa_optin_counts('email_consent_reply', null, v_offer, 'yes', 'stub-model')->>'counts')::boolean is not true then fails := fails || ' 14:rule'; end if;
+    reset role;
+    if not has_function_privilege('service_role', 'public.fn_wa_job_request_offer()', 'execute')
+       or not has_function_privilege('service_role', 'public.fn_wa_optin_counts(text, text, text, text, text)', 'execute')
+       or has_function_privilege('anon', 'public.fn_wa_job_request_offer()', 'execute') then fails := fails || ' 14:acl'; end if;
+  exception when others then reset role; fails := fails || ' 14:service_role(' || sqlerrm || ')';
+  end;
+
   select count(*) into n from public.supplier_whatsapp_optin where lead_id in (a, b, p);
   if n <> 1 then fails := fails || ' 8:optin_rows(' || n || ')'; end if;
 
   if fails <> '' then raise exception 'CHK<<PROBE FAILED:%>>', fails; end if;
-  raise exception 'CHK<<PROBE OK: a yes counts only when a model read it and our mail asked; a yes to nothing records nothing; a model-read yes is pending with an 8-digit code kept as a hash; no number, no twin and a direct WhatsApp job request is skipped until the code comes from his WhatsApp; misses counted and braked; a number of another party refused; consent recorded with source, question, answer, model and time on the number that sent the code; then job requests twin to it and never to the listing number; a mobile with no consent is never messaged; STOP closes it; the portal answer still opens it>>';
+  raise exception 'CHK<<PROBE OK: the button, a shared number and an unconfirmed row open nothing; STOP cancels a queued job request; a model-read no is kept and ends the offer; service_role passes the rule; a yes counts only when a model read it and our mail asked; a yes to nothing records nothing; a model-read yes is pending with an 8-digit code kept as a hash; no number, no twin and a direct WhatsApp job request is skipped until the code comes from his WhatsApp; misses counted and braked; a number of another party refused; consent recorded with source, question, answer, model and time on the number that sent the code; then job requests twin to it and never to the listing number; a mobile with no consent is never messaged; STOP closes it; the portal answer still opens it>>';
 end $probe$;

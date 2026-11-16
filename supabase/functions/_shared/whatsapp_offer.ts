@@ -64,11 +64,19 @@ export function whatsappFact(tail: string): string {
 /** Added to the supplier-mailbox reading (email_triage/supplier_mailbox_reading.ts READING_SYS): the same call reads the yes. */
 export const WHATSAPP_READING_RULE = 'Also say whether, in THIS e-mail, the sender agrees to get job requests (requests for quotation) from QuotesDone on WhatsApp, '
   + `answering our offer ("${WHATSAPP_OFFER}"), in any language and any wording ("WhatsApp", "yes, put me on WhatsApp", "\u0646\u0639\u0645"): `
-  + 'whatsapp_yes = true only when they clearly agree; false when they refuse, ask a question about it, only quote our mail, or you are unsure.';
+  + 'whatsapp_yes = true only when they clearly agree; false when they refuse, ask a question about it, only quote our mail, or you are unsure. '
+  + 'whatsapp_no = true only when, in THIS e-mail, they clearly refuse job requests on WhatsApp ("no WhatsApp", "e-mail only please", "we do not use WhatsApp"); '
+  + 'false otherwise, including when they do not mention it or you are unsure.';
 
 /** The reading's whatsapp_yes: true only when the model said exactly true. */
 export function parseWhatsappYes(o: Record<string, unknown> | null | undefined): boolean {
   return !!o && o.whatsapp_yes === true;
+}
+
+/** The reading's whatsapp_no (16 Nov 2026, review fix): true only when the model said exactly true and did not also say yes. A no
+ *  is recorded (fn_supplier_whatsapp_offer_declined_from_mail) and the offer is never shown to him again. */
+export function parseWhatsappNo(o: Record<string, unknown> | null | undefined): boolean {
+  return !!o && o.whatsapp_no === true && o.whatsapp_yes !== true;
 }
 
 /** One model call: a system prompt and an input, the answer's text (null: the reader is unavailable). */

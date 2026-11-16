@@ -93,6 +93,11 @@ record and 113 a UAE mobile, and none of those numbers may be messaged on that b
    `fn_supplier_job_request_whatsapp`: the portal's own WhatsApp answer (as before), else his latest confirmed opt-in; 'none'
    (he said no, or STOP) wins. `trg_wa_fanout` makes no twin without it and a03 skips a direct WhatsApp job request with the
    reason. Every other notice is unchanged.
+5. **What the independent review closed (16 Nov 2026).** The "Set up my page" tap is no consent to job requests (the gate needs
+   a model-read yes, `answer_read_by`); a number another company also holds an opt-in on names nobody (7 numbers are shared by
+   14 leads on production); 'none' (STOP or "I do not use WhatsApp") cancels his WhatsApp job requests still queued, pending
+   or held; a model-read NO by e-mail is kept (`supplier_whatsapp_offer_declined`) and the offer is never shown to him again,
+   in replies or in a nudge or last note (`campaignMail` drops it).
 
 SQL: `scripts/sql/every_supplier_invitation_offers_whatsapp_and_a_model_read_yes_opens_job_requests_there.sql` (and its probe).
 The marketing WhatsApp invitation above (template, both switches) is not changed by this.

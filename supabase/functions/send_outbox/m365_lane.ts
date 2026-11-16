@@ -183,7 +183,9 @@ export const SIGNATURE = 'Best regards,\nAhmad Alzain\nFounder, QuotesDone\nQuot
 // Promotions, SPF/DKIM/DMARC passing, no blocklist. So the content changed: a short note from a named person,
 // addressed to the company and its trade, no promotional word in the subject or the opening, and the opt-out in the
 // List-Unsubscribe headers plus one "reply stop" line. Since 27 Oct 2026 the body carries no link at all (above).
-export type Who = { company?: string; trade?: string };
+export type Who = { company?: string; trade?: string;
+  /** he said no to job requests on WhatsApp (supplier_whatsapp_offer_declined): the offer is never shown to him again (16 Nov 2026) */
+  declinedWhatsapp?: boolean };
 // THE GREETING READS A COMPANY NAME, NOT A PAGE TITLE (sales_engineer, 28 Oct 2026). leads.company_name is often a
 // scraped page title. MEASURED on notifications 116649-116668: "Speed Blast Trading L.L.C &#8211; Top notch Industrial
 // Equipments Suppliers in Dubai, UAE" reached the greeting whole (the entity map had no numeric entities, so the dash cut
@@ -393,7 +395,8 @@ export function m365Body(type: unknown, rowBody: string, kind?: unknown, who: Wh
   const marker = kind === M365_SEED_KIND ? seedMarker(rowBody) : '';
   const own = marker ? String(rowBody).trimEnd().slice(0, -marker.length).trimEnd() : (rowBody || '');
   const w = { company: who.company ?? companyFromBody(own), trade: who.trade };
-  const built = isFinalTouch({ type, kind }) ? m365FinalTouchText(w) : m365InvitationText(w, variantOfKind(kind));
+  const built0 = isFinalTouch({ type, kind }) ? m365FinalTouchText(w) : m365InvitationText(w, variantOfKind(kind));
+  const built = who.declinedWhatsapp ? built0.replace('\n\n' + WHATSAPP_OFFER, '') : built0;
   return marker ? built + '\n\n' + marker : built;
 }
 
@@ -416,7 +419,7 @@ export function campaignMail(row: { type?: unknown; body?: unknown; subject?: un
   // address never reaches it: companyName gives the neutral greeting instead).
   const name = companyName(company);
   const mask = (s: string) => (name ? s.split(name).join('Company') : s);
-  const bad = m365CopyLint({ subject: mask(subject), body: mask(text), seed: row.kind === M365_SEED_KIND }).filter((l) => !l.ok);
+  const bad = m365CopyLint({ subject: mask(subject), body: mask(text), seed: row.kind === M365_SEED_KIND, declinedWhatsapp: who.declinedWhatsapp === true }).filter((l) => !l.ok);
   if (ANY_LINK.test(text) || ANY_LINK.test(subject)) {
     bad.push({ rule: 'no link anywhere in the email as sent', ok: false, detail: String((text + ' ' + subject).match(ANY_LINK)?.[0] || '') });
   }
@@ -445,7 +448,7 @@ const MARKER_EXEMPT = /date|closes with/;
 // The question-ending rules of invitationCopyLint belong to the stored Resend-lane copy; the founder's approved text
 // (27 Oct 2026) closes with the reply-"stop" line instead, so this lane does not apply them.
 const NOT_THIS_LANE = /question/;
-export function m365CopyLint(o: { subject: string; body: string; preheader?: string; seed?: boolean }): CopyRule[] {
+export function m365CopyLint(o: { subject: string; body: string; preheader?: string; seed?: boolean; declinedWhatsapp?: boolean }): CopyRule[] {
   const marker = o.seed ? seedMarker(o.body) : '';
   if (marker) {
     const rest = o.body.trimEnd().slice(0, -marker.length).trimEnd();
@@ -461,7 +464,8 @@ export function m365CopyLint(o: { subject: string; body: string; preheader?: str
       detail: 'Al Furjan, a TDRA permit or a licence number found' },
     { rule: 'no HTML in a plain-text invitation', ok: !/<\/?[a-z][^>]*>/i.test(o.body), detail: 'markup found' },
     // THE OFFER OF WHATSAPP (16 Nov 2026, marketing, ledger 1184/1373): every invitation and its last note carry it word for word
-    { rule: 'the invitation offers job requests on WhatsApp (whatsapp_offer.ts WHATSAPP_OFFER, word for word)', ok: carriesOffer(o.body), detail: 'the offer sentence is missing' },
+    { rule: 'the invitation offers job requests on WhatsApp (whatsapp_offer.ts WHATSAPP_OFFER, word for word)', ok: o.declinedWhatsapp ? !carriesOffer(o.body) : carriesOffer(o.body),
+      detail: o.declinedWhatsapp ? 'he said no to WhatsApp: the offer must not be shown again' : 'the offer sentence is missing' },
     { rule: '"free for the first 1,000 suppliers" carries no date', ok: !/1,000/.test(o.body) || !DATED.test(o.body), detail: 'a date or deadline word next to the offer' },
     { rule: 'never a cap on how many suppliers quote: any number may quote, top 3 is only the report', ok: !UP_TO_THREE.test(o.body + ' ' + o.subject), detail: 'the forbidden wrong form' },
     { rule: 'never promises to set up their page or do a step for them (ledger 1401: nothing performs it; only they verify, upload and accept)',

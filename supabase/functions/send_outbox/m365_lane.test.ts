@@ -564,3 +564,15 @@ Deno.test('every invitation variant and the last note carry the WhatsApp offer, 
   const bad = m365CopyLint({ subject: m365Subject(who), body: m365InvitationText(who).replace(WHATSAPP_OFFER + '\n\n', '') }).filter((l) => !l.ok).map((l) => l.rule);
   assert(bad.some((r) => r.includes('WhatsApp')), 'an invitation without the offer passed');
 });
+
+Deno.test('a supplier who said no to WhatsApp gets no offer again in a nudge or the last note, and the rule holds a text that still offers it', async () => {
+  const { campaignMail, FINAL_TOUCH_KIND } = await import('./m365_lane.ts');
+  for (const row of [{ type: 'supplier_invite_nudge', body: 'Hi X team,' }, { type: 'supplier_invite_nudge', kind: FINAL_TOUCH_KIND, body: '' }]) {
+    const no = campaignMail(row, { company: 'Sigma Ceramics', declinedWhatsapp: true });
+    assertFalse(no.text.includes(WHATSAPP_OFFER), 'the offer came back after his no');
+    assertEquals(no.bad.length, 0, no.bad.map((b) => b.rule).join('; '));
+    assert(campaignMail(row, { company: 'Sigma Ceramics' }).text.includes(WHATSAPP_OFFER));
+  }
+  const offered = m365InvitationText({ company: 'Sigma Ceramics' });
+  assert(m365CopyLint({ subject: 's', body: offered, declinedWhatsapp: true }).some((l) => !l.ok && l.rule.includes('WhatsApp')));
+});

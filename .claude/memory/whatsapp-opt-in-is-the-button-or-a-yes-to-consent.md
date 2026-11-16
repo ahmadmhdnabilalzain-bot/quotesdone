@@ -38,6 +38,9 @@ messages to people who did not are what lowers the sender's quality rating (ruli
 - An e-mailed yes is PENDING until the supplier sends the 8-digit code from his WhatsApp (`fn_supplier_whatsapp_optin_confirm`);
   only a confirmed number opens job requests on WhatsApp (`fn_supplier_job_request_whatsapp`, read by a03 and trg_wa_fanout).
   docs/marketing/supplier_channels_beyond_email.md.
+- Review of 16 Nov (REVIEW_L2): the button opens the marketing invitation only, never job requests (the gate needs
+  answer_read_by); a number two companies hold opt-ins on names nobody; 'none' cancels queued WhatsApp job requests; a
+  model-read NO is kept and the offer is never shown to him again. Never relax any of these to grow the pool.
 - It is a policy call that was his. Do not re-ask it, and do not loosen it to grow the opt-in pool.
 
 Related: [[whatsapp-supplier-invites-need-an-opt-in]], [[founder-rulings-are-the-holy-book]].

@@ -23,7 +23,7 @@ type World = {
   inbound: Row[]; notifications: Row[]; decisions: Row[]; runs: Row[]; gw: Row[]; handoffs: Row[];
   rules: Record<number, { hard_rule: string | null; reading: string | null }>;
   readings: Record<string, unknown>;   // the model's reading per sender address; 'down' = no model
-  wa?: { state: string; optin: Row[] };   // fn_supplier_whatsapp_offer_state's answer, and every yes recorded (16 Nov 2026)
+  wa?: { state: string; optin: Row[]; declined: Row[] };   // fn_supplier_whatsapp_offer_state's answer, and every yes recorded (16 Nov 2026)
 };
 
 function cond(r: Row, col: string, expr: string): boolean {
@@ -110,6 +110,7 @@ function stubFor(w: World): Stub {
           // the WhatsApp offer (16 Nov 2026): what a reply says, and a model-read yes recorded with a code (the SQL checks the facts)
           case 'fn_supplier_whatsapp_offer_state': return J({ state: w.wa?.state ?? 'not_a_lead' });
           case 'fn_supplier_whatsapp_optin_from_mail': { w.wa?.optin.push(body); return J({ ok: true, code: 'pending', code_to_send: '48213307', lead_id: 77 }); }
+          case 'fn_supplier_whatsapp_offer_declined_from_mail': { w.wa?.declined.push(body); if (w.wa) w.wa.state = 'declined'; return J({ ok: true, code: 'declined', lead_id: 77 }); }
           default: return J(null);
         }
       }
@@ -268,7 +269,7 @@ import { confirmLine, WHATSAPP_OFFER } from '../_shared/whatsapp_offer.ts';
 const AR_YES = '\u0646\u0639\u0645\u060c \u0623\u0631\u0633\u0644\u0648\u0647\u0627 \u0639\u0644\u0649 \u0627\u0644\u0648\u0627\u062a\u0633\u0627\u0628';
 for (const [label, words] of [['English', 'yes put me on WhatsApp'], ['Arabic', AR_YES]] as const) {
   Deno.test(`a supplier's ${label} yes to the WhatsApp offer is read as consent by the model, recorded with the model's name, and answered with his code`, async () => {
-    const w = world({ wa: { state: 'offer', optin: [] } });
+    const w = world({ wa: { state: 'offer', optin: [], declined: [] } });
     const from = 'owner@zz-demo-l2optin-' + label.toLowerCase() + '.invalid';
     const m = mail(w, { from_email: from, subject: 'Re: A question about your tiling work', body: words });
     w.readings[from] = { reading: 'supplier_registration', why: 'An invited supplier agrees to get job requests on WhatsApp.', quote: words, whatsapp_yes: true };
@@ -285,14 +286,14 @@ for (const [label, words] of [['English', 'yes put me on WhatsApp'], ['Arabic', 
 }
 
 Deno.test('a reply the model does not read as a yes records nothing, and a supplier reply carries the offer unless he is on WhatsApp already', async () => {
-  const w = world({ wa: { state: 'offer', optin: [] } });
+  const w = world({ wa: { state: 'offer', optin: [], declined: [] } });
   const from = 'owner@zz-demo-l2optin-no.invalid';
   const m = mail(w, { from_email: from, subject: 'Re: A question', body: 'Who is this? Is WhatsApp safe?' });
   w.readings[from] = { reading: 'supplier_registration', why: 'An invited supplier asks who we are.', quote: 'Who is this?', whatsapp_yes: false };
   await tick(w);
   assertEquals(w.wa!.optin.length, 0, 'no model yes, no record');
   assert(repliesTo(w, m)[0].body.includes(WHATSAPP_OFFER), 'every reply to a supplier offers job requests on WhatsApp');
-  const w2 = world({ wa: { state: 'consented', optin: [] } });
+  const w2 = world({ wa: { state: 'consented', optin: [], declined: [] } });
   const m2 = mail(w2, { from_email: from, subject: 'Registration', body: 'How do we register?' });
   w2.readings[from] = { reading: 'supplier_registration', why: 'asks how to register', quote: 'How do we register?' };
   await tick(w2);
@@ -303,4 +304,22 @@ Deno.test('parseReading: whatsapp_yes is true only when the model said exactly t
   const base = { reading: 'supplier_registration', why: 'w', quote: 'q' };
   assertEquals(parseReading(JSON.stringify({ ...base, whatsapp_yes: true }))?.whatsapp_yes, true);
   for (const v of [false, 'true', 'yes', 1, null, undefined]) assertEquals(parseReading(JSON.stringify({ ...base, whatsapp_yes: v }))?.whatsapp_yes, false, String(v));
+});
+
+// A NO TO THE OFFER IS READ IN THE SAME READING AND KEPT, AND NO LATER REPLY OFFERS WHATSAPP AGAIN (16 Nov 2026, review fix 5).
+Deno.test('a model-read no to the WhatsApp offer is recorded with the model\'s name, and neither this reply nor the next offers it again', async () => {
+  const w = world({ wa: { state: 'offer', optin: [], declined: [] } });
+  const from = 'owner@zz-demo-l2optin-refuses.invalid';
+  const m = mail(w, { from_email: from, subject: 'Re: A question', body: 'We do tiling. No WhatsApp please, e-mail only.' });
+  w.readings[from] = { reading: 'supplier_registration', why: 'An invited supplier lists its trade and refuses WhatsApp.', quote: 'No WhatsApp please', whatsapp_no: true };
+  await tick(w);
+  assertEquals(w.wa!.optin.length, 0, 'a no is never recorded as a yes');
+  assertEquals(w.wa!.declined.length, 1, 'the no is recorded once');
+  assertEquals([w.wa!.declined[0].p_inbound_id, w.wa!.declined[0].p_read_by], [m.id, 'stub/model']);
+  assertFalse(repliesTo(w, m)[0].body.includes(WHATSAPP_OFFER), 'the answer to his no does not offer WhatsApp');
+  const m2 = mail(w, { from_email: from, subject: 'Registration', body: 'How do we register?' });
+  w.readings[from] = { reading: 'supplier_registration', why: 'asks how to register', quote: 'How do we register?' };
+  await tick(w);
+  assertFalse(repliesTo(w, m2)[0].body.includes(WHATSAPP_OFFER), 'nor does any later reply');
+  assertEquals(parseReading(JSON.stringify({ reading: 'supplier_registration', why: 'w', quote: 'q', whatsapp_no: true, whatsapp_yes: true }))?.whatsapp_no, false, 'yes and no together is no reading of a no');
 });
