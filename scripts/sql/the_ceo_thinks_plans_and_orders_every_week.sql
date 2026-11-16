@@ -701,16 +701,78 @@ returns text language sql immutable set search_path to 'public', 'pg_temp' as $f
 $fn$;
 revoke execute on function public.fn_ceo_plan_bet_act_text(jsonb) from public, anon, authenticated;
 
--- The largest amount of money the bet's words name (AED 5,000; 20k AED; 3 thousand dirhams), 0 if none.
+-- The largest amount of money the bet's words name, in AED, 0 if none: AED 5,000; 20k AED; AED 5 000 (a space between
+-- thousands); five thousand dirhams (number words); USD 2,000, $2,000 or 2,000 dollars (converted at gl_settings.usd_to_aed,
+-- 3.6725 when unset: the rate fn_expense_post_to_gl and the daily OpenRouter ledger use). Review orderconv item 8 (LOCAL, 16 Nov
+-- 2026): "five thousand dirhams" and "USD 2,000" read as 0 and "AED 5 000" as 5. Any other currency is not read here: it is
+-- refused by fn_ceo_plan_text_unknown_money. Known limit: "AED 30 200 suppliers" reads 30200 (refused on the safe side).
 create or replace function public.fn_ceo_plan_text_aed(p_text text)
-returns numeric language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  select coalesce(max(replace(m[1], ',', '')::numeric * case when m[3] ~* '^(k|thousand)$' then 1000 when m[3] ~* '^(m|mn|million)$' then 1000000 else 1 end), 0)
-    from (select regexp_matches(lower(coalesce(p_text, '')), '(?:aed|dhs?|dirhams?)\s*([0-9][0-9,]*(\.[0-9]+)?)\s*(k|thousand|mn|m|million)?\M', 'g') m
-          union all
-          select regexp_matches(lower(coalesce(p_text, '')), '\m([0-9][0-9,]*(\.[0-9]+)?)\s*(k|thousand|mn|m|million)?\s*(?:aed|dhs?|dirhams?)\M', 'g')) x
-   where replace(m[1], ',', '') ~ '^[0-9]+(\.[0-9]+)?$'
-$fn$;
+returns numeric language plpgsql stable set search_path to 'public', 'pg_temp' as $fn$
+declare t text := lower(coalesce(p_text, '')); v_prev text; i int := 0; m text[]; v_fx numeric; v_max numeric := 0; v numeric;
+        v_amt constant text := '([0-9][0-9,]*(\.[0-9]+)?)\s*(k|thousand|mn|m|million)?';
+begin
+  if t = '' then return 0; end if;
+  t := public.fn_ceo_plan_text_number_words(t);
+  -- 5 000 and 1 250 000 (space, no-break or narrow no-break space between thousands groups) read as one number
+  loop
+    v_prev := t; t := regexp_replace(t, '([0-9])[ \u00a0\u202f]([0-9]{3})(?![0-9])', '\1\2', 'g'); i := i + 1;
+    exit when t = v_prev or i > 6;
+  end loop;
+  v_fx := coalesce((select max(num_value) from public.gl_settings where key = 'usd_to_aed'), 3.6725);
+  for m in select regexp_matches(t, '(?:aed|dhs?|dirhams?)\s*' || v_amt || '\M', 'g')
+           union all select regexp_matches(t, '\m' || v_amt || '\s*(?:aed|dhs?|dirhams?)\M', 'g') loop
+    if replace(m[1], ',', '') ~ '^[0-9]+(\.[0-9]+)?$' then
+      v := replace(m[1], ',', '')::numeric * case when m[3] ~ '^(k|thousand)$' then 1000 when m[3] ~ '^(m|mn|million)$' then 1000000 else 1 end;
+      v_max := greatest(v_max, v);
+    end if;
+  end loop;
+  for m in select regexp_matches(t, '(?:\musd|\mus ?\$|\$)\s*' || v_amt || '\M', 'g')
+           union all select regexp_matches(t, '\m' || v_amt || '\s*(?:usd|us dollars?|dollars?|\$)(?![a-z])', 'g') loop
+    if replace(m[1], ',', '') ~ '^[0-9]+(\.[0-9]+)?$' then
+      v := replace(m[1], ',', '')::numeric * case when m[3] ~ '^(k|thousand)$' then 1000 when m[3] ~ '^(m|mn|million)$' then 1000000 else 1 end;
+      v_max := greatest(v_max, round(v * v_fx, 2));
+    end if;
+  end loop;
+  return v_max;
+end $fn$;
 revoke execute on function public.fn_ceo_plan_text_aed(text) from public, anon, authenticated;
+
+-- Number words to digits, for the amount reader only ("five thousand" -> 5000, "twenty-five" -> 25, "a hundred" -> 100).
+create or replace function public.fn_ceo_plan_text_number_words(p_text text)
+returns text language plpgsql immutable set search_path to 'public', 'pg_temp' as $fn$
+declare t text := lower(coalesce(p_text, '')); w text; v_phrase text; v_total numeric; v_cur numeric; v_n numeric;
+        v_units constant text[] := array['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen',
+                                         'fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
+        v_tens constant text[] := array['twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
+        v_word constant text := '(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)';
+begin
+  if t !~ ('\m' || v_word || '\M') then return t; end if;
+  t := regexp_replace(t, '\ma (hundred|thousand|million)\M', 'one \1', 'g');
+  for v_phrase in select p from (select distinct x[1] as p from regexp_matches(t, '\m(' || v_word || '(?:(?:\s+and\s+|\s+|-)' || v_word || ')*)\M', 'g') x) d order by length(p) desc loop
+    v_total := 0; v_cur := 0;
+    foreach w in array regexp_split_to_array(v_phrase, '(\s+and\s+|\s+|-)') loop
+      if w = any (v_units) then v_cur := v_cur + array_position(v_units, w) - 1;
+      elsif w = any (v_tens) then v_cur := v_cur + (array_position(v_tens, w) + 1) * 10;
+      elsif w = 'hundred' then v_cur := greatest(v_cur, 1) * 100;
+      elsif w = 'thousand' then v_total := v_total + greatest(v_cur, 1) * 1000; v_cur := 0;
+      elsif w = 'million' then v_total := (v_total + greatest(v_cur, 1)) * 1000000; v_cur := 0;
+      end if;
+    end loop;
+    v_n := v_total + v_cur;
+    t := regexp_replace(t, '\m' || v_phrase || '\M', v_n::text, 'g');
+  end loop;
+  return t;
+end $fn$;
+revoke execute on function public.fn_ceo_plan_text_number_words(text) from public, anon, authenticated;
+
+-- Money named in a currency the reader cannot convert (EUR, GBP, SAR, INR, ...): the words must name it in AED. Returns the
+-- words that named it, or null.
+create or replace function public.fn_ceo_plan_text_unknown_money(p_text text)
+returns text language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select substring(lower(coalesce(p_text, '')) from
+    '((?:\m(?:eur|gbp|sar|inr|qar|omr|kwd|bhd|egp|cad|aud|jpy|chf|cny|pkr)|€|£|₹|¥)\s*[0-9][0-9,. ]*|\m[0-9][0-9,.]*\s*(?:k|thousand|million)?\s*(?:eur|euros?|gbp|pounds? sterling|sar|riyals?|inr|rupees?|qar|omr|kwd|bhd|egp|cad|aud|jpy|yen|chf|cny|yuan|pkr|€|£|₹|¥)(?![a-z]))')
+$fn$;
+revoke execute on function public.fn_ceo_plan_text_unknown_money(text) from public, anon, authenticated;
 
 -- A bet asks the founder for something, in its words: an ask, approval, decision, reply or budget addressed to him.
 create or replace function public.fn_ceo_plan_text_asks_founder(p_text text)
@@ -793,6 +855,9 @@ begin
   if v_cost is null or v_cost < 0 then v_out := v_out || 'cost_aed is a number of AED, 0 or more'::text;
   else
     v_cost := greatest(v_cost, public.fn_ceo_plan_text_aed(v_act));
+    if public.fn_ceo_plan_text_unknown_money(v_act) is not null then
+      v_out := v_out || ('money is named in AED (or USD, converted at gl_settings.usd_to_aed), not ' || public.fn_ceo_plan_clean_text(public.fn_ceo_plan_text_unknown_money(v_act), 40))::text;
+    end if;
     if c.max_cost_aed is not null and v_cost > c.max_cost_aed then
       v_out := v_out || ('channel ' || c.channel || ' costs at most AED ' || c.max_cost_aed || ' in the register (public.ceo_growth_channel.max_cost_aed); this bet names AED ' || v_cost || ': spending money is another channel')::text;
     elsif v_cost > 0 then

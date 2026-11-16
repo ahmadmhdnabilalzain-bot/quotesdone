@@ -15,9 +15,15 @@
 --      writes its retro; the CEO's "close met" at 70 < 80 is REFUSED; he extends it once with a lesson, written to the seat's
 --      case memory and the shared pool (order.lesson); the sales engineer's sub-order ends dropped with its own lesson;
 --   6. (2c) a second order whose plan is refused twice is blocked and handed to the CEO; nothing reaches the founder.
+--   7. review orderconv, fix round 1 (16 Nov 2026), rows R1-R8 (each failed on a28d85ae5, LOCAL): a refusal quoting a model's
+--      address never reaches the summary or the pack; a closed hand-over is not re-planned; glockapps_test, code_change and dns_write
+--      are never built or flipped and the session reads every request as data; money in words (five thousand dirhams, USD 2,000,
+--      AED 5 000, EUR) in seat turns and the CEO's decision after the retro; a turn's spends summed; one row per spend; a later
+--      milestone's status after a refused one; easy in the request; a pulled-in sub-order passes the plan bet's checks.
 do $probe$
 declare
   v_fail text := ''; v_tag text := substr(md5(clock_timestamp()::text), 1, 8); v_plan bigint; v_r jsonb; v_h bigint; v_q bigint; v_sub bigint; v_bet bigint;
+  v_plan2 bigint; v_g bigint; v_y bigint; v_fits jsonb; v_left numeric; v_per numeric; v_x numeric;
   v_alerts int; v_fnotices int; v_t public.seat_order_thread; v_txt text; v_req bigint; v_req2 bigint; v_n int; v_mk bigint; v_case jsonb; v_test text := 'zz-demo-' || v_tag;
   d7 text := to_char(now() + interval '7 days', 'YYYY-MM-DD"T"HH24:MI:SSOF'); d14 text := to_char(now() + interval '14 days', 'YYYY-MM-DD"T"HH24:MI:SSOF');
   d20 text := to_char(now() + interval '20 days', 'YYYY-MM-DD"T"HH24:MI:SSOF'); d21 text := to_char(now() + interval '21 days', 'YYYY-MM-DD"T"HH24:MI:SSOF');
@@ -249,6 +255,168 @@ begin
   if exists (select 1 from public.seat_order_thread where world = 'real' and handoff_id in (v_h, v_sub, v_mk)) then v_fail := v_fail || 'the probe wrote a real-world conversation; '; end if;
   select count(*) into v_n from public.seat_order_turn where thread_id in (v_h, v_mk);
 
+  -- ── 7. REVIEW ORDERCONV, FIX ROUND 1 (16 Nov 2026): every row below failed on a28d85ae5 (LOCAL) ──────────────────────────
+  -- Two more orders in the probe's world (other provider classes, so one open order per seat and measure still holds).
+  update public.decision_policy set value = value || '{"max_rounds": 2}'::jsonb where key = 'order_threads';
+  insert into public.ceo_plan_week (kind, period, status, task_class, output, pack)
+  values ('daily', current_date + 1001, 'asked', 'routine_employee_reasoning', '{}'::jsonb, '{}'::jsonb) returning id into v_plan2;
+  v_r := public.fn_ceo_plan_file(v_plan2, jsonb_build_object('decision', jsonb_build_object('bets', jsonb_build_array(
+    jsonb_build_object('channel', 'deliverability_fix', 'seat', 'it_engineer', 'what', 'ZZ DEMO Google inbox placement at least 80% on a GlockApps retest',
+      'how', 'Honest warm-up of supplier@ on the one sending domain', 'why', 'Google-hosted suppliers must receive our sign-up mail', 'measure', 'placement_inbox_pct',
+      'measure_args', jsonb_build_object('provider_class', 'google'), 'target', 80, 'direction', 'at_least', 'due_at', d21, 'cost_aed', 0, 'legal', 'safe', 'kill_criterion', 'none'),
+    jsonb_build_object('channel', 'deliverability_fix', 'seat', 'it_engineer', 'what', 'ZZ DEMO Yahoo and AOL inbox placement at least 80% on a GlockApps retest',
+      'how', 'Honest warm-up of supplier@ on the one sending domain', 'why', 'Yahoo-hosted suppliers must receive our sign-up mail', 'measure', 'placement_inbox_pct',
+      'measure_args', jsonb_build_object('provider_class', 'yahoo_aol'), 'target', 80, 'direction', 'at_least', 'due_at', d21, 'cost_aed', 0, 'legal', 'safe', 'kill_criterion', 'none')))), 'zz-demo/stub', null);
+  select handoff_id into v_g from public.ceo_plan_bet where plan_id = v_plan2 and ord = 1;
+  select handoff_id into v_y from public.ceo_plan_bet where plan_id = v_plan2 and ord = 2;
+  if v_g is null or v_y is null then v_fail := v_fail || 'R0: the two review orders were not filed: ' || v_r::text || '; '; end if;
+  v_r := public.fn_order_threads_tick(now());
+  -- R5: a status refused once at milestone 1 (so its round 2 was used) still gets milestone 2's status question
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_y and kind = 'plan' and status = 'asked');
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'partly', 'fields', jsonb_build_object(
+      'reason', 'ZZ DEMO I can keep the sending side clean and read every verdict, but cannot run a GlockApps test myself.',
+      'steps', jsonb_build_array(jsonb_build_object('tool', 'sender_readings', 'action', 'confirm SPF, DKIM and DMARC pass every day', 'by', d7))::text,
+      'needs', jsonb_build_array(jsonb_build_object('kind', 'engineer_session', 'tool', 'glockapps_test', 'what', 'a GlockApps re-test after the warm-up week'))::text,
+      'risks', 'a re-test before enough volume reads low', 'milestones', jsonb_build_array(jsonb_build_object('at', d7, 'expect', 50), jsonb_build_object('at', d14, 'expect', 70))::text))));
+  end if;
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_y and kind = 'ceo_answer' and status = 'asked');
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'accept', 'fields', jsonb_build_object(
+      'reason', 'ZZ DEMO The plan stands and the re-test goes to the engineer session.', 'actions', '[]'))));
+  end if;
+  v_r := public.fn_order_threads_tick(now() + interval '8 days');
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_y and kind = 'status' and status = 'asked');
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'at_risk', 'fields', jsonb_build_object(
+      'done', 'x', 'next_step', 'y', 'blocker', '', 'need', '[]'))));
+  end if;
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_y and kind = 'status' and status = 'asked');
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'at_risk', 'fields', jsonb_build_object(
+      'done', 'ZZ DEMO the sender is clean every day', 'next_step', 'ZZ DEMO read the re-test the day it lands', 'blocker', '', 'need', '[]'))));
+  end if;
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_y and kind = 'ceo_response' and status = 'asked');
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'hold_course', 'fields', jsonb_build_object(
+      'reason', 'ZZ DEMO Hold the course, the re-test is the only gap left.', 'actions', '[]'))));
+  end if;
+  v_r := public.fn_order_threads_tick(now() + interval '15 days');
+  if not exists (select 1 from public.seat_order_turn u join public.reasoning_held_question h on h.id = u.held_id
+                  where u.handoff_id = v_y and u.kind = 'status' and u.status = 'asked' and h.status = 'held') then
+    v_fail := v_fail || 'R5: milestone 2 asked no status after a refused status at milestone 1: ' || coalesce(v_r::text, '') || '; ';
+  end if;
+
+  -- R1 + R3 + R4a/R8: a step's tool holds an address and a number; a capability need for glockapps_test; money in words in a seat turn
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_g and kind = 'plan' and status = 'asked');
+  if (select request->>'easy' from public.reasoning_held_question where id = v_q) is distinct from 'false' then v_fail := v_fail || 'R6: a seat''s turn does not say easy false; '; end if;
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'can', 'fields', jsonb_build_object(
+      'reason', 'ZZ DEMO I can do this with my own tools, reading the sender every day.', 'steps', '[{"tool":"zz.demo@example.org +971501234567","action":"call him about the mailbox setup","by":"' || d7 || '"}]',
+      'needs', jsonb_build_array(jsonb_build_object('kind', 'capability', 'tool', 'glockapps_test', 'what', 'my own GlockApps key so I run the tests myself'))::text, 'risks', 'none',
+      'milestones', jsonb_build_array(jsonb_build_object('at', d7, 'expect', 50))::text))));
+  end if;
+  if not exists (select 1 from public.seat_order_turn where handoff_id = v_g and kind = 'plan' and round = 1 and status = 'refused' and array_to_string(refusal, ' ') ~ 'glockapps_test is never built for a seat') then
+    v_fail := v_fail || 'R3: a capability need for glockapps_test was not refused: ' || coalesce(v_r::text, '') || '; ';
+  end if;
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_g and kind = 'plan' and status = 'asked' order by round desc limit 1);
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'can', 'fields', jsonb_build_object(
+      'reason', 'ZZ DEMO I will buy a warm-up service for five thousand dirhams and read the sender every day.', 'steps', '[{"tool":"zz.demo@example.org +971501234567","action":"call him about the mailbox setup","by":"' || d7 || '"}]',
+      'needs', '[]', 'risks', 'none', 'milestones', jsonb_build_array(jsonb_build_object('at', d7, 'expect', 50))::text))));
+  end if;
+  if not exists (select 1 from public.seat_order_turn where handoff_id = v_g and kind = 'plan' and round = 2 and status = 'refused' and array_to_string(refusal, ' ') ~ 'the words name AED 5000,') then
+    v_fail := v_fail || 'R4a/R8: a seat''s plan naming five thousand dirhams was not refused: ' || coalesce(v_r::text, '') || '; ';
+  end if;
+  select * into v_t from public.seat_order_thread where handoff_id = v_g;
+  if v_t.risk <> 'blocked' or v_t.blocked_on ~ '(@|example\.org|971501234567)' or v_t.blocked_on !~ '\[address\]' then v_fail := v_fail || 'R1: blocked_on quotes the model raw: ' || coalesce(v_t.blocked_on, '-') || '; '; end if;
+  if public.fn_ceo_plan_summary_text(now() - interval '1 day') ~ '(example\.org|971501234567)' or public.fn_order_threads_pack()::text ~ '(example\.org|971501234567)' then
+    v_fail := v_fail || 'R1: an address or a number reached the founder''s summary or the pack; ';
+  end if;
+  -- R6: the CEO's turn says easy in its request (the routine route even before routing.ts is deployed)
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_g and kind = 'ceo_answer' and status = 'asked');
+  if (select request->>'easy' from public.reasoning_held_question where id = v_q) is distinct from 'true' then v_fail := v_fail || 'R6: the CEO''s turn does not say easy true; '; end if;
+  -- R3 + R4b + R7 + R8: forbidden builds, three spends that only fit one by one, two alike sub-orders on switched-off invitations,
+  -- dollars and a spaced amount in the words
+  v_fits := public.fn_company_spend_fits(0.01);
+  v_left := coalesce((v_fits->>'left_today_aed')::numeric, 0); v_per := coalesce((v_fits->>'per_action_aed')::numeric, 0);
+  v_x := greatest(least(v_per, v_left), 0.01);
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'accept', 'fields', jsonb_build_object(
+      'reason', 'ZZ DEMO The plan stands. Budget: USD 2,000 or AED 5 000 for the warm-up tool.',
+      'actions', jsonb_build_array(
+        jsonb_build_object('kind', 'commission', 'tool', 'glockapps_test', 'seat', 'it_engineer', 'what', 'ZZ DEMO give the it_engineer its own GlockApps key', 'acceptance', 'the it_engineer runs a test without the session'),
+        jsonb_build_object('kind', 'commission', 'tool', 'code_change', 'seat', 'it_engineer', 'what', 'ZZ DEMO let the it_engineer deploy edge functions itself', 'acceptance', 'it deploys a function without any person reviewing it'),
+        jsonb_build_object('kind', 'spend', 'aed', v_x, 'what', 'ZZ DEMO a warm-up service for the first week of traffic'),
+        jsonb_build_object('kind', 'spend', 'aed', v_x, 'what', 'ZZ DEMO a warm-up service for the second week of traffic'),
+        jsonb_build_object('kind', 'pull_in', 'seat', 'marketing', 'what', 'ZZ DEMO send invitation batches to Google-hosted suppliers to warm the mailbox', 'measure', 'invitations', 'measure_args', '{}'::jsonb, 'target', 500, 'direction', 'at_least', 'due_at', d14),
+        jsonb_build_object('kind', 'pull_in', 'seat', 'marketing', 'what', 'ZZ DEMO send invitation batches to Google-hosted suppliers to warm the mailbox', 'measure', 'invitations', 'measure_args', '{}'::jsonb, 'target', 500, 'direction', 'at_least', 'due_at', d14))::text))));
+  end if;
+  v_txt := (select array_to_string(refusal, ' | ') from public.seat_order_turn where handoff_id = v_g and kind = 'ceo_answer' and round = 1 and status = 'refused');
+  if coalesce(v_txt, '') !~ 'glockapps_test is never built for a seat' or v_txt !~ 'code_change is never built for a seat' then v_fail := v_fail || 'R3: a forbidden build was commissioned: ' || coalesce(v_r::text, '') || '; '; end if;
+  if 2 * v_x > v_left and coalesce(v_txt, '') !~ 'the spends of this turn sum to AED' then v_fail := v_fail || 'R4b: spends that fit only one by one passed together; '; end if;
+  if coalesce(v_txt, '') !~ 'action 6: an order to marketing on invitations is already open'
+     or (coalesce((select value from public.app_secrets where key = 'invite_enabled'), '') <> 'true' and v_txt !~ 'action 5: invitations are switched off') then
+    v_fail := v_fail || 'R7: a pulled-in sub-order skipped the plan bet''s checks: ' || coalesce(v_txt, '-') || '; ';
+  end if;
+  if coalesce(v_txt, '') !~ 'the words name AED 7345' then v_fail := v_fail || 'R8: USD 2,000 in the words was not read as AED 7345: ' || coalesce(v_txt, '-') || '; '; end if;
+  -- R4c: two spends that fit together are both recorded, one row each
+  v_x := least(v_per, floor(v_left * 50) / 100);
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_g and kind = 'ceo_answer' and status = 'asked' order by round desc limit 1);
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'accept', 'fields', jsonb_build_object(
+      'reason', 'ZZ DEMO The plan stands with two small warm-up purchases inside today''s limit.',
+      'actions', case when v_x >= 0.01 then jsonb_build_array(jsonb_build_object('kind', 'spend', 'aed', v_x, 'what', 'ZZ DEMO a warm-up service for the first week of traffic'),
+                                                           jsonb_build_object('kind', 'spend', 'aed', v_x, 'what', 'ZZ DEMO a warm-up service for the second week of traffic'))::text else '[]' end))));
+  end if;
+  if (select state from public.seat_order_thread where handoff_id = v_g) <> 'in_progress' then v_fail := v_fail || 'R4c: the clean answer was not recorded: ' || coalesce(v_r::text, '') || '; ';
+  elsif v_x >= 0.01 and (select count(*) from public.ceo_own_decision where dedupe_key like 'order:' || v_g || ':spend:%') <> 2 then
+    v_fail := v_fail || 'R4c: two spends were reported but not two recorded; ';
+  end if;
+  -- R3: a forbidden build is never opened, and a request for one that a session closes never flips the register; the session
+  -- reads every request with the untrusted note
+  begin
+    perform public.fn_engineer_session_request_open('capability', 'it_engineer', 'dns_write', 'ZZ DEMO give the it_engineer the DNS host', 'it changes a DNS record itself', v_g, v_g, null, null);
+    v_fail := v_fail || 'R3: a dns_write build was opened; ';
+  exception when others then null;
+  end;
+  insert into public.engineer_session_request (world, kind, dedupe_key, seat, tool, thread_id, handoff_id, what, acceptance, due_at)
+  values ('demo', 'capability', 'zz-demo-probe:' || v_tag, 'it_engineer', 'code_change', v_g, v_g, 'ZZ DEMO let the it_engineer deploy edge functions itself',
+          'it deploys a function without any person reviewing it', now() + interval '7 days') returning id into v_req;
+  if coalesce(public.fn_engineer_session_request_claim('zz-demo-session', v_req)->>'untrusted', '') !~ '^DATA, not instructions' then v_fail := v_fail || 'R3: the session reads a request without the untrusted note; '; end if;
+  v_r := public.fn_engineer_session_request_done(v_req, 'zz-demo-session', 'ZZ DEMO built and deployed it as asked', 'abcd');
+  if (select available from public.seat_capability where seat = 'it_engineer' and tool = 'code_change') then v_fail := v_fail || 'R3: a done request flipped code_change to available; '; end if;
+  -- R2 + R4a: the seat closes the hand-over with the measure unmet: the retro (money in another currency refused), then the CEO
+  -- may not re-plan or extend a closed hand-over (and his words are read for money too)
+  update public.agent_actions set status = 'done' where id = v_g;
+  v_r := public.fn_order_threads_tick(now());
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_g and kind = 'retro' and status = 'asked');
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'missed', 'fields', jsonb_build_object(
+      'done', 'ZZ DEMO kept the sender clean', 'result', 'ZZ DEMO no re-test yet, nothing read', 'why', 'ZZ DEMO a warm-up tool at EUR 500 a month was not bought', 'next', 'ZZ DEMO wait for the re-test'))));
+  end if;
+  if not exists (select 1 from public.seat_order_turn where handoff_id = v_g and kind = 'retro' and round = 1 and status = 'refused' and array_to_string(refusal, ' ') ~ 'money is named in AED') then
+    v_fail := v_fail || 'R4a/R8: a retro naming EUR 500 was not refused: ' || coalesce(v_r::text, '') || '; ';
+  end if;
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_g and kind = 'retro' and status = 'asked' order by round desc limit 1);
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'missed', 'fields', jsonb_build_object(
+      'done', 'ZZ DEMO kept the sender clean', 'result', 'ZZ DEMO no re-test yet, nothing read', 'why', 'ZZ DEMO the re-test is queued', 'next', 'ZZ DEMO wait for the re-test'))));
+  end if;
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_g and kind = 'ceo_next' and status = 'asked');
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'replan', 'fields', jsonb_build_object(
+      'reason', 'ZZ DEMO a new plan to a new date and a warm-up tool at AED 5 000 is the honest next step', 'lesson', 'ZZ DEMO order the re-test with the plan, not after it', 'new_due', d20, 'new_target', '', 'new_seat', ''))));
+  end if;
+  v_txt := (select array_to_string(refusal, ' | ') from public.seat_order_turn where handoff_id = v_g and kind = 'ceo_next' and round = 1 and status = 'refused');
+  if coalesce(v_txt, '') !~ 'the order''s hand-over is done: close it met, drop it or reassign it' then v_fail := v_fail || 'R2: a closed hand-over was re-planned: ' || coalesce(v_r::text, '') || '; '; end if;
+  if coalesce(v_txt, '') !~ 'the words name AED 5000,' then v_fail := v_fail || 'R4a/R8: the CEO''s decision after the retro naming AED 5 000 was not refused; '; end if;
+  v_q := (select held_id from public.seat_order_turn where handoff_id = v_g and kind = 'ceo_next' and status = 'asked' order by round desc limit 1);
+  if v_q is not null then
+    v_r := public.fn_reason_held_resolve(v_q, jsonb_build_object('status', 'answered', 'answer', 'ZZ DEMO stub', 'model', 'zz-demo/stub', 'decision', jsonb_build_object('choice', 'drop', 'fields', jsonb_build_object(
+      'reason', 'ZZ DEMO the hand-over is closed, and the re-test decides the next order', 'lesson', 'ZZ DEMO order the re-test with the plan, not after it', 'new_due', '', 'new_target', '', 'new_seat', ''))));
+  end if;
+  if (select state from public.seat_order_thread where handoff_id = v_g) <> 'closed' then v_fail := v_fail || 'R2: the closed hand-over did not end in drop: ' || coalesce(v_r::text, '') || '; '; end if;
   exception when others then
     v_fail := v_fail || 'the probe stopped (' || sqlerrm || '); ';
   end;
