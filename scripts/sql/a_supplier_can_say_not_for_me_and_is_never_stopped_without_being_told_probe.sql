@@ -81,9 +81,7 @@ begin
      or not exists (select 1 from public.supplier_strike_event where lead_id = s_a and inquiry_id = i3 and kind = 'not_counted' and detail->>'why' = 'warning_not_delivered') then
     fails := fails || ' 2:stopped_before_warning_delivered'; end if;
   update public.notifications set provider_status = 'delivered' where type = 'supplier_strike_warning' and lead_id = s_a;
-  select public.fn_sales_engineer_counts_unanswered_request(i3, now()) into n;
-  delete from public.supplier_strike_event where lead_id = s_a and inquiry_id = i3 and kind = 'not_counted';
-  select public.fn_sales_engineer_counts_unanswered_request(i3, now()) into n;
+  select public.fn_sales_engineer_counts_unanswered_request(i3, now()) into n;   -- the next request that ends, once the warning reached him
   select * into l from public.leads where id = s_a;
   if coalesce(l.chat_strikes, 0) <> 3 then fails := fails || ' 1:a_strikes(' || coalesce(l.chat_strikes, 0) || ')'; end if;
   if coalesce((select chat_strikes from public.leads where id = s_b), 0) <> 1 then fails := fails || ' 1:b_struck'; end if;   -- i3 was delivered: it counts
