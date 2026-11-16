@@ -1225,8 +1225,14 @@ begin
     v_over := (select coalesce(sum(o.amount_fils), 0) from public.refunds o
                 where o.reason_code = 'overcharge_return' and o.status not in ('failed', 'rejected', 'cancelled')
                   and (o.transaction_id = t.id or (coalesce(btrim(t.payment_ref), '') <> '' and o.stripe_payment_intent = t.payment_ref)));
-    if exists (select 1 from public.refunds r where r.transaction_id = t.id and r.status not in ('rejected', 'failed', 'cancelled')
-                 and r.reason_code is distinct from 'overcharge_return') then
+    if v_over >= round(coalesce(t.total_charged, t.reveal_fee, 0) * 100) then
+      -- the whole payment was already returned: nothing is filed (fn_refund_request refuses an amount of zero)
+      v_effect := v_effect || jsonb_build_object('refund', 'nothing_left');
+    elsif exists (select 1 from public.refunds r
+                   where (r.transaction_id = t.id or (coalesce(btrim(t.payment_ref), '') <> '' and r.stripe_payment_intent = t.payment_ref))
+                     and r.status not in ('rejected', 'failed', 'cancelled')
+                     and r.reason_code is distinct from 'overcharge_return') then
+      -- as fn_refund_open_from_customer reads it: a refund on this payment, ours or Stripe's, keyed by either reference
       v_effect := v_effect || jsonb_build_object('refund', 'already_open');
     else
       v_rf := public.fn_refund_request(round(coalesce(t.total_charged, t.reveal_fee, 0) * 100)::bigint - v_over, 'fraud_or_dispute', 'ceo_dispute_decision',
@@ -1235,7 +1241,10 @@ begin
       v_effect := v_effect || jsonb_build_object('refund', v_rf);
     end if;
     update public.post_reveal_dispute set remedy_transaction_id = t.id, remedy_done_at = now() where id = d.id;
-    if v_over > 0 then
+    if v_effect->>'refund' = 'nothing_left' then
+      v_rem_en := ' Everything you paid for this reveal has already been returned to your original payment method.';
+      v_rem_ar := ' وقد سبق أن رددنا إليكم كامل ما دفعتموه مقابل هذا الكشف إلى وسيلة الدفع الأصلية.';
+    elsif v_over > 0 then
       v_rem_en := ' As a result, everything still owed to you for this reveal (AED ' || round((round(coalesce(t.total_charged, t.reveal_fee, 0) * 100) - v_over) / 100.0, 2)
         || '; the other AED ' || round(v_over / 100.0, 2) || ' was already returned to you) is refunded to your original payment method; banks take 7 to 14 working days to show it.';
       v_rem_ar := ' وبناءً عليه، يُردّ إليكم كامل المبلغ المستحق لكم عن هذا الكشف (' || round((round(coalesce(t.total_charged, t.reveal_fee, 0) * 100) - v_over) / 100.0, 2)

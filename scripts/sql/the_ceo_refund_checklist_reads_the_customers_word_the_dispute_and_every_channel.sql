@@ -240,13 +240,20 @@ begin
       'owner', 'accountant', 'remedy_key', 'amount', 'remediable', r.id is not null, 'kind', 'money');
 
   elsif p_phase = 'verify' then
+    -- an accountant's overcharge return is settled money on this payment but not this case (as item 6): the case is
+    -- total_charged less that return, and the return is neither the refund that moved nor a duplicate of it
+    v_total := v_total - (select coalesce(sum(o.amount_fils), 0) from public.refunds o
+                           where o.reason_code = 'overcharge_return' and o.status not in ('failed', 'rejected', 'cancelled')
+                             and (o.transaction_id = t.id or (coalesce(btrim(t.payment_ref), '') <> '' and o.stripe_payment_intent = t.payment_ref))) / 100.0;
     select count(*), coalesce(sum(x.amount_fils), 0) into v_succ, v_succ_fils
       from public.refunds x
-     where x.status = 'succeeded' and (x.transaction_id = t.id or (coalesce(t.payment_ref, '') <> '' and x.stripe_payment_intent = t.payment_ref));
+     where x.status = 'succeeded' and (x.transaction_id = t.id or (coalesce(t.payment_ref, '') <> '' and x.stripe_payment_intent = t.payment_ref))
+       and x.reason_code is distinct from 'overcharge_return';
     -- A top-up the playbook issued is not a duplicate: its Stripe id is on the incident fix.
     select count(*) into v_extra
       from public.refunds x
      where x.status = 'succeeded' and (x.transaction_id = t.id or (coalesce(t.payment_ref, '') <> '' and x.stripe_payment_intent = t.payment_ref))
+       and x.reason_code is distinct from 'overcharge_return'
        and not exists (select 1 from public.agent_actions a where a.kind = 'handoff' and a.detail->>'type' = 'incident.fix'
                         and a.evidence->>'stripe_refund_id' = x.stripe_refund_id);
     -- The platform refund the CEO approved, whatever state it reached. An external row Stripe reported
