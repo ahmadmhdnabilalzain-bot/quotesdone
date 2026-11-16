@@ -10,7 +10,7 @@ metadata:
 
 The founder's standing instruction (1 Sep 2026): **"always use as much agents as possible to proceed faster."**
 
-**Capped at 5 at once, with Sonnet for simple tasks** (1 Nov 2026, ledger 1417) — see [[max-five-agents]]. "As many as possible" means up to that cap.
+**Capped at 10 at once, each on the model its task needs** (15 Nov 2026, ledgers 1707 and 1708; it was 5 under ledger 1417) — see [[max-ten-agents]]. "As many as possible" means up to that cap.
 
 **Why:** he wants throughput. Wall-clock speed matters to him, within the cap, because a spent weekly limit stops all work (see [[autonomous-company-is-the-standard]] and the ultracode default). A single-threaded pass through work he could have fanned out reads as slow.
 
