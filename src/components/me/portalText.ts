@@ -79,7 +79,7 @@ export const T = {
     // 27 Oct 2026: a slow or dropped turn is never an error line (ledger 1200); the answer is looked for, then this is said
     asst_late:'Your answer is taking a little longer. It will appear here.',
     asst_not_sent:'Your message did not reach us, so it was not saved. It is back in the box below; please send it again.', asst_saved:'Your question is saved with your sales engineer, but the answer did not reach this chat. Please send it again in a moment; nothing you wrote is lost.',
-    asst_working:'Still working on your answer. It will appear here in a minute or two.',
+    asst_working:'Still working on your answer. It will appear here in a minute or two.', asst_queued:'Our assistant is briefly unavailable. Your question is saved with your sales engineer and the answer will appear here as soon as it is written; you do not need to send it again.',
     asst_still:'Still working on your answer…',
     asst_with_team:'Your sales engineer is reviewing your question. The answer will appear here.',
     // ── request lifecycle ──
@@ -179,7 +179,7 @@ export const T = {
     asst_s1:'ما حالة طلباتي؟', asst_s2:'كم عرض سعر وصلني؟', asst_s3:'ما الخطوة التالية المطلوبة مني؟',
     asst_late:'تستغرق إجابتك وقتًا أطول قليلًا، وستظهر هنا.',
     asst_not_sent:'لم تصلنا رسالتك ولم تُحفظ. أعدناها إلى مربع الكتابة أدناه، يُرجى إرسالها مرة أخرى.', asst_saved:'سؤالك محفوظ لدى مهندس المبيعات، لكن الإجابة لم تصل إلى هذه المحادثة. يُرجى إرساله مرة أخرى بعد قليل، ولم يُفقد شيء مما كتبته.',
-    asst_working:'ما زلنا نعمل على إجابتك، وستظهر هنا خلال دقيقة أو دقيقتين.',
+    asst_working:'ما زلنا نعمل على إجابتك، وستظهر هنا خلال دقيقة أو دقيقتين.', asst_queued:'المساعد غير متاح لدقائق. سؤالك محفوظ لدى مهندس المبيعات، وستظهر الإجابة هنا فور كتابتها، فلا داعي لإرساله مرة أخرى.',
     asst_still:'ما زلتُ أعمل على إجابتك…',
     asst_with_team:'يراجع مهندس المبيعات سؤالك الآن، وستظهر الإجابة هنا.',
     // ── دورة حياة الطلب ──

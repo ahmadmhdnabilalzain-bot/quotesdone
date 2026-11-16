@@ -270,8 +270,11 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
       // the case summary after the reply that was given (runs past the response; never awaited)
       if (reply) recordCaseExchange(defaultDeps(admin, 'sales_engineer'), kase, { theirMessage: message, ourReply: reply,
         subject: caller.kind === 'customer' ? { customer_id: caller.customerId, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : undefined });
-      // the model was up and nothing it wrote passed: this turn is owed the model's answer (the re-ask below)
-      const owed = !reply && a.outage !== true;
+      // NO REPLY IS OWED AN ANSWER, WHATEVER THE CAUSE (16 Nov 2026, scratchpad holes/FAILURES.md item 6): the model was up and
+      // nothing it wrote passed, OR OpenRouter was down. Until today an outage turn was not filed (`&& a.outage !== true`), so the
+      // portal said "saved with your sales engineer" and nobody came back; WhatsApp already queued it (wa_inbound/model_says.ts
+      // holdUnwritten). The re-ask (_shared/reask.ts) gives an outage its attempt back and answers when the model is back.
+      const owed = !reply;
       let logId: number | null = null;
       try {
         const { data: logged } = await admin.from('assistant_logs').insert({ message, reply: reply || null, seat: 'sales_engineer', answered: !!reply, ...(convKey ? { conv_id: convKey } : {}),
@@ -342,7 +345,7 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
               reask: { message: message.slice(0, 4000), own_facts: ownQuote ? 'THEIR OWN REQUESTS AND QUOTES (scoped in SQL to this customer; this IS what you can see of their account):\n' + ownQuote : '',
                 passages: all.slice(0, 12).map((x) => ({ title: x.title, content: String(x.content ?? '').slice(0, 1200), corpus: x.corpus, record_id: x.record_id })),
                 audience: 'customer', lang, channel: 'the signed-in customer portal', problems: (a.problems ?? []).slice(0, 12) } },
-            p_plan: {}, p_subject: subject, p_reason: 'model_up_no_safe_reply', p_dedupe_key: 'portal_unwritten:' + logId });
+            p_plan: {}, p_subject: subject, p_reason: a.outage === true ? 'model_outage' : 'model_up_no_safe_reply', p_dedupe_key: 'portal_unwritten:' + logId });
           held_id = Number(hid) || null;
         } catch { /* unfiled: the 503 below still says no answer; the panel keeps its pending state only when held_id is set */ }
       }
