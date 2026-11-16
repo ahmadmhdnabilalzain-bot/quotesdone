@@ -107,6 +107,13 @@ export function openCaseLines(cases: readonly OpenCase[]): OpenCaseLine[] {
 const renderLines = (lines: readonly OpenCaseLine[]) => lines.map((l) => '- ' + l.ref + (l.line ? ': ' + l.line : '')
   + (l.promises.length ? '\n' + l.promises.map((p) => '    WE PROMISED: ' + p.what + (p.by ? ' (by ' + p.by + ')' : '')).join('\n') : '')).join('\n');
 
+/** MEMORY ACROSS CHANNELS (16 Nov 2026, ledger 1711). A case summary is written from support exchanges; what the customer told
+ *  the sales engineer in the request chat (budget, date, must-haves) never passed through one. It is kept on the request
+ *  itself, and every channel's facts carry it per request (`asked`, `changes_he_sent_after`: fn_customer_inquiry_facts,
+ *  _shared/own_request_facts.ts). The case block says so, so a summary that lacks it is never read as "he never said". */
+export const REQUEST_IS_THE_RECORD = 'What he asked for on each request (his budget, the date, the place, the materials and brands, later changes) is '
+  + 'in his request facts (`asked`, `changes_he_sent_after`), the record of what he told our sales engineer: use them, and never ask again for what they hold.';
+
 /** The block the reply's cached prefix carries: the case number, and its summary; and the person's other open cases. */
 export function caseBlock(m: Pick<CaseMemory, 'ref' | 'summaryText'> & { confirm?: CaseMemory['confirm']; allOpen?: CaseMemory['allOpen'] }): string {
   // SEVERAL RECORDED MATTERS, NONE NAMED (audit WHO_KNOWS_WHAT item 2, 16 Nov 2026): no single case is chosen, but every open
@@ -128,7 +135,7 @@ export function caseBlock(m: Pick<CaseMemory, 'ref' | 'summaryText'> & { confirm
   }
   return `THIS CASE (${m.ref}), as recorded after the last exchange. Work from it: never ask again for what it shows was given, `
     + 'never repeat what it shows we already said, and keep every promise it lists. The last few turns follow as messages.\n'
-    + m.summaryText + tail;
+    + REQUEST_IS_THE_RECORD + '\n' + m.summaryText + tail;
 }
 
 /** True when the reply works from ONE case's summary (and reads only its last CASE_TURNS turns). */

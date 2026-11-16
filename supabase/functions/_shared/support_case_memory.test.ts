@@ -301,3 +301,11 @@ Deno.test('a summary wrapped in a sentence or a fence is read; text holding no o
   const r = await summariseExchange(a.d, { memory: { ref: 'QD-C1001', summaryText: '', version: 2, profile: 7 }, theirMessage: 'hi', ourReply: 'What sizes?' });
   assertEquals([r.ok, wrote], [true, true]);
 });
+
+// 16 Nov 2026 (ledger 1711): the case block points at the request facts, the record of what he told the sales engineer.
+Deno.test('the case block names the request facts as the record of what he asked', async () => {
+  const { REQUEST_IS_THE_RECORD } = await import('./support_case_memory.ts');
+  const b = caseBlock({ ref: 'QD-C1001', summaryText: 'ASKED: status' });
+  assert(b.includes(REQUEST_IS_THE_RECORD) && b.includes('`asked`') && b.includes('`changes_he_sent_after`'));
+  assert(b.indexOf(REQUEST_IS_THE_RECORD) < b.indexOf('ASKED: status'), 'the pointer comes before the summary');
+});

@@ -138,3 +138,15 @@ Deno.test('a signed-in supplier\'s why-no-jobs reaches the widget turn; a custom
   for (const s of ['HVAC (not open to customers yet)', 'all of the UAE', 'None of his trades is open to customers yet', 'Receives requests now: yes']) assert(t.includes(s), `missing "${s}"`);
   assert(!turnFacts({ live: { scope: 'customer', known: true, inquiries: [] }, uiLang: 'en', timeline: [], given: [] }).includes('Why not more'));
 });
+
+// 16 Nov 2026 (ledger 1711): a signed-in customer's record carries the one rule every channel gives the model about his own
+// request, and a sealed quote's own words pass the code generaliser; a supplier's record gets neither.
+Deno.test('a customer is answered from his whole request; a supplier record is unchanged', async () => {
+  const { OWN_REQUEST_RULE } = await import('../_shared/own_request_facts.ts');
+  const cust = { scope: 'customer', known: true, inquiries: [{ ref: 14, asked: { budget_as_he_stated_it: 'AED 5,000 excluding VAT' },
+    quotes: [{ letter: 'A', price_ex_vat_aed: 4600, revealed: false, warranty_as_stated: '2 years Grohe mixer' }] }] };
+  const f = liveFacts(cust, 'en');
+  assert(f.includes(OWN_REQUEST_RULE) && f.includes('AED 5,000 excluding VAT') && f.includes('4600'));
+  assert(!f.includes('Grohe'), 'a sealed quote named its brand');
+  assert(!liveFacts({ scope: 'supplier', known: true, company: 'ZZ DEMO' }, 'en').includes(OWN_REQUEST_RULE));
+});

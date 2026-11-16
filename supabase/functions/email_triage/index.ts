@@ -22,7 +22,7 @@ import { observe } from '../_shared/observe.ts';
 import { drain as drainJudgements } from '../_shared/routine_judgements.ts';
 import { defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
-import { mailFacts, SEPARATE_COMPANY_FACT, withClaimLink } from './account_facts.ts';
+import { mailFacts, SEPARATE_COMPANY_FACT, timelineReplyFacts, withClaimLink } from './account_facts.ts';
 import { mailLoopHeld } from '../_shared/auto_reply_loop.ts';
 import { handPartnershipToCeo } from './partnership.ts';
 import { answerableOnceRead, composeMailReply, declinedRowFields, EXPENSE_MAILBOX, invitationReplyAnswerable, noAutoReply, overDailyAnswerCap, tenantMailAnswerable } from '../_shared/customer_mail.ts';
@@ -366,7 +366,9 @@ Deno.serve(observe('email_triage', async (req) => {
       if (category === 'spam') { counts.spam++; continue; }
       if (reply) counts.drafted++;
       await beat(admin, run?.id, 'message ' + m.id + ' (answer)');
-      const facts0 = await mailFacts(admin, String(m.from_email || ''), relation, (m as { raw?: unknown }).raw);
+      // the account and, under the same spoof rule, the case timeline the classifier read above (account_facts.ts timelineReplyFacts)
+      const facts0 = [await mailFacts(admin, String(m.from_email || ''), relation, (m as { raw?: unknown }).raw),
+        timelineReplyFacts(tlText, relation, (m as { raw?: unknown }).raw)].filter(Boolean).join('\n\n');
       const facts = [facts0, audienceOf(relation) === 'supplier' ? await supplierMailInstruction(m, deps) : ''].filter(Boolean).join('\n\n');
       await reply1(m, audienceOf(relation), reading ? [facts, readingFacts(reading)].filter(Boolean).join('\n\n') : facts, { category, summary });
       // A PARTNERSHIP HAS AN OWNER (OPS_LOOPS, 16 Nov 2026, hole H10): the CEO seat, with the sender's facts (partnership.ts).

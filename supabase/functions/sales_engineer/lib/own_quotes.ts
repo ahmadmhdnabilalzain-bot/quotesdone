@@ -7,25 +7,57 @@ import { admin } from '../context.ts';
 import { ctxOfQuote, generaliseQuoteTerms, generaliseText } from '../../_shared/quote_generalise.ts';
 import { requestOf, reviewNotes } from '../../_shared/quote_review_notes.ts';
 import { itemsByQuote } from '../../_shared/reveal_guard.ts';
+import { quotesBeingChecked } from '../../_shared/quotes_being_checked.ts';
 
 // THE CUSTOMER'S OWN QUOTES, GIVEN TO THE MODEL AS FACTS. Scoped through inquiries to
 // the resolved customer; drafts are never a quote the customer can see. The supplier label is the
 // compare table's letter (_shared/quote_labels.ts: the order the quotes reached the customer) unless a transactions row proves the
 // reveal was paid — the same rule customer_api.letterOf applies, so the chat cannot name a
 // supplier the quote PDF would not.
+// WHAT HE ASKED RIDES WITH EACH REQUEST (16 Nov 2026, ledger 1711). The budget, the date, the place, the materials and brands
+// asked and the notes he sent later are read from the ONE reading every channel gives (fn_customer_inquiry_facts, `asked` and
+// `changes_he_sent_after`), so the portal chat answers "anyone below 5,000?" from the same facts WhatsApp does. A read failure
+// leaves the requests as they were.
+export async function askedByRef(customerId: string): Promise<Map<string, Record<string, unknown>>> {
+  const out = new Map<string, Record<string, unknown>>();
+  try {
+    const { data } = await admin.rpc('fn_customer_inquiry_facts', { p_customer: customerId, p_limit: 15 });
+    for (const r of (Array.isArray(data) ? data : []) as Record<string, unknown>[]) {
+      if (r?.ref == null || !r.asked) continue;
+      out.set(String(r.ref), { asked: r.asked, ...(Array.isArray(r.changes_he_sent_after) && r.changes_he_sent_after.length ? { changes_he_sent_after: r.changes_he_sent_after } : {}) });
+    }
+  } catch { /* the requests go without it */ }
+  return out;
+}
+
 export async function answerFromOwnQuotes(customerId: string, message: string, lang: 'en' | 'ar') {
   try {
+    const pAsked = askedByRef(customerId);
     const { data: inqs } = await admin.from('inquiries').select('id,rfq_no,category,summary,status,spec,boq').eq('customer_id', customerId).order('created_at', { ascending: false }).limit(50);
     const ids = (inqs || []).map((i: { id: string }) => i.id);
     // THE ACCOUNT ITSELF IS A FACT (browser proof, 2 Nov 2026): "what can you see in my account?" was answered "I can't see your
     // account" because only quotes were given, and nothing at all to a customer with a request and no quote yet, or with no request.
     if (!ids.length) return { facts: JSON.stringify({ requests: [], note: 'This customer has posted no request yet.' }) };
-    const [{ data: qs }, { data: tx }] = await Promise.all([
+    const [{ data: qsAll }, { data: tx }] = await Promise.all([
       admin.from('quotes').select('id,inquiry_id,supplier_id,quote_amount,status,exclusions,scope,conditions,warranty,lead_time,payment_terms,validity,notes,committed_items,created_at')
         .in('inquiry_id', ids).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true }).limit(60),
       admin.from('transactions').select('inquiry_id,supplier_id').eq('customer_id', customerId).not('revealed_at', 'is', null),
     ]);
-    if (!qs || !qs.length) return { facts: JSON.stringify({ requests: (inqs || []).slice(0, 15).map((i: { rfq_no: string | null; category: string | null; summary: string | null; status: string | null }) => ({ rfq_no: i.rfq_no, category: i.category, summary: i.summary, status: i.status, quotes_received: 0 })), quotes: [], note: 'No quote has arrived yet on any request.' }).slice(0, 6000) };
+    const asked = await pAsked;
+    // BEING CHECKED (16 Nov 2026, wave C release; REVIEW_CASEFACTS item 7, _shared/quotes_being_checked.ts): while a
+    // customer_matches_supplier flag is open on him, his quotes on the named requests are not given (counted only), unless he
+    // already paid to reveal that quote, exactly as his portal cards hold them. Fails closed: a failed read throws into the catch
+    // below, and no quote facts are given at all.
+    const checking = await quotesBeingChecked(admin, customerId);
+    const paidKeys = new Set((tx || []).map((t: { inquiry_id: string; supplier_id: number }) => t.inquiry_id + ':' + t.supplier_id));
+    const checkedByInq = new Map<string, number>();
+    const qs = (qsAll || []).filter((q: { inquiry_id: string; supplier_id: number }) => {
+      if (!checking.has(String(q.inquiry_id)) || paidKeys.has(q.inquiry_id + ':' + q.supplier_id)) return true;
+      checkedByInq.set(String(q.inquiry_id), (checkedByInq.get(String(q.inquiry_id)) ?? 0) + 1);
+      return false;
+    });
+    const beingChecked = (id: string) => checkedByInq.get(id) ? { quotes_being_checked: checkedByInq.get(id) } : {};
+    if (!qs || !qs.length) return { facts: JSON.stringify({ requests: (inqs || []).slice(0, 15).map((i: { id: string; rfq_no: string | null; category: string | null; summary: string | null; status: string | null }) => ({ rfq_no: i.rfq_no, category: i.category, summary: i.summary, status: i.status, quotes_received: 0, ...beingChecked(i.id), ...(asked.get(String(i.rfq_no)) ?? {}) })), quotes: [], note: checkedByInq.size ? 'No quote can be shown yet: the quotes counted as being checked appear once our team has finished checking them.' : 'No quote has arrived yet on any request.' }).slice(0, 9000) };
     const revealed = new Set((tx || []).map((t: { inquiry_id: string; supplier_id: number }) => t.inquiry_id + ':' + t.supplier_id));
     const revealedIds = [...new Set((qs as Array<{ inquiry_id: string; supplier_id: number }>).filter((q) => revealed.has(q.inquiry_id + ':' + q.supplier_id)).map((q) => q.supplier_id))];
     const names = new Map<number, string>();
@@ -80,7 +112,8 @@ export async function answerFromOwnQuotes(customerId: string, message: string, l
     void lang; void message;
     const shown = quotes.slice(0, 15).map((q) => Object.fromEntries(Object.entries(q).filter(([k, v]) => k !== 'id' && v != null && v !== '')));
     const perInq = new Map<string, number>(); for (const q of qs as Array<{ inquiry_id: string }>) perInq.set(q.inquiry_id, (perInq.get(q.inquiry_id) ?? 0) + 1);
-    const requests = (inqs || []).slice(0, 15).map((i: { id: string; rfq_no: string | null; category: string | null; summary: string | null; status: string | null }) => ({ rfq_no: i.rfq_no, category: i.category, summary: i.summary, status: i.status, quotes_received: perInq.get(i.id) ?? 0 }));
-    return { facts: JSON.stringify({ requests, quotes: shown }).slice(0, 6000) };
+    const requests = (inqs || []).slice(0, 15).map((i: { id: string; rfq_no: string | null; category: string | null; summary: string | null; status: string | null }) => ({ rfq_no: i.rfq_no, category: i.category, summary: i.summary, status: i.status, quotes_received: perInq.get(i.id) ?? 0, ...beingChecked(i.id), ...(asked.get(String(i.rfq_no)) ?? {}) }));
+    // the quotes first: what he asked is read beside them, and a cut must never drop a quote for a request's details
+    return { facts: JSON.stringify({ quotes: shown, requests }).slice(0, 9000) };
   } catch { return null; }   // a read failure falls through to the corpora rather than failing the turn
 }

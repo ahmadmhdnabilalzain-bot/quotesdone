@@ -1,21 +1,37 @@
 // THE SENDER'S OWN ACCOUNT, ON E-MAIL TOO (customer_support, 19 Oct 2026). A registered customer e-mailed about their
 // request and was told we cannot see its status, while the portal and WhatsApp read it. The sender is matched on the
-// EXACT address (fn_mail_sender_known's rule), and only that account's rows are read: its own inquiries, each one's
-// status and quotes count (fn_customer_stats, the portal's own overview read), or for a supplier the jobs sent to it and
-// its OWN quote on each. Never another party's name, contact, price or case text (#1441). Unknown sender: nothing.
+// EXACT address (fn_mail_sender_known's rule), and only that account's rows are read, or for a supplier the jobs sent to it
+// and its OWN quote on each. Never another party's name, contact or case text (#1441). Unknown sender: nothing.
+// 16 Nov 2026 (ledger 1711): a customer's requests are the ONE reading every channel gives (fn_customer_inquiry_facts: what
+// he asked, each quote's letter and price as his portal shows it), with the same rule (_shared/own_request_facts.ts). It read
+// fn_customer_stats before: a status and a count per request, under the request's uuid instead of the number he quotes.
+import { generaliseOwnRequestFacts, OWN_REQUEST_RULE } from '../_shared/own_request_facts.ts';
 // deno-lint-ignore no-explicit-any
 type Db = any;
 
-export interface CustomerInq { id: unknown; category?: string | null; emirate?: string | null; status?: string | null; quotes_count?: number | null; created_at?: string | null }
 export interface SupplierJob { inquiry_id: unknown; category?: string | null; emirate?: string | null; status?: string | null; my_quote_status?: string | null; sent_at?: string | null }
 
 const day = (s?: string | null) => (s ? String(s).slice(0, 10) : '');
 
-export function customerFacts(inqs: CustomerInq[]): string {
-  if (!inqs.length) return 'THE SENDER IS A REGISTERED CUSTOMER (matched on their exact e-mail address). They have no requests yet.';
-  return 'THE SENDER IS A REGISTERED CUSTOMER (matched on their exact e-mail address). Their own requests, newest first '
-    + '(answer about their requests from this; never say you cannot see their status):\n'
-    + inqs.slice(0, 15).map((i) => `- Request #${i.id}: ${i.category || 'request'}${i.emirate ? ' in ' + i.emirate : ''}${i.created_at ? ', posted ' + day(i.created_at) : ''}, status ${i.status || 'unknown'}, ${Number(i.quotes_count || 0)} quote(s) received`).join('\n');
+/** A customer's own requests as fn_customer_inquiry_facts reads them (newest first), with the one rule for answering them. */
+export function customerFacts(requests: unknown[], money: unknown = null): string {
+  const m = moneyCasesFact(money);
+  if (!requests.length) return 'THE SENDER IS A REGISTERED CUSTOMER (matched on their exact e-mail address). They have no requests yet.' + m;
+  return 'THE SENDER IS A REGISTERED CUSTOMER (matched on their exact e-mail address). Their own requests, newest first, each by its '
+    + 'request number (`ref`); answer about their requests from this and never say you cannot see their status:\n'
+    + JSON.stringify(generaliseOwnRequestFacts(requests.slice(0, 10))) + '\n' + OWN_REQUEST_RULE + m;
+}
+
+/** HIS MONEY CASES (wave C release, 16 Nov 2026; fn_customer_money_cases, a_paid_reveal_asks_the_customer_...sql): his open refunds,
+ *  disputes, a message being read and each revealed job's refund ladder, the same reading WhatsApp and the widget carry in
+ *  fn_wa_context. '' when there is none (or the read failed). */
+export function moneyCasesFact(money: unknown): string {
+  const m = money && typeof money === 'object' ? money as Record<string, unknown> : null;
+  if (!m) return '';
+  const lists = ['refunds', 'disputes', 'being_read', 'revealed_jobs'].filter((k) => Array.isArray(m[k]) && (m[k] as unknown[]).length);
+  if (!lists.length) return '';
+  return '\nHIS MONEY CASES (refunds, disputes and revealed jobs, newest first; answer about them from this, never promise an outcome or a date it does not show):\n'
+    + JSON.stringify(Object.fromEntries(lists.map((k) => [k, (m[k] as unknown[]).slice(0, 10)]))).slice(0, 4000);
 }
 
 export function supplierFacts(company: string, jobs: SupplierJob[]): string {
@@ -104,9 +120,13 @@ export async function accountFacts(admin: Db, email: string, relation: unknown):
     if (relation === 'customer') {
       const { data: custs } = await admin.from('customers').select('id').ilike('email', e.replace(/[\\%_]/g, (c) => '\\' + c)).limit(2);
       if (!custs || custs.length !== 1) return '';   // exactly one account, or nothing
-      const { data: stats, error } = await admin.rpc('fn_customer_stats', { p_customer: custs[0].id });
+      const [{ data: facts, error }, money] = await Promise.all([
+        admin.rpc('fn_customer_inquiry_facts', { p_customer: custs[0].id, p_limit: 10 }),
+        // his money cases beside his requests; a failed read adds nothing (never a reason to leave the requests out)
+        Promise.resolve(admin.rpc('fn_customer_money_cases', { p_customer: custs[0].id })).then((x: { data?: unknown; error?: unknown }) => (x?.error ? null : x?.data ?? null), () => null),
+      ]);
       if (error) return '';
-      return customerFacts(((stats as { inquiries?: CustomerInq[] } | null)?.inquiries) || []);
+      return customerFacts(Array.isArray(facts) ? facts : [], money);
     }
     if (relation === 'supplier') {
       const exact = e.replace(/[\\%_]/g, (c) => '\\' + c);
@@ -143,6 +163,14 @@ export const SIGN_IN_FACT = 'THE SENDER\'S E-MAIL COULD NOT BE VERIFIED AS COMIN
   + 'If they ask about their requests, quotes or account, say that for their security they can see the status by signing in to their account on quotesdone.ae.';
 export function senderVerified(raw: unknown): boolean {
   return !!raw && typeof raw === 'object' && (raw as { sender_authenticated?: unknown }).sender_authenticated === true;
+}
+/** THE TIMELINE REACHES THE REPLY (16 Nov 2026, who-knows-what audit gap 4). email_triage read the sender's case timeline
+ *  (fn_contact_timeline: refunds, WhatsApp messages, earlier mails, every seat) and gave it only to the classifier, so "following
+ *  up on what your colleague said on WhatsApp about my refund" was answered blind. The same text now rides in the reply's facts,
+ *  under the same spoof rule as the account: only for a known sender whose From domain was authenticated. */
+export function timelineReplyFacts(tlText: string, relation: unknown, raw: unknown): string {
+  if (relation !== 'customer' && relation !== 'supplier') return '';
+  return senderVerified(raw) ? String(tlText || '').trim() : '';
 }
 /** The facts for this mail: the account when the sender is verified, the sign-in line when a known sender is not. */
 export async function mailFacts(admin: Db, email: string, relation: unknown, raw: unknown): Promise<string> {

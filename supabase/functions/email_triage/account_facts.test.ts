@@ -1,9 +1,13 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { accountFacts, customerFacts, mailFacts, SIGN_IN_FACT, SUPPLIER_SIGN_IN_FACT, supplierFacts } from './account_facts.ts';
+import { accountFacts, customerFacts, mailFacts, SIGN_IN_FACT, SUPPLIER_SIGN_IN_FACT, supplierFacts, timelineReplyFacts } from './account_facts.ts';
 
-Deno.test('customer facts carry each request, its status and quotes count', () => {
-  const t = customerFacts([{ id: 7, category: 'Painting', emirate: 'Dubai', status: 'sent', quotes_count: 2, created_at: '2026-10-18T00:00:00Z' }]);
-  assert(t.includes('Request #7') && t.includes('status sent') && t.includes('2 quote(s)'));
+Deno.test('customer facts carry each request by its number, what he asked, each quote as his portal shows it, and the rule', async () => {
+  const { OWN_REQUEST_RULE } = await import('../_shared/own_request_facts.ts');
+  const t = customerFacts([{ ref: 1043, category: 'Painting', emirate: 'Dubai', status: 'quoted', quotes_received: 2,
+    asked: { budget_as_he_stated_it: 'around 3k' }, quotes: [{ letter: 'A', price_ex_vat_aed: 3400, revealed: false, warranty_as_stated: '1 year Grohe' }] }]);
+  assert(t.includes('"ref":1043') && t.includes('"status":"quoted"') && t.includes('around 3k') && t.includes('3400') && t.includes(OWN_REQUEST_RULE));
+  assert(!t.includes('Grohe'), 'a sealed quote named its brand');
+  assert(customerFacts([]).includes('no requests yet'));
 });
 Deno.test('supplier facts carry only their own quote', () => {
   const t = supplierFacts('ZZ DEMO Co', [{ inquiry_id: 9, status: 'open', my_quote_status: 'submitted' }]);
@@ -19,11 +23,11 @@ Deno.test('an unknown sender, or an address on two accounts, gets no account dat
 
 const custDb = () => { let reads = 0; const db: any = { reads: () => reads,
   from: () => { reads++; const q: any = { select: () => q, ilike: () => q, limit: async () => ({ data: [{ id: 'c1' }] }) }; return q; },
-  rpc: async () => ({ data: { inquiries: [{ id: 'i1', category: 'gypsum', status: 'quoted', quotes_count: 1 }] }, error: null }) }; return db; };
+  rpc: async (fn: string) => ({ data: fn === 'fn_customer_inquiry_facts' ? [{ ref: 'i1', category: 'gypsum', status: 'quoted', quotes_received: 1 }] : null, error: null }) }; return db; };
 
 Deno.test('DMARC/aligned pass: the account is given', async () => {
   const db = custDb(); const t = await mailFacts(db, 'a@example.invalid', 'customer', { sender_authenticated: true });
-  assert(t.includes('Request #i1') && t.includes('status quoted'));
+  assert(t.includes('"ref":"i1"') && t.includes('"status":"quoted"'));
 });
 Deno.test('authentication failed: no account data, no read, sign-in invited', async () => {
   const db = custDb(); const t = await mailFacts(db, 'a@example.invalid', 'customer', { sender_authenticated: false });
@@ -122,4 +126,28 @@ Deno.test('a registered supplier whose reading fails is told nothing about his j
   const db = readingDb({ id: 7, company_name: 'ZZ DEMO Steel', claimed: true }, null);
   const t = await mailFacts(db, 'a@example.invalid', 'supplier', { sender_authenticated: true });
   assert(t.startsWith('THE SENDER IS A REGISTERED SUPPLIER') && t.includes('could not be read') && !/No jobs have been sent/.test(t), t);
+});
+
+// who-knows-what gap 4 (16 Nov 2026): the timeline the classifier reads reaches the reply, under the account's spoof rule
+Deno.test('the case timeline reaches the reply only for an authenticated known sender', async () => {
+  const tl = '\n\nSENDER CASE TIMELINE (newest first): [{"channel":"whatsapp","summary":"refund REF-1 with the CEO"}]';
+  assert(timelineReplyFacts(tl, 'customer', { sender_authenticated: true }).includes('REF-1'));
+  assertEquals(timelineReplyFacts(tl, 'customer', { sender_authenticated: false }), '');
+  assertEquals(timelineReplyFacts(tl, null, { sender_authenticated: true }), '');
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  assert(/timelineReplyFacts\(tlText, relation/.test(src), 'index.ts does not pass the timeline it read into the reply facts');
+});
+
+// wave C release (16 Nov 2026): his money cases (fn_customer_money_cases) ride beside his requests, as on WhatsApp and the widget
+Deno.test('a customer\'s open refund and dispute reach the e-mail facts; none, or a failed read, adds nothing', async () => {
+  const { customerFacts, moneyCasesFact, accountFacts } = await import('./account_facts.ts');
+  const money = { refunds: [{ ref: 'QD-RF-7', status: 'pending', rfq_no: 1042 }], disputes: [], being_read: [], revealed_jobs: [] };
+  const t = customerFacts([{ ref: 1042, status: 'revealed' }], money);
+  assert(t.includes('HIS MONEY CASES') && t.includes('QD-RF-7') && !t.includes('"disputes"'), t);
+  assertEquals(moneyCasesFact({ refunds: [], disputes: [], being_read: [], revealed_jobs: [] }), '');
+  assertEquals(moneyCasesFact(null), '');
+  const db: any = { from: () => { const q: any = { select: () => q, ilike: () => q, limit: async () => ({ data: [{ id: 'c1' }] }) }; return q; },
+    rpc: async (fn: string) => fn === 'fn_customer_money_cases' ? { data: null, error: { message: 'missing' } } : { data: [{ ref: 7, status: 'sent' }], error: null } };
+  const f = await accountFacts(db, 'a@example.invalid', 'customer');
+  assert(f.includes('THE SENDER IS A REGISTERED CUSTOMER') && !f.includes('MONEY CASES'), f);
 });

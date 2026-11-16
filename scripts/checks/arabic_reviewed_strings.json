@@ -635,6 +635,9 @@
   "1390254fa3fe",
   "6795f24f47d7"
  ],
+ "scripts/sql/a_customer_is_answered_from_his_whole_request_on_every_channel.sql": [
+  "25b7fc3026b3"
+ ],
  "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes_probe.sql": [
   "1143523d828f"
  ],
@@ -6267,6 +6270,10 @@
   "c3f2f283e9d8",
   "cb9f8dad80b5"
  ],
+ "supabase/functions/_shared/customer_question_words.ts": [
+  "c8ac66608b8b",
+  "fdaae7674ad1"
+ ],
  "supabase/functions/_shared/customer_questions_building.ts": [
   "01991052310b",
   "03e7b6426bc7",
@@ -7626,7 +7633,6 @@
   "c17eebc065cf",
   "c34787e8098f",
   "c7fe3cb515c1",
-  "c8ac66608b8b",
   "c96bcce23ae5",
   "cc32a408cbbf",
   "cd4b809c7121",
@@ -7653,7 +7659,6 @@
   "f805d8928211",
   "f92337b5352d",
   "faace3c758f7",
-  "fdaae7674ad1",
   "ff353f8d300d",
   "ffd9db164e58"
  ],
@@ -9766,7 +9771,7 @@
   "9a03685e2791"
  ],
  "supabase/functions/site_assistant/turn_facts.ts": [
-  "f412eb02dab3"
+  "42d962cef267"
  ],
  "supabase/functions/site_assistant/visitor_scope.ts": [
   "0b3fc2f067e7",

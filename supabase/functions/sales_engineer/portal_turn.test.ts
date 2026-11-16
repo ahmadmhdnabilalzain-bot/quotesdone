@@ -75,7 +75,8 @@ Deno.test('the portal turn applies the plain-language gate, records the score, a
   // the records reach the facts only through customerSafe (its behaviour is the cases below)
   const at = src.indexOf('const all = await customerSafe((r.records || [])');
   assert(at > 0, 'the retrieved records no longer pass through customerSafe');
-  assert(at < src.indexOf('portalFacts({ facts: ownQuote'), 'customerSafe must run before the facts (and the known figures) are built');
+  // 16 Nov 2026: the facts are a list (his quotes, then his account and timeline: who-knows-what gap 3)
+  assert(at < src.indexOf('portalFacts({ facts: [ownQuote'), 'customerSafe must run before the facts (and the known figures) are built');
 });
 
 // Independent review of #1640, second round (27 Oct 2026): the first fix covered sales_knowledge only, while ops_knowledge
