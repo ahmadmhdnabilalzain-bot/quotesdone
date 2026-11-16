@@ -53,27 +53,5 @@ export async function serviceVocab(admin: Admin): Promise<MeaningService[]> {
     ({ ...s, vec: parseVec(embedding_gte), vec_ml: mlOf.get(`${s.trade_code}.${s.code}`) ?? null }) as MeaningService);
 }
 
-/** Each active trade's English NAME (taxonomy_trade.label; never its aliases), read once per request. It is how
- *  service_meaning.proposeByMeaning corroborates a line that names a trade in general (7 Oct 2026, ledger 1162);
- *  undefined when it could not be read, and meaning then works exactly as without it. */
-// deno-lint-ignore no-explicit-any
-export async function tradeLabelVocab(admin: any): Promise<Record<string, string> | undefined> {
-  const { data, error } = await admin.from('taxonomy_trade').select('code,label').eq('active', true);
-  return error ? undefined : Object.fromEntries((data || []).map((r: { code: string; label: string }) => [r.code, r.label]));
-}
-
-/** Each active trade's own aliases (taxonomy_trade.aliases): what CONFIRMS a meaning hit on a supplier's document
- *  (service_meaning.proposeByMeaning, opts.tradeAliases); never what names a trade. undefined when unread. */
-// deno-lint-ignore no-explicit-any
-export async function tradeAliasVocab(admin: any): Promise<Record<string, string[]> | undefined> {
-  const { data, error } = await admin.from('taxonomy_trade').select('code,aliases').eq('active', true);
-  return error ? undefined : Object.fromEntries((data || []).map((r: { code: string; aliases: string[] | null }) => [r.code, r.aliases || []]));
-}
-
-/** Each active trade's ARABIC name (taxonomy_trade.label_ar), for trade_resolve's exact-name path; undefined when unread. */
-// deno-lint-ignore no-explicit-any
-export async function tradeArNameVocab(admin: any): Promise<Record<string, string> | undefined> {
-  const { data, error } = await admin.from('taxonomy_trade').select('code,label_ar').eq('active', true);
-  return error ? undefined : Object.fromEntries((data || []).filter((r: { label_ar: string | null }) => r.label_ar)
-    .map((r: { code: string; label_ar: string }) => [r.code, r.label_ar]));
-}
+// tradeLabelVocab, tradeAliasVocab and tradeArNameVocab, the trade-name readers proposeByMeaning and trade_resolve's exact-name
+// path took, had no caller left and were removed on 16 Nov 2026 (it_engineer, simplification wave A; ruling 1627).

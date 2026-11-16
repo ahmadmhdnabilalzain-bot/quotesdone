@@ -11,7 +11,8 @@
 // alias (service_aliases.json, taxonomy_trade_service.aliases) was searched for inside the supplier's words, and
 // the inquiry's, word-start anchored: a phrase named a service because one of its words was on a list. That is
 // gone. This module now decides only what is EXACT; what a phrase MEANS is read over the stored service vectors
-// by the caller (supplier_services.servicesRewrite through service_meaning.proposeByMeaning, the supplier's own typed words).
+// by the caller (supplier_services.servicesRewrite, the supplier's own typed words; the code meaning matcher
+// service_meaning.proposeByMeaning was removed on 16 Nov 2026, ruling 1627).
 // An inquiry is no longer read here (11 Nov 2026, rulings 1627 and 1628: its keys are the intake model's). The rules:
 //   1. The text is split into phrases at line breaks, bullets, numbered items, commas (, ،), semicolons
 //      (; ؛), '|' and full stops.
@@ -28,7 +29,7 @@
 //      IS one: fn_norm_trades decides (withExactTrades); a trade is never read from words (ledger 1054).
 // EXACT OR NONE (founder, 14 Sep 2026: "either exact match or no match"): no alias list, no stemmer. A part
 // neither exact nor understood stays the supplier's own words until the sales engineer maps it.
-import { arNorm, termPattern } from './alias_pattern.ts';
+import { arNorm } from './alias_pattern.ts';
 
 export type ServiceTerm = { trade_code: string; code: string; label_en: string; label_ar: string; aliases?: string[] | null };
 export type RewriteItem =
@@ -141,19 +142,8 @@ export function tidy(text: string): string {
   return s.slice(0, PHRASE_LEN).trim();
 }
 
-// THE ALIAS PATTERN, KEPT FOR ONE READER ONLY (29 Sep 2026). Nothing in this module matches aliases any more
-// (decision point 93). service_meaning.proposeByMeaning still uses an alias as the corroborating word for a
-// vector hit whose line holds no head word of the service's name — decision point 92
-// (services.meaning_candidates), pending on its own. A short English alias is a whole word: "ups" must not
-// corroborate UPS systems in "upset", nor "pos" POS terminals in "position".
-const SHORT_ALIAS = 3;
-export function servicePattern(alias: string): RegExp | null {
-  const re = termPattern(alias);
-  if (!re) return null;
-  const a = arNorm(alias).trim();
-  const short = !HAS_AR.test(a) && a.replace(/[^\p{L}\p{N}]/gu, '').length <= SHORT_ALIAS;
-  return new RegExp(short ? re.source + '(?:s)?(?![\\p{L}\\p{N}])' : re.source, 'giu');
-}
+// THE ALIAS PATTERN (servicePattern) was kept for one reader, service_meaning.proposeByMeaning's corroborating word (decision
+// point 92); it was removed with that reader on 16 Nov 2026 (ruling 1627). Nothing matches service aliases in words.
 
 // WHAT A SUPPLY-ONLY COMPANY IS NOT PROPOSED (21 Sep 2026). An importer, wholesaler or stockist sells
 // the goods; it does not install them. A service whose standard name is installation, contracting or

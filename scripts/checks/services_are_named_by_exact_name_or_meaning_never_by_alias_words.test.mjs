@@ -31,10 +31,11 @@ test('no alias index and no word reader of services is left', () => {
     assert.ok(!rw.includes(gone), `service_rewrite.ts: ${gone} is back`);
   }
   assert.match(rw, /export function exactService\(/);
-  // servicePattern survives for one reader only: service_meaning.ts's corroboration (decision point 92).
+  // servicePattern was kept for one reader, service_meaning.ts's corroboration (decision point 92); both were removed with
+  // proposeByMeaning on 16 Nov 2026 (ruling 1627), so no file may define or call an alias pattern of a service again.
   const users = walk(join(ROOT, 'supabase', 'functions')).filter((f) => /servicePattern\(|servicesFromText\(|compileServices\(/.test(code(readFileSync(f, 'utf8'))))
     .map((f) => relative(ROOT, f).replace(/\\/g, '/'));
-  assert.deepEqual(users.sort(), ['supabase/functions/_shared/service_meaning.ts', 'supabase/functions/_shared/service_rewrite.ts'],
+  assert.deepEqual(users.sort(), [],
     'a new caller matches service aliases in words');
   // THE INQUIRY SIDE READS NO WORDS AT ALL (11 Nov 2026, customer_support; founder rulings 1627 and 1628): serviceKeysOf, which read an
   // inquiry's prose by exact names and meaning, is deleted. An inquiry's keys are the intake model's or the customer's choice.
@@ -43,6 +44,21 @@ test('no alias index and no word reader of services is left', () => {
   const callers = walk(join(ROOT, 'supabase', 'functions')).filter((f) => /\bserviceKeysOf\(|\bkeysInTrades\(/.test(code(readFileSync(f, 'utf8'))))
     .map((f) => relative(ROOT, f).replace(/\\/g, '/'));
   assert.deepEqual(callers, [], 'an inquiry is read for service keys by code again');
+});
+
+// THE CODE MEANING MATCHER IS GONE (16 Nov 2026, it_engineer; simplification wave A, DUP item 5; ruling 1627: a service is
+// understood by the model reading the documents, never by code). proposeByMeaning, its candidate / clause / head-word / floor
+// helpers, the second remote-embed client meaning_embed.ts and the three trade vocabulary readers had no runtime caller. What
+// stays in service_meaning.ts is what the stored vectors need: serviceEmbedText / serviceMlText / textSha
+// (scripts/kb/embed_taxonomy_services.mjs) and parseVec / MeaningService (service_vocabulary.serviceVocab).
+test('no code meaning matcher is left: a service is named by the model or by its exact name', () => {
+  assert.ok(!existsSync(join(SHARED, 'meaning_embed.ts')), 'meaning_embed.ts, the second remote-embed client, is back');
+  const m = code(R('supabase/functions/_shared/service_meaning.ts'));
+  for (const gone of ['proposeByMeaning', 'meaningCandidates', 'meaningClauses', 'corroborate', 'headWords', 'MEANING_FLOOR', 'ML_FLOOR', 'MEANING_MAX_LINES']) {
+    assert.ok(!new RegExp(`export (const|function|async function) ${gone}\\b`).test(m), `service_meaning.ts exports ${gone} again`);
+  }
+  const voc = code(R('supabase/functions/_shared/service_vocabulary.ts'));
+  for (const gone of ['tradeLabelVocab', 'tradeAliasVocab', 'tradeArNameVocab']) assert.ok(!voc.includes(gone), `service_vocabulary.ts: ${gone} is back`);
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
