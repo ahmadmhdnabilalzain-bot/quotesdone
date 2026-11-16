@@ -51,3 +51,6 @@ asked once more. Effort and model unchanged. Lessons: an instruction in the user
 system prompt says list everything (41 items, 67 s): change the system prompt; given the whole documents, a part lists beyond itself;
 mapped without a summary, phrases lose their company (H11 hostesses). Low effort is not open: the gateway raises 'low' on a deciding
 class (ruling 1630). Numbers: `docs/reports/supplier-service-profiling-2026-11-12/speed_2026-11-16.md`.
+Round 2 (same day, run 9e8dff91): the reading's main trades were shown to every mapping call and a short set was mapped as one reading.
+Recall came back to 101/105, but the coordinator's gate failed: 28 listed outside the key (gate <= 27) and H01 82 s (gate <= 75 s).
+NOT shipped. A phrase that the part read under another trade keeps that trade (mapping rule 5) even when the right key is shown.
