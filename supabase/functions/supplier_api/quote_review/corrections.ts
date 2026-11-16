@@ -1,5 +1,6 @@
 import { readDelivery, readInstallation, readWarranty } from '../../_shared/line_specs/assess.ts';
 import { readDiscount } from '../../_shared/stated_price.ts';
+import { VAT_GAP_TOLERANCE } from '../../_shared/line_specs/vat.ts';
 import { type BoqRow, type WLine, type Working } from './types.ts';
 import { type Correction } from './reply.ts';
 import { num } from './working.ts';
@@ -70,8 +71,20 @@ export function applyCorrections(w0: Working, cs: Correction[], boq: BoqRow[] = 
       case 'validity': w.validity = c.value; log('validity', c.value); break;
       case 'lead_time': w.lead_time = c.value; w.terms_spec = { ...w.terms_spec, delivery: { value: c.value, source: 'supplier_portal' } }; log('lead_time', c.value); break;
       case 'warranty': w.warranty = c.value; log('warranty', c.value); break;
-      case 'vat_treatment': w.vat_treatment = c.value; if (c.value !== 'inclusive') w.price_ex_vat = c.value === 'not_registered' || c.value === 'exclusive' ? (w.amount ?? w.price_ex_vat) : w.price_ex_vat; log('vat_treatment', c.value); break;
-      case 'price_ex_vat': w.price_ex_vat = c.value; w.vat_treatment = 'confirmed_on_portal'; log('price_ex_vat', String(c.value)); break;
+      // HIS ANSWER STANDS IN THE CHAT EXACTLY AS AT THE HOLD DESK (ruling 1207; independent review of 15 Nov 2026). The chat
+      // set the basis but never recorded that he had answered, so a total exactly his lines plus 5% re-raised the VAT question
+      // after every "before VAT" (vat.ts basis_conflict) and nothing he said in the chat could clear it. Now a basis or an
+      // ex-VAT figure he states here is his answer (w.vat_answered, as submit_review.ts withDeskAnswers records the desk's),
+      // and "including VAT" drops an ex-VAT figure that IS the total (an earlier "before VAT" set it so), so the total less
+      // the 5% is read again instead of the stale price surviving.
+      case 'vat_treatment': {
+        w.vat_treatment = c.value;
+        if (c.value === 'inclusive') { if (w.price_ex_vat != null && w.amount != null && Math.abs(Number(w.price_ex_vat) - Number(w.amount)) <= VAT_GAP_TOLERANCE) w.price_ex_vat = null; }
+        else w.price_ex_vat = c.value === 'not_registered' || c.value === 'exclusive' ? (w.amount ?? w.price_ex_vat) : w.price_ex_vat;
+        w.vat_answered = c.value;
+        log('vat_treatment', c.value); break;
+      }
+      case 'price_ex_vat': w.price_ex_vat = c.value; w.vat_treatment = 'confirmed_on_portal'; w.vat_answered = 'exclusive'; log('price_ex_vat', String(c.value)); break;
       case 'warranty_terms': {
         const prior = w.terms_spec.warranty ?? null; const read = readWarranty(w.warranty);
         const period = c.period ?? prior?.period ?? read.period ?? null;
@@ -153,6 +166,8 @@ export function carryOver(prev: Working | null, next: Working, boq: BoqRow[] = [
     w.vat_treatment = prev.vat_treatment;
     if (prev.vat_treatment === 'exclusive' || prev.vat_treatment === 'not_registered') w.price_ex_vat = w.amount ?? w.price_ex_vat;
     else if (prev.price_ex_vat != null && prev.amount === w.amount) w.price_ex_vat = prev.price_ex_vat;
+    // the basis carried is his answer, so his having answered it is carried with it (ruling 1207)
+    if (prev.vat_answered) w.vat_answered = prev.vat_answered;
     log('vat_treatment', String(prev.vat_treatment));
   }
   if (w.foreign_currency && !prev.foreign_currency && prev.corrections.some((c) => c.field === 'currency')) { w.foreign_currency = null; log('currency', 'AED'); }

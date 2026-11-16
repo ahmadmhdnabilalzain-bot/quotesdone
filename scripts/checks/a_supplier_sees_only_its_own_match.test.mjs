@@ -135,7 +135,10 @@ test('SP-F-02: the dry run reports the review instead of pretending it would be 
 
 test('SP-F-02: what the supplier explained comes from the stored review, never from the request', () => {
   const a = action('submit_quote');
-  assert.match(a, /withResolved\([\s\S]{0,400}resolvedFrom\(reviewRow\?\.working\)\)/, 'the explanations are the engineer\'s record');
+  // 15 Nov 2026 (accountant): the record is read once (resolved0) and the desk's carried VAT answer added to it; both are never the caller's.
+  assert.match(a, /const resolved0 = resolvedFrom\(reviewRow\?\.working\);[\s\S]{0,200}const resolved = \{ \.\.\.resolved0, vat_answered: carry\.vat_answered \?\? resolved0\.vat_answered \?\? null \};/, 'the explanations are the engineer\'s record');
+  assert.match(a, /withResolved\([\s\S]{0,400}resolved\), 'review:'/, 'the review reads them');
+  assert.doesNotMatch(a, /body\.vat_answered/, 'a caller must not be able to declare its own VAT answer');
   assert.doesNotMatch(a, /body\.boq_excluded|body\.qty_explained/, 'a caller must not be able to declare its own BOQ lines excluded');
   const m = code(read('supabase', 'functions', 'supplier_api', 'submit_review.ts'));
   assert.match(m, /boq_excluded: \{\}, qty_explained: \{\}, corrections: \[\]/, 'the builder never reads them off the body');

@@ -30,6 +30,10 @@ export function tmplKey(type:string):string|null{
   // 23 Sep 2026 (instruction 858): the 3-working-day portfolio reminder is a notice about the supplier's
   // own account too. {{1}} is its subject, {{2}} the portal, which opens on the Services tab.
   if(t==='supplier_portfolio_incomplete') return 'supplier_account_notice';
+  // 15 Nov 2026 (sales_engineer): the sales engineer has a question about a quotation the supplier already submitted (the
+  // comparison's open points, scripts/sql/the_comparison_hands_its_open_points_to_the_sales_engineer.sql). A notice about his
+  // own quote, like the hold above: {{1}} is its subject, {{2}} the portal, where the conversation holds the points.
+  if(t==='quote_comparison_points') return 'supplier_account_notice';
   // 24 Sep 2026 (sales_engineer): the approval notice, twinned from its email to the confirmed number.
   // {{1}} is its subject ("You are verified on QuotesDone: please confirm your categories"), {{2}} the portal.
   if(t==='supplier_approved') return 'supplier_account_notice';

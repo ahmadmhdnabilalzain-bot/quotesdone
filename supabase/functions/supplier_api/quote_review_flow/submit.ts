@@ -3,6 +3,7 @@ import { fromMissing, issueKey, parseQty, reviewQuotation, submittedSaid, type L
 import { type Attachment, type Ctx, type Fail, type Json, type ReviewDeps, type ReviewRepo, type ReviewRow, type ReviewState, type ThreadView, fail } from './types.ts';
 import { effectiveState, isFail, load, say, view, writableOr } from './thread_view.ts';
 import { runReview } from './upload.ts';
+import { POINT_CODE } from '../../_shared/comparison_points.ts';
 
 export async function submit(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquiryId: string): Promise<ThreadView | Fail> {
   const l = await load(repo, deps, ctx, inquiryId); if (isFail(l)) return l;
@@ -72,7 +73,8 @@ async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: 
       ar: `${base.ar}\n\n${heldOpts.map((o) => `الخيار ${o.option_no}`).join('، ')} ما زال معلّقًا إلى حين استكمال التفاصيل الدقيقة التالية — يُرجى استكمالها في بطاقة العرض المعلّق ضمن هذا الطلب، ويُرسل إلى العميل فور تأكيدكم:\n\n${heldIssues.map((x, i) => `${i + 1}. ${x.ar}`).join('\n')}`,
     } : base;
     const sm = await say(repo, deps, r.id, 'submitted', said, { attachments: atts, issues: heldIssues.length ? heldIssues : undefined });
-    const left = (await repo.requests(r.id, true)).map((x) => x.id);
+    // a comparison point stays open through a submission: only his answer closes it (final review FIX 1 iii)
+    const left = (await repo.requests(r.id, true)).filter((x) => x.code !== POINT_CODE).map((x) => x.id);
     if (left.length) await repo.closeRequests(left, 'answered', sm.id);
     await repo.updateReview(r.id, { status: 'submitted', submitted_quote_ids: ids, completed_at: deps.now().toISOString(), reviewing_since: null });
     await repo.log({ signal: 'quote_review_submitted', inquiry_id: inq.id, quotes: ids.length, generated: generated ? 1 : 0 }, `Submitted the approved quotation for job ${inq.job_no} through submit_quote (${ids.length} quote row(s))${generated ? '; the standardised quotation was generated' : ''}.`);

@@ -90,7 +90,8 @@ Deno.test('an optional detail one supplier states and another does not is option
   assertEquals(eb.cells.map((c) => [c.flag, c.marker]), [['stated', ''], ['optional_not_stated', '○']]);
   const r = rendererView(t, 'en');
   const view = r.lines[0].attributes.find((a) => a.key === 'edge_band')!;
-  assertEquals([view.values['Supplier A'].flag, view.values['Supplier B'].flag], ['match', 'optional']);
+  // A value stated with nothing in the request to match is 'stated', never 'match' (journey A, 15 Nov 2026: "All 30 match").
+  assertEquals([view.values['Supplier A'].flag, view.values['Supplier B'].flag], ['stated', 'optional']);
 });
 
 Deno.test('the renderer view is exactly the shape PR #611\'s comparison report reads', () => {
