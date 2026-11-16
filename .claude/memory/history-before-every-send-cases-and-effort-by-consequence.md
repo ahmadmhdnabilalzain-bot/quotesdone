@@ -64,3 +64,12 @@ Report: docs/reports/2026-11-11-history-and-effort.md (it_engineer, branch it_en
   handoffs need the `a01`/`a02`/`z61` agent_actions triggers and `fn_handoff_summary`, or the note check refuses them.
 - **Load-test rows without an e2e_run_tag.** The chat-under-load run of 11 Nov wrote 1,971 assistant_logs rows with
   user_agent `node` and no tag. Exclude them by user agent when measuring.
+- **An empty case record is not a broken writer (16 Nov 2026, it_engineer, audit WHO_KNOWS_WHAT item 2).** Production held 30
+  cases, 0 summaries, 0 promises. Measured: 16 of the 30 are demo (15 fixture numbers); every real reply predates the writer
+  (last 10 Nov); since 11 Nov no identified person was answered on any case door (0 WhatsApp turns, 0 mails replied, widget
+  anonymous only). All 29 `case_summary` calls ever were e2e-tagged audit runs, whose 91 versions and 23 promises went with
+  their demo cases (fn_demo_support_case_purge). Before calling the writer broken, count real answered exchanges since it shipped.
+  - Branch `it_engineer-every-support-case-keeps-its-summary-and-promises`: every open case of the person (one line + open
+    promises, newest first, 5 cases / 8 promises) reaches the reply, also with several recorded matters and none named
+    (was: no case at all); fn_support_open_cases returns each case's open ledger rows
+    (every_open_case_of_a_person_reaches_the_reply_with_its_open_promises.sql); a summary wrapped in prose is read (summaryJson).

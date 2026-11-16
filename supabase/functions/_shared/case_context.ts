@@ -19,7 +19,7 @@
 // A caller with no identity (an anonymous website visitor) gets the pass-through: no read, no decision, no case.
 // Every failure is the pass-through too: a turn never waits more than CASE_READ_MS for its case and never fails on one.
 // prevented by: _shared/case_context.test.ts
-import { caseBlock, CASE_TURNS, readCase, settleExchange, type CaseMemory } from './support_case_memory.ts';
+import { caseBlock, CASE_TURNS, hasCaseBlock, readCase, settleExchange, worksFromOneCase, type CaseMemory } from './support_case_memory.ts';
 import type { ThinkDeps } from './think.ts';
 import { MESSAGE_CAP } from './inquiry_state.ts';
 
@@ -81,9 +81,16 @@ export async function loadCaseContext<T>(deps: ThinkDeps, o: CaseRead<T>): Promi
   } catch (_e) { memory = null; } finally { clearTimeout(timer); }
   if (!memory) return passThrough(o, null, after);
   // the same rule aiReply applies (ai_reply.ts withCase): only a case that already has a summary replaces the transcript
-  const withCase = !!(memory.ref && memory.summaryText.trim());
-  if (!withCase) return passThrough(o, memory, after);
+  const withCase = worksFromOneCase(memory);
   const sys = o.sys ?? '';
+  // SEVERAL RECORDED MATTERS, NONE NAMED (audit WHO_KNOWS_WHAT item 2, 16 Nov 2026): no case replaces the transcript, but every
+  // open case's line and open promises are appended, so the reply keeps a promise made on any of them
+  if (!withCase && hasCaseBlock(memory)) {
+    const block = caseBlock(memory);
+    return { ...passThrough(o, memory, after), sys: sys + (sys ? '\n\n' : '') + block, reply: { caseMemory: memory },
+      context: { case: { case_ref: (memory.allOpen ?? []).map((l) => l.ref).join(', '), summary: block } } };
+  }
+  if (!withCase) return passThrough(o, memory, after);
   return {
     memory, seat: o.seat, withCase,
     sys: sys + (sys ? '\n\n' : '') + caseBlock(memory),

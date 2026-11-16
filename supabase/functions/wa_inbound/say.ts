@@ -20,6 +20,7 @@ import { admin, itFinding, sec } from './shared.ts';
 import { onDelivered, sendWa } from './replies.ts';
 import type { WaTurn } from './turn.ts';
 import { recordWaExchange, startWaCase, waCaseMemory } from './case_memory.ts';
+import { hasCaseBlock, worksFromOneCase } from '../_shared/support_case_memory.ts';
 import { armWaHolding } from './holding.ts';
 
 /** The key on the number's state (inquiry_state.asked) that records the trade-not-open sentence was said. ONE mark per
@@ -146,10 +147,11 @@ export function makeSay(t: WaTurn): void {
     // lane does not read it (a status ask is about now); every lane's reply is recorded on the case after it is adopted.
     const caseMem = lane ? null : await waCaseMemory(t, aud);
     const said = await modelSays(defaultDeps(admin, 'wa_inbound'), { audience: aud, lang, message: Body.slice(0, 1500), situation,
-      ...(caseMem?.summaryText ? { caseMemory: caseMem } : {}),
+      // one case with a summary, or several open cases with their promises (support_case_memory.ts hasCaseBlock)
+      ...(hasCaseBlock(caseMem) ? { caseMemory: caseMem } : {}),
       // with no case summary the reply reads the conversation, at most the estate's 100-message cap (inquiry_state.ts MESSAGE_CAP;
       // review round 2: it was the 500-row history read, so one long chat made every reply slow and expensive)
-      conversation: lane ? conv.slice(-STATUS_HISTORY_TURNS) : caseMem?.summaryText ? conv : conv.slice(-MESSAGE_CAP), forbidden: await t.forbidden,
+      conversation: lane ? conv.slice(-STATUS_HISTORY_TURNS) : worksFromOneCase(caseMem) ? conv : conv.slice(-MESSAGE_CAP), forbidden: await t.forbidden,
       ...(lane ? { taskClass: STATUS_CLASS, briefInPrompt: false, laneRules: STATUS_RULES, effort: STATUS_EFFORT } : {}),
       budgetMs: budgetLeft(Date.parse(receivedAt)),   // 45 s from ARRIVAL, not from this call
       // the per-number ceiling (20/hour) the old prompt path had. A speculative draft (signal given) has its OWN bucket, so drafts

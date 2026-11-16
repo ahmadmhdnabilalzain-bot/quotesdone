@@ -1,6 +1,6 @@
 // Ruling 1635: every conversation is a case; a reply works from the case summary; a summary records only what we said.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { caseBlock, CASE_TURNS, checkSummary, chooseCase, decideAfterReply, namedCase, readCase, renderSummary, settleExchange, summariseExchange, type OpenCase } from './support_case_memory.ts';
+import { caseBlock, CASE_TURNS, checkSummary, chooseCase, decideAfterReply, namedCase, OPEN_CASES_SHOWN, OPEN_PROMISES_SHOWN, openCaseLines, readCase, renderSummary, settleExchange, summariseExchange, summaryJson, type OpenCase } from './support_case_memory.ts';
 import { aiReply } from './ai_reply.ts';
 import type { LlmReply, ThinkDeps } from './think.ts';
 
@@ -72,9 +72,13 @@ Deno.test('before the SQL is applied (or a read fails) there is no case memory, 
   assertEquals(await readCase(a.d, { message: 'hi', audience: 'customer', phone: '+971500000001' }), null);
   const b = deps({ rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [invoice, windows] }, error: null } : null });
   const r = await readCase(b.d, { message: 'about QD-C1001', audience: 'customer', phone: '+971500000001' });
-  assertEquals(r?.memory, { ref: 'QD-C1001', summaryText: windows.summary_text!, version: 2, profile: 7 }, 'the case the message names');
-  // review of 12 Nov 2026: two recorded matters and none named: no single case (the newest is not the matter the message is about)
-  assertEquals((await readCase(b.d, { message: 'any news?', audience: 'customer', phone: '+971500000001' }))?.memory, null, 'not the wrong case');
+  const { allOpen: beside, ...chosen } = r!.memory!;
+  assertEquals(chosen, { ref: 'QD-C1001', summaryText: windows.summary_text!, version: 2, profile: 7 }, 'the case the message names');
+  assertEquals(beside?.map((l) => l.ref), ['QD-C1002', 'QD-C1001'], 'and the other open case rides beside it');
+  // review of 12 Nov 2026: two recorded matters and none named: no single case (the newest is not the matter the message is about);
+  // audit of 16 Nov: but every open case is handed over (ref '', allOpen), never nothing
+  const none = (await readCase(b.d, { message: 'any news?', audience: 'customer', phone: '+971500000001' }))?.memory;
+  assertEquals([none?.ref, none?.summaryText, none?.allOpen?.map((l) => l.ref)], ['', '', ['QD-C1002', 'QD-C1001']], 'not the wrong case, and not blind');
   const one = deps({ rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [{ ...invoice, summary_text: null, summary_version: 0 }, windows] }, error: null } : null });
   assertEquals((await readCase(one.d, { message: 'any news?', audience: 'customer', phone: '+971500000001' }))?.memory?.ref, 'QD-C1002', 'one recorded matter at most: the newest open case');
   assertEquals(b.calls.filter((c) => c.o).length, 0, 'no model before the reply');
@@ -236,4 +240,64 @@ Deno.test('a promise with a date is kept even when it also says right away, if o
     { what: 'call the supplier right away and update you by 6 pm', by: null }, { what: 'come back to you by Sunday if they agree', by: null },
     { what: 'سنرسل لكم التقرير غدًا', by: null }, { what: 'answer it straight away', by: null }, { what: 'ننبهكم فور وصول كل عرض', by: null }] }, { ourReply: reply });
   assertEquals(s?.promised.map((p) => p.what), ['call the supplier right away and update you by 6 pm', 'come back to you by Sunday if they agree', 'سنرسل لكم التقرير غدًا']);
+});
+
+// AUDIT WHO_KNOWS_WHAT item 2 (16 Nov 2026). "Support promised on WhatsApp an update by Thursday" must reach every reply, also when
+// the person has more than one open case. Before this change readCase handed no case at all in that situation (line 195), and the
+// block carried only the chosen case: every assertion on QD-C1002's promise below failed on origin/main 55489dde7.
+Deno.test('every open case of the person reaches the reply with its open promises, newest first and capped', async () => {
+  const promised: OpenCase = { ...invoice, summary_text: 'ASKED: a copy of the reveal invoice\nWE PROMISED:\n- send the invoice again (by Thursday)', summary_version: 2 };
+  const ledger: OpenCase = { ...windows, promises: [{ what: 'an update on the window quotes', due_text: 'tomorrow', due_at: '2026-11-17T14:00:00Z', owner_seat: 'customer_support' }] };
+  const b = deps({ rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [promised, ledger] }, error: null } : null });
+  const none = (await readCase(b.d, { message: 'any news?', audience: 'customer', phone: '+971500000001' }))!.memory!;
+  const block = caseBlock(none);
+  assert(block.startsWith('THIS PERSON HAS 2 OPEN CASES'), block);
+  assert(block.includes('QD-C1002: Reveal invoice: a copy of the reveal invoice\n    WE PROMISED: send the invoice again (by Thursday)'), block);
+  assert(block.includes('WE PROMISED: an update on the window quotes (by tomorrow)'), 'the ledger row wins over the summary text');
+  assert(block.indexOf('QD-C1002') < block.indexOf('QD-C1001'), 'newest first');
+  // a case the message names: its summary, and the OTHER case's promise beside it
+  const named = (await readCase(b.d, { message: 'about QD-C1001', audience: 'customer', phone: '+971500000001' }))!.memory!;
+  const one = caseBlock(named);
+  assert(one.startsWith('THIS CASE (QD-C1001)'), one);
+  assert(one.includes('THEIR OTHER OPEN CASES') && one.includes('send the invoice again (by Thursday)'), one);
+  assert(!/THEIR OTHER OPEN CASES[\s\S]*QD-C1001/.test(one), 'the chosen case is not listed again among the others');
+  // capped: at most OPEN_CASES_SHOWN cases and OPEN_PROMISES_SHOWN promises in all
+  const many: OpenCase[] = Array.from({ length: 7 }, (_, i) => ({ case_ref: 'QD-C20' + i, title: 'matter ' + i, summary_text: 'ASKED: x', summary_version: 1,
+    promises: [1, 2, 3].map((n) => ({ what: 'promise ' + i + '.' + n, due_text: null })) }));
+  const lines = openCaseLines(many);
+  assertEquals(lines.length, OPEN_CASES_SHOWN);
+  assertEquals(lines.reduce((n, l) => n + l.promises.length, 0), OPEN_PROMISES_SHOWN);
+  // one case alone, nothing else open: the block is exactly as before (no OTHER section)
+  const alone = deps({ rpc: (fn) => fn === 'fn_support_open_cases' ? { data: { profile: 7, cases: [windows] }, error: null } : null });
+  const m = (await readCase(alone.d, { message: 'hi', audience: 'customer', phone: '+971500000001' }))!.memory!;
+  assertEquals(m.allOpen, undefined);
+  assertEquals(caseBlock(m), caseBlock({ ref: 'QD-C1001', summaryText: windows.summary_text! }));
+});
+
+Deno.test('several open cases reach an aiReply: the block is in the system prompt and the whole conversation is kept', async () => {
+  const conversation = Array.from({ length: 20 }, (_, i) => ({ role: i % 2 ? 'seat' as const : 'customer' as const, text: 'turn ' + i }));
+  const seen: { system: string; o: Record<string, unknown> }[] = [];
+  const d = {
+    rpc: (fn: string) => Promise.resolve({ data: fn === 'fn_company_context' ? { block: 'REVEAL FEE: 3%.' } : fn === 'fn_ai_route' ? { model: 'openai/gpt-6-luna-pro' } : null, error: null }),
+    llm: (_p: string, system: string, _i: string, o: Record<string, unknown>) => { seen.push({ system, o }); return Promise.resolve({ content: JSON.stringify({ answer: 'Yes, by Thursday.', escalate: false }), model: 'openai/gpt-6-luna-pro' } as LlmReply); },
+  } as unknown as ThinkDeps;
+  const allOpen = openCaseLines([{ ...invoice, summary_text: 'ASKED: invoice\nWE PROMISED:\n- send the invoice again (by Thursday)' }, windows]);
+  await aiReply(d, { seat: 'customer_support', channel: 'WhatsApp', audience: 'customer', lang: 'en', message: 'any news?', conversation,
+    caseMemory: { ref: '', summaryText: '', allOpen } } as never);
+  assert(seen[0].system.includes('THIS PERSON HAS 2 OPEN CASES') && seen[0].system.includes('send the invoice again (by Thursday)'), 'the promise is in the prompt');
+  assertEquals((seen[0].o.history as unknown[]).length, 20, 'no single case: the whole conversation');
+});
+
+// The one support_case:summary_not_written finding on production (12 Nov 2026 05:42 UTC, audit run, reason 'not json'): a summary
+// that is not bare JSON was thrown away. A sentence or a fence around the object is read; text with no object is still refused.
+Deno.test('a summary wrapped in a sentence or a fence is read; text holding no object is still not json', async () => {
+  const obj = { title: 'Windows quote', asked: 'a quote', said_or_did: 'asked sizes', promised: [], open: ['sizes'] };
+  assertEquals(summaryJson('Here is the updated case summary:\n' + JSON.stringify(obj) + '\nLet me know.'), obj);
+  assertEquals(summaryJson('```json\n' + JSON.stringify(obj) + '\n```'), obj);
+  assertEquals(summaryJson('I cannot summarise this.'), null);
+  assertEquals(summaryJson('[1,2]'), null);
+  let wrote = false;
+  const a = deps({ content: 'Updated summary:\n' + JSON.stringify(obj), rpc: (fn) => { if (fn === 'fn_support_case_summary_write') { wrote = true; return { data: { ok: true }, error: null }; } } });
+  const r = await summariseExchange(a.d, { memory: { ref: 'QD-C1001', summaryText: '', version: 2, profile: 7 }, theirMessage: 'hi', ourReply: 'What sizes?' });
+  assertEquals([r.ok, wrote], [true, true]);
 });
