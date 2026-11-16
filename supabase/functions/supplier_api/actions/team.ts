@@ -12,7 +12,10 @@ import { type ActionCtx, J, admin } from '../context.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 export const TEAM_ACTIONS = ['team', 'invitation', 'member_invite', 'member_accept', 'member_remove', 'member_phone_code', 'transfer_start',
-  'transfer_confirm', 'close_account', 'reopen_account', 'account_closure', 'customer_not_answering'] as const;
+  'transfer_confirm', 'close_account', 'reopen_account', 'account_closure', 'customer_not_answering',
+  // W3_PEOPLE 16 Nov 2026 (wave-3 items 2 and 4): the company's referral link; a member whose owner left, and the owner keeping it
+  'referral_link', 'ownership_claim', 'ownership_claim_object'] as const;
+const LIVE_CLAIM = new Set(['open', 'waiting_claimant', 'approved_waiting']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const s = (v: unknown, n = 300) => String(v ?? '').trim().slice(0, n);
 
@@ -36,7 +39,19 @@ export async function teamAction(db: Admin, i: TeamInput): Promise<[number, Reco
   }
   if (!co) return [400, { ok: false, code: 'no_company', error: 'claim your company first' }];
   const lead = co.lead_id;
-  if (action === 'team') return [200, { ok: true, me: { role: co.role, email: signedIn }, ...(await rpc('fn_supplier_team', { p_lead: lead })) }];
+  if (action === 'team') {
+    // a waiting claim on the company (a member says the owner left): the owner sees it with "Keep ownership", the member its state
+    const claim = await Promise.resolve(db.from('supplier_ownership_claim').select('id,state,claimant_email,effective_at,opened_at').eq('lead_id', lead)
+      .order('id', { ascending: false }).limit(1).maybeSingle()).then((r: { data?: { state?: string } | null }) => (r?.data && LIVE_CLAIM.has(String(r.data.state)) ? r.data : null), () => null);
+    return [200, { ok: true, me: { role: co.role, email: signedIn }, ...(await rpc('fn_supplier_team', { p_lead: lead })), claim }];
+  }
+  // HIS COMPANY'S OWN REFERRAL LINK (SUPPLIER #11): he sends it; we write to nobody. Approved companies only (the routine says so).
+  if (action === 'referral_link') return [200, await rpc('fn_supplier_referral_link', { p_lead: lead })];
+  // OUR OWNER HAS LEFT (wave-3 item 4): the member asks in his own name; the sales engineer decides; the owner keeps three days
+  if (action === 'ownership_claim') {
+    return answer(await rpc('fn_supplier_ownership_claim_open', { p_lead: lead, p_actor: signedIn, p_reason: s(body.reason, 1500), p_channel: 'portal' }));
+  }
+  if (action === 'ownership_claim_object') return answer(await rpc('fn_supplier_ownership_claim_object', { p_lead: lead, p_actor: signedIn }));
   if (action === 'member_invite') {
     return answer(await rpc('fn_supplier_member_invite', { p_lead: lead, p_actor: signedIn, p_email: s(body.email, 200), p_role: s(body.role, 20),
       p_name: s(body.name, 120), p_phone: body.phone ? s(body.phone, 30) : null }));

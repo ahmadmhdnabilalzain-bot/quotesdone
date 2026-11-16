@@ -107,7 +107,13 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
     fault: { channel: 'email', caseKey: await caseKeyOf('email', String(m.from_email || '') + ':' + String(m.subject || '').replace(/^(re|fwd?):\s*/gi, '').slice(0, 120)),
              email: String(m.from_email || '') || null, lang, audience, conversation: [],
              // the sender's fault goes onto their case too, so WhatsApp and the widget see it (ledgers 1711-1713)
-             person: { email: String(m.from_email || '') || null } } });
+             person: { email: String(m.from_email || '') || null } },
+    // AN ATTEMPT TO INSTRUCT THE ASSISTANT IS KEPT ON THE SENDER (injection_attempt.ts, 16 Nov 2026): read in the same call. A From
+    // the receiving server did not authenticate could be anyone's, so it is counted under a hash of the address, never on a person.
+    attempt: { channel: 'email', messageRef: 'email:' + m.id,
+               sender: (m.raw as { sender_authenticated?: unknown } | null)?.sender_authenticated === true
+                 ? { email: String(m.from_email || '') || null, leadId: m.lead_id ?? null }
+                 : { visitor: await caseKeyOf('email', 'unauthenticated:' + String(m.from_email || '').trim().toLowerCase()) } } });
   // EVERY E-MAIL REPLY IS WRITTEN BY A MODEL (rulings 1195/1196, 12 Oct 2026): the reasoned, independently checked answer
   // when it agrees; otherwise a direct model reply from the company brief (aiReply). The quoted knowledge passage, the
   // person-handoff sentence and the "we received it" receipt are gone. No model at all: nothing is sent (it throws, and

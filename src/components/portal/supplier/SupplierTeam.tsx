@@ -6,11 +6,15 @@
 // close the account: he chooses whether his quotations with customers are withdrawn or kept, is told what the law keeps and until
 // when, and confirms; he can reopen it. English only: everything the platform writes to a supplier is English.
 // Every press is one supplier_api action (actions/team.ts) and every refusal is the server's own sentence.
+// 16 Nov 2026 (W3_PEOPLE; wave-3 items 2 and 4): every member can show the company's own referral link (he sends it, we write to
+// nobody); a member whose owner has LEFT can ask to take the company over (the sales engineer decides; the owner is told and keeps
+// three days), and the owner sees that ask with "Keep ownership".
 import React, { useEffect, useState } from 'react';
 import { call } from './api';
 
 type Member = { email: string; name: string; role: 'estimator' | 'viewer'; status: string; phone_tail?: string; phone_confirmed?: boolean };
-type Team = { me: { role: 'owner' | 'estimator' | 'viewer'; email: string }; owner: { email: string; company_name: string | null }; members: Member[]; transfer: { to_email: string } | null };
+type Claim = { id: number; state: 'open' | 'waiting_claimant' | 'approved_waiting'; claimant_email: string; effective_at: string | null };
+type Team = { me: { role: 'owner' | 'estimator' | 'viewer'; email: string }; owner: { email: string; company_name: string | null }; members: Member[]; transfer: { to_email: string } | null; claim?: Claim | null };
 type Law = { kept_until?: string; kept?: string[]; law?: string; legal_hold?: boolean };
 
 const btn = 'min-h-11 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50';
@@ -25,6 +29,7 @@ export default function SupplierTeam({ token }: { token?: string | null }) {
   const [code, setCode] = useState(''); const [phoneCode, setPhoneCode] = useState<{ code: string; tail: string } | null>(null);
   const [closeQ, setCloseQ] = useState<'withdraw' | 'keep'>('withdraw'); const [reason, setReason] = useState('');
   const [proposal, setProposal] = useState<{ live: number; law: Law } | null>(null); const [closed, setClosed] = useState(false);
+  const [ownerLeft, setOwnerLeft] = useState(''); const [refLink, setRefLink] = useState<{ url?: string; why?: string } | null>(null);
 
   const load = async () => {
     const j = await call('supplier_api', { action: 'team' }, token);
@@ -84,6 +89,45 @@ export default function SupplierTeam({ token }: { token?: string | null }) {
           </div>
         )}
       </section>
+
+      <section className="qd-panel p-5" aria-labelledby="qd-refer-title">
+        <h3 id="qd-refer-title" className="text-xs uppercase tracking-wide text-muted-foreground mb-1">Invite another company</h3>
+        <p className="text-[12px] text-muted-foreground mb-2">Send your company's own link to companies you know in your trade. We do not write to them; when one registers through it, it is recorded that you referred it. Registration is free, and nobody can pay to rank higher.</p>
+        {!refLink ? (
+          <button type="button" className={ghost} disabled={busy} onClick={async () => { setBusy(true); const j = await call('supplier_api', { action: 'referral_link' }, token); setBusy(false); setRefLink(j?.ok ? { url: j.url } : { why: j?.why || j?.error || 'Your link could not be read just now. Please try again.' }); }}>Show my referral link</button>
+        ) : refLink.url ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <input readOnly aria-label="Your referral link" className={field} value={refLink.url} onFocus={(e) => e.currentTarget.select()} />
+            <button type="button" className={ghost} onClick={() => { try { navigator.clipboard?.writeText(refLink.url || ''); setMsg('Link copied.'); } catch (_e) { /* the field stays selectable */ } }}>Copy</button>
+          </div>
+        ) : <p className="text-[12.5px]">{refLink.why}</p>}
+      </section>
+
+      {owner && team.claim && (
+        <section className="qd-panel p-5" aria-labelledby="qd-claim-owner-title">
+          <h3 id="qd-claim-owner-title" className="text-xs uppercase tracking-wide text-muted-foreground mb-1">A member asks to take over the company</h3>
+          <p className="text-[12.5px] mb-2"><bdi dir="ltr">{team.claim.claimant_email}</bdi> told us you have left the company and asked to become its owner.{team.claim.state === 'approved_waiting' && team.claim.effective_at ? ` It was approved and takes effect on ${new Date(team.claim.effective_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.` : ' Our sales engineer is looking into it.'} If you are still the owner, keep it: nothing changes.</p>
+          <button type="button" className={btn} disabled={busy} onClick={() => act({ action: 'ownership_claim_object' }, () => 'You keep the company. We told the member.')}>Keep ownership</button>
+        </section>
+      )}
+
+      {!owner && (
+        <section className="qd-panel p-5" aria-labelledby="qd-claim-title">
+          <h3 id="qd-claim-title" className="text-xs uppercase tracking-wide text-muted-foreground mb-1">The owner has left the company?</h3>
+          {team.claim ? (
+            <p className="text-[12.5px]">{team.claim.state === 'approved_waiting' ? `Approved: the company passes to ${team.claim.claimant_email} on ${team.claim.effective_at ? new Date(team.claim.effective_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'the date we wrote'} unless the owner keeps it.` : team.claim.state === 'waiting_claimant' ? 'Our sales engineer asked for one more thing by e-mail. Answer it there, or below.' : 'Our sales engineer is looking into the request. The owner has been told.'}</p>
+          ) : (
+            <p className="text-[12px] text-muted-foreground mb-2">If the owner has left and cannot hand the company over himself, tell us what happened. Our sales engineer reads the company's record and decides; the owner is told and can keep it.</p>
+          )}
+          {(!team.claim || team.claim.state !== 'approved_waiting') && (
+            <form className="grid gap-2 mt-2" onSubmit={(e) => { e.preventDefault(); act({ action: 'ownership_claim', reason: ownerLeft }, () => 'Received. Our sales engineer will decide within two working days, and we told the owner.').then((j) => { if (j) setOwnerLeft(''); }); }}>
+              <label className="text-[13px]" htmlFor="qd-owner-left">What happened to the owner?</label>
+              <textarea id="qd-owner-left" className={field} rows={3} required value={ownerLeft} onChange={(e) => setOwnerLeft(e.target.value)} />
+              <button type="submit" className={ghost} disabled={busy || !ownerLeft.trim()}>{team.claim ? 'Send this to the sales engineer' : 'Ask to take over the company'}</button>
+            </form>
+          )}
+        </section>
+      )}
 
       {owner && active.length > 0 && (
         <section className="qd-panel p-5" aria-labelledby="qd-transfer-title">

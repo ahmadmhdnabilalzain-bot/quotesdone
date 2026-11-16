@@ -13,6 +13,7 @@ import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 import { jobQuestionsSweep } from '../../_shared/job_question.ts';
 import { lossReasonsSweep } from '../../supplier_api/loss_feedback.ts';
+import { ownershipClaimsSweep } from '../lib/ownership_claim.ts';
 
 export async function dutiesActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, caller, action } = c;
@@ -78,15 +79,19 @@ export async function dutiesActions(c: ActionCtx): Promise<Response | undefined>
       const deps = defaultDeps(admin, 'sales_engineer');
       const ask = (max: number) => async (sys: string, input: string) => (await deps.llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'sales_engineer', max, timeoutMs: 25_000, internal: true })).content ?? null;
       const limit = Math.max(1, Math.min(20, Number(body.limit) || 8));
-      const [questions, losses] = await Promise.all([
+      // W3_PEOPLE 16 Nov 2026 (wave-3 item 4): a member whose owner left asked to take the company over; the model decides each
+      // open case (lib/ownership_claim.ts) and a transfer whose owner's three days passed untouched is completed
+      const [questions, losses, owners] = await Promise.all([
         jobQuestionsSweep(admin, ask(500), limit).catch((e) => ({ error: String((e as Error)?.message || e) })),
         lossReasonsSweep(admin, ask(400), limit).catch((e) => ({ error: String((e as Error)?.message || e) })),
+        ownershipClaimsSweep(admin, ask(600), Math.min(limit, 5)).catch((e) => ({ error: String((e as Error)?.message || e) })),
       ]);
-      const failed = 'error' in questions || 'error' in losses;
+      const failed = 'error' in questions || 'error' in losses || 'error' in owners;
       await run('supplier_loops_sweep', failed ? 'error' : 'ok', {
         questions_read: 'read' in questions ? questions.read.length : 0, reminders: 'chased' in questions ? questions.chased : 0,
-        reasons_written: 'written' in losses ? losses.written : 0, reasons_refused: 'refused' in losses ? losses.refused : 0 },
-        failed ? [('error' in questions ? questions.error : ''), ('error' in losses ? losses.error : '')].filter(Boolean).join(' | ').slice(0, 400) : undefined);
-      return J({ ok: !failed, questions, losses });
+        reasons_written: 'written' in losses ? losses.written : 0, reasons_refused: 'refused' in losses ? losses.refused : 0,
+        ownership_decided: 'decided' in owners ? owners.decided : 0, ownership_completed: 'completed' in owners ? owners.completed : 0 },
+        failed ? [('error' in questions ? questions.error : ''), ('error' in losses ? losses.error : ''), ('error' in owners ? owners.error : '')].filter(Boolean).join(' | ').slice(0, 400) : undefined);
+      return J({ ok: !failed, questions, losses, owners });
     }
 }

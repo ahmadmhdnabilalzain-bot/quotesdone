@@ -95,3 +95,37 @@ export function recordIntakeExchange(deps: ThinkDeps, rec: CustomerRecord | null
   return recordCaseExchange(deps, rec.kase, { theirMessage: o.theirMessage, ourReply: o.ourReply,
     subject: { channel: 'request_chat', intake_id: o.intakeId, ...(o.turnId ? { turn_id: o.turnId } : {}) } });
 }
+
+// "AHMED SENT ME" (customer_support, 16 Nov 2026; agent W3_PEOPLE; CUSTOMER hole #11). How he says he heard of us is the MODEL's
+// reading, returned in the JSON the intake model already writes (HEARD_ABOUT_US_FIELDS, named in handle.ts's shape): his own words,
+// and the number or address of the person who sent him when he gave one. Code never decides that he was referred; it hands the
+// reading to fn_customer_referral_record (scripts/sql/a_referral_is_recorded_counted_and_thanked.sql), which keeps it once on his
+// first request and thanks a referrer who is a verified customer (an exact number or address, one match). Never awaited by the turn.
+// prevented by: inquiry_intake/a_referral_is_heard_once.test.ts
+export const HEARD_ABOUT_US_FIELDS = ['heard_about_us', 'referrer_contact'] as const;
+export type Heard = { words: string; contact: string | null };
+
+/** The model's reading of how he heard of us, or null when his messages did not say. */
+export function referralOf(out: unknown): Heard | null {
+  if (!out || typeof out !== 'object') return null;
+  const o = out as Record<string, unknown>;
+  const words = typeof o.heard_about_us === 'string' ? o.heard_about_us.replace(/\s+/g, ' ').trim().slice(0, 500) : '';
+  if (!words) return null;
+  const contact = typeof o.referrer_contact === 'string' ? o.referrer_contact.trim().slice(0, 120) : '';
+  return { words, contact: contact || null };
+}
+
+type Rpc = (fn: string, args: Record<string, unknown>) => PromiseLike<{ data?: unknown; error?: unknown }>;
+/** Records the reading on his customer row (the routine keeps only the first, on his first request). Null when not recorded. */
+export async function recordReferral(rpc: Rpc, customerId: string | null, heard: Heard, intakeId: string): Promise<Row | null> {
+  if (!customerId) return null;
+  try {
+    const { data, error } = await rpc('fn_customer_referral_record', { p_customer: customerId, p_words: heard.words, p_contact: heard.contact,
+      p_source: 'request_chat:' + intakeId });
+    if (error) { console.error('referral not recorded: ' + String((error as { message?: string }).message ?? error)); return null; }
+    return (data ?? null) as Row | null;
+  } catch (e) {
+    console.error('referral not recorded: ' + String((e as Error)?.message ?? e));
+    return null;
+  }
+}

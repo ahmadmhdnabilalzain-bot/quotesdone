@@ -37,6 +37,8 @@ Deno.test('instructions by e-mail or WhatsApp follow the same roles', () => {
   assert(memberMayInstruct('estimator', 'job_question') && memberMayInstruct('estimator', 'customer_silent') && memberMayInstruct('estimator', 'not_for_me'));
   assert(!memberMayInstruct('estimator', 'close_account') && !memberMayInstruct('estimator', 'remove_work') && !memberMayInstruct('estimator', 'answer_yes'));
   assert(!memberMayInstruct('viewer', 'job_question') && memberMayInstruct('viewer', 'paid_leads'));
+  // W3_PEOPLE 16 Nov 2026: any member may ask for the referral link or say the owner left (the routine checks he is a member)
+  assert(memberMayInstruct('viewer', 'refer_company') && memberMayInstruct('viewer', 'owner_left') && memberMayInstruct('estimator', 'owner_left'));
   assert(memberMayInstruct('owner', 'close_confirm'));
 });
 

@@ -27,12 +27,15 @@ export function touchFromUrl(href: string, now: Date = new Date()): FirstTouch |
 
 type Store = Pick<Storage, 'getItem' | 'setItem'>;
 
-/** Keeps the first tagged visit; returns what is kept (the older one when there is one). */
+/** Keeps the first tagged visit; returns what is kept (the older one when there is one).
+ *  ONE EXCEPTION (16 Nov 2026, W3_PEOPLE; SUPPLIER #11): a supplier's own referral link (utm_source=referral, from
+ *  fn_supplier_referral_link) is a stronger cause than an earlier post, so it replaces a kept non-referral touch and is never itself
+ *  replaced. Proven by scripts/checks/a_referral_link_reaches_the_registration.test.mjs. */
 export function captureFirstTouch(href: string, store: Store): FirstTouch | null {
   try {
     const kept = readFirstTouch(store);
-    if (kept) return kept;
     const t = touchFromUrl(href);
+    if (kept && !(t?.utm_source === 'referral' && kept.utm_source !== 'referral')) return kept;
     if (t) store.setItem(FIRST_TOUCH_KEY, JSON.stringify(t));
     return t;
   } catch { return null; }

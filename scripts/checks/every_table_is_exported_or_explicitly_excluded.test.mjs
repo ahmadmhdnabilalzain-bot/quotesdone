@@ -75,9 +75,14 @@ test('fn_table_export_list() reads the registry and no later file rewrites it as
   const DEF = /create\s+or\s+replace\s+function\s+public\.fn_table_export_list\s*\(\s*\)[\s\S]*?\$fn\$;/i;
   const defs = manifestWithPending(REPO).filter((f) => existsSync(join(REPO, f)) && DEF.test(stripComments(read(f))));
   const winner = defs.pop();
-  assert.equal(winner, REGISTRY_FILE, `${winner} redefines fn_table_export_list() after the registry: insert a row into `
+  // 16 Nov 2026: the one later owner is the file that makes the list skip a table it cannot page (no primary key), so one
+  // table never stops the day for every other; it still reads the registry and only the registry.
+  const OWNERS = [REGISTRY_FILE, 'scripts/sql/a_table_with_no_primary_key_is_refused_by_the_export_registry_and_never_stops_the_day.sql'];
+  assert.ok(OWNERS.includes(winner), `${winner} redefines fn_table_export_list() after the registry: insert a row into `
     + 'public.table_export_registry instead (see the header of ' + REGISTRY_FILE + ')');
-  assert.match(stripComments(read(winner)).match(DEF)[0], /from public\.table_export_registry r/);
+  const body = stripComments(read(winner)).match(/create\s+or\s+replace\s+function\s+public\.fn_table_export_list\s*\(\s*\)[\s\S]*?\$(fn|function)\$;/i)[0];
+  assert.match(body, /from public\.table_export_registry r/);
+  assert.doesNotMatch(body, /\bvalues\s*\(|\bunnest\s*\(|\bin\s*\(\s*'/i, 'fn_table_export_list() names tables itself instead of reading the registry');
 });
 
 test('every public table is exported every day or excluded with a reason', () => {

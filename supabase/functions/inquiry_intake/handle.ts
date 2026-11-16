@@ -27,7 +27,7 @@ import { SUPPLIER_TO_ADVISE, adviseUnknown, packFields, placeTrades, slugOfTrade
   type Placement, type TradeContext } from '../_shared/inquiry_trades.ts';
 import { blockingGate, briefConditions, recordedSpecs, withPack } from './blocking_gate.ts';
 import { photoAskDraft, photoAskOfTurn, photoPromptBlock, recordOf, recordSitePhotos, type SitePhotos } from '../_shared/site_photos.ts';
-import { readCustomerRecord, recordBlock, recordIntakeExchange, type CustomerRecord } from './customer_record.ts';
+import { readCustomerRecord, recordBlock, recordIntakeExchange, recordReferral, referralOf, type CustomerRecord } from './customer_record.ts';
 
 export async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -504,6 +504,8 @@ Return STRICT JSON only, no prose, with this shape:
   \"options_offered\": [\"<problem/option>\"],
   \"chosen_option\": \"<problem/option, a few words, or empty>\",
   \"budget\": \"<budget as they stated it, or empty>\",
+  \"heard_about_us\": \"<how the customer says, in his LAST message, he heard of QuotesDone or who sent him, in his own words (a friend, a supplier, a post, a search); empty unless he said it>\",
+  \"referrer_contact\": \"<the phone number or e-mail of the person who sent him, exactly as he wrote it, when his LAST message gives one; else empty>\",
   \"requirements\": { \"<key>\": <value> },
   \"changed_answers\": [\"<key of a RECORDED answer that the customer's LAST message changes>\"],
   \"answer_to_question\": \"<when the customer's LAST message asks us something, the answer in at most two short sentences (under 300 characters), in their language; else empty. Explain how QuotesDone works or what a term means; never promise a delivery or completion date, installation, a supplier, a price, a discount, a refund or anything the company has not agreed: say the suppliers will state it in their quotes>\",
@@ -594,6 +596,9 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     let llmDown = !llmCallOk && isOpenRouterDown(llmFail.v?.error, llmFail.v?.http);
     // The model's own sentence as it wrote it. A reply that is not exactly this was composed by code and is voiced.
     let modelWrote: string | null = out && llmParseOk && typeof out.assistant_message === 'string' ? out.assistant_message : null;
+    // HOW HE HEARD OF US (W3_PEOPLE, 16 Nov 2026; CUSTOMER #11): the model's reading of his own words, kept once on his first
+    // request by fn_customer_referral_record (customer_record.ts); never awaited, never a keyword rule.
+    { const heard = out && llmParseOk ? referralOf(out) : null; if (heard && cust?.id) void recordReferral((fn, args) => admin.rpc(fn, args), String(cust.id), heard, String(draft.id)); }
     // A RUN THE FOUNDER'S HOLD SHAPED IS NOT A FAILED RUN (22 Sep 2026, SEATS-08/CP-14). While the
     // hold is on there is no model to call, the deterministic interview below IS the designed path,
     // and logging it as 'error' put 592 false faults into agent_runs in 72 h — the watchers page on
