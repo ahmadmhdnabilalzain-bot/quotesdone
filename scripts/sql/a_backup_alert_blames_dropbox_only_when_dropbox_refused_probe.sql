@@ -9,6 +9,7 @@
 --   2. the same pages with no upload at all                                  -> still internal (Dropbox never answered)
 --   3. a genuine Dropbox refusal, insufficient_space, no upload since        -> external: the Dropbox account is out of space
 --   4. the same refusal three hours ago, an upload accepted one hour ago     -> internal (Dropbox is accepting)
+--   5. then a second refusal now, after that upload                         -> external again (the latest refusal counts)
 -- Run on a local Postgres 16 (scripts/db/local_pg16.mjs) twice; production's body before this fix fails case 1.
 create temp table if not exists zz_probe_verdict (verdict text, detail text) on commit drop;
 truncate zz_probe_verdict;
@@ -96,6 +97,25 @@ begin
     v_detail := v_detail || jsonb_build_object('case4', v);
     if v->>'cause' is distinct from 'internal' or (v->>'uploads_accepted_since')::int is distinct from 1 then
       v_fail := v_fail || ' case4 (refusal, then an upload accepted) did not read internal;';
+    end if;
+
+    -- case 5: Dropbox refused again AFTER that upload (the refusal three hours ago, the upload an hour ago, a refusal now):
+    -- it is refusing now, so the upload before the latest refusal proves nothing
+    insert into public.doc_backups (entity, entity_id, doc_type, bucket, path, source, status, error, attempts, dedupe_key, last_attempt_at)
+    values ('zz_demo', v_tag, 'quotation', 'quotes', v_tag || '/quote2.pdf', 'storage', 'error', c_space, 5, v_tag || ':r2', now())
+    returning id into d_wait1;
+    insert into public.support_ceo_report (idempotency_key, source_agent, severity, subject, verified_evidence, attempted_actions,
+                                           requested_outcome, owner_role_id, next_review_at)
+    values ('backup_escalation:' || v_tag || ':5', 'it_engineer', 'serious', 'ZZ DEMO backup escalation, Dropbox refusing again',
+            jsonb_build_object('handoff_id', null, 'files', jsonb_build_array(
+              jsonb_build_object('doc_backup_id', d_refuse, 'demo', true, 'state', 'failing', 'status', 'error', 'attempts', 5, 'error', c_space),
+              jsonb_build_object('doc_backup_id', d_wait1, 'demo', true, 'state', 'failing', 'status', 'error', 'attempts', 5, 'error', c_space))),
+            '[]'::jsonb, 'ZZ DEMO', 'ceo', now() + interval '1 day')
+    returning id into v_rep;
+    v := public.fn_ceo_backup_escalation_decide(v_rep);
+    v_detail := v_detail || jsonb_build_object('case5', v);
+    if v->>'cause' is distinct from 'the Dropbox account is out of space' or (v->>'uploads_accepted_since')::int is distinct from 0 then
+      v_fail := v_fail || ' case5 (refusal, upload, refusal again) did not read external out of space;';
     end if;
 
     raise exception 'zz_probe_rollback';

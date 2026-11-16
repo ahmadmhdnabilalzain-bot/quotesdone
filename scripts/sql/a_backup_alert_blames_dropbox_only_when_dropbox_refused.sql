@@ -26,10 +26,11 @@
 --         401, invalid_access_token / expired_access_token / invalid_grant / missing_scope,
 --         no_dropbox_auth                                                 -> credentials
 --       Anything else Dropbox answered (409 conflict, 429, 5xx) is not a cause the founder can fix.
---   (b) Dropbox has NOT accepted an upload since the refusals began: no doc_backups row of the same world
+--   (b) Dropbox has NOT accepted an upload since it last refused: no doc_backups row of the same world
 --       (real for a real report, zz_demo for a demo one) reached 'done' in the last 6 hours after the
---       earliest refusal on record. An upload it accepted since proves it is accepting, so the cause is
---       ours, whatever any text says.
+--       LATEST refusal on record (a run's refusal is timed at the run's end, so the uploads that run made
+--       before Dropbox refused are not counted as accepted after it). An upload it accepted since proves
+--       it is accepting, so the cause is ours, whatever any text says.
 -- Otherwise the cause is internal and the CEO sends the existing 'backup.remediate' handoff to the sales
 -- engineer (which marks never-existing sources abandoned). The demo rule is unchanged: a case whose every
 -- file is ZZ DEMO never reaches the founder, and a demo case reads no agent_runs.
@@ -45,7 +46,7 @@ create or replace function public.fn_ceo_backup_escalation_decide(p_report_id bi
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   r public.support_ceo_report; v_files jsonb; v_demo boolean; v_cause text; v_h bigint; v_out jsonb;
-  v_rank int; v_refusals int := 0; v_first_refusal timestamptz; v_accepted int := 0; v_why text;
+  v_rank int; v_refusals int := 0; v_last_refusal timestamptz; v_accepted int := 0; v_why text;
   -- a Dropbox answer as dropbox.ts / upload.ts / index.ts throw it: '<endpoint> <status> <body>'
   c_answer constant text := '(?:dbx_upload|session_start|append|finish|get_metadata|get_space_usage|delete_v2|(?:files|users|oauth2)/[a-z0-9_/]+) [0-9]{3}\M';
 begin
@@ -62,7 +63,7 @@ begin
       left join public.doc_backups d
         on d.id = case when e->>'doc_backup_id' ~ '^[0-9]{1,18}$' then (e->>'doc_backup_id')::bigint end
     union all
-    select m[1], a.started_at
+    select m[1], coalesce(a.finished_at, a.started_at)
       from public.agent_runs a
       cross join lateral regexp_matches(coalesce(a.note, ''), '#[0-9]+: (?:requeued: )?(' || c_answer || '[^|]*|no_dropbox_auth\M)', 'g') m
      where not v_demo and a.agent in ('dropbox_backup', 'fn:dropbox_backup') and a.status = 'error'
@@ -83,8 +84,8 @@ begin
       end as rank
       from dropbox
   )
-  select min(rank), count(*) filter (where rank is not null), min(at) filter (where rank is not null)
-    into v_rank, v_refusals, v_first_refusal
+  select min(rank), count(*) filter (where rank is not null), max(at) filter (where rank is not null)
+    into v_rank, v_refusals, v_last_refusal
     from classified;
 
   v_cause := case v_rank
@@ -93,12 +94,12 @@ begin
     when 3 then 'the Dropbox plan or billing is blocking uploads'
     else null end;
 
-  -- (b) an upload Dropbox accepted after the refusals began proves it is accepting: the cause is ours.
+  -- (b) an upload Dropbox accepted after its latest refusal proves it is accepting: the cause is ours.
   if v_cause is not null then
     select count(*) into v_accepted
       from (select 1 from public.doc_backups b
              where b.status = 'done'
-               and b.backed_up_at > greatest(now() - interval '6 hours', coalesce(v_first_refusal, '-infinity'::timestamptz))
+               and b.backed_up_at > greatest(now() - interval '6 hours', coalesce(v_last_refusal, '-infinity'::timestamptz))
                and (b.entity = 'zz_demo') = v_demo
              limit 1000) x;
     if v_accepted > 0 then
@@ -116,7 +117,7 @@ begin
         || ' document(s) are waiting and will be sent as soon as it is fixed. Nothing inside the company can fix this part; it needs you.',
       'high', p_kind => 'backup_failed_after_retry', p_dedupe_key => 'backup_external:' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM-DD'));
   else
-    v_h :=public.fn_seat_handoff('ceo', 'sales_engineer', 'backup.remediate', 'support_ceo_report', r.id::text,
+    v_h := public.fn_seat_handoff('ceo', 'sales_engineer', 'backup.remediate', 'support_ceo_report', r.id::text,
       jsonb_build_object('report_id', r.id, 'refile_handoff_id', r.verified_evidence->'handoff_id',
         'files', (select coalesce(jsonb_agg(e - 'state' - 'status' - 'attempts'), '[]'::jsonb) from jsonb_array_elements(v_files) e where e->>'state' <> 'ok'),
         'refile_attempts', 0,
