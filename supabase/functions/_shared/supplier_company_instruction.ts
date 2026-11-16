@@ -19,6 +19,10 @@ const ref = (rfq: unknown, id: string) => (rfq != null && String(rfq) !== '' ? '
 
 /** The company's facts the reader needs: revealed requests, a waiting closure, live quotations, the owner's address. */
 export async function companyFacts(admin: Admin, supplierId: number): Promise<Pick<Facts, 'revealed' | 'closure' | 'live_quotes' | 'owner_email'>> {
+  // a failed read leaves these facts empty; it never costs him the instruction he wrote
+  try { return await readCompanyFacts(admin, supplierId); } catch (_e) { return { revealed: [], closure: null, live_quotes: 0, owner_email: null }; }
+}
+async function readCompanyFacts(admin: Admin, supplierId: number): Promise<Pick<Facts, 'revealed' | 'closure' | 'live_quotes' | 'owner_email'>> {
   const soft = <T>(p: PromiseLike<{ data: T | null }>, empty: T) => Promise.resolve(p).then((r) => r.data ?? empty, () => empty);
   const [tx, cl, live, lead] = await Promise.all([
     soft(admin.from('transactions').select('inquiry_id').eq('supplier_id', supplierId).not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(10), [] as { inquiry_id: string }[]),
