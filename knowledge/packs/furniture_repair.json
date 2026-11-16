@@ -120,7 +120,19 @@
       ],
       "site_visit_required_when": "Photos of every item and its damage are needed; an inspection is needed for antiques or structural frame damage.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "Photos"
+        },
+        {
+          "shot": "Each item, whole, and a close-up of the damage",
+          "shot_ar": "كل قطعة كاملة، وصورة قريبة للضرر",
+          "from": "damage"
+        }
+      ]
     },
     {
       "id": "furniture_repair:uae-standards-and-approvals",

@@ -177,7 +177,29 @@
         }
       ],
       "site_visit_required_when": "A site visit is unavoidable before a firm price for any new pool or renovation, to check access, soil, services and the existing structure.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "access"
+        },
+        {
+          "shot": "The ground or floor where the work will stand",
+          "shot_ar": "الأرض أو الأرضية التي سيقوم عليها العمل",
+          "from": "soil"
+        },
+        {
+          "shot": "The pipes, cables and connections at the point where it will be connected",
+          "shot_ar": "الأنابيب والكابلات ونقاط التوصيل في مكان التركيب",
+          "from": "services"
+        },
+        {
+          "shot": "Where it would be fixed: the wall, frame or structure, close enough to see what it is made of",
+          "shot_ar": "مكان التثبيت: الجدار أو الإطار أو الهيكل، عن قرب يكفي لمعرفة مادته",
+          "from": "existing structure"
+        }
+      ]
     },
     {
       "id": "swimming_pools:uae-standards-and-approvals",

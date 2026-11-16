@@ -498,7 +498,29 @@
         }
       ],
       "site_visit_required_when": "A site visit is genuinely needed for refurbishment roofs to check the existing system, falls and leaks; new roofs can be priced from drawings.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "The roof from one corner, showing its surface and what is on it",
+          "shot_ar": "السطح من إحدى الزوايا، مع إظهار سطحه وما عليه",
+          "from": "refurbishment roofs"
+        },
+        {
+          "shot": "Where it would be fixed: the wall, frame or structure, close enough to see what it is made of",
+          "shot_ar": "مكان التثبيت: الجدار أو الإطار أو الهيكل، عن قرب يكفي لمعرفة مادته",
+          "from": "existing system"
+        },
+        {
+          "shot": "The surface from a low angle, so slopes and dips show",
+          "shot_ar": "السطح من زاوية منخفضة لتظهر الميول والانخفاضات",
+          "from": "falls"
+        },
+        {
+          "shot": "Close-ups of any damp, stains or leaks, with something for scale",
+          "shot_ar": "صور قريبة لأي رطوبة أو بقع أو تسريب، مع شيء يوضح الحجم",
+          "from": "leaks"
+        }
+      ]
     },
     {
       "id": "waterproofing:spec-basement-tanking",
@@ -653,7 +675,24 @@
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
-      "site_visit_required_when": "A site visit is needed for existing basements with water ingress, to find the source before pricing a repair."
+      "site_visit_required_when": "A site visit is needed for existing basements with water ingress, to find the source before pricing a repair.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "Close-ups of any damp, stains or leaks, with something for scale",
+          "shot_ar": "صور قريبة لأي رطوبة أو بقع أو تسريب، مع شيء يوضح الحجم",
+          "from": "water ingress"
+        },
+        {
+          "shot": "The fault or the part to be repaired, close up",
+          "shot_ar": "العطل أو الجزء المطلوب إصلاحه عن قرب",
+          "from": "repair"
+        }
+      ]
     },
     {
       "id": "waterproofing:spec-wet-area",
@@ -807,7 +846,24 @@
         }
       ],
       "site_visit_required_when": "Repairs in existing bathrooms need a site visit or photos to see the substrate and leak source.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "The fault or the part to be repaired, close up",
+          "shot_ar": "العطل أو الجزء المطلوب إصلاحه عن قرب",
+          "from": "Repairs"
+        },
+        {
+          "shot": "Close-ups of the surface as it is now (cracks, peeling, rust or old coating)",
+          "shot_ar": "صور قريبة للسطح بحالته الحالية (تشققات، تقشر، صدأ أو طلاء قديم)",
+          "from": "substrate"
+        },
+        {
+          "shot": "Close-ups of any damp, stains or leaks, with something for scale",
+          "shot_ar": "صور قريبة لأي رطوبة أو بقع أو تسريب، مع شيء يوضح الحجم",
+          "from": "leak"
+        }
+      ]
     },
     {
       "id": "waterproofing:spec-insulation-supply",

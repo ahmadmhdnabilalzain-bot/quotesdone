@@ -198,7 +198,24 @@
         }
       ],
       "site_visit_required_when": "A site survey (or a scaled site plan with photos) is unavoidable before a firm price when the crane position, ground bearing or overhead obstructions are not known, and for any critical or tandem lift.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "photos_to_ask": [
+        {
+          "shot": "The open ground or road where a crane would stand, and anything overhead (wires, trees, roofs)",
+          "shot_ar": "الأرض أو الطريق حيث ستقف الرافعة، وأي شيء فوقها (أسلاك، أشجار، أسقف)",
+          "from": "crane position"
+        },
+        {
+          "shot": "The ground or floor where the work will stand",
+          "shot_ar": "الأرض أو الأرضية التي سيقوم عليها العمل",
+          "from": "ground bearing"
+        },
+        {
+          "shot": "The boundary and anything right next to the work (walls, neighbours, trees)",
+          "shot_ar": "الحدود وكل ما يجاور مكان العمل مباشرة (جدران، جيران، أشجار)",
+          "from": "obstructions"
+        }
+      ]
     },
     {
       "id": "heavy_equipment:tower-cranes",
@@ -567,7 +584,19 @@
         }
       ],
       "site_visit_required_when": "A site visit is needed only for an output-based (per m3) price on unknown ground; time-based hire can be priced from the stated class, duration and location.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "The ground or floor where the work will stand",
+          "shot_ar": "الأرض أو الأرضية التي سيقوم عليها العمل",
+          "from": "ground"
+        }
+      ]
     },
     {
       "id": "heavy_equipment:lifting-accessories",

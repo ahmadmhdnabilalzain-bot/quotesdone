@@ -1,0 +1,5 @@
+Committed, not applied. Assigned: sales_engineer. 15 Nov 2026 (founder ruling, ledger 1697: "Quotation validity depends on what the supplier mentions in his quotation. No specific period").
+
+Why it waits: GitHub Actions is off, so the release applies it after the merge (docs/runbooks/release-without-ci.md). It adds quotes.quotation_date, replaces trg_quote_expiry (no 14-day default, no 180-day cap, read again when the validity changes) and takes the 14-day fill out of the three reveal-period routines. Rehearse it first on a local Postgres 16 with its _probe.sql (PROBE OK on 15 Nov 2026). It goes BEFORE the supplier_api deploy: from this branch submit_quote writes quotes.quotation_date, and a deploy that runs ahead of the column refuses every quotation. Apply:
+  node scripts/apply_sql.mjs scripts/sql/a_quotation_is_valid_for_the_period_the_supplier_states_and_for_no_period_we_choose.sql --apply --ddl
+delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit. No backfill is part of it (the file's last comment says why and how to count).

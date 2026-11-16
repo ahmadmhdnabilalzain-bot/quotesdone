@@ -129,7 +129,19 @@
         }
       ],
       "site_visit_required_when": "balls and loose equipment can be priced firm from the list; fixed equipment, courts and surfaces need a site visit and the court dimensions before a firm price.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "Each opening or area, straight on, with a tape measure across it if you have one",
+          "shot_ar": "كل فتحة أو مساحة من الأمام مباشرة، مع شريط قياس عليها إن توفر",
+          "from": "dimensions"
+        }
+      ]
     },
     {
       "id": "sports_equipment:uae-standards-and-approvals",

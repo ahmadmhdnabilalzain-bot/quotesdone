@@ -38,7 +38,9 @@ export function oneOfSeven(v: unknown): string | null {
 // analyze_drawing, drawing_boq/quotation_gate.ts termsToKeep); never shown to any supplier, revealed or not.
 // customer_rates: the rates of the customer's OWN priced BOQ (his budget), kept as data for him and the sales engineer, never
 // shown to any supplier (founder ruling 1686; second review of F2, item e).
-export const CUSTOMER_ONLY_SPEC_KEYS = ['site_location', 'old_supplier_terms', 'site_keys', 'customer_rates'] as const;
+// site_photos (15 Nov 2026, ledger 1704): the record of the photos by their check jobs; a supplier receives only the copies the
+// check released, signed by supplier_api/site_photos_door.ts, never the record itself.
+export const CUSTOMER_ONLY_SPEC_KEYS = ['site_location', 'old_supplier_terms', 'site_keys', 'customer_rates', 'site_photos'] as const;
 /** The named checklist keys whose question asks where (production category_specs, 13 Nov 2026; see asksWhere). */
 export const ADDRESS_KEYS = ['access', 'access_constraints', 'emirate', 'emirate_access', 'emirate_building', 'emirate_location', 'from_to',
   'location', 'location_area', 'location_floor', 'property', 'property_location'] as const;

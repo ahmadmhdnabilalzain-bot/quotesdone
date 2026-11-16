@@ -1,7 +1,7 @@
 import { revealDescriptorSuffix } from '../_shared/statement_descriptor.ts';
 import { timedFetch } from '../_shared/timed_fetch.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
-import { NOT_LIVE_QUOTE_IN } from '../_shared/quote_live.ts';
+import { storedLetterOf } from '../_shared/quote_labels.ts';
 import { jobNoOf } from '../_shared/quote_documents.ts';
 import { observe } from '../_shared/observe.ts';
 import { siteReturnBase, siteCors } from '../_shared/site_origins.ts';
@@ -91,11 +91,14 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
     // processing is its own line so the invoice says what each part is. No tax on either line.
     const ch = revealCharge(Number(q.quote_amount), Number(cfg?.standard_reveal_rate));
     if (ch.base_fee !== fee) { await logRun('error', { quote_id: qid, fee, base: ch.base_fee }, 'reveal fee disagreement between revealFee and revealCharge - checkout blocked'); return J({ error: 'invalid_fee' }, 400); }
-    // "Reveal fee — QD-XXXXXXXX / Supplier B": the letter is the one the customer's card shows,
-    // the place among the LIVE quotes by ascending price (customer_api letterOf).
-    const { data: sibs } = await admin.from('quotes').select('id').eq('inquiry_id', q.inquiry_id).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true });
-    const idx = Math.max(0, (sibs || []).findIndex((x: { id: string }) => x.id === q.id));
-    const letter = String.fromCharCode(65 + (idx % 26));
+    // "Reveal fee — QD-XXXXXXXX / Supplier B": the letter STORED the first time the customer's card showed this supplier
+    // (_shared/quote_labels.ts, public.customer_supplier_letter). THE INVOICE IS PERMANENT, SO IT NEVER GUESSES (review REVIEW_plain
+    // item 2): this fell back to "A" when the read failed, printing another supplier's letter on a paid invoice. A failed read now
+    // refuses the checkout so the portal retries; a supplier with no stored letter (the card could not record one) is "Supplier",
+    // exactly what that card showed.
+    const stored = await storedLetterOf(admin, { inquiry_id: q.inquiry_id, supplier_id: q.supplier_id });
+    if (!stored.ok) { await logRun('error', { quote_id: qid }, 'the supplier letter could not be read - checkout refused rather than print a guessed letter on a permanent invoice; the portal retries'); return J({ ok: false, error: 'letter_unread', code: 'letter_unread', retry: true, message: 'Please try again in a moment.', message_ar: 'يُرجى المحاولة بعد قليل.' }, 503); }
+    const letter = stored.letter ?? '';
     // The job number (inquiries.rfq_no): what the customer's card statement says must match the portal (21 Sep 2026).
     const requestRef = 'QD-' + jobNoOf({ id: String(q.inquiry_id || ''), rfq_no: inq?.rfq_no });
     // 27 Jul 2026 — two defects fixed here.
@@ -207,7 +210,7 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
     form.set('line_items[0][price_data][currency]', 'aed');
     form.set('line_items[0][price_data][unit_amount]', String(Math.round(ch.base_fee * 100)));
     form.set('line_items[0][price_data][product_data][name]', 'Reveal fee (3% of AED ' + Number(q.quote_amount).toFixed(2) + ')');
-    form.set('line_items[0][price_data][product_data][description]', requestRef + ' / Supplier ' + letter);
+    form.set('line_items[0][price_data][product_data][description]', requestRef + ' / Supplier' + (letter ? ' ' + letter : ''));
     // ONE LINE ONLY (24 Sep 2026): no card-processing line may be added to a buyer's charge (Cabinet Res. 66/2023 Art. 5(3)).
     if (ch.processing_fee !== 0) { await logRun('error', { quote_id: qid, processing_fee: ch.processing_fee }, 'card surcharge refused'); return J({ ok: false, error: 'card_surcharge_refused' }, 500); }
     // STRIPE ISSUES THE INVOICE (9 Sep 2026). The founder: "stripe automatically generates an
@@ -232,7 +235,7 @@ Deno.serve(siteCors(observe('stripe_checkout', async (req) => {
     // The description is what appears on the customer's invoice, so it says what they bought in
     // their words, not ours: they paid to unlock a supplier's details on a specific request.
     form.set('invoice_creation[enabled]', 'true');
-    form.set('invoice_creation[invoice_data][description]', 'Reveal fee — ' + requestRef + ' / Supplier ' + letter);
+    form.set('invoice_creation[invoice_data][description]', 'Reveal fee — ' + requestRef + ' / Supplier' + (letter ? ' ' + letter : ''));
     form.set('invoice_creation[invoice_data][metadata][quote_id]', qid);
     form.set('invoice_creation[invoice_data][metadata][inquiry_id]', String(q.inquiry_id));
     form.set('invoice_creation[invoice_data][metadata][base_fee]', String(ch.base_fee));

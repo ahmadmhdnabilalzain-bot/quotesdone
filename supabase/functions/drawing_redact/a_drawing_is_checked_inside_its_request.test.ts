@@ -75,7 +75,7 @@ Deno.test('drawing_redact starts no page after the clock and passes stopAt to ev
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   assertMatch(src, /const clock = deadlinesFrom\(body, startedAt\);/);
   assertEquals((src.match(/if \(Date\.now\(\) >= clock\.startBy\) \{ skipped\+\+; timePages\.push\(i\);/g) ?? []).length, 2, 'both the manual and the model loop check the clock before each page');
-  assertEquals((src.match(/await gatePage\([^\n]*clock\.stopAt(?:, vocabularyVet\(pp, (?:\[\]|seeds)\))?\);/g) ?? []).length, 6, 'every gate call carries the stop');
+  assertEquals((src.match(/await gatePage\([^\n]*clock\.stopAt(?:, vocabularyVet\(pp, (?:\[\]|seeds)\)|, undefined, sys)?\);/g) ?? []).length, 6, 'every gate call carries the stop');
   assertMatch(src, /time_held: timePages\.length, time_held_pages: timePages, redaction_complete: recorded && paths\.length === imgs\.length \}\);/);
   const api = Deno.readTextFileSync(new URL('../customer_api/actions/documents.ts', import.meta.url));
   assertMatch(api, /deadline_at: redStartBy, stop_at: redStopAt/);
@@ -114,7 +114,7 @@ Deno.test('SLOW stub: a model call started at 124 s is cut by 135 s and the page
   assertMatch(src, /const ms = callTimeoutMs\(stopAt, 55_000\);\n\s*const r = await fetch\(GW, \{[^\n]*signal: AbortSignal\.timeout\(ms\),\n[^\n]*client_timeout_ms: ms,/);
   assertMatch(src, /mode: 'repaint', verify: false[^\n]*signal: AbortSignal\.timeout\(callTimeoutMs\(stopAt, 90_000\)\)/);
   assertMatch(src, /mode: 'tile', jpg_b64: jpgB64, tile, mark \}\), signal: AbortSignal\.timeout\(callTimeoutMs\(stopAt, 60_000\)\)/);
-  assertMatch(src, /askPixels\(key, authors, b, stopAt\), \(b, regions\) => paintElsewhere\(secret, b, regions, stopAt\)[^\n]*cropElsewhere\(secret, b, t, m, stopAt\)/);
+  assertMatch(src, /askPixels\(key, authors, b, stopAt(?:, sys)?\), \(b, regions\) => paintElsewhere\(secret, b, regions, stopAt\)[^\n]*cropElsewhere\(secret, b, t, m, stopAt\)/);
   // customer_api: a batch the clock cut is time (the time message), not a dead redactor; abandoned pages are recorded.
   const api = Deno.readTextFileSync(new URL('../customer_api/actions/documents.ts', import.meta.url));
   assertMatch(api, /if \(cutByClock\(e, Date\.now\(\), redStopAt\)\) \{ timeHeld \+= slice\.length; abandoned\.push\(/);

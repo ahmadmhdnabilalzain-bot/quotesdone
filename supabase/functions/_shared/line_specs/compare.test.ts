@@ -90,7 +90,8 @@ Deno.test('an optional detail one supplier states and another does not is option
   assertEquals(eb.cells.map((c) => [c.flag, c.marker]), [['stated', ''], ['optional_not_stated', '○']]);
   const r = rendererView(t, 'en');
   const view = r.lines[0].attributes.find((a) => a.key === 'edge_band')!;
-  assertEquals([view.values['Supplier A'].flag, view.values['Supplier B'].flag], ['match', 'optional']);
+  // A value stated with nothing in the request to match is 'stated', never 'match' (journey A, 15 Nov 2026: "All 30 match").
+  assertEquals([view.values['Supplier A'].flag, view.values['Supplier B'].flag], ['stated', 'optional']);
 });
 
 Deno.test('the renderer view is exactly the shape PR #611\'s comparison report reads', () => {
@@ -113,7 +114,7 @@ Deno.test('an incomplete quote can never be ranked: it is removed before the ran
 });
 
 Deno.test('two options from one supplier are two rows, labelled as that supplier\'s options', () => {
-  const l = labelQuotes([{ id: 'x1', supplier_id: 7, option_no: 1 }, { id: 'y', supplier_id: 9 }, { id: 'x2', supplier_id: 7, option_no: 2 }]);
+  const l = labelQuotes([{ id: 'x1', supplier_id: 7, option_no: 1 }, { id: 'y', supplier_id: 9 }, { id: 'x2', supplier_id: 7, option_no: 2 }], new Map([['7', 'A'], ['9', 'B']]));
   assertEquals([l.get('x1')!.en, l.get('x2')!.en, l.get('y')!.en], ['Supplier A – Option 1', 'Supplier A – Option 2', 'Supplier B']);
   assertEquals(l.get('x2')!.ar, 'المورّد A – الخيار 2');
 });

@@ -37,6 +37,8 @@ import { applyReading, type QuoteReading } from '../reasoned_matching.ts';
 import { needsChecklist, withReasoned } from './reasoned_specs.ts';
 import { optionLabel } from './options.ts';
 import { maskIdentityNumbers } from '../identity_numbers.ts';
+import { VAT_GAP_TOLERANCE } from './vat.ts';
+import { feeBaseOf } from '../stated_price.ts';
 import { requestDelivery } from '../deliver.ts';
 import { quoteDocument, type ArTexts, type InquiryRow, type Item, type QuoteRow as DocQuote } from '../quote_documents.ts';
 
@@ -403,7 +405,9 @@ export type Standardised = {
 export function standardise(q: QuoteRow, lines: Line[], a: Assessment, ctx: Ctx): Standardised {
   return {
     contract: 'standardised_quotation', version: 1, quote_id: q.id, option_no: q.option_no, category: ctx.category, trade: a.trade, currency: 'AED',
-    total: Number(q.price_ex_vat ?? q.quote_amount), price_basis: 'ex_vat',
+    // ONE FIGURE (accountant, 15 Nov 2026): the fee base (feeBaseOf, quotes.quote_amount), never a second column read first;
+    // 0 while the VAT basis is held, as before (both columns are NULL then).
+    total: feeBaseOf(q) ?? 0, price_basis: 'ex_vat',
     lines: a.lines.filter((l) => l.material).map((l) => {
       const src = lines.find((x) => x.line_no === l.line_no)!;
       return { line_no: l.line_no, description: safe(l.description) ?? '', qty: src.qty ?? null, unit: src.unit ?? null, unit_price: src.unit_price ?? null, amount: src.amount ?? null, trade: l.trade,
@@ -540,7 +544,10 @@ export async function fillIn(repo: SpecRepo, quoteId: string, supplier: Supplier
     // is the ex-VAT price for "before VAT" / "not registered", and total / 1.05 for "including 5% VAT" (the UAE standard
     // rate the question names). The fee base (quote_amount) is written only now that it is known.
     const total = Number(q.amount_as_stated) > 0 ? Number(q.amount_as_stated) : Number(q.quote_amount);
-    if (!(Number(q.price_ex_vat) > 0) && total > 0) {
+    // A price typed earlier that IS the total the question names (the VAT-inclusive total typed as "excluding VAT") is not an
+    // ex-VAT figure: the answer decides it (accountant, 15 Nov 2026; journey A stored 18,854.85 for 17,957.00 so).
+    const typedIsTotal = Number(q.price_ex_vat) > 0 && total > 0 && Math.abs(Number(q.price_ex_vat) - total) <= VAT_GAP_TOLERANCE;
+    if ((!(Number(q.price_ex_vat) > 0) || typedIsTotal) && total > 0) {
       const ex = answers.vat === 'inclusive' ? Math.round((total / 1.05) * 100) / 100 : total;
       patch.price_ex_vat = ex; patch.quote_amount = ex;
     }

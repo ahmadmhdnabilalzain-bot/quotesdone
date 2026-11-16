@@ -11,7 +11,8 @@ import { dialectOf, MESSAGE_CAP, mergeState, readState, registerPatch, whatsappK
 import { ADVISE_RULE, heldProblem, problemsFor, solutionsBlock, solutionStateText } from '../_shared/solution_catalogue.ts';
 import { taxonomyOf, tradeBlock, tradeContext } from '../_shared/inquiry_trades.ts';
 import { joinIfNotOpen, waPhone } from '../_shared/trade_opening.ts';
-import { readInquiry, readingPatch } from '../_shared/inquiry_reading.ts';
+import { readInquiry, readingPatch, siteVisitsOf } from '../_shared/inquiry_reading.ts';
+import { photoAskDraft, shotsFor } from '../_shared/site_photos.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { budgetLeft, holdUnwritten, modelSays } from './model_says.ts';
 import { laneMust, STATUS_CLASS, STATUS_EFFORT, STATUS_HISTORY_TURNS, STATUS_RULES } from './status_lane.ts';
@@ -33,6 +34,21 @@ export const withoutLeadingThanks = (s: string) => String(s).replace(/^\s*(?:tha
 /** THE APP LANE BEFORE THE TRADE IS KNOWN (W4): the first reply to a new job promised "matched suppliers", and the next one said
  *  the trade was not open. Until the number's state places the job in its trades, the app lane promises neither. */
 export const TRADE_SAID_FACT = 'EARLIER IN THIS CONVERSATION they were told this trade is not open to customers yet. Do not repeat it; mention it only if they ask about suppliers, quotes or timing, and never promise a supplier or a date.';
+/** The mark on the number's state that this conversation was asked for site photos (ONCE, ledger 1704). */
+export const PHOTO_SAID_KEY = 'said:photo_ask';
+/** THE PHOTO ASK ON WHATSAPP (15 Nov 2026, sales_engineer; founder ledger 1704; review of bf8b9ea45, item 8). The request chat asks
+ *  once for the shots a site visit would check (inquiry_intake/handle.ts, _shared/site_photos.ts). A customer's job on WhatsApp is
+ *  read by the state reader (_shared/inquiry_reading.ts), which now also says which held trades' site-visit condition the job
+ *  meets (a 'visit:<code>' mark). On the next reply, a REGISTERED customer whose conversation has such a mark and was never asked
+ *  is asked once: the same draft the request chat uses, carried word for word (as the trade-not-open sentence is), and the
+ *  conversation is marked said when the reply that carries it is delivered. Photos sent in the thread are checked and recorded on
+ *  the request (customer_files.ts). null = nothing to ask. */
+export function waPhotoAsk(ctx: Parameters<typeof shotsFor>[0], asked: Record<string, unknown> | null | undefined, aud: string, lang: 'en' | 'ar'): string | null {
+  if (aud !== 'customer' || Object.keys(asked ?? {}).includes(PHOTO_SAID_KEY)) return null;
+  const visits = siteVisitsOf(asked);
+  const shots = visits.length ? shotsFor(ctx, [], visits) : [];
+  return shots.length ? photoAskDraft(shots, lang) + (lang === 'ar' ? ' يمكنك إرسالها هنا في المحادثة، ونفحص كل صورة قبل أن يراها أي مورّد.' : ' You can send them here in this chat; every photo is checked before any supplier sees it.') : null;
+}
 export const TRADE_UNKNOWN_FACT = 'Whether suppliers in this trade are taking requests on QuotesDone yet is checked once the job is described: do not say the request will be sent to suppliers or that quotes will come; say they can post the request free through the link and we will tell them what happens next.';
 
 export function makeSay(t: WaTurn): void {
@@ -90,7 +106,9 @@ export function makeSay(t: WaTurn): void {
       const gate = ctx?.codes.length ? await joinIfNotOpen(admin, { slugs: ctx.codes, channel: 'whatsapp', phone: signal ? null : waPhone(From), lang: lang === 'ar' ? 'ar' : 'en' }) : null;
       const waiting = gate?.state === 'not_open' && gate.message ? withoutLeadingThanks(gate.message) : null;
       const waitingSaid = !!waiting && tradeAlreadySaid(st, ctx?.codes ?? []);
-      return { st, tax, ctx, problems, job, waiting, waitingSaid, text: [ADVISE_RULE, solutionStateText(st, lang),
+      // the photo ask (ledger 1704): never while the trade is not open (no request can be sent there yet)
+      const photoAsk = waiting ? null : waPhotoAsk(ctx, st?.asked, aud, lang === 'ar' ? 'ar' : 'en');
+      return { st, tax, ctx, problems, job, waiting, waitingSaid, photoAsk, text: [ADVISE_RULE, solutionStateText(st, lang),
         waiting && !waitingSaid ? 'THE TRADE IS NOT OPEN TO CUSTOMERS YET: say so plainly, do not promise a supplier or a date, and carry this sentence exactly: ' + waiting : '',
         waitingSaid ? TRADE_SAID_FACT : '',
         tradeBlock(ctx, lang), solutionsBlock(problems, lang)].filter(Boolean).join('\n\n') };
@@ -100,7 +118,9 @@ export function makeSay(t: WaTurn): void {
       const deps = defaultDeps(admin, 'wa_inbound');
       const ask = async (sys: string, input: string, ms: number) => (await deps.llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'customer_support', max: 400, timeoutMs: ms,
         subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, internal: true })).content ?? null;
-      void readInquiry(ask, { taxonomy: ex.tax, problems: ex.problems, services: ex.ctx?.services, lastSeat: [...conv].reverse().find((x) => x.role === 'seat')?.text ?? '', message: Body, heldCodes: ex.st?.trade_codes ?? [] }, Date.now() + 25_000)
+      // each held trade's site-visit condition, so the reading can mark the ones this job meets (the photo ask, waPhotoAsk)
+      const siteVisits = Object.entries(ex.ctx?.checklists ?? {}).flatMap(([code, cs]) => (cs ?? []).filter((c) => c.site_visit_required_when && (c.photos ?? []).length).slice(0, 1).map((c) => ({ code, when: String(c.site_visit_required_when) })));
+      void readInquiry(ask, { taxonomy: ex.tax, problems: ex.problems, services: ex.ctx?.services, lastSeat: [...conv].reverse().find((x) => x.role === 'seat')?.text ?? '', message: Body, heldCodes: ex.st?.trade_codes ?? [], siteVisits }, Date.now() + 25_000)
         .then((r) => r ? mergeState(admin, whatsappKey(From), 'whatsapp', { turn: theirs.length, ...readingPatch(r), ...(r.problem ? { condition: { ...(readingPatch(r).condition ?? {}), problem: r.problem } } : {}) }) : null)
         .catch(() => null);
     }
@@ -119,6 +139,9 @@ export function makeSay(t: WaTurn): void {
       else if (lane) situation += '\n\n' + TRADE_SAID_FACT;   // the conversation lane has it in the expert block
     }
     if (lane?.kind === 'app' && ex && !codes.length) situation += '\n\n' + TRADE_UNKNOWN_FACT;
+    // THE PHOTO ASK, ONCE (waPhotoAsk): carried word for word on the conversation lane, marked said when delivered (below)
+    const photoAsk = ex?.photoAsk && !lane ? ex.photoAsk : null;
+    if (photoAsk) must = [...new Set([...(must ?? []), photoAsk])];
     // THE CASE (ruling 1635, case_memory.ts): the case this message belongs to, its summary for the cached prefix. A status or app
     // lane does not read it (a status ask is about now); every lane's reply is recorded on the case after it is adopted.
     const caseMem = lane ? null : await waCaseMemory(t, aud);
@@ -147,6 +170,7 @@ export function makeSay(t: WaTurn): void {
       // matched on the reply as WRITTEN (review round 2): the words sent have their links and numbers bidi-wrapped in an Arabic
       // reply (replies.ts toContact), so the sentence was never found there and repeated in every Arabic conversation
       if (tradeSaid && said.text.includes(String(ex?.waiting))) void mergeState(admin, whatsappKey(From), 'whatsapp', { asked: [tradeSaidKey(tradeSaid)] });
+      if (photoAsk && said.text.includes(photoAsk)) void mergeState(admin, whatsappKey(From), 'whatsapp', { asked: [PHOTO_SAID_KEY] });
     });
     return said;
   };

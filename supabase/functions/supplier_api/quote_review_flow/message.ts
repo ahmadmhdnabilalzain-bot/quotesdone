@@ -1,7 +1,7 @@
 import { readEveryAttachment, untrustedBlock, type AttachmentRead } from '../../_shared/read_every_attachment.ts';
 import { clearerCopyAsk } from '../../_shared/clearer_copy.ts';
 import { applyCorrections, readReply, SEAT, tookSaid } from '../quote_review.ts';
-import { type Ctx, type Fail, type ReviewDeps, type ReviewRepo, type Scanned, type ThreadView, fail } from './types.ts';
+import { type Ctx, type Fail, type MessageRow, type RequestRow, type ReviewDeps, type ReviewRepo, type ReviewRow, type Scanned, type ThreadView, fail } from './types.ts';
 import { type Loaded, effectiveState, ensure, held, isFail, load, say, supplierSays, view, writableOr } from './thread_view.ts';
 import { BUSY, enterReview, leaveReview, offRequest, openIssuesOf, runReview } from './upload.ts';
 import { looksTyped, readTyped, stateFacts, typedJob } from './typed.ts';
@@ -9,6 +9,31 @@ import { decide } from './choose.ts';
 import { doSubmit } from './submit.ts';
 import { transcriptAsText } from './reading.ts';
 import { figuresIn, readFigure } from '../../quote_extract/model_reading.ts';
+import { POINT_CODE } from '../../_shared/comparison_points.ts';
+
+// THE CUSTOMER'S COMPARISON POINTS ARE CLOSED ONLY BY HIS ANSWER (CEO, under founder ruling 1696; final review of 15 Nov 2026,
+// FIX 1). quote_compare hands each point a quote leaves open to the sales engineer, and the hand-over records it here as an
+// open clarification (code comparison_point). Whether his message answers it is the model's to read, in the same call that
+// writes the engineer's reply (1195-1197); code checks the words it cites are his, then closes the points with his message,
+// which quote_compare shows the customer on the next view. A submitted conversation takes this text answer and nothing else.
+// prevented by: supplier_api/the_comparison_points_are_answered_only_by_the_supplier.test.ts
+const POINT_ACTION = { id: 'answer_points', words: true, meaning: 'their message answers the customer\'s points that QuotesDone asked them to confirm (listed in the situation): it states what their quotation includes, a figure, a date or a yes / no to those points; a question back, or a message about anything else, is NOT this' };
+const norm = (x: string) => x.toLowerCase().replace(/\s+/g, ' ').trim();
+const citedIn = (words: string | null | undefined, t: string) => !!words && norm(words).length >= 2 && norm(t).includes(norm(words));
+async function closePoints(repo: ReviewRepo, reviewId: string, points: RequestRow[], messageId: string) {
+  await repo.closeRequests(points.map((p) => p.id), 'answered', messageId);
+  await repo.pointsAnswered?.(reviewId);
+}
+async function answerPoints(repo: ReviewRepo, deps: ReviewDeps, l: Loaded, r: ReviewRow, t: string, sm: MessageRow, points: RequestRow[]): Promise<ThreadView> {
+  const conversation = (await repo.messages(r.id)).filter((m) => m.id !== sm.id && (m.body ?? '').trim()).map((m) => ({ role: m.role === SEAT ? 'seat' as const : 'supplier' as const, text: String(m.body) }));
+  const situation = stateFacts(l.inq, r, 'submitted', [], points.map((p) => p.label_en));
+  const v = await deps.voice({ kind: 'text', supplierMessage: t, actions: [POINT_ACTION], situation, conversation })
+    .catch(() => ({ text: '', action: null as string | null, action_words: null as string | null, outage: false, problems: [] as string[] }));
+  if (v.action === POINT_ACTION.id && citedIn(v.action_words, t)) await closePoints(repo, r.id, points, sm.id);
+  if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: 'text', body: v.text, body_ar: null, attachments: [], issues: null });
+  else await held(repo, deps, r.id, situation, t, v.outage === true, undefined, v.problems ?? []);
+  return view(repo, deps, l.inq, await repo.review(l.inq.id, r.supplier_id));
+}
 
 const MAX_SEEN_IMAGE_BYTES = 1_150_000;
 const seenImage = (bytes: Uint8Array, mime: string): string[] => {
@@ -28,14 +53,17 @@ const seenImage = (bytes: Uint8Array, mime: string): string[] => {
 export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquiryId: string, text: unknown,
                               file?: { b64?: unknown; filename?: unknown; mime?: unknown } | null): Promise<ThreadView | Fail> {
   const l = await load(repo, deps, ctx, inquiryId); if (isFail(l)) return l;
-  const bad = writableOr(l, l.r, deps.now()); if (bad) return bad;
   const t = typeof text === 'string' ? text.trim().slice(0, 2000) : '';
   const hasFile = !!file && typeof file.b64 === 'string' && !!file.b64;
+  const points = l.r ? (await repo.requests(l.r.id, true)).filter((x) => x.code === POINT_CODE) : [];
+  const bad = writableOr(l, l.r, deps.now(), points.length > 0 && !hasFile); if (bad) return bad;
   if (!t && !hasFile) return fail(400, 'text_required', 'Write a message.');
   if (hasFile) return messageWithFile(repo, deps, ctx, l, t, file!);
   const r = await ensure(repo, deps, ctx, l);
   const sm = await supplierSays(repo, r.id, 'text', t);
   const st = effectiveState(r, deps.now());
+  // a submitted conversation: his text answers the comparison points, and nothing re-runs the review or changes the quotation
+  if (st === 'submitted') return answerPoints(repo, deps, l, r, t, sm, points);
   const open = await openIssuesOf(repo, r);
   // The FIGURES and terms the supplier states are still PARSED by code (readReply's corrections: a format, not a
   // meaning), and a typed quotation still goes to the same reader. What the message MEANS — a choice, "submit it", a
@@ -59,7 +87,7 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
   }
   // review of #1981 N4: he may also CORRECT the figure in words ("no, it is 9,540"); and a message about something else ("what
   // time is the site visit?") is neither: the model must cite his words, and code checks they are in his message.
-  const actions = confirming ? [
+  const stateActions = confirming ? [
     { id: 'confirm_reading', words: true, meaning: 'their message itself clearly says the figures we asked them to check are right, without changing any; a question, a message about anything else, or a "yes, but ..." that adds or changes something is NOT this' },
     { id: 'correct_price', words: true, value: 'amount' as const, meaning: 'their message gives the right price of the whole quotation EXCLUDING VAT, as a figure they wrote ("9540 + VAT", "9,540 before VAT")' },
     { id: 'correct_total_incl_vat', words: true, value: 'amount' as const, meaning: 'their message gives the right total of the whole quotation INCLUDING VAT, as a figure they wrote ("9540 incl VAT")' }]
@@ -67,15 +95,18 @@ export async function message(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inqu
     ? [{ id: 'generate', meaning: 'they want us to generate the standardised quotation for them from what they sent' },
        { id: 'reupload', meaning: 'they will upload a new version of their own quotation' }]
     : st === 'ready_to_submit' ? [{ id: 'submit', meaning: 'they clearly tell us to submit the quotation to the customer now' }] : [];
+  // the customer's comparison points, while any is open: his message may answer them (POINT_ACTION)
+  const actions: { id: string; meaning: string; words?: boolean; value?: 'amount' }[] = [...stateActions, ...(points.length ? [POINT_ACTION] : [])];
+  const pointLabels = points.map((p) => p.label_en);
   // THE THREAD SO FAR (browser proof, 2 Nov 2026): the model was given the review's state and this one message, never what the
   // supplier had already said, so "what lead time did I tell you?" was answered "nothing has come through". Every earlier
   // message of the thread rides as the conversation; the message just written is the one being answered.
   const conversation = (await repo.messages(r.id)).filter((m) => m.id !== sm.id && (m.body ?? '').trim()).map((m) => ({ role: m.role === SEAT ? 'seat' as const : 'supplier' as const, text: String(m.body) }));
-  const v = await deps.voice({ kind: 'text', supplierMessage: t, actions, situation: stateFacts(l.inq, r, st, open), conversation })
+  const v = await deps.voice({ kind: 'text', supplierMessage: t, actions, situation: stateFacts(l.inq, r, st, open, pointLabels), conversation })
     .catch(() => ({ text: '', action: null as string | null, action_words: null as string | null, action_value: null as string | null, outage: false, problems: [] as string[] }));
   // His words, checked by code: the cited words are in his message, and a corrected figure is a plain positive amount he wrote.
-  const norm = (x: string) => x.toLowerCase().replace(/\s+/g, ' ').trim();
-  const cited = !!v.action_words && norm(v.action_words).length >= 2 && norm(t).includes(norm(v.action_words));
+  const cited = citedIn(v.action_words, t);
+  if (v.action === POINT_ACTION.id && points.length && cited) await closePoints(repo, r.id, points, sm.id);
   if (v.action === 'confirm_reading' && confirming && r.working && cited) {
     const w = { ...r.working, to_confirm: [], corrections: [...r.working.corrections, { field: 'reading_confirmed', value: String(v.action_words).slice(0, 200) }] };
     await runReview(repo, deps, l.inq, r, w, sm.id);
@@ -136,7 +167,8 @@ async function messageWithFile(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, l: 
     const r1 = (await repo.review(l.inq.id, ctx.supplierId)) ?? r;
     const open = await openIssuesOf(repo, r1);
     const said = (t || '(they sent this file with no message)') + `\n\nThey attached "${sc.name}". What it says:` + untrustedBlock(a.text.slice(0, 6000));
-    const situation = stateFacts(l.inq, r1, prior, open) + '\nThey attached a file with this message; what it says is in their message. Use it in your answer.';
+    const pts = (await repo.requests(r1.id, true)).filter((x) => x.code === POINT_CODE).map((x) => x.label_en);
+    const situation = stateFacts(l.inq, r1, prior, open, pts) + '\nThey attached a file with this message; what it says is in their message. Use it in your answer.';
     const v = await deps.voice({ kind: 'text', supplierMessage: said, situation, images: seenImage(sc.bytes, sc.mime) })
       .catch(() => ({ text: '', action: null as string | null, outage: false, problems: [] as string[] }));
     if (v.text) await repo.addMessage({ review_id: r.id, role: SEAT, kind: 'text', body: v.text, body_ar: null, attachments: [], issues: null });

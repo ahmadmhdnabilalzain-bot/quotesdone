@@ -13,6 +13,7 @@ import { COMPARE_PDF_TIMEOUT_MS, call } from '../api';
 import { STILL_WORKING_MS } from '@/lib/stillWorking';
 import { aed, supLabel } from '../format';
 import { S } from '../styles';
+import { starsOf } from './stars';
 
 // The comparison rows: one qd-row per quote over the same five columns, the best-value row lit teal,
 // a term the supplier did not state flagged in warn. Real fields only — nothing here is sample data.
@@ -99,13 +100,20 @@ function Comparison({ inqId, token, lang }) {
       {(q.price_score != null || q.delivery_score != null || q.quality_score != null) ? (
         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5" title={q.score_reason || ''}>
           {[[t(lang, 'cmp_price'), q.price_score], [t(lang, 'cmp_delivery'), q.delivery_score], [t(lang, 'cmp_quality'), q.quality_score]]
-            .filter(([, v]) => v != null)
-            .map(([label, v]) => (
+            .filter(([, v]) => starsOf(v) != null)
+            .map(([label, v]) => {
+              // Five symbols, rounded to the nearest half (stars.ts): 4.0 and 4.6 never look the same. The half star is the
+              // empty one with its first half filled, drawn in CSS so no font has to carry a half-star glyph.
+              const st = starsOf(v);
+              return (
               <span key={String(label)} className={S.sub}>
                 <span className="text-muted-foreground">{label}: </span>
-                <span className="text-foreground" aria-label={v + ' ' + t(lang, 'cmp_of5')}>{'★'.repeat(Math.max(0, Math.min(5, Number(v) || 0)))}{'☆'.repeat(Math.max(0, 5 - Math.max(0, Math.min(5, Number(v) || 0))))}</span>
+                <span className="text-foreground" aria-label={st.rounded + ' ' + t(lang, 'cmp_of5')}>{'★'.repeat(st.full)}{st.half ? <span className="relative inline-block" aria-hidden="true">☆<span className="absolute inset-y-0 start-0 w-1/2 overflow-hidden">★</span></span> : null}{'☆'.repeat(st.empty)}</span>
+                {/* the third score is the fit against his request: a quote that fails one says so beside its stars */}
+                {label === t(lang, 'cmp_quality') && (q.fails_request || arr(a.request_fit?.quotes).some((x) => x.label === q.label && arr(x.hard_fails).length)) ? <span className="text-danger"> · {t(lang, 'cmp_fails')}</span> : null}
               </span>
-            ))}
+              );
+            })}
         </div>
       ) : null}
       {q.score_reason ? <div className={cn(S.sub, 'text-muted-foreground')}>{q.score_reason}</div> : null}
