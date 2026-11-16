@@ -55,7 +55,10 @@
 -- MEMORY ACROSS CHANNELS. The request row is the durable record of what he told the sales engineer. The case summary
 -- (support_case_memory.ts) is written from support exchanges and never saw the request chat; its block now says the request
 -- facts are the record of what he asked (support_case_memory.ts caseBlock), and the facts carry the changes he sent after
--- the request went out (rfq_clarification notes: "my budget changed to 7,000"), newest last.
+-- the request went out (rfq_clarification notes: "my budget changed to 7,000"), newest last, and each quote carries the
+-- request thread with that supplier (its questions and his answers, rfq_clarification kind question). The supplier's review
+-- chat with our sales engineer (quote_review_messages) is NOT given: it is addressed to the sales engineer, not to him, its
+-- text is the supplier's own and unstripped, and what it settles reaches him as the stored quote and the review notes.
 --
 -- THE MODEL REASONS, THE DATABASE SUPPLIES FACTS. Nothing here compares a price with a budget, parses a budget or decides an
 -- answer: the budget is given as he wrote it, the prices as stated, and the reply rule (_shared/own_request_facts.ts
@@ -149,6 +152,19 @@ begin
 end
 $fn$;
 revoke execute on function public.fn_quote_words_for_customer(text, uuid, boolean) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- 2b. A MONEY FIGURE AS A CUSTOMER READS IT ("AED 4,600"). The reply guard (_shared/company_brief.ts figuresOf) lets a reply
+-- state an amount only when the facts state it WITH its unit; a bare 4600 under a key named _aed is not one, so the paid run
+-- of 16 Nov saw the model's "AED 4,600" refused and rewritten until the figures were gone. Each quote therefore also carries
+-- its price in words (price_as_shown), from this.
+create or replace function public.fn_aed_words(p_amount numeric)
+returns text language sql immutable security definer set search_path to 'public', 'pg_temp' as $fn$
+  select case when p_amount is null then null
+              when p_amount = trunc(p_amount) then 'AED ' || to_char(p_amount, 'FM999,999,999,990')
+              else 'AED ' || to_char(p_amount, 'FM999,999,999,990.00') end
+$fn$;
+revoke execute on function public.fn_aed_words(numeric) from public, anon, authenticated;
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- 3. ONE READING OF A CUSTOMER'S REQUESTS, NOW WITH WHAT HE ASKED AND WHAT HIS PORTAL SHOWS HIM.
@@ -247,6 +263,13 @@ returns jsonb language sql stable security definer set search_path to 'public', 
                     'letter', lt.letter, 'label', case when cfg.lang = 'ar' then lt.label_ar else lt.label_en end,
                     'letter_source', lt.letter_source,
                     'price_ex_vat_aed', coalesce(z.price_ex_vat, z.quote_amount),
+                    'price_as_shown', public.fn_aed_words(coalesce(z.price_ex_vat, z.quote_amount)) || ' before VAT'
+                       || case when z.vat_treatment in ('exclusive', 'inclusive') and z.vat_amount is not null
+                               then ', ' || public.fn_aed_words(z.vat_amount) || ' VAT, ' || public.fn_aed_words(coalesce(z.price_ex_vat, z.quote_amount) + z.vat_amount) || ' with VAT'
+                               when z.vat_treatment in ('not_registered', 'zero_rated', 'exempt') then ', no VAT: ' || public.fn_aed_words(coalesce(z.price_ex_vat, z.quote_amount)) || ' in total'
+                               else ', VAT not stated' end
+                       || case when z.discount_amount > 0 and z.gross_amount is not null
+                               then ' (after a discount of ' || public.fn_aed_words(z.discount_amount) || ' from ' || public.fn_aed_words(z.gross_amount) || ')' else '' end,
                     'vat_as_stated', case z.vat_treatment when 'exclusive' then 'VAT added on top of the price'
                                                           when 'inclusive' then 'the supplier''s total includes VAT'
                                                           when 'not_registered' then 'supplier not VAT registered: no VAT'
@@ -271,6 +294,16 @@ returns jsonb language sql stable security definer set search_path to 'public', 
                     'notes_against_your_request', (select jsonb_agg(coalesce(case when cfg.lang = 'ar' then rn.n ->> 'ar' end, rn.n ->> 'en'))
                                                      from jsonb_array_elements(case when jsonb_typeof(z.review_notes) = 'array' then z.review_notes else '[]'::jsonb end) rn(n)
                                                     where coalesce(rn.n ->> 'en', rn.n ->> 'ar') is not null),
+                    -- the request thread with THIS supplier (rfq_clarification, kind question: the supplier asks, he answers), so
+                    -- "did B ask about the tiles, what did I tell them?" is answered by the quote's own letter. The question was
+                    -- stripped of contacts and brands when it was asked (messages_api clarify_ask, stripSupplierQuestion) and is
+                    -- what his portal thread shows; the code generaliser runs over it again before a model reads it.
+                    'questions_and_answers', (select jsonb_agg(jsonb_strip_nulls(jsonb_build_object('asked_at', c.asked_at,
+                                                    'supplier_asked', left(c.question, 400),
+                                                    'he_answered', left(coalesce(c.answer_as_written, c.answer), 400), 'answered_at', c.answered_at)) order by c.asked_at)
+                                                from (select * from public.rfq_clarification c0
+                                                       where c0.inquiry_id = i.id and c0.kind = 'question' and c0.supplier_id = z.supplier_id
+                                                       order by c0.asked_at desc limit 5) c),
                     'revealed', z.revealed_at is not null,
                     'supplier', case when z.revealed_at is null then null
                                      when z.sanctioned then 'a supplier no longer on QuotesDone'

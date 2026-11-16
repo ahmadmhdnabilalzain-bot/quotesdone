@@ -24,7 +24,7 @@
 // (claude-sonnet-5.5, USD 2 / 10 per Mtok, 0.10 cached): ~USD 0.012, plus one cache write ~USD 0.05; a judge ~6k in, ~250 out
 // on another family: ~USD 0.01. 45 scenarios: about USD 1.0.
 import { arg, CapReached, closeWindow, connect, flag, guardSpend, JUDGE_FN, newTag, openWindow, spentUsd, writeJson, type Ctx } from '../model_routing/harness.ts';
-import { SCENARIOS, SUPPLIERS, CUSTOMER, codeGrade } from '../customer_follow_up_bank.mjs';
+import { SCENARIOS, SUPPLIERS, CUSTOMER, TIMELINE, codeGrade } from '../customer_follow_up_bank.mjs';
 import type { ThinkDeps } from '../../../supabase/functions/_shared/think.ts';
 
 export const MAX_CAP_USD = 1.5;
@@ -77,7 +77,7 @@ that says more than the criteria is fine if it is true. Return ONE JSON object: 
   try {
     for (const [i, sc] of list.entries()) {
       const t = { audience: 'customer', known: { audience: 'customer', name: CUSTOMER.name },
-        prefetch: { timeline: Promise.resolve({ data: null }), mine: Promise.resolve({ data: facts.mine }), company: Promise.resolve(company),
+        prefetch: { timeline: Promise.resolve({ data: sc.timeline ? { event_count: TIMELINE.length, events: TIMELINE } : null }), mine: Promise.resolve({ data: facts.mine }), company: Promise.resolve(company),
           faq: Promise.resolve({ ctx: '', ids: [] as number[] }) } };
       // deno-lint-ignore no-explicit-any
       const { situation } = await composeSituation(t as any, { fact_pack: facts.pack });
@@ -88,7 +88,7 @@ that says more than the criteria is fine if it is true. Return ONE JSON object: 
       const req = ((facts.pack as { identity: { requests: { ref: number }[] } }).identity.requests).find((r) => r.ref === facts.refs[sc.req]);
       await guardSpend(c, JUDGE_EST, 'judge ' + sc.id);
       const j = await inRun(() => defaultDeps(admin, JUDGE_FN).llm('verify', JUDGE_SYS, JSON.stringify({ message: sc.msg, action: sc.action,
-        criteria: sc.judge, must_not: [...(sc.must_not ?? []), 'the name of any supplier not revealed'], facts_for_this_request: req, reply: said.text || '(no reply)' }),
+        criteria: sc.judge, ...(sc.timeline ? { timeline: TIMELINE } : {}), must_not: [...(sc.must_not ?? []), 'the name of any supplier not revealed'], facts_for_this_request: req, reply: said.text || '(no reply)' }),
         { taskClass: 'knowledge_validation', seat: 'it_engineer', counterpartModel: said.model ?? 'anthropic/claude-sonnet-5.5', max: 800, subject: { fixture: true } }));
       let v: Record<string, unknown> = {};
       try { const s = String(j.content ?? ''); v = JSON.parse(s.slice(s.indexOf('{'), s.lastIndexOf('}') + 1)); } catch { v = { pass: false, why: 'judge unread: ' + String(j.content ?? j.error).slice(0, 160) }; }

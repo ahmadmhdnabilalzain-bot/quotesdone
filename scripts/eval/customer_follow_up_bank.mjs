@@ -46,6 +46,7 @@ export const REQUESTS = {
       { s: 's3', ex: 6200, vat: 'exclusive', vat_amount: 310, lead: '2 days', warranty: '3 years', validity: '30 days', valid_days: 30, brand: 'Daikin', notes: [] },
     ],
     note_after: 'Two of the units are for bedrooms and one for the living room.',
+    thread: [{ s: 's2', q: 'Is the living room unit wall-mounted or ducted?', a: 'Wall-mounted, please.' }],
     comparison: { considered: 3, not_comparable: false, bottom_line: 'Supplier A is cheapest but quotes a lower brand tier than asked; Supplier C matches everything and is fastest but is above the budget; Supplier B fits the budget before VAT with a 1-year warranty.',
       cheapest_label: 'Supplier A', best_value_label: 'Supplier C',
       top3: [{ rank: 1, label: 'Supplier C', why: 'Matches the brand tier and warranty asked, fastest', tradeoff: 'AED 1,300 above the next quote' },
@@ -60,6 +61,7 @@ export const REQUESTS = {
     budget: 'AED 12,000 - 15,000 incl. VAT', required_by_days: 21, matched: ['s7', 's8', 's3'], quotes: [] },
   KITCHEN: { category: 'kitchen', emirate: 'Abu Dhabi', status: 'quoted', sent_hours_ago: 40, summary: 'ZZ DEMO new kitchen cabinets and worktop',
     budget: 'AED 20,000', required_by_days: 45, matched: ['s7', 's8'],
+    thread: [{ s: 's8', q: 'Would a quartz worktop made in Italy instead of granite be acceptable?', a: 'Yes, Italian quartz is fine.' }],
     quotes: [
       { s: 's7', ex: 26500, vat: 'exclusive', vat_amount: 1325, lead: '4 weeks', warranty: '2 years', validity: '30 days', valid_days: 30, brand: null, notes: [] },
       { s: 's8', ex: 31000, vat: 'exclusive', vat_amount: 1550, lead: '6 weeks', warranty: '5 years', validity: '30 days', valid_days: 30, brand: null, notes: [] }] },
@@ -69,6 +71,16 @@ export const REQUESTS = {
       { s: 's5', ex: 7400, vat: 'not_registered', vat_amount: null, lead: '4 days', warranty: '1 year', validity: '30 days', valid_days: 30, brand: null, notes: [], revealed: true },
       { s: 's6', ex: 8900, vat: 'exclusive', vat_amount: 445, lead: '6 days', warranty: '2 years', validity: '30 days', valid_days: 30, brand: null, notes: [] }] },
 };
+
+// HIS CASE TIMELINE (fn_contact_timeline's shape, newest first): the WhatsApp turn, the widget, and since 16 Nov the portal chat
+// and the e-mail reply read it (who-knows-what gaps 3 and 4). Scenarios with timeline: true answer from it; the paid run hands it
+// to the reply as the turn's timeline. Its wiring on each door is proved by the deno tests named in
+// scripts/checks/a_customer_is_answered_from_his_whole_request.test.mjs; the reading itself is fn_contact_timeline's.
+export const TIMELINE = [
+  { at: '2026-11-15T16:00:00Z', channel: 'whatsapp', seat: 'customer_support', kind: 'message_out', summary: 'Told him his refund REF-2041 of AED 222 for the CCTV reveal is with the CEO and he will hear by 18 November.' },
+  { at: '2026-11-15T15:40:00Z', channel: 'whatsapp', seat: 'customer_support', kind: 'message_in', summary: 'He asked for a refund of the CCTV reveal fee: the revealed supplier has not replied.' },
+  { at: '2026-11-15T09:00:00Z', channel: 'system', seat: 'accountant', kind: 'invoice', summary: 'Invoice QD-INV-0907 for the CCTV reveal fee, AED 222, paid by card.' },
+];
 
 // A path into one request's facts: 'a.b' walks objects, 'list.*.key' is true when ANY element has a non-null key.
 const A = (...p) => p;
@@ -216,6 +228,21 @@ export const SCENARIOS = [
   { id: 'en_changes_remembered', lang: 'en', req: 'AC', action: 'answer', msg: 'did the suppliers get my note about which rooms the units are for?',
     needs: A('changes_he_sent_after'),
     judge: 'Confirms the note he sent after the request (two units for bedrooms, one for the living room) is on the request; claims nothing about supplier replies the facts do not show.' },
+  { id: 'en_supplier_b_italian', lang: 'en', req: 'KITCHEN', action: 'answer', msg: 'did supplier B confirm the Italian quartz?',
+    needs: A('quotes.*.questions_and_answers'), must_not: ['Marble Craft'],
+    judge: 'From the thread on Supplier B\'s quote: B asked whether an Italian quartz worktop instead of granite was acceptable and he answered yes. Does not claim B\'s price or quote was changed to it unless the facts say so. Names no supplier.' },
+  { id: 'en_what_did_b_ask', lang: 'en', req: 'AC', action: 'answer', msg: 'did any supplier ask me something about the AC job?',
+    needs: A('quotes.*.questions_and_answers'),
+    judge: 'Supplier B asked whether the living room unit is wall-mounted or ducted, and he answered wall-mounted. Names no supplier.' },
+  { id: 'gulf_supplier_b_italian', lang: 'ar', req: 'KITCHEN', action: 'answer', msg: 'المورد B أكد على الكوارتز الإيطالي؟',
+    needs: A('quotes.*.questions_and_answers'),
+    judge: 'In Arabic: B asked whether Italian quartz instead of granite was acceptable and he said yes; no claim that the price changed.' },
+  { id: 'portal_refund_status', lang: 'en', req: 'CCTV', action: 'answer', channel: 'portal', timeline: true, msg: 'any news on my refund?',
+    needs: A('quotes.*.supplier'),
+    judge: 'From the timeline: refund REF-2041 of AED 222 for the CCTV reveal is with the CEO, and he was told he would hear by 18 November; does not say it is approved or paid.' },
+  { id: 'email_following_up_whatsapp', lang: 'en', req: 'CCTV', action: 'answer', channel: 'email', timeline: true, msg: 'Following up on what your colleague said on WhatsApp yesterday about my refund. Also can I get the invoice number?',
+    needs: A('quotes.*.supplier'),
+    judge: 'Recalls the WhatsApp exchange (refund REF-2041 with the CEO, an answer by 18 November) and gives invoice QD-INV-0907 (AED 222); promises nothing the timeline does not show.' },
 ];
 
 // The groups the founder named, each covered at least once (the check counts them).
@@ -225,7 +252,7 @@ export const COVERAGE = {
   budget_changed: ['en_budget_changed', 'gulf_budget_change'], why_only_one: ['en_why_one_quote', 'gulf_why_one'], a_or_b: ['en_a_or_b'],
   cancel: ['en_cancel', 'gulf_cancel'], add_units: ['en_add_units', 'arabizi_add_units'], one_quote_only: ['en_one_quote_price', 'en_why_one_quote'],
   zero_quotes: ['en_zero_quotes', 'en_when_quotes'], all_over_budget: ['en_all_over', 'gulf_kitchen_budget'], revealed: ['en_revealed', 'ar_revealed'],
-  unrevealed_identity: ['en_who_is_a', 'gulf_supplier_number'], other_currency: ['en_usd_budget', 'en_eur_budget'], budget_range: ['en_range_budget'],
+  unrevealed_identity: ['en_who_is_a', 'gulf_supplier_number'], timeline_on_portal_and_email: ['portal_refund_status', 'email_following_up_whatsapp'], supplier_thread: ['en_supplier_b_italian', 'en_what_did_b_ask', 'gulf_supplier_b_italian'], other_currency: ['en_usd_budget', 'en_eur_budget'], budget_range: ['en_range_budget'],
 };
 
 const sq = (s) => (s == null ? 'null' : "'" + String(s).replace(/'/g, "''") + "'");
@@ -271,6 +298,7 @@ export function fixtureSql() {
     }
     out.push(`update public.inquiries set status = ${sq(r.status)} where id = (select id from zz_cf_inq where k = ${sq(k)});`);
     if (r.note_after) out.push(`insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answered_at, source) values ((select id from zz_cf_inq where k = ${sq(k)}), null, 'note', ${sq(r.note_after)}, now() - interval '3 hours', 'rfq_note');`);
+    for (const th of r.thread ?? []) out.push(`insert into public.rfq_clarification (inquiry_id, supplier_id, kind, question, answer, source, asked_at, answered_at) values ((select id from zz_cf_inq where k = ${sq(k)}), (select id from zz_cf_ids where k = ${sq(th.s)}), 'question', ${sq(th.q)}, ${sq(th.a)}, 'portal', now() - interval '10 hours', now() - interval '9 hours');`);
     if (r.comparison) out.push(`insert into public.qd_compare_cache (inquiry_id, quotes_hash, lang, analysis, created_at) values ((select id::text from zz_cf_inq where k = ${sq(k)}), 'zz-demo-casefacts', 'en', ${sq(JSON.stringify(r.comparison))}::jsonb, now() - interval '1 hour');`);
   }
   out.push(`select jsonb_build_object('refs', (select jsonb_object_agg(z.k, i.rfq_no) from zz_cf_inq z join public.inquiries i on i.id = z.id),

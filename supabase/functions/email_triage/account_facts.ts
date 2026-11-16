@@ -136,6 +136,14 @@ export const SIGN_IN_FACT = 'THE SENDER\'S E-MAIL COULD NOT BE VERIFIED AS COMIN
 export function senderVerified(raw: unknown): boolean {
   return !!raw && typeof raw === 'object' && (raw as { sender_authenticated?: unknown }).sender_authenticated === true;
 }
+/** THE TIMELINE REACHES THE REPLY (16 Nov 2026, who-knows-what audit gap 4). email_triage read the sender's case timeline
+ *  (fn_contact_timeline: refunds, WhatsApp messages, earlier mails, every seat) and gave it only to the classifier, so "following
+ *  up on what your colleague said on WhatsApp about my refund" was answered blind. The same text now rides in the reply's facts,
+ *  under the same spoof rule as the account: only for a known sender whose From domain was authenticated. */
+export function timelineReplyFacts(tlText: string, relation: unknown, raw: unknown): string {
+  if (relation !== 'customer' && relation !== 'supplier') return '';
+  return senderVerified(raw) ? String(tlText || '').trim() : '';
+}
 /** The facts for this mail: the account when the sender is verified, the sign-in line when a known sender is not. */
 export async function mailFacts(admin: Db, email: string, relation: unknown, raw: unknown): Promise<string> {
   if (relation !== 'customer' && relation !== 'supplier') return '';

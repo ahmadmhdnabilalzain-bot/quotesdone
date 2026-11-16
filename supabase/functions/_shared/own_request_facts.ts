@@ -21,7 +21,8 @@ export const OWN_REQUEST_RULE = 'HIS OWN REQUESTS. His own record in these facts
   + 'Each request carries `asked`: what he told us when he made it (his budget exactly as he wrote it, the date he needs it by and his words for it, '
   + 'the emirate and his site, the materials and brands he asked for, the alternatives he accepted), and `changes_he_sent_after`. Each live quote '
   + 'carries what his portal shows him: its letter, its price before VAT and with VAT as the supplier stated it, how long it is valid, its lead time and '
-  + 'warranty as stated, and the sales engineer\'s notes against his request; `comparison` is the comparison report his portal shows. '
+  + 'warranty as stated, the sales engineer\'s notes against his request, and `questions_and_answers` (what that supplier asked him and what '
+  + 'he answered); `comparison` is the comparison report his portal shows. Give amounts as `price_as_shown` writes them (AED and the figure). '
   + 'Answer any question about his own request by reasoning over these: a price against his budget (say whether you compare before or with VAT, '
   + 'following how he stated his budget), who can deliver by a date (from the lead times; one that is not stated is not stated), which quote matches '
   + 'a brand he asked for (before the reveal no brand is named: say what the notes say and that the exact brand shows after the reveal), what is still '
@@ -47,6 +48,10 @@ export function generaliseOwnRequestFacts<T>(v: T): T {
         if (!q || typeof q !== 'object' || (q as Record<string, unknown>).revealed === true) return walk(q);
         const c = walk(q) as Record<string, unknown>;
         for (const f of SEALED_WORDS) if (typeof c[f] === 'string') c[f] = generaliseText(c[f]).text;
+        if (Array.isArray(c.questions_and_answers)) {
+          c.questions_and_answers = (c.questions_and_answers as Record<string, unknown>[]).map((x) =>
+            x && typeof x.supplier_asked === 'string' ? { ...x, supplier_asked: generaliseText(x.supplier_asked).text } : x);
+        }
         return c;
       });
     }
@@ -60,4 +65,23 @@ export function generaliseOwnRequestFacts<T>(v: T): T {
 export function withoutDuplicateRequests(mine: Record<string, unknown>, pack: unknown): Record<string, unknown> {
   const reqs = (pack as { identity?: { requests?: unknown } } | null)?.identity?.requests;
   return Array.isArray(reqs) && Array.isArray(mine.inquiries) ? { ...mine, inquiries: 'the same requests as FACT PACK identity.requests below' } : mine;
+}
+
+/** THE PORTAL CHAT SEES WHAT THE OTHER DOORS SEE (16 Nov 2026, who-knows-what audit gap 3). The customer portal chat read only
+ *  his quotes (sales_engineer/lib/own_quotes.ts), so it was blind to his refunds, the reveal fee he paid, his invoice and what
+ *  was said on WhatsApp, which the widget reads for the same person (site_assistant/index.ts: fn_wa_context and
+ *  fn_contact_timeline). This is that reading's text for the portal: his account and profile (fn_wa_context; the requests
+ *  are left out because own_quotes already gives them with what he asked) and his case timeline (every channel and seat,
+ *  newest first: requests, quotes, reveals, invoices, refunds and the CEO's decisions, messages). '' when nothing was read. */
+export function customerRecordFacts(live: Record<string, unknown> | null, events: unknown): string {
+  const out: string[] = [];
+  if (live && live.known === true) {
+    const { inquiries: _drop, ...rest } = live;
+    out.push('HIS ACCOUNT (scoped in SQL to him alone; his requests and quotes are given above):\n' + JSON.stringify(rest));
+  }
+  if (Array.isArray(events) && events.length) {
+    out.push('HIS CASE TIMELINE (newest first; every channel and every seat: reveals, invoices, refunds and their decisions, WhatsApp and '
+      + 'e-mail messages; his only). Never contradict it, and never tell him something is pending that it shows as done:\n' + JSON.stringify(events).slice(0, 8000));
+  }
+  return out.join('\n\n');
 }

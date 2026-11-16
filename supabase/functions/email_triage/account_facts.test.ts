@@ -1,5 +1,5 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { accountFacts, customerFacts, mailFacts, SIGN_IN_FACT, SUPPLIER_SIGN_IN_FACT, supplierFacts } from './account_facts.ts';
+import { accountFacts, customerFacts, mailFacts, SIGN_IN_FACT, SUPPLIER_SIGN_IN_FACT, supplierFacts, timelineReplyFacts } from './account_facts.ts';
 
 Deno.test('customer facts carry each request by its number, what he asked, each quote as his portal shows it, and the rule', async () => {
   const { OWN_REQUEST_RULE } = await import('../_shared/own_request_facts.ts');
@@ -95,4 +95,14 @@ Deno.test('a supplier that claimed its listing is still answered as registered',
 });
 Deno.test('an unverified lead is told both routes and gets no personal link', () => {
   assert(SUPPLIER_SIGN_IN_FACT.includes('quotesdone.com/portal') && /Create account/.test(SUPPLIER_SIGN_IN_FACT) && !SUPPLIER_SIGN_IN_FACT.includes('?t='));
+});
+
+// who-knows-what gap 4 (16 Nov 2026): the timeline the classifier reads reaches the reply, under the account's spoof rule
+Deno.test('the case timeline reaches the reply only for an authenticated known sender', async () => {
+  const tl = '\n\nSENDER CASE TIMELINE (newest first): [{"channel":"whatsapp","summary":"refund REF-1 with the CEO"}]';
+  assert(timelineReplyFacts(tl, 'customer', { sender_authenticated: true }).includes('REF-1'));
+  assertEquals(timelineReplyFacts(tl, 'customer', { sender_authenticated: false }), '');
+  assertEquals(timelineReplyFacts(tl, null, { sender_authenticated: true }), '');
+  const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
+  assert(/timelineReplyFacts\(tlText, relation/.test(src), 'index.ts does not pass the timeline it read into the reply facts');
 });

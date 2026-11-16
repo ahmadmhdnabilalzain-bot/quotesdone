@@ -11,7 +11,8 @@
 --      the same in fn_wa_context (WhatsApp own record, widget) and fn_wa_fact_pack (WhatsApp fact pack);
 --   P2 each live quote carries the letter the portal gives it (cheapest first, one letter per supplier, "Supplier A - Option 2"
 --      for a second option of the same supplier), its price ex VAT, and with VAT as stated: added on top (price + VAT), not
---      VAT registered (the price), not stated (no total);
+--      VAT registered (the price), not stated (no total); and the same in words with its unit ("AED 4,600 before VAT, AED 230
+--      VAT, AED 4,830 with VAT"), which is how the reply guard lets a reply state it;
 --   P3 before the reveal no supplier name is anywhere in either reading; the quote's own words lose the supplier's own name,
 --      its own brand value and an e-mail address; the sales engineer's notes ride with the quote;
 --   P4 a revealed quote names its supplier; the other stays a letter and a price;
@@ -20,7 +21,8 @@
 --   P7 an old closed request (fifth newest, completed) keeps the summary keys only;
 --   P8 the 3 Nov keys keep their meaning (quotes_received counts live quotes, price_band from two sealed quotes, ref), and a
 --      sanctioned supplier's sealed quote is no longer counted or averaged (three shown, three counted, not late);
---   P9 the new routines are closed to anon and authenticated.
+--   P9 the new routines are closed to anon and authenticated;
+--   P10 the request thread with a supplier (its question, his answer) rides on that supplier's quote, and on no other.
 do $probe$
 declare
   fails text := ''; o jsonb := '{}'::jsonb; v jsonb; w jsonb; r jsonb; qa jsonb; t text;
@@ -83,6 +85,8 @@ begin
   values (q5, iB, s4, c1, 7400, 'paid', now() - interval '2 hours', now() + interval '6 days');
   insert into public.rfq_clarification (inquiry_id, supplier_id, kind, answer, answered_at, source)
   values (iA, null, 'note', 'ZZ DEMO two units for bedrooms, one for the living room', now() - interval '3 hours', 'rfq_note');
+  insert into public.rfq_clarification (inquiry_id, supplier_id, kind, question, answer, source, asked_at, answered_at)
+  values (iA, s2, 'question', 'ZZ DEMO is the living room unit wall-mounted or ducted?', 'Wall-mounted', 'portal', now() - interval '20 hours', now() - interval '19 hours');
   insert into public.qd_compare_cache (inquiry_id, quotes_hash, lang, analysis, created_at)
   values (iA::text, 'zz-probe-good', 'en', '{"considered":3,"bottom_line":"ZZ DEMO good reading","cheapest_label":"Supplier A","quotes":[{"label":"Supplier A","price":4600,"spec_deviation":["lower brand tier"]}]}'::jsonb, now() - interval '2 hours'),
          (iA::text, 'zz-probe-failed', 'en', '{"__failed":{"count":1,"detail":"ZZ DEMO"}}'::jsonb, now() - interval '1 hour');
@@ -111,6 +115,8 @@ begin
      or qa -> 'Supplier A - Option 2' -> 0 <> '5200'::jsonb or qa -> 'Supplier A - Option 2' -> 1 <> 'null'::jsonb
      or qa -> 'Supplier A - Option 2' ->> 2 <> 'VAT not stated' then
     fails := fails || ' P2:quotes(' || coalesce(qa::text, 'null') || ')'; end if;
+  t := (select x ->> 'price_as_shown' from jsonb_array_elements(r -> 'quotes') x where x ->> 'label' = 'Supplier A - Option 1');
+  if t is distinct from 'AED 4,600 before VAT, AED 230 VAT, AED 4,830 with VAT' then fails := fails || ' P2:price_as_shown(' || coalesce(t, 'null') || ')'; end if;
   o := o || jsonb_build_object('P2_quotes', qa);
 
   -- P3
@@ -137,6 +143,11 @@ begin
      or exists (select 1 from public.fn_customer_quote_letters(iA) l where l.quote_id = q4) then
     fails := fails || ' P5:sanctioned(' || coalesce((r -> 'quotes')::text, 'null') || ')'; end if;
 
+  -- P10 the request thread with a supplier rides on that supplier's quote only
+  if (select x -> 'questions_and_answers' -> 0 ->> 'he_answered' from jsonb_array_elements(r -> 'quotes') x where x ->> 'label' = 'Supplier B') is distinct from 'Wall-mounted'
+     or exists (select 1 from jsonb_array_elements(r -> 'quotes') x where x ->> 'label' <> 'Supplier B' and x ? 'questions_and_answers') then
+    fails := fails || ' P10:thread(' || coalesce((r -> 'quotes')::text, 'null') || ')'; end if;
+
   -- P6
   if r -> 'comparison' ->> 'bottom_line' is distinct from 'ZZ DEMO good reading' or r -> 'comparison' -> 'per_quote' -> 0 ->> 'label' <> 'Supplier A' then
     fails := fails || ' P6:comparison(' || coalesce((r -> 'comparison')::text, 'null') || ')'; end if;
@@ -152,11 +163,11 @@ begin
     fails := fails || ' P8:kept(' || (r - 'asked' - 'quotes' - 'comparison')::text || ')'; end if;
 
   -- P9
-  for f in select unnest(array['public.fn_customer_quote_letters(uuid)', 'public.fn_quote_words_for_customer(text,uuid,boolean)', 'public.fn_customer_inquiry_facts(uuid,integer)']) loop
+  for f in select unnest(array['public.fn_customer_quote_letters(uuid)', 'public.fn_quote_words_for_customer(text,uuid,boolean)', 'public.fn_customer_inquiry_facts(uuid,integer)', 'public.fn_aed_words(numeric)']) loop
     if has_function_privilege('anon', f, 'execute') or has_function_privilege('authenticated', f, 'execute') then fails := fails || ' P9:' || f; end if;
   end loop;
   select count(*) into n from pg_proc p join pg_namespace s on s.oid = p.pronamespace
-   where s.nspname = 'public' and p.proname in ('fn_customer_quote_letters', 'fn_quote_words_for_customer')
+   where s.nspname = 'public' and p.proname in ('fn_customer_quote_letters', 'fn_quote_words_for_customer', 'fn_aed_words')
      and not (p.prosecdef and array_to_string(p.proconfig, ',') like 'search_path=%');
   if n <> 0 then fails := fails || ' P9:definer_or_search_path'; end if;
   o := o || jsonb_build_object('letter_source', (select l.letter_source from public.fn_customer_quote_letters(iA) l limit 1));

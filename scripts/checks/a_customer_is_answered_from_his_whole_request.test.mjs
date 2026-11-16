@@ -20,7 +20,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SCENARIOS, REQUESTS, COVERAGE, SUPPLIERS, PLANTED, fixtureSql, has, codeGrade } from '../eval/customer_follow_up_bank.mjs';
+import { SCENARIOS, REQUESTS, COVERAGE, SUPPLIERS, PLANTED, TIMELINE, fixtureSql, has, codeGrade } from '../eval/customer_follow_up_bank.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -63,6 +63,10 @@ test('every customer channel gives the model the one rule and the facts pass the
   assert.match(R('supabase/functions/email_triage/account_facts.ts'), /rpc\('fn_customer_inquiry_facts'/, 'e-mail does not read the one reading');
   assert.match(R('supabase/functions/sales_engineer/lib/own_quotes.ts'), /rpc\('fn_customer_inquiry_facts'/, 'the portal chat does not carry what he asked');
   assert.match(R('supabase/functions/_shared/support_case_memory.ts'), /REQUEST_IS_THE_RECORD \+/, 'the case block does not point at the request facts');
+  // who-knows-what gaps 3 and 4: the portal chat reads his account and timeline; the e-mail reply gets the timeline it read
+  assert.match(R('supabase/functions/sales_engineer/actions/portal.ts'), /customerRecordFacts\(live, events\)/, 'the portal chat is blind to his account and timeline');
+  assert.match(R('supabase/functions/email_triage/index.ts'), /timelineReplyFacts\(tlText, relation/, 'the e-mail reply never sees the timeline');
+  for (const s of SCENARIOS.filter((x) => x.timeline)) assert.ok(TIMELINE.length && ['portal', 'email'].includes(s.channel), `${s.id}: a timeline scenario names its door`);
   const manifest = R('scripts/sql/MANIFEST.txt').split('\n').includes(SQL);
   assert.ok(manifest !== existsSync(join(ROOT, `scripts/sql/pending/${NAME}.txt`)), 'the file needs exactly one of a MANIFEST line or a pending note');
 });
