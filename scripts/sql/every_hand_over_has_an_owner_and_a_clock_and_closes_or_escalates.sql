@@ -235,7 +235,9 @@ as $fn$
 declare r record; v_reason text; v_kept bigint; v_clock jsonb;
   n_dead int := 0; n_test int := 0; n_dup int := 0; n_stamped int := 0; v_by_reason jsonb := '{}'::jsonb; v_unreg jsonb;
 begin
-  for r in select v.* from public.v_handover_open v order by v.id limit greatest(coalesce(p_limit, 500), 1) loop
+  -- every open row is read (a few hundred); WRITES stop at p_limit a run, so a backlog is worked down over the hourly runs
+  for r in select v.* from public.v_handover_open v order by v.id loop
+    exit when n_dead + n_test + n_dup + n_stamped >= greatest(coalesce(p_limit, 500), 1);
     v_reason := null; v_kept := null;
     -- (a) DEAD LETTERS: nothing can ever act on it. An unregistered NON-handoff kind is not one (it may be new work):
     --     it stays open and goes to the CEO at its due time.
