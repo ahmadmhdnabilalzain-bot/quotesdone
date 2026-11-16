@@ -377,7 +377,7 @@ export function fitQuote(reqs: Requirement[], input: { quote: FitQuote; lines: F
         const l = others.find((x) => /duct/i.test(lineText(x)) && /servic|maint|clean|صيانة|تنظيف/i.test(lineText(x)));
         if (!l) { set(r, itemised ? 'differs' : 'not_stated', itemised ? NOT_IN : NOT_STATED, bi('it does not price the service of your ducted units', 'لا يسعّر صيانة وحدات الدكت')); break; }
         const n = num(l.qty);
-        if (r.units && n != null && n < r.units) { set(r, 'differs', bi(`${n} of ${r.units} units`, `${n} من ${r.units} وحدات`), bi(`it services ${n} of your ${r.units} ducted units`, `يصون ${n} من أصل ${r.units} وحدات دكت`)); break; }
+        if (r.units && n != null && n < r.units) { set(r, 'differs', bi(`${n} of ${r.units} units`, `${n} من ${r.units} وحدات`), bi(`it services ${n} of your ${r.units} ducted units`, `يشمل صيانة ${n} من أصل ${r.units} وحدات دكت`)); break; }
         const missing = SUBITEMS.filter((s) => (r.subitems || []).includes(s.key) && !s.re.test(lineText(l)));
         if (missing.length) {
           set(r, 'not_stated', bi(`Priced; it does not mention the ${missing.map((s) => s.en).join(', ')}`, `مسعّرة؛ لا تذكر ${missing.map((s) => s.ar).join('، ')}`));
@@ -783,7 +783,7 @@ export function hideBrandPhrases(a: any, phrases: HiddenPhrases[]): any {
   }
   if (ctryAr) {
     rules.push([new RegExp(`${AR_B}(?:صنع|صُنع|صُنعت|مصنوع|مصنوعة|مصنّع|مصنّعة|مصنع|مصنعة|منتج|منتجة)\\s+في\\s+(?:${ctryAr})${AR_E}`, 'g'), ORIGIN_AR]);
-    rules.push([new RegExp(`${AR_B}من\\s+(?:${ctryAr})${AR_E}`, 'g'), `من ${ORIGIN_AR}`]);
+    rules.push([new RegExp(`${AR_B}من\\s+(?:${ctryAr})${AR_E}`, 'g'), 'من منشأ يظهر بعد الكشف']);
   }
   rules.push([new RegExp(`${AR_B}(?:ال)?(?:علامة|ماركة|وحدات|خيار)(?:\\s+(?:ال)?تجارية)?\\s+${TIER_AR}${AR_E}`, 'g'), AS_ASKED_AR]);
   if (bareAr) rules.push([new RegExp(`${AR_B}[وبلف]?(?:ال)?(?:${bareAr})${AR_E}`, 'g'), `(${ORIGIN_AR})`]);
