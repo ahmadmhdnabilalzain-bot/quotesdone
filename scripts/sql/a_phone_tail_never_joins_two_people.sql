@@ -91,7 +91,12 @@ begin
     v_email := coalesce(v_email, lower(btrim(p_email)));
   elsif v_kind = 'supplier' and p_party_id ~ '^[0-9]+$' then
     v_lead := p_party_id::bigint;
-    select lower(btrim(l.email)), coalesce(l.phone_e164, l.phone), l.company_name, coalesce(l.owner_phone_verified, false)
+    -- owner_phone_verified is about l.phone (the owner's number, as fn_whatsapp_owner reads it); phone_e164 is the listed
+    -- company's number we found, so it confirms only when it is that same number (review of d2523facd)
+    select lower(btrim(l.email)), coalesce(l.phone_e164, l.phone), l.company_name,
+           coalesce(l.owner_phone_verified, false)
+             and right(regexp_replace(coalesce(l.phone, ''), '[^0-9]', '', 'g'), 9)
+               = right(regexp_replace(coalesce(l.phone_e164, l.phone, ''), '[^0-9]', '', 'g'), 9)
       into v_email, p_phone, v_name, v_confirms
       from public.leads l where l.id = v_lead;
     v_email := coalesce(v_email, lower(btrim(p_email)));
@@ -181,6 +186,30 @@ begin
 end $fn$;
 revoke execute on function public.fn_support_profile_resolve(text, text, text, text) from public, anon, authenticated;
 grant execute on function public.fn_support_profile_resolve(text, text, text, text) to service_role;
+
+-- The profiles that exist today have no prefix, and a null prefix agrees with any country: without this, a handset or a verified
+-- number from another country with the same last nine digits still joins them (review of d2523facd, proved locally). Taken from
+-- the number each was opened on (support_case.party_id of a WhatsApp case; 15 of 15 unnamed profiles on 16 Nov 2026), else the
+-- account's own number. Only where the tail agrees; a profile that already holds two prefixes keeps its first and is listed by
+-- fn_support_profile_collisions.
+update public.support_customer_profile p
+   set phone_prefix = x.prefix
+  from (select distinct on (s.customer_profile_id) s.customer_profile_id, s.party_id, public.fn_phone_prefix(s.party_id) as prefix
+          from public.support_case s
+         where s.party_id ~ '^\+?[0-9]{10,}$'
+         order by s.customer_profile_id, s.opened_at, s.case_id) x
+ where p.id = x.customer_profile_id and p.phone_prefix is null and x.prefix is not null
+   and right(regexp_replace(x.party_id, '[^0-9]', '', 'g'), 9) = p.phone_tail;
+update public.support_customer_profile p
+   set phone_prefix = public.fn_phone_prefix(c.phone)
+  from public.customers c
+ where c.id = p.customer_id and p.phone_prefix is null
+   and right(regexp_replace(coalesce(c.phone, ''), '[^0-9]', '', 'g'), 9) = p.phone_tail;
+update public.support_customer_profile p
+   set phone_prefix = public.fn_phone_prefix(coalesce(l.phone_e164, l.phone))
+  from public.leads l
+ where l.id = p.lead_id and p.phone_prefix is null
+   and right(regexp_replace(coalesce(l.phone_e164, l.phone, ''), '[^0-9]', '', 'g'), 9) = p.phone_tail;
 
 -- ── 3. a verified number names its owner only in its own country ─────────────────────────────────
 create or replace function public.fn_whatsapp_owner(p_phone text, p_all boolean DEFAULT false)
