@@ -174,7 +174,24 @@
       ],
       "site_visit_required_when": "A site visit is unavoidable to check the main board capacity, cable route and mounting before a firm price.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "The electrical board (DB) with its door open, and any isolator switch near the work",
+          "shot_ar": "لوحة الكهرباء مفتوحة الباب، وأي مفتاح فصل قريب من مكان العمل",
+          "from": "the main board"
+        },
+        {
+          "shot": "Where the cables would run (ceiling, walls, trunking or trays)",
+          "shot_ar": "أماكن مرور الكابلات (السقف، الجدران، المجاري أو الحوامل)",
+          "from": "cable route"
+        },
+        {
+          "shot": "Where it would be fixed: the wall, frame or structure, close enough to see what it is made of",
+          "shot_ar": "مكان التثبيت: الجدار أو الإطار أو الهيكل، عن قرب يكفي لمعرفة مادته",
+          "from": "mounting"
+        }
+      ]
     },
     {
       "id": "ev_charging:uae-standards-and-approvals",

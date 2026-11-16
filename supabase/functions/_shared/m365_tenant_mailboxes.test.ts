@@ -3,7 +3,7 @@
 // Controls: the founder's mail is never handed, nothing outside supplier@ is ever marked, moved, deleted or replied to,
 // random junk stays where it is, a failure elsewhere cannot touch supplier@'s proof, one busy mailbox cannot take the tick.
 import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1';
-import { DEFAULT_MAILBOXES, MAILBOX_HAND_CAP, TENANT_HAND_CAP, folderHands, pollReplyInbox, pollTenantMailboxes, type SenderKind, type TenantDeps } from './m365_reply_inbox.ts';
+import { DEFAULT_MAILBOXES, MAILBOX_HAND_CAP, TENANT_HAND_CAP, folderHands, inboundOnFile, pollReplyInbox, pollTenantMailboxes, type OnFileDb, type SenderKind, type TenantDeps } from './m365_reply_inbox.ts';
 
 const ENV: Record<string, string> = { MS_TENANT_ID: 't', MS_CLIENT_ID: 'c', MS_CLIENT_SECRET: 'zz-demo-secret' };
 const SIGNING = 'whsec_' + btoa('zz-demo-signing-key-0123456789abcdef');
@@ -143,6 +143,48 @@ Deno.test('one message, one answer: the same internetMessageId across mailboxes,
   assertEquals(r.handed, 1); assertEquals(r.same_message, 1);
   const f = harness(box1([['C', STRANGER, same]]), { ...ONE, messages: ['<same@x.invalid>'] });
   assertEquals((await pollTenantMailboxes(f.deps)).same_message, 1);
+});
+
+// 15 Nov 2026 (review of the inbound queue): resend_inbound now only QUEUES a hand-over (public.inbound_mail_queue) and reads it
+// later, so supplier@'s copy is not yet in inbound_messages when the tenant sweep, run right after it, looks for its Message-ID.
+// The lookups the tick wires in (inboundOnFile, integrations.ts) read the queue too. The tables here are in memory.
+type Tables = { inbound_messages?: Array<{ provider_email_id: string; raw?: { message_id?: string } }>; inbound_mail_queue?: Array<{ provider_email_id: string; message_id: string | null }>; fail?: string };
+const memDb = (t: Tables): OnFileDb => ({
+  from: (table) => ({ select: (cols) => ({ in: (col, ids) => {
+    if (t.fail === table) return Promise.resolve({ data: null, error: { message: 'permission denied' } });
+    // deno-lint-ignore no-explicit-any
+    const rows: any[] = (t as any)[table] || [];
+    const val = (r: { raw?: { message_id?: string } } & Record<string, unknown>) => col === 'raw->>message_id' ? r.raw?.message_id : r[col];
+    const alias = cols.includes(':') ? cols.split(':')[0] : cols;
+    return Promise.resolve({ data: rows.filter((r) => ids.includes(String(val(r)))).map((r) => ({ [alias]: val(r) })), error: null });
+  } }) }),
+});
+
+Deno.test('one message, one answer, while supplier@\'s copy is only queued: the tenant sweep reads the queue too', async () => {
+  const same = { internetMessageId: '<queued@x.invalid>' };
+  // supplier@'s copy was handed this tick and is waiting in the queue; inbound_messages does not have it yet
+  const queued: Tables = { inbound_messages: [], inbound_mail_queue: [{ provider_email_id: 'm365:SUPPLIER-COPY', message_id: '<queued@x.invalid>' }] };
+  const h = harness(box1([['MGMT-COPY', STRANGER, same]]), ONE);
+  Object.assign(h.deps, inboundOnFile(memDb(queued)));
+  const r = await pollTenantMailboxes(h.deps);
+  assertEquals([r.handed, r.same_message], [0, 1], JSON.stringify(r));
+  assertEquals(h.hands().length, 0, 'the tenant copy was not handed a second time');
+  // known-bad control: the lookup the tick used before (inbound_messages only) hands it again
+  const before = harness(box1([['MGMT-COPY', STRANGER, same]]), ONE);
+  Object.assign(before.deps, inboundOnFile(memDb({ inbound_messages: [], inbound_mail_queue: [] })));
+  assertEquals((await pollTenantMailboxes(before.deps)).handed, 1);
+});
+
+Deno.test('inboundOnFile: a Graph id or a Message-ID is on file when read OR queued; a table it cannot read is an error, not "new"', async () => {
+  const db = memDb({ inbound_messages: [{ provider_email_id: 'm365:READ', raw: { message_id: '<read@x>' } }],
+    inbound_mail_queue: [{ provider_email_id: 'm365:QUEUED', message_id: '<queued@x>' }, { provider_email_id: 'zz-resend-1', message_id: null }] });
+  const f = inboundOnFile(db);
+  assertEquals([...await f.onFile(['m365:READ', 'm365:QUEUED', 'm365:NEW'])].sort(), ['m365:QUEUED', 'm365:READ']);
+  assertEquals([...await f.messageOnFile(['<read@x>', '<queued@x>', '<new@x>'])].sort(), ['<queued@x>', '<read@x>']);
+  assertEquals((await f.messageOnFile([])).size, 0);
+  let threw = '';
+  try { await inboundOnFile(memDb({ fail: 'inbound_mail_queue' })).messageOnFile(['<a@x>']); } catch (e) { threw = String((e as Error).message); }
+  assert(threw.startsWith('inbound_mail_queue: '), threw);
 });
 
 Deno.test('oversized attachments are not fetched, the message still is; the tick stops when its time is up', async () => {

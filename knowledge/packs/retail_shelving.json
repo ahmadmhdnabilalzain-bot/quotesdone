@@ -131,7 +131,19 @@
         }
       ],
       "site_visit_required_when": "a firm price needs a floor plan or planogram with run lengths, heights and shelf loads; without a plan a site measure visit is unavoidable.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site measure"
+        },
+        {
+          "shot": "Each opening or area, straight on, with a tape measure across it if you have one",
+          "shot_ar": "كل فتحة أو مساحة من الأمام مباشرة، مع شريط قياس عليها إن توفر",
+          "from": "measure"
+        }
+      ]
     },
     {
       "id": "retail_shelving:uae-standards-and-approvals",

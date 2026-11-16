@@ -34,20 +34,14 @@
 //   supabase/functions/inquiry_intake/a_request_is_ready_only_when_every_blocking_spec_is_answered.test.ts
 import { COMPOSITE, tradeOfCategory } from './line_specs/model.ts';
 import { SAME_AS } from './line_specs/taxonomy_trades.ts';
+import { plainOf } from './customer_questions.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
-export interface TaxTrade { code: string; label: string; label_ar?: string | null; group_code: string | null; authority_required?: string[] | null }
-export interface TradeService { trade_code: string; code: string; label_en: string; label_ar?: string | null }
-export interface SpecItem { code: string; label_en: string }
-/** One row of a checklist's spec_guide (the loader's shape: scripts/kb/load_trade_spec_checklists.mjs expertFieldsOf). */
-export interface GuideRow { code: string; spec: string; why_needed_to_price: string; uae_options: string; follow_up_if: string; blocking: boolean;
-  /** When this job does not need the spec (15 Nov 2026, journey A; inquiry_intake/interview.ts SpecField.not_needed_when): `answered`
-   *  holds spec CODES of the same checklist (the loader writes them from the pack's labels), `text` the condition in plain words. */
-  not_needed_when?: { answered?: string[]; text: string } | null }
-/** One checklist of one trade, as public.trade_spec_checklist holds it. */
-export interface TradeChecklist { trade_code: string; topic_id: string; topic: string; specs: SpecItem[]; guide: GuideRow[]; blocking: string[]; site_visit_required_when: string | null; pack_order: number }
-export interface TradeContext { codes: string[]; trades: TaxTrade[]; services: TradeService[]; specs: Record<string, SpecItem[]>; approvals: Record<string, string>; checklists?: Record<string, TradeChecklist[]> }
+import type { TaxTrade, TradeService, SpecItem, GuideRow, PhotoShot, TradeChecklist, TradeContext } from './trade_context.ts';
+export type { TaxTrade, TradeService, SpecItem, GuideRow, PhotoShot, TradeChecklist, TradeContext } from './trade_context.ts';
+export { activeChecklists } from './trade_context.ts';
+import { activeChecklists } from './trade_context.ts';
 
 export const GROUP_LABEL: Record<string, string> = {
   construction_building: 'Construction & building', mep_building_systems: 'MEP & building systems', facilities_property: 'Facilities & property services',
@@ -117,13 +111,25 @@ export async function tradeContext(admin: Admin, codes: string[], lang: 'en' | '
 
 // The expert columns arrive with a_trades_blocking_specs_and_their_guide_reach_the_interview.sql. Before it is applied the
 // wider select is refused (42703), so the rows are read as before and carry no guide and no blocking list.
-const CHECKLIST_COLS = 'trade_code,topic_id,topic,specs,spec_guide,blocking,site_visit_required_when,pack_order';
+// photos_to_ask arrives with a_site_visit_checklist_carries_the_photos_to_ask_for.sql (15 Nov 2026). Before it is applied the
+// widest select is refused and the 10 Nov columns are read (never the narrowest: the blocking rule must not be lost for a photo).
+const CHECKLIST_COLS = 'trade_code,topic_id,topic,specs,spec_guide,blocking,site_visit_required_when,pack_order,photos_to_ask';
+const CHECKLIST_COLS_10_NOV = 'trade_code,topic_id,topic,specs,spec_guide,blocking,site_visit_required_when,pack_order';
 // deno-lint-ignore no-explicit-any
 async function checklistRows(admin: Admin, cs: string[]): Promise<{ data: any[] | null }> {
   const q = (cols: string) => admin.from('trade_spec_checklist').select(cols).in('trade_code', cs).order('topic_id').limit(50);
   const wide = await q(CHECKLIST_COLS);
   if (!wide.error) return wide;
+  const tenNov = await q(CHECKLIST_COLS_10_NOV);
+  if (!tenNov.error) return tenNov;
   return await q('trade_code,topic_id,specs');
+}
+/** A row's photos_to_ask, kept only as shots with words (the loader already refused any that does not trace to its sentence). */
+// deno-lint-ignore no-explicit-any
+export function photosOfRow(r: any): PhotoShot[] {
+  if (!str(r?.site_visit_required_when).trim()) return [];
+  return (Array.isArray(r?.photos_to_ask) ? r.photos_to_ask : []).map((p: PhotoShot) => ({ shot: str(p?.shot).trim(), shot_ar: str(p?.shot_ar).trim(), from: str(p?.from).trim() }))
+    .filter((p: PhotoShot) => p.shot).slice(0, 6);
 }
 const str = (v: unknown) => (v === undefined || v === null ? '' : String(v));
 /** A guide row's not_needed_when, kept only with a condition in words and only naming specs of its own checklist. */
@@ -149,7 +155,7 @@ export function checklistsOf(rows: any[]): Record<string, TradeChecklist[]> {
       ...(notNeededOfGuide(g, codes) ? { not_needed_when: notNeededOfGuide(g, codes) } : {}) }));
     const svw = str(r.site_visit_required_when).trim();
     (out[r.trade_code] ??= []).push({ trade_code: String(r.trade_code), topic_id: String(r.topic_id), topic: str(r.topic ?? r.topic_id), specs, guide, blocking,
-      site_visit_required_when: svw || null, pack_order: Number.isFinite(Number(r.pack_order)) ? Number(r.pack_order) : 0 });
+      site_visit_required_when: svw || null, pack_order: Number.isFinite(Number(r.pack_order)) ? Number(r.pack_order) : 0, photos: photosOfRow(r) });
   }
   for (const k of Object.keys(out)) out[k].sort((a, b) => a.pack_order - b.pack_order || a.topic_id.localeCompare(b.topic_id));
   return out;
@@ -227,10 +233,19 @@ export function validServiceKeys(x: unknown, services: TradeService[] | null | u
  *  kept only for a trade whose rows carry no blocking list yet (packFields). */
 export const CHECKLIST_REQUIRED = 6;
 export type PackField = { key: string; question: string; required: boolean; type: string; options: string[]; blocking?: boolean; trade?: string;
-  not_needed_when?: { answered?: string[]; text: string } | null };
+  not_needed_when?: { answered?: string[]; text: string } | null;
+  /** WHAT THE CUSTOMER READS (15 Nov 2026; _shared/customer_questions.ts): `question` stays the supplier-facing label; the card
+   *  shows these plain questions, with card_options to tap (each list ending with "Not sure"). `options` stays [] so the
+   *  interview's own readers treat a pack spec as free text, exactly as before. plain=false: no vetted wording for this spec. */
+  question_plain_en?: string; question_plain_ar?: string; card_options?: string[]; card_options_ar?: string[]; plain?: boolean };
+/** A pack spec's customer-facing wording beside its label (customer_questions.ts plainOf). */
+function withPlain(code: string, label: string): Pick<PackField, 'question_plain_en' | 'question_plain_ar' | 'card_options' | 'card_options_ar' | 'plain'> {
+  const p = plainOf(code, label);
+  return { question_plain_en: p.question_plain_en, ...(p.question_plain_ar ? { question_plain_ar: p.question_plain_ar } : {}), card_options: p.options, card_options_ar: p.options_ar, plain: p.plain };
+}
 const questionOf = (label: string) => label.charAt(0).toUpperCase() + label.slice(1);
 export function checklistFields(specs: SpecItem[], required = CHECKLIST_REQUIRED): PackField[] {
-  return specs.map((s, i) => ({ key: s.code, question: questionOf(s.label_en), required: i < required, type: 'text', options: [] }));
+  return specs.map((s, i) => ({ key: s.code, question: questionOf(s.label_en), required: i < required, type: 'text', options: [], ...withPlain(s.code, s.label_en) }));
 }
 
 // ── THE BLOCKING RULE (founder ledger 1587) ──────────────────────────────────────────────────────────────────────────
@@ -295,17 +310,6 @@ export function validTopics(x: unknown, ctx: TradeContext | null): string[] {
   const known = new Set(Object.values(ctx.checklists).flat().map((c) => c.topic_id));
   return [...new Set(x.map((t) => String(t ?? '').trim()).filter((t) => known.has(t)))].slice(0, 8);
 }
-/** Per placed trade, the checklist(s) this job is: the ones named in `topics`, else the pack's first (the core job). */
-export function activeChecklists(ctx: TradeContext | null, topics: string[] = []): Record<string, TradeChecklist[]> {
-  const out: Record<string, TradeChecklist[]> = {};
-  for (const code of ctx?.codes ?? []) {
-    const all = ctx?.checklists?.[code] ?? [];
-    if (!all.length) continue;
-    const named = all.filter((c) => topics.includes(c.topic_id));
-    out[code] = named.length ? named : [all[0]];
-  }
-  return out;
-}
 /** Whether a trade's rows carry the blocking rule (the loader has written them since the SQL was applied). */
 export const hasBlocking = (ctx: TradeContext | null, code: string) => (ctx?.checklists?.[code] ?? []).some((c) => c.blocking.length > 0);
 
@@ -332,7 +336,7 @@ export function packFields(ctx: TradeContext | null, topics: string[] = [], gene
       seen.add(s.code);
       const b = c.blocking.includes(s.code);
       const nn = c.guide.find((g) => g.code === s.code)?.not_needed_when;
-      (b ? blocking : rest).push({ key: s.code, question: questionOf(s.label_en), required: b, type: 'text', options: [], blocking: b, trade: code, ...(nn ? { not_needed_when: nn } : {}) });
+      (b ? blocking : rest).push({ key: s.code, question: questionOf(s.label_en), required: b, type: 'text', options: [], blocking: b, trade: code, ...(nn ? { not_needed_when: nn } : {}), ...withPlain(s.code, s.label_en) });
     }
   }
   // the universal fields, ONCE for the whole request: required when any placed trade blocks on it; payment terms always
@@ -340,7 +344,7 @@ export function packFields(ctx: TradeContext | null, topics: string[] = [], gene
   for (const [u, b] of universal) {
     if (!UNIVERSAL_FIELD[u] || seen.has(u)) continue;
     seen.add(u);
-    (b ? blocking : rest).push({ key: u, question: UNIVERSAL_QUESTION[u], required: b, type: 'text', options: [], blocking: b, trade: 'universal' });
+    (b ? blocking : rest).push({ key: u, question: UNIVERSAL_QUESTION[u], required: b, type: 'text', options: [], blocking: b, trade: 'universal', ...withPlain(u, UNIVERSAL_QUESTION[u]) });
   }
   return [...blocking, ...rest];
 }

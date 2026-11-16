@@ -23,7 +23,7 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
   const k = kit(lang, args.maskNames || [], args.arTexts); const { T, ar } = k;
   const ref = quoteRef(inq, letter);
   const date = (ar ? args.date_ar : args.date) || k.today();
-  const party = args.partyName || k.label('Supplier ' + letter);
+  const party = args.partyName || (letter ? k.label('Supplier ' + letter) : T('Supplier', 'المورّد'));
   const trade = ar ? (arCategory(inq.category) ?? k.loc(inq.category).text) : enCategory(inq.category);
   const emirate = ar ? (arEmirate(inq.emirate) ?? k.loc(inq.emirate).text) : String(inq.emirate || '');
   const lead = k.dur(q.lead_time), validity = k.dur(q.validity), warranty = k.dur(q.warranty);
@@ -122,7 +122,7 @@ export function quoteDocument(args: { quote: QuoteRow; inquiry: InquiryRow; item
 
   section('Commercial terms', 'الشروط التجارية');
   blocks.push({ t: 'terms', cols: 3, cells: [
-    [T('Lead time', 'مدة التنفيذ'), lead || '—'], [T('Quote validity', 'صلاحية العرض'), validity || '—'], [T('Warranty', 'الضمان'), warranty || '—'],
+    [T('Lead time', 'مدة التنفيذ'), lead || '—'], [T('Quote validity', 'صلاحية العرض'), validity || T('Not stated by the supplier', 'لم يذكرها المورّد')], [T('Warranty', 'الضمان'), warranty || '—'],
     [T('Payment terms', 'شروط الدفع'), k.pay(q.payment_terms)],
     [T('Installation', 'التركيب'), q.installation_applicable === false ? T('N/A', 'لا ينطبق') : q.installation_included === true ? T('Included', 'مشمول') : q.installation_included === false ? T('Not included', 'غير مشمول') : T('Not stated', 'غير مذكور')],
     [T('Delivery to', 'التسليم إلى'), emirate || '—'],

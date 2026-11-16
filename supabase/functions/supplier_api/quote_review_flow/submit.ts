@@ -3,6 +3,7 @@ import { fromMissing, issueKey, parseQty, reviewQuotation, submittedSaid, type L
 import { type Attachment, type Ctx, type Fail, type Json, type ReviewDeps, type ReviewRepo, type ReviewRow, type ReviewState, type ThreadView, fail } from './types.ts';
 import { effectiveState, isFail, load, say, view, writableOr } from './thread_view.ts';
 import { runReview } from './upload.ts';
+import { POINT_CODE } from '../../_shared/comparison_points.ts';
 
 export async function submit(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inquiryId: string): Promise<ThreadView | Fail> {
   const l = await load(repo, deps, ctx, inquiryId); if (isFail(l)) return l;
@@ -17,7 +18,7 @@ export function submitPayload(inq: SafeInquiry, r: Pick<ReviewRow, 'original_fil
   return {
     action: 'submit_quote', inquiry_id: inq.id, source: 'upload', amount: rv.price_ex_vat ?? w.amount,
     items: w.lines.map((l) => ({ description: l.description, specification: l.specification ?? undefined, qty: parseQty(l.qty).n, unit: l.unit || null, unit_price: l.unit_price, amount: l.amount, spec: l.spec ?? undefined, country_of_origin: l.country_of_origin ?? undefined })),
-    lead_time: w.lead_time, validity: w.validity, payment_terms: w.payment_terms, warranty: w.warranty,
+    lead_time: w.lead_time, validity: w.validity, quotation_date: w.quotation_date || undefined, payment_terms: w.payment_terms, warranty: w.warranty,
     scope: w.scope, conditions: w.conditions, exclusions: w.exclusions, notes: w.notes, terms_spec: w.terms_spec,
     original_file_path: r.original_file_path, original_file_name: r.original_file_name, masked_terms: w.masked_terms,
     vat_treatment: vt, price_ex_vat: rv.price_ex_vat ?? undefined, subtotal: w.subtotal ?? undefined, vat_amount: w.vat_amount ?? undefined, trn: w.trn ?? undefined,
@@ -72,7 +73,8 @@ async function submitClaimed(repo: ReviewRepo, deps: ReviewDeps, ctx: Ctx, inq: 
       ar: `${base.ar}\n\n${heldOpts.map((o) => `الخيار ${o.option_no}`).join('، ')} ما زال معلّقًا إلى حين استكمال التفاصيل الدقيقة التالية — يُرجى استكمالها في بطاقة العرض المعلّق ضمن هذا الطلب، ويُرسل إلى العميل فور تأكيدكم:\n\n${heldIssues.map((x, i) => `${i + 1}. ${x.ar}`).join('\n')}`,
     } : base;
     const sm = await say(repo, deps, r.id, 'submitted', said, { attachments: atts, issues: heldIssues.length ? heldIssues : undefined });
-    const left = (await repo.requests(r.id, true)).map((x) => x.id);
+    // a comparison point stays open through a submission: only his answer closes it (final review FIX 1 iii)
+    const left = (await repo.requests(r.id, true)).filter((x) => x.code !== POINT_CODE).map((x) => x.id);
     if (left.length) await repo.closeRequests(left, 'answered', sm.id);
     await repo.updateReview(r.id, { status: 'submitted', submitted_quote_ids: ids, completed_at: deps.now().toISOString(), reviewing_since: null });
     await repo.log({ signal: 'quote_review_submitted', inquiry_id: inq.id, quotes: ids.length, generated: generated ? 1 : 0 }, `Submitted the approved quotation for job ${inq.job_no} through submit_quote (${ids.length} quote row(s))${generated ? '; the standardised quotation was generated' : ''}.`);

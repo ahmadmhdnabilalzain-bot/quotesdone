@@ -187,7 +187,24 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for retrofitting storage into an existing building, to check space, ventilation and the electrical board.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 5 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 5 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "The room or space where it goes, from the doorway, showing all four sides if you can",
+          "shot_ar": "الغرفة أو المساحة المخصصة لها من الباب، مع إظهار جوانبها كلها إن أمكن",
+          "from": "space"
+        },
+        {
+          "shot": "Where the air or exhaust would go out (window, wall or roof)",
+          "shot_ar": "مخرج الهواء أو العادم (نافذة، جدار أو سطح)",
+          "from": "ventilation"
+        },
+        {
+          "shot": "The electrical board (DB) with its door open, and any isolator switch near the work",
+          "shot_ar": "لوحة الكهرباء مفتوحة الباب، وأي مفتاح فصل قريب من مكان العمل",
+          "from": "electrical board"
+        }
+      ]
     },
     {
       "id": "batteries_storage:uae-standards-and-approvals",

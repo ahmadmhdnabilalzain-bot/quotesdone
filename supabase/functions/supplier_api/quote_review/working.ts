@@ -26,7 +26,7 @@ export function workingFromProposal(p: Proposal, fileText = ''): Working {
   });
   return {
     lines, amount: p.amount, subtotal: p.subtotal, vat_amount: p.vat_amount, vat_treatment: p.vat_treatment ?? null,
-    price_ex_vat: p.price_ex_vat, trn: p.trn, gross_amount: p.gross_amount ?? null, discount_amount: p.discount_amount ?? null, discount_label: p.discount_label ?? null, lead_time: p.lead_time || '', validity: p.validity || '', payment_terms: p.payment_terms || '',
+    price_ex_vat: p.price_ex_vat, trn: p.trn, gross_amount: p.gross_amount ?? null, discount_amount: p.discount_amount ?? null, discount_label: p.discount_label ?? null, lead_time: p.lead_time || '', validity: p.validity || '', ...(p.quotation_date ? { quotation_date: String(p.quotation_date) } : {}), payment_terms: p.payment_terms || '',
     warranty: p.warranty || '', scope: p.scope || '', conditions: p.conditions || '', exclusions: p.exclusions || '', notes: '',
     terms_spec: {}, masked_terms: p.masked_terms || [], option_totals: p.option_totals || {},
     foreign_currency: foreignCurrency(fileText), boq_excluded: {}, qty_explained: {}, corrections: [],

@@ -137,7 +137,24 @@
         }
       ],
       "site_visit_required_when": "A raw-water test and, for plants, a site visit to check space and connections are unavoidable before a firm price.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "The room or space where it goes, from the doorway, showing all four sides if you can",
+          "shot_ar": "الغرفة أو المساحة المخصصة لها من الباب، مع إظهار جوانبها كلها إن أمكن",
+          "from": "space"
+        },
+        {
+          "shot": "The pipes, cables and connections at the point where it will be connected",
+          "shot_ar": "الأنابيب والكابلات ونقاط التوصيل في مكان التركيب",
+          "from": "connections"
+        }
+      ]
     },
     {
       "id": "water_treatment:uae-standards-and-approvals",

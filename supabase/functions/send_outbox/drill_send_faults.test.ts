@@ -57,6 +57,7 @@ type World = {
   claim: (n: number) => Fault;                      // fn_notifications_claim
   // fn_mailbox_reply_may_leave (mailbox_reply_gate.ts): the drills' mailbox replies were read and allowed unless a drill says
   mailboxGate: (notificationId: number) => Row | Response;
+  campaignCheck: (ids: unknown[]) => Row[] | Response;
   // A database write to fail: return a Response (e.g. 500) to refuse it; undefined lets it through.
   write: (method: string, table: string, params: URLSearchParams, body: Row | null) => Response | undefined;
 };
@@ -77,6 +78,7 @@ function fresh(secrets: Record<string, string> = {}): World {
     resendPosts: [], resendDelivered: [], resendCache: new Map(), graphPosts: 0, graphDelivered: [], tokenPosts: 0, realNetwork: [],
     resend: () => 'ok', graph: () => 'ok', token: () => 'ok', claim: () => 'ok', write: () => undefined,
     mailboxGate: () => ({ allow: true, reason: 'drill: the reading said answer' }),
+    campaignCheck: (ids) => ids.map((id) => ({ id, verdict: 'send', why: 'open' })),
   };
   return W;
 }
@@ -195,6 +197,8 @@ async function answer(req: Request, u: URL): Promise<Response> {
   }
   if (rpc === 'fn_it_engineer_finding_upsert') { W.findingsFiled.push(body || {}); return J(1); }
   if (rpc === 'fn_it_engineer_finding_close') { W.findingsClosed.push(body || {}); return J(true); }
+  // the live campaign switches at send time (invite_lane.ts campaignStep, 15 Nov 2026): this drill's campaign is open
+  if (rpc === 'fn_invite_campaign_send_check') { const c = W.campaignCheck((body?.p_ids as unknown[]) || []); return c instanceof Response ? c.clone() : J(c); }
   if (rpc === 'fn_mailbox_reply_may_leave') { const g = W.mailboxGate(Number(body?.p_notification_id)); return g instanceof Response ? g.clone() : J(g); }
   if (rpc) return J(null);
   const table = u.pathname.match(/^\/rest\/v1\/([^/]+)$/)?.[1] ?? '';
@@ -440,6 +444,26 @@ Deno.test({ name: 'D6.0 positive control: a lane invitation is sent once through
   assertEquals(W.findingsClosed.length, 1, 'a 2xx sendMail closes the refusal finding');
   advance(60); await tick();
   assertEquals(W.graphPosts, 1);
+} });
+
+// WHAT IS QUEUED OBEYS THE LIVE SWITCHES (15 Nov 2026, review of the funnel branch, item 4): a stopped company cancels the queued
+// invitation at send time, a held provider class holds it to tomorrow, and an unreadable check holds it; none reaches a provider.
+Deno.test({ name: 'D6.9 the live campaign switches at send time: cancel, hold to tomorrow, or hold on an unreadable check; never sent', ...opts, fn: async () => {
+  fresh(M365_ON); let n = invite();
+  W.campaignCheck = (ids) => ids.map((id) => ({ id, verdict: 'cancel', why: 'the supplier campaign is paused (invite_enabled is false)' }));
+  await tick();
+  assertEquals(W.graphPosts + W.resendPosts.length, 0, 'a stopped company sent'); assertEquals(row(n.id).status, 'cancelled');
+  assert(/^cancelled at send time: .*invite_enabled is false/.test(row(n.id).last_error), row(n.id).last_error);
+  fresh(M365_ON); n = invite();
+  W.campaignCheck = (ids) => ids.map((id) => ({ id, verdict: 'requeue', why: 'the google mailboxes are held by the bounce judgement' }));
+  await tick();
+  assertEquals(W.graphPosts + W.resendPosts.length, 0, 'a held class was sent'); assertEquals(row(n.id).status, 'queued');
+  assert(laterThan(row(n.id).not_before, 60 * 60_000) && /held by the bounce judgement/.test(row(n.id).last_error), row(n.id).last_error);
+  fresh(M365_ON); n = invite();
+  W.campaignCheck = () => J({ code: '42883', message: 'function public.fn_invite_campaign_send_check(bigint[]) does not exist' }, 404);
+  await tick();
+  assertEquals(W.graphPosts + W.resendPosts.length, 0, 'an unreadable check sent'); assertEquals(row(n.id).status, 'queued');
+  assert(/could not be read/.test(row(n.id).last_error), row(n.id).last_error);
 } });
 
 const graphRefusals: [string, () => Response][] = [

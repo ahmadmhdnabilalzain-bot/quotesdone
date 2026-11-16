@@ -29,6 +29,8 @@ export type Working = {
   /** Ruling 1207: the supplier's discount, as stated — a price field, never folded into the conditions. */
   gross_amount?: number | null; discount_amount?: number | null; discount_label?: string | null;
   lead_time: string; validity: string; payment_terms: string; warranty: string;
+  /** The date printed on the quotation, as written (ledger 1697: a stated validity counts from it). Absent: the day received. */
+  quotation_date?: string;
   scope: string; conditions: string; exclusions: string; notes: string;
   terms_spec: TermsSpec; masked_terms: string[]; option_totals: Record<string, number>;
   /** A currency other than AED seen in the file, until the supplier confirms the prices are AED. */
@@ -42,6 +44,9 @@ export type Working = {
   /** What the MODEL's reading asks him to confirm (quote_extract/model_reading.ts warnings: a figure in doubt, two options,
    *  the arithmetic): the quotation is not approved until he confirms or corrects them (review of #1981, D5, 12 Nov 2026). */
   to_confirm?: string[];
+  /** His answer to the VAT-basis question on the hold desk (submit_review.ts withDeskAnswers): it settles the basis even where
+   *  his figures would otherwise reopen it (line_specs/vat.ts basis_conflict, accountant 15 Nov 2026). */
+  vat_answered?: string | null;
 };
 
 export type IssueCode =

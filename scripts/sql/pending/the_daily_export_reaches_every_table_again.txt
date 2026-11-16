@@ -1,0 +1,4 @@
+Committed, not applied. Assigned: it_engineer, 16 Nov 2026 (main session). Apply at merge in a quiet minute:
+node scripts/apply_sql.mjs scripts/sql/the_daily_export_reaches_every_table_again.sql --apply --ddl --seat it_engineer
+(expect PROBE OK), then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt; then watch
+table_export_run for today's stamp reaching 'done'.

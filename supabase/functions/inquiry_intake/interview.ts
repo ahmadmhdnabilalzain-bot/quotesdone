@@ -22,9 +22,14 @@
 // emirates, dates, yes/no, options, AED) normalises what it can recognise; nothing is invented.
 
 import { saysDontKnow } from '../_shared/inquiry_state.ts';
+import { ARABIC_FRAME, NOT_SURE, optionAr, sameArabic, saysNotSureAr } from '../_shared/customer_question_words.ts';
 export type SpecField = {
   key?: string; question?: string; required?: boolean; type?: string; options?: string[];
   question_plain_en?: string; question_plain_ar?: string;
+  /** THE CARD'S WORDS (15 Nov 2026; _shared/customer_questions.ts): tap options a pack spec offers the customer (its own
+   *  `options` stay [] so the readers here treat it as free text), Arabic labels of `options` (parallel), and plain=false when
+   *  question_plain_en is only the generic frame of the label (the model's own plain wording may then be shown instead). */
+  card_options?: string[]; card_options_ar?: string[]; options_ar?: string[]; plain?: boolean;
   /** WHEN THE JOB DOES NOT NEED THIS SPEC (15 Nov 2026, journey A; slots.ts notNeededOf). Data on the trade's own spec, never an
    *  if-statement: `answered` names specs whose answer makes this one unnecessary (code checks only that one of them holds an
    *  answer; it reads no words), `text` is the condition in plain words, which the model may judge holds from what the
@@ -451,9 +456,64 @@ export function orderFields(fields: SpecField[], askOrder: Record<string, number
       || (a.i - b.i));
 }
 
+/** The question the CUSTOMER reads: the plain wording in their language. NEVER ENGLISH ON AN ARABIC CHAT (15 Nov 2026, persona
+ *  dry run: every card of an Arabic chat was an English spec label): a field with no Arabic wording is asked with the Arabic
+ *  frame (customer_questions.ts ARABIC_FRAME), never its English label. The label (`question`) is what suppliers read. */
 export function questionText(f: SpecField, lang: Lang): string {
-  if (lang === 'ar') return String(f.question_plain_ar || f.question_plain_en || f.question || f.key || '').trim();
+  if (lang === 'ar') return String(f.question_plain_ar || '').trim() || (f && (f.question || f.key) ? ARABIC_FRAME : '');
   return String(f.question_plain_en || f.question || f.key || '').trim();
+}
+/** The spec as the MODEL is told it (its prompt's open specs, the held reply's facts): the plain wording in the customer's
+ *  language where there is one, else the English plain wording or the label, which the model reads and words in their language.
+ *  Never the Arabic frame: that names no spec. */
+export function modelText(f: SpecField, lang: Lang): string {
+  return String((lang === 'ar' ? f.question_plain_ar || f.question_plain_en : f.question_plain_en) || f.question || f.key || '').trim();
+}
+/** The options the card offers to tap, in the customer's language, or null. A field's own options first (in Arabic, those with
+ *  an Arabic label: options_ar, else customer_questions.ts OPTION_AR; "Not sure" always), else the pack spec's card options. */
+export function optionsOf(f: SpecField | null | undefined, lang: Lang): string[] | null {
+  if (!f) return null;
+  const own = Array.isArray(f.options) ? f.options.filter((o) => typeof o === 'string' && o) : [];
+  if (own.length) {
+    // "Not sure" on every card (an option of the field's own that already says so is kept as it is)
+    const sure = own.some((o) => /not sure|unsure|recommend|advise/i.test(o));
+    if (lang === 'en') return sure ? own : [...own, NOT_SURE.en];
+    const ar = own.map((o, i) => (Array.isArray(f.options_ar) && f.options_ar.length === f.options!.length && f.options_ar[i]) || optionAr(o)).filter((x): x is string => !!x);
+    return ar.some(saysNotSureAr) ? ar : [...ar, NOT_SURE.ar];
+  }
+  const card = (lang === 'ar' ? f.card_options_ar : f.card_options) ?? [];
+  const list = card.filter((o) => typeof o === 'string' && o);
+  return list.length ? list : null;
+}
+
+/** What the customer reads for each open field, in his language: its plain question (questionText), never its English label on an
+ *  Arabic chat. The category_specs required gate (handle.ts) asks through this (review REVIEW_plain item 4, 15 Nov 2026: it read
+ *  f.question, the English label, while every other gate was plain). A field with no wording at all is named by its key. */
+export function questionsFor(fields: Array<SpecField | null | undefined>, lang: Lang): string[] {
+  return fields.map((f) => (f && (f.question || f.question_plain_en || f.question_plain_ar) ? questionText(f, lang) : String(f?.key ?? '')));
+}
+
+/** A TAPPED option of field `f`: the reply is exactly one of the options its card offered, in English or as the Arabic label an
+ *  Arabic chat shows (optionsOf), and the ENGLISH value is returned; otherwise null. The value stored is always the English option,
+ *  because suppliers read English and the brief keys are English (review REVIEW_plain item 3, 15 Nov 2026: on the model-down path
+ *  an Arabic tap of "كاسيت" was stored as "كاسيت", not "Cassette"). Used by interviewStep and by slots.ts tappedHeldAnswer. */
+export function tappedOption(f: SpecField | null | undefined, text: string): string | null {
+  const t = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!f || !t) return null;
+  const pick = (en: unknown, ar: unknown, n: number, all: string[]) => {
+    const list = Array.isArray(ar) && ar.length === all.length ? ar : null;
+    return [list ? list[n] : null, optionAr(String(en))].some((a) => !!a && sameArabic(String(a), t));
+  };
+  for (const all of [f.options, f.card_options]) {
+    const opts = Array.isArray(all) ? all.filter((o): o is string => typeof o === 'string') : [];
+    if (!opts.length) continue;
+    const en = opts.find((o) => o.trim().toLowerCase() === t.toLowerCase());
+    if (en) return en;
+    const ar = all === f.options ? f.options_ar : f.card_options_ar;
+    const i = opts.findIndex((o, n) => pick(o, ar, n, opts));
+    if (i >= 0) return opts[i];
+  }
+  return null;
 }
 
 export type InterviewState = { details: Record<string, string>; asked_key: string | null };
@@ -476,7 +536,8 @@ export function interviewStep(fields: SpecField[], state: InterviewState, answer
   const has = (k: string) => details[k] !== undefined && String(details[k]).trim() !== '';
   if (state.asked_key && answer && !has(state.asked_key)) {
     const hit = ordered.find((o) => o.key === state.asked_key);
-    if (hit) { const v = parseAnswer(hit.f, answer, true); if (v) { details[hit.key] = v; filledNow.push(hit.key); } }
+    // a tapped option, Arabic or English, is stored as its English value; Arabic "Not sure" is read as "Not sure"
+    if (hit) { const v = tappedOption(hit.f, answer) ?? parseAnswer(hit.f, sameArabic(answer, NOT_SURE.ar) ? NOT_SURE.en : answer, true); if (v) { details[hit.key] = v; filledNow.push(hit.key); } }
   }
   for (const o of ordered) {
     if (has(o.key)) continue;
@@ -487,7 +548,7 @@ export function interviewStep(fields: SpecField[], state: InterviewState, answer
   const filled = req.filter((o) => has(o.key)).length;
   const nextField = req.find((o) => !has(o.key));
   const next = nextField
-    ? { key: nextField.key, text: questionText(nextField.f, lang), options: Array.isArray(nextField.f.options) && nextField.f.options.length ? nextField.f.options : null }
+    ? { key: nextField.key, text: questionText(nextField.f, lang), options: optionsOf(nextField.f, lang) }
     : null;
   return { details, filled_now: filledNow, next, readiness: { filled, required: req.length }, complete: !nextField };
 }

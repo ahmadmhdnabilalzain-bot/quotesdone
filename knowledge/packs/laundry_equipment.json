@@ -139,7 +139,29 @@
       ],
       "site_visit_required_when": "a firm price needs machine types and capacities (or kg of linen per day), heating source and connections; replacing machines in an existing laundry, or a basement laundry, needs a site visit for access and services.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "The pipes, cables and connections at the point where it will be connected",
+          "shot_ar": "الأنابيب والكابلات ونقاط التوصيل في مكان التركيب",
+          "from": "connections"
+        },
+        {
+          "shot": "Each existing unit or item to be replaced, from the front",
+          "shot_ar": "كل وحدة أو قطعة سيتم استبدالها، من الأمام",
+          "from": "replacing"
+        },
+        {
+          "shot": "The label or nameplate on it, close up (make, model, size)",
+          "shot_ar": "الملصق أو اللوحة التعريفية عليها عن قرب (الماركة، الموديل، الحجم)",
+          "from": "replacing"
+        },
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "access"
+        }
+      ]
     },
     {
       "id": "laundry_equipment:uae-standards-and-approvals",

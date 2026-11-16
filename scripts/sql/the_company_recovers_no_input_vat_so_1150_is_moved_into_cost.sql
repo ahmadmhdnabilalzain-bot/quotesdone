@@ -95,6 +95,13 @@ begin
   -- a ZZ DEMO expense is a rehearsal's, never the company's (same marker as fn_gl_sync_business)
   if (coalesce(e.vendor, '') || ' ' || coalesce(e.note, '')) ~* 'zz[ _-]?demo' then return null; end if;
 
+  -- a document for a cost held on the founder's word joins that entry instead of booking it twice
+  -- (scripts/sql/the_books_hold_a_cost_on_the_founders_word_until_its_document_arrives.sql, applied BEFORE this file)
+  jid := public.fn_expense_held_document_merge(e.id);
+  if jid is not null or not exists (select 1 from public.expense_entries x where x.id = e.id) then return jid; end if;
+  -- a document for a fee waiting for its bank statement is not posted: the statement line books the fee (same file)
+  if public.fn_expense_document_waits_for_statement(e.id) then return null; end if;
+
   -- already posted (by this routine or by fn_gl_sync_business): return it, never post twice
   select g.id into jid from public.gl_journal g
    where g.source='expense' and g.source_ref = e.id::text limit 1;
