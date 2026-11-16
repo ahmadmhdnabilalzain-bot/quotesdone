@@ -62,8 +62,8 @@
 -- OWN_REQUEST_RULE, read by WhatsApp, the widget, the portal chat and e-mail) tells the model to answer any question about
 -- his own request from them and never invent. No intent row and no keyword route is added.
 --
--- SIZE. The whole request ("asked"), the quotes and the comparison are given for every open request and the three newest;
--- older closed requests keep the summary keys only, so a long account does not swell every WhatsApp reply.
+-- SIZE. The whole request ("asked"), the quotes and the comparison are given for every open or revealed request and the
+-- three newest; older closed requests keep the summary keys only, so a long account does not swell every WhatsApp reply.
 -- Every new routine: SECURITY DEFINER, search_path pinned, EXECUTE revoked from public, anon and authenticated.
 -- Probe: a_customer_is_answered_from_his_whole_request_on_every_channel_probe.sql (local Postgres 16, ZZ DEMO only).
 -- Deploy order: apply this file, then deploy wa_inbound, site_assistant, email_triage, sales_engineer (each reads keys this
@@ -208,8 +208,9 @@ returns jsonb language sql stable security definer set search_path to 'public', 
                                                       else 'about AED ' || to_char(round(qq.sealed_avg / 1000) * 1000, 'FM999,999,999,990') end,
                                 'note', 'rounded average of the quotes not yet revealed; each quote''s own price is under quotes') end,
       'chase', ch.j)
-      -- WHAT HE ASKED, AND WHAT HIS PORTAL SHOWS HIM: every open request and the three newest
-      || case when not (coalesce(i.status, '') in ('open', 'sent', 'quoted', 'split') or i.rn <= 3) then '{}'::jsonb else jsonb_build_object(
+      -- WHAT HE ASKED, AND WHAT HIS PORTAL SHOWS HIM: every open or revealed request (a revealed one is still being worked:
+      -- the supplier's contact, the other quotes, the refund window) and the three newest
+      || case when not (coalesce(i.status, '') in ('open', 'sent', 'quoted', 'split', 'revealed') or i.rn <= 3) then '{}'::jsonb else jsonb_build_object(
       'asked', jsonb_strip_nulls(jsonb_build_object(
           'summary', left(i.summary, 600),
           -- his own words, exactly as stored; never parsed here
