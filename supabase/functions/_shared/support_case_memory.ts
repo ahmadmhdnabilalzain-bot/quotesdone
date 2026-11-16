@@ -49,8 +49,16 @@ const CASE_REF = /\bQD-[A-Z0-9-]{3,}\b/gi;
 export interface CaseSummary { asked: string; said_or_did: string; promised: { what: string; by: string | null; kind?: 'quotes' | 'other'; due_at?: string | null }[]; open: string[] }
 export interface OpenCase { case_ref: string; title: string | null; summary_text: string | null; summary_version: number; status?: string; last_activity_at?: string;
   /** when the case last moved before the newest message (a_returning_person_is_asked_about_their_quiet_case_not_given_a_new_one.sql) */
-  prior_activity_at?: string | null }
-export interface CaseMemory { ref: string; summaryText: string; version: number; profile: number; confirm?: { title: string | null; days: number } }
+  prior_activity_at?: string | null;
+  /** the case's OPEN promise-ledger rows (every_open_case_of_a_person_reaches_the_reply_with_its_open_promises.sql); absent before it */
+  promises?: { what: string; due_text?: string | null; due_at?: string | null; owner_seat?: string | null }[] }
+/** One open case of the person as every reply sees it: number, one line, and the promises still open on it. */
+export interface OpenCaseLine { ref: string; line: string; promises: { what: string; by: string | null }[] }
+export interface CaseMemory { ref: string; summaryText: string; version: number; profile: number; confirm?: { title: string | null; days: number };
+  /** ALL the person's open cases with anything recorded, newest first, capped (OPEN_CASES_SHOWN cases, OPEN_PROMISES_SHOWN promises).
+   *  With ref '' (several recorded matters, none named) the reply reads these and the whole conversation; with a ref, the others
+   *  ride beside the chosen case so a promise made on another matter is still kept. */
+  allOpen?: OpenCaseLine[] }
 // 'confirm' (it_engineer, 11 Nov 2026): the person writes after a long gap and the router cannot tell whether it is the same
 // matter. The reply then asks ONE short question naming the case ("Is this about your aluminium windows request QD-…?")
 // instead of guessing either way; their answer decides on the next turn (a named number or a clear new matter).
@@ -68,19 +76,65 @@ export function renderSummary(s: CaseSummary): string {
   return ['ASKED: ' + (s.asked || '-'), 'WE SAID OR DID: ' + (s.said_or_did || '-'), 'WE PROMISED:\n' + promised, 'STILL OPEN:\n' + open].join('\n').slice(0, 2000);
 }
 
-/** The block the reply's cached prefix carries: the case number, and its summary. */
-export function caseBlock(m: Pick<CaseMemory, 'ref' | 'summaryText'> & { confirm?: CaseMemory['confirm'] }): string {
+/** Cases and promises an every-open-case block carries at most (a person rarely has more than two open; the cap bounds a prompt). */
+export const OPEN_CASES_SHOWN = 5;
+export const OPEN_PROMISES_SHOWN = 8;
+
+/** The open promises of one case: its ledger rows when the read carries them, else the WE PROMISED lines of its summary. */
+export function openPromisesOf(c: OpenCase): { what: string; by: string | null }[] {
+  if (Array.isArray(c.promises)) {
+    return c.promises.map((p) => ({ what: clip(p.what, 200), by: p.due_text ? clip(p.due_text, 60) : null })).filter((p) => p.what);
+  }
+  return recordedPromises(c.summary_text).map((p) => ({ what: clip(p.what, 200), by: p.by ? clip(p.by, 60) : null }));
+}
+
+/** The person's open cases as every reply sees them (newest first): each with one line and its open promises. A case with
+ *  neither a line nor a promise is left out; at most OPEN_CASES_SHOWN cases and OPEN_PROMISES_SHOWN promises in all. */
+export function openCaseLines(cases: readonly OpenCase[]): OpenCaseLine[] {
+  let left = OPEN_PROMISES_SHOWN;
+  const out: OpenCaseLine[] = [];
+  for (const c of cases) {
+    if (out.length >= OPEN_CASES_SHOWN) break;
+    const asked = /^ASKED:\s*(.*)$/m.exec(String(c.summary_text ?? ''))?.[1] ?? '';
+    const line = clip([c.title, asked && asked !== '-' ? asked : ''].filter(Boolean).join(': '), 200);
+    const promises = openPromisesOf(c).slice(0, Math.max(0, left));
+    left -= promises.length;
+    if (line || promises.length) out.push({ ref: c.case_ref, line, promises });
+  }
+  return out;
+}
+
+const renderLines = (lines: readonly OpenCaseLine[]) => lines.map((l) => '- ' + l.ref + (l.line ? ': ' + l.line : '')
+  + (l.promises.length ? '\n' + l.promises.map((p) => '    WE PROMISED: ' + p.what + (p.by ? ' (by ' + p.by + ')' : '')).join('\n') : '')).join('\n');
+
+/** The block the reply's cached prefix carries: the case number, and its summary; and the person's other open cases. */
+export function caseBlock(m: Pick<CaseMemory, 'ref' | 'summaryText'> & { confirm?: CaseMemory['confirm']; allOpen?: CaseMemory['allOpen'] }): string {
+  // SEVERAL RECORDED MATTERS, NONE NAMED (audit WHO_KNOWS_WHAT item 2, 16 Nov 2026): no single case is chosen, but every open
+  // case's line and open promises reach the reply, so a promise made on one matter is never lost because a second one opened
+  if (!m.ref && m.allOpen?.length) {
+    return `THIS PERSON HAS ${m.allOpen.length} OPEN CASES and this message names none of them. Read the conversation to tell which one it is `
+      + 'about; if you cannot tell, ask which one in one short question naming them by subject. Whichever it is, never contradict and '
+      + 'always keep every promise listed here. Their open cases, newest first:\n' + renderLines(m.allOpen);
+  }
+  const others = (m.allOpen ?? []).filter((l) => l.ref !== m.ref);
+  const tail = others.length ? '\n\nTHEIR OTHER OPEN CASES (newest first; not what this message is about unless it says so, but keep every '
+    + 'promise listed):\n' + renderLines(others) : '';
   if (m.confirm) {
     return `THE PERSON WRITES AGAIN AFTER ${m.confirm.days} DAYS, and it is not clear whether this message is about case ${m.ref}`
       + (m.confirm.title ? ` (${m.confirm.title})` : '') + '. If the message is plainly about something else, answer it as a new matter and do not '
       + 'mention the case. Otherwise do not assume either way: ask ONE short question that names the case by its subject '
       + `and number (for example: "Is this about your ${m.confirm.title || 'earlier'} request ${m.ref}?"), and do not answer as if it were that case `
-      + 'until they say. What the case recorded, for that question only:\n' + m.summaryText;
+      + 'until they say. What the case recorded, for that question only:\n' + m.summaryText + tail;
   }
   return `THIS CASE (${m.ref}), as recorded after the last exchange. Work from it: never ask again for what it shows was given, `
     + 'never repeat what it shows we already said, and keep every promise it lists. The last few turns follow as messages.\n'
-    + m.summaryText;
+    + m.summaryText + tail;
 }
+
+/** True when the reply works from ONE case's summary (and reads only its last CASE_TURNS turns). */
+export const worksFromOneCase = (m: Pick<CaseMemory, 'ref' | 'summaryText'> | null | undefined) => !!(m?.ref && m.summaryText.trim());
+/** True when the reply's prefix carries a case block: one case's summary, or several open cases with their promises. */
+export const hasCaseBlock = (m: Pick<CaseMemory, 'ref' | 'summaryText' | 'allOpen'> | null | undefined) => worksFromOneCase(m) || !!(m && !m.ref && m.allOpen?.length);
 
 const words = (s: string) => new Set(String(s).toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) ?? []);
 /** A promise is ours only when most of its words appear in what we said (this reply, or the promises already recorded). */
@@ -192,17 +246,26 @@ export async function readCase(deps: ThinkDeps, o: CaseWho & { message: string; 
   // the one fn_support_touch attached the message to, not the matter it is about: once a second matter opened, a question about
   // the first was answered from the second's summary and only six turns. Then the reply reads the whole conversation, as before
   // cases existed; the step after the reply still decides which case the exchange belongs to.
-  if (!named && cases.filter((x) => (x.summary_version ?? 0) > 0 && String(x.summary_text ?? '').trim()).length > 1) return { profile, cases, memory: null };
+  // BUT NOT BLIND (audit WHO_KNOWS_WHAT item 2, 16 Nov 2026): until then the reply was handed nothing, so "an update by Thursday"
+  // promised on one case was unknown to every reply once the person had a second recorded matter. Now the reply is handed every
+  // open case's line and open promises (allOpen, newest first, capped) with no single case chosen (ref ''), and still reads the
+  // whole conversation.
+  const allOpen = openCaseLines(cases);
+  if (!named && cases.filter((x) => (x.summary_version ?? 0) > 0 && String(x.summary_text ?? '').trim()).length > 1) {
+    return { profile, cases, memory: { ref: '', summaryText: '', version: 0, profile, allOpen } };
+  }
   const c = cases.find((x) => x.case_ref === named) ?? cases[0];
+  // the person's OTHER open cases ride beside the chosen one when they hold something (their promises are kept too)
+  const others = allOpen.some((l) => l.ref !== c.case_ref) ? { allOpen } : {};
   // how long it was quiet BEFORE this message: fn_support_touch has just moved last_activity_at to now (prior_activity_at keeps
   // the earlier time once the SQL is applied; before that, an idle case was closed on arrival and never reaches here)
   const quietMs = (o.now ?? Date.now()) - (Date.parse(String(c.prior_activity_at ?? c.last_activity_at ?? '')) || Number.NaN);
   const days = Math.floor(quietMs / 86_400_000);
   if (!named && Number.isFinite(quietMs) && days >= CONFIRM_AFTER_DAYS && (c.title || c.summary_text)) {
     return { profile, cases, memory: { ref: c.case_ref, summaryText: c.summary_text || clip(c.title, 160) || c.case_ref, version: c.summary_version ?? 0,
-      profile, confirm: { title: c.title ? clip(c.title, 80) : null, days } } };
+      profile, confirm: { title: c.title ? clip(c.title, 80) : null, days }, ...others } };
   }
-  return { profile, cases, memory: { ref: c.case_ref, summaryText: c.summary_text ?? '', version: c.summary_version ?? 0, profile } };
+  return { profile, cases, memory: { ref: c.case_ref, summaryText: c.summary_text ?? '', version: c.summary_version ?? 0, profile, ...others } };
 }
 
 /** AFTER the reply: same matter or a new one. Code where code can tell; otherwise the model (chooseCase) compares the message
@@ -336,6 +399,16 @@ export const SUMMARY_SYSTEM = 'You keep the case record of a customer support ag
   + 'a trade opens, as each quote arrives) are not promises. Plain facts, no advice. The whole summary stays under 150 words: keep what is '
   + 'still open, drop what is settled.';
 
+/** The summary object in a model's text: the whole text, else the outermost {...} in it (a sentence or a fence around the JSON).
+ *  The one summary_not_written finding on production (12 Nov 2026, an audit run, reason 'not json') was a reply that was not
+ *  bare JSON; anything that holds no object is still refused, and checkSummary still checks the shape. */
+export function summaryJson(content: unknown): Record<string, unknown> | null {
+  const text = String(content ?? '').replace(/^\s*```(?:json)?\s*|\s*```\s*$/g, '').trim();
+  const take = (t: string) => { try { const v = JSON.parse(t); return v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : null; } catch (_e) { return null; } };
+  const a = text.indexOf('{'), b = text.lastIndexOf('}');
+  return take(text) ?? (a >= 0 && b > a ? take(text.slice(a, b + 1)) : null);
+}
+
 /** After an exchange: one cheap call rewrites the summary, code checks it, the database keeps every version. Never throws. */
 export async function summariseExchange(deps: ThinkDeps, o: {
   memory: CaseMemory; previous?: CaseSummary | null; theirMessage: string; ourReply: string; seat?: string; subject?: Record<string, unknown>;
@@ -350,8 +423,8 @@ export async function summariseExchange(deps: ThinkDeps, o: {
       + '\n\nTHEIR MESSAGE:\n' + o.theirMessage.slice(0, 1500) + '\n\nOUR REPLY:\n' + o.ourReply.slice(0, 1500);
     const r = await deps.llm('synthesise', SUMMARY_SYSTEM, input, { taskClass: SUMMARY_CLASS, seat: 'customer_support' as never, max: 500,
       internal: true, ...(o.subject ? { subject: o.subject } : {}) });
-    const text = String(r.content ?? '').replace(/^```(?:json)?\s*|\s*```$/g, '');
-    let raw: unknown = null; try { raw = JSON.parse(text); } catch (_e) { return { ok: false, reason: 'not json' }; }
+    const raw = summaryJson(r.content);
+    if (raw === null) return { ok: false, reason: 'not json' };
     const checked = checkSummary(raw, { ourReply: o.ourReply, previous: o.previous ?? null, previousText: o.memory.summaryText });
     if (!checked) return { ok: false, reason: 'bad shape' };
     // each stated promise with its due time, read by code (case_promises.ts); the writer records each one in the ledger

@@ -133,5 +133,26 @@ Deno.test('with no case summary the reply reads at most the last 100 messages', 
   const k = await loadCaseContext(a.d, { channel: 'portal', seat: 'sales_engineer', audience: 'customer', message: 'hi', partyId: 'c', sys: 'SYS', past: long });
   assertEquals([k.withCase, k.past.length, k.past[0].content], [false, 100, 'turn 50']);
   const say = Deno.readTextFileSync(new URL('../wa_inbound/say.ts', import.meta.url));
-  assert(/caseMem\?\.summaryText \? conv : conv\.slice\(-MESSAGE_CAP\)/.test(say), 'WhatsApp applies the same cap');
+  assert(/worksFromOneCase\(caseMem\) \? conv : conv\.slice\(-MESSAGE_CAP\)/.test(say), 'WhatsApp applies the same cap');
+});
+
+// AUDIT WHO_KNOWS_WHAT item 2 (16 Nov 2026): a person with two recorded open matters who names neither. Before: the reply was handed
+// nothing (readCase memory null), so the promise recorded on the older case reached no door. Now every open case's line and open
+// promises are appended to sys, and the reply still reads the whole conversation (no single case replaces it).
+Deno.test('several recorded open cases, none named: every case and its open promise reach the reply, and the transcript is kept', async () => {
+  const tiles: OpenCase = { case_ref: 'QD-C1004', title: 'Tiles delivery', summary_text: 'ASKED: when the tiles arrive\nWE PROMISED:\n- nothing', summary_version: 2,
+    promises: [{ what: 'confirm the delivery slot with the supplier', due_text: 'Thursday', due_at: null, owner_seat: 'customer_support' }] };
+  const a = deps({ cases: [tiles, windows] });
+  const k = await loadCaseContext(a.d, { channel: 'portal', seat: 'sales_engineer', audience: 'customer', message: 'any news?', partyId: 'c', sys: 'SYS', past: history });
+  assertEquals(k.withCase, false, 'no single case is chosen');
+  assertEquals(k.past.length, history.length, 'the whole conversation is read');
+  assert(k.sys.startsWith('SYS\n\nTHIS PERSON HAS 2 OPEN CASES'), k.sys);
+  assert(k.sys.indexOf('QD-C1004') < k.sys.indexOf('QD-C1001'), 'newest first');
+  assert(k.sys.includes('WE PROMISED: confirm the delivery slot with the supplier (by Thursday)'), 'the ledger promise of the newer case');
+  assert(k.sys.includes('WE PROMISED: send the quotes as they arrive'), 'the older case promise, from its summary when the read carries no ledger rows');
+  assertEquals(k.reply.caseMemory?.ref, '', 'aiReply gets the same block');
+  assertEquals(k.context.case?.case_ref, 'QD-C1004, QD-C1001');
+  // and the exchange is still recorded after the reply
+  await recordCaseExchange(a.d, k, { theirMessage: 'any news?', ourReply: 'The supplier confirms the slot by Thursday.' });
+  assert(a.rpcs().some((c) => c.fn === 'fn_support_case_summary_write'));
 });
