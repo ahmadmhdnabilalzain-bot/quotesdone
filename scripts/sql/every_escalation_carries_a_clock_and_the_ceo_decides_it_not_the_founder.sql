@@ -350,7 +350,9 @@ revoke execute on function public.fn_held_payers_sync() from public, anon, authe
 -- ---------------------------------------------------------------------------------------------
 -- 6. THE CEO SEAT'S QUEUE: WHAT IS DUE, AND WHY
 -- ---------------------------------------------------------------------------------------------
--- due_for: 'decide'   -- the CEO has not decided (never tried, or not for 6 hours, at most 8 tries)
+-- due_for: 'decide'   -- the CEO has not decided (never tried, or not for 6 hours, at most 8 tries); or it answered the law reserves the
+--                        matter to the founder and 72 hours passed with no answer from him: the CEO decides again (review of 16 Nov:
+--                        'founder_by_law' was a dead end, the founder paged once and nothing recorded his answer)
 --          'tell'     -- decided, the person not yet told; or the switch reads off for a held payer
 --          'status'   -- the clock ran out: an honest status is owed
 create or replace function public.fn_escalation_clocks_due(p_limit integer default 3)
@@ -371,6 +373,8 @@ as $fn$
                      and c.attempts < 6 and (c.attempts = 0 or c.status_due_at <= now()) then 'tell'
                 when c.kind <> 'held_payment' and c.state = 'open' and c.ceo_attempts < 8
                      and (c.ceo_tried_at is null or c.ceo_tried_at < now() - interval '6 hours') then 'decide'
+                when c.kind <> 'held_payment' and c.state = 'founder_by_law'
+                     and coalesce(c.ceo_tried_at, c.decided_at, c.created_at) < now() - interval '72 hours' then 'decide'
                 when c.status_due_at <= now() and c.statuses_sent < (select max_ from pol) and c.attempts < 6 then 'status'
            end due_for
       from public.escalation_clock c
@@ -402,12 +406,14 @@ declare c public.escalation_clock; v_note jsonb;
 begin
   select * into c from public.escalation_clock where id = p_id for update;
   if not found then return jsonb_build_object('ok', false, 'reason', 'no clock ' || p_id); end if;
-  if c.state <> 'open' then return jsonb_build_object('ok', false, 'reason', 'clock ' || p_id || ' is already ' || c.state); end if;
+  -- 'founder_by_law' is decided again after 72 hours with no answer from him (fn_escalation_clocks_due): it is never a dead end
+  if c.state not in ('open', 'founder_by_law') then return jsonb_build_object('ok', false, 'reason', 'clock ' || p_id || ' is already ' || c.state); end if;
   if coalesce(btrim(p_reasons), '') = '' then return jsonb_build_object('ok', false, 'reason', 'a decision is recorded with its reasons'); end if;
   if p_decision not in ('decided', 'not_yet', 'founder_by_law') then
     return jsonb_build_object('ok', false, 'reason', 'decision is decided, not_yet or founder_by_law, not ' || coalesce(p_decision, 'null'));
   end if;
-  if p_decision = 'founder_by_law' and coalesce(btrim(p_law), '') = '' then
+  -- 'n/a', 'none', '-' (any case, a closing full stop) name no law, the same as an empty answer
+  if p_decision = 'founder_by_law' and coalesce(p_law, '') ~* '^\s*(n\s*/?\s*a|none|-+)?\s*\.?\s*$' then
     -- a "founder" answer that names no law is not one: it stays the CEO's to decide (rulings 1696/1706/1710)
     p_decision := 'not_yet';
     p_reasons := p_reasons || ' [Recorded as not yet decided: the answer sent it to the founder without naming the law that requires him.]';
@@ -415,7 +421,9 @@ begin
   update public.escalation_clock
      set ceo_tried_at = now(), ceo_attempts = ceo_attempts + 1, ceo_model = left(p_model, 120),
          kind = case when p_standing in ('press', 'legal', 'regulator') and kind in ('person', 'escalation') then p_standing else kind end,
-         state = case p_decision when 'decided' then 'decided' when 'founder_by_law' then 'founder_by_law' else state end,
+         -- not_yet after a founder answer takes the case back: it is the CEO's again, on the 6-hour decide clock
+         state = case p_decision when 'decided' then 'decided' when 'founder_by_law' then 'founder_by_law'
+                                 else case when state = 'founder_by_law' then 'open' else state end end,
          ceo_decision = case when p_decision = 'not_yet' then ceo_decision else left(p_outcome, 2000) end,
          ceo_reason = left(p_reasons, 3000),
          decided_at = case when p_decision = 'not_yet' then decided_at else now() end,
@@ -640,3 +648,151 @@ as $fn$
   end
 $fn$;
 revoke execute on function public.fn_escalation_stale_apology(text, timestamptz, timestamptz, boolean) from public, anon, authenticated;
+
+-- ---------------------------------------------------------------------------------------------
+-- 10. WHATSAPP "TALK TO A PERSON" OPENS THE SAME CLOCK (was: the founder paged, then paged again at 23 hours)
+-- ---------------------------------------------------------------------------------------------
+-- Review of 16 Nov 2026: the menu's "Talk to a person" still paged the founder (whatsapp_human_request) and its 23-hour tick paged
+-- him again and told the person "we have reminded them", untrue once the CEO holds the case. The founder block becomes the clock:
+-- p_phone is the same From (whatsapp:+<digits>, SELECT 16 Nov: 37 of 37 inbound rows in 30 days) that general_turn's escalation opens
+-- with, so a typed escalation and the button land on ONE clock. 'notified' now means the clock opened. Everything else is the live
+-- body (SELECT md5(prosrc) 16 Nov 2026 = 99fd412e20a08b3ef4d605ec14ba328f = a_fixture_asking_for_a_person_never_pages_the_founder.sql):
+-- the founder's own number opens no handoff, a fixture number returns before the clock as before.
+create or replace function public.fn_wa_human_request(p_phone text, p_hold boolean, p_event text, p_detail text)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_digits text := regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g'); v_h bigint; v_ok boolean := true; v_err text;
+  v_founder boolean; v_clock jsonb;
+begin
+  if length(v_digits) < 9 then return jsonb_build_object('ok', false, 'reason', 'no usable number'); end if;
+  -- A. The founder trying "Talk to a person" from his own number is not a person waiting (handoff 58191, 22 Sep).
+  v_founder := coalesce(public.fn_identify_contact(v_digits) ->> 'audience', '') = 'founder';
+  if p_hold and not v_founder then
+    insert into public.wa_conversation (phone_e164, party_kind, message_count, thread_state, handed_to)
+    values (v_digits, 'unknown', 0, 'handed_to_human', 'customer_support')
+    on conflict (phone_e164) do update set thread_state = 'handed_to_human', handed_to = 'customer_support', last_seen_at = now();
+  end if;
+  select id into v_h from public.agent_actions
+   where kind = 'handoff' and status = 'pending' and detail ->> 'type' = 'support.human_requested' and detail ->> 'phone_digits' = v_digits
+   order by id desc limit 1;
+  if v_h is null and not v_founder then
+    v_h := public.fn_seat_handoff('customer_support', 'customer_support', 'support.human_requested', 'wa_conversation',
+      v_digits || ':' || to_char(now() at time zone 'UTC', 'YYYYMMDDHH24MISS'),
+      jsonb_build_object('phone_digits', v_digits, 'held', p_hold, 'event', p_event,
+                         'waiting_for', 'a person to answer +' || v_digits || ' on WhatsApp'));
+  end if;
+  -- B. A reserved fixture number (+971 50 000 00xx, the ZZ DEMO harness) never pages the founder: the QA channels run of
+  --    19 Oct 2026 sent him founder_alert 103774 (e-mail) and 103775 (WhatsApp) for +971500000081. The handoff above is kept.
+  if public.fn_is_demo_phone(p_phone) then
+    return jsonb_build_object('ok', true, 'handoff_id', v_h, 'held', p_hold, 'founder_own_number', v_founder, 'notified', false, 'fixture', true);
+  end if;
+  -- C. The CEO's, on a clock (16 Nov 2026, rulings 1696/1706/1710): customer_support writes the honest statuses and the decision on
+  --    WhatsApp inside their window, else by e-mail. The founder's own number is not a person waiting: no clock.
+  if not v_founder then
+    begin
+      v_clock := public.fn_escalation_clock_open('wa_conversation', p_phone, 'person', 'whatsapp', p_phone, null, p_detail, null,
+                   jsonb_build_object('handoff_id', v_h));
+      v_ok := coalesce((v_clock ->> 'ok')::boolean, false);
+      if not v_ok then v_err := left(v_clock ->> 'reason', 300); end if;
+    exception when others then v_ok := false; v_err := left(sqlerrm, 300);
+    end;
+  else
+    v_ok := false;
+  end if;
+  return jsonb_build_object('ok', true, 'handoff_id', v_h, 'held', p_hold, 'founder_own_number', v_founder, 'notified', v_ok, 'notify_error', v_err,
+                            'escalation_clock', v_clock -> 'id');
+end $fn$;
+revoke execute on function public.fn_wa_human_request(text, boolean, text, text) from public, anon, authenticated;
+
+-- The 23-hour tick without the founder page and without its fixed "we have reminded them" text: the clock's statuses (the model's
+-- words, on WhatsApp in the window or by e-mail) replace both. It still hands the conversation back at 23 hours, reports to the CEO at
+-- the reply clock and closes the loop; the CEO report is now linked to the clock, so the decision told completes it and the handoff
+-- closes. followup_skipped no longer reads 'the 24-hour WhatsApp window had closed', so fn_wa_human_request_email_followup (its own
+-- "we have reminded the team" e-mail) never doubles the clock. Everything else is the live body (SELECT md5(prosrc) 16 Nov 2026 =
+-- f75bc9a0b12bb000974ab34945a30626 = a_customer_asking_on_whatsapp_reads_their_own_requests_and_every_ask_closes_its_loop.sql 7c).
+create or replace function public.fn_wa_human_request_tick()
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $fn$
+declare r record; v_conv public.wa_conversation; n int := 0; v_clock_id bigint; v_clock jsonb; n_clock int := 0;
+  v_window interval; v_rep jsonb; rep public.support_ceo_report; n_esc int := 0; n_closed int := 0;
+begin
+  for r in select a.* from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail ->> 'type' = 'support.human_requested'
+              and a.created_at < now() - interval '23 hours' and not (a.detail ? 'followed_up_at')
+            order by a.id limit 20 loop
+    n := n + 1; v_clock_id := null;
+    update public.wa_conversation set thread_state = 'open', handed_to = null
+     where phone_e164 = r.detail ->> 'phone_digits' and thread_state = 'handed_to_human'
+    returning * into v_conv;
+    -- the clock fn_wa_human_request opened; a request filed before it (or whose clock failed to open) gets it now, on the same From
+    select id into v_clock_id from public.escalation_clock
+     where source_table = 'wa_conversation' and detail ->> 'handoff_id' = r.id::text order by id desc limit 1;
+    if v_clock_id is null then
+      v_clock := public.fn_escalation_clock_open('wa_conversation', 'whatsapp:+' || (r.detail ->> 'phone_digits'), 'person', 'whatsapp',
+                   'whatsapp:+' || (r.detail ->> 'phone_digits'), null, r.detail ->> 'event', null,
+                   jsonb_build_object('handoff_id', r.id, 'promised_at', r.created_at));
+      v_clock_id := (v_clock ->> 'id')::bigint;
+      if v_clock_id is not null then n_clock := n_clock + 1; end if;
+    end if;
+    update public.agent_actions
+       set detail = detail || jsonb_build_object('followed_up_at', now(), 'followup_request_id', null, 'escalation_clock_id', v_clock_id,
+                                                 'followup_skipped', case when v_clock_id is not null
+                                                                           then 'the escalation clock ESC-' || v_clock_id || ' writes their statuses'
+                                                                           else 'no escalation clock could be opened' end)
+     where id = r.id;
+  end loop;
+  -- B. 24 h, the reply clock (seat_handoff_kind.reply_within): customer_support reports it to the CEO, once.
+  select reply_within into v_window from public.seat_handoff_kind
+   where type = 'support.human_requested' and from_seat = 'customer_support' and to_seat = 'customer_support';
+  v_window := coalesce(v_window, interval '24 hours');
+  for r in select a.* from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail ->> 'type' = 'support.human_requested'
+              and a.created_at < now() - v_window and not (a.detail ? 'escalated_report_id')
+            order by a.id limit 20 loop
+    v_rep := public.fn_support_report_to_ceo('wa_human:' || r.id, 'serious',
+      'A WhatsApp contact asked for a person and nobody answered within ' || v_window || ' (handoff ' || r.id || ')',
+      jsonb_build_object('handoff_id', r.id, 'phone_digits', r.detail ->> 'phone_digits', 'asked_at', r.created_at,
+                         'event', r.detail ->> 'event', 'followed_up_at', r.detail ->> 'followed_up_at',
+                         'escalation_clock_id', r.detail ->> 'escalation_clock_id', 'followup_skipped', r.detail ->> 'followup_skipped'),
+      jsonb_build_array('customer_support put the request on escalation clock ' || coalesce('ESC-' || (r.detail ->> 'escalation_clock_id'), '(none yet)')
+                        || ' at ' || to_char(r.created_at at time zone 'Asia/Dubai', 'DD Mon HH24:MI') || ' Dubai',
+                        coalesce('customer_support handed the conversation back at ' || (r.detail ->> 'followed_up_at'),
+                                 'customer_support has not yet handed the conversation back')),
+      'Decide it on its escalation clock (the CEO seat''s heartbeat): customer_support tells the contact the decision, which completes this report.',
+      p_review_in => interval '4 hours', p_source_agent => 'customer_support');
+    if coalesce((v_rep ->> 'ok')::boolean, false) then
+      update public.agent_actions
+         set detail = detail || jsonb_build_object('escalated_report_id', (v_rep ->> 'report_id')::bigint, 'escalated_at', now())
+       where id = r.id;
+      -- the clock completes this report when the decision is told (fn_escalation_clock_told), unless it already carries another
+      update public.escalation_clock set detail = detail || jsonb_build_object('report_id', (v_rep ->> 'report_id')::bigint), updated_at = now()
+       where source_table = 'wa_conversation' and detail ->> 'handoff_id' = r.id::text and state <> 'closed' and detail ->> 'report_id' is null;
+      n_esc := n_esc + 1;
+    end if;
+  end loop;
+
+  -- The loop closes when the contact was followed up AND the CEO's report is completed; the verdict names both.
+  for r in select a.* from public.agent_actions a
+            where a.kind = 'handoff' and a.status = 'pending' and a.detail ->> 'type' = 'support.human_requested'
+              and a.detail ? 'followed_up_at' and a.detail ? 'escalated_report_id'
+            order by a.id limit 20 loop
+    select * into rep from public.support_ceo_report where id = (r.detail ->> 'escalated_report_id')::bigint;
+    continue when rep.id is null or rep.status <> 'completed';
+    perform set_config('qd.handoff_closer', 'customer_support', true);
+    perform public.fn_seat_handoff_complete(r.id, coalesce(r.evidence, '{}'::jsonb) || jsonb_build_object(
+      'verified_by', 'customer_support', 'verified_at', now(),
+      'verdict', 'followed up ' || (r.detail ->> 'followed_up_at')
+                 || coalesce(' (' || (r.detail ->> 'followup_skipped') || ')', '')
+                 || '; the CEO decided (report ' || rep.id || '): ' || left(coalesce(rep.completion_note, rep.acceptance_receipt, 'completed'), 400)));
+    perform set_config('qd.handoff_closer', '', true);
+    n_closed := n_closed + 1;
+  end loop;
+  return jsonb_build_object('ok', true, 'due', n, 'followups_queued', 0, 'clocks_opened', n_clock, 'escalated', n_esc, 'closed', n_closed);
+end $fn$;
+revoke execute on function public.fn_wa_human_request_tick() from public, anon, authenticated;
