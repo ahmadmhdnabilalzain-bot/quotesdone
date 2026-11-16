@@ -6,6 +6,9 @@ import { admin, sec, TW } from './shared.ts';
 import { sendWa, toContact } from './replies.ts';
 import type { WaTurn } from './turn.ts';
 import { repriceOutagePlan } from './reprice_outage.ts';
+import { type Ask, outcomeFacts, supplierInstructionTurn } from '../_shared/supplier_instruction.ts';
+import { defaultDeps } from '../_shared/think.ts';
+import { isDemoPhone } from '../_shared/demo_identity.ts';
 
 // ---- A SUPPLIER ASKING FOR A CHANGE, NOT AN ANSWER (v18) ---------------
 // "Adjust my quotation price" is the one verb on the supplier's list, and until now this
@@ -79,6 +82,42 @@ export async function supplierDirective(t: WaTurn): Promise<Response | undefined
           return TW(200);
         }
       }
+      // HIS OTHER INSTRUCTIONS (16 Nov 2026, sales_engineer; SUPPLIER holes 2 and 7, FAILURES 2): "not for me", "stop sending me
+      // painting jobs", "I'm available", a yes/no to a proposed removal, "the figure is correct". The reading above names the kind;
+      // the full reading, with his own requests and profile, and the scoped write are _shared/supplier_instruction.ts.
+      const hint = parsed && parsed.outage !== true ? String((parsed as { instruction?: unknown }).instruction ?? 'none') : 'none';
+      if (hint && hint !== 'none') { const done = await supplierInstruction(t); if (done) return done; }
     } catch (_e) { /* a classifier failure must never swallow their message: fall through and answer it */ }
   }
+}
+
+async function supplierInstruction(t: WaTurn): Promise<Response | undefined> {
+  const { From, Body, Profile, MessageSid, receivedAt, logRun, waInsert, sayFor, heldTurn } = t;
+  // the number's CONFIRMED supplier, as fn_identify_contact reads it (fn_whatsapp_owner): never a supplier named in the message
+  const { data: owner } = await admin.rpc('fn_whatsapp_owner', { p_phone: From });
+  const sid = Number(((Array.isArray(owner) ? owner[0] : owner) as { lead_id?: unknown } | null)?.lead_id) || 0;
+  if (!sid) return undefined;
+  const deps = defaultDeps(admin, 'wa_inbound');
+  const ask: Ask = async (sys, input) => (await deps.llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'sales_engineer', max: 400, timeoutMs: 25_000,
+    subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, internal: true })).content ?? null;
+  const r = await supplierInstructionTurn(admin, ask, { supplierId: sid, message: Body, channel: 'whatsapp' });
+  if (!r.handled || !r.outcome) return undefined;   // not one of his instructions, or unreadable: the ordinary reply answers it
+  const situation = 'The supplier wrote to us about his job requests or the work we send him. ' + outcomeFacts(r.outcome);
+  const out = await sayFor('supplier')(situation, 'en');
+  let reply = out ? toContact(out.slice(0, 1200)) : '';
+  const enabled = (await sec('wa_autoreply_enabled')) === 'true';
+  let sent = false; let sendErr: string | undefined = reply ? undefined : 'no_model_reply';
+  if (enabled && reply) { const s = await sendWa(From, reply); sent = s.ok; sendErr = s.err; }
+  if (!reply) { const h = await heldTurn('supplier', 'en', situation, 'supplier_instruction'); reply = h.notice; sent = h.sent; sendErr = h.err ?? undefined; }
+  try {
+    await waInsert(receivedAt, {
+      wa_from: From, wa_to: 'whatsapp:' + (await sec('twilio_wa_from')), profile_name: Profile,
+      inbound: Body, reply, lang: 'en', escalated: false, sent,
+      meta: { enabled, audience: 'supplier', route: 'supplier_instruction', instruction: r.outcome.kind, done: r.outcome.done,
+              send_error: sendErr || null, provenance_verified: true, message_sid: MessageSid || null },
+    });
+  } catch (_e) { /* the reply already went out */ }
+  await logRun(r.outcome.done ? 'ok' : 'error', { audience: 'supplier', route: 'supplier_instruction', applied: r.outcome.done, sent },
+    'supplier instruction by WhatsApp: ' + r.outcome.kind + (r.outcome.done ? ' (recorded)' : ' (not recorded: ' + r.outcome.facts.slice(0, 160) + ')'));
+  return TW(200);
 }

@@ -38,6 +38,7 @@ import { applyBackstop, backstopApplies, holdsUnread, readTriage, UNREAD_CATEGOR
 import { beat, budgetLeft, closeStaleRuns } from './run_guard.ts';
 import { J } from '../_shared/json_response.ts';
 import { loadCaseContext, recordCaseExchange } from '../_shared/case_context.ts';
+import { type Ask, outcomeFacts, supplierInstructionTurn } from '../_shared/supplier_instruction.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 async function sec(k: string){ const {data}=await admin.from('app_secrets').select('value').eq('key',k).maybeSingle(); return data?.value as string|undefined; }
 const llm = makeLlm(SONNET_FIRST, TRIAGE_LLM); // shared OpenRouter client (Sonnet-first ladder + 25s timeout); never served another mail's triage from the cache (triage_llm.ts)
@@ -60,6 +61,23 @@ async function mailForbidden(m: Mail, audience: 'customer' | 'supplier'): Promis
   if (!addr) return [];
   const { data } = await admin.from('customers').select('id').ilike('email', addr.replace(/[\\%_]/g, (c) => '\\' + c)).limit(1).maybeSingle();
   return data?.id ? preRevealIdentities(admin, { customerId: String(data.id) }) : [];
+}
+
+// HIS INSTRUCTIONS BY E-MAIL (16 Nov 2026, sales_engineer; SUPPLIER holes 2 and 7, FAILURES 2): "not for me", "stop sending me
+// painting jobs", "I'm available", a yes/no to a proposed removal, "the figure is correct". Only from the company's own claimed
+// address, authenticated by the receiving server; the model reads it with his facts and a scoped routine writes it
+// (_shared/supplier_instruction.ts). What was done becomes a fact the reply below reports. Anything else: '' and the reply is as before.
+async function supplierMailInstruction(m: Mail, deps: ThinkDeps): Promise<string> {
+  if (!m.lead_id || (m.raw as { sender_authenticated?: unknown } | null)?.sender_authenticated !== true) return '';
+  try {
+    const { data: lead } = await admin.from('leads').select('claimed_by').eq('id', Number(m.lead_id)).maybeSingle();
+    if (!lead?.claimed_by || String(lead.claimed_by).trim().toLowerCase() !== String(m.from_email || '').trim().toLowerCase()) return '';
+    const fixture = /@example\.invalid$/i.test(String(m.from_email || ''));
+    const ask: Ask = async (sys, input) => (await deps.llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'sales_engineer', max: 400, timeoutMs: 25_000,
+      subject: { message_id: m.id, channel: 'email', ...(fixture ? { fixture: true } : {}) }, internal: true })).content ?? null;
+    const r = await supplierInstructionTurn(admin, ask, { supplierId: Number(m.lead_id), message: 'Subject: ' + String(m.subject || '') + '\n\n' + String(m.body || '').slice(0, 2400), channel: 'email' });
+    return r.handled ? outcomeFacts(r.outcome) : '';
+  } catch (e) { console.error('email_triage supplier instruction', m.id, String((e as Error)?.message || e)); return ''; }
 }
 
 async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier' = 'customer', facts = ''): Promise<string> {
@@ -241,8 +259,9 @@ Deno.serve(observe('email_triage', async (req) => {
         // resend_inbound linked a lead by sender (leads.email or claimed_by): a supplier, answered as one, in English.
         // A supplier-mailbox mail is answered as what its reading said, knowing the correspondence (ruling 1631).
         const known = m.lead_id ? SEPARATE_COMPANY_FACT : '';
-        await (reading ? reply1(m, audienceFor(m.lead_id ? 'supplier' : null, reading), [known, readingFacts(reading)].filter(Boolean).join('\n\n'))
-          : m.lead_id ? reply1(m, 'supplier', SEPARATE_COMPANY_FACT) : reply1(m));
+        const instructed = m.lead_id ? await supplierMailInstruction(m, deps) : '';
+        await (reading ? reply1(m, audienceFor(m.lead_id ? 'supplier' : null, reading), [known, instructed, readingFacts(reading)].filter(Boolean).join('\n\n'))
+          : m.lead_id ? reply1(m, 'supplier', [SEPARATE_COMPANY_FACT, instructed].filter(Boolean).join('\n\n')) : reply1(m));
         continue;
       }
       let category = 'other', summary = '', reply = '', parsed = false;
@@ -299,7 +318,8 @@ Deno.serve(observe('email_triage', async (req) => {
       if (category === 'spam') { counts.spam++; continue; }
       if (reply) counts.drafted++;
       await beat(admin, run?.id, 'message ' + m.id + ' (answer)');
-      const facts = await mailFacts(admin, String(m.from_email || ''), relation, (m as { raw?: unknown }).raw);
+      const facts0 = await mailFacts(admin, String(m.from_email || ''), relation, (m as { raw?: unknown }).raw);
+      const facts = [facts0, audienceOf(relation) === 'supplier' ? await supplierMailInstruction(m, deps) : ''].filter(Boolean).join('\n\n');
       await reply1(m, audienceOf(relation), reading ? [facts, readingFacts(reading)].filter(Boolean).join('\n\n') : facts);
     }
     // THE REPLY LEAVES NOW, not on the outbox's 2-minute poll (the founder's "under a minute").

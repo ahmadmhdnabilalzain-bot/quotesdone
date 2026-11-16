@@ -67,8 +67,9 @@ Deno.test('1195-1197: no stored-sentence road remains, and no path leaves the pe
   for (const gone of ["route: 'deterministic'", 'welcomeFirstContact(', 'supportReply(', 'publicSys', 'FACTS_SHARED', "p_answered_by: 'deterministic'"]) {
     assert(!code.includes(gone), gone + ' is back in wa_inbound');
   }
-  // spec offer, founder setting, document, supplier price, main reply: each sends the held notice when no model answered
-  assertEquals((code.match(/const h = await heldTurn\(/g) || []).length, 5, 'every direct no-model path sends the held notice');
+  // spec offer, founder setting, document, supplier price, supplier instruction (16 Nov 2026), main reply: each sends the held
+  // notice when no model answered
+  assertEquals((code.match(/const h = await heldTurn\(/g) || []).length, 6, 'every direct no-model path sends the held notice');
   assert(/held: \(r\) => heldTurn\(/.test(code), 'the menu sends the held notice too');
 });
 
