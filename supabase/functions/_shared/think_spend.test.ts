@@ -54,8 +54,8 @@ Deno.test("an easy run asks its judgement on the routine route; only a DECLARED 
 });
 
 Deno.test("only a seat's own scheduled work is an internal duty; a person's case never is", () => {
-  for (const s of ['ceo.knowledge_refresh', 'it_engineer.postmortem', 'sales_engineer.root_cause', 'marketing.ceo_revision']) assert(INTERNAL_DUTY_SURFACE.test(s), s);
-  for (const s of ['wa_inbound.unwritten_reply', 'sql.fn_supplier_twin', 'sales_engineer.document_arabic', 'site_assistant.person', 'supplier_documents.subject', 'wa_inbound.needs_a_person']) assert(!INTERNAL_DUTY_SURFACE.test(s), s);
+  for (const s of ['ceo.knowledge_refresh', 'it_engineer.postmortem', 'sales_engineer.root_cause', 'marketing.ceo_revision', 'it_engineer.backlog_review', 'marketing.calendar_plan', 'ceo.calendar_owner', 'ceo.compliance_change']) assert(INTERNAL_DUTY_SURFACE.test(s), s);
+  for (const s of ['wa_inbound.unwritten_reply', 'sql.fn_supplier_twin', 'sales_engineer.document_arabic', 'site_assistant.person', 'supplier_documents.subject', 'wa_inbound.needs_a_person', 'it_engineer.incident_impact', 'ceo.partnership']) assert(!INTERNAL_DUTY_SURFACE.test(s), s);
 });
 
 Deno.test('our own duty is not asked again after a paid empty answer; a customer turn keeps its retry', async () => {

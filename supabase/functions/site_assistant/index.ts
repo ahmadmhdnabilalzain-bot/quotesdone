@@ -21,6 +21,7 @@
 //     the CEO when someone asks for a person. assistant_logs now records which seat answered.
 // v12: A VISITOR GETS GENERAL ANSWERS AND THE WAY TO SIGN UP (founder ruling 18 Oct 2026, visitor_scope.ts). No inquiry
 //     is collected on the homepage; a real need is sent to sign up; a server-side cap per conversation and IP.
+import { fileAfterRevealProblem } from './after_reveal_door.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { langOf, turnLang, type FaqRow } from '../_shared/chat_answers.ts';
 import { annotate, observe } from '../_shared/observe.ts';
@@ -32,6 +33,7 @@ import { turnContent, turnFacts } from './turn_facts.ts';
 import { gteReads } from '../_shared/ml_embed_recipe.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { widgetComplaintReport } from '../_shared/complaint_register.ts';
 import { caseKeyOf } from '../_shared/support_fault_handover.ts';
 import { fileReviewRequest } from '../_shared/review_request.ts';
 import { siteReplyCheck, siteReplyLanguage } from './reply_check.ts';
@@ -407,13 +409,21 @@ async function handle(req: Request, T: Timer): Promise<Response> {
         seat: 'customer_support', surface: 'site_assistant.person', message: message.slice(0, 4000), audience: 'visitor',
         dedupeKey: 'widget:person:' + ip + ':' + hour + ':' + msgKey, subject: { path },
         fault: { channel: 'widget', caseKey: await caseKeyOf('widget', (who ? accountKey(who.audience, who.id) : ip) + ':' + hour), lang: uiLang === 'ar' ? 'ar' : 'en',
-                 email: who?.email ?? null, audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor' },
+                 email: who?.email ?? null, audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor',
+                 // a signed-in person's fault goes onto their case too, so WhatsApp and the e-mail see it (ledgers 1711-1713)
+                 ...(who ? { person: { partyId: String(who.id), email: who.email ?? null } } : {}) },
+        // A COMPLAINT ENTERS THE REGISTER (16 Nov 2026, COO hole H2): read in the same call; the ticket is opened once for this
+        // message, keyed on a hash (no address in the key), linked to the signed-in person when there is one (complaint_register.ts)
+        complaint: await widgetComplaintReport({ caller: who ? accountKey(who.audience, who.id) : ip, hour, msgKey, who, lang: uiLang === 'ar' ? 'ar' : 'en', message }),
       })).value;
       // Ledger 1152 / ruling 1264: a contested decision goes to its owning seat; an explicit ask for a person to the founder.
       if (person === true) {
         await fileReviewRequest(admin, defaultDeps(admin, 'site_assistant'), { channel: 'site_chat', requester: 'site visitor ' + ip, message,
           surface: 'site_assistant.review_of_decision', dedupeKey: ip + ':' + hour + ':' + msgKey });
       }
+      // "A problem with this job" (16 Nov 2026, AFTER_REVEAL): the same reading, for a signed-in customer, files the one door
+      // (after_reveal_door.ts -> fn_customer_after_reveal_message). Best-effort beside the reply, as the report above.
+      await fileAfterRevealProblem(rpc, who, message, person).catch(() => null);
       return person;
     };
     const fileEffects = async (o: { grounded: boolean; answered: boolean; refusal: string; rateLimited: boolean }) => {

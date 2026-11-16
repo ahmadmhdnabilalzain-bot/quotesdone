@@ -26,9 +26,11 @@ import { REASK_CLAIM, reaskDue } from '../../_shared/reask.ts';
 import { admin, J, sec, EMITTERS, type ActionCtx } from '../context.ts';
 import { embed } from '../lib/embed.ts';
 import { answerFromOwnQuotes } from '../lib/own_quotes.ts';
+import { customerRecordFacts, OWN_REQUEST_RULE } from '../../_shared/own_request_facts.ts';
 import { run } from '../lib/run.ts';
 import { conversationEffort } from '../../_shared/effort_policy.ts';
 import { lastTurn, replayOf } from '../../_shared/turn_replay.ts';
+import { portalComplaintReport, registerComplaint } from '../../_shared/complaint_register.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 import { loadCaseContext, recordCaseExchange } from '../../_shared/case_context.ts';
 
@@ -150,6 +152,12 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
       // the resolved session, are given to the model as facts (portal_turn.portalFacts). The supplier is named only where a
       // transactions row proves the reveal was paid; before that it is the same "Supplier A" letter the compare table prints.
       const pOwn = caller.kind === 'customer' ? answerFromOwnQuotes(caller.customerId, message, lang) : Promise.resolve(null);
+      // HIS ACCOUNT AND CASE TIMELINE (who-knows-what gap 3, 16 Nov 2026): the same two reads the widget makes for the same
+      // customer (site_assistant/index.ts), started now beside the others; a failed read is simply absent.
+      const pRecord = caller.kind === 'customer' ? Promise.all([
+        admin.rpc('fn_wa_context', { p_audience: 'customer', p_phone: caller.email }).then((x) => x.data as Record<string, unknown> | null, () => null),
+        admin.rpc('fn_contact_timeline', { p_contact: caller.email, p_limit: 30 }).then((x) => (x.data as { events?: unknown } | null)?.events ?? null, () => null),
+      ]).then(([live, events]) => customerRecordFacts(live, events), () => '') : Promise.resolve('');
       // the suppliers on their jobs not yet revealed to them: a reply naming one is refused (pre_reveal_identities.ts)
       const pForbidden = caller.kind === 'customer' ? preRevealIdentities(admin, { customerId: String(caller.customerId) }) : Promise.resolve([] as string[]);
 
@@ -185,7 +193,7 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
         const x = await admin.from(rule.table).select(rule.select).in(rule.key, ids);
         return { data: x.data as Record<string, unknown>[] | null, error: x.error };
       });
-      const [own, convo, brief, key, turns, extract, forbidden, stE, ce] = await Promise.all([pOwn, pConvo, pBrief, pKey, pTurns, pExtract, pForbidden, pState, pCtx]);
+      const [own, convo, brief, key, turns, extract, forbidden, stE, ce, record] = await Promise.all([pOwn, pConvo, pBrief, pKey, pTurns, pExtract, pForbidden, pState, pCtx, pRecord]);
       lap('reads');
       const ownQuote = own?.facts ?? null;
       const convKey = convo.key;
@@ -215,7 +223,8 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
         return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', outage: false, pending: true, capped: true, held_id: h?.handoffId ?? null }, 503);
       }
       // the facts change per turn, so they ride with the message, after the cached brief, rules and earlier turns
-      const facts = portalFacts({ facts: ownQuote ? 'THEIR OWN REQUESTS AND QUOTES (scoped in SQL to this customer; this IS what you can see of their account):\n' + ownQuote : '', passages: all });
+      // ledger 1711: the one rule every channel gives the model about his own request (_shared/own_request_facts.ts)
+      const facts = portalFacts({ facts: [ownQuote ? 'THEIR OWN REQUESTS AND QUOTES (scoped in SQL to this customer; this IS what you can see of their account):\n' + ownQuote + '\n' + OWN_REQUEST_RULE : '', record].filter(Boolean).join('\n\n'), passages: all });
       const sys = '\n\n' + aiSystem({ seat: 'sales_engineer', channel: 'the signed-in customer portal', audience: 'customer', lang, message, rules: portalRules(), plainText: true, dialect }, lang);
       const allowed = figureSource(brief) + '\n' + facts + '\n' + sys;
       const known = allowedNumbers(brief, facts, sys);   // the brief's figures read once per brief (company_brief.ts, 11 Nov 2026 load test)
@@ -282,6 +291,13 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
         // the reader's answer (started beside the reads; by now normally done), bounded so the turn never waits long for it
         const reading = await Promise.race([pReading, new Promise<null>((r) => setTimeout(() => r(null), Math.max(0, Math.min(8_000, deadline - Date.now()))))]);
         const rp = reading ? readingPatch(reading) : {};
+        // A COMPLAINT ENTERS THE REGISTER (customer_support, 16 Nov 2026, COO hole H2): the turn reading above says it in the same
+        // call; the ticket is opened once for this turn, linked to the signed-in customer (complaint_register.ts). Its
+        // acknowledgement is the model-written e-mail the deadline duty owes (the reply has already streamed). Never throws.
+        if (reading?.complaint && caller.kind === 'customer') {
+          await registerComplaint((fn, args) => admin.rpc(fn, args), await portalComplaintReport({ episodeKey, turn: turns.length, customerId: String(caller.customerId),
+            email: caller.email ?? null, message, reading: reading.complaint, lang: lang === 'ar' ? 'ar' : 'en' }));
+        }
         const statePatch = { turn: theirs.length, party_key: acct, episode_from: from, message_count: reply ? replyNo : replyNo - 1,
           ...rp,
           specs: { ...Object.fromEntries([...plan.filled].map(([id, v]) => [id, String(v).slice(0, 300)])), ...(rp.specs ?? {}) },

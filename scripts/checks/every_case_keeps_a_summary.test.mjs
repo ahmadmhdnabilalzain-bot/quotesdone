@@ -61,7 +61,8 @@ for (const d of DOORS) {
   test(`the ${d.door} reads the case before its model call and records it after the reply`, () => {
     const s = read(d.file);
     assert.match(s, /import \{ loadCaseContext, recordCaseExchange \} from '[./]+_shared\/case_context\.ts';/, `${d.file}: does not import the case helpers`);
-    const load = s.indexOf('await loadCaseContext(');
+    // the case may be read beside another read in one Promise.all (the supplier quotation chat reads his account too, supplier_known.ts)
+    const load = s.search(/await (Promise\.all\(\[)?loadCaseContext\(/);
     const call = s.indexOf(d.model, load);
     assert.ok(load > 0, `${d.file}: never loads the case`);
     assert.equal(s.indexOf('await loadCaseContext(', load + 1), -1, `${d.file}: loads the case more than once`);
@@ -79,7 +80,10 @@ test('email: the case hooks sit inside the answer, after the reply went, and nev
 
 test('the reply reads the case: aiReply carries the block in its cached prefix, WhatsApp reads and records the case', () => {
   const ai = read('supabase/functions/_shared/ai_reply.ts');
-  assert.match(ai, /aiSystem\(\{ \.\.\.r, facts: undefined \}, replyLang\) \+ \(withCase \? '\\n\\n' \+ caseBlock\(r\.caseMemory!\) : ''\)/);
+  // 16 Nov 2026 (audit WHO_KNOWS_WHAT item 2): the block is carried for one case with a summary OR several open cases with their
+  // promises (hasCaseBlock); only one case's summary cuts the conversation to its last turns (withCase)
+  assert.match(ai, /aiSystem\(\{ \.\.\.r, facts: undefined \}, replyLang\) \+ \(hasCaseBlock\(r\.caseMemory\) \? '\\n\\n' \+ caseBlock\(r\.caseMemory!\) : ''\)/);
+  assert.match(ai, /const withCase = worksFromOneCase\(r\.caseMemory\);/);
   assert.match(ai, /withCase \? caseTurns\(r\.conversation \?\? \[\]\)/);
   const say = read('supabase/functions/wa_inbound/say.ts');
   // 12 Nov 2026 (final audit W3): the read starts with the turn and the reply waits only for it; the case step runs once the

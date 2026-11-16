@@ -15,6 +15,7 @@ import { preRevealIdentities } from '../../_shared/pre_reveal_identities.ts';
 import { acceptImages } from '../../_shared/chat_images.ts';
 import { quoteTerms } from '../../_shared/reasoned_suppliers.ts';
 import { loadCaseContext, recordCaseExchange } from '../../_shared/case_context.ts';
+import { supplierKnownFacts, withSupplierKnown } from '../../_shared/supplier_known.ts';
 // Inquiries received and the quotation review with the sales engineer (15 Sep 2026).
 import { MAX_B64, MAX_FILE, REVIEW_ACTIONS, reviewAction } from '../quote_review_actions.ts';
 import { jobsIn, readWorking } from '../quote_review.ts';
@@ -68,15 +69,20 @@ export function reviewVoice(sup: { id: number; company_name: string | null }, em
     // THE CASE (ruling 1635, _shared/case_context.ts): the supplier's open cases on every channel and the same-matter
     // decision; aiReply then carries the case summary in its cached prefix and only the case's last turns. A step the
     // review writes without a message from them is routed on what the step is about.
-    const kase = await loadCaseContext(defaultDeps(admin, 'supplier_api'), { channel: 'portal', seat: 'sales_engineer', audience: 'supplier',
+    // HIS OWN ACCOUNT (customer_support, 16 Nov 2026, ledgers 1711-1713, audit item 7): the job alone let this chat say "ready
+    // to submit" while WhatsApp had told him his licence expired. The same reading WhatsApp and e-mail give (fn_wa_context:
+    // licence and expiry, approval, holds, strikes, trades) and his collaboration rows on the shared timeline ride with the
+    // review's facts (_shared/supplier_known.ts); read beside the case, so the turn waits for neither twice.
+    const [kase, known] = await Promise.all([loadCaseContext(defaultDeps(admin, 'supplier_api'), { channel: 'portal', seat: 'sales_engineer', audience: 'supplier',
       message: v.supplierMessage || v.situation.slice(0, 1500), partyId: String(sup.id), email, lang: 'en',
-      dedupeKey: 'case_match:qr:' + sup.id + ':' + (v.conversation?.length ?? 0) + ':' + String(v.supplierMessage || v.kind).slice(0, 40) });
+      dedupeKey: 'case_match:qr:' + sup.id + ':' + (v.conversation?.length ?? 0) + ':' + String(v.supplierMessage || v.kind).slice(0, 40) }),
+      supplierKnownFacts(admin, email)]);
     const r = await aiReply(defaultDeps(admin, 'supplier_api'), { ...kase.reply,
       seat: 'sales_engineer', channel: 'the supplier portal quotation chat', audience: 'supplier', lang: 'en',
       message: v.supplierMessage || '(no message from them on this step: write your next message in the thread)',
       // a photo the supplier attached (already read, ruling 1177); acceptImages is the same gate the customer chat uses
       images: acceptImages(v.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images,
-      facts: v.situation, actions: v.actions, rateKey: 'qr:' + String(sup.id), ...(v.conversation?.length ? { conversation: v.conversation } : {}),
+      facts: withSupplierKnown(v.situation, known), actions: v.actions, rateKey: 'qr:' + String(sup.id), ...(v.conversation?.length ? { conversation: v.conversation } : {}),
       // the customers on their jobs not yet revealed to them: a reply naming one is refused (pre_reveal_identities.ts)
       forbidden: await preRevealIdentities(admin, { leadId: Number(sup.id) }),
       rules: 'Plain text for the portal chat, no markdown headings. Keep every job number, figure, numbered point and button name from the facts exactly; a short numbered list is right when the facts list points.',

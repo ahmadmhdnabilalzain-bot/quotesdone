@@ -26,6 +26,7 @@ import { SUPPLIER_TO_ADVISE, adviseUnknown, packFields, placeTrades, slugOfTrade
   type Placement, type TradeContext } from '../_shared/inquiry_trades.ts';
 import { blockingGate, briefConditions, recordedSpecs, withPack } from './blocking_gate.ts';
 import { photoAskDraft, photoAskOfTurn, photoPromptBlock, recordOf, recordSitePhotos, type SitePhotos } from '../_shared/site_photos.ts';
+import { readCustomerRecord, recordBlock, recordIntakeExchange, type CustomerRecord } from './customer_record.ts';
 
 export async function handle(req: Request): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
@@ -214,6 +215,16 @@ export async function handle(req: Request): Promise<Response> {
       return J({ ok: true, intake_id: draft.id, status: 'held', capped: true, stage, category: draft.category ?? null, assistant_message: capMsg, questions: [], next_question: null,
         missing: open, reply_by: capBy, agent: ACTOR, agent_name: ar ? 'مهندس مبيعات QuotesDone' : 'QuotesDone sales engineer' });
     }
+
+    // HIS WHOLE RECORD, AS EVERY OTHER DOOR READS IT (16 Nov 2026, founder ledgers 1711-1713; customer_record.ts): his earlier
+    // requests, the promises still open on his cases and his case, started NOW beside the trade's reads below and read only when the
+    // prompt is built, each cut at CASE_READ_MS. This message is the case's message, the turns before it its history.
+    const turnIdNow = turnIdOf(b.turn_id);
+    const recordP = readCustomerRecord(defaultDeps(admin, 'sales_engineer'), { customerId: cust?.id ? String(cust.id) : null, email, message: text,
+      past: placed === 'added' ? turns.slice(0, -1) : turns, lang: ar ? 'ar' : 'en', dedupeKey: 'case_match:intake:' + draft.id + ':' + (turnIdNow ?? replyNo) });
+    let record: CustomerRecord | null = null;
+    // After the reply that was really given and saved: the exchange onto his case (and any promise in it), never awaited.
+    const recordExchange = (reply: string) => { if (placed === 'added' && text && String(reply || '').trim()) recordIntakeExchange(defaultDeps(admin, 'sales_engineer'), record, { theirMessage: text, ourReply: String(reply), intakeId: String(draft.id), turnId: turnIdNow }); };
 
     // The trade is never read off words (founder_instruction 886-903; the keyword map, _shared/trade_classify.ts,
     // is deleted): it is the one a previous turn stored, the drawing's, the model's reading below, or — when the
@@ -510,9 +521,12 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
     // sat inside the system prompt and changed it every turn: USD 0.034-0.060 a call, USD 0.65 of the request's 0.71. They are
     // the turn's, so they ride in the message, before the conversation; the system prompt keeps the rules, the contract and the
     // trade's checklist, which change only when the trade does. Same words reach the model, in a different place.
+    record = await recordP;
+    clock.lap('record');
     const turnContext = [
       stateText, openSpecsText, solutionState, stageRule,
       carry ? 'THIS REQUEST CONTINUES THE CUSTOMER\'S CHAT WITH OUR SALES ENGINEER: every turn below was said there. Read it as one conversation, put every checklist item it states under its key, and ask only for what is still missing.' : '',
+      recordBlock(record),
       specialistKB ? `FIELD EXPERTISE for this trade (the specialist knowledge our expert agents use — apply it to ask the sharpest quote-critical questions and to recognise when a customer's answer implies an approval, standard or spec they haven't mentioned; do not lecture the customer (putting options to a customer who is deciding, rule 13, is not a lecture), quote this text, or ask about things irrelevant to their specific job):\n${specialistKB}` : '',
       recordedRequirements(category, (draft.brief && typeof draft.brief === 'object' ? draft.brief.req_answers : null)),
     ].filter((x) => String(x || '').trim()).join('\n\n');
@@ -621,6 +635,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
           await logRun('error', { intake_saved: 0, intake_held: 1 }, 'Held intake turn could not be saved to inquiry_intake (' + String(heldSaveErr.message) + ') - the customer was told to send it again; nothing of this turn is on the row.');
           return J({ error: 'intake_unavailable', message: 'Your request could not be saved. Nothing has been submitted - please try again.' }, 503);
         }
+        recordExchange(heldMsg);
         await logRun('ok', { model_held: 1, intake_held: 1, llm_http: llmFail.v?.http ?? null, llm_error: llmFail.v?.error ?? null }, 'the trade could not be reasoned (' + (t.result.reason ?? 'held') + '), so the intake is held for review rather than guessed from keywords' + (llmFail.v ? '; gateway HTTP ' + llmFail.v.http + ' ' + llmFail.v.error + ' ' + llmFail.v.detail : ''));
         return J({ ok: true, intake_id: draft.id, status: 'held', category: null, trades: [], assistant_message: heldMsg, questions: [], next_question: null,
                    readiness: { filled: 0, required: 0, score: 0 }, readiness_score: 0, missing: [], brief: null, held_id: t.result.held_id ?? null, // The gateway's reason goes back only to our own harness subject; a customer never sees upstream detail.
@@ -1359,6 +1374,7 @@ Read each answer as the customer meant it, in English, Arabic of any dialect, a 
       (async () => { try { await admin.from('ai_qa_log').insert({ email, kind: 'intake', model: 'anthropic/claude-sonnet-5', input: { text: allText.slice(0, 1500), category }, output: { status, category, trades, urgency, readiness: Number(out.readiness) || 0, agent: ACTOR, knowledge: specialist ? specialist.slug : null }, flags: { plausibility, multi_trade: trades.length > 1, specialist: specialist ? specialist.slug : null } }); } catch (_e) { /* */ } })(),
       saveErr ? Promise.resolve() : logRun(llmCallOk && llmParseOk ? 'ok' : 'error', { intake_saved: 1, status_computed: status, readiness: Number(out.readiness) || 0, trades: trades.length, questions: Array.isArray(out.questions) ? out.questions.length : 0, brief_present: brief ? 1 : 0, llm_call_ok: llmCallOk ? 1 : 0, llm_parse_ok: llmParseOk ? 1 : 0, category_specs_loaded: validSlugs.length, specialist: specialist ? specialist.slug : null, ...timing }, (llmCallOk && llmParseOk) ? ('Intake turn completed normally: status=' + status + ', category=' + String(category) + ', trades=' + trades.length + ', agent=' + String(specialist ? specialist.slug : 'generic') + '. ' + (status === 'ready' ? 'Brief is supplier-ready and can be dispatched.' : 'RFQ is NOT yet dispatchable — it stays parked until the customer replies.')) : ('Intake turn completed but only via the keyword fallback (LLM unavailable/unparseable): status=' + status + ', category=' + String(category) + ' — this brief was not written by the model, so a request that is actually complete may be wrongly held at needs_info and never reach a supplier.')),
     ]);
+    recordExchange(String(out.assistant_message || ''));
 
     return J({ ok: true, intake_id: draft.id, category, trades, classifier_override: classifierOverride, required_gate: requiredGate, urgency, plausibility, provenance, status, assistant_message: out.assistant_message || '', questions: Array.isArray(out.questions) ? out.questions.slice(0, 4) : [], next_question: nextQuestion, readiness: { filled: readinessFields.filled, required: readinessFields.required, score: Number(out.readiness) || 0 }, readiness_score: Number(out.readiness) || 0, missing: out.missing || [], brief, remaining_questions: remainingQuestions,
       // THE OPEN KEYS AND THE HOLD'S REASON GO BACK (stage2 run 321d13ae, 18 Oct 2026). Before a ready the

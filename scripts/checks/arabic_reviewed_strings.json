@@ -635,6 +635,9 @@
   "1390254fa3fe",
   "6795f24f47d7"
  ],
+ "scripts/sql/a_customer_is_answered_from_his_whole_request_on_every_channel.sql": [
+  "25b7fc3026b3"
+ ],
  "scripts/sql/a_customer_support_question_reaches_a_person_in_fifteen_minutes_probe.sql": [
   "1143523d828f"
  ],
@@ -751,6 +754,95 @@
   "415d60f32c58",
   "5b783224f4d2",
   "fc3b6977c5b6"
+ ],
+ "scripts/sql/a_paid_reveal_asks_the_customer_and_every_money_problem_reaches_a_case.sql": [
+  "00b3503e9d71",
+  "09762f95bc06",
+  "0f4005cfb029",
+  "0f6bc181f81e",
+  "0fd0beb1eb03",
+  "1107aee343ed",
+  "1181b9d92983",
+  "15b5be1711c5",
+  "1e343e8be39b",
+  "1f5ce83ac56b",
+  "220e58b02f00",
+  "276eba42c6ed",
+  "2c3c134b918a",
+  "2c9f735353c5",
+  "2dc8d6b31c47",
+  "2f07e86bbe56",
+  "2f25fc4d7818",
+  "3332b1e54dd4",
+  "3c9f12e8915e",
+  "3eba6f270440",
+  "4040a8441b66",
+  "42f518c20775",
+  "462dbe84b0da",
+  "4d5c33c90293",
+  "4db3d154084e",
+  "4e8b974aa021",
+  "526918cbaf63",
+  "52f6a96438e6",
+  "536351e77319",
+  "573a5258329a",
+  "5c65926ba697",
+  "62e1ad4230a8",
+  "644c62167598",
+  "6b5733df3d9c",
+  "6b9844e285e9",
+  "6e39a7adaa59",
+  "72634def957c",
+  "74d156589510",
+  "7523ab70af3b",
+  "75e7824fc97c",
+  "763f66fd1088",
+  "799abd6ef0a9",
+  "806ca8b72740",
+  "859798d5f8bb",
+  "864ff7e6ca34",
+  "87379b50cd23",
+  "8d22502036a3",
+  "8d6c6a64823e",
+  "91dad0930ea9",
+  "956d96d4b8e9",
+  "9832034b6a97",
+  "9a3e826e817d",
+  "9eb884eeab87",
+  "a0c34bb33761",
+  "a5b89465e490",
+  "aa7b2e56cf38",
+  "aaa1c0510dc4",
+  "adc4e0189db3",
+  "ae00303af4fd",
+  "af85846136f2",
+  "b0c35c6acc99",
+  "b261e2b8d708",
+  "b4d5f1359efd",
+  "b57146bcfed4",
+  "b8cd38096396",
+  "c44a2fecd206",
+  "c7a6297fe54e",
+  "c8bb6e5c65cf",
+  "cb1e99b7d7b5",
+  "cb76a6eb29d7",
+  "cbf40a7746af",
+  "cc3d6ea42eb6",
+  "ce481b265d88",
+  "cea76653d08e",
+  "d84aaba829c6",
+  "dd05d5c3d65f",
+  "ddac1ae42647",
+  "dfc951a87054",
+  "e06e2036f328",
+  "e791638c3f47",
+  "ec5dd8b55b01",
+  "eef8ff7a9b46",
+  "ef4bc2969d40",
+  "f0bd9c90e82b",
+  "f7bc7637c66d",
+  "f84c6d17cdd3",
+  "ffe3b547ab7b"
  ],
  "scripts/sql/a_paid_reveal_closes_the_request_and_everyone_on_it_is_told.sql": [
   "03ca1e1afe2a",
@@ -989,6 +1081,13 @@
  ],
  "scripts/sql/a_stalled_request_puts_its_trade_and_area_first_in_the_invitation_queue.sql": [
   "d4da55db16ad"
+ ],
+ "scripts/sql/a_supplier_can_say_not_for_me_and_is_never_stopped_without_being_told.sql": [
+  "23987a9ae7f3",
+  "24e91a12c00d",
+  "4939ef810d19",
+  "69595832d45b",
+  "cbc9c2d0971a"
  ],
  "scripts/sql/a_supplier_may_refresh_a_quotation_before_reveal_as_the_agreement_says.sql": [
   "2d40f052e0dc",
@@ -1578,6 +1677,38 @@
   "25831966a970",
   "71425d07f632",
   "735f3f9ff862"
+ ],
+ "scripts/sql/every_escalation_carries_a_clock_and_the_ceo_decides_it_not_the_founder.sql": [
+  "004b0c6ae209",
+  "0c59694035a7",
+  "50821cf06cba",
+  "92fd5e18c333",
+  "993c61d77fe2",
+  "a3ccb2a17bbd",
+  "cd8fa5a44aad",
+  "d892ff992be1",
+  "e480cc80be8a"
+ ],
+ "scripts/sql/every_flag_and_sanctions_hit_is_reasoned_by_its_seat_and_frozen_until_decided.sql": [
+  "6735032a73cf",
+  "6832be7fd6a6",
+  "acc837e191ee",
+  "b7ee3ad72336",
+  "d4449be038fd",
+  "e0a35df75c44"
+ ],
+ "scripts/sql/every_inbound_message_is_answered_or_closed_with_its_reason_and_a_complaint_on_any_channel_is_registered.sql": [
+  "00a9866295f2",
+  "18d04f89f17b",
+  "21bf22d9fb43",
+  "2a26f033805e",
+  "438552204aa8",
+  "59288b902a9c",
+  "7dcd7ec7bc41",
+  "88b7dfc1ab3d",
+  "953f91966a02",
+  "bc287616e7a5",
+  "d726abe2cba1"
  ],
  "scripts/sql/every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql": [
   "624819270073"
@@ -4104,6 +4235,7 @@
   "5af9cad10162",
   "5c174a8af4ea",
   "5e4992364cc0",
+  "6025d6ddc57c",
   "606ff8f1f04d",
   "63a5702c7fef",
   "63bb7a637e18",
@@ -4112,6 +4244,7 @@
   "688757b5b2f5",
   "68e642fbe397",
   "6990b46eda05",
+  "6a67290b5e11",
   "6b87ebbcd852",
   "6de7b3d45e18",
   "6e9c52248de3",
@@ -4157,6 +4290,7 @@
   "9263db5479ec",
   "9292def0d705",
   "92f1f38d3f7a",
+  "93d1a126c108",
   "94d0aed025bd",
   "959a4dd1a967",
   "95db0ef70e21",
@@ -6136,6 +6270,10 @@
   "c3f2f283e9d8",
   "cb9f8dad80b5"
  ],
+ "supabase/functions/_shared/customer_question_words.ts": [
+  "c8ac66608b8b",
+  "fdaae7674ad1"
+ ],
  "supabase/functions/_shared/customer_questions_building.ts": [
   "01991052310b",
   "03e7b6426bc7",
@@ -7495,7 +7633,6 @@
   "c17eebc065cf",
   "c34787e8098f",
   "c7fe3cb515c1",
-  "c8ac66608b8b",
   "c96bcce23ae5",
   "cc32a408cbbf",
   "cd4b809c7121",
@@ -7522,7 +7659,6 @@
   "f805d8928211",
   "f92337b5352d",
   "faace3c758f7",
-  "fdaae7674ad1",
   "ff353f8d300d",
   "ffd9db164e58"
  ],
@@ -8050,6 +8186,9 @@
   "e2db50c474c7",
   "ec64c440c176"
  ],
+ "supabase/functions/_shared/quotes_being_checked.ts": [
+  "530b4efbaf2d"
+ ],
  "supabase/functions/_shared/readability.ts": [
   "48b96598d693",
   "4c49aead7a88",
@@ -8186,12 +8325,17 @@
   "ff72238485c9"
  ],
  "supabase/functions/_shared/reveal_guard.ts": [
+  "33dda6b9c34f",
   "41fffe0e12af",
   "4cda3eff8bef",
   "605a93533c3b",
+  "7ca31ec48d43",
   "81313df707ef",
   "81add0237226",
+  "822e4a9a1809",
+  "88c648ce1ab2",
   "90032d0e95ed",
+  "9e114677678f",
   "a49713c03f13",
   "c1c78f7840ee",
   "d0629661fd94"
@@ -9117,6 +9261,7 @@
   "0183560e12a8",
   "318701cc6ae5",
   "626dd59f122f",
+  "65ceafc3df93",
   "89ad4a98f47d",
   "e00773da115b"
  ],
@@ -9190,9 +9335,12 @@
  "supabase/functions/customer_followup/page.ts": [
   "02d6a120dd10",
   "0e69ee21f135",
+  "7a6cdb00a145",
   "8222c78dd0c6",
   "9e2f10c91a82",
   "a38f3071c47f",
+  "c39d1e0241e0",
+  "c791980739d5",
   "cee47e464ec8"
  ],
  "supabase/functions/customer_portal/index.ts": [
@@ -9623,7 +9771,7 @@
   "9a03685e2791"
  ],
  "supabase/functions/site_assistant/turn_facts.ts": [
-  "f412eb02dab3"
+  "42d962cef267"
  ],
  "supabase/functions/site_assistant/visitor_scope.ts": [
   "0b3fc2f067e7",

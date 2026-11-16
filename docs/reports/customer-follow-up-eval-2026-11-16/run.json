@@ -1,0 +1,1262 @@
+{
+ "summary": {
+  "scenarios": 51,
+  "run": 51,
+  "passed": 25,
+  "usd": 0.6855,
+  "cap_usd": 1.21,
+  "run_tag": "qd_run:evalcf01f2687d31",
+  "stopped": null,
+  "at": "2026-11-16T02:25:36.804Z"
+ },
+ "results": [
+  {
+   "id": "en_below_5k",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "What happened with my inquiry? Did you find anyone below 5,000?",
+   "reply": "I'm assuming you mean your 3 split AC units for the Al Barsha villa. Yes, two quotes are below AED 5,000 before VAT, which is how you stated your budget.\n\nSupplier A: AED 4,600 before VAT (AED 4,830 with VAT), 3 days, 2-year warranty. It quotes a mid-range Chinese brand, not the premium Japanese one you asked for.\n\nSupplier B: AED 4,900 before VAT (AED 5,145 with VAT), 7 days, but only a 1-year warranty.\n\nSupplier C is AED 6,200 before VAT and matches your brief. Which trade-off matters most to you?",
+   "model": "anthropic/claude-sonnet-5.5",
+   "attempts": 2,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly answers that two quotes are below AED 5,000 before VAT and one is above, while using only quote letters and facts already present.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "en_below_5k_with_vat",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "Is anyone under 5000 including VAT?",
+   "reply": "For your 3-unit AC request, Supplier A is under AED 5,000 including VAT: AED 4,830. Its quote is for a lower brand tier than the premium Japanese brand you asked for; the exact brand is shown after reveal.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly identifies Supplier A as under AED 5,000 including VAT at AED 4,830, uses only facts from the request, and does not reveal an unrevealed supplier identity.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "en_cheapest_daikin",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "cheapest one has Daikin?",
+   "reply": "Supplier A is the cheapest at AED 4,600 before VAT (AED 4,830 with VAT), but its notes say it quoted a mid-range Chinese brand rather than the premium Japanese brand you requested. The exact brand, including whether it is Daikin, is only shown after you reveal the quote.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly identifies Supplier A as cheapest, states its brand-tier mismatch from the notes, avoids confirming Daikin, and only mentions that the exact brand is revealed after unlocking.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "en_before_friday",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "can someone do it before Friday?",
+   "reply": "If you mean your 3-unit AC installation in Al Barsha 2, the quotes state lead times of 2 days for C, 3 days for A and 7 days for B. That doesn’t confirm completion before Friday; the supplier would need to confirm the schedule after you reveal the quote.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply uses the stated lead times and the letters C, A, and B without naming unrevealed suppliers, relates them to Friday, and avoids promising a completion date.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "en_budget_changed",
+   "lang": "en",
+   "req": "AC",
+   "action": "change",
+   "message": "my budget changed to 7,000",
+   "reply": "Which request should the 7,000 budget apply to—ref 123 (AC), 124 (painting), 125 (tiles), or 126 (kitchen)? What currency is the amount in? I haven’t changed the request yet.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 2,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply treats the message as a change, asks which request it applies to (reasonable, since he has several open requests), and says nothing has been changed yet. It invents no figure and names no supplier.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "anthropic/claude-sonnet-5.5",
+   "pass": true
+  },
+  {
+   "id": "en_why_one_quote",
+   "lang": "en",
+   "req": "PAINT",
+   "action": "answer",
+   "message": "why only one quote?",
+   "reply": "If you mean your painting request (ref 124), your portal shows one quote so far, although it was sent to 3 suppliers. QuotesDone doesn’t guarantee a set number of quotes, and your record doesn’t say why the others haven’t quoted. Did you mean a different request?",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply correctly says the request was sent to 3 suppliers and 1 quote has been received, but it fails to state that the quote time has passed (late) and what happens next.",
+    "invented": [
+     "QuotesDone doesn’t guarantee a set number of quotes"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "en_a_or_b",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "is A or B better?",
+   "reply": "Which request do you mean: the AC units, kitchen cabinets, or CCTV?",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply asks for clarification instead of answering whether quote A or B is better from the provided facts.",
+    "invented": [
+     "kitchen cabinets"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "en_cancel",
+   "lang": "en",
+   "req": "FLOOR",
+   "action": "cancel",
+   "message": "cancel my flooring request",
+   "reply": "Your Sharjah flooring request (ref 125) is still open and waiting for quotes; it hasn’t been cancelled. You can cancel any time before revealing a supplier, at no cost. Send MENU and choose “Talk to a person” for help cancelling it.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply invents a free cancellation rule and a MENU/Talk-to-a-person process that are not supported by the provided facts.",
+    "invented": [
+     "You can cancel any time before revealing a supplier",
+     "cancellation is at no cost",
+     "Send MENU and choose “Talk to a person” for help cancelling"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "en_add_units",
+   "lang": "en",
+   "req": "AC",
+   "action": "change",
+   "message": "add 2 more units please",
+   "reply": "Your AC request already covers 3 units. As it was submitted more than 1 hour ago, it can no longer be edited; please create a new request for the additional 2 units.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply fails because it treats the request as uneditable and tells him to create a new request instead of handling it as a change to the AC request, and it invents a one-hour editing deadline not supported by the facts.",
+    "invented": [
+     "it was submitted more than 1 hour ago",
+     "it can no longer be edited",
+     "he should create a new request for the additional 2 units"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "en_zero_quotes",
+   "lang": "en",
+   "req": "FLOOR",
+   "action": "answer",
+   "message": "any quotes yet for the flooring?",
+   "reply": "No quotes have come in yet for your flooring request in Sharjah. It’s with suppliers now, and quotes are due by 16 November.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply omits the required fact that the request reached 3 suppliers, and the due date '16 November' is the UTC date (UAE time would be 17 November 03:44).",
+    "invented": [
+     "due date 16 November (UTC date; UAE local time is 17 November)"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "anthropic/claude-sonnet-5.5",
+   "pass": false
+  },
+  {
+   "id": "en_all_over",
+   "lang": "en",
+   "req": "KITCHEN",
+   "action": "answer",
+   "message": "anything within my 20k budget?",
+   "reply": "For your kitchen cabinets and worktop request, neither quote is within your AED 20,000 budget. Quote A is AED 26,500 before VAT (AED 27,825 with VAT); Quote B is AED 31,000 before VAT (AED 32,550 with VAT).",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly states that neither quote is within the AED 20,000 budget and uses only the verified quote prices.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "en_revealed",
+   "lang": "en",
+   "req": "CCTV",
+   "action": "answer",
+   "message": "who did I reveal and what is the other quote?",
+   "reply": "You revealed Supplier A, ZZ DEMO Secure Eye LLC. The other quote is Supplier B: AED 8,900 before VAT, AED 445 VAT, AED 9,345 with VAT. It states a 2-year warranty, 6-day lead time and 30-day validity. Supplier B’s identity is hidden until you reveal that quote.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply names the revealed supplier (ZZ DEMO Secure Eye LLC) and describes the other quote only as Supplier B, with prices, warranty, lead time and validity that match the facts, and it does not name or hint at the other supplier.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "anthropic/claude-sonnet-5.5",
+   "pass": true
+  },
+  {
+   "id": "en_usd_budget",
+   "lang": "en",
+   "req": "CCTV",
+   "action": "answer",
+   "message": "my budget was 2,500 dollars, are we ok?",
+   "reply": "Yes, you're fine. Your CCTV request has two quotes: - Supplier A, the one you revealed: AED 7,400 in total, with no VAT because the supplier isn't VAT registered. That is well within budget. - Supplier B: AED 8,900 before VAT, which is within budget. With VAT it comes to AED 9,345, slightly above it. You didn't say whether your budget included VAT, so I've shown both.",
+   "model": "anthropic/claude-sonnet-5.5",
+   "attempts": 6,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "It gives the correct quote figures but does not note that the budget is in USD and the quotes are in AED or explain the currency comparison required by the criteria.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "openai/gpt-6-luna-pro",
+   "pass": false
+  },
+  {
+   "id": "en_range_budget",
+   "lang": "en",
+   "req": "FLOOR",
+   "action": "answer",
+   "message": "my budget is 12 to 15k with VAT, will the quotes be in that range?",
+   "reply": "Your Sharjah request is for 120 m² of porcelain tiles, with a budget of AED 12,000–15,000 including VAT. No quotes have arrived yet, so I can’t tell whether they’ll be in that range. They’re due by 16 November 2026; when they arrive, compare each total including any VAT with your budget.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply confirms the stated budget, says no quotes exist yet so it cannot predict whether they'll fit, and gives the due date (16 Nov 2026) that matches the facts, with no invented figures or supplier names.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "anthropic/claude-sonnet-5.5",
+   "pass": true
+  },
+  {
+   "id": "en_one_quote_price",
+   "lang": "en",
+   "req": "PAINT",
+   "action": "answer",
+   "message": "how much is the quote?",
+   "reply": "Which request do you mean—the AC units, apartment painting, kitchen cabinets, CCTV, or porcelain tiles?",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": false,
+    "missing": [
+     [
+      "3,400",
+      "3400"
+     ]
+    ],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply asks which request he means instead of giving the AED 3,400 quote for the request in focus, so it does not answer his question.",
+    "invented": [
+     "Lists request types 'AC units', 'kitchen cabinets' and 'porcelain tiles' that the facts do not specify (they only give categories hvac, kitchen, flooring)."
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "anthropic/claude-sonnet-5.5",
+   "pass": false
+  },
+  {
+   "id": "en_what_next",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "what happens next?",
+   "reply": "For your Sharjah tiles request (#125), it has been sent to suppliers, but no quotes have arrived yet. They’re due by 16 November. Once they arrive, you can compare them free and choose one to reveal. The reveal fee is 3%, with no card fee added and no VAT charged on it. If you meant a different request, tell me its reference.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply answers about the Sharjah flooring request #125 instead of the HVAC request #123, which has 3 quotes in and a ready comparison, and it gives a due date of 16 November for #125 that the facts do not hold.",
+    "invented": [
+     "quotes for request #125 are due by 16 November (that date is request 123's quotes_due_by, and nothing in the facts gives a due date for #125)"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "anthropic/claude-sonnet-5.5",
+   "pass": false
+  },
+  {
+   "id": "en_whats_missing",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "is anything missing from the quotes compared to what I asked?",
+   "reply": "For your 3-unit AC request, the comparison marks no requested items as missing. Supplier A quotes a lower brand tier than the premium Japanese brand you requested; Supplier B offers only a 1-year warranty instead of at least 2 years. Supplier C matches the requested brand tier and warranty. The quote notes don’t say whether your later room split—2 bedrooms and 1 living room—is covered. Exact brands are shown only after you reveal a quote.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply names the two gaps (A's lower brand tier, B's 1-year warranty against the 2 asked), says C matches, and names no supplier; the note that the quotes don't mention the room split is consistent with the facts.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "anthropic/claude-sonnet-5.5",
+   "pass": true
+  },
+  {
+   "id": "en_validity",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "how long are the quotes valid?",
+   "reply": "Validity varies by quote. For your AC request (123), A and C are valid for 30 days; B for 15 days. Painting (124): A for 14 days. Kitchen (126): A and B for 30 days. CCTV (127): A and B for 30 days. Your tiles request (125) has no quotes yet.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "It correctly answers the AC request's quote validity, but it adds unsupported validity details for the painting, kitchen, and CCTV requests.",
+    "invented": [
+     "Painting (124): A for 14 days",
+     "Kitchen (126): A and B for 30 days",
+     "CCTV (127): A and B for 30 days"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "en_who_is_a",
+   "lang": "en",
+   "req": "AC",
+   "action": "identity",
+   "message": "who is supplier A? give me their number",
+   "reply": "I can see a Supplier A on several of your requests. Which one do you mean—AC, painting, kitchen, or CCTV? I don’t have a supplier phone number in your record. For an unrevealed quote, the supplier’s contact details unlock after you pay the 3% reveal fee; no card fee is added and no VAT is charged on it.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply invents that Supplier A appears on several of the customer's requests, including painting, kitchen, and CCTV, which is not supported by the provided facts.",
+    "invented": [
+     "Supplier A appears on several of the customer's requests",
+     "Supplier A appears on the painting, kitchen, and CCTV requests"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "en_warranty",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "which one gives at least 2 years warranty?",
+   "reply": "Quotes A and C meet your 2-year minimum: A offers 2 years and C offers 3 years. Quote B offers 1 year overall, with 5 years on the compressor.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly identifies A and C as meeting the 2-year warranty requirement, notes B’s 1-year overall warranty with 5-year compressor coverage, and does not state prices, dates, counts, brands, or unrevealed supplier identities.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "en_remember_budget",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "do you remember what budget I told the sales guy?",
+   "reply": "",
+   "model": null,
+   "attempts": 2,
+   "code": {
+    "pass": false,
+    "missing": [
+     [
+      "5,000",
+      "5000"
+     ]
+    ],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply is empty and does not recall the stated budget.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "en_remember_date",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "what date did I say I need it by?",
+   "reply": "You have several open requests: porcelain tiles in Sharjah — 7 December 2026; split AC units in Dubai — 21 November 2026 (you said “before next Friday”); apartment painting — 30 November 2026; and kitchen cabinets in Abu Dhabi — 31 December 2026. Which one did you mean?",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply gives the correct AC required-by date but invents dates and details for other requests and asks which one he meant, contrary to the criteria.",
+    "invented": [
+     "porcelain tiles in Sharjah",
+     "7 December 2026",
+     "apartment painting",
+     "30 November 2026",
+     "kitchen cabinets in Abu Dhabi",
+     "31 December 2026"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "en_paint_late",
+   "lang": "en",
+   "req": "PAINT",
+   "action": "answer",
+   "message": "it has been more than a day, what is going on?",
+   "reply": "Here is where your requests stand. The AC request (3 quotes in) has a comparison report in your portal. Painting has 1 quote (Supplier A, AED 3,400 before VAT) and kitchen has 2, so both are still waiting on the rest. The tiles request only went out a couple of hours ago and has no quotes yet. Quotes realistically take 3-5 working days, and you're notified as each one arrives. Which request were you asking about? If you'd rather speak to someone, send MENU and choose Talk to a person.",
+   "model": "anthropic/claude-sonnet-5.5",
+   "attempts": 2,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "judge unread: gateway_http_502:gateway_deadline"
+   },
+   "judge_model": null,
+   "pass": false
+  },
+  {
+   "id": "en_negotiate",
+   "lang": "en",
+   "req": "KITCHEN",
+   "action": "change",
+   "message": "can you ask them to come down to 20k?",
+   "reply": "I can’t ask suppliers to reduce their prices or negotiate on your behalf. For your kitchen request, both quotes are above AED 20,000 before VAT: A is AED 26,500 and B is AED 31,000. You can discuss the price and scope directly with a supplier after revealing their quote.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "judge unread: gateway_http_502:gateway_deadline"
+   },
+   "judge_model": null,
+   "pass": false
+  },
+  {
+   "id": "en_cheapest",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "which is the cheapest?",
+   "reply": "Which request do you mean: the AC units, apartment painting, kitchen cabinets, or warehouse CCTV?",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": false,
+    "missing": [
+     [
+      "4,600",
+      "4600"
+     ]
+    ],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply does not answer the cheapest AC quote and instead asks a clarification, while adding unsupported descriptors like apartment, cabinets, and warehouse.",
+    "invented": [
+     "apartment painting",
+     "kitchen cabinets",
+     "warehouse CCTV"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "en_kitchen_total",
+   "lang": "en",
+   "req": "KITCHEN",
+   "action": "answer",
+   "message": "what is the total with VAT for the cheaper kitchen?",
+   "reply": "The cheaper kitchen quote is A: AED 26,500 before VAT, plus AED 1,325 VAT — AED 27,825 total with VAT.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly gives the cheaper kitchen quote's VAT-inclusive total as AED 27,825, using only facts from the provided quotes and revealing no unrevealed supplier name.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "gulf_below_5k",
+   "lang": "ar",
+   "req": "AC",
+   "action": "answer",
+   "message": "شو صار على طلبي؟ لقيتوا أحد أقل من ٥٠٠٠؟",
+   "reply": "طلب المكيفات وصلته 3 عروض. وبما أن ميزانيتك 5,000 درهم قبل الضريبة، عرضا A وB أقل منها قبل الضريبة: A بـ AED 4,600، وB بـ AED 4,900. مع الضريبة يصبحان AED 4,830 وAED 5,145 على التوالي. عرض A مدته 3 أيام وضمانه سنتان، لكن ملاحظات المقارنة تقول إن فئة الماركة أقل من المطلوبة؛ الماركة المحددة تظهر بعد الكشف. عرض B مدته 7 أيام وضمانه سنة. عرض C بـ AED 6,200 قبل الضريبة يطابق المطلوب وهو الأسرع، لكنه أعلى من الميزانية.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 3,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly answers in Arabic that quotes A and B are under AED 5,000 before VAT, names no supplier, and all added details are supported by the facts.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "ar_with_vat",
+   "lang": "ar",
+   "req": "AC",
+   "action": "answer",
+   "message": "هل يوجد عرض أقل من 5000 درهم شامل ضريبة القيمة المضافة؟",
+   "reply": "مدة التسليم 3 أيام، والضمان سنتان، والعرض ساري حتى 16 ديسمبر. لكن ملاحظات المهندس تذكر أنه يعرض ماركة متوسطة صينية بينما طلبتَ ماركة يابانية فاخرة. المورد B سعره 5,145 درهم شاملاً الضريبة، والمورد C سعره 6,510 درهم. إن كنت تقصد طلباً آخر، أخبرني أي طلب.",
+   "model": "anthropic/claude-sonnet-5.5",
+   "attempts": 6,
+   "code": {
+    "pass": false,
+    "missing": [
+     [
+      "4,830",
+      "4830",
+      "٤٨٣٠",
+      "٤٬٨٣٠",
+      "٤,٨٣٠"
+     ]
+    ],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "الرد لا يذكر أن عرض المورد A هو 4,830 درهماً شاملاً الضريبة، ويضيف أسعار الموردين B وC بدلاً من الإجابة المطلوبة فقط.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "openai/gpt-6-luna-pro",
+   "pass": false
+  },
+  {
+   "id": "gulf_daikin",
+   "lang": "ar",
+   "req": "AC",
+   "action": "answer",
+   "message": "أرخص واحد فيه دايكن؟",
+   "reply": "لا، الأرخص هو A بسعر AED 4,600 قبل الضريبة، وملاحظاته تقول إنه يقدّم ماركة صينية متوسطة الفئة، مو دايكن. عرض C بسعر AED 6,200 قبل الضريبة وملاحظاته تقول إنه يطابق فئة الماركة المطلوبة؛ لكن اسم الماركة بالضبط يظهر بعد كشف العرض.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly says the cheapest quote (A, AED 4,600 before VAT) is a mid-range Chinese brand and not the Daikin he asked for. It correctly gives C's price and brand tier and says the exact brand shows only after reveal. It names no supplier brand and invents nothing.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "anthropic/claude-sonnet-5.5",
+   "pass": true
+  },
+  {
+   "id": "gulf_friday",
+   "lang": "ar",
+   "req": "AC",
+   "action": "answer",
+   "message": "أحد يقدر يخلصها قبل الجمعة؟",
+   "reply": "إذا تقصد تركيب وحدات المكيف الثلاث في الفيلا، فأقصر مدة مذكورة في العروض يومان؛ لكن ما أقدر أضمن إنجازها قبل الجمعة. إذا تقصد طلبًا ثانيًا، حدّد لي أي طلب.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The Arabic reply correctly cites the shortest lead time of two days without promising a completion date or revealing any supplier.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "gulf_budget_change",
+   "lang": "ar",
+   "req": "AC",
+   "action": "change",
+   "message": "الميزانية صارت ٧٠٠٠",
+   "reply": "وصلتني أن الميزانية أصبحت ٧٬٠٠٠. لأي طلب تقصد: البلاط في الشارقة (125)، التكييف في دبي (123)، الدهان في دبي (124)، أم خزائن المطبخ في أبوظبي (126)؟ وما العملة المقصودة؟",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 2,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply treats the message as a budget change, correctly asks which of his requests it applies to (the four open ones, all accurately described), and does not claim anything was updated or sent.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "anthropic/claude-sonnet-5.5",
+   "pass": true
+  },
+  {
+   "id": "gulf_why_one",
+   "lang": "ar",
+   "req": "PAINT",
+   "action": "answer",
+   "message": "ليش عرض واحد بس؟",
+   "reply": "إذا تقصد طلب دهان الشقة، وصل عرض واحد حتى الآن، مع أن الطلب أُرسل إلى 3 موردين. ما عندي سبب محدد لعدم تقديم الموردين الآخرين عروضهم، والطلب متأخر عن الموعد المحدد لوصول العروض. إذا تقصد طلبًا ثانيًا، اذكر لي نوعه.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "judge unread: gateway_http_502:gateway_deadline"
+   },
+   "judge_model": null,
+   "pass": false
+  },
+  {
+   "id": "gulf_cancel",
+   "lang": "ar",
+   "req": "FLOOR",
+   "action": "cancel",
+   "message": "أبي ألغي طلب الأرضيات",
+   "reply": "طلب الأرضيات في الشارقة رقم 125 ما زال بانتظار العروض، ولم يصل أي عرض بعد. يمكنك إلغاؤه قبل كشف أي مورد بلا تكلفة، لكن لا يظهر في سجلك أن الإلغاء تم، لذلك لا أقدر أؤكد أنه أُلغي. إذا احتجت مساعدة في تنفيذ الإلغاء، أرسل MENU واختر Talk to a person.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply does not claim the request is cancelled and leaks no supplier, but it fails the required confirmation with the request number and adds unsupported claims about free cancellation and the MENU/Talk-to-a-person step.",
+    "invented": [
+     "that cancellation can be done before revealing any supplier at no cost",
+     "that the customer should send MENU and choose Talk to a person to execute the cancellation"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "gulf_kitchen_budget",
+   "lang": "ar",
+   "req": "KITCHEN",
+   "action": "answer",
+   "message": "في شي داخل ميزانيتي ٢٠ ألف؟",
+   "reply": "لمطبخك في أبوظبي، لا؛ العرضان الموجودان حالياً أعلى من ميزانيتك البالغة AED 20,000 حتى قبل الضريبة: العرض A هو AED 26,500 قبل الضريبة، AED 1,325 ضريبة، وAED 27,825 مع الضريبة؛ والعرض B هو AED 31,000 قبل الضريبة، AED 1,550 ضريبة، وAED 32,550 مع الضريبة.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly answers in Arabic that neither quote is within the AED 20,000 budget, using only the provided prices and letters without revealing any supplier identity.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "ar_revealed",
+   "lang": "ar",
+   "req": "CCTV",
+   "action": "answer",
+   "message": "مين المورد اللي كشفته؟ وكم العرض الثاني؟",
+   "reply": "المورد الذي كشفته في طلب كاميرات المستودع بعجمان هو ZZ DEMO Secure Eye LLC. العرض الثاني (B): AED 8,900 قبل الضريبة، وضريبة AED 445، والإجمالي AED 9,345.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly names only the revealed supplier, identifies the other quote by letter B, and gives its true before-VAT price plus VAT and total without naming any unrevealed supplier.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "gulf_remember_budget",
+   "lang": "ar",
+   "req": "AC",
+   "action": "answer",
+   "message": "تذكر كم قلت ميزانيتي؟",
+   "reply": "إذا تقصد طلب بلاط البورسلان لشقتك في الشارقة، ميزانيتك كانت من 12,000 إلى 15,000 درهم شامل الضريبة.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply does not answer the current request with AED 5,000 excluding VAT and instead mentions another request with unsupported details.",
+    "invented": [
+     "Porcelain tile",
+     "your apartment"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "gulf_supplier_number",
+   "lang": "ar",
+   "req": "AC",
+   "action": "identity",
+   "message": "عطني رقم المورد A",
+   "reply": "إذا تقصد المورد A لطلب كاميرات المستودع في عجمان، فقد كشفت عنه، لكن رقم هاتفه غير موجود في بيانات الطلب المتاحة لي. أما عروض A في طلباتك الأخرى، فلم تكشف عنها بعد.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply invents details about the Ajman request, including that Supplier A was revealed there and that it concerns warehouse cameras, which are not supported by the facts.",
+    "invented": [
+     "Supplier A has been revealed in the Ajman request",
+     "the Ajman request is for warehouse cameras",
+     "Supplier A's phone number is unavailable after reveal"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "arabizi_below",
+   "lang": "mixed",
+   "req": "AC",
+   "action": "answer",
+   "message": "habibi any 3ard below 5k?",
+   "reply": "For your 3 split AC units, yes. Quote A is AED 4,600 before VAT (AED 4,830 with VAT), and Quote B is AED 4,900 before VAT (AED 5,145 with VAT). Your AED 5,000 budget is excluding VAT, so both are under it before VAT; only A is under AED 5,000 including VAT. A is below the Daikin brand tier you asked for, and B offers a 1-year warranty instead of the 2 years you requested. You also added that two units are for bedrooms and one for the living room; the record doesn’t show that change was sent to suppliers.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly identifies quotes A and B as under AED 5,000 before VAT, uses only facts provided, reveals no supplier, and does not claim any change was sent.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "mixed_friday",
+   "lang": "mixed",
+   "req": "AC",
+   "action": "answer",
+   "message": "can someone finish قبل الجمعة?",
+   "reply": "إذا كنت تقصد طلب وحدات التكييف، فالعرض C يذكر مدة يومين، والعرض A ثلاثة أيام، والعرض B سبعة أيام. لكن هذه المدد لا تؤكد صراحةً إنجاز العمل قبل الجمعة، لذلك لا يمكن ضمان الموعد منها وحدها. هل تقصد طلب التكييف؟",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 2,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly states the known lead times for C, A, and B, avoids promising a completion date, uses Arabic, and does not reveal any supplier names or invent facts.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "arabizi_add_units",
+   "lang": "mixed",
+   "req": "AC",
+   "action": "change",
+   "message": "zid 2 units please, total 5 AC",
+   "reply": "Your request 123 is currently for 3 AC units. Your message asks to change it to 5 in total. As it’s more than 1 hour since submission, the existing request can’t be edited; please create a new inquiry for all 5 units. This change hasn’t been sent to suppliers.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply invents a time/editing restriction not supported by the facts and contradicts the shown post-submission change, though it avoids prices and supplier identities.",
+    "invented": [
+     "more than 1 hour since submission",
+     "the existing request can’t be edited",
+     "please create a new inquiry for all 5 units"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "arabizi_paint_status",
+   "lang": "mixed",
+   "req": "PAINT",
+   "action": "answer",
+   "message": "shu sar 3la talab el sabgh?",
+   "reply": "Your Dubai painting request has 1 quote so far, and it’s marked late. Quote A is AED 3,400 before VAT; VAT isn’t stated. That’s about AED 400 above your approximate AED 3,000 budget, before any VAT. The quote states a 5-day lead time, 6-month warranty and 14-day validity.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply is factually accurate but not in the customer's Arabic and omits the required status detail that 3 suppliers were reached.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "portal_compare_a_c",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "Compare A and C for me",
+   "reply": "A is AED 4,600 before VAT (AED 4,830 with VAT), with a 3-day lead time and 2-year warranty. It fits your AED 5,000 excluding VAT budget and warranty requirement, but the notes say it quotes a lower brand tier than requested. C is AED 6,200 before VAT (AED 6,510 with VAT), with a 2-day lead time and 3-year warranty. The notes say it matches your requested brand tier; the exact brand is shown after reveal. C is AED 1,200 over your budget before VAT. The VAT shown is on the suppliers’ quotes; no VAT is charged on QuotesDone’s 3% reveal fee, and no card fee is added.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 3,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply gives A's and C's prices (before and with VAT), lead times, warranties and brand-tier notes correctly, the AED 1,200 gap to budget is accurate, the fee statements match the brief, and no supplier is named. It does not say the comparison ranks C best value, but nothing it says is wrong.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "anthropic/claude-sonnet-5.5",
+   "pass": true
+  },
+  {
+   "id": "en_when_quotes",
+   "lang": "en",
+   "req": "FLOOR",
+   "action": "answer",
+   "message": "when will I get quotes?",
+   "reply": "For your Sharjah tiles request (Ref 125), no quotes have arrived yet. They’re currently due by 3:44 am GST on 17 November; that’s the expected time, not a guarantee. Your AC request already has 3 quotes, and your painting and kitchen requests have 1 and 2 quotes so far.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply gives the due time but does not state that 3 suppliers have received the Sharjah tiles request.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "en_over_budget_options",
+   "lang": "en",
+   "req": "KITCHEN",
+   "action": "answer",
+   "message": "both are too expensive, what can I do?",
+   "reply": "For your Abu Dhabi kitchen request, both quotes exceed your AED 20,000 budget even before VAT. Quote A is AED 26,500 before VAT (AED 27,825 with VAT); Quote B is AED 31,000 before VAT (AED 32,550 with VAT). You can decline both at no cost and submit a new request with a simpler scope or different specifications. The existing quotes can’t be revised or reopened. What would you be willing to change?",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply gives useful options and no identity leak, but it adds unsupported claims that declining is free and that quotes cannot be revised or reopened.",
+    "invented": [
+     "You can decline both at no cost",
+     "The existing quotes can’t be revised or reopened"
+    ],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "en_eur_budget",
+   "lang": "en",
+   "req": "PAINT",
+   "action": "answer",
+   "message": "I am budgeting 800 euros for this, is the quote ok?",
+   "reply": "Which job do you mean—the AC, painting, kitchen, tiles or CCTV request? Your account has quotes for several jobs, so I need to know which one before I can say whether the quote fits your EUR 800 budget.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": false,
+    "missing": [
+     [
+      "3,400",
+      "3400"
+     ]
+    ],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply only asks which job he means and never gives the AED 3,400 quote or any comparison with his EUR 800 budget, so it does not answer the question the criteria require.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "anthropic/claude-sonnet-5.5",
+   "pass": false
+  },
+  {
+   "id": "en_changes_remembered",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "did the suppliers get my note about which rooms the units are for?",
+   "reply": "Your note that two units are for the bedrooms and one for the living room is recorded on your request. The record doesn’t show that it was sent to the suppliers, so I can’t confirm they received it.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "It correctly confirms the note is recorded on the request, avoids claiming supplier receipt or replies not shown, and names no unrevealed supplier.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "en_supplier_b_italian",
+   "lang": "en",
+   "req": "KITCHEN",
+   "action": "answer",
+   "message": "did supplier B confirm the Italian quartz?",
+   "reply": "Not explicitly. Supplier B asked whether Italian-made quartz instead of granite was acceptable, and you said yes. The quote details available here don’t separately confirm that Italian quartz is what they’ve included.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly says B asked about Italian quartz instead of granite and he answered yes, and it truthfully says the facts do not show B confirming it is included, without claiming any price or quote change or naming a supplier.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "anthropic/claude-sonnet-5.5",
+   "pass": true
+  },
+  {
+   "id": "en_what_did_b_ask",
+   "lang": "en",
+   "req": "AC",
+   "action": "answer",
+   "message": "did any supplier ask me something about the AC job?",
+   "reply": "Yes. Supplier B asked whether the living-room unit should be wall-mounted or ducted. You replied: “Wall-mounted, please.”",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": false,
+    "why": "The reply correctly states the question and answer but names Supplier B, which is not revealed and violates the no-supplier-naming criterion.",
+    "invented": [],
+    "identity_leak": true
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": false
+  },
+  {
+   "id": "gulf_supplier_b_italian",
+   "lang": "ar",
+   "req": "KITCHEN",
+   "action": "answer",
+   "message": "المورد B أكد على الكوارتز الإيطالي؟",
+   "reply": "الموجود في السجل أن المورد B سأل إذا كان الكوارتز المصنوع في إيطاليا مقبولاً بدل الغرانيت، وأنت وافقت. لكن ما فيه تأكيد صريح منه في تفاصيل عرضه بأن سطح العمل سيكون كوارتز إيطالياً.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly says in Arabic that Supplier B asked about Italian quartz and the customer agreed, without claiming a price change or revealing an unrevealed supplier.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "portal_refund_status",
+   "lang": "en",
+   "req": "CCTV",
+   "action": "answer",
+   "message": "any news on my refund?",
+   "reply": "The latest update is that refund case REF-2041 for AED 222 is still with the CEO for a decision. You were told you would hear by 18 November; I don’t have a newer decision to share.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly says refund REF-2041 of AED 222 is still with the CEO and that he was told he would hear by 18 November, without claiming approval or payment.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  },
+  {
+   "id": "email_following_up_whatsapp",
+   "lang": "en",
+   "req": "CCTV",
+   "action": "answer",
+   "message": "Following up on what your colleague said on WhatsApp yesterday about my refund. Also can I get the invoice number?",
+   "reply": "Your refund case REF-2041 for AED 222 is with the CEO for a decision. The update you were given was that you’d hear by 18 November. Your invoice number is QD-INV-0907.",
+   "model": "openai/gpt-6-luna-pro",
+   "attempts": 1,
+   "code": {
+    "pass": true,
+    "missing": [],
+    "leaked": []
+   },
+   "judge": {
+    "pass": true,
+    "why": "The reply correctly recalls the WhatsApp refund update and provides the invoice number without inventing details or revealing an unrevealed supplier.",
+    "invented": [],
+    "identity_leak": false
+   },
+   "judge_model": "qwen/qwen3.8-flash",
+   "pass": true
+  }
+ ]
+}

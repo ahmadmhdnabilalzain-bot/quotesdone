@@ -10,6 +10,7 @@
 import { arabicRegister, type Dialect } from '../_shared/inquiry_state.ts';
 import { aiReply } from '../_shared/ai_reply.ts';
 import type { ThinkDeps, Turn } from '../_shared/think.ts';
+import type { CaseMemory } from '../_shared/support_case_memory.ts';
 
 export type SayAudience = 'customer' | 'supplier' | 'visitor' | 'founder';
 export interface SayRequest {
@@ -36,7 +37,7 @@ export interface SayRequest {
   laneRules?: string;
   expert?: string;              // the expert interview's block for a customer's job (say.ts; _shared/solution_catalogue.ts ADVISE_RULE)
   effort?: 'low' | 'medium' | 'high';   // the reasoning effort asked of the model (the status lane: status_lane.ts STATUS_EFFORT)
-  caseMemory?: { ref: string; summaryText: string } | null;   // ruling 1635: the case this turn continues (support_case_memory.ts)
+  caseMemory?: Pick<CaseMemory, 'ref' | 'summaryText' | 'allOpen'> | null;   // ruling 1635: the case this turn continues (support_case_memory.ts)
 }
 // A VOICE NOTE REPLY NEVER ASKS FOR A DOCUMENT (customer_support, 3 Nov 2026). Measured on the real exchange on main
 // (run 41528725657, after f6dcbe7d): the voice turn came after four licence/file turns in the same chat, the model saw them

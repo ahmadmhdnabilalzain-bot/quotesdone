@@ -66,7 +66,11 @@ test('no edge function writes an outbox row with a sender other than customer_su
 });
 
 test('every place support composes or answers reads the contact timeline first', () => {
-  for (const s of ['wa_inbound', 'site_assistant', 'email_triage']) assert.ok(/rpc\('fn_contact_timeline'/.test(src(s)), `${s} does not load fn_contact_timeline`);
+  // wa_inbound reads it through fn_contact_timeline_for_sender, which returns fn_contact_timeline for the number's confirmed owner
+  // and nobody else's (a_phone_tail_never_joins_two_people.sql); e-mail and the portal pass an address, the identity itself.
+  for (const s of ['site_assistant', 'email_triage']) assert.ok(/rpc\('fn_contact_timeline'/.test(src(s)), `${s} does not load fn_contact_timeline`);
+  assert.ok(/rpc\('fn_contact_timeline_for_sender', \{ p_contact: From/.test(src('wa_inbound')), 'wa_inbound does not load the sender\'s own timeline');
+  assert.ok(!/rpc\('fn_contact_timeline', \{ p_contact: From/.test(src('wa_inbound')), 'wa_inbound reads the timeline of every person on its phone tail');
 });
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));

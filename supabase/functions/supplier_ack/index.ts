@@ -1,5 +1,5 @@
-// supplier_ack v3 — one-click 'I have contacted the customer' from the nudge email.
-// GET ?tx=<transaction_id>&token=<ack_token> -> sets transactions.supplier_ack_at, stops nudges.
+// supplier_ack v4 — one-click 'I have contacted the customer' from the nudge email.
+// GET ?tx=<transaction_id>&token=<ack_token> -> fn_supplier_ack_record: sets transactions.supplier_ack_at and tells the customer.
 //
 // v2 (14 Sep 2026) printed every answer in English and Arabic. v3 (10 Nov 2026, customer_support, supplier-journey
 // audit): English only. Suppliers are always English, on every channel (founder ruling 1008, 28 Sep 2026); this page
@@ -7,7 +7,6 @@
 // that check's entries now. Behaviour is unchanged. Prevented by scripts/checks/nothing_a_supplier_reads_can_be_arabic.test.mjs.
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
-import { requestDelivery } from '../_shared/deliver.ts';
 import { sameSecret } from '../stripe_setup/webhook_plan.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const NAVY = '#0c2330';
@@ -46,9 +45,13 @@ Deno.serve(observe('supplier_ack', async (req) => {
     // Constant-time (security checklist audit 10 Nov 2026; the last plain comparison of a token named in the 9 Nov
     // launch checklist, row 40). Prevented by ./token.test.ts.
     if (!t || !(await sameSecret(token, String(t.ack_token || '')))) return new Response(page('nomatch'), { status: 404, headers: H });
+    // v4 (16 Nov 2026, customer_support, AFTER_REVEAL): the click is recorded AND told to the CUSTOMER in one transaction
+    // (fn_supplier_ack_record): he gets "<supplier> says they have contacted you" with a one-tap "they have not", and his
+    // answer is read by the refund ladder beside this click (fn_reveal_contact_word). It went to role admin only, so a supplier
+    // who clicked and never called stopped the ladder unseen. Prevented by ./token.test.ts (the click reaches the routine).
     if (!t.supplier_ack_at) {
-      await admin.from('transactions').update({ supplier_ack_at: new Date().toISOString() }).eq('id', tx);
-      try { await requestDelivery(admin, { type:'supplier_ack', to_role:'admin', inquiry_id: t.inquiry_id, subject:'Supplier confirmed they contacted the customer', body:'A supplier clicked the confirmation link for a revealed inquiry, confirming they have contacted the paying customer. No further nudges will be sent for this reveal.' }); } catch(_e) {}
+      const { error: ackErr } = await admin.rpc('fn_supplier_ack_record', { p_transaction: tx });
+      if (ackErr) return new Response(page('error'), { status: 500, headers: H });
     }
     return new Response(page('done'), { headers: H });
   } catch (_e) {
