@@ -39,7 +39,7 @@ test('1. the masking is logged once per inquiry as a company event, never in the
 
 test('2. a request the IT digest decided, or still holds before it has run, is not an unconfirmed delivery', () => {
   const c = code(DIGEST);
-  assert.match(c, /and not \(a\.status = 'done' and coalesce\(a\.evidence->>'digest', ''\) in \('fixed', 'internal', 'sent'\)\)/,
+  assert.match(c, /and not \(a\.status = 'done' and coalesce\(a\.evidence->>'digest', ''\) in \('fixed', 'internal'\)\)/,
     'a decided request is finished work (coalesce: a request with no digest is still judged)');
   assert.match(c, /or not exists \(select 1 from public\.founder_alerts d\s*where d\.dedupe_key like 'it\\_daily\\_digest:%'/,
     'a waiting request is late only once a digest has run since its hold');

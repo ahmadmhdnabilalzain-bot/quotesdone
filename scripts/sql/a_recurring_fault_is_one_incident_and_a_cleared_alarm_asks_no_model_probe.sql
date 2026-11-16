@@ -8,6 +8,7 @@
 do $p$
 declare
   v_fail text := ''; v_before_inc int; v_before_fnd int; v_root bigint; v_r bigint; v_n int; v_j jsonb; v_kind text;
+  hr1 bigint; hr2 bigint; hl bigint; v_legacy bigint;
   h1 bigint; h2 bigint; h3 bigint; h4 bigint; h5 bigint; h6 bigint; h7 bigint; h8 bigint; h9 bigint; q1 bigint; q2 bigint; q3 bigint; q4 bigint;
   v_live timestamptz; v_live2 timestamptz;
   c_hb constant text := 'playbook:heartbeat_step:resilience_ping';
@@ -54,6 +55,19 @@ begin
   if v_r is null or v_r = v_root or not exists (select 1 from public.it_incident where id = v_r and handoff_id = h3) then
     v_fail := v_fail || 'the sanctions occurrence did not open its own incident; '; end if;
 
+  -- 2b. (review 16 Nov) TWO DIFFERENT FAULTS OF ONE CLASS STAY TWO INCIDENTS: the key is the whole fault, not its first two parts
+  hr1 := pg_temp.zz_handoff('duty:run_cluster:zzprobe_site_assistant', 'done', 'high', now() - interval '50 minutes', 'site_assistant');
+  hr2 := pg_temp.zz_handoff('duty:run_cluster:fn:zzprobe_license_extract', 'done', 'high', now() - interval '40 minutes', 'license_extract');
+  if public.fn_it_incident_open(hr1) = public.fn_it_incident_open(hr2) then v_fail := v_fail || 'two different run_cluster faults were folded into one incident; '; end if;
+
+  -- 2c. (review 16 Nov) AN INCIDENT KEYED BY THE OLD COLLAPSE ('class:') IS NOT CLOSED WHILE ITS FINDING IS OPEN
+  hl := pg_temp.zz_handoff('duty:latency_slo:zzprobe_api:error_budget', 'pending', 'high', now() - interval '30 minutes', 'supplier_api');
+  insert into public.it_incident (handoff_id, issue_key, title, what, impact, started_at, cause_key, last_seen_at)
+  values (hl, 'duty:latency_slo:zzprobe_api:error_budget', 'probe legacy root', 'probe', 'Internal: probe', now() - interval '30 minutes',
+          'class:duty:latency_slo', now() - interval '30 minutes') returning id into v_legacy;
+  perform public.fn_it_engineer_finding_upsert('duty:latency_slo:zzprobe_api:error_budget', 'probe latency over budget', 'probe',
+    'agent_facing', 1, '{"subject": "supplier_api"}'::jsonb, '{}', '{}', 'probe');
+
   -- 3. A LIVE RECURRENCE REOPENS THE INCIDENT; IT CLOSES WHEN THE CAUSE MEASURES HEALTHY AGAIN
   if to_regprocedure('public.fn_it_incident_settle()') is null then
     raise exception 'CHK<<PROBE FAILED: %fn_it_incident_settle does not exist>>', v_fail;
@@ -73,6 +87,9 @@ begin
   if not (v_j->'incident_ids') @> to_jsonb(v_root) then v_fail := v_fail || 'settle did not name it; '; end if;
   -- fn_it_incident_impact_tick runs the settle every 15 minutes
   if public.fn_it_incident_impact_tick() ? 'settled' is not true then v_fail := v_fail || 'the 15-minute tick does not settle; '; end if;
+
+  if (select ended_at from public.it_incident where id = v_legacy) is not null then
+    v_fail := v_fail || 'settle closed an incident keyed class: while its finding is open; '; end if;
 
   -- 4. QUIET FOR MORE THAN 24 HOURS, THE SAME CAUSE IS A NEW INCIDENT
   h5 := pg_temp.zz_handoff('duty:heartbeat:zzprobe_outbox', 'done', 'high', now() + interval '25 hours');

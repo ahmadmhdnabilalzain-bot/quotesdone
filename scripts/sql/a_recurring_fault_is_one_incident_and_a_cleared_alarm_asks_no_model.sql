@@ -7,7 +7,8 @@
 --     fn_it_incident_collapse), 71 detached itlater. Every one of them was a row born from a hand-over: a flapping
 --     finding closes on the first good tick, reopens on the next bad one, gets a new hand-over and, through
 --     fn_it_engineer_postmortem, a new incident. Replayed with one incident per cause (a recurrence within 24 hours of
---     the cause's last sighting is the same incident): 125 incidents, heartbeat 614 -> 2, delivery 1,025 -> 1.
+--     the cause's last sighting is the same incident; re-measured after review, 16 Nov): 142 of 1,923, heartbeat 621 -> 2,
+--     delivery 1,025 -> 1; two different faults of one class (duty:run_cluster:site_assistant / :fn:license_extract) stay two.
 --   * The model: resilience_ping logged 897 calls, AED 19.90, in 7 days (ai_cost_log fn='resilience_ping'). No step
 --     calls a model because of its own readings: every call is a queued question (held replay), a deliberation, a
 --     routine judgement, a duty voice or a case summary. The share the alarms caused: it_engineer.postmortem (13 questions,
@@ -20,7 +21,7 @@
 --
 -- WHAT CHANGES:
 --   1. fn_it_incident_cause_key: the cause of an occurrence, computed when it is OPENED (the same key
---      fn_it_incident_collapse writes after the fact: playbook class + subject, else the class key, else the issue key).
+--      fn_it_incident_collapse writes after the fact: playbook class + subject, else the WHOLE fault key (digits as #; review 16 Nov: the two-part class key joined different faults), else the issue key).
 --   2. fn_it_incident_open: an occurrence whose cause has an open incident, or one seen within 24 hours, writes NO new
 --      row. It is counted on that incident (occurrences + 1, last_seen_at) and the hand-over carries incident_id, so
 --      every reader that asks "has this hand-over an incident" gets the answer without a second row. A live occurrence
@@ -49,7 +50,7 @@
 -- fn_reason_held_sweep d92fd428..., fn_it_daily_line 3725dea5..., fn_it_incident_impact_tick 0f8b1c53....
 
 
--- 1. THE CAUSE OF AN OCCURRENCE, KNOWN WHEN IT OPENS. The same three-step key fn_it_incident_collapse writes after the fact
+-- 1. THE CAUSE OF AN OCCURRENCE, KNOWN WHEN IT OPENS. fn_it_incident_collapse's key with the class narrowed to the whole fault; collapse writes after the fact
 --    (a playbook class is a remedy, not a cause, so the failing subject is part of it), with the playbook class read the
 --    way fn_it_engineer_postmortem reads it: the longest issue_prefix that matches. Null only when the detail names nothing.
 create or replace function public.fn_it_incident_cause_key(p_detail jsonb)
@@ -64,7 +65,9 @@ as $function$
                      where p.issue_prefix is not null and (p_detail->>'issue_key') like p.issue_prefix || '%'
                      order by length(p.issue_prefix) desc limit 1)
                 || ':' || coalesce(p_detail->>'subject', p_detail->>'where_it_is', '-'),
-    'class:' || public.fn_it_postmortem_class_key(p_detail),
+    -- review 16 Nov: the whole fault (digits as #), not its first two parts: 'class:duty:run_cluster' joined license_extract,
+    -- llm_gateway_auth and site_assistant, and 'class:acct:reveal_reconcile' joined different payments, into one incident
+    'fault:' || public.fn_it_postmortem_fault_key(p_detail),
     'issue:' || nullif(btrim(p_detail->>'issue_key'), ''));
 $function$;
 revoke execute on function public.fn_it_incident_cause_key(jsonb) from public, anon, authenticated;
@@ -141,12 +144,20 @@ set search_path to 'public', 'pg_temp'
 as $function$
 declare n_closed int := 0; v_ids jsonb;
 begin
-  with live as (
-    select distinct public.fn_it_incident_cause_key(jsonb_build_object(
-             'issue_key', f.issue_key, 'title', f.title, 'where_it_is', f.where_it_is,
+  -- review 16 Nov: every key form an open incident may carry. Roots keyed by fn_it_incident_collapse before this file read
+  -- 'class:<first two parts>' where this function now derives 'playbook:...' (6 open roots on 16 Nov, 18092 customer-facing,
+  -- each with its finding still open): matching one form only closed them while their cause was live.
+  with fd as (
+    select jsonb_build_object('issue_key', f.issue_key, 'title', f.title, 'where_it_is', f.where_it_is,
              'subject', coalesce(nullif(f.evidence->>'subject', ''),
-                                 (select w.subject from public.it_watch_finding w where 'watch:' || w.detector_key = f.issue_key limit 1)))) k
+                                 (select w.subject from public.it_watch_finding w where 'watch:' || w.detector_key = f.issue_key limit 1))) d
       from public.it_engineer_finding f where f.closed_at is null
+  ), live as (
+    select distinct v.k from fd, lateral (values (public.fn_it_incident_cause_key(fd.d)),
+                                                 ('class:' || public.fn_it_postmortem_class_key(fd.d)),
+                                                 ('fault:' || public.fn_it_postmortem_fault_key(fd.d)),
+                                                 ('issue:' || nullif(btrim(fd.d->>'issue_key'), ''))) v(k)
+     where v.k is not null
   ), closed as (
     update public.it_incident r
        set ended_at = now(), updated_at = now()

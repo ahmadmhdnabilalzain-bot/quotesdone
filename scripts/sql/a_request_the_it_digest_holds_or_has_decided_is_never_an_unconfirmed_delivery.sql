@@ -114,7 +114,7 @@ begin
                        and a.detail->>'result' not in ('not_sent', 'no_response_confirmation', 'sent_unconfirmed'))
               -- 16 Nov 2026 (ledger 1557): a founder-bound request the IT digest has decided is finished work too (213 in 7 days
               -- were flagged hours after the digest closed them 'fixed' or 'internal', before the loop wrote detail.result)
-              and not (a.status = 'done' and coalesce(a.evidence->>'digest', '') in ('fixed', 'internal', 'sent'))
+              and not (a.status = 'done' and coalesce(a.evidence->>'digest', '') in ('fixed', 'internal'))   -- review 16 Nov: 'sent' is not exempt: its delivery is the digest mail's, which can fail
               -- 2 Nov 2026: a send whose not_before is ahead (18 queued invitations held to 4 Nov) is on a schedule, not lost.
               and not exists (select 1 from public.notifications n where n.id = (a.evidence->>'notification_id')::bigint and n.not_before > now())
               -- 22 Sep 2026: a founder-bound request customer_support holds for the 19:00 Dubai IT digest
@@ -137,7 +137,12 @@ begin
                                               and d.created_at > public.fn_it_digest_hold_ends(greatest(a.created_at, coalesce(
                                                     (select f.started_at from public.it_engineer_finding f
                                                       where f.issue_key = regexp_replace(a.detail->>'dedupe_key', '^it_new_bug:', '')
-                                                        and f.closed_at is null), a.created_at))) - interval '2 hours'))) loop
+                                                        and f.closed_at is null), a.created_at))) - interval '2 hours')
+                               -- review 16 Nov: a digest that has stopped running does not hide its requests for ever: a day past the hold
+                               and now() < public.fn_it_digest_hold_ends(greatest(a.created_at, coalesce(
+                                     (select f.started_at from public.it_engineer_finding f
+                                       where f.issue_key = regexp_replace(a.detail->>'dedupe_key', '^it_new_bug:', '')
+                                         and f.closed_at is null), a.created_at))) + interval '1 day')) loop
     v_items := v_items || jsonb_build_object('item', 'request:' || x.id, 'owner_seat', 'customer_support', 'subject', 'send_outbox',
       'title', 'Delivery request ' || x.id || ' from ' || x.frm || ' has had no confirmed outcome for '
                || round(extract(epoch from now() - x.created_at) / 3600) || ' hours',

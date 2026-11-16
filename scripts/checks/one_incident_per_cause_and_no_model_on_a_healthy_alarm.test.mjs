@@ -1,6 +1,6 @@
 // ONE INCIDENT PER CAUSE, AND NO MODEL ON AN ALARM THAT MEASURES HEALTHY (it_engineer, 16 Nov 2026, founder ledger 1557).
 // Measured before (SELECT, 7 days to 16 Nov 2026): 1,916 it_incident rows, of which 1,025 one cause (unconfirmed delivery
-// requests) and 614 one cause (resilience_ping heartbeat steps); replayed one-per-cause: 125. resilience_ping's own model
+// requests) and 614 one cause (resilience_ping heartbeat steps); replayed one-per-cause (whole-fault key, after review): 142 of 1,923. resilience_ping's own model
 // spend, AED 19.90 for 897 calls, is queued work; the alarm-made share was a postmortem asked once per occurrence and a
 // CEO judgement reasoned after its finding had cleared. The file: scripts/sql/a_recurring_fault_is_one_incident_and_a_cleared_alarm_asks_no_model.sql.
 // Offline, from the text, this fails when:
@@ -50,8 +50,10 @@ test('1. a recurrence is counted on the open incident of its cause, never a seco
   assert.match(b, /h\.detail->>'incident_id' ~ '\^\[0-9\]\+\$'/, 'asking twice never counts twice');
   assert.match(b, /insert into public\.it_incident \([^)]*cause_key, last_seen_at\)/, 'a new cause opens with its cause_key and last_seen_at');
   const key = body('fn_it_incident_cause_key');
-  assert.match(key, /'playbook:' \|\|[\s\S]*'class:' \|\| public\.fn_it_postmortem_class_key\(p_detail\)[\s\S]*'issue:' \|\|/,
-    'the same three-step cause key fn_it_incident_collapse writes');
+  assert.match(key, /'playbook:' \|\|[\s\S]*'fault:' \|\| public\.fn_it_postmortem_fault_key\(p_detail\)[\s\S]*'issue:' \|\|/,
+    'the playbook key, else the whole fault (never only its first two parts), else the issue');
+  assert.match(body('fn_it_incident_settle'), /'class:' \|\| public\.fn_it_postmortem_class_key\(fd\.d\)/,
+    'settle also matches the legacy class key fn_it_incident_collapse wrote, so a live cause is never closed');
 });
 
 test('2. an incident closes when its cause measures healthy, every 15 minutes', () => {
