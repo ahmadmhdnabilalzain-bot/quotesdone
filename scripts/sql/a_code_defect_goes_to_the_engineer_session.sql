@@ -25,7 +25,8 @@
 --      locked; with an id (a fire with a payload) that defect first; never a fixture defect for a live session.
 --   4. fn_it_code_defect_progress(id, session, status, pr, note): the session's steps; wont_fix only with an allowed reason.
 --   5. fn_it_code_defect_verified(id, session, observed, lesson_ref): only after deployed and only against what a SELECT showed;
---      closes the finding, tells every affected person "fixed, try again" through support, completes their hand-overs, emits
+--      closes the finding, tells every affected person "fixed, try again" through support (once per defect life: not a person a
+--      repair notice already reached since it opened or reopened), completes their hand-overs, emits
 --      it.defect_fixed.
 --   6. fn_it_code_defect_queue(): what the hourly session reads first: counts by status and the next claimable id (0 rows ->
 --      the session says "no defects" and stops).
@@ -180,6 +181,20 @@ begin
       from public.support_fault_report r where r.id = substr(p_ref, 7)::bigint;
   end if;
   if v_email is null then return false; end if;
+  -- ONE PROBLEM, ONE "FIXED" (REVIEW2 of 3cf4baf07, FIX 3): the one-hour window of fn_it_told_recently does not cover a defect's
+  -- life. A burst defect whose people each got it_repair.done when the repair landed, verified two hours later, sent each of them
+  -- it_defect.fixed as well (3 people, 3 extra "fixed" e-mails). A person whom any "fixed" notice (owed or sent) reached since this
+  -- defect opened, or last reopened, is not told again.
+  if p_stage = 'fixed' and exists (
+       select 1 from public.it_code_defect d,
+         (select stage, lower(to_email) to_email, created_at from public.customer_support_voice_owed where stage like 'it\_%'
+          union all select stage, lower(to_email), created_at from public.customer_support_duty_message where stage like 'it\_%') o
+        where d.id = p_defect_id and o.to_email = lower(btrim(v_email))
+          and o.stage in ('it_repair.done', 'it_fault.fixed', 'it_defect.fixed')
+          and o.created_at >= coalesce((select max((h->>'reopened_at')::timestamptz) from jsonb_array_elements(d.history) h
+                                         where h ? 'reopened_at'), d.opened_at)) then
+    return false;
+  end if;
   v_ar := v_lang = 'ar' and v_role <> 'supplier';
   if p_stage = 'opened' then
     return public.fn_it_tells_the_person('it_defect.opened', p_defect_id || ':' || p_ref, v_role, v_email, v_lang,

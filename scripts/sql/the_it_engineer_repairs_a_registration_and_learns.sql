@@ -41,12 +41,14 @@
 --      raises the findings above, and the three detectors:
 --        (a) STALL     a registering person (claimed, not approved) idle 30 minutes with a cause on their row; at once when they
 --                      told support something is broken;
---        (b) BURST     the same cause at 3 or more distinct people (leads or support reports) inside 15 minutes;
+--        (b) BURST     the same IT-owned cause (owner_seat it_engineer: never a held licence or a read at tries 8, which a
+--                      person judges) at 3 or more distinct people (leads or support reports) inside 15 minutes;
 --        (c) RETURNS   a class a family said it fixed comes back (two fixed occurrences of one key in 7 days), or a verified
 --                      defect's class returns (fn_it_code_defect_open reopens it with its old PR and lesson).
 --      and the classifier: an issue is operational when a family matches it and its guardrail admits it; it is a CODE DEFECT
---      (fn_it_code_defect_open) when no family matches a person's report for 2 hours, a family ran its maximum and the fault
---      persists 30 minutes on, a family parked itself, a burst fired, or a fixed class returned.
+--      (fn_it_code_defect_open) when no family matches a person's report for 2 hours, a repairing family ran its maximum and the
+--      fault persists 30 minutes on (the three "tell" families, held_registration_explain, duplicate_mobile_guide and
+--      code_resend_assist, are not repairs: what remains waits on the person or the CEO, never on code), a family parked itself, a burst fired, or a fixed class returned.
 --   4. it.safe_fix: every run that did something (fixed, refused, failed) is a company_event, so every seat sees what IT did
 --      (trigger on it_safe_fix_run); it.defect_opened / it.defect_fixed (a_code_defect_goes_to_the_engineer_session.sql) and
 --      support.registration_rescued (support_and_the_it_engineer_hand_a_fault_both_ways.sql) complete the four kinds.
@@ -63,6 +65,8 @@
 -- spends no run budget (fn_it_safe_fix_tick); FIX 2 tries 8 is never reset; FIX 4 a burst gets a repair cycle before a P1 defect;
 -- FIX 5 the watch records a failing step and carries on; FIX 6 the classifier passes when it saw each condition; FIX 8 the plan B;
 -- FIX 9 the keyed phone hash, the certificate by id, the dispatch advisory lock, no playbook row from the watch.
+-- REVIEW2 of 3cf4baf07 (show/REVIEW2_selfheal.md, verdict FIX), probe rows R2.1-R2.3: a burst counts only IT-owned stalls; the
+-- classifier's remedy_exhausted skips the tell families; fn_it_defect_tell('fixed') tells an address once per defect life.
 --
 -- Prevented by: scripts/checks/the_it_engineer_repairs_a_registration_and_learns.test.mjs (every family registered with a
 -- routine, a guardrail and ruling 1705; no family routine deletes, approves or writes a licence value; the local-database replay
@@ -764,6 +768,8 @@ begin
                select x.evidence->>'cause' cause, 'lead:' || (x.evidence->>'lead_id') who from public.it_engineer_finding x
                 where x.closed_at is null and x.issue_key like 'reg:stall:%' and x.started_at > now() - interval '15 minutes'
                   and x.evidence ? 'lead_id' and coalesce((x.evidence->>'demo')::boolean, false) = v_fx
+                  -- only IT's own causes: a held licence or a read at tries 8 is a person's judgement (owner_seat customer_support)
+                  and x.evidence->>'owner_seat' = 'it_engineer'
                union all
                select 'support_fault_' || s.channel, 'fault:' || s.id from public.support_fault_report s
                 where s.reported_at > now() - interval '15 minutes' and s.fixture = v_fx) z
@@ -798,6 +804,7 @@ begin
       select array_agg(distinct who), max(seen) into v_people, v_seen from (
         select 'lead:' || (s.evidence->>'lead_id') who, s.started_at seen from public.it_engineer_finding s
          where s.closed_at is null and s.issue_key like 'reg:stall:%' and s.evidence->>'cause' = r.cause and s.evidence ? 'lead_id'
+           and s.evidence->>'owner_seat' = 'it_engineer'
            and coalesce((s.evidence->>'demo')::boolean, false) = v_fx
            and s.started_at >= r.started_at - interval '15 minutes' and s.started_at <= now() - interval '30 minutes'
         union all
@@ -816,6 +823,9 @@ begin
     for r in select x.issue_key, x.evidence, fam.family, max(run.ran_at) last_run
                from public.it_engineer_finding x
                join public.it_safe_fix_family fam on fam.approval_ruling = 1705 and x.issue_key like fam.issue_like
+                                                    -- a "tell" family is not a failed repair: the person was told what to do, or the
+                                                    -- CEO decides, or a resent code waits on the person; none of these is a code defect
+                                                    and fam.family not in ('held_registration_explain', 'duplicate_mobile_guide', 'code_resend_assist')
                join public.it_safe_fix_run run on run.family = fam.family and run.issue_key = x.issue_key and run.occurrence_started_at is not distinct from x.started_at
                                                and run.outcome in ('fixed', 'failed')
               where x.closed_at is null and coalesce((x.evidence->>'demo')::boolean, false) = v_fx

@@ -27,6 +27,9 @@
 --       the failover refuses while it is pending.
 --   9   the shared-mobile key is a keyed hash (never md5 of the phone); the certificate retry names the account by id; the watch
 --       adds no 'playbook' agent_runs row; a repaired lead's support:fault finding closes; it.escalation routes to the CEO.
+--   R2.1-R2.3 (REVIEW2 of 3cf4baf07; each fails on 3cf4baf07): a burst counts only IT-owned stalls (held licences and reads at
+--       tries 8 raise none and tell no one); a tell family (held explain, shared-mobile guide, code resend) opens no
+--       remedy_exhausted defect; a verified defect tells no "fixed" to a person a repair notice reached since it opened.
 --   and the earlier rows that still hold: K (demo not filed, once per case per hour), D (each owner of a shared mobile told once,
 --   the CEO handed the data decision), E (a code resent once, the report told when used), F (a registered reader re-run once),
 --   L (no lead deleted, no approval, ban or licence value changed, the four event kinds emitted, no family parked).
@@ -252,6 +255,78 @@ begin
   exception when others then v_fail := v_fail || ('3: the defect dedupe raised: ' || sqlerrm);
   end;
 
+  -- ── R2.1: a burst counts only IT-owned stalls. Three more held licences and three more reads at tries 8 (with lh and l8, four
+  --    of each, all owner_seat customer_support) raise no burst and, 30 minutes on, open no P1 defect and tell no one ──
+  begin
+    insert into public.leads (company_name, claimed, claimed_by, email, licence_gate_reason, approval_status, portal_updated_at, created_at)
+    select 'Probe R2 Held ' || g || ' LLC', true, 'r2held' || g || '@selfheal.qdprobe', 'r2held' || g || '@selfheal.qdprobe', 'licence_expired', 'action_required',
+           now() - interval '2 hours', now() - interval '3 hours' from generate_series(1, 3) g;
+    insert into public.leads (company_name, claimed, claimed_by, email, licence_read_state, license_doc_path, licence_read_at, portal_updated_at, created_at)
+    select 'Probe R2 Eight ' || g || ' LLC', true, 'r2eight' || g || '@selfheal.qdprobe', 'r2eight' || g || '@selfheal.qdprobe', 'ours_failed', 'probe/r2e' || g || '.pdf',
+           now() - interval '1 hour', now() - interval '2 hours', now() - interval '3 hours' from generate_series(1, 3) g;
+    update public.leads set licence_read_tries = 8 where claimed_by like 'r2eight%@selfheal.qdprobe';
+    v := public.fn_it_registration_watch();
+    if exists (select 1 from public.it_engineer_finding where closed_at is null and issue_key in ('reg:burst:held', 'reg:burst:licence_read')) then
+      v_fail := v_fail || ('R2.1: a burst was raised from stalls a person judges: '
+        || (select string_agg(issue_key, ', ') from public.it_engineer_finding where closed_at is null and issue_key in ('reg:burst:held', 'reg:burst:licence_read')));
+    end if;
+    update public.it_engineer_finding set started_at = now() - interval '31 minutes'
+     where closed_at is null and (issue_key like 'reg:stall:held:%' or issue_key like 'reg:stall:licence\_read:%' or issue_key in ('reg:burst:held', 'reg:burst:licence_read'));
+    update public.it_safe_fix_run run set occurrence_started_at = x.started_at from public.it_engineer_finding x
+     where x.issue_key = run.issue_key and x.closed_at is null and (x.issue_key like 'reg:stall:held:%' or x.issue_key like 'reg:stall:licence\_read:%');
+    v := public.fn_it_registration_watch();
+    select count(*) into n from public.it_code_defect where class_key in ('burst.held', 'burst.licence_read');
+    select count(*) into n2 from public.customer_support_voice_owed where stage = 'it_defect.opened' and (to_email like 'r2held%' or to_email like 'r2eight%' or to_email in ('h@selfheal.qdprobe', 'eight@selfheal.qdprobe'));
+    if n <> 0 or n2 <> 0 then v_fail := v_fail || ('R2.1: held licences and reads at tries 8 opened ' || n || ' burst defects and sent ' || n2 || ' "our team is fixing it" notices, not 0 and 0'); end if;
+  exception when others then v_fail := v_fail || ('R2.1: raised: ' || sqlerrm);
+  end;
+
+  -- ── R2.2: a "tell" family is not a failed repair. The held person told the missing item (lh), the owners of a shared mobile
+  --    told to sign in by e-mail (ld1, ld2) and a resent code still unused, each 31 minutes on, open no remedy_exhausted defect ──
+  begin
+    insert into public.customers (email, full_name) values ('cust2@selfheal.qdprobe', 'Probe Customer Two');
+    insert into public.email_verifications (email, purpose, user_kind, expires_at, created_at)
+    values ('cust2@selfheal.qdprobe', 'signin', 'customer', now() - interval '20 minutes', now() - interval '30 minutes');
+    r := public.fn_support_hands_it_a_fault('email', 'email:probe-cust2', 'en', 'customer', '[{"role":"customer","text":"no code arrived"}]', 'cust2@selfheal.qdprobe');
+    v := public.fn_it_registration_watch();
+    select count(*) into n from public.it_safe_fix_run where family = 'code_resend_assist' and outcome = 'fixed' and result->>'email_hash' = md5('cust2@selfheal.qdprobe');
+    if n <> 1 then v_fail := v_fail || ('R2.2: the second customer''s code was resent ' || n || ' times, not once (the row needs it): '
+      || coalesce((select string_agg(coalesce(result->>'why', outcome), ' | ') from public.it_safe_fix_run where family = 'code_resend_assist'), 'no run')); end if;
+    select count(distinct run.family) into n from public.it_engineer_finding x
+      join public.it_safe_fix_run run on run.issue_key = x.issue_key and run.outcome = 'fixed' and run.occurrence_started_at is not distinct from x.started_at
+     where x.closed_at is null and run.family in ('held_registration_explain', 'duplicate_mobile_guide', 'code_resend_assist');
+    if n <> 3 then v_fail := v_fail || ('R2.2: ' || n || ' of the three tell families hold a fixed run on an open occurrence (the row needs all three)'); end if;
+    update public.it_safe_fix_run set ran_at = ran_at - interval '31 minutes' where family in ('held_registration_explain', 'duplicate_mobile_guide', 'code_resend_assist');
+    v := public.fn_it_registration_watch();
+    select count(*) into n from public.it_code_defect
+     where class_key in ('remedy_exhausted.held_registration_explain', 'remedy_exhausted.duplicate_mobile_guide', 'remedy_exhausted.code_resend_assist');
+    select count(*) into n2 from public.customer_support_voice_owed where stage = 'it_defect.opened'
+       and to_email in ('h@selfheal.qdprobe', 'd1@selfheal.qdprobe', 'd2@selfheal.qdprobe', 'cust2@selfheal.qdprobe');
+    if n <> 0 or n2 <> 0 then v_fail := v_fail || ('R2.2: a tell family opened ' || n || ' remedy_exhausted defects ('
+      || coalesce((select string_agg(class_key, ', ') from public.it_code_defect where class_key like 'remedy\_exhausted.%'), '') || ') and sent '
+      || n2 || ' "our team is fixing it" notices, not 0 and 0'); end if;
+  exception when others then v_fail := v_fail || ('R2.2: raised: ' || sqlerrm);
+  end;
+
+  -- ── R2.3: one problem, one "fixed". The burst defect's people (b4, b5, b6) get it_repair.done when their certificates land;
+  --    two hours later the session verifies the defect: none of them is told "fixed" again ──
+  begin
+    update public.leads set signed_terms_path = 'probe/cert.pdf', signed_terms_at = now() where id in (b4, b5, b6, b7);
+    v := public.fn_it_registration_watch();
+    select count(*) into n from public.customer_support_voice_owed where stage = 'it_repair.done' and to_email in ('bee4@selfheal.qdprobe', 'bee5@selfheal.qdprobe', 'bee6@selfheal.qdprobe');
+    if n <> 3 then v_fail := v_fail || ('R2.3: ' || n || ' of the burst defect''s 3 people were told their repair landed (the row needs 3)'); end if;
+    update public.customer_support_voice_owed set created_at = created_at - interval '2 hours' where stage like 'it\_%' and to_email like 'bee%';
+    select id into v_d from public.it_code_defect where class_key = 'burst.certificate';
+    update public.it_code_defect set opened_at = opened_at - interval '2 hours 1 minute' where id = v_d;
+    perform public.fn_it_code_defect_claim('probe-s-b', v_d);
+    perform public.fn_it_code_defect_progress(v_d, 'probe-s-b', s, case when s in ('merged', 'deployed') then 79 end, 'probe') from unnest(array['fixing', 'in_review', 'merged', 'deployed']) s;
+    r := public.fn_it_code_defect_verified(v_d, 'probe-s-b', 'a SELECT showed no unsigned acceptance for 30 minutes after the deploy', 'probe-lesson');
+    if not coalesce((r->>'ok')::boolean, false) then v_fail := v_fail || ('R2.3: the burst defect did not verify: ' || r::text); end if;
+    select count(*) into n from public.customer_support_voice_owed where stage = 'it_defect.fixed' and to_email like 'bee%';
+    if n <> 0 then v_fail := v_fail || ('R2.3: the verified burst defect sent ' || n || ' second "fixed" notices to people its repair had already told, not 0'); end if;
+  exception when others then v_fail := v_fail || ('R2.3: raised: ' || sqlerrm);
+  end;
+
   -- ── 5: 260 people; one bad finding ──
   begin
     select array_agg('lead:' || (9000000 + g)) into v_refs from generate_series(1, 250) g;
@@ -336,7 +411,7 @@ begin
   select jsonb_agg(jsonb_build_object('id', id, 'a', approval_status, 'b', banned, 'n', trade_license_no, 'e', license_expiry, 'c', claimed_by) order by id) into v_snap_after
     from public.leads where id in (la, l8, lr, lh, ld1, ld2, lx, b1, b2, b3, b4);
   if v_snap_after is distinct from v_snap then v_fail := v_fail || 'L: an approval, a ban, a licence value or an owner changed'::text; end if;
-  if (select count(*) from public.leads) <> v_leads_before + 14 then v_fail := v_fail || 'L: a lead was deleted or created'::text; end if;
+  if (select count(*) from public.leads) <> v_leads_before + 20 then v_fail := v_fail || 'L: a lead was deleted or created'::text; end if;
   select jsonb_object_agg(event_type, k) into v_events from (select event_type, count(*) k from public.company_event
     where event_type in ('it.safe_fix', 'it.defect_opened', 'it.defect_fixed', 'support.registration_rescued') and occurred_at >= v_t0 group by 1) z;
   if (select count(*) from jsonb_object_keys(coalesce(v_events, '{}'::jsonb))) <> 4 then v_fail := v_fail || ('L: not all four event kinds were emitted: ' || coalesce(v_events::text, 'none')); end if;
