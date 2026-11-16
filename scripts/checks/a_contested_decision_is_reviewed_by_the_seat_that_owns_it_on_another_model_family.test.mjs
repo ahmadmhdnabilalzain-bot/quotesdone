@@ -10,7 +10,9 @@
 //   * static: wa_inbound or email_triage stops filing a person request through fileReviewRequest;
 //   * production, ONE aborted transaction (the file replayed while pending, ZZ DEMO / @example.invalid requesters):
 //     a request per decision type lands with another seat than its route, is decided by the original decision's
-//     model family, a same-family verdict is accepted, or any row reaches founder_alerts or a founder notification.
+//     model family, a same-family verdict is accepted, or any row reaches founder_alerts or a founder notification;
+//     an explicit person request is not the CEO's on an escalation clock ('with_ceo', 16 Nov 2026, rulings 1696/1706/1710),
+//     or reaches the founder.
 //
 //   node --test scripts/checks/a_contested_decision_is_reviewed_by_the_seat_that_owns_it_on_another_model_family.test.mjs
 import { test } from 'node:test';
@@ -26,6 +28,8 @@ const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
 const FILE = 'scripts/sql/a_contested_decision_is_reviewed_by_the_seat_that_owns_it_on_another_model_family.sql';
 const PROBE = FILE.replace(/\.sql$/, '_probe.sql');
+// the person route's later owner (16 Nov 2026): replayed before the probe while it is pending, so the probe reads what will be live
+const CLOCK = 'scripts/sql/every_escalation_carries_a_clock_and_the_ceo_decides_it_not_the_founder.sql';
 const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 const pending = (f) => existsSync(join(REPO, 'scripts/sql/pending', f.split('/').pop().replace(/\.sql$/, '.txt')));
 
@@ -36,7 +40,7 @@ const ROUTES = {
   messaging: 'customer_support', account: 'customer_support',
   security: 'it_engineer', access: 'it_engineer',
   dispute: 'ceo', approval: 'ceo',
-  person: 'customer_support',   // ruling 1264: not a decision; the record is support's, the delivery is the founder's
+  person: 'customer_support',   // not a decision; the record is support's, the decision the CEO's on its escalation clock (16 Nov 2026)
 };
 
 function routesIn(src) {
@@ -105,8 +109,8 @@ test('static: WhatsApp, site chat and e-mail person requests enter the path', ()
 
 const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN || existsSync(join(homedir(), '.supabase', 'access-token'));
 
-test('production, aborted: one ZZ DEMO request per type lands with its seat, another family decides, 0 reach the founder; an explicit person request does, through founder_mail_policy', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
-  const replay = pending(FILE) ? read(FILE) : '';
+test('production, aborted: one ZZ DEMO request per type lands with its seat, another family decides, 0 reach the founder; an explicit person request goes to the CEO on a clock', { skip: hasToken ? false : 'no Supabase management token' }, async () => {
+  const replay = (pending(FILE) ? read(FILE) + '\n' : '') + (pending(CLOCK) ? read(CLOCK) : '');
   let o;
   try { await replaySql(replay + '\n' + read(PROBE), { retry: false }); }
   catch (e) {
@@ -125,12 +129,15 @@ test('production, aborted: one ZZ DEMO request per type lands with its seat, ano
   assert.equal(o.founder_alerts, 0, 'the review path wrote a founder alert');
   assert.equal(o.founder_notifications, 0, 'the review path queued a notification to the founder');
   assert.equal(o.demo_handoffs, 0, 'a ZZ DEMO request filed a seat handoff (ruling 1199)');
-  // Ruling 1264: the explicit person request reaches the founder through founder_mail_policy on chat and e-mail
-  for (const [ch, kind] of [['whatsapp', 'whatsapp_human_request'], ['site_chat', 'person_request'], ['email', 'person_request']]) {
+  // 16 Nov 2026 (rulings 1696/1706/1710 supersede ruling 1264 here): the explicit person request is the CEO's, on an escalation clock,
+  // on chat and e-mail alike, and the founder is not reached
+  for (const ch of ['whatsapp', 'site_chat', 'email']) {
     const p = o.person[ch];
-    assert.equal(p.status, 'with_founder', ch + ': the person request did not reach the founder');
-    assert.equal(p.kind, kind, ch + ': not delivered under its founder_mail_policy kind');
-    assert.ok(p.founder_alerts >= 1 && p.founder_notifications >= 1, ch + ': no founder alert or notification was queued');
+    assert.equal(p.status, 'with_ceo', ch + ': the person request is not with the CEO');
+    assert.equal(p.owner_seat, 'ceo', ch + ': the person request is not owned by the CEO seat');
+    assert.equal(p.clock_ok, true, ch + ': no escalation clock was opened');
+    assert.equal(p.founder_alerts, 0, ch + ': the person request wrote a founder alert');
+    assert.equal(p.founder_notifications, 0, ch + ': the person request queued a founder notification');
   }
   assert.equal(o.person_from_portal.ok, false, 'a person request from the portal reached the founder');
   assert.equal(o.contest_from_portal.ok, false, 'a contest from the portal was filed (ruling 1264: chat or e-mail only)');

@@ -2,8 +2,8 @@
 // FOUNDER_CLOCK). Stubbed models and database: no network, no paid call. Scenarios named after what a real company does.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import {
-  ceoPrompt, type ClockIO, type DueClock, escalationFactsText, holdingRules, isStanding, messagePrompt, parseCeoDecision, parseMessage,
-  pressLegalPosition, purposeOf, readEscalationFacts, STANDING_OPTIONS, workEscalationClocks,
+  ceoPrompt, type ClockIO, type DueClock, escalationFactsText, holdingRules, isStanding, messagePrompt, namesNoLaw, parseCeoDecision, parseMessage,
+  pressLegalPosition, purposeOf, readEscalationFacts, stageOf, STANDING_OPTIONS, workEscalationClocks,
 } from './escalation_clock.ts';
 import { needsAPerson } from './reasoned_decisions.ts';
 import type { LlmReply, ThinkDeps } from './think.ts';
@@ -187,6 +187,10 @@ Deno.test('13. a failed queue read or a throwing clock never throws out of the h
   s.x.deliver = () => Promise.reject(new Error('net down'));
   const r = await workEscalationClocks(s.x);
   assertMatch(String(r[0].error), /net down/);
+  // the throw is a failed attempt recorded on the clock (its retry hour), so one broken clock never holds the queue (REVIEW clock 1)
+  const told = s.of('told').at(-1)!;
+  assertEquals((told[3] as { sent: boolean }).sent, false);
+  assertMatch(String((told[3] as { reason: string }).reason), /net down/);
   assertEquals(parseMessage('```json\n' + MSG + '\n```')?.subject, 'About your request');
   assertEquals(parseMessage(J({ message: '' })), null);
 });
@@ -196,4 +200,41 @@ Deno.test('14. a decision the database refused to record is not told as decided'
   s.x.decided = () => Promise.resolve({ ok: false, reason: 'clock 7 is already closed' });
   await workEscalationClocks(s.x);
   assertEquals(s.of('write').length, 0);
+});
+
+Deno.test('15. an anonymous site visitor (no e-mail, no number): no model is asked to write what cannot be sent; the clock retries', async () => {
+  const s = io({ due: [clock({ due_for: 'status', channel: 'site_chat', has_contact: false })], write: MSG });
+  const out = await workEscalationClocks(s.x);
+  assertEquals(s.of('write').length, 0);
+  assertEquals(s.of('deliver').length, 0);
+  assertMatch(String((s.of('told')[0][3] as { reason: string }).reason), /no open channel/);
+  assertEquals(out[0].sent, false);
+});
+
+Deno.test('16. every status carries its number in the stage the database keys on (status_1, status_2): each is sent once', () => {
+  assertEquals(stageOf(clock({ statuses_sent: 0 }), 'status'), 'status_1');
+  assertEquals(stageOf(clock({ statuses_sent: 1 }), 'payment_status'), 'status_2');
+  assertEquals(stageOf(clock(), 'decision'), 'decision');
+});
+
+Deno.test('17. a "founder" answer naming n/a, none or - names no law: recorded with no law, so it stays the CEO\'s', () => {
+  for (const law of ['N/A', 'none', '-', ' n/a. ', '', 'NA']) {
+    assert(namesNoLaw(law), law);
+    assertEquals(parseCeoDecision(J({ decision: 'founder_by_law', outcome: '', reasons: 'ZZ DEMO r', law }))?.law, null, law);
+  }
+  assert(!namesNoLaw('ZZ DEMO the summons names the licence holder in person'));
+  assertEquals(parseCeoDecision(J({ decision: 'founder_by_law', outcome: '', reasons: 'ZZ DEMO r', law: 'ZZ DEMO a court summons in person' }))?.law, 'ZZ DEMO a court summons in person');
+});
+
+Deno.test('18. 72 hours after a founder answer with no word from him, the CEO decides again and sees what it answered then', async () => {
+  const c = clock({ state: 'founder_by_law', due_for: 'decide', founder_reason: 'ZZ DEMO the summons names the licence holder', ceo_reason: 'ZZ DEMO a summons', status_due: false });
+  const input = JSON.parse(ceoPrompt(c).input);
+  assertEquals(input.your_earlier_answer.law_you_named, 'ZZ DEMO the summons names the licence holder');
+  assertEquals(input.your_earlier_answer.founder_has_not_answered, true);
+  assertMatch(ceoPrompt(c).system, /sent this case to the founder by law before and he has not answered, decide it again/);
+  assertEquals(JSON.parse(ceoPrompt(clock()).input).your_earlier_answer, undefined, 'a first decision carries no earlier answer');
+  const s = io({ due: [c], ceo: J({ decision: 'decided', standing: 'legal', outcome: 'ZZ DEMO management answers through counsel.', reasons: 'ZZ DEMO within authority' }), write: MSG });
+  await workEscalationClocks(s.x);
+  assertEquals(s.of('decided').length, 1);
+  assertEquals(s.of('deliver')[0][2], 'decision', 'the decision is told the same tick');
 });

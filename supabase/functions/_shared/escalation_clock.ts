@@ -85,7 +85,9 @@ export function ceoPrompt(c: DueClock): { system: string; input: string } {
     + 'licence holder in person), and name that law; a complaint, a request for a person, a refund, a journalist or a lawyer\'s letter '
     + 'is yours, answered through the company\'s position below. You never move money by words: a refund or credit you approve goes to '
     + 'its own process and you promise no date for it. Never invent a fact that is not in the input. Read also who is writing: a '
-    + 'journalist (press), a lawyer or a legal notice (legal), a government authority (regulator), or a customer or supplier.\n'
+    + 'journalist (press), a lawyer or a legal notice (legal), a government authority (regulator), or a customer or supplier. If the input '
+    + 'shows you sent this case to the founder by law before and he has not answered, decide it again now: decide what you can within your '
+    + 'authority, or name the law again only if it truly still requires him in person.\n'
     + 'Return STRICT JSON ONLY: {"decision":"decided|not_yet|founder_by_law","standing":"customer|supplier|press|legal|regulator",'
     + '"outcome":"what happens now, one or two plain sentences as the person will be told it (for not_yet: what is being done)",'
     + '"reasons":"two to four factual sentences","law":"only for founder_by_law: the law that requires the founder in person; otherwise empty"}';
@@ -96,9 +98,15 @@ export function ceoPrompt(c: DueClock): { system: string; input: string } {
     founder: { last_answered_the_company: dubai(c.founder?.founder_last_answered_at), hours_since: c.founder?.founder_hours_since ?? null,
                channels_down_until_he_renews_a_credential: c.founder?.channels_down_founder_credential ?? [] },
     company_position_press_legal_regulator: pressLegalPosition(),
+    // decided again 72 hours after a founder_by_law answer (fn_escalation_clocks_due): what was answered then, and that he has not answered
+    ...(c.state === 'founder_by_law' ? { your_earlier_answer: { decision: 'founder_by_law', law_you_named: c.founder_reason ?? null,
+      your_reasons: c.ceo_reason ?? null, founder_has_not_answered: true } } : {}),
   });
   return { system, input };
 }
+
+/** 'n/a', 'none', '-' or empty name no law (the same rule as fn_escalation_clock_ceo_decided). */
+export const namesNoLaw = (law: string | null | undefined): boolean => /^\s*(n\s*\/?\s*a|none|-+)?\s*\.?\s*$/i.test(String(law ?? ''));
 
 const STANDINGS = ['customer', 'supplier', 'press', 'legal', 'regulator'] as const;
 /** The CEO model's answer as a decision, or null. Tolerates a ```json fence; nothing else. */
@@ -111,7 +119,7 @@ export function parseCeoDecision(text: string | null): CeoDecision | null {
     const reasons = String(o.reasons ?? '').trim(); const outcome = String(o.outcome ?? '').trim();
     if (!reasons || (o.decision === 'decided' && !outcome)) return null;
     const law = String(o.law ?? '').trim();
-    return { decision: o.decision, outcome, reasons, law: law || null,
+    return { decision: o.decision, outcome, reasons, law: namesNoLaw(law) ? null : law,
              standing: (STANDINGS as readonly string[]).includes(o.standing) ? o.standing : null };
   } catch (_e) { return null; }
 }

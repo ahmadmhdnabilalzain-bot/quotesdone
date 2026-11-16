@@ -59,7 +59,7 @@ export type MenuDeps = {
   founderFigures(from: string): Promise<Figures>;
   /** fn_wa_problem_report: opens a support case, or adds to the one this number/account already has open. */
   openCase(from: string, text: string, lang: Lang): Promise<CaseResult>;
-  /** fn_wa_human_request: hands the conversation to a person (handoff + hold) and alerts the founder. */
+  /** fn_wa_human_request: hands the conversation to a person (handoff + hold) and opens the CEO's escalation clock (16 Nov 2026; true = the clock opened). */
   notifyHuman(from: string, ctx: MenuContext, text: string): Promise<boolean>;
   /** fn_wa_human_hold: true while this number waits for a person, so the seat stays quiet. */
   humanHold(from: string): Promise<boolean>;
