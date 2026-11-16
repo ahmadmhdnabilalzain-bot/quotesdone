@@ -1,0 +1,5 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back its ZZ DEMO customers (@example.invalid, the
+number +971 50 000 0111 no person holds), their case, the fixture fault report and the promise it writes. It is run with
+every_door_and_the_ceo_read_the_same_case.sql in the same rolled-back transaction, on the local database only, and must print
+PROBE OK (it did twice, 16 Nov 2026, and failed with the live fn_contact_timeline or fn_ceo_refund_checklist restored). This note
+therefore stays for the life of the file. Seat: sales_engineer.

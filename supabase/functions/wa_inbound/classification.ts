@@ -74,7 +74,10 @@ export async function startClassification(t: WaTurn): Promise<void> {
     // key is a hash of the number, the turns are masked, and no e-mail is looked up from a phone; it never throws.
     if (r.fault && audience !== 'founder') {
       await handFaultToIt((fn, args) => admin.rpc(fn, args), { channel: 'whatsapp', caseKey: await caseKeyOf('whatsapp', From), message: Body,
-        lang: audience !== 'supplier' && langOf(Body.trim(), 'en') === 'ar' ? 'ar' : 'en', audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor' });
+        lang: audience !== 'supplier' && langOf(Body.trim(), 'en') === 'ar' ? 'ar' : 'en', audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor',
+        // the fault goes onto THEIR case too, found by this number the way their WhatsApp case already is (fn_support_open_cases),
+        // so the widget, the e-mail and the CEO see it in the timeline (16 Nov 2026, ledgers 1711-1713). Not sent to IT.
+        person: { phone: From } });
     }
     return { intent: r.intent, needsPerson: r.needsPerson, menu: r.menu, why: r.result.reason ?? r.result.status };
   })().catch((e) => ({ intent: null, needsPerson: null, menu: null, why: 'threw: ' + String((e as Error)?.message || e).slice(0, 200) })));
