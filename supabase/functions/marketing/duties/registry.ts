@@ -7,6 +7,7 @@ import { platformSpecFreshness } from './platform_spec_freshness.ts';
 import { profileText } from './profile_text.ts';
 import { geoAudit, reviews, trendWatch } from './trends_geo.ts';
 import { blogArticle } from './blog_article.ts';
+import { searchConsole } from './search_console.ts';
 import type { Duty } from './types.ts';
 
 // ── THE JUDGEMENT DUTIES (marketing, 23 Sep 2026; founder instructions 865, 866, 867) ─────────────────────────
@@ -101,4 +102,6 @@ export const DUTIES: Duty[] = [
     },
   },
   profileText, trendWatch, geoAudit, reviews, blogArticle,
+  // search_console (15 Nov 2026): Google Search Console, once a day, inert until its two secrets are set
+  searchConsole,
 ];

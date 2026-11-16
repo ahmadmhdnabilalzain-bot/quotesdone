@@ -23,7 +23,7 @@ import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { emailPrintPdf } from '../../_shared/email_print.ts';
 import { decideJudgement, recallCases } from '../../_shared/case_recall.ts';
 import { statementRowText, takeInStatement } from '../../_shared/bank_statement_intake.ts';
-import { registerRowsFor } from '../../_shared/expense_mailbox.ts';
+import { registerRowsFor, survivingEntryId } from '../../_shared/expense_mailbox.ts';
 import { type ActionCtx, EXPENSE_MAILBOX, J, SUPA_URL, admin, run, sec } from '../context.ts';
 import { embed } from '../lib/embed.ts';
 import { dbxSafe, pickBody } from '../lib/mail_text.ts';
@@ -372,14 +372,17 @@ export async function expenseActions(c: ActionCtx): Promise<Response | undefined
         // double-post the other. A currency with no rate is NOT booked at 1:1: the routine returns
         // null and raises a founder_alert, and this sweep reports the null rather than hiding it.
         const { data: jid, error: glErr } = await admin.rpc('fn_expense_post_to_gl', { p_entry_id: entryId });
-        if (docPath) {
+        // 15 Nov 2026 (review item 6): a receipt for a cost held on the founder's word is folded into that entry (this
+        // row deleted, its key moved); the evidence is filed against the row that survives, read back by the key.
+        const survivor = await survivingEntryId(admin, entryId, msgKey);
+        if (docPath && survivor) {
           // doc_backups is the Sales Engineer's existing filing contract and dropbox_backup reads
           // it by status, not by entity; dedupe_key makes a re-sweep a no-op.
           await admin.from('doc_backups').insert({
-            entity: 'expense', entity_id: String(entryId), doc_type: 'Receipt',
+            entity: 'expense', entity_id: String(survivor), doc_type: 'Receipt',
             bucket: 'receipt-files', path: docPath, file_name: docName.slice(0, 180),
             dropbox_path: '/QuotesDone Backup/Finance/Receipts/' + charged.slice(0, 7) + '/' + dbxSafe(vendor) + ' ' + charged + ' - ' + dbxSafe(docName),
-            source: 'storage', dedupe_key: 'E:' + entryId + ':receipt:' + docPath,
+            source: 'storage', dedupe_key: 'E:' + survivor + ':receipt:' + docPath,
           });
         }
         if (recurring) {
@@ -398,7 +401,7 @@ export async function expenseActions(c: ActionCtx): Promise<Response | undefined
         });
         booked++;
         say('booked', {
-          entry_id: entryId, vendor, amount, currency, charged_on: charged, period: cad,
+          entry_id: survivor ?? entryId, vendor, amount, currency, charged_on: charged, period: cad,
           vat: vatAmt, trn, gl_journal: (jid as number | null) ?? null,
           gl_error: glErr ? String(glErr.message).slice(0, 200) : null,
           document: docPath, document_error: docPath ? null : upErr, basis: det.basis, files: fileNotes,
