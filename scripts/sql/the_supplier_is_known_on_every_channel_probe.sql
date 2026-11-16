@@ -139,6 +139,10 @@ begin
   if has_function_privilege('anon', 'public.fn_wa_context(text,text)', 'execute')
      or has_function_privilege('authenticated', 'public.fn_wa_context(text,text)', 'execute') then fails := fails || ' P7:grant'; end if;
 
+  -- P9 (release wave C): the customer branch carries his money cases beside his requests (fn_customer_money_cases)
+  if not coalesce(public.fn_wa_context('customer', 'zz-demo-supknown-buyer@example.invalid') -> 'money_cases' ? 'revealed_jobs', false) then
+    fails := fails || ' P9:no money_cases in the customer reading'; end if;
+
   if fails = '' then
     raise exception 'CHK<<PROBE OK: trades %, emirates %, why(A,none) %, why(B) %>>', a -> 'services' -> 'trades', a -> 'services' -> 'emirates_covered',
       jsonb_array_length(a -> 'matching' -> 'why_no_jobs'), (select string_agg(x ->> 'code', ',') from jsonb_array_elements(b -> 'matching' -> 'why_no_jobs') x);

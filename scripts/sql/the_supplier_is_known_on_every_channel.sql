@@ -26,6 +26,8 @@
 -- the portal quotation chat (supplier_api/actions/quote_review_chat.ts reviewVoice), all through _shared/supplier_known.ts.
 -- SECURITY DEFINER, search_path pinned, EXECUTE revoked (CREATE OR REPLACE keeps the ACL; the revoke is restated anyway).
 -- Probe: the_supplier_is_known_on_every_channel_probe.sql (LOCAL Postgres 16 only). No model is called.
+-- Needs a_paid_reveal_asks_the_customer_and_every_money_problem_reaches_a_case.sql applied first (fn_customer_money_cases, wired into
+-- the customer branch by the wave C release, 16 Nov 2026).
 
 
 -- ---------------------------------------------------------------------------------------------------------------------
@@ -290,7 +292,11 @@ begin
                              and v_cust.signed_terms_url is not null)),
       -- 3 Nov 2026: the ONE reading (fn_customer_inquiry_facts): the request number, live quotes, a reveal unlocking
       -- that quote's supplier only, and the open chase.
-      'inquiries', public.fn_customer_inquiry_facts(v_cust.id, 10));
+      'inquiries', public.fn_customer_inquiry_facts(v_cust.id, 10),
+      -- 16 Nov 2026 (release wave C): his money cases beside it (open refunds, disputes, a message being read, each revealed
+      -- job's ladder state), the same reading on WhatsApp and the widget. fn_customer_money_cases is created by
+      -- a_paid_reveal_asks_the_customer_and_every_money_problem_reaches_a_case.sql, applied before this file.
+      'money_cases', public.fn_customer_money_cases(v_cust.id));
   end if;
 
   return jsonb_build_object('scope','unknown');
