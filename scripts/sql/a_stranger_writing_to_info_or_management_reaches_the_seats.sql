@@ -23,6 +23,11 @@
 -- WHAT CHANGES: the switch is set to the moment this file is applied. From then on a stranger's NEW mail to info@ or
 --   management@ is handed to resend_inbound, the same handler, tables and threading as every other address, and email_triage
 --   reads it there (info@ is customer correspondence, customer_mail.ts; management@ gets the normal triage, tenantMailAnswerable).
+--   ORDER (coordinator, 16 Nov 2026): apply this ONLY AFTER email_triage is deployed with the info@/management@ reading and
+--   scripts/sql/info_and_management_mail_is_read_before_it_is_answered.sql is applied. Then a model reads each such mail first
+--   and decides: answer (a real person we owe an answer), route to the owning seat (vendor, pitch, invoice; legal and press to
+--   the CEO), close with the reason (spam, newsletter, auto-reply, bounce), or hold it when it cannot read it. Only 'answer'
+--   reaches the reply path.
 --   Nothing older than the apply is handed, so no old mail is answered. Unchanged, still never handed: the founder and staff,
 --   our own domains, a bank (mashreq*, app_secrets.m365_financial_domains), a machine sender (no-reply, alerts, billing,
 --   notifications, delivery reports), a DMARC report, and a stranger in Junk. email_triage then still refuses list mail,
