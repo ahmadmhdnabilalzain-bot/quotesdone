@@ -71,9 +71,12 @@ test('SP-N-04: the prefix rule is the upload paths\' own prefix, and rejects tra
 test('SP-F-02: the quotation review runs inside submit_quote, before the first write', () => {
   const a = action('submit_quote');
   const review = a.indexOf('reviewQuotation(');
+  // 15 Nov 2026 (sales_engineer, validity fix 1): the row is written through writeQuoteRow (lib/quote_acceptance.ts), which
+  // retries once without a column the SQL has not applied yet; the write itself is still the insert/update below.
   const insert = a.indexOf("from('quotes').insert(");
-  const update = a.indexOf("from('quotes').update(det)");
+  const update = a.search(/from\('quotes'\)\.update\((?:det|d)\)/);
   assert.notEqual(review, -1, 'submit_quote must run reviewQuotation — the chat rules are not the chat\'s alone');
+  assert.ok(insert !== -1 && update !== -1, 'submit_quote writes the quotes row by insert and by update');
   assert.ok(review < insert && review < update, 'the verdict must be known before the row is written');
 });
 
@@ -135,7 +138,10 @@ test('SP-F-02: the dry run reports the review instead of pretending it would be 
 
 test('SP-F-02: what the supplier explained comes from the stored review, never from the request', () => {
   const a = action('submit_quote');
-  assert.match(a, /withResolved\([\s\S]{0,400}resolvedFrom\(reviewRow\?\.working\)\)/, 'the explanations are the engineer\'s record');
+  // 15 Nov 2026 (accountant): the record is read once (resolved0) and the desk's carried VAT answer added to it; both are never the caller's.
+  assert.match(a, /const resolved0 = resolvedFrom\(reviewRow\?\.working\);[\s\S]{0,200}const resolved = \{ \.\.\.resolved0, vat_answered: carry\.vat_answered \?\? resolved0\.vat_answered \?\? null \};/, 'the explanations are the engineer\'s record');
+  assert.match(a, /withResolved\([\s\S]{0,400}resolved\), 'review:'/, 'the review reads them');
+  assert.doesNotMatch(a, /body\.vat_answered/, 'a caller must not be able to declare its own VAT answer');
   assert.doesNotMatch(a, /body\.boq_excluded|body\.qty_explained/, 'a caller must not be able to declare its own BOQ lines excluded');
   const m = code(read('supabase', 'functions', 'supplier_api', 'submit_review.ts'));
   assert.match(m, /boq_excluded: \{\}, qty_explained: \{\}, corrections: \[\]/, 'the builder never reads them off the body');
@@ -145,7 +151,10 @@ test('SP-C-02: the dry run snapshots the row and its lines, and puts them back',
   const a = action('submit_quote');
   assert.match(a, /const dryRun = body\.dry_run === true;/);
   const snap = a.indexOf('snapCols');
-  const write = a.indexOf("from('quotes').update(det)");
+  // 16 Nov 2026 (sales_engineer, validity fix round 2): the same regex SP-F-02 reads, since the row is written through
+  // writeQuoteRow (lib/quote_acceptance.ts); a missing write is a failure of its own, not a -1 that passes the order test.
+  const write = a.search(/from\('quotes'\)\.update\((?:det|d)\)/);
+  assert.ok(write !== -1, 'submit_quote writes the quotes row by update');
   assert.ok(snap !== -1 && snap < write, 'the snapshot must be taken before the write it undoes');
   assert.match(a, /if \(se \|\| sle \|\| !sr\) return J\(\{ error: 'preflight_unavailable'/, 'a snapshot we could not take refuses the check');
   assert.match(a, /if \(dryRun\) \{[\s\S]{0,1400}update\(snapRow\)[\s\S]{0,400}insert\(snapLines\)/, 'the prior row and its lines are restored');

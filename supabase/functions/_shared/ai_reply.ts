@@ -39,6 +39,7 @@ import { arabicRegister, type Dialect } from './inquiry_state.ts';
 import { EVASION, substanceWords, type LlmReply, type Seat, type ThinkDeps, type Turn } from './think.ts';
 import { conversationEffort } from './effort_policy.ts';
 import { caseBlock, caseTurns } from './support_case_memory.ts';
+import { poolSubject, seatPool } from './seat_pool.ts';
 
 /** The model class a conversation reply is routed by unless the caller names another (AiReplyRequest.taskClass). */
 export const REPLY_CLASS = 'conversation_reply';
@@ -110,6 +111,10 @@ export interface AiReplyRequest {
   // Lebanese, Gulf)"): the dialect the conversation's state holds (_shared/inquiry_state.ts). An Arabic reply mirrors it
   // (arabicRegister); absent, the model mirrors what it reads in their messages. Never used for a supplier (ruling 1008).
   dialect?: Dialect | null;
+  // THE SHARED POOL (ceo, 13 Nov 2026, founder ledger 1688; _shared/seat_pool.ts): the subject this reply is about ({customer_id},
+  // {supplier_id}, {inquiry_id}, {table, id} ...). The reply then reads what every seat did on it, as kinds and states only (no
+  // name, no payload text: the other party's identity never rides). Absent: no pool, exactly as before.
+  poolSubject?: Record<string, unknown> | null;
 }
 /** The trade pack a reply carries: the caller's own, else the first trade the other party named in its recent turns,
  *  then the message, then the facts (company_brief.ts conversationTrade). */
@@ -276,9 +281,10 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   // THE BRIEF AND THE ROUTE ARE READ TOGETHER (customer_support, 10 Nov 2026): they were two database trips one after another
   // before the first model call, ~0.25 s each from an edge worker outside ap-southeast-1 (_shared/db_region.ts). Neither reads the other.
   const taskClass = r.taskClass ?? REPLY_CLASS;
-  const [brief, primary] = await Promise.all([
+  const [brief, primary, pool] = await Promise.all([
     companyBrief(deps.rpc, [], '', replyLang, r.blocks ?? [], undefined, { trade: replyTrade(r), supplier: r.audience === 'supplier' }),
     routePrimary(deps, taskClass, r.seat),
+    r.poolSubject ? seatPool(deps, r.seat, poolSubject(r.poolSubject), r.audience) : Promise.resolve({ block: '', chars: 0 }),
   ]);
   const rules = aiSystem(r, replyLang);
   const allowed = figureSource(brief) + '\n' + (r.facts ?? '') + '\n' + rules;   // the published contact is in the rules
@@ -304,7 +310,7 @@ export async function aiReply(deps: ThinkDeps, r: AiReplyRequest): Promise<AiRep
   const sys = '\n\n' + aiSystem({ ...r, facts: undefined }, replyLang) + (withCase ? '\n\n' + caseBlock(r.caseMemory!) : '');   // after the brief, which rides as the cached sys_stable block
   const history = fitHistory((withCase ? caseTurns(r.conversation ?? []) : (r.conversation ?? [])).map((t) => ({ role: t.role === 'seat' ? 'assistant' as const : 'user' as const, content: t.text })), r.message);
   const prior = (r.priorProblems ?? []).map((p) => String(p || '').trim()).filter(Boolean).slice(0, 12);
-  const input = (r.facts ? 'THIS CONVERSATION\'S FACTS:\n' + r.facts.slice(0, 6000) + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000)
+  const input = (r.facts ? 'THIS CONVERSATION\'S FACTS:\n' + r.facts.slice(0, 6000) + '\n\n' : '') + (pool.block ? pool.block + '\n\n' : '') + 'MESSAGE:\n' + r.message.slice(0, 4000)
     + (prior.length ? '\n\nAN EARLIER ANSWER TO THIS MESSAGE COULD NOT BE SENT. It had these problems: ' + [...new Set(prior)].join('; ')
       + '. Write a complete answer that avoids every one of them and follows every rule in your instructions.' : '');
   // Anthropic's 1-hour tier is a cache WRITE at 2x (the design's measured 1.27x on the voice call): asked only of an Anthropic

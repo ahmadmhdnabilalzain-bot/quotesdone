@@ -46,6 +46,7 @@ export async function priceToken(stripe: StripeCall, ct: string, quoteAmount: nu
 export type PayArgs = {
   ct: string; quoteAmount: number; rate: number; expectedTotalFils: number;
   email: string; qdCustomerId: string; quoteId: string; inquiryId: string; supplierId: string;
+  /** the stored letter (_shared/quote_labels.ts); '' when the customer was shown no letter for this supplier */
   requestRef: string; letter: string; returnUrl: string;
 };
 export type PayResult =
@@ -99,7 +100,7 @@ export async function payReveal(stripe: StripeCall, a: PayArgs): Promise<PayResu
   const inf = new URLSearchParams({
     customer, currency: 'aed', collection_method: 'charge_automatically', auto_advance: 'false',
     pending_invoice_items_behavior: 'exclude',
-    description: 'Reveal fee — ' + a.requestRef + ' / Supplier ' + a.letter, footer: INVOICE_FOOTER,
+    description: 'Reveal fee — ' + a.requestRef + ' / Supplier' + (a.letter ? ' ' + a.letter : ''), footer: INVOICE_FOOTER,
   });
   for (const [k, v] of Object.entries(md)) inf.set(`metadata[${k}]`, v);
   const inv = await stripe('invoices', inf, 'qd-inv-' + a.quoteId + '-' + a.qdCustomerId + '-g' + generation);

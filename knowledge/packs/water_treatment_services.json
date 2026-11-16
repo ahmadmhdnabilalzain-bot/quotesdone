@@ -137,7 +137,19 @@
         }
       ],
       "site_visit_required_when": "A site survey of the systems is needed before a firm price when no asset list exists.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site survey"
+        },
+        {
+          "shot": "Each installed unit, with its label or nameplate readable",
+          "shot_ar": "كل وحدة مركّبة مع وضوح ملصقها أو لوحتها التعريفية",
+          "from": "survey of the systems"
+        }
+      ]
     },
     {
       "id": "water_treatment_services:uae-standards-and-approvals",

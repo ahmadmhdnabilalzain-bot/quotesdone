@@ -24,7 +24,7 @@ const code = (s) => s.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).j
 
 test('the customer-only keys are dropped and seeded at every door', () => {
   const site = code(F('_shared/site_location.ts'));
-  assert.match(site, /CUSTOMER_ONLY_SPEC_KEYS = \['site_location', 'old_supplier_terms', 'site_keys', 'customer_rates'\]/);
+  assert.match(site, /CUSTOMER_ONLY_SPEC_KEYS = \['site_location', 'old_supplier_terms', 'site_keys', 'customer_rates', 'site_photos'\]/);
   const gate = code(F('supplier_api/what_a_supplier_receives.ts'));
   assert.match(gate, /supplierField<T>\(spec == null \? spec : supplierSpec\(spec, emirate\)/, 'supplierBrief must apply supplierSpec before the gate');
   assert.match(gate, /if \(o\.revealed\) return \{ summary: forSource\([^\n]*revealedSpec\(/, 'a revealed supplier gets forSource and never the old supplier\'s terms');

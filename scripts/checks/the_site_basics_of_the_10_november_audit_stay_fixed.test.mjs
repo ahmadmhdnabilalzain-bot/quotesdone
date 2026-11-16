@@ -69,8 +69,9 @@ test('legal pages: the Supplier Agreement body is closed at render, every docume
     // a balanced document comes back byte-for-byte
     if (!/^supplier-agreement/.test(slug)) assert.equal(html, raw, `${slug}/${lang} was changed though it was balanced`);
   }
-  // measured 10 Nov 2026: the current v17 and the archived v10, v11, v12, v13, v14, v15, v16, in both languages
-  assert.equal(repaired, 16, `the render repaired ${repaired} documents`);
+  // measured 10 Nov 2026: the current v17 and the archived v10, v11, v12, v13, v14, v15, v16, in both languages (16); since 15 Nov 2026
+  // the current v18 and the archived v10 to v17 (18)
+  assert.equal(repaired, 18, `the render repaired ${repaired} documents`);
   const doc = code(read('src/components/LegalDoc.tsx'));
   assert.match(doc, /const html = closeUnclosedBody\(arDoc\(d\.html, locale\)\);/);
   assert.match(doc, /const bodyEl = dropFirstH1\(takeByClass\(html, 'body'\)\?\.el \?\? html\);/);

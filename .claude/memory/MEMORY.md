@@ -6,6 +6,7 @@ one copy: read this index first, and change these files by PR when you learn som
 Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 
 ## Standing rules and founder facts
+- [Find the real-company holes yourself, and build them (16 Nov)](find-the-real-company-holes-yourself.md) — ledgers 1711-1713: the founder is never the one who finds a hole; every session hunts (customer, supplier, operations, failures), ranks by likelihood × harm, and builds the fix as a colleague reading the shared record, never a keyword rule
 - [A rehearsal on production holds the locks of a real change (13 Nov)](a-rehearsal-on-production-holds-the-locks-of-a-real-change.md) — 28 rolled-back rehearsals queued 103 live requests and 11 cron jobs; the 8 s timeout cancelled a certificate, an approval and a customer's acceptance; local first (`scripts/db/local_pg16.mjs`), a production replay is never the default and is cut at 5 s, the real apply uses lock_timeout and a quiet minute
 - [GitHub is the single source of truth (26 Oct)](github-is-the-single-source-of-truth.md) — ledger 1278: nothing lives only on the laptop; memory here, text reports in docs/reports/, binaries and third-party files in the private `evidence` bucket, licence PDF stays in Dropbox
 - [The LLM understands; code only checks (12 Nov)](the-llm-understands-code-only-checks.md) — ledger 1663, 1664, 1666: licences, profiles, the sales agent, any chat: the model reads and code never interprets first or overrides; the bar is the model's own app; "code first" was never the rule for these
@@ -51,6 +52,9 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Never ask about campaign go or subscriptions](do-not-ask-about-campaign-go-or-subscriptions.md) — 22 Sep: he decides go; WhatsApp templates + deliverability tests are Claude's
 - [Launch only when perfect; test in a sandbox](launch-only-when-perfect-sandbox.md)
 - [Launch governance loop closed](launch-governance-loop-closed.md) + [All approvals are the CEO's, refunds included](refunds-belong-to-the-ceo.md) — 8 Sep: nothing goes to the founder
+- [The CEO decides inside limits held as data (15 Nov)](the-ceo-decides-inside-limits-held-as-data.md) — ledger 1696/1701: full authority, nothing waits on the founder (daily summary is information); AED limits append-only with a 24-hour wait; profit first via supplier coverage per trade per emirate, the CEO orders seats with measured outcomes
+- [The CEO plans every week and code checks every order (15 Nov)](the-ceo-plans-every-week-and-code-checks-every-order.md) — ledger 1705/1706/1709: one planning pack, a weekly Opus plan and a daily review only on an anomaly; code refuses unsafe channels with their alternative, gate-failing recipients, money over limits; priors learn; no hire, the founder works his own network (utm_source founder) and is told who is stuck
+- [An order is a conversation until its outcome (16 Nov)](an-order-is-a-conversation-until-its-outcome.md) — founder: "how do they talk to each other?": plan with own tools within 12 h, CEO answer, milestone check-ins, retro, next decision, lesson to every seat; turns are held questions checked by code; think() `decision.authored`
 - [The only hard rules + operating doctrine](the-only-hard-rules-and-operating-doctrine.md) — 3% reveal, top-3, non-response 3%, AED 20k/5× (was 15k/3×); ~95/5 deterministic
 - [Autonomous company is the standard](autonomous-company-is-the-standard.md) — AED 1M by Aug 2027
 - [Surfaces are held for future agents](payments-are-held-for-the-accountant-agent.md) — delete only what no agent will own
@@ -63,7 +67,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Founder mail goes through founder_mail_policy](founder-mail-goes-through-founder-mail-policy.md) — fn_notify_founder needs p_kind
 - [The estate could not email a file](the-estate-could-not-email-a-file.md) — fixed 9 Sep: notifications.attachments + send_outbox v43
 - [Founder's landline and mobile](founder-landline-and-mobile.md) — 2 Nov: no longer public (ledger 1482)
-- [A contact-only terms version asks nobody to sign again](a-contact-only-terms-version-asks-nobody-to-sign-again.md) — 2 Nov: Supplier Agreement v17 + app_secrets supplier_terms_carries_from; deploy functions BEFORE the apply
+- [A contact-only terms version asks nobody to sign again](a-contact-only-terms-version-asks-nobody-to-sign-again.md) — 2 Nov: Supplier Agreement v17 + app_secrets supplier_terms_carries_from; deploy functions BEFORE the apply (v18, 15 Nov, carries v17 the same way)
 - [No observe mode — plain login](no-observe-mode-plain-login.md) — mobile number + OTP
 - [Links he shares are standing, not per-task](links-he-shares-are-standing-not-per-task.md)
 - [Expenses email is the source of truth](expenses-email-source-of-truth.md) · [Resend inbound keeps ~1 month](resend-inbound-retention-is-about-a-month.md) · [Accountant only sees what was forwarded](the-accountant-only-sees-what-was-forwarded.md)
@@ -85,7 +89,9 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Quote the cost before spending](quote-the-cost-before-spending.md)
 - [Payments are the accountant; talks to sales](payments-are-the-accountant-and-talk-to-sales.md) — payment paths owned by accountant, portals speak only as sales engineer
 - [No exact spec → offer alternatives](no-exact-spec-offer-alternatives.md) — support asks; yes = accepted spec, no = apology
+- [The customer is asked in plain words and sees one letter per supplier (15 Nov)](the-customer-is-asked-in-plain-words-and-sees-one-letter-per-supplier.md) — letters STORED once in customer_supplier_letter when first shown (quote_labels recordShown/storedLetters), never guessed; customer_questions.ts owns plain EN/AR card wording + glossary
 - [Exact specs or the quote is held](exact-specs-or-the-quote-is-held.md) — per-line specs per trade; missing → hold; PDFs pro + fully Arabic
+- [Quotation validity is what the supplier states (15 Nov)](quotation-validity-is-what-the-supplier-states.md) — ledger 1697: no period of ours anywhere; none stated = no expiry, "not stated by the supplier"; Supplier Agreement v18 §12 says the same and carries v17 (nobody re-signs)
 - [Code extremely well built](code-extremely-well-built.md) — PERMANENT: independent review before EVERY merge; what can be coded is coded, EXCEPT understanding a document or a person (corrected 12 Nov, ledger 1664)
 - [Nothing is one-way](nothing-is-one-way.md) — every handoff/report tracked, replied, re-verified and closed by the originator
 - [Always name the seat](always-name-the-seat.md) — never say "an agent"; commits signed by the owning seat

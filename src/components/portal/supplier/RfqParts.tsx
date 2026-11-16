@@ -24,6 +24,44 @@ import { ws } from './workspaceCopy';
 type Lang = 'en' | 'ar' | string;
 const EASE = [0.16, 1, 0.3, 1] as const;
 
+// ── Photos from the site (15 Nov 2026, sales_engineer; founder ledger 1704, ruling 1683) ────────────────────────────────────
+// supplier_api inbox's `site_photos` (supplier_api/site_photos_door.ts): ONLY the copies the worker's photo check released and
+// recorded, signed for an hour by the recorded-path signer; which asked shots the photos show and which were not provided; and the
+// line that a final price may still need a visit. A photo still being checked, or withheld, is not in `urls` at all. Suppliers are
+// written in English (founder, 28 Sep 2026).
+export type SitePhotosView = { title: string; urls: string[]; provided: string[]; not_provided: string[]; text: string } | null | undefined;
+export function SitePhotos({ photos }: { photos: SitePhotosView }) {
+  if (!photos || (!photos.urls?.length && !photos.not_provided?.length && !photos.provided?.length)) return null;
+  const n = photos.urls.length;
+  return (
+    <section className="qd-frame mt-4" data-testid="site-photos" lang="en">
+      <div className="qd-frame-bar">
+        <i /><i /><i />
+        <span className="ms-1 min-w-0 truncate font-mono text-label uppercase tracking-caps text-muted-foreground">{photos.title || 'Photos from the site'} (checked copies)</span>
+        <span className="ms-auto shrink-0 font-mono text-label tabular-nums text-muted-foreground">{n} photo{n === 1 ? '' : 's'}</span>
+      </div>
+      {n ? (
+        <ul className="grid grid-cols-3 gap-2 p-3 sm:grid-cols-4 md:grid-cols-6">
+          {photos.urls.map((u, k) => (
+            <li key={k}>
+              <a href={u} target="_blank" rel="noopener noreferrer" aria-label={'Open photo ' + (k + 1)}
+                className="block aspect-4/3 w-full overflow-hidden rounded-chip border border-(--line2) bg-black/30 hover:border-primary/60 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
+                {/* oxlint-disable-next-line nextjs/no-img-element */}
+                <img src={u} alt={'Photo from the site ' + (k + 1)} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <dl className="space-y-1 px-3 pb-3 text-[12.5px]">
+        {photos.provided?.length ? <div><dt className="inline font-semibold text-foreground">Shots provided: </dt><dd className="inline text-foreground/90">{photos.provided.join('; ')}</dd></div> : null}
+        {photos.not_provided?.length ? <div><dt className="inline font-semibold text-foreground">Not provided: </dt><dd className="inline text-foreground/90">{photos.not_provided.join('; ')}</dd></div> : null}
+        <div className="text-muted-foreground">{n ? '' : 'No checked photo yet. '}A final price may still need a site visit.</div>
+      </dl>
+    </section>
+  );
+}
+
 // ── Drawing pages ────────────────────────────────────────────────────────────────────────────────
 // `failed` is supplier_api inbox's drawing_pages_failed: pages that EXIST on the inquiry and could not
 // be signed. Showing the supplier fewer drawings than exist, saying nothing, is the defect this counts

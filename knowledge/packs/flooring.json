@@ -172,7 +172,29 @@
       ],
       "site_visit_required_when": "A site visit is genuinely needed when the existing floor will be overlaid or removed, when screed flatness or moisture is unknown, or when no measured drawing exists.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "The floor as it is now, with a close-up of its surface",
+          "shot_ar": "الأرضية بحالتها الحالية، مع صورة قريبة لسطحها",
+          "from": "existing floor"
+        },
+        {
+          "shot": "The surface from a low angle, so slopes and dips show",
+          "shot_ar": "السطح من زاوية منخفضة لتظهر الميول والانخفاضات",
+          "from": "flatness"
+        },
+        {
+          "shot": "Close-ups of any damp, stains or leaks, with something for scale",
+          "shot_ar": "صور قريبة لأي رطوبة أو بقع أو تسريب، مع شيء يوضح الحجم",
+          "from": "moisture"
+        },
+        {
+          "shot": "Each opening or area, straight on, with a tape measure across it if you have one",
+          "shot_ar": "كل فتحة أو مساحة من الأمام مباشرة، مع شريط قياس عليها إن توفر",
+          "from": "measured"
+        }
+      ]
     },
     {
       "id": "flooring:uae-standards-and-approvals",

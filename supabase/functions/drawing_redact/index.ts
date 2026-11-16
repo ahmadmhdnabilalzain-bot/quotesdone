@@ -41,6 +41,7 @@ import { asciiDxfOf } from '../_shared/cad_file_redact.ts';
 import { TIME_HELD, callTimeoutMs, deadlinesFrom } from '../_shared/drawing_deadline.ts';
 
 import { instructingRuns, verifyVerdict } from './verify_verdict.ts';
+import { PHOTO_VERIFY_SYS, photoBudget, photoPageSize } from '../_shared/site_photo_gate.ts';
 
 // ── DETERMINISTIC REDACTION, 14 Sep 2026 ─────────────────────────────────────────────────────────
 // Every model route is held, so detection below fails and no drawing page has reached a supplier
@@ -229,12 +230,12 @@ const SELF = Deno.env.get('SUPABASE_URL')! + '/functions/v1/drawing_redact';
 // ── THE PIXEL GATE AND THE STRING READING (13 Nov 2026, design changes A and B; _shared/drawing_pixel_gate.ts,
 // _shared/drawing_string_reading.ts). Both are model calls through ai_gateway; neither is ever skipped: no key, the
 // model hold, a refusal or an unparseable answer is a HELD page or an unattached file.
-async function askPixels(key: string, authors: string, jpgB64: string, stopAt?: number): Promise<string | null> {
+async function askPixels(key: string, authors: string, jpgB64: string, stopAt?: number, sys: string = PIXEL_VERIFY_SYS): Promise<string | null> {
   try {
     // Cut at the stop plus a grace (round 5; drawing_deadline.callTimeoutMs); the gateway is told how long we wait.
     const ms = callTimeoutMs(stopAt, 55_000);
     const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(ms),
-      body: JSON.stringify({ __secret: key, fn: 'drawing_redact_verify', counterpart_model: authors, client_timeout_ms: ms, response_format: { type: 'json_object' }, temperature: 0, sys: PIXEL_VERIFY_SYS,
+      body: JSON.stringify({ __secret: key, fn: 'drawing_redact_verify', counterpart_model: authors, client_timeout_ms: ms, response_format: { type: 'json_object' }, temperature: 0, sys,
         input: [{ role: 'user', content: [{ type: 'text', text: 'Check this page as the supplier will see it. Return the JSON.' }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + jpgB64 } }] }] }) });
     const jd = await r.json().catch(() => null);
     if (!r.ok || !jd || jd.truncated === true || jd.finish_reason === 'length' || typeof jd.content !== 'string') return null;
@@ -307,11 +308,11 @@ function oriented(size: PageSize, jpgB64: string): PageSize {
 /** The size a page with no better measure is checked at: the larger of A1 and what its pixels imply. */
 function sizeOfPixels(jpgB64: string): PageSize { const px = jpegSize(b64ToBytes(jpgB64)); return pageSizeFromPixels(px?.w ?? 2600, px?.h ?? 1838); }
 /** One page through the gate, TILED to its physical size; the answer carries the calls and USD it spent. */
-async function gatePage(key: string | undefined, held: boolean, secret: string, authors: string, jpgB64: string, budget: PixelBudget, size?: PageSize, stopAt?: number, vet?: Vet): Promise<PixelOutcome> {
+async function gatePage(key: string | undefined, held: boolean, secret: string, authors: string, jpgB64: string, budget: PixelBudget, size?: PageSize, stopAt?: number, vet?: Vet, sys: string = PIXEL_VERIFY_SYS): Promise<PixelOutcome> {
   if (held || !key) return { ok: false, held: 'pixels_unverified', calls: 0, usd: 0, detail: { reason: held ? 'model_hold' : 'no_ai_key' } };
   const plan = planTiles(oriented(size ?? sizeOfPixels(jpgB64), jpgB64));
   // stopAt (drawing_deadline.ts): past it no view is asked and the page is held for time.
-  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b, stopAt), (b, regions) => paintElsewhere(secret, b, regions, stopAt), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m, stopAt), stopAt, vet });
+  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b, stopAt, sys), (b, regions) => paintElsewhere(secret, b, regions, stopAt), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m, stopAt), stopAt, vet });
 }
 /** Checker boxes left unpainted because they cover drawing vocabulary only (drawing_code_floor.vocabularyVet): logged and
  *  recorded on the run, so an over-eager checker is visible rather than silent. */
@@ -435,7 +436,17 @@ Deno.serve(observe('drawing_redact', async (req) => {
       // The worker sends the sheet's size when it knows it (page_mm: a CAD drawing's, from its text heights); a scan is
       // checked as the larger of A1 and what its pixels imply.
       const pm = body.page_mm, size = pm && Number(pm.w) > 0 && Number(pm.h) > 0 ? { wMm: Number(pm.w), hMm: Number(pm.h), from: 'cad' as const } : undefined;
-      const g = await gatePage(key, held, String(body.__secret || ''), String(body.authors || 'deterministic'), stripB64(body.jpg_b64), await budgetInFlight(body.source_path, body.spent_usd), size, clock.stopAt);
+      // A SITE PHOTO (15 Nov 2026, ledger 1704; _shared/site_photo_gate.ts) is looked at with the photo prompt (faces, plates,
+      // house numbers), through the same gate, the same budget and the same fail-closed verdict parser.
+      // It is tiled as a PHOTO (an A4 sheet in its own aspect: a few tiles, not an A1 sheet's twenty) and spends at most
+      // PHOTO_USD_CAP across its rounds and the worker's retries (review of bf8b9ea45, item 6; _shared/site_photo_gate.ts).
+      const photo = body.subject === 'site_photo';
+      const sys = photo ? PHOTO_VERIFY_SYS : PIXEL_VERIFY_SYS;
+      const jpg = stripB64(body.jpg_b64);
+      const px = photo ? jpegSize(b64ToBytes(jpg)) : null;
+      const setBudget = await budgetInFlight(body.source_path, body.spent_usd);
+      const photoSize = photo ? photoPageSize(px?.w ?? 1600, px?.h ?? 1200) : size, gateBudget = photo ? photoBudget(setBudget, body.spent_usd) : setBudget;
+      const g = await gatePage(key, held, String(body.__secret || ''), String(body.authors || 'deterministic'), jpg, gateBudget, photoSize, clock.stopAt, undefined, sys);
       return J(g.ok ? { ok: true, jpg_b64: g.jpgB64, pixel_calls: g.calls, pixel_usd: g.usd, first_look_clean: fileMayBeShared(g) } : { ok: true, held: g.held, pixel_calls: g.calls, pixel_usd: g.usd, detail: g.detail, ...budgetSaid(g.held) });
     }
     if (body.mode === 'read_strings') {

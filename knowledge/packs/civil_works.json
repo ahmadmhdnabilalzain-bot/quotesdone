@@ -344,7 +344,19 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed to confirm access for the drilling rig and the borehole positions.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "access"
+        }
+      ]
     },
     {
       "id": "civil_works:building-permit-contractor-role",
@@ -663,7 +675,29 @@
         }
       ],
       "site_visit_required_when": "A site visit is genuinely needed to see access, levels, neighbours and services before a firm villa price.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "photos_to_ask": [
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "access"
+        },
+        {
+          "shot": "The surface from a low angle, so slopes and dips show",
+          "shot_ar": "السطح من زاوية منخفضة لتظهر الميول والانخفاضات",
+          "from": "levels"
+        },
+        {
+          "shot": "The boundary and anything right next to the work (walls, neighbours, trees)",
+          "shot_ar": "الحدود وكل ما يجاور مكان العمل مباشرة (جدران، جيران، أشجار)",
+          "from": "neighbours"
+        },
+        {
+          "shot": "The pipes, cables and connections at the point where it will be connected",
+          "shot_ar": "الأنابيب والكابلات ونقاط التوصيل في مكان التركيب",
+          "from": "services"
+        }
+      ]
     },
     {
       "id": "civil_works:structural-steel-works",

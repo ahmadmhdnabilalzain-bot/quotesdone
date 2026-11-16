@@ -20,10 +20,10 @@
       }
     },
     "supplier-agreement": {
-      "version": "v17",
-      "date": "2026-11-02",
+      "version": "v18",
+      "date": "2026-11-15",
       "carries_acceptance_from": [
-        "v16"
+        "v17"
       ],
       "registry_slug": "supplier-agreement",
       "page_slug": "legal_supplier_body",
@@ -353,6 +353,7 @@
       "supplier-agreement-v15",
       "terms-v10",
       "supplier-agreement-v16",
+      "supplier-agreement-v17",
       "privacy-v1.6",
       "refund-policy-v1.8",
       "disclaimer-v1.3"

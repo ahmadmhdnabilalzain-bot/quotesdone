@@ -173,7 +173,8 @@ Deno.test('the CAD worker\'s calls of one job are counted in the set\'s budget b
   for (const m of ['gate', 'read_strings']) assertMatch(branch(m), /await budgetInFlight\(body\.source_path, body\.spent_usd\)/, `mode ${m}`);
   assertMatch(edge, /b\.spend\(Math\.max\(0, Number\(spentUsd\) \|\| 0\)\)/);
   const worker = Deno.readTextFileSync(new URL('../../../scripts/cad_read_worker.ts', import.meta.url));
-  assertEquals([...worker.matchAll(/spent_usd: spent\.get\(job\.id\) \?\? 0/g)].length, 2, 'both worker calls send the job\'s spend');
+  // three since 15 Nov 2026: the gate, the string reading, and a site photo's final look (scripts/cad_read_worker.ts sitePhoto)
+  assertEquals([...worker.matchAll(/spent_usd: spent\.get\(job\.id\) \?\? 0/g)].length, 3, 'every worker call sends the job\'s spend');
 });
 
 Deno.test('READ ONCE, the rule itself: a reading is taken for the same file only, never for another or a malformed one', async () => {

@@ -9,12 +9,19 @@
 //
 // Deterministic, in this order: the supplier's own ex-VAT figure from the portal; "not VAT
 // registered"; a stated subtotal plus a VAT amount; "excluding VAT"; "including VAT" with the VAT
-// amount or rate stated. Anything else — including silence — is not stated, never assumed.
+// amount or rate stated (or, with no rate, the supplier's TRN or his own lines adding up to the total less exactly 5%: the
+// UAE rate). A stated basis his own figures contradict is not settled (basis_conflict, below). Anything else — including
+// silence — is not stated, never assumed.
 import { normText } from './model.ts';
 import { findTrn } from '../identity_numbers.ts';
 
 export type VatTreatment = 'exclusive' | 'inclusive' | 'not_registered' | 'zero_rated' | 'exempt' | 'not_stated' | 'confirmed_on_portal';
-export type VatRead = { treatment: VatTreatment; price_ex_vat: number | null; vat_amount: number | null; vat_rate: number | null; trn: string | null };
+export type VatRead = {
+  treatment: VatTreatment; price_ex_vat: number | null; vat_amount: number | null; vat_rate: number | null; trn: string | null;
+  /** The supplier's stated basis contradicts his own figures: a total exactly 5% above his line amounts, called "before VAT".
+   *  Not settled: no ex-VAT figure, the quote is held and he is asked the VAT question (accountant, 15 Nov 2026). */
+  basis_conflict?: true;
+};
 
 const NOT_REG = /not\s*(?:vat\s*)?registered(?:\s*for\s*vat)?|no\s*vat\s*(?:applicable|charged)?\b|vat\s*(?:is\s*)?not\s*applicable|غير مسجل(?:ة)?\s*(?:في|ب|لدى)?\s*(?:ضريبة|الضريبة)|بدون ضريبة|لا توجد ضريبة/i;
 // 15 Sep 2026: "prices exclude VAT" read as not stated — INCL already took "include(s)", EXCL did not.
@@ -64,25 +71,89 @@ function clauseBasis(t: string): 'exclusive' | 'inclusive' | null {
 const RATE = /(\d+(?:\.\d+)?)\s*%\s*(?:vat|ضريبة)|(?:vat|ضريبة(?: القيمة المضافة)?)\s*(?:@|at|بنسبة|of)?\s*(\d+(?:\.\d+)?)\s*%/i;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-export function readVat(i: { amount: number | null; subtotal?: number | null; vat_amount?: number | null; text?: string | null; stated?: string | null; price_ex_vat?: number | null }): VatRead {
+// ── A TOTAL THAT IS EXACTLY THE LINES PLUS 5% IS A TOTAL WITH VAT IN IT (accountant, 15 Nov 2026) ──────────────────────────
+// Measured on the live site (journey A, run 8288bec3): Polar Tech Contracting's quotation carried a TRN and one total, "Total
+// price (inclusive of VAT) AED 18,854.85", over six lines adding up to AED 17,957.00 (17,957.00 x 1.05 = 18,854.85). Its
+// reading failed (HTTP 503), the form said "before VAT", and readVat took the stated basis (and a portal figure equal to the
+// total) over the figures: stored as excluding VAT 18,854.85, VAT none. The comparison ranked it 5% too high and the reveal
+// fee would have been 3% of 18,854.85 instead of 17,957.00. A free-text "explanation" of the 5% gap then released it.
+// Now: the supplier's own lines, when they add up to the total less exactly the UAE 5% VAT, are evidence of the basis.
+//   - stated (or written) INCLUSIVE + the lines fit       -> price excluding VAT = total / 1.05 (the lines' own sum, to the fils)
+//   - stated INCLUSIVE + a valid UAE TRN, no rate written  -> total / 1.05: a VAT-registered UAE supplier charges the 5% rate
+//   - stated EXCLUSIVE (or a portal ex-VAT figure equal to the total) + the lines fit -> NOT settled (basis_conflict): held,
+//     and the supplier is asked the one VAT question, unless he has already answered that question on the hold desk
+//   - inclusive with no TRN, no rate, no VAT amount and no lines that fit -> not settled, as before: never guessed
+/** Rounding of the total to the fils: the floor of the tolerance, whatever the number of lines. */
+export const VAT_GAP_TOLERANCE = 0.05;
+/** The gap allowed between a total and its lines plus 5%. VAT rounded to the fils line by line drifts by up to half a fils
+ *  per line, and the total by half a fils more, so the tolerance grows with the lines: 0.05 up to 9 lines, 0.10 at 19
+ *  (independent review of 15 Nov 2026: a fixed 0.05 sent a 12-line VAT-inclusive quote back to the gross-as-ex-VAT reading). */
+export const vatGapTolerance = (lines?: number | null): number => Math.max(VAT_GAP_TOLERANCE, 0.005 * ((Number(lines) > 0 ? Math.floor(Number(lines)) : 0) + 1));
+/** True when `total` is `linesSum` plus exactly the UAE 5% VAT (to the fils, within vatGapTolerance of `lines` lines). */
+export function vatOnTopOfLines(linesSum: number | null | undefined, total: number | null | undefined, lines?: number | null): boolean {
+  const s = Number(linesSum), t = Number(total);
+  if (!(s > 0) || !(t > 0) || t <= s) return false;
+  return Math.abs(t - s * 1.05) <= vatGapTolerance(lines) + 1e-9;
+}
+const UAE_RATE = 5;
+/** HIS ANSWER STANDS WHILE HE SAYS THE SAME THING (ruling 1207; independent review of 15 Nov 2026). An answer to the VAT
+ *  question (hold desk, chat, or carried from an earlier submission of the same option) settles the basis only while the
+ *  basis now stated is that answer, or nothing, or an ex-VAT figure typed on the portal. A different basis stated later is a
+ *  new statement, and the figures are read again: "including VAT" answered and "before VAT" sent afterwards is asked again. */
+export function answerStands(answer: string | null | undefined, stated: string | null | undefined): boolean {
+  const a = String(answer ?? '').trim(); if (!a) return false;
+  const s = String(stated ?? '').trim();
+  return !s || s === 'not_stated' || s === 'confirmed_on_portal' || s === a;
+}
+
+export function readVat(i: {
+  amount: number | null; subtotal?: number | null; vat_amount?: number | null; text?: string | null; stated?: string | null; price_ex_vat?: number | null;
+  /** The sum of the supplier's priced lines (ex-VAT as itemised), single-option quotations only. */
+  lines_sum?: number | null;
+  /** How many priced lines make up lines_sum: VAT rounded line by line widens the tolerance (vatGapTolerance). */
+  lines_count?: number | null;
+  /** The supplier's TRN when it came from his document but not through `text` (a model reading, the portal form). */
+  trn?: string | null;
+  /** He answered the VAT-basis question (on the hold desk, or in the chat review): his answer stands, the figures no longer
+   *  reopen it (ruling 1207). */
+  answered?: boolean;
+}): VatRead {
   const t = normText(String(i.text ?? ''));
-  const trn = findTrn(String(i.text ?? ''));
+  const trn = findTrn(String(i.text ?? '')) || (/^100\d{12}$/.test(String(i.trn ?? '')) ? String(i.trn) : null);
   const rm = t.match(RATE); const rate = rm ? Number(rm[1] || rm[2]) : null;
   const amt = Number(i.amount) > 0 ? Number(i.amount) : null;
   const vat = Number(i.vat_amount) > 0 ? Number(i.vat_amount) : null;
   const sub = Number(i.subtotal) > 0 ? Number(i.subtotal) : null;
   const base = { vat_amount: vat, vat_rate: rate, trn };
-  if (Number(i.price_ex_vat) > 0) return { treatment: 'confirmed_on_portal', price_ex_vat: r2(Number(i.price_ex_vat)), ...base };
+  // The figures say VAT is in the total, and nothing written says what it is: the supplier is asked (see the note above).
+  const fits = vatOnTopOfLines(i.lines_sum, amt, i.lines_count);
+  const gap = !i.answered && !vat && !sub && fits;
+  const conflict = (): VatRead => ({ treatment: 'not_stated', price_ex_vat: null, ...base, basis_conflict: true });
+  if (Number(i.price_ex_vat) > 0) {
+    // A portal ex-VAT figure that IS the VAT-inclusive total (the lines plus exactly 5%) settles nothing.
+    if (gap && amt && Math.abs(Number(i.price_ex_vat) - amt) <= VAT_GAP_TOLERANCE) return conflict();
+    return { treatment: 'confirmed_on_portal', price_ex_vat: r2(Number(i.price_ex_vat)), ...base };
+  }
   if (i.stated === 'not_registered' || NOT_REG.test(t)) return { treatment: 'not_registered', price_ex_vat: amt, ...base, vat_amount: null };
   if (sub && vat) return { treatment: 'exclusive', price_ex_vat: sub, ...base };
   if (i.stated === 'zero_rated' || (i.stated !== 'inclusive' && i.stated !== 'exclusive' && ZERO_RATED.test(t) && !(vat && vat > 0))) return { treatment: 'zero_rated', price_ex_vat: amt, ...base, vat_amount: null };
   if (i.stated === 'exempt' || (i.stated !== 'inclusive' && i.stated !== 'exclusive' && EXEMPT.test(t) && !(vat && vat > 0))) return { treatment: 'exempt', price_ex_vat: amt, ...base, vat_amount: null };
   const basis = clauseBasis(t);
-  if (i.stated === 'exclusive' || (i.stated !== 'inclusive' && basis === 'exclusive')) return { treatment: 'exclusive', price_ex_vat: amt, ...base };
+  if (i.stated === 'exclusive' || (i.stated !== 'inclusive' && basis === 'exclusive')) {
+    // "Subtotal 17,957 / total 18,854.85, prices exclude VAT": the VAT is added on top of the subtotal, which is the price.
+    if (sub && vatOnTopOfLines(sub, amt)) return { treatment: 'exclusive', price_ex_vat: sub, ...base };
+    return gap ? conflict() : { treatment: 'exclusive', price_ex_vat: amt, ...base };
+  }
   if (i.stated === 'inclusive' || basis === 'inclusive') {
     if (amt && vat && vat < amt) return { treatment: 'inclusive', price_ex_vat: r2(amt - vat), ...base };
+    // An inclusive total over lines that fit: the price before VAT is the lines' own sum, to the fils, never total / 1.05
+    // (2,100.04 over lines of 2,000.00 is 2,000.00, not 2,000.04: the 4 fils are VAT rounding, not price).
+    if (amt && fits && (!rate || rate === UAE_RATE)) return { treatment: 'inclusive', price_ex_vat: r2(Number(i.lines_sum)), ...base, vat_rate: UAE_RATE };
     if (amt && rate && rate > 0 && rate < 100) return { treatment: 'inclusive', price_ex_vat: r2(amt / (1 + rate / 100)), ...base };
+    // No VAT amount and no rate written: the UAE rate applies when the document shows the supplier charges it, by his own
+    // lines (they add up to the total less exactly 5%, above) or by his TRN (a VAT-registered UAE supplier charges 5%).
+    if (amt && trn) return { treatment: 'inclusive', price_ex_vat: r2(amt / (1 + UAE_RATE / 100)), ...base, vat_rate: UAE_RATE };
     return { treatment: 'inclusive', price_ex_vat: null, ...base };
   }
-  return { treatment: 'not_stated', price_ex_vat: null, ...base };
+  return gap ? conflict() : { treatment: 'not_stated', price_ex_vat: null, ...base };
 }

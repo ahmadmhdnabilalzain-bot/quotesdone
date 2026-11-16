@@ -150,7 +150,24 @@
       ],
       "site_visit_required_when": "a firm price needs measured window sizes; without them a site measure visit is unavoidable, and fabric must be chosen by code or a sample approved.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site measure"
+        },
+        {
+          "shot": "Each opening or area, straight on, with a tape measure across it if you have one",
+          "shot_ar": "كل فتحة أو مساحة من الأمام مباشرة، مع شريط قياس عليها إن توفر",
+          "from": "measured"
+        },
+        {
+          "shot": "Each window, straight on, from inside",
+          "shot_ar": "كل نافذة من الأمام مباشرة، من الداخل",
+          "from": "window"
+        }
+      ]
     },
     {
       "id": "curtains_blinds:uae-standards-and-approvals",
