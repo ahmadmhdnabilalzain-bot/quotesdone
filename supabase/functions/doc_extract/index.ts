@@ -18,6 +18,10 @@ import { observe } from '../_shared/observe.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
 import { pdfjsText } from '../_shared/doc_read/pdf.ts';
 import { textOfRead } from '../_shared/read_every_attachment.ts';
+// SheetJS reads workbooks and .doc/.msg in this isolate, for this function's own reads AND for the read_workbook /
+// read_compound_file ops supplier_api sends here (workbook_op.ts; why: _shared/doc_read/workbook_engine.ts).
+import '../_shared/doc_read/workbook_local.ts';
+import { workbookOp } from './workbook_op.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -133,6 +137,10 @@ Deno.serve(observe('doc_extract', async (req) => {
     else await logThrottled('bad_secret',60,'error',{stage:'auth'},'doc_extract rejected a caller presenting the wrong inbound secret. If this is the scheduled drainer, the document extraction queue is not being processed and supplier documents stay unread.');
     return j({error:'unauthorized'},401);
   }
+  // THE WORKBOOK-ENGINE OPS (16 Nov 2026): answered after the same credential gate and before the document queue, which
+  // they never touch. They need no cred_fn_ai, so a missing gateway secret does not stop a supplier's workbook being read.
+  const __op = await workbookOp(body);
+  if (__op) return j(__op.body, __op.status);
   GW=String(secret);
   // The OpenRouter key now lives only inside ai_gateway; what this function needs is the inbound secret.
   const apiKey=GW;

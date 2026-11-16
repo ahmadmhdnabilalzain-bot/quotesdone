@@ -1,3 +1,4 @@
+import '../_shared/doc_read/workbook_local.ts'; // reads workbooks and .doc/.msg here with SheetJS (why one line: that file's header)
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
 import { readEveryAttachment, envGatewayVision, untrustedBlock } from '../_shared/read_every_attachment.ts';

@@ -1,3 +1,4 @@
+import '../_shared/doc_read/workbook_local.ts'; // reads workbooks and .doc/.msg here with SheetJS (why one line: that file's header)
 import { siteCors } from '../_shared/site_origins.ts';
 import { clearerCopyAsk } from '../_shared/clearer_copy.ts';
 // supplier_catalog_ingest — SPEC FILE #5 §7. A CATALOGUE IN, PRODUCT RECORDS OUT.
