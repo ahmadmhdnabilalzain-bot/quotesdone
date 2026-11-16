@@ -40,6 +40,15 @@
 -- PRODUCTION SIGNAL after the apply: the next tenant agent_runs row reads handed >= 1 whenever a stranger has written, and
 --   inbound_messages gains rows with to_email info@quotesdone.com and provider_email_id 'm365:...'.
 
+-- review 16 Nov: the order is enforced, not only written: without the reading a stranger's mail would take the unread unknown-sender path
+do $order$
+begin
+  if not (public.fn_is_supplier_mailbox_mail('info@quotesdone.com') and public.fn_is_supplier_mailbox_mail('management@quotesdone.com'))
+     or pg_get_constraintdef((select oid from pg_constraint where conname = 'mailbox_reply_decision_reading_check')) not like '%legal_or_press%' then
+    raise exception 'apply info_and_management_mail_is_read_before_it_is_answered.sql (after deploying email_triage) first: strangers would be answered unread';
+  end if;
+end $order$;
+
 insert into public.app_secrets (key, value)
 values ('m365_tenant_strangers_from', to_char(now() at time zone 'utc', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))
 on conflict (key) do nothing;
