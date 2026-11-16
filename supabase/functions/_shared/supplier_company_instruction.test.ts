@@ -7,6 +7,7 @@
 // reading a model returns for that message, in English or Arabic, and proves what code does with it.
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import { type Ask, type Facts, INSTRUCTION_SYS, supplierInstructionTurn } from './supplier_instruction.ts';
+import { memberMayInstruct } from './supplier_company.ts';
 
 const BASE: Facts = {
   supplier_id: 42, standing: null,
@@ -208,4 +209,50 @@ Deno.test('S19 EN owner: the owner himself saying "the owner left" opens nothing
   const no = await turn({ kind: 'owner_left', reason: 'he left' }, 'the owner left', BASE, VIEWER,
     { fn_supplier_ownership_claim_open: { ok: false, code: 'not_a_member', error: 'Only a member of this company can ask to take it over.' } });
   assertMatch(no.r.outcome!.facts, /Only a member of this company/);
+});
+
+// THE OWNER'S REPLY KEEPS HIS COMPANY, AND ONLY THE OWNER'S (REVIEW2 W3PEOPLE, 16 Nov 2026). Both owner notices of a claim say "or
+// reply to this e-mail"; the reader kind owner_keeps calls fn_supplier_ownership_claim_object, which closes the member's claim. A
+// member who writes the very same words, and whom the model reads the very same way, must reach no routine at all: he is not the
+// owner, and keeping the company is the owner's word alone. ZZ DEMO addresses only; the model is a stub.
+const KEEP_EN = 'I have not left. I am still the owner of this company and I do not agree that anyone takes it over.';
+const KEEP_AR = 'لم أترك الشركة، ما زلت المالك ولا أوافق على نقل الحساب لأي شخص.';
+const KEPT = { ok: true, claim_id: 9, state: 'objected' };
+
+Deno.test('S20 the reader knows owner_keeps, and only the owner may give it', () => {
+  assert(INSTRUCTION_SYS.includes('- owner_keeps:'));
+  assert(memberMayInstruct('owner', 'owner_keeps'));
+  assert(!memberMayInstruct('estimator', 'owner_keeps') && !memberMayInstruct('viewer', 'owner_keeps'));
+});
+
+Deno.test('S20 EN/AR owner: "I am still the owner" keeps the company in his own name, and he is told so', async () => {
+  for (const msg of [KEEP_EN, KEEP_AR]) {
+    const { r, a } = await turn({ kind: 'owner_keeps' }, msg, BASE, OWNER, { fn_supplier_ownership_claim_object: KEPT });
+    assertEquals(fns(a), ['fn_supplier_ownership_claim_object']);
+    assertEquals(a.calls[0].args, { p_lead: 42, p_actor: 'zz-demo-owner@example.invalid' });
+    assertEquals(r.outcome!.done, true);
+    assertMatch(r.outcome!.facts, /He keeps the company/);
+  }
+  const none = await turn({ kind: 'owner_keeps' }, KEEP_EN, BASE, OWNER, { fn_supplier_ownership_claim_object: { ok: true, nothing_waiting: true } });
+  assertMatch(none.r.outcome!.facts, /No member has asked/);
+});
+
+Deno.test('S20 EN/AR estimator and viewer: the same words, read the same way, reach no routine and keep nothing', async () => {
+  for (const sender of [ESTIMATOR, VIEWER]) {
+    for (const msg of [KEEP_EN, KEEP_AR]) {
+      const { r, a, m } = await turn({ kind: 'owner_keeps' }, msg, BASE, sender, { fn_supplier_ownership_claim_object: KEPT });
+      assertEquals(m.seen.length, 1);              // the model did read it as owner_keeps
+      assertEquals(fns(a), []);                    // and code stopped it before any routine
+      assertEquals(r.outcome!.kind, 'owner_keeps');
+      assertEquals(r.outcome!.done, false);
+      assertMatch(r.outcome!.facts, /not its owner/);
+    }
+  }
+});
+
+Deno.test('S20 a sender the door took for the owner, whom the routine does not (the owner changed): refused plainly, nothing kept', async () => {
+  const { r, a } = await turn({ kind: 'owner_keeps' }, KEEP_EN, BASE, OWNER, { fn_supplier_ownership_claim_object: { ok: false, code: 'owner_only' } });
+  assertEquals(fns(a), ['fn_supplier_ownership_claim_object']);
+  assertEquals(r.outcome!.done, false);
+  assertMatch(r.outcome!.facts, /Only the owner of the company can keep it\. Nothing was changed\./);
 });
