@@ -57,8 +57,18 @@ const STOP = new Set(['llc', 'l.l.c', 'trading', 'general', 'contracting', 'comp
 const digits = (s: string) => (s.match(/\d[\d,.]*/g) ?? []).map((x) => x.replace(/,/g, '').replace(/\.+$/, '')).filter(Boolean);
 
 /** Why a written reason may not be shown (a figure not his own, the chosen supplier's name), or null when it is clean. */
+// review supplierw2 (adversarial customer words): Arabic-Indic digits, spelled numbers and ranks passed the digit check, and a brand or
+// person the customer named was never checked. Digits are made ASCII first; a number or rank word, or a capitalised word the customer
+// used mid-sentence (a brand, a person, a company) that is not in his own quotation, refuses the reason.
+const NUMBER_WORDS = /\b(two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty|forty|fifty|hundred|thousand|million|percent|per\s*cent|half|quarter|double|twice|second|third|fourth|fifth|last|cheapest|lowest|highest|rank(?:ed|ing)?)\b/i;
+const asciiDigits = (s: string) => s.replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (c) => String(c.charCodeAt(0) & 0xf));
+const namedByCustomer = (words: string | null) => [...String(words || '').matchAll(/(?<![.!?]\s|^)\b([A-Z][A-Za-z&'-]{2,})/g)].map((m) => m[1]);
+
 export function lossLeaks(text: string, d: LossDue): string | null {
-  const t = String(text || '');
+  const t = asciiDigits(String(text || ''));
+  const nw = t.match(NUMBER_WORDS); if (nw) return 'number or rank word ' + nw[1].toLowerCase();
+  const ownText = [d.ref, d.trade, d.mine?.lead_time, d.mine?.exclusions].map((v) => String(v ?? '')).join(' ');
+  for (const w of namedByCustomer(d.decision_reason)) if (new RegExp('\\b' + w + '\\b').test(t) && !ownText.includes(w)) return 'customer named ' + w;
   const own = new Set<string>();
   for (const v of [d.mine?.ex_vat, d.mine?.lead_time, d.ref]) for (const x of digits(String(v ?? ''))) { own.add(x); own.add(String(Number(x))); }
   const a = num(d.mine?.ex_vat); if (a != null) { own.add(String(Math.round(a))); own.add(a.toFixed(2)); }

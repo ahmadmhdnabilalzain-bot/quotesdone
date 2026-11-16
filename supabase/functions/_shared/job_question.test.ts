@@ -87,3 +87,13 @@ Deno.test('a reading with an unparseable answer is unreadable; an "answered" wit
   assertEquals((await readFirstAnswer(() => Promise.resolve('{"verdict":"answered","answer":""}'), 'q', 'f'))?.verdict, 'ask_customer');
   assertMatch(seAnswerMail({ category: 'tiling', emirate: 'Dubai' }, 'Q?', 'A.').body, /Our sales engineer answered from the request's own details/);
 });
+
+Deno.test('a CUSTOMER\'s question about one quote (asked_by customer) is never answered to every bidder nor put back to him (review customerw2)', async () => {
+  const w = world({ rfq_clarification: { id: 9, inquiry_id: 'i-1', supplier_id: 7, question: 'Does your price include the valves?', asked_by: 'customer', answered_at: null, se_read_at: null, customer_chased_at: null } });
+  let asked = false;
+  const out = await firstAnswer(w, () => { asked = true; return Promise.resolve('{"verdict":"answered","answer":"Yes."}'); }, 9);
+  assertEquals(out.verdict, 'gone');
+  assert(!asked, 'the model is not even asked');
+  assertEquals(await chaseCustomer(w, 9), false);
+  assertEquals([w.updates.length, w.queued.length], [0, 0], 'nothing written, nobody told');
+});

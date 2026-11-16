@@ -76,6 +76,11 @@ create table if not exists public.supplier_member (
 create unique index if not exists supplier_member_one_company_uq on public.supplier_member (email) where status in ('invited', 'active', 'screening');
 create index if not exists supplier_member_lead_idx on public.supplier_member (lead_id) where status in ('invited', 'active', 'screening');
 alter table public.supplier_member enable row level security;
+-- A sanctions hit on a member names WHICH member (review supplierw2): two colleagues whose names match the same listing entry are two
+-- hits, and each member counts again only once his own hits are decided. The hit's unique key is widened to include it in
+-- the_weekly_sanctions_screen_checks_every_member_of_a_company.sql, with the two weekly writers that name that key.
+alter table public.supplier_screening_hit add column if not exists member_id bigint references public.supplier_member (id);
+create index if not exists supplier_screening_hit_member_idx on public.supplier_screening_hit (member_id) where member_id is not null;
 drop policy if exists supplier_member_service_role_only on public.supplier_member;
 create policy supplier_member_service_role_only on public.supplier_member as permissive for all to public using (false) with check (false);
 revoke all on public.supplier_member from anon, authenticated;
@@ -112,7 +117,7 @@ as $fn$
              when m.status = 'active' then true
              when m.status = 'screening' then not exists (
                select 1 from public.supplier_screening_hit h
-                where h.lead_id = m.lead_id and h.field = 'member' and h.supplier_value = m.name and h.status <> 'false_positive')
+                where h.member_id = m.id and h.status <> 'false_positive')
              else false end
       from public.supplier_member m where m.id = p_member), false);
 $fn$;
@@ -182,9 +187,11 @@ begin
          or (cardinality(s.toks) >= 2 and cardinality(e.tokens) >= 2 and e.tokens <@ s.toks))
   loop
     v_hits := v_hits + 1;
-    insert into public.supplier_screening_hit (run_id, lead_id, field, supplier_value, entry_id, entry_name, entry_source, entry_reference, entry_type, match_kind, score)
-    values (h.run_id, m.lead_id, 'member', m.name, h.entry_id, h.name, h.source, h.reference, h.entry_type, h.kind, h.score)
-    on conflict (lead_id, entry_source, entry_reference, field) do nothing;
+    -- no conflict target: valid under the key of today (a second member on the same entry is then not recorded) and under the
+    -- widened key that includes member_id (the weekly screen file), where both are.
+    insert into public.supplier_screening_hit (run_id, lead_id, field, supplier_value, member_id, entry_id, entry_name, entry_source, entry_reference, entry_type, match_kind, score)
+    values (h.run_id, m.lead_id, 'member', m.name, m.id, h.entry_id, h.name, h.source, h.reference, h.entry_type, h.kind, h.score)
+    on conflict do nothing;
     if found then v_new := v_new + 1; end if;
   end loop;
   update public.supplier_member set screened_at = now(), screen = jsonb_build_object('hits', v_hits, 'new', v_new),
@@ -499,7 +506,12 @@ begin
   if not found or not public.fn_supplier_member_counts(m.id) then return jsonb_build_object('ok', false, 'code', 'not_an_active_member'); end if;
   v_from := lower(l.claimed_by);
   update public.supplier_member set status = 'became_owner', removed_at = now(), removed_by = 'ownership_transfer' where id = m.id;
-  update public.leads set claimed_by = t.to_email, owner_email_verified = true, portal_updated_at = now() where id = p_lead;
+  -- review supplierw2: the former owner's own channels stop speaking as the owner. His confirmed WhatsApp (fn_whatsapp_owner's lead
+  -- branch) and the listed address resend_inbound accepts would otherwise outlive his removal; the new owner sets his number in Settings.
+  update public.leads set claimed_by = t.to_email, owner_email_verified = true, portal_updated_at = now(),
+         email = case when lower(coalesce(email, '')) = v_from then t.to_email else email end,
+         whatsapp_opt = 'none', whatsapp_phone = null, whatsapp_verified_at = null
+   where id = p_lead;
   insert into public.supplier_member (lead_id, email, name, role, status, invited_by, accepted_at, email_verified_at, screened_at, screen)
   values (p_lead, v_from, coalesce(nullif(btrim((select contact_name from public.leads where id = p_lead)), ''), 'Former owner'),
           'estimator', 'active', 'ownership_transfer', now(), now(), now(), jsonb_build_object('former_owner', true));
@@ -520,13 +532,17 @@ alter table public.rfq_clarification
   add column if not exists se_verdict         text,
   add column if not exists customer_asked_at  timestamptz,
   add column if not exists customer_chased_at timestamptz,
-  add column if not exists asked_by_email     text;
+  add column if not exists asked_by_email     text,
+  -- review customerw2 (16 Nov 2026): the sales_engineer branch "a customer asks one supplier about its quote" adds the same column
+  -- (same type and default) for a CUSTOMER's question about one quote. Declared here too so either file may apply first; every
+  -- reading below takes only the suppliers' questions, so a customer's question is never answered to every bidder or put back to him.
+  add column if not exists asked_by           text not null default 'supplier';
 alter table public.rfq_clarification drop constraint if exists rfq_clarification_source_check;
 alter table public.rfq_clarification add constraint rfq_clarification_source_check
   check (source = any (array['portal', 'rfq_flag', 'rfq_note', 'missing_specs', 'email', 'whatsapp']));
 alter table public.rfq_clarification drop constraint if exists rfq_clarification_answered_by_ck;
 alter table public.rfq_clarification add constraint rfq_clarification_answered_by_ck
-  check (answered_by is null or answered_by in ('customer', 'sales_engineer'));
+  check (answered_by is null or answered_by in ('customer', 'supplier', 'sales_engineer'));   -- identical in both branches' files
 create index if not exists rfq_clarification_open_question_idx on public.rfq_clarification (asked_at)
   where kind = 'question' and answered_at is null;
 
@@ -543,6 +559,7 @@ as $fn$
            case when q.se_read_at is null then 'first_read' else 'chase' end as step
       from public.rfq_clarification q join public.inquiries i on i.id = q.inquiry_id
      where q.kind = 'question' and q.answered_at is null
+       and coalesce(q.asked_by, 'supplier') = 'supplier'   -- a customer's question about one quote has its own path (review customerw2)
        and coalesce(i.status, '') not in ('cancelled', 'closed', 'completed', 'expired', 'lost')
        and (q.se_read_at is null
             or (q.customer_asked_at is not null and q.customer_chased_at is null
@@ -597,8 +614,8 @@ as $fn$
     'kept', jsonb_build_array(
       'your company record, trade licence and the agreement you accepted (supplier checks: the relationship plus 5 years)',
       'your quotations, the requests they answered and any reveal, invoice or payment (tax records: 5 years from the end of the year they were made)',
-      'the messages exchanged with us and with customers (5 years after the account goes quiet, then their text is removed)'),
-    'law', 'UAE Personal Data Protection Law (Federal Decree-Law 45/2021) for your rights over your data; Cabinet Decision 74/2023, Art. 3 for the 5-year records rule')
+      'the messages exchanged with us and with customers (our own retention, not a legal duty: kept 5 years after the account goes quiet for any dispute or claim, then their text is removed)'),
+    'law', 'UAE Personal Data Protection Law (Federal Decree-Law 45/2021) for your rights over your data; Cabinet Decision 74/2023 (Tax Procedures Executive Regulation), Art. 3 for the 5-year tax records rule')
   from f;
 $fn$;
 revoke execute on function public.fn_supplier_what_the_law_keeps(bigint) from public, anon, authenticated;
@@ -701,9 +718,9 @@ begin
     || case when v_q = 'withdraw' then E'\n- ' || v_withdrawn || ' quotation' || case when v_withdrawn = 1 then ' was' else 's were' end || ' withdrawn from customers.'
             else E'\n- ' || v_kept || ' quotation' || case when v_kept = 1 then ' stays' else 's stay' end || ' with customers, as you chose: a customer may still reveal you on ' || case when v_kept = 1 then 'it' else 'them' end || ', and you are bound by ' || case when v_kept = 1 then 'it' else 'them' end || ' as quoted.' end
     || case when v_rev > 0 then E'\n- ' || v_rev || ' customer' || case when v_rev = 1 then ' who has' else 's who have' end || ' already paid to see your details keep that right; please still answer them.' else '' end
-    || E'\n\nWhat the law requires us to keep, and why:'
+    || E'\n\nWhat we keep, and why:'
     || E'\n- ' || (v_law->'kept'->>0) || E'\n- ' || (v_law->'kept'->>1) || E'\n- ' || (v_law->'kept'->>2)
-    || E'\nThese are kept until ' || to_char((v_law->>'kept_until')::date, 'DD Mon YYYY') || ' under ' || (v_law->>'law') || '. '
+    || E'\nThese are kept until ' || to_char((v_law->>'kept_until')::date, 'DD Mon YYYY') || ' (' || (v_law->>'law') || '). '
     || 'Nothing is used for marketing, and we do not share it except where the law requires.'
     || case when coalesce((v_law->>'legal_hold')::boolean, false) then E'\nAn open dispute, refund or unpaid amount on your account keeps those records until it is settled.' else '' end
     || E'\n\nYou can ask for a copy of your data at any time by replying to this e-mail. To come back, sign in to your portal and press "Reopen my account" (Settings).';

@@ -41,7 +41,8 @@ export async function companyOf(admin: Admin, email: string | null | undefined):
 // What only the owner does: the company's record, its papers, its money, its team and its account.
 export const OWNER_ONLY = new Set([
   'accept_terms', 'claim', 'create_company', 'save_profile', 'save_settings', 'capability_confirm', 'services_answer', 'services_resolve',
-  'services_rewrite', 'services_save_rewrite', 'transcribe_service_note', 'process_docs', 'pay_registration', 'dispute_charge',
+  // upload_url signs a path for the licence, profile or catalogue, so it is the owner's as process_docs is (review supplierw2).
+  'services_rewrite', 'services_save_rewrite', 'transcribe_service_note', 'upload_url', 'process_docs', 'pay_registration', 'dispute_charge',
   'set_availability', 'leave_quotes', 'remove_work', 'correction_decide',
   'member_invite', 'transfer_start', 'transfer_confirm', 'close_account', 'reopen_account',
 ]);

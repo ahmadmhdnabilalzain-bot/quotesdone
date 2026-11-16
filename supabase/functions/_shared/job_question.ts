@@ -43,7 +43,7 @@ export async function fileJobQuestion(admin: Admin, q: { supplierId: number; inq
   if (text.replace(/\[removed\]/g, '').trim().length < 3) return { ok: false, code: 'text_required' };
   // Five a day per supplier per request: enough to scope a job, too few to turn it into a chat (messages_api's rule, kept).
   const since = new Date(Date.now() - 24 * 3600e3).toISOString();
-  const { count } = await admin.from('rfq_clarification').select('id', { count: 'exact', head: true }).eq('inquiry_id', q.inquiryId).eq('supplier_id', q.supplierId).gte('asked_at', since);
+  const { count } = await admin.from('rfq_clarification').select('id', { count: 'exact', head: true }).eq('inquiry_id', q.inquiryId).eq('supplier_id', q.supplierId).eq('asked_by', 'supplier').gte('asked_at', since);
   if ((count || 0) >= 5) return { ok: false, code: 'too_many_questions' };
   const { data: ins, error } = await admin.from('rfq_clarification')
     .insert({ inquiry_id: q.inquiryId, supplier_id: q.supplierId, kind: 'question', question: text, source: q.source, asked_by_email: q.askedBy ?? null })
@@ -117,11 +117,13 @@ export type FirstOutcome = { id: number; verdict: 'answered' | 'ask_customer' | 
 
 /** The sales engineer's first reading of one question: answer from the facts for every bidder, or ask the customer. */
 export async function firstAnswer(admin: Admin, ask: Ask, id: number): Promise<FirstOutcome> {
-  const { data: row } = await admin.from('rfq_clarification').select('id,inquiry_id,supplier_id,question,asked_at,answered_at,se_read_at').eq('id', id).maybeSingle();
-  if (!row || row.answered_at || row.se_read_at) return { id, verdict: 'gone' };
+  const { data: row } = await admin.from('rfq_clarification').select('id,inquiry_id,supplier_id,question,asked_at,answered_at,se_read_at,asked_by').eq('id', id).maybeSingle();
+  // A CUSTOMER's question about one supplier's quote (asked_by 'customer', review customerw2) is never answered to every bidder
+  // nor put back to the customer as "Supplier B asks": it has its own path (messages_api clarify_ask_supplier).
+  if (!row || row.answered_at || row.se_read_at || row.asked_by === 'customer') return { id, verdict: 'gone' };
   const { data: inq } = await admin.from('inquiries').select('id,category,emirate,spec,status,customer_id').eq('id', row.inquiry_id).maybeSingle();
   if (!inq || isClosedRequest(inq.status)) return { id, verdict: 'gone' };
-  const { data: done } = await admin.from('rfq_clarification').select('question,answer').eq('inquiry_id', row.inquiry_id).not('answered_at', 'is', null).is('english_held_at', null).limit(20);
+  const { data: done } = await admin.from('rfq_clarification').select('question,answer').eq('inquiry_id', row.inquiry_id).eq('asked_by', 'supplier').not('answered_at', 'is', null).is('english_held_at', null).limit(20);
   const reading = await readFirstAnswer(ask, String(row.question), factsOf(inq as Inq, (done ?? []) as { question: string | null; answer: string | null }[])).catch(() => null);
   const now = new Date().toISOString();
   if (reading?.verdict === 'answered' && reading.answer) {
@@ -142,8 +144,8 @@ export async function firstAnswer(admin: Admin, ask: Ask, id: number): Promise<F
 
 /** The one reminder to the customer, after the clock. */
 export async function chaseCustomer(admin: Admin, id: number): Promise<boolean> {
-  const { data: row } = await admin.from('rfq_clarification').select('id,inquiry_id,supplier_id,question,asked_at,answered_at,customer_chased_at').eq('id', id).maybeSingle();
-  if (!row || row.answered_at || row.customer_chased_at) return false;
+  const { data: row } = await admin.from('rfq_clarification').select('id,inquiry_id,supplier_id,question,asked_at,answered_at,customer_chased_at,asked_by').eq('id', id).maybeSingle();
+  if (!row || row.answered_at || row.customer_chased_at || row.asked_by === 'customer') return false;
   const { data: inq } = await admin.from('inquiries').select('id,category,emirate,spec,status,customer_id').eq('id', row.inquiry_id).maybeSingle();
   if (!inq || isClosedRequest(inq.status)) return false;
   const { data: upd } = await admin.from('rfq_clarification').update({ customer_chased_at: new Date().toISOString() }).eq('id', id).is('customer_chased_at', null).is('answered_at', null).select('id');

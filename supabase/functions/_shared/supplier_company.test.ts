@@ -24,7 +24,7 @@ Deno.test('companyOf: owner, member, invitation, held, and nothing when the rout
 
 Deno.test('roles: the owner does all; an estimator quotes but never changes the company, its team or its account; a viewer reads', () => {
   for (const a of ['submit_quote', 'review_message', 'decline_request', 'customer_not_answering', 'inbox']) assert(memberMay('estimator', a).ok, a);
-  for (const a of ['save_profile', 'member_invite', 'transfer_start', 'close_account', 'set_availability', 'pay_registration', 'remove_work']) {
+  for (const a of ['save_profile', 'member_invite', 'transfer_start', 'close_account', 'set_availability', 'pay_registration', 'remove_work', 'upload_url', 'process_docs']) {
     const m = memberMay('estimator', a); assertEquals(m.ok ? null : m.code, 'owner_only', a);
   }
   for (const a of ['inbox', 'inquiry_detail', 'team', 'member_phone_code']) assert(memberMay('viewer', a).ok, a);

@@ -34,8 +34,11 @@ export async function supplierDirective(t: WaTurn): Promise<Response | undefined
       const parsed = await directiveRead();   // started beside the classification (above); asked here when it was not
       // THE READER IS DOWN (reprice_outage.ts, 10 Nov 2026): a message that states an amount is told so now and filed for
       // one more reading; nothing is applied on a guess. Without an amount it cannot be a re-price: the ordinary path answers.
+      // a VIEWER's confirmed number reads, it never re-prices, now or from a held reading (review supplierw2; supplier_company.ts
+      // VIEWER_MAY). Asked only when there is a price to change, so an ordinary message pays no extra round trip.
+      const viewer = async () => (await waSenderRole(admin, From)).role === 'viewer';
       const out0 = repriceOutagePlan(parsed, From, Body, MessageSid || null);
-      if (out0) {
+      if (out0 && !(await viewer())) {
         const { data: heldId, error: holdErr } = await admin.rpc('fn_reason_hold', out0.hold);
         const enabledO = (await sec('wa_autoreply_enabled')) === 'true';
         const r = enabledO ? await sendWa(From, out0.notice) : { ok: false, err: 'autoreply_disabled' };
@@ -53,7 +56,7 @@ export async function supplierDirective(t: WaTurn): Promise<Response | undefined
         return TW(200);
       }
       const ownAmount = parsed && parsed.outage !== true && parsed.change === true ? amountInOwnWords(parsed.amount, Body) : null;
-      if (ownAmount) {
+      if (ownAmount && !(await viewer())) {
         const { data: applied } = await admin.rpc('fn_supplier_apply_change', {
           p_phone: From, p_field: 'quote_price', p_value: ownAmount,
           p_inbound: Body.slice(0, 1500), p_channel: 'whatsapp',

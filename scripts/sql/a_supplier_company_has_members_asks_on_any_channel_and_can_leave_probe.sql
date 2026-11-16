@@ -79,6 +79,8 @@ begin
   perform public.fn_supplier_member_accept(v_view, null);
   if public.fn_supplier_company_of(v_view)->'held' is null then fails := fails || ' 3:acts_while_held'; end if;
   if not exists (select 1 from public.supplier_screening_hit where lead_id = s_a and field = 'member' and status = 'open') then fails := fails || ' 3:no_open_hit'; end if;
+  if not exists (select 1 from public.supplier_screening_hit h join public.supplier_member m on m.id = h.member_id
+                  where h.lead_id = s_a and h.field = 'member' and m.email = v_view) then fails := fails || ' 3:hit_does_not_name_the_member'; end if;
   -- the CEO task: a ZZ DEMO task files nothing (a000_org_task_demo_files_nothing, ruling 1199), so only the hit is asserted here
   update public.supplier_screening_hit set status = 'false_positive', decided_by = 'ceo', decided_at = now() where lead_id = s_a and field = 'member';
   if public.fn_supplier_company_of(v_view)->>'role' <> 'viewer' then fails := fails || ' 3:not_cleared'; end if;
@@ -97,6 +99,9 @@ begin
   if not coalesce((j->>'ok')::boolean, false) or (select claimed_by from public.leads where id = s_a) <> v_est then fails := fails || ' 4:confirm(' || coalesce(j::text, '') || ')'; end if;
   if public.fn_supplier_company_of(v_owner)->>'role' <> 'estimator' then fails := fails || ' 4:old_owner_not_member'; end if;
   if public.fn_supplier_company_of(v_est)->>'role' <> 'owner' then fails := fails || ' 4:new_owner'; end if;
+  -- review supplierw2: the former owner's confirmed WhatsApp and listed address stop speaking as the owner
+  if exists (select 1 from public.fn_whatsapp_owner('+971500000882') o) then fails := fails || ' 4:old_owner_number_still_names_company'; end if;
+  if (select lower(email) from public.leads where id = s_a) <> v_est then fails := fails || ' 4:old_owner_listed_address'; end if;
 
   -- 5. removal; a job question by e-mail
   if coalesce(public.fn_supplier_member_remove(s_a, v_owner, v_view)->>'code', '') <> 'owner_only' then fails := fails || ' 5:member_removed_member'; end if;
@@ -116,6 +121,17 @@ begin
   if not exists (select 1 from jsonb_array_elements(public.fn_job_questions_due(50)) x where (x->>'id')::bigint = v_cq and x->>'step' = 'chase') then fails := fails || ' 5:not_chased'; end if;
   update public.rfq_clarification set customer_chased_at = now() where id = v_cq;
   if exists (select 1 from jsonb_array_elements(public.fn_job_questions_due(50)) x where (x->>'id')::bigint = v_cq) then fails := fails || ' 5:chased_twice'; end if;
+  -- review customerw2: a supplier may be the one who answered (the customer-question branch's clarify_reply), and a CUSTOMER's
+  -- question about one quote is never a job question for every bidder. Where that branch's own check (a customer row names its
+  -- quote and his words) is already applied, this row is refused by it and the assertion is that branch's probe's.
+  update public.rfq_clarification set answered_by = 'supplier' where id = v_cq;
+  update public.rfq_clarification set answered_by = null where id = v_cq;
+  begin
+    insert into public.rfq_clarification (inquiry_id, supplier_id, kind, question, source, asked_by)
+    values (i2, s_b, 'question', 'ZZ DEMO does your price include the valves?', 'portal', 'customer') returning id into v_cq;
+    if exists (select 1 from jsonb_array_elements(public.fn_job_questions_due(50)) x where (x->>'id')::bigint = v_cq) then fails := fails || ' 5:customer_question_put_to_every_bidder'; end if;
+  exception when check_violation then null;
+  end;
   begin
     insert into public.rfq_clarification (inquiry_id, supplier_id, kind, question, source) values (i1, s_a, 'question', 'ZZ DEMO x', 'telegram');
     fails := fails || ' 5:unknown_source';

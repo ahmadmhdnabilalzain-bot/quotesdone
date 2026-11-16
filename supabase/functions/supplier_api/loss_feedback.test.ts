@@ -45,8 +45,15 @@ Deno.test('the check refuses the rival\'s amount, days, any other figure and the
 });
 
 Deno.test('EN: the model\'s clean reason is stored as written; a leaking one is replaced by the neutral line and marked refused', async () => {
-  const ok = await writeLossReason(() => Promise.resolve('Your price was lower, but the customer chose a supplier who visited the site and could start on Sunday.'), D);
+  const ok = await writeLossReason(() => Promise.resolve('Your price was lower, but the customer chose a supplier who visited the site and could start sooner.'), D);
   assertEquals(ok?.basis.written_by, 'model');
+  // review supplierw2: the rival's start day the customer named ("Sunday") is a date of the chosen quotation, refused
+  assertMatch(String(lossLeaks('The customer chose a supplier who could start on Sunday.', D)), /customer named Sunday/);
+  // Arabic-Indic digits, spelled numbers, ranks and a brand the customer named are refused
+  assertMatch(String(lossLeaks('The chosen quotation was AED \u0669\u0664\u0665\u0660.', D)), /figure 9450/);
+  assertMatch(String(lossLeaks('It was about twenty percent lower.', D)), /number or rank word/);
+  assertMatch(String(lossLeaks('Yours came third.', D)), /number or rank word/);
+  assertMatch(String(lossLeaks('The customer preferred Daikin units.', { ...D, decision_reason: 'they offered Daikin units' })), /customer named Daikin/);
   assertMatch(ok!.text, /visited the site/);
   const bad = await writeLossReason(() => Promise.resolve('The chosen supplier quoted AED 9,450 and 7 days.'), D);
   assertEquals(bad?.text, NEUTRAL);
