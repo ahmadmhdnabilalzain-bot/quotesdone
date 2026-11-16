@@ -73,3 +73,32 @@ Deno.test('every team action is listed for the door, and the door no longer offe
   const login = await Deno.readTextFile(new URL('../../../src/components/portal/supplier/core/Login.tsx', import.meta.url));
   assert(!/ask them to add you/.test(login) || /Settings, Team/.test(login), 'the screen names where the owner adds him');
 });
+
+// W3_PEOPLE, 16 Nov 2026 (wave-3 items 2 and 4): the company's referral link, and a member whose owner has left.
+Deno.test('the referral link is the company\'s, read by the company the door resolved; any member may read it', async () => {
+  const d = db({ fn_supplier_referral_link: { ok: true, referral_code: 'qdabc123def4', url: 'https://quotesdone.com/en/supplier?utm_content=qdabc123def4' } });
+  const [st, out] = await run(d, 'referral_link', { lead_id: 999 }, EST, 'zz-demo-e@example.invalid');
+  assertEquals([st, d.calls[0].fn, d.calls[0].args], [200, 'fn_supplier_referral_link', { p_lead: 5 }]);
+  assertEquals(out.referral_code, 'qdabc123def4');
+  const { VIEWER_MAY } = await import('../_shared/supplier_company.ts');
+  assert(VIEWER_MAY.has('referral_link') && VIEWER_MAY.has('ownership_claim'));
+});
+
+Deno.test('"our owner has left": the member asks in his own name with his words; the owner keeps it with one press', async () => {
+  const d = db({ fn_supplier_ownership_claim_open: { ok: true, claim_id: 9, state: 'open' } });
+  const [st] = await run(d, 'ownership_claim', { reason: 'ZZ DEMO the owner left in October', actor: 'zz-demo-o@example.invalid' }, EST, 'zz-demo-e@example.invalid');
+  assertEquals(st, 200);
+  assertEquals(d.calls[0].args, { p_lead: 5, p_actor: 'zz-demo-e@example.invalid', p_reason: 'ZZ DEMO the owner left in October', p_channel: 'portal' });
+  const o = db({ fn_supplier_ownership_claim_object: { ok: true, claim_id: 9, state: 'objected' } });
+  await run(o, 'ownership_claim_object', {}, OWNER);
+  assertEquals([o.calls[0].fn, o.calls[0].args], ['fn_supplier_ownership_claim_object', { p_lead: 5, p_actor: 'zz-demo-o@example.invalid' }]);
+  const { OWNER_ONLY } = await import('../_shared/supplier_company.ts');
+  assert(OWNER_ONLY.has('ownership_claim_object'));
+  for (const a of ['referral_link', 'ownership_claim', 'ownership_claim_object']) assert((TEAM_ACTIONS as readonly string[]).includes(a), a);
+});
+
+Deno.test('the team view says whether a claim on the company is waiting, so the owner sees it and the member sees its state', async () => {
+  const d = db({ fn_supplier_team: { owner: null, members: [] } });
+  const [, out] = await run(d, 'team', {}, OWNER);
+  assert('claim' in out, 'team answers the waiting claim (or null)');
+});

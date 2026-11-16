@@ -16,6 +16,14 @@ Deno.test('the rule names every fact the scenarios need and forbids invention, i
   assertMatch(OWN_REQUEST_RULE, /never say it is done/);
 });
 
+// CUSTOMER #10 (W3_PEOPLE, 16 Nov 2026): on day 14 he answered the follow-up "not yet, site visit Tuesday"; on Wednesday he asks
+// "any news?". The answer rides in each request's facts (`his_follow_up_answer`, scripts/sql/
+// a_customers_follow_up_answer_is_in_every_reading_of_his_request.sql); the rule names it so he is never asked what he already said.
+Deno.test('the rule names his last follow-up answer, so "any news?" is answered from what he already told us', () => {
+  assert(OWN_REQUEST_RULE.includes('his_follow_up_answer'), 'his_follow_up_answer');
+  assertMatch(OWN_REQUEST_RULE, /his_follow_up_answer[^.]*never ask him what happened/);
+});
+
 Deno.test('a sealed quote loses a known brand in its own words; a revealed one and the prices do not change', () => {
   const g = generaliseOwnRequestFacts(PACK);
   const [a, b] = g.identity.requests[0].quotes as Record<string, unknown>[];
