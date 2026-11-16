@@ -33,6 +33,8 @@ import { defaultDeps } from '../_shared/think.ts';
 import { commandIntent } from '../_shared/reasoned_decisions.ts';
 import { decideOpenReviews } from '../_shared/review_decide.ts';
 import { liveReviewIO } from '../_shared/review_request.ts';
+import { workEscalationClocks } from '../_shared/escalation_clock.ts';
+import { liveClockIO } from '../_shared/escalation_clock_io.ts';
 import { precedentBlock, recallCases, recallTrace } from '../_shared/case_recall.ts';
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -365,6 +367,17 @@ Deno.serve(observe('ceo_agent', async (req) => {
     // A request to review an automated decision is DECIDED here, on the owning seat's model of another
     // family than the original decision (_shared/review_decide.ts). Driven by the resilience_ping heartbeat (step
     // review_requests); the CEO seat runs it because routing is its, the verdict is the owning seat's.
+    // EVERY ESCALATION CARRIES A CLOCK (16 Nov 2026, rulings 1696/1706/1710; _shared/escalation_clock.ts). The heartbeat first puts
+    // every payer the live Stripe hold stopped on a clock (the switch is READ there, never written), then works the due clocks: the
+    // CEO's model decides, customer_support's model tells the person the decision or an honest status, and only what the CEO names a
+    // law for reaches the founder.
+    if (action === 'escalation_clocks') {
+      if (who !== 'ceo') return J({ error: 'only the ceo seat runs the escalation clocks' }, 403);
+      const { data: held, error: heldErr } = await admin.rpc('fn_held_payers_sync');
+      const worked = await workEscalationClocks(liveClockIO(admin), Math.min(5, Number(body.limit) || 3));
+      return J({ ok: true, held_payers: heldErr ? { error: heldErr.message } : held, worked });
+    }
+
     if (action === 'review_requests') {
       if (who !== 'ceo') return J({ error: 'only the ceo seat runs the review heartbeat' }, 403);
       const id = Number(body.id) > 0 ? Number(body.id) : undefined;

@@ -378,7 +378,7 @@ as $fn$
            'id', d.id, 'ref', 'ESC-' || d.id, 'due_for', d.due_for, 'kind', d.kind, 'channel', d.channel, 'audience', d.audience,
            'lang', d.lang, 'state', d.state, 'subject_line', d.subject_line, 'request_text', d.request_text, 'promised', d.promised,
            'promised_at', d.promised_at, 'hours_waiting', floor(extract(epoch from now() - d.promised_at) / 3600)::int,
-           'statuses_sent', d.statuses_sent, 'last_told_at', d.last_told_at, 'last_told_text', d.last_told_text,
+           'statuses_sent', d.statuses_sent, 'status_due', d.status_due_at <= now(), 'last_told_at', d.last_told_at, 'last_told_text', d.last_told_text,
            'ceo_decision', d.ceo_decision, 'ceo_reason', d.ceo_reason, 'founder_reason', d.founder_reason,
            'next_word_in_hours', (select rep_ from pol), 'switch_reads_off', (select v from off),
            'has_contact', d.requester ~ '@' or length(regexp_replace(d.requester, '[^0-9]', '', 'g')) >= 9,
@@ -545,10 +545,11 @@ begin
          closed_reason = coalesce(v_close, closed_reason),
          updated_at = now()
    where id = p_id;
-  if v_close is not null and c.source_table = 'support_ceo_report' then
+  -- the CEO report the escalation came from (a WhatsApp escalation names it in detail.report_id) is completed with the decision
+  if v_close is not null and coalesce(case when c.source_table = 'support_ceo_report' then c.source_id end, c.detail->>'report_id') is not null then
     update public.support_ceo_report set status = 'completed', completed_at = now(),
            completion_note = left('Decided by the CEO seat on escalation clock ESC-' || p_id || ' and told to the person by ' || coalesce(p_result->>'via', '?') || ': ' || coalesce(c.ceo_decision, ''), 1000)
-     where id::text = c.source_id and status in ('sent', 'accepted');
+     where id::text = coalesce(case when c.source_table = 'support_ceo_report' then c.source_id end, c.detail->>'report_id') and status in ('sent', 'accepted');
   end if;
   return jsonb_build_object('ok', true, 'id', p_id, 'sent', true, 'closed', v_close is not null);
 end $fn$;

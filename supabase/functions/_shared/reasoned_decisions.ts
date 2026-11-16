@@ -12,6 +12,7 @@
 import { readerOfTheirOwnText, think, withDeadline, type ThinkDeps, type ThinkResult, type Turn } from './think.ts';
 import { surfaceEffort } from './effort_policy.ts';
 import { handFaultToIt, type FaultReport } from './support_fault_handover.ts';
+import { isStanding, type Standing, STANDING_OPTIONS } from './escalation_clock.ts';
 
 export type Reasoned<T> = { value: T | null; result: ThinkResult };
 
@@ -32,7 +33,7 @@ export async function needsAPerson(deps: ThinkDeps, o: {
   audience?: 'customer' | 'supplier' | 'visitor'; dedupeKey?: string; subject?: Record<string, unknown>;
   /** What the surface knows to hand a reported fault to the it_engineer (support_fault_handover.ts); absent, nothing is filed. */
   fault?: Omit<FaultReport, 'message'>;
-}): Promise<Reasoned<boolean> & { fault?: boolean }> {
+}): Promise<Reasoned<boolean> & { fault?: boolean; standing?: Standing | null }> {
   const result = await think(deps, {
     seat: o.seat, surface: o.surface, question: o.message, dedupeKey: o.dedupeKey, subject: o.subject,
     context: { audience: o.audience ?? 'customer', conversation: o.conversation },
@@ -43,11 +44,16 @@ export async function needsAPerson(deps: ThinkDeps, o: {
       name: 'needs_a_person',
       options: NEEDS_PERSON_OPTIONS,
     },
+    // WHO IS WRITING, IN THE SAME CALL (customer_support, 16 Nov 2026; hole hunt item 4): a journalist, a lawyer or a regulator was
+    // answered at once as a new customer. The model reads it beside the person question (no second call, ruling 1663: never a word
+    // list); a surface that sees press, legal or regulator gives the holding line and hands the case to the CEO (escalation_clock.ts).
+    also: [{ key: 'standing', options: STANDING_OPTIONS }],
   });
   const fault = result.status === 'answered' && isSiteFault(result.decision?.choice);
   // the hand-over never stands in the reply's way and never throws (handFaultToIt answers filed:false with the reason)
   if (fault && o.fault) await handFaultToIt((fn, args) => deps.rpc(fn, args), { ...o.fault, message: o.message, conversation: o.fault.conversation ?? o.conversation });
-  return { value: result.status === 'answered' ? result.decision?.choice === 'needs_a_person' : null, result, fault };
+  const standing = result.status === 'answered' && isStanding(result.also?.standing) ? result.also!.standing as Standing : null;
+  return { value: result.status === 'answered' ? result.decision?.choice === 'needs_a_person' : null, result, fault, standing };
 }
 
 /** The founder's command: which intent in ceo_command_intent does it carry? (surface ceo.command_intent) */
