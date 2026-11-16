@@ -61,7 +61,8 @@ for (const d of DOORS) {
   test(`the ${d.door} reads the case before its model call and records it after the reply`, () => {
     const s = read(d.file);
     assert.match(s, /import \{ loadCaseContext, recordCaseExchange \} from '[./]+_shared\/case_context\.ts';/, `${d.file}: does not import the case helpers`);
-    const load = s.indexOf('await loadCaseContext(');
+    // the case may be read beside another read in one Promise.all (the supplier quotation chat reads his account too, supplier_known.ts)
+    const load = s.search(/await (Promise\.all\(\[)?loadCaseContext\(/);
     const call = s.indexOf(d.model, load);
     assert.ok(load > 0, `${d.file}: never loads the case`);
     assert.equal(s.indexOf('await loadCaseContext(', load + 1), -1, `${d.file}: loads the case more than once`);

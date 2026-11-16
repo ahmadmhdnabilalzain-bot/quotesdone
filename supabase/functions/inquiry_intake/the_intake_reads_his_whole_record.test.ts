@@ -42,7 +42,7 @@ const read = (d: ThinkDeps, extra: Partial<Parameters<typeof readCustomerRecord>
 Deno.test('the prompt gets his earlier requests, his open promises and his case, read as the other doors read them', async () => {
   const f = deps();
   const rec = await read(f.d);
-  assertEquals(f.calls.map((c) => c.fn).sort(), ['fn_customer_inquiry_facts', 'fn_person_open_promises', 'fn_support_open_cases']);
+  assertEquals(f.calls.map((c) => c.fn).sort(), ['fn_customer_inquiry_facts', 'fn_escalation_case_facts', 'fn_person_open_promises', 'fn_support_open_cases']);   // + the escalation clock's facts (case_context.ts)
   assertEquals(f.calls.find((c) => c.fn === 'fn_customer_inquiry_facts')?.args, { p_customer: CUST, p_limit: 10 });
   assertEquals(f.calls.find((c) => c.fn === 'fn_person_open_promises')?.args, { p_party_kind: 'customer', p_party_id: CUST, p_email: 'buyer@example.ae', p_phone: null, p_limit: 10 });
   assertEquals(f.calls.find((c) => c.fn === 'fn_support_open_cases')?.args, { p_party_kind: 'customer', p_party_id: CUST, p_email: 'buyer@example.ae', p_phone: null });

@@ -79,6 +79,8 @@ export function recordBlock(rec: CustomerRecord | null): string {
   }
   const m = rec.kase?.memory;
   if (m && m.ref && String(m.summaryText ?? '').trim()) lines.push(caseBlock(m));
+  // his open escalations and the founder's availability (escalation_clock.ts, read by loadCaseContext beside the case; '' when none)
+  if (String(rec.kase?.standing ?? '').trim()) lines.push(String(rec.kase!.standing).trim());
   if (!lines.length) return '';
   return ['THIS CUSTOMER\'S RECORD WITH US (read from our records on every channel: WhatsApp, e-mail, the portal; for you to know, not to recite):', ...lines,
     'HOW TO USE THIS RECORD: (a) This conversation is its own request: never fill its checklist, brief.details, already_provided or asked_keys from an earlier request or the case unless he says in this conversation that it is the same job; ask what this request still needs, never what this conversation already answered. '

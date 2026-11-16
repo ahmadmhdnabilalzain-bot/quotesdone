@@ -131,7 +131,7 @@ test('R1: the two live money routines keep what production added after the mirro
 
 test('R2: an overcharge return is not an open refund for the CEO\'s dispute remedy', () => {
   const d = body('fn_ceo_decides_post_reveal_dispute');
-  assert.match(d, /r\.status not in \('rejected', 'failed', 'cancelled'\)\s+and r\.reason_code is distinct from 'overcharge_return'\) then\s+v_effect := v_effect \|\| jsonb_build_object\('refund', 'already_open'\)/);
+  assert.match(d, /r\.status not in \('rejected', 'failed', 'cancelled'\)\s+and r\.reason_code is distinct from 'overcharge_return'\) then\s+(?:--[^\n]*\n\s+)?v_effect := v_effect \|\| jsonb_build_object\('refund', 'already_open'\)/);
   assert.match(d, /fn_refund_request\(round\(coalesce\(t\.total_charged, t\.reveal_fee, 0\) \* 100\)::bigint - v_over,/);
   assert.match(body('fn_accountant_dispute_remedy_tick'), /r\.reason_code is distinct from 'overcharge_return'\) then/);
 });
