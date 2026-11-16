@@ -46,7 +46,7 @@
 --
 -- Prevented by: scripts/checks/a_quotation_is_valid_for_the_period_the_supplier_states.test.mjs (this file's text, and no
 -- routine source in the repository fills an expiry with a period of its own) and this file's _probe.sql (run on a local
--- Postgres 16: 97 wordings read (63 of the first draft, 31 from the review of 15 Nov 2026 and 3 from the delta review of 16 Nov), 68 that state a validity and 29 that state none, the trigger on insert and update, the three reveal-period routines).
+-- Postgres 16: 99 wordings read (63 of the first draft, 31 from the review of 15 Nov 2026, 3 from the delta review of 16 Nov and 2 from review 3 of 16 Nov), 70 that state a validity and 29 that state none, the trigger on insert and update, the three reveal-period routines).
 -- Pending until the release applies it: scripts/sql/pending/<this name>.txt
 --
 -- THE APPLY MUST NOT FREEZE THE SITE: it adds a nullable column to quotes (ACCESS EXCLUSIVE, catalogue only, no rewrite) and
@@ -201,7 +201,7 @@ begin
 
   -- a warranty's own period is never the validity (delta review of 16 Nov 2026): "1 year warranty", "warranty validity 2 years",
   -- "warranty valid for 12 months", «الضمان سنة» are taken out, up to the next separator, before the validity's clause is found
-  v := regexp_replace(v, '\d+(?:\.\d+)? ?' || c_units || ' ?(?:warranty|guarantee)\M|(?:\mwarranty\M|\mguarantee\M|(?<![ء-ي])(?:الضمان|ضمان)(?![ء-ي]))[^;|,،.]*', ' ', 'g');
+  v := regexp_replace(v, '(?:^|(?<=[;|,،.]) ?)\d+(?:\.\d+)? ?' || c_units || ' ?(?:warranty|guarantee)\M|(?:\mwarranty\M|\mguarantee\M|(?<![ء-ي])(?:الضمان|ضمان)(?![ء-ي]))[^;|,،.]*', ' ', 'g');
   v := btrim(regexp_replace(v, '\s+', ' ', 'g'));
 
   -- THE VALIDITY'S OWN CLAUSE (review item 5): when the text names the validity ("valid", "validity", صالح, صلاحية, ساري ...),
