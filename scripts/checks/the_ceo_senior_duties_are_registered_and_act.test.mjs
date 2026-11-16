@@ -24,7 +24,9 @@ function newest(fn) {
 
 // contribution -> [duty, routine, what the routine must write for the duty to act]
 const DUTIES = {
-  C03: ['ceo.directive_review', 'fn_ceo_directive_review', /insert into public\.ceo_directive[\s\S]*'reason'/],
+  // C03, 16 Nov 2026 (L4_LOOPS, ledger 1535/1688): a missed directive is no longer re-issued automatically (it made chains of up to
+  // 4 misses); the review hands it to the CEO's queue once, where the CEO's model reissues or closes it.
+  C03: ['ceo.directive_review', 'fn_ceo_directive_review', /fn_directive_missed_to_the_ceo\(d\.id, null\)[\s\S]*'reason', v_reason/],
   C04: ['ceo.month_close', 'fn_ceo_month_close', /insert into public\.ceo_month_close[\s\S]*insert into public\.ceo_month_report/],
   C05: ['ceo.forecast_counter_action', 'fn_ceo_forecast_counter_action', /fn_ceo_directive_issue\(v_seat, 'forecast_at_risk'/],
   C06: ['ceo.improvement_burn_down', 'fn_ceo_improvement_burn_down', /fn_ceo_directive_issue\(i\.seat, 'improvement_backlog'/],

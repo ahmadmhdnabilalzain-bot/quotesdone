@@ -21,33 +21,32 @@ begin
   update public.agent_actions set status = 'done', evidence = coalesce(evidence, '{}'::jsonb) || '{"not_cited":{"reason":"probe clean start","by":"probe"}}'
    where status in ('pending', 'open') and kind <> 'handoff';
   delete from public.agent_actions where status in ('pending', 'open') and kind = 'handoff';
-  insert into public.seat_handoff_kind (type, from_seat, to_seat, meaning, handler, reply_within, originator_closes, owner_file)
-  values ('probe.dead', 'ceo', 'marketing', 'ZZ DEMO probe: a conversation whose handler was retired', 'fn_probe_handler_that_does_not_exist', interval '1 hour', false, 'scripts/sql/every_hand_over_has_an_owner_and_a_clock_and_closes_or_escalates_probe.sql'),
-         ('probe.live', 'it_engineer', 'marketing', 'ZZ DEMO probe: a live conversation the sender closes', 'fn_seat_answers_it_finding', interval '4 hours', true, 'scripts/sql/every_hand_over_has_an_owner_and_a_clock_and_closes_or_escalates_probe.sql')
-  on conflict do nothing;
+  -- a conversation whose handler was retired: the probe points event.act at a routine that does not exist (rolled back)
+  update public.seat_handoff_kind set handler = 'fn_probe_handler_that_does_not_exist'
+   where type = 'event.act' and from_seat = 'sales_engineer' and to_seat = 'sales_engineer';
 
   -- 1. the rows. A dead letter, a live late row answered by its receiver (the sender owes the close), a test row, two copies of
   --    one subject, a row of an unregistered kind, the CEO's own late row, a parked question of a seat
   insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, created_at)
-  values ('marketing', 'handoff', 'pending', 'low', 'probe dead letter',
-          jsonb_build_object('type', 'probe.dead', 'from', 'ceo', 'to', 'marketing', 'subject_table', 'probe', 'subject_id', 'dead:1'), 'probe', 'probe.dead:dead:1', now() - interval '3 days')
+  values ('sales_engineer', 'handoff', 'pending', 'low', 'probe dead letter',
+          jsonb_build_object('type', 'event.act', 'from', 'sales_engineer', 'to', 'sales_engineer', 'subject_table', 'probe', 'subject_id', 'dead:1'), 'probe', 'event.act:dead:1', now() - interval '3 days')
   returning id into v_dead;
   insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, created_at)
-  values ('marketing', 'handoff', 'pending', 'low', 'probe live answered',
-          jsonb_build_object('type', 'probe.live', 'from', 'it_engineer', 'to', 'marketing', 'subject_table', 'probe', 'subject_id', 'live:1',
-                             'replied_at', now() - interval '2 days', 'awaiting', 'it_engineer re-verification'), 'probe', 'probe.live:live:1', now() - interval '2 days')
+  values ('sales_engineer', 'handoff', 'pending', 'low', 'probe live answered',
+          jsonb_build_object('type', 'it.finding', 'from', 'it_engineer', 'to', 'sales_engineer', 'subject_table', 'probe', 'subject_id', 'live:1',
+                             'replied_at', now() - interval '2 days', 'awaiting', 'it_engineer re-verification'), 'probe', 'it.finding:live:1', now() - interval '2 days')
   returning id into v_live;
   insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, created_at)
-  values ('marketing', 'handoff', 'pending', 'low', 'ZZ DEMO probe test row',
-          jsonb_build_object('type', 'probe.live', 'from', 'it_engineer', 'to', 'marketing', 'subject_table', 'probe', 'subject_id', 'test:1', 'demo', true), 'probe', 'probe.live:test:1', now() - interval '2 days')
+  values ('sales_engineer', 'handoff', 'pending', 'low', 'ZZ DEMO probe test row',
+          jsonb_build_object('type', 'it.finding', 'from', 'it_engineer', 'to', 'sales_engineer', 'subject_table', 'probe', 'subject_id', 'test:1', 'demo', true), 'probe', 'it.finding:test:1', now() - interval '2 days')
   returning id into v_test;
   insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, created_at)
-  values ('marketing', 'handoff', 'pending', 'low', 'probe copy 1',
-          jsonb_build_object('type', 'probe.live', 'from', 'it_engineer', 'to', 'marketing', 'subject_table', 'probe', 'subject_id', 'dup:1'), 'probe', 'probe.live:dup:1', now() - interval '1 hour')
+  values ('sales_engineer', 'handoff', 'pending', 'low', 'probe copy 1',
+          jsonb_build_object('type', 'it.finding', 'from', 'it_engineer', 'to', 'sales_engineer', 'subject_table', 'probe', 'subject_id', 'dup:1'), 'probe', 'it.finding:dup:1', now() - interval '1 hour')
   returning id into v_dup1;
   insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, created_at)
-  values ('marketing', 'handoff', 'pending', 'low', 'probe copy 2',
-          jsonb_build_object('type', 'probe.live', 'from', 'it_engineer', 'to', 'marketing', 'subject_table', 'probe', 'subject_id', 'dup:1'), 'probe', 'probe.live:dup:1:second-filer', now() - interval '30 minutes')
+  values ('sales_engineer', 'handoff', 'pending', 'low', 'probe copy 2',
+          jsonb_build_object('type', 'it.finding', 'from', 'it_engineer', 'to', 'sales_engineer', 'subject_table', 'probe', 'subject_id', 'dup:1'), 'probe', 'it.finding:dup:1:second-filer', now() - interval '30 minutes')
   returning id into v_dup2;
   insert into public.agent_actions (agent, kind, status, risk, title, detail, target_table, target_id, created_at)
   values ('sales_engineer', 'probe_new_kind', 'pending', 'low', 'probe work of a kind nobody registered', '{"waiting_for":"someone"}'::jsonb, null, null, now() - interval '2 days')
@@ -164,11 +163,11 @@ begin
   if public.fn_ceo_directive_issue('marketing', 'improvement_backlog', 'probe:2', 'ZZ DEMO probe', 'never', 'select from nowhere_at_all', now() + interval '1 day', '{}'::jsonb) is not null then
     raise exception 'CHK<<PROBE FAILED: a directive was issued with a check that cannot run>>'; end if;
   -- the seat_audit check: the receiver that answered is not late; the sender that has not closed is
-  if exists (select 1 from public.v_handover_open h where h.owner_seat = 'marketing' and h.id = v_dup1 and h.overdue) then
+  if exists (select 1 from public.v_handover_open h where h.owner_seat = 'sales_engineer' and h.id = v_dup1 and h.overdue) then
     raise exception 'CHK<<PROBE FAILED: an hour-old hand-over reads late>>'; end if;
   update public.agent_actions set created_at = now() - interval '2 days', detail = detail || jsonb_build_object('replied_at', now() - interval '2 days', 'awaiting', 'it_engineer re-verification')
    where id = v_dup1;
-  if exists (select 1 from public.v_handover_open h where h.owner_seat = 'marketing' and h.id = v_dup1)
+  if exists (select 1 from public.v_handover_open h where h.owner_seat = 'sales_engineer' and h.id = v_dup1)
      or not exists (select 1 from public.v_handover_open h where h.owner_seat = 'it_engineer' and h.id = v_dup1 and h.overdue) then
     raise exception 'CHK<<PROBE FAILED: an answered hand-over is still counted against its receiver>>'; end if;
 
