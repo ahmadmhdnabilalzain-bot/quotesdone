@@ -1,4 +1,5 @@
 
+import '../_shared/doc_read/workbook_local.ts'; // reads workbooks and .doc/.msg here with SheetJS (why one line: that file's header)
 import { siteCors } from '../_shared/site_origins.ts';
 import { annotate, observe } from '../_shared/observe.ts';
 import { probeCaller } from '../_shared/probe_caller.ts';

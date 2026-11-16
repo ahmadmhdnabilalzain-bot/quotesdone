@@ -40,6 +40,7 @@
 //   general_turn.ts  the database answers first, the model words it, send, record, report
 //   burst.ts         the turn gate: several messages in a few seconds get one reply; a loop with an auto-responder stops
 //   holding.ts       the typing indicator and the holding line while the reply is written (ruling 1636)
+import '../_shared/doc_read/workbook_local.ts'; // reads workbooks and .doc/.msg here with SheetJS (why one line: that file's header)
 import { observe } from '../_shared/observe.ts';
 import { ackThenWork, detach } from '../_shared/async_webhook.ts';
 import { admin, TW, withTurnSecrets } from './shared.ts';

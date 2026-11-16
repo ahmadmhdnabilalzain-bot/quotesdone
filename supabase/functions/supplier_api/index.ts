@@ -15,7 +15,7 @@ import { afterResponse, readStoredDocsLater, rereadTogether, stuckReads } from '
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { safeInquiry } from './quote_review_actions.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
-import { type ActionCtx, J, admin, cors, failed } from './context.ts';
+import { type ActionCtx, J, SUPA_URL, admin, cors, failed, secretVal } from './context.ts';
 import { atTheDoor, emailClaimOf, warmOnly } from './lib/door.ts';
 import { arabicFinish } from './lib/arabic_quotation.ts';
 import { emailedQuotationThread, quoteReviewChatActions } from './actions/quote_review_chat.ts';
@@ -30,6 +30,16 @@ import { notForMeActions } from './actions/not_for_me.ts';
 import { emailQuote, emailQuoteRead } from './email_quote.ts';
 import { teamActions } from './actions/team.ts';
 import { companyOf, memberMay } from '../_shared/supplier_company.ts';
+import { registerWorkbookEngine } from '../_shared/doc_read/workbook_engine.ts';
+import { remoteWorkbookEngine } from '../_shared/doc_read/workbook_remote.ts';
+
+// WORKBOOKS AND .doc/.msg ARE READ IN doc_extract, NOT HERE (16 Nov 2026, it_engineer). This function's upload failed 413
+// at 4,695,339 bytes of local module graph; the vendored SheetJS was 503,237 of them. A supplier's workbook (and an
+// Outlook .msg or Word 97 .doc) now goes, base64, to doc_extract under cred_fn_supplier_api, whose scope must name
+// doc_extract (scripts/sql/the_supplier_api_reads_workbooks_through_doc_extract.sql). The read is the same SheetJS
+// read; a failure is a refusal of that one file (_shared/doc_read/workbook_remote.ts). SheetJS must not come back into
+// this graph: scripts/checks/every_office_reader_has_an_engine.test.mjs holds that, and the 4.4 MB budget.
+registerWorkbookEngine(remoteWorkbookEngine({ url: SUPA_URL, credential: () => secretVal('cred_fn_supplier_api') }));
 
 // The action groups, in the order their first action appeared in the old single if-chain. Each group is that
 // chain's own `if (…)` blocks, moved verbatim, and answers undefined when none of its actions is asked. The

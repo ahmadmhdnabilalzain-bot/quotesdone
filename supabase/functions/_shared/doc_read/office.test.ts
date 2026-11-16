@@ -2,6 +2,7 @@
 // deno test --no-lock --node-modules-dir=none supabase/functions/_shared/doc_read/office.test.ts
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { readDocx, readOdf, readPptx, readWorkbook } from './office.ts';
+import './workbook_local.ts'; // the SheetJS engine, as every function but supplier_api registers it (workbook_engine.ts)
 import { docmFixture, docxFixture, odsFixture, odtFixture, pptxFixture, xlsxFixture } from './office.fixtures.ts';
 import { ARABIC_LINE } from './text.fixtures.ts';
 
