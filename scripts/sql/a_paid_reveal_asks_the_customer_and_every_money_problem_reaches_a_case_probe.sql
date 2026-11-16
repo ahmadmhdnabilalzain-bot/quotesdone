@@ -11,6 +11,7 @@ declare
   v_tx uuid; v_tx2 uuid; v_tx3 uuid; v_tx4 uuid; v_tx5 uuid; v_tx6 uuid; v_q5 uuid; v_tok uuid; v_h bigint; v_d bigint; v_rev timestamptz; k int;
   r jsonb; w jsonb; st jsonb; v_n int; v_real_refunds int; v_real_disputes int; v_real_statements int;
   v_phone constant text := '+971 50 000 7313';
+  v_inq3 uuid; v_lead2 bigint; v_lead3 bigint; v_q7 uuid; v_q8 uuid; v_q9 uuid; v_tx7 uuid; v_tx8 uuid; v_tx9 uuid; v_d2 bigint; v_d3 bigint;
 begin
   perform set_config('qd.duty_fixtures', 'on', true);
   select count(*) into v_real_refunds from public.refunds;
@@ -164,11 +165,37 @@ begin
   -- 12-15. THE INTAKE'S READING ACTS (the apply, on held questions written as the reasoning queue writes them)
   insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key, qhash, expires_at)
   values ('customer_support', 'customer_support.dispute_intake', 'ZZ DEMO probe', '{}'::jsonb, '{}'::jsonb,
-          jsonb_build_object('transaction_id', v_tx2, 'party', 'customer', 'statement', 'ZZ DEMO yes he phoned me on Sunday', 'channel', 'widget'),
+          jsonb_build_object('transaction_id', v_tx2, 'party', 'customer', 'statement', 'ZZ DEMO yes he phoned me on Sunday', 'channel', 'whatsapp'),
           'probe', 'probe:afrev:12', md5('afrev12'), now() + interval '1 day') returning id into v_h;
   r := public.fn_reason_apply_customer_support__dispute_intake(v_h, '{"decision":{"choice":"supplier_contacted"}}'::jsonb);
-  if not exists (select 1 from public.reveal_contact_statement where transaction_id = v_tx2 and said = 'yes' and channel = 'widget') then
+  if not exists (select 1 from public.reveal_contact_statement where transaction_id = v_tx2 and said = 'yes' and channel = 'whatsapp') then
     raise exception 'CHK<<PROBE FAILED 12: "the supplier contacted me" was not recorded: %>>', r; end if;
+  -- 12b (review AFTERREVEAL item 5): that reading still answers him: a ticket (Terms clause 18) and a reply written by the model
+  if r->>'ticket' !~ '^QD-C-' or not exists (select 1 from public.complaint_tickets where ticket_no = r->>'ticket' and email = 'zz-afrev-customer@example.invalid')
+     or not exists (select 1 from public.customer_support_voice_owed where stage = 'dispute_intake.answer' and subject_key = v_h::text
+                      and draft like '%' || (r->>'ticket') || '%' and to_email = 'zz-afrev-customer@example.invalid') then
+    raise exception 'CHK<<PROBE FAILED 12b: "the supplier contacted me" left the customer without a ticket and a reply: %>>', r; end if;
+  -- 12c (item 6): the SAME reading of a website-chat turn records nothing; he is asked to confirm with one tap, and told so
+  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key, qhash, expires_at)
+  values ('customer_support', 'customer_support.dispute_intake', 'ZZ DEMO probe', '{}'::jsonb, '{}'::jsonb,
+          jsonb_build_object('transaction_id', v_tx, 'party', 'customer', 'statement', 'ZZ DEMO ok thanks he called', 'channel', 'widget'),
+          'probe', 'probe:afrev:12c', md5('afrev12c'), now() + interval '1 day') returning id into v_h;
+  v_n := (select count(*) from public.reveal_contact_statement where transaction_id = v_tx);
+  r := public.fn_reason_apply_customer_support__dispute_intake(v_h, '{"decision":{"choice":"supplier_contacted"}}'::jsonb);
+  if (select count(*) from public.reveal_contact_statement where transaction_id = v_tx) <> v_n then
+    raise exception 'CHK<<PROBE FAILED 12c: a widget reading wrote the customer''s word on contact: %>>', r; end if;
+  if not coalesce((r->>'confirm_link')::boolean, false) or not exists (select 1 from public.customer_support_voice_owed where stage = 'dispute_intake.answer'
+       and subject_key = v_h::text and draft like '%quotesdone.ae/u/followup?t=' || (select token from public.customer_followup where transaction_id = v_tx and stage = 'day_two_contact') || '%') then
+    raise exception 'CHK<<PROBE FAILED 12c: the widget reading did not ask him to confirm with one tap: %>>', r; end if;
+  -- 12d (item 5): "not a dispute" answers him too, with a ticket that stays open for the substantive answer
+  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key, qhash, expires_at)
+  values ('customer_support', 'customer_support.dispute_intake', 'ZZ DEMO probe', '{}'::jsonb, '{}'::jsonb,
+          jsonb_build_object('transaction_id', v_tx2, 'party', 'customer', 'statement', 'ZZ DEMO كم مدة الضمان على البلاط؟', 'channel', 'portal'),
+          'probe', 'probe:afrev:12d', md5('afrev12d'), now() + interval '1 day') returning id into v_h;
+  r := public.fn_reason_apply_customer_support__dispute_intake(v_h, '{"decision":{"choice":"not_dispute"}}'::jsonb);
+  if (select status from public.complaint_tickets where ticket_no = r->>'ticket') is distinct from 'acknowledged'
+     or not exists (select 1 from public.customer_support_voice_owed where stage = 'dispute_intake.answer' and subject_key = v_h::text and draft like '%' || (r->>'ticket') || '%') then
+    raise exception 'CHK<<PROBE FAILED 12d: "not a dispute" left the customer without a ticket and a reply: %>>', r; end if;
   -- 13: "he never contacted me" opens the refund case through the one door, his word recorded once
   insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, total_charged, payment_ref, fee_status, revealed_at)
   values (null, v_inq2, v_lead, v_cust, 5200, 156, 156, 'pi_zzdemo_afrev_5', 'paid', now() - interval '3 days') returning id into v_tx5;
@@ -273,6 +300,126 @@ begin
   if jsonb_array_length(public.fn_customer_money_cases(v_other)->'refunds') <> 0 then
     raise exception 'CHK<<PROBE FAILED 19: another customer sees his refunds>>'; end if;
 
+  -- 22 (review AFTERREVEAL item 4). A DENIAL AFTER THE CLICK IS NEVER LOST: "no", the supplier clicks, "no" again through the same door
+  -- within ten minutes is a new statement (a denial after the claim), not a duplicate: the ladder keeps running and the CEO is told.
+  insert into public.leads (company_name, email) values ('ZZ DEMO afrev Tiling 2', 'zz-afrev-supplier2@example.invalid') returning id into v_lead2;
+  insert into public.leads (company_name, email) values ('ZZ DEMO afrev Tiling 3', 'zz-afrev-supplier3@example.invalid') returning id into v_lead3;
+  insert into public.inquiries (customer_id, summary, status, rfq_no) values (v_cust, 'ZZ DEMO afrev skirting', 'revealed', 990733) returning id into v_inq3;
+  insert into public.quotes (inquiry_id, supplier_id, quote_amount, status) values (v_inq3, v_lead2, 6000, 'revealed') returning id into v_q7;
+  insert into public.quotes (inquiry_id, supplier_id, quote_amount, status) values (v_inq3, v_lead3, 6100, 'revealed') returning id into v_q8;
+  insert into public.quotes (inquiry_id, supplier_id, quote_amount, status, option_no) values (v_inq3, v_lead3, 6200, 'revealed', 2) returning id into v_q9;
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, total_charged, payment_ref, fee_status, revealed_at)
+  values (v_q7, v_inq3, v_lead2, v_cust, 6000, 180, 180, 'pi_zzdemo_afrev_7', 'paid', now() - interval '2 days') returning id into v_tx7;
+  insert into public.reveal_contact_statement (transaction_id, said, channel, words, source_ref, said_at)
+  values (v_tx7, 'no', 'followup_page', 'ZZ DEMO nobody called', 'probe', now() - interval '5 minutes');
+  perform public.fn_supplier_ack_record(v_tx7);
+  perform set_config('qd.probe_files_demo_handoff', 'on', true);
+  r := public.fn_reveal_contact_record(v_tx7, 'no', 'followup_page', 'ZZ DEMO still nobody', 'probe');
+  perform set_config('qd.probe_files_demo_handoff', '', true);
+  w := public.fn_reveal_contact_word(v_tx7);
+  if coalesce((r->>'duplicate')::boolean, false) or coalesce((w->>'responded')::boolean, true) or not coalesce((w->>'conflict')::boolean, false)
+     or (r->>'conflict_handoff') is null then
+    raise exception 'CHK<<PROBE FAILED 22: a denial after the supplier''s click was swallowed as a duplicate: % / %>>', r, w; end if;
+  r := public.fn_reveal_contact_record(v_tx7, 'no', 'followup_page', 'ZZ DEMO a double tap', 'probe');
+  if not coalesce((r->>'duplicate')::boolean, false) then raise exception 'CHK<<PROBE FAILED 22: a real double tap was recorded twice: %>>', r; end if;
+
+  -- 23 (item 2). AN OVERCHARGE RETURN IS NOT AN OPEN CASE: the CEO's dispute refund is still filed, for what remains of the payment
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, total_charged, payment_ref, fee_status, revealed_at)
+  values (v_q8, v_inq3, v_lead3, v_cust, 6100, 183, 183, 'pi_zzdemo_afrev_8', 'paid', now() - interval '4 days') returning id into v_tx8;
+  set local session_replication_role = replica;   -- the fixture row only: an accountant's overcharge return already on the payment
+  insert into public.refunds (transaction_id, quote_id, inquiry_id, customer_id, supplier_lead_id, stripe_payment_intent, amount_fils, currency,
+                              reason_code, reason_note, status, requested_by, requested_at, amount_source)
+  values (v_tx8, v_q8, v_inq3, v_cust, v_lead3, 'pi_zzdemo_afrev_8', 1000, 'AED', 'overcharge_return', 'ZZ DEMO overcharge', 'requested', 'accountant', now(), 'in_platform_request');
+  set local session_replication_role = origin;
+  insert into public.post_reveal_dispute (transaction_id, inquiry_id, customer_id, supplier_id, raised_by, statement, stage, evidence_due, decision_due)
+  values (v_tx8, v_inq3, v_cust, v_lead3, 'customer', 'ZZ DEMO he charged more than the quotation', 'ceo_decision', now(), now()) returning id into v_d2;
+  r := public.fn_ceo_decides_post_reveal_dispute(v_d2, 'customer_upheld', 'ZZ DEMO the revealed quotation was 6,100', 'refund_reveal_fee', 'none');
+  if r->'effect'->>'refund' = 'already_open'
+     or not exists (select 1 from public.refunds where transaction_id = v_tx8 and reason_code = 'fraud_or_dispute' and amount_fils = 18300 - 1000) then
+    raise exception 'CHK<<PROBE FAILED 23: the overcharge return blocked the CEO''s refund or its amount is wrong: % / %>>', r,
+      (select jsonb_agg(jsonb_build_object('reason', reason_code, 'fils', amount_fils)) from public.refunds where transaction_id = v_tx8); end if;
+  if (select count(*) from public.customer_support_duty_message where stage = 'dispute.decided' and subject_key = v_d2 || ':customer') <> 1 then
+    raise exception 'CHK<<PROBE FAILED 23: the customer was not told>>'; end if;
+
+  -- 24 (item 6). THE CEO SEAT'S REASONING DECIDES A DISPUTE: the duty asks once per dispute; the answer is one option naming the
+  -- outcome, the remedy and the supplier action; a reasonless answer is refused; the apply calls fn_ceo_decides_post_reveal_dispute.
+  insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, reveal_fee, total_charged, payment_ref, fee_status, revealed_at)
+  values (v_q9, v_inq3, v_lead3, v_cust, 6200, 186, 186, 'pi_zzdemo_afrev_9', 'paid', now() - interval '4 days') returning id into v_tx9;
+  insert into public.post_reveal_dispute (transaction_id, inquiry_id, customer_id, supplier_id, raised_by, statement, stage, evidence_due, decision_due, finding)
+  values (v_tx9, v_inq3, v_cust, v_lead3, 'customer', 'ZZ DEMO he never finished the skirting', 'ceo_decision', now(), now() + interval '3 days', 'customer_upheld') returning id into v_d3;
+  r := public.fn_ceo_post_reveal_dispute_tick();
+  if coalesce((r->>'asked')::int, 0) < 1 then raise exception 'CHK<<PROBE FAILED 24: the duty did not ask the CEO: %>>', r; end if;
+  if jsonb_array_length(public.fn_ceo_post_reveal_dispute_options()) <> 20 then raise exception 'CHK<<PROBE FAILED 24: the option set is not 20>>'; end if;
+  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key, qhash, expires_at)
+  values ('ceo', 'ceo.post_reveal_dispute', 'ZZ DEMO probe', jsonb_build_object('decision', jsonb_build_object('options', public.fn_ceo_post_reveal_dispute_options())),
+          '{}'::jsonb, jsonb_build_object('dispute_id', v_d3), 'probe', 'probe:afrev:24', md5('afrev24'), now() + interval '1 day') returning id into v_h;
+  begin
+    r := public.fn_reason_apply_ceo__post_reveal_dispute(v_h, '{"decision":{"choice":"customer_upheld|none|warning"},"answer":"ok"}'::jsonb);
+    raise exception 'CHK<<PROBE FAILED 24: a reasonless CEO decision was applied>>';
+  exception when check_violation then if sqlerrm !~ '^REASONLESS_DECISION' then raise; end if; end;
+  begin
+    r := public.fn_reason_apply_ceo__post_reveal_dispute(v_h, '{"decision":{"choice":"customer_upheld|refund_everything|none"},"answer":"x"}'::jsonb);
+    raise exception 'CHK<<PROBE FAILED 24: a choice outside the options was applied>>';
+  exception when raise_exception then if sqlerrm !~ '^CHOICE_NOT_AN_OPTION' then raise; end if; end;
+  r := public.fn_reason_apply_ceo__post_reveal_dispute(v_h, jsonb_build_object('decision', jsonb_build_object('choice', 'customer_upheld|none|pause_matching'),
+         'answer', 'ZZ DEMO the photos show the skirting unfinished and the supplier did not answer the evidence request'));
+  if (select stage || ':' || outcome || ':' || supplier_action from public.post_reveal_dispute where id = v_d3) <> 'decided:customer_upheld:pause_matching' then
+    raise exception 'CHK<<PROBE FAILED 24: the CEO''s reasoned answer did not decide the dispute: %>>', r; end if;
+  r := public.fn_reason_apply_ceo__post_reveal_dispute(v_h, jsonb_build_object('decision', jsonb_build_object('choice', 'no_fault'),
+         'answer', 'ZZ DEMO a second answer to the same question after it was decided'));
+  if coalesce((r->>'applied')::boolean, true) then raise exception 'CHK<<PROBE FAILED 24: a decided dispute was decided again: %>>', r; end if;
+
+  -- 25 (item 6). THE PAUSE: v_lead3 was not blocked, so it is paused with an end date. Then: skipped-and-recorded when the supplier is
+  -- already blocked for another reason, applied late once that block lifts; lifted by the CEO with reasons, or at its end.
+  if not (select matching_blocked from public.leads where id = v_lead3) or (select pause_until from public.post_reveal_dispute where id = v_d3) is null then
+    raise exception 'CHK<<PROBE FAILED 25: the pause was not applied with an end>>'; end if;
+  begin
+    r := public.fn_ceo_lifts_dispute_pause(v_d3, 'ceo', 'ok');
+    raise exception 'CHK<<PROBE FAILED 25: a reasonless lift was applied>>';
+  exception when check_violation then if sqlerrm !~ '^REASONLESS_DECISION' then raise; end if; end;
+  r := public.fn_ceo_lifts_dispute_pause(v_d3, 'expiry', null);
+  if coalesce((r->>'lifted')::boolean, true) then raise exception 'CHK<<PROBE FAILED 25: a pause was lifted before its end: %>>', r; end if;
+  r := public.fn_ceo_lifts_dispute_pause(v_d3, 'ceo', 'ZZ DEMO the supplier finished the skirting and sent photos of the completed work');
+  if (select matching_blocked from public.leads where id = v_lead3)
+     or (select pause_lift->>'by' from public.post_reveal_dispute where id = v_d3) <> 'ceo'
+     or not exists (select 1 from public.customer_support_duty_message where stage = 'dispute.pause_lifted' and subject_key = v_d3::text) then
+    raise exception 'CHK<<PROBE FAILED 25: the CEO''s lift did not unpause and tell the supplier: %>>', r; end if;
+  -- already blocked (a licence): skipped, recorded with that reason, then applied by the duty once the licence block lifts
+  update public.leads set matching_blocked = true, matching_block_reason = 'licence_expired' where id = v_lead2;
+  insert into public.post_reveal_dispute (transaction_id, inquiry_id, customer_id, supplier_id, raised_by, statement, stage, evidence_due, decision_due)
+  values (v_tx7, v_inq3, v_cust, v_lead2, 'customer', 'ZZ DEMO he never came back to fix the leak', 'ceo_decision', now(), now()) returning id into v_d;
+  r := public.fn_ceo_decides_post_reveal_dispute(v_d, 'customer_upheld', 'ZZ DEMO', 'none', 'pause_matching');
+  if r->'effect'->>'pause_skipped' is distinct from 'already blocked' or r->'effect'->>'blocked_for' is distinct from 'licence_expired'
+     or (select matching_block_reason from public.leads where id = v_lead2) <> 'licence_expired' then
+    raise exception 'CHK<<PROBE FAILED 25: a pause on an already blocked supplier was not recorded as skipped: %>>', r; end if;
+  update public.leads set matching_blocked = false, matching_block_reason = null where id = v_lead2;
+  r := public.fn_ceo_dispute_pause_tick();
+  if (select matching_block_reason from public.leads where id = v_lead2) is distinct from 'dispute_upheld' then
+    raise exception 'CHK<<PROBE FAILED 25: the skipped pause was not applied once the other block lifted: %>>', r; end if;
+  update public.post_reveal_dispute set pause_until = now() - interval '1 minute' where id = v_d;
+  r := public.fn_ceo_dispute_pause_tick();
+  if (select matching_blocked from public.leads where id = v_lead2) or (select pause_lift->>'by' from public.post_reveal_dispute where id = v_d) <> 'expiry' then
+    raise exception 'CHK<<PROBE FAILED 25: a pause that ended was not lifted: %>>', r; end if;
+
+  -- 26 (item 6). THE WIDGET NAMES NO JOB: a chat turn is filed onto a revealed job only when the model's reading names it; the
+  -- result is written to him.
+  r := public.fn_customer_after_reveal_message(v_cust, 'ZZ DEMO the supplier I paid for raised the price', 'widget', null);
+  if r->>'code' <> 'reading_the_job' or r ? 'transaction_id' then
+    raise exception 'CHK<<PROBE FAILED 26: the widget door picked a job itself: %>>', r; end if;
+  r := public.fn_customer_after_reveal_message(v_other, 'ZZ DEMO help', 'widget', null);
+  if r->>'code' <> 'no_revealed_job' then raise exception 'CHK<<PROBE FAILED 26: a customer with no reveal: %>>', r; end if;
+  insert into public.reasoning_held_question (seat, surface, question, request, plan, subject, reason, dedupe_key, qhash, expires_at)
+  values ('customer_support', 'customer_support.after_reveal_job', 'ZZ DEMO probe',
+          jsonb_build_object('decision', jsonb_build_object('options', jsonb_build_array(jsonb_build_object('id', v_tx::text, 'meaning', 'x'), jsonb_build_object('id', 'none', 'meaning', 'y')))),
+          '{}'::jsonb, jsonb_build_object('customer_id', v_cust, 'message', 'ZZ DEMO the waterproofer wants 24,000 now', 'channel', 'widget'),
+          'probe', 'probe:afrev:26', md5('afrev26'), now() + interval '1 day') returning id into v_h;
+  r := public.fn_reason_apply_customer_support__after_reveal_job(v_h, jsonb_build_object('decision', jsonb_build_object('choice', v_tx::text)));
+  if not coalesce((r->>'filed')::boolean, false) or (r->>'transaction_id')::uuid <> v_tx
+     or not exists (select 1 from public.customer_support_voice_owed where stage = 'after_reveal.widget_filed' and subject_key = v_h::text) then
+    raise exception 'CHK<<PROBE FAILED 26: the named job was not filed and told: %>>', r; end if;
+  r := public.fn_reason_apply_customer_support__after_reveal_job(v_h, '{"decision":{"choice":"none"}}'::jsonb);
+  if coalesce((r->>'filed')::boolean, true) then raise exception 'CHK<<PROBE FAILED 26: "none" filed a job: %>>', r; end if;
+
   -- 20. nothing real moved; the new table is closed to the public roles
   if (select count(*) from public.refunds where customer_id not in (v_cust, v_other)) <> v_real_refunds
      or (select count(*) from public.post_reveal_dispute where customer_id not in (v_cust, v_other)) <> v_real_disputes
@@ -282,5 +429,5 @@ begin
      or has_function_privilege('authenticated', 'public.fn_customer_after_reveal_message(uuid, text, text, uuid)', 'execute') then
     raise exception 'CHK<<PROBE FAILED 20: a public role can reach the new table or routines>>'; end if;
 
-  raise exception 'CHK<<PROBE OK %>>', jsonb_build_object('scenarios', 21, 'conflict_handoff', true, 'disputes', 2);
+  raise exception 'CHK<<PROBE OK %>>', jsonb_build_object('scenarios', 29, 'conflict_handoff', true, 'disputes', 2);
 end $probe$;

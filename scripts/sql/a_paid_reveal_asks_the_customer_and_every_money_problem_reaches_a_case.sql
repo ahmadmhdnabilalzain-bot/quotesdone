@@ -114,6 +114,15 @@ alter table public.post_reveal_dispute add column if not exists supplier_action 
 alter table public.post_reveal_dispute add column if not exists effect jsonb;
 alter table public.post_reveal_dispute add column if not exists remedy_transaction_id uuid;
 alter table public.post_reveal_dispute add column if not exists remedy_done_at timestamptz;
+-- the CEO's decision is asked by reasoning (ceo.post_reveal_dispute), and a pause on the supplier has an end (review AFTERREVEAL item 6)
+alter table public.post_reveal_dispute add column if not exists decision_question_id bigint;
+alter table public.post_reveal_dispute add column if not exists pause_until timestamptz;
+alter table public.post_reveal_dispute add column if not exists pause_lifted_at timestamptz;
+alter table public.post_reveal_dispute add column if not exists pause_lift jsonb;
+insert into public.decision_policy (key, value, description) values
+  ('dispute_pause_matching_working_days', '20'::jsonb,
+   'how long a supplier stays paused from new requests after the CEO upholds a post-reveal complaint with pause_matching (Supplier Agreement v17 clause 19), unless the CEO lifts it earlier')
+on conflict (key) do nothing;
 alter table public.post_reveal_dispute drop constraint if exists post_reveal_dispute_remedy_check;
 alter table public.post_reveal_dispute add constraint post_reveal_dispute_remedy_check
   check (remedy is null or remedy in ('none', 'refund_reveal_fee', 'next_reveal_free'));
@@ -217,7 +226,11 @@ begin
   v_words := nullif(left(btrim(coalesce(p_words, '')), 2000), '');
   -- the same word through the same door within ten minutes is one statement (a double tap, a retry, the refund door after the intake)
   select * into v_prev from public.reveal_contact_statement where transaction_id = t.id order by id desc limit 1;
-  if v_prev.id is not null and v_prev.said = p_said and v_prev.channel = p_channel and v_prev.said_at > now() - interval '10 minutes' then
+  -- ... unless the supplier claimed contact since that statement: then the same word again is a denial AFTER the claim (review AFTERREVEAL)
+  if v_prev.id is not null and v_prev.said = p_said and v_prev.channel = p_channel and v_prev.said_at > now() - interval '10 minutes'
+     and coalesce(t.supplier_ack_at, '-infinity'::timestamptz) <= v_prev.said_at
+     and not exists (select 1 from public.messages m where m.inquiry_id = t.inquiry_id and m.supplier_id = t.supplier_id and m.sender = 'supplier'
+                       and coalesce(m.blocked, false) = false and m.created_at > v_prev.said_at) then
     return jsonb_build_object('recorded', false, 'duplicate', true, 'statement_id', v_prev.id, 'word', public.fn_reveal_contact_word(t.id));
   end if;
   insert into public.reveal_contact_statement (transaction_id, said, channel, words, source_ref)
@@ -242,13 +255,19 @@ revoke execute on function public.fn_reveal_contact_record(uuid, text, text, tex
 grant execute on function public.fn_reveal_contact_record(uuid, text, text, text, text) to service_role;
 
 -- ── 5. THE LADDER READS THE CUSTOMER'S WORD ────────────────────────────────────────────────────────────────────────
--- The live body (the mirror) with ONE change: v_responded comes from fn_reveal_contact_word, which keeps the old two signals (the
--- acknowledgement, a platform message after the reveal) and adds the customer's own word, and the output carries both statements.
-create or replace function public.fn_refund_state(p_transaction uuid)
-returns jsonb language plpgsql stable set search_path to 'public', 'pg_temp' as $fn$
+-- PRODUCTION's live body (pg_get_functiondef, md5(prosrc) b21f76fdcbfa7ad5854306c454a12f3f, read 16 Nov 2026: it carries the 13 Nov
+-- R6 clock fn_reveal_clock_start / fn_reveal_window and the partly_refunded, refunded_aed and clock_starts_at outputs, which the
+-- 12 Nov schema mirror does not) with ONE change: v_responded comes from fn_reveal_contact_word, which keeps the old two signals
+-- (the acknowledgement, a platform message after the reveal) and adds the customer's own word; the output carries both statements.
+CREATE OR REPLACE FUNCTION public.fn_refund_state(p_transaction uuid)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 declare t record; v_window int; v_chase int; v_notify_days int; v_min int; v_max int;
         v_responded boolean; v_chase_at timestamptz; v_final_at timestamptz; v_notify_at timestamptz;
-        v_chased_at timestamptz; v_final_sent_at timestamptz; v_state text; v_word jsonb;
+        v_chased_at timestamptz; v_final_sent_at timestamptz; v_state text; v_start timestamptz; v_word jsonb;
 begin
   select * into t from transactions where id = p_transaction;
   if not found then return jsonb_build_object('error','transaction_not_found'); end if;
@@ -262,15 +281,18 @@ begin
   v_window := coalesce(v_window, 5); v_chase := coalesce(v_chase, 3);
   v_notify_days := coalesce((select value::text::int from decision_policy where key='refund_notify_after_working_days'),1);
 
-  -- RESPONDED (16 Nov 2026, AFTER_REVEAL): the customer's word beside the supplier's claim (fn_reveal_contact_word). A customer
-  -- who says the supplier called stops the ladder; a customer who says no after the supplier's click keeps it running.
+  -- RESPONDED (16 Nov 2026, AFTER_REVEAL): the customer's word beside the supplier's claim (fn_reveal_contact_word keeps the two
+  -- old signals, the acknowledgement and a platform message after the reveal, and adds the customer's own word). A customer who
+  -- says the supplier called stops the ladder; a customer who says no after the supplier's click keeps it running.
   v_word := public.fn_reveal_contact_word(t.id);
   v_responded := coalesce((v_word->>'responded')::boolean, false);
 
-  v_chase_at  := case when t.revealed_at is null then null else public.fn_add_working_days(t.revealed_at, v_chase) end;
-  v_final_at  := case when t.revealed_at is null then null
-                      else coalesce(t.refund_deadline, public.fn_add_working_days(t.revealed_at, v_window)) end;
-  v_notify_at := case when t.revealed_at is null then null else public.fn_add_working_days(t.revealed_at, v_notify_days) end;
+  -- 13 Nov 2026 (accountant, R6): the clock starts at the PAYMENT (fn_reveal_clock_start: Stripe's paid time, else the
+  -- insert until Stripe gives one); the end is fn_reveal_window's, the one source every reader shares.
+  v_start := public.fn_reveal_clock_start(t.id);
+  v_chase_at  := case when t.revealed_at is null then null else public.fn_add_working_days(v_start, v_chase) end;
+  v_final_at  := case when t.revealed_at is null then null else (public.fn_reveal_window(t.id)->>'ends_at')::timestamptz end;
+  v_notify_at := case when t.revealed_at is null then null else public.fn_add_working_days(v_start, v_notify_days) end;
 
   select min(n.created_at) into v_chased_at from notifications n
    where n.type = 'supplier_no_response_chase' and n.channel = 'email'
@@ -317,13 +339,18 @@ begin
     'auto_nudged_at', t.nudged_24_at,
     'refund_approvable', v_state in ('final_call_due','final_call_sent'),
     'refund_status', t.refund_status,
+    -- review 5, item 1: some, not all, of the payment has gone back (fn_refund_rolls_up_to_its_sale). The ladder goes on:
+    -- the state above is the supplier's, and the rest of the fee is still the CEO's to decide.
+    'partly_refunded', coalesce(t.refund_status, '') = 'partly_refunded',
+    'refunded_aed', t.refund_amount_aed,
     'working_days_since_reveal', case when t.revealed_at is null then 0
-                                      else public.fn_working_days_between(t.revealed_at, now()) end,
+                                      else public.fn_working_days_between(v_start, now()) end,
+    'clock_starts_at', v_start,
     'working_days_since_notice', case when t.customer_notified_at is null then 0
                                       else public.fn_working_days_between(t.customer_notified_at, now()) end,
     'bank_settlement_working_days', coalesce(v_min,7)::text || '-' || coalesce(v_max,14)::text
   );
-end $fn$;
+end $function$;
 revoke execute on function public.fn_refund_state(uuid) from public, anon, authenticated;
 grant execute on function public.fn_refund_state(uuid) to service_role;
 
@@ -340,14 +367,21 @@ revoke execute on function public.fn_refund_rating_shows_dealing(uuid) from publ
 grant execute on function public.fn_refund_rating_shows_dealing(uuid) to service_role;
 
 -- ── 7. THE CUSTOMER'S REFUND DOOR: the rating exclusion reads the word, the door names its channel, and its "the supplier is not
---      responding" is recorded as the customer's word (Refund Policy v1.9 section 5: tell us at any time). The live body otherwise.
+--      responding" is recorded as the customer's word (Refund Policy v1.9 section 5: tell us at any time). PRODUCTION's live body
+--      otherwise (md5(prosrc) 11b5baf9f1a1f0a5c0ee108e445b7a82, read 16 Nov 2026: it carries the 15 Nov overcharge_return handling,
+--      so an accountant's overcharge return on the payment is not answered as "your refund case is already open").
 drop function if exists public.fn_refund_open_from_customer(uuid, text, text);
-create or replace function public.fn_refund_open_from_customer(p_transaction_id uuid, p_requested_by text, p_reason_note text default null,
-  p_channel text default 'portal')
-returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+CREATE OR REPLACE FUNCTION public.fn_refund_open_from_customer(p_transaction_id uuid, p_requested_by text, p_reason_note text DEFAULT NULL::text,
+  p_channel text DEFAULT 'portal'::text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
 declare
   t public.transactions; c record; v_id bigint; v_open bigint; v_locale text; v_code text; v_en text; v_ar text;
-  v_later boolean := false; v_paid text; v_decide text; v_req bigint; v_amt numeric; v_out bigint; v_word jsonb;
+  v_later boolean := false; v_paid text; v_decide text; v_req bigint; v_amt numeric; v_out bigint; v_over bigint; v_word jsonb;
+  v_what_en text; v_what_ar text; v_short_en text; v_short_ar text;
 begin
   select * into t from public.transactions where id = p_transaction_id;
   if not found then
@@ -356,7 +390,27 @@ begin
   end if;
   select id, email into c from public.customers where id = t.customer_id;
   v_locale := coalesce(public.fn_registered_locale('customer', t.customer_id, null, c.email), 'en');
-  v_amt := round(coalesce(t.total_charged, t.reveal_fee, 0), 2);
+  -- AN OVERCHARGE ALREADY RETURNED is not the customer's to claim again (15 Nov 2026, item 1): the case is for what
+  -- remains, total_charged less that return, which is exactly what a00 expects.
+  v_over := (select coalesce(sum(o.amount_fils), 0) from public.refunds o
+              where o.reason_code = 'overcharge_return' and o.status not in ('failed', 'rejected', 'cancelled')
+                and (o.transaction_id = t.id or (coalesce(btrim(t.payment_ref), '') <> '' and o.stripe_payment_intent = t.payment_ref)));
+  v_amt := round((round(coalesce(t.total_charged, t.reveal_fee, 0) * 100) - v_over) / 100.0, 2);
+  -- WHAT THE CONFIRMATION PROMISES (15 Nov 2026, round 8): after a return, "everything you paid (AED 1978.80)" was not
+  -- what the customer paid (AED 2017.57); it names what is still owed, what was paid and what was already returned.
+  if v_over > 0 then
+    v_what_en := 'everything still owed to you (AED ' || v_amt || ' of the AED ' || round(coalesce(t.total_charged, t.reveal_fee, 0), 2)
+                 || ' you paid; the other AED ' || round(v_over / 100.0, 2) || ' has already been returned to you)';
+    v_what_ar := 'كامل المبلغ المستحق لكم (' || v_amt || ' درهم من أصل ' || round(coalesce(t.total_charged, t.reveal_fee, 0), 2)
+                 || ' درهم دفعتموها، إذ سبق أن رددنا إليكم ' || round(v_over / 100.0, 2) || ' درهم)';
+    v_short_en := 'everything still owed to you (AED ' || v_amt || ') is refunded';
+    v_short_ar := 'فسيُردّ إليكم كامل المبلغ المستحق (' || v_amt || ' درهم)';
+  else
+    v_what_en := 'everything you paid (AED ' || v_amt || ')';
+    v_what_ar := 'كامل ما دفعتموه (' || v_amt || ' درهم)';
+    v_short_en := 'everything you paid is refunded';
+    v_short_ar := 'فسيُردّ إليكم كامل ما دفعتموه';
+  end if;
   v_paid := to_char(t.revealed_at at time zone 'Asia/Dubai', 'DD Mon YYYY');
   v_decide := to_char(t.refund_deadline at time zone 'Asia/Dubai', 'DD Mon YYYY');
 
@@ -364,6 +418,7 @@ begin
   select id into v_open from public.refunds
    where transaction_id = t.id and status not in ('rejected', 'failed', 'cancelled')
      and lower(coalesce(requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe')
+     and reason_code is distinct from 'overcharge_return'      -- the accountant's return of an overcharge is not the customer's case
    order by id limit 1;
   if v_open is not null then
     return jsonb_build_object('ok', true, 'duplicate', true, 'refund_id', v_open, 'locale', v_locale, 'decision_after', t.refund_deadline,
@@ -384,19 +439,26 @@ begin
     v_code := 'already_refunded';
     v_en := 'This reveal has already been refunded (AED ' || coalesce(t.refund_amount_aed, v_amt) || '). Banks take 7 to 14 working days to show it.';
     v_ar := 'سبق أن استُردّت رسوم عملية الكشف هذه (' || coalesce(t.refund_amount_aed, v_amt) || ' درهم)، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهار المبلغ.';
-  -- MONEY ALREADY RETURNED ON THIS PAYMENT (3 Nov 2026, accountant, gap #8 R4): a refund issued in the Stripe dashboard leaves the
-  -- sale's refund_status empty; the answer is a refusal in words, the rest is the CEO's refund_incident.
+  -- MONEY ALREADY RETURNED ON THIS PAYMENT (3 Nov 2026, accountant, gap #8 R4). A refund issued in the Stripe dashboard
+  -- is recorded by fn_refund_settle (requested_by stripe_webhook) and leaves the sale's refund_status empty, so this
+  -- fell through to the insert below, which must equal everything paid; a01 then refused it as more than the payment
+  -- still holds, and customer_api answered the customer HTTP 500. Measured on ZZ DEMO run acpay01: AED 10 of 30 refunded
+  -- outside the platform, request -> 23514 refund_exceeds_what_was_paid. The answer is now a refusal in words; the rest
+  -- of the payment is the CEO's refund_incident (under_refund -> refund_difference), opened when the refund settled.
   elsif (select coalesce(sum(r.amount_fils), 0) from public.refunds r
           where (r.transaction_id = t.id or r.stripe_payment_intent = t.payment_ref)
-            and r.status not in ('rejected', 'failed', 'cancelled')) > 0 then
+            and r.status not in ('rejected', 'failed', 'cancelled')
+            and r.reason_code is distinct from 'overcharge_return') > 0 then
     v_out := (select coalesce(sum(r.amount_fils), 0) from public.refunds r
                where (r.transaction_id = t.id or r.stripe_payment_intent = t.payment_ref)
-                 and r.status not in ('rejected', 'failed', 'cancelled'));
+                 and r.status not in ('rejected', 'failed', 'cancelled')
+                 and r.reason_code is distinct from 'overcharge_return');
     v_code := 'already_refunded';
     v_en := 'AED ' || round(v_out / 100.0, 2) || ' of this payment has already been refunded to your original payment method, so a new refund case cannot be opened for it. Banks take 7 to 14 working days to show it. If you think more is owed, write to us from your portal and we will check the record.';
     v_ar := 'سبق أن استُردّ ' || round(v_out / 100.0, 2) || ' درهم من هذه الدفعة إلى وسيلة الدفع الأصلية، لذا لا يمكن فتح حالة استرداد جديدة لها. وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهار المبلغ. وإن رأيتم أن هناك مبلغًا آخر مستحقًا، فيُرجى مراسلتنا من بوابتكم لنراجع السجل.';
   elsif exists (select 1 from public.refunds r where r.transaction_id = t.id and r.status = 'rejected'
-                  and lower(coalesce(r.requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe')) then
+                  and lower(coalesce(r.requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe')
+                  and r.reason_code is distinct from 'overcharge_return') then   -- a refused overcharge return is not a decided fee case (15 Nov 2026, round 8)
     v_code := 'already_declined';
     v_en := 'Our chief executive has already decided this case and declined it; the reason is shown on your refund case. Under section 5 of the Terms a decided case is not reopened by a new request. If you think the record is wrong, reply to the decision email.';
     v_ar := 'سبق أن بتّ رئيسنا التنفيذي في هذه الحالة ورفضها، والسبب مبيّن في حالة الاسترداد. ووفق البند 5 من الشروط، لا يُعاد فتح حالة بُتّ فيها بطلب جديد. وإن رأيتم أن السجل غير صحيح، فيُرجى الرد على رسالة القرار.';
@@ -404,8 +466,8 @@ begin
     v_code := 'job_completed';
     v_en := 'This job is marked as completed with this supplier, so the supplier responded and the reveal fee is not refundable (Terms, section 5).';
     v_ar := 'هذا العمل مسجّل مكتملًا مع هذا المورّد، ما يعني أنه استجاب، لذا لا تُسترد رسوم الكشف (الشروط، البند 5).';
-  -- A RATING BARS THE REFUND ONLY AS A RECORD OF DEALING (16 Nov 2026): our own day-3 survey wrote a review from "No, never called,
-  -- 1 star", and this then refused the refund the Terms promise on exactly that case.
+  -- A RATING BARS THE REFUND ONLY AS A RECORD OF DEALING (16 Nov 2026, AFTER_REVEAL): our own day-3 survey wrote a review from
+  -- "No, never called, 1 star", and this then refused the refund the Terms promise on exactly that case.
   elsif public.fn_refund_rating_shows_dealing(t.id) then
     v_code := 'supplier_rated';
     v_en := 'You have rated this supplier, which records that you dealt with them, so the reveal fee is not refundable (Terms, section 5).';
@@ -419,13 +481,14 @@ begin
     return jsonb_build_object('ok', false, 'code', v_code, 'can_claim_later', v_later, 'locale', v_locale, 'message_en', v_en, 'message_ar', v_ar);
   end if;
 
-  -- THE CUSTOMER'S WORD: "the supplier is not responding" is his statement on contact, read by the ladder beside the supplier's claim.
+  -- THE CUSTOMER'S WORD (16 Nov 2026, AFTER_REVEAL): "the supplier is not responding" is his statement on contact, read by the ladder
+  -- beside the supplier's claim (Refund Policy v1.9 section 5: tell us at any time).
   if coalesce(p_requested_by, 'customer') = 'customer' then
     v_word := public.fn_reveal_contact_record(t.id, 'no', case when p_channel in ('followup_page', 'whatsapp', 'widget', 'portal', 'email') then p_channel else 'portal' end,
                 coalesce(p_reason_note, 'The customer reported that the revealed supplier has not responded.'), 'refund_door');
   end if;
 
-  -- THE CASE. The amount is what the customer paid (total_charged); a00 holds it to that figure and to
+  -- THE CASE. The amount is what the customer paid (total_charged, less an overcharge already returned); a00 holds it to that figure and to
   -- the payment's own Stripe reference. trg_emit_refund_requested and z30 put it on the bus and hand
   -- it to the accountant.
   insert into public.refunds
@@ -434,13 +497,14 @@ begin
      status, requested_by, requested_at, amount_source)
   values
     (t.id, t.quote_id, t.inquiry_id, t.customer_id, t.supplier_id,
-     t.payment_ref, round(coalesce(t.total_charged, t.reveal_fee, 0) * 100)::bigint, 'AED',
+     t.payment_ref, round(coalesce(t.total_charged, t.reveal_fee, 0) * 100)::bigint - v_over, 'AED',
      'supplier_unresponsive',
      coalesce(p_reason_note, 'The customer reported that the revealed supplier has not responded.'),
      'requested', coalesce(p_requested_by, 'customer'), now(), 'in_platform_request')
   returning id into v_id;
 
-  -- The sale follows the case, never the other way round.
+  -- The sale follows the case, never the other way round. The refunds row already exists, so
+  -- trg_emit_refund_requested_tx sees it and does not emit a second refund.requested.
   update public.transactions
      set refund_status = 'requested', refund_requested_at = coalesce(refund_requested_at, now())
    where id = t.id;
@@ -452,20 +516,20 @@ begin
     'We have opened refund case QD-RF-' || v_id || ' for the supplier you revealed on ' || coalesce(v_paid, 'your payment date') || '. You do not need to do anything else.' || E'\n\n'
       || 'The supplier has until ' || coalesce(v_decide, 'the fifth working day after your payment') || ' to respond. We chase them on the third working day and copy you. '
       || 'If there is still no response, our chief executive makes a final call and then decides your case on the record. '
-      || 'If the refund is due, everything you paid (AED ' || v_amt || ') is returned to your original payment method; banks take 7 to 14 working days to show it.',
+      || 'If the refund is due, ' || v_what_en || ' is returned to your original payment method; banks take 7 to 14 working days to show it.',
     'فتحنا حالة الاسترداد QD-RF-' || v_id,
     'فتحنا حالة الاسترداد QD-RF-' || v_id || ' بشأن المورّد الذي كشفتم عنه في ' || coalesce(v_paid, 'تاريخ الدفع') || '. لا يلزمكم أي إجراء آخر.' || E'\n\n'
       || 'أمام المورّد حتى ' || coalesce(v_decide, 'يوم العمل الخامس بعد الدفع') || ' للرد، وسنتابعه في يوم العمل الثالث مع نسخة إليكم، '
       || 'فإن لم يردّ، فسيوجّه إليه رئيسنا التنفيذي نداءً أخيرًا ثم يبتّ في حالتكم استنادًا إلى السجل. '
-      || 'وإن ثبت استحقاق الاسترداد، فسيُردّ إليكم كامل ما دفعتموه (' || v_amt || ' درهم) إلى وسيلة الدفع الأصلية، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهاره.',
+      || 'وإن ثبت استحقاق الاسترداد، فسيُردّ إليكم ' || v_what_ar || ' إلى وسيلة الدفع الأصلية، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهاره.',
     '{}', 'refund_request_received:' || t.id, null,
     jsonb_build_object('step', 'customer_request', 'transaction_id', t.id, 'refund_id', v_id));
 
   return jsonb_build_object('ok', true, 'refund_id', v_id, 'status', 'requested', 'locale', v_locale,
     'decision_after', t.refund_deadline, 'delivery_request', v_req, 'contact', v_word,
-    'message_en', 'Refund case QD-RF-' || v_id || ' is open. Our chief executive decides it after ' || coalesce(v_decide, 'the fifth working day') || ', and if it is due everything you paid is refunded. We have emailed you the details.',
-    'message_ar', 'فتحنا حالة الاسترداد QD-RF-' || v_id || '، وسيبتّ فيها رئيسنا التنفيذي بعد ' || coalesce(v_decide, 'يوم العمل الخامس') || '، وإن ثبت استحقاق الاسترداد فسيُردّ إليكم كامل ما دفعتموه. وقد أرسلنا إليكم التفاصيل بالبريد الإلكتروني.');
-end $fn$;
+    'message_en', 'Refund case QD-RF-' || v_id || ' is open. Our chief executive decides it after ' || coalesce(v_decide, 'the fifth working day') || ', and if it is due ' || v_short_en || '. We have emailed you the details.',
+    'message_ar', 'فتحنا حالة الاسترداد QD-RF-' || v_id || '، وسيبتّ فيها رئيسنا التنفيذي بعد ' || coalesce(v_decide, 'يوم العمل الخامس') || '، وإن ثبت استحقاق الاسترداد ' || v_short_ar || '. وقد أرسلنا إليكم التفاصيل بالبريد الإلكتروني.');
+end $function$;
 revoke execute on function public.fn_refund_open_from_customer(uuid, text, text, text) from public, anon, authenticated;
 grant execute on function public.fn_refund_open_from_customer(uuid, text, text, text) to service_role;
 
@@ -833,10 +897,19 @@ revoke execute on function public.fn_customer_support_dispute_open(uuid, text, t
 grant execute on function public.fn_customer_support_dispute_open(uuid, text, text, bigint) to service_role;
 
 -- ── 14. WHAT THE INTAKE'S READING DOES ─────────────────────────────────────────────────────────────────────────────
+-- EVERY READING ANSWERS HIM (review AFTERREVEAL item 5). The door promises "an answer within two working days" and Terms v11 clause 18
+-- says "every complaint receives a ticket number". A reading of not_dispute or supplier_contacted sent nothing and opened no ticket, so
+-- the customer who wrote waited on nothing. Now each of them opens a complaint ticket (fn_complaint_open: the clause 18 clock and the
+-- complaint deadline duty) and owes him a reply WRITTEN BY THE MODEL (fn_customer_support_voice_owe; duty_voice.ts, ledger 1339) from
+-- customer-safe facts: what was understood, the ticket number, and what happens next. The reply goes to his address (fn_wa_fanout
+-- twins it on a confirmed WhatsApp).
+-- A WIDGET READING NEVER WRITES "CONTACTED = YES" (review AFTERREVEAL item 6): a turn in the website chat read as "the supplier
+-- contacted me" is not his statement; he is asked to confirm it with one tap (the working-day-2 page), and only that tap is recorded.
 create or replace function public.fn_reason_apply_customer_support__dispute_intake(p_id bigint, p_result jsonb)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare h public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice'; v_tx uuid; v_ch text; v_stmt text;
-  v_rec jsonb; v_rf jsonb; v_c record; v_lang text; v_told jsonb;
+  v_rec jsonb; v_rf jsonb; v_c record; v_lang text; v_told jsonb; v_tk jsonb; v_tok uuid; v_link text; v_ar boolean;
+  v_name text; v_rfq text; v_co text; v_under_en text; v_under_ar text; v_next_en text; v_next_ar text; v_draft text; v_owed boolean;
 begin
   select * into h from public.reasoning_held_question where id = p_id;
   if v_choice is null or v_choice not in ('dispute', 'not_dispute', 'supplier_contacted', 'supplier_not_contacted')
@@ -847,11 +920,16 @@ begin
   v_tx := (h.subject->>'transaction_id')::uuid;
   v_ch := coalesce(h.subject->>'channel', 'email');
   v_stmt := h.subject->>'statement';
-  if v_choice = 'not_dispute' then return jsonb_build_object('applied', true, 'opened', false); end if;
-  if v_choice = 'supplier_contacted' then
-    v_rec := public.fn_reveal_contact_record(v_tx, 'yes', v_ch, v_stmt, 'held_question:' || p_id);
-    return jsonb_build_object('applied', true, 'opened', false, 'contact', v_rec);
+  if v_choice = 'dispute' then
+    return public.fn_customer_support_dispute_open(v_tx, h.subject->>'party', v_stmt, p_id);
   end if;
+  if v_choice = 'not_dispute' and coalesce(h.subject->>'party', 'customer') = 'supplier' then
+    return jsonb_build_object('applied', true, 'opened', false);
+  end if;
+  select cu.id, cu.email, cu.full_name, cu.locale, t.inquiry_id, i.rfq_no::text as rfq, l.company_name into v_c
+    from public.transactions t join public.customers cu on cu.id = t.customer_id
+    left join public.inquiries i on i.id = t.inquiry_id left join public.leads l on l.id = t.supplier_id
+   where t.id = v_tx;
   if v_choice = 'supplier_not_contacted' then
     -- his word, then the one refund door (Refund Policy v1.9 s.5: tell us at any time). The door records the same word itself;
     -- the ten-minute rule in fn_reveal_contact_record keeps it one statement.
@@ -859,7 +937,6 @@ begin
     v_rf := public.fn_refund_open_from_customer(v_tx, 'customer', 'The customer wrote (' || v_ch || '): ' || left(v_stmt, 1500), v_ch);
     if not coalesce((v_rf->>'ok')::boolean, false) then
       -- a refusal reached through a message is told to him in his language, with its reason: nobody is left waiting on nothing
-      select cu.id, cu.email, cu.locale, t.inquiry_id into v_c from public.transactions t join public.customers cu on cu.id = t.customer_id where t.id = v_tx;
       v_lang := coalesce(v_rf->>'locale', 'en');
       v_told := public.fn_customer_support_duty_send('refund.refused_after_message', p_id::text, 'customer', v_c.email, v_lang,
         case when v_lang = 'ar' then 'بشأن رسالتكم عن المورّد' else 'About your message on the supplier' end,
@@ -867,7 +944,61 @@ begin
     end if;
     return jsonb_build_object('applied', true, 'opened', coalesce((v_rf->>'ok')::boolean, false), 'contact', v_rec, 'refund', v_rf, 'told', v_told);
   end if;
-  return public.fn_customer_support_dispute_open(v_tx, h.subject->>'party', v_stmt, p_id);
+
+  -- not_dispute or supplier_contacted, from the customer: a ticket and a reasoned reply
+  v_lang := public.fn_customer_message_lang(v_c.inquiry_id, v_c.locale);
+  v_ar := v_lang = 'ar';
+  v_name := coalesce(nullif(btrim(v_c.full_name), ''), case when v_ar then 'عميلنا الكريم' else 'there' end);
+  v_rfq := coalesce(v_c.rfq, '-');
+  v_co := coalesce(nullif(btrim(v_c.company_name), ''), case when v_ar then 'المورّد' else 'the supplier' end);
+  if v_c.email is not null then
+    v_tk := public.fn_complaint_open(v_c.email, v_c.full_name,
+      'About request RFQ-' || v_rfq || ' (a revealed job), written through ' || v_ch || ': ' || left(coalesce(v_stmt, ''), 3500));
+  end if;
+  if v_choice = 'supplier_contacted' and v_ch = 'widget' then
+    -- the one-tap question (the same page and token the supplier's acknowledgement uses); nothing is recorded until he taps
+    insert into public.customer_followup (transaction_id, stage, lang) values (v_tx, 'day_two_contact', v_lang)
+    on conflict (transaction_id, stage) do nothing;
+    select f.token into v_tok from public.customer_followup f where f.transaction_id = v_tx and f.stage = 'day_two_contact';
+    v_link := 'https://quotesdone.ae/u/followup?t=' || v_tok;
+    v_under_en := 'From what you wrote in our website chat, we understood that ' || v_co || ' has contacted you about request RFQ-' || v_rfq || '.';
+    v_under_ar := 'فهمنا مما كتبتموه في محادثة موقعنا أن ' || v_co || ' قد تواصل معكم بشأن الطلب رقم ' || v_rfq || '.';
+    v_next_en := 'Please confirm it with one tap, yes or no: ' || v_link || ' . Until you do, nothing changes on your reveal: if they have not contacted you, we keep chasing them, and if they respond neither to you nor to us by the fifth working day after your payment, everything you paid for the reveal is refunded (clause 5 of our Terms).';
+    v_next_ar := 'يُرجى التأكيد بنقرة واحدة، نعم أو لا: ' || v_link || ' . وإلى أن تؤكدوا لا يتغيّر شيء في عملية الكشف: فإن لم يتواصل معكم، نواصل متابعته، وإن لم يردّ عليكم ولا علينا حتى يوم العمل الخامس بعد الدفع، يُردّ إليكم كامل ما دفعتموه مقابل الكشف (البند 5 من الشروط).';
+  elsif v_choice = 'supplier_contacted' then
+    v_rec := public.fn_reveal_contact_record(v_tx, 'yes', v_ch, v_stmt, 'held_question:' || p_id);
+    insert into public.customer_followup (transaction_id, stage, lang) values (v_tx, 'day_two_contact', v_lang)
+    on conflict (transaction_id, stage) do nothing;
+    select f.token into v_tok from public.customer_followup f where f.transaction_id = v_tx and f.stage = 'day_two_contact';
+    v_link := 'https://quotesdone.ae/u/followup?t=' || v_tok;
+    v_under_en := 'You told us that ' || v_co || ' has contacted you about request RFQ-' || v_rfq || ', and we have recorded it.';
+    v_under_ar := 'أخبرتمونا بأن ' || v_co || ' قد تواصل معكم بشأن الطلب رقم ' || v_rfq || '، وقد سجّلنا ذلك.';
+    v_next_en := 'Under clause 5 of our Terms a supplier who contacted you has responded, so the reveal fee is not refundable for silence. If we have misunderstood you, tell us here: ' || v_link || ' . Anything else you raised is answered by customer support under your ticket.';
+    v_next_ar := 'ووفق البند 5 من الشروط، فإن المورّد الذي تواصل معكم يُعدّ قد استجاب، فلا تُسترد رسوم الكشف بسبب عدم الرد. وإن كنا قد أسأنا فهمكم، فأخبرونا هنا: ' || v_link || ' . وأي أمر آخر أثرتموه تجيبكم عنه خدمة العملاء ضمن تذكرتكم.';
+  else
+    v_under_en := 'We read what you wrote about request RFQ-' || v_rfq || ' as a question or feedback for customer support, not as a complaint about ' || v_co || ' that needs a case.';
+    v_under_ar := 'قرأنا ما كتبتموه بشأن الطلب رقم ' || v_rfq || ' على أنه سؤال أو ملاحظة لخدمة العملاء، لا شكوى بحق ' || v_co || ' تستدعي فتح قضية.';
+    v_next_en := 'Customer support answers you under your ticket, at the latest within ten working days. If you did mean a complaint about the supplier (for example a price above the quotation, a no-show or unfinished work), reply and say so, and a case is opened with the quotation on record.';
+    v_next_ar := 'ستجيبكم خدمة العملاء ضمن تذكرتكم، في موعد أقصاه عشرة أيام عمل. وإن كنتم تقصدون شكوى بحق المورّد (كسعر أعلى من عرض السعر أو عدم الحضور أو عمل غير مكتمل)، فردّوا على هذه الرسالة وأخبرونا، لنفتح قضية ومعها عرض السعر المسجّل.';
+  end if;
+  v_draft := case when v_ar then
+      'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10) || v_under_ar || chr(10) || chr(10)
+      || coalesce('رقم تذكرتكم: ' || (v_tk->>'ticket') || '.' || chr(10) || chr(10), '') || v_next_ar || chr(10) || chr(10) || 'فريق QuotesDone'
+    else
+      'Dear ' || v_name || ',' || chr(10) || chr(10) || v_under_en || chr(10) || chr(10)
+      || coalesce('Your ticket number is ' || (v_tk->>'ticket') || '.' || chr(10) || chr(10), '') || v_next_en || chr(10) || chr(10) || 'The QuotesDone team' end;
+  v_owed := public.fn_customer_support_voice_owe('dispute_intake.answer', p_id::text, 'dispute_intake.answer:' || p_id, 'customer', v_c.email, v_lang,
+    case when v_ar then 'بشأن رسالتكم عن الطلب رقم ' || v_rfq else 'About your message on request RFQ-' || v_rfq end,
+    v_draft,
+    'Write the customer a reply to the message they sent us about a job whose supplier they revealed. Say in plain words what we understood from it, give the ticket number, and say what happens next, exactly as the facts give them. Where the facts include a link, the customer must be able to use it.',
+    'CUSTOMER NAME: ' || v_name || chr(10) || 'REQUEST NUMBER: RFQ-' || v_rfq || chr(10) || 'REVEALED SUPPLIER: ' || v_co || chr(10)
+      || 'WHAT THEY WROTE: ' || left(coalesce(v_stmt, ''), 1500) || chr(10)
+      || 'WHAT WE UNDERSTOOD: ' || case when v_ar then v_under_ar else v_under_en end || chr(10)
+      || coalesce('TICKET NUMBER: ' || (v_tk->>'ticket') || chr(10), '')
+      || 'WHAT HAPPENS NEXT: ' || case when v_ar then v_next_ar else v_next_en end,
+    array_remove(array[v_tk->>'ticket', v_link], null));
+  return jsonb_build_object('applied', true, 'opened', false, 'reading', v_choice, 'contact', v_rec, 'ticket', v_tk->>'ticket',
+                            'reply_owed', v_owed, 'confirm_link', v_link is not null and v_choice = 'supplier_contacted' and v_ch = 'widget');
 end $fn$;
 revoke execute on function public.fn_reason_apply_customer_support__dispute_intake(bigint, jsonb) from public, anon, authenticated;
 grant execute on function public.fn_reason_apply_customer_support__dispute_intake(bigint, jsonb) to service_role;
@@ -876,7 +1007,7 @@ grant execute on function public.fn_reason_apply_customer_support__dispute_intak
 create or replace function public.fn_customer_after_reveal_message(p_customer uuid, p_message text, p_channel text, p_transaction uuid default null)
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare c public.customers; t public.transactions; v_body text; v_n int; v_refs text; v_held bigint; v_rfq text; v_lang text;
-  v_open_d text; v_open_r text;
+  v_open_d text; v_open_r text; v_jobs jsonb;
 begin
   if p_channel is null or p_channel not in ('portal', 'whatsapp', 'widget', 'email', 'followup_page') then
     raise exception 'the door is portal, whatsapp, widget, email or followup_page, not %', coalesce(p_channel, 'nothing') using errcode = '22023';
@@ -887,6 +1018,35 @@ begin
     return jsonb_build_object('ok', false, 'code', 'empty', 'locale', coalesce(c.locale, 'en'),
       'message_en', 'Tell us what happened with the supplier, in your own words, and we will take it from there.',
       'message_ar', 'أخبرونا بما حدث مع المورّد بكلماتكم، وسنتولى الأمر من هناك.');
+  end if;
+  -- THE WIDGET NAMES NO JOB (review AFTERREVEAL item 6): a website-chat turn the reading says needs a person is filed onto a revealed
+  -- job only when a MODEL reading names that job (customer_support.after_reveal_job), never "his only revealed job" or a number
+  -- spotted in a chat turn; the reading's apply files the intake and tells him (fn_reason_apply_customer_support__after_reveal_job).
+  if p_transaction is null and p_channel = 'widget' then
+    select count(*), jsonb_agg(jsonb_build_object('id', x.id::text,
+             'meaning', 'request RFQ-' || coalesce(i.rfq_no::text, '?') || coalesce(' (' || coalesce(i.category, i.trades[1]) || ')', '')
+               || ', supplier ' || coalesce(l.company_name, 'unnamed') || ' revealed on ' || to_char(x.revealed_at at time zone 'Asia/Dubai', 'DD Mon YYYY')
+               || coalesce(', quoted AED ' || q.quote_amount, '')) order by x.revealed_at desc)
+      into v_n, v_jobs
+      from public.transactions x left join public.inquiries i on i.id = x.inquiry_id left join public.leads l on l.id = x.supplier_id
+      left join public.quotes q on q.id = x.quote_id
+     where x.customer_id = p_customer and x.revealed_at is not null and x.revealed_at > now() - interval '400 days';
+    if v_n = 0 then
+      return jsonb_build_object('ok', false, 'code', 'no_revealed_job', 'locale', coalesce(c.locale, 'en'),
+        'message_en', 'You have no revealed supplier on your account, so there is no job to open a case on. If this is about a request before a reveal, tell us its number.',
+        'message_ar', 'لا يوجد في حسابكم مورّد مكشوف، فلا يوجد عمل نفتح بشأنه قضية. وإن كان الأمر يتعلق بطلب قبل الكشف، فأخبرونا برقمه.');
+    end if;
+    v_held := public.fn_seat_duty_reason('customer_support', 'customer_support.after_reveal_job',
+      case when coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email) then 'ZZ DEMO ' else '' end
+      || 'A signed-in customer wrote this in the website chat, and the chat''s own reading says it needs a person. Is it about one of the jobs whose supplier he revealed and paid for, and which one? Choose a job only when what he wrote is about that job.',
+      v_jobs || jsonb_build_array(jsonb_build_object('id', 'none', 'meaning', 'it is not about one of these revealed jobs, or it does not say which')),
+      jsonb_build_object('message', left(p_message, 4000), 'channel', 'widget', 'revealed_jobs', v_n),
+      jsonb_build_object('customer_id', p_customer, 'message', left(p_message, 4000), 'channel', 'widget'),
+      'after_reveal_job:' || p_customer || ':' || md5(p_message));
+    return jsonb_build_object('ok', true, 'code', 'reading_the_job', 'held_question_id', v_held, 'fixture', v_held is null,
+      'locale', coalesce(c.locale, 'en'),
+      'message_en', 'Thank you. Customer support reads which of your revealed jobs this is about; if it is about one, it goes to support with the supplier''s quotation on record and you are written to with what happens next.',
+      'message_ar', 'شكرًا لكم. تقرأ خدمة العملاء أيّ عمل من أعمالكم المكشوفة تقصدون؛ فإن كان يتعلق بأحدها، يصل إلى خدمة العملاء ومعه عرض السعر المسجّل للمورّد، ونراسلكم بما سيحدث بعد ذلك.');
   end if;
   if p_transaction is not null then
     select * into t from public.transactions where id = p_transaction and customer_id = p_customer and revealed_at is not null;
@@ -935,6 +1095,48 @@ end $fn$;
 revoke execute on function public.fn_customer_after_reveal_message(uuid, text, text, uuid) from public, anon, authenticated;
 grant execute on function public.fn_customer_after_reveal_message(uuid, text, text, uuid) to service_role;
 
+-- The widget's job reading acts: a job named -> the dispute intake on that job, and he is told (a reply written by the model);
+-- 'none' -> nothing is filed (the chat already answered him, and its needs-a-person report went to its owner).
+create or replace function public.fn_reason_apply_customer_support__after_reveal_job(p_id bigint, p_result jsonb)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare h public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice'; t public.transactions; c public.customers;
+  v_held bigint; v_lang text; v_ar boolean; v_rfq text; v_name text; v_draft text; v_owed boolean;
+begin
+  select * into h from public.reasoning_held_question where id = p_id;
+  if v_choice is null or not exists (select 1 from jsonb_array_elements(h.request->'decision'->'options') o where o->>'id' = v_choice) then
+    raise exception 'CHOICE_NOT_AN_OPTION: % is not an option of % (held question %)', coalesce(v_choice, 'no choice'), h.surface, p_id;
+  end if;
+  if v_choice = 'none' then return jsonb_build_object('applied', true, 'filed', false, 'reading', 'none'); end if;
+  select * into t from public.transactions x
+   where x.id = v_choice::uuid and x.customer_id = (h.subject->>'customer_id')::uuid and x.revealed_at is not null;
+  if not found then return jsonb_build_object('applied', true, 'filed', false, 'reason', 'the job named is not his revealed job'); end if;
+  select * into c from public.customers where id = t.customer_id;
+  v_held := public.fn_customer_support_dispute_consider(t.id, 'customer', h.subject->>'message', 'widget');
+  v_lang := public.fn_customer_message_lang(t.inquiry_id, c.locale);
+  v_ar := v_lang = 'ar';
+  select coalesce(i.rfq_no::text, '-') into v_rfq from public.inquiries i where i.id = t.inquiry_id;
+  v_name := coalesce(nullif(btrim(c.full_name), ''), case when v_ar then 'عميلنا الكريم' else 'there' end);
+  v_draft := case when v_ar then
+      'السيد/ ' || v_name || ' المحترم،' || chr(10) || 'تحية طيبة وبعد،' || chr(10) || chr(10)
+      || 'وصل ما كتبتموه في محادثة موقعنا بشأن الطلب رقم ' || coalesce(v_rfq, '-') || ' إلى خدمة العملاء، ومعه عرض السعر المسجّل للمورّد (السعر والنطاق والضمان). '
+      || 'وستقرؤه خدمة العملاء، فإما أن تفتح قضية وتبلغكم برقمها، أو تردّ عليكم مباشرة، خلال يومي عمل.' || chr(10) || chr(10) || 'فريق QuotesDone'
+    else
+      'Dear ' || v_name || ',' || chr(10) || chr(10)
+      || 'What you wrote in our website chat about request RFQ-' || coalesce(v_rfq, '-') || ' is with customer support, together with the supplier''s quotation on record (its price, scope and warranty). '
+      || 'Support reads it and either opens a case and gives you its reference, or answers you directly, within two working days.' || chr(10) || chr(10) || 'The QuotesDone team' end;
+  v_owed := public.fn_customer_support_voice_owe('after_reveal.widget_filed', p_id::text, 'after_reveal.widget_filed:' || p_id, 'customer', c.email, v_lang,
+    case when v_ar then 'رسالتكم بشأن الطلب رقم ' || coalesce(v_rfq, '-') else 'Your message about request RFQ-' || coalesce(v_rfq, '-') end,
+    v_draft,
+    'Tell the customer that what they wrote in our website chat about this request has reached customer support with the supplier''s quotation on record, and what happens next, exactly as the facts give it.',
+    'CUSTOMER NAME: ' || v_name || chr(10) || 'REQUEST NUMBER: RFQ-' || coalesce(v_rfq, '-') || chr(10)
+      || 'WHAT THEY WROTE: ' || left(coalesce(h.subject->>'message', ''), 1500) || chr(10)
+      || 'WHAT HAPPENS NEXT: support reads it beside the supplier''s quotation on record and, within two working days, either opens a case and gives its reference or answers directly',
+    array[coalesce(v_rfq, '-')]);
+  return jsonb_build_object('applied', true, 'filed', true, 'transaction_id', t.id, 'intake_question_id', v_held, 'told', v_owed);
+end $fn$;
+revoke execute on function public.fn_reason_apply_customer_support__after_reveal_job(bigint, jsonb) from public, anon, authenticated;
+grant execute on function public.fn_reason_apply_customer_support__after_reveal_job(bigint, jsonb) to service_role;
+
 -- ── 16. THE CEO'S DECISION ACTS ────────────────────────────────────────────────────────────────────────────────────
 -- The live body (the mirror) plus: what the CEO chose for the customer (p_remedy) and for the supplier (p_supplier_action), both only
 -- on an upheld or shared complaint; a strike event on the supplier's standing record whenever the complaint is upheld or shared.
@@ -949,6 +1151,7 @@ create or replace function public.fn_ceo_decides_post_reveal_dispute(p_id bigint
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare d public.post_reveal_dispute; t public.transactions; c record; s record; v_ref text; v_en text; v_ar text; v_effect jsonb := '{}'::jsonb;
   v_rem_en text := ''; v_rem_ar text := ''; v_sup_en text := ''; v_upheld boolean; v_rf jsonb; v_strikes int; v_paused int := 0;
+  v_over bigint := 0; v_blocked_before boolean; v_block_reason text;
 begin
   if p_outcome is null or p_outcome not in ('customer_upheld', 'supplier_upheld', 'shared', 'no_fault') then
     raise exception 'the outcome is customer_upheld, supplier_upheld, shared or no_fault, not %', p_outcome;
@@ -983,28 +1186,54 @@ begin
     v_effect := v_effect || jsonb_build_object('strike_event', true);
   end if;
   if p_supplier_action = 'pause_matching' then
+    -- THE PAUSE HAS AN END (review AFTERREVEAL item 6): pause_until from decision_policy (working days); fn_ceo_lifts_dispute_pause
+    -- lifts it on the CEO's decision or at that date (duty ceo.dispute_pause). A supplier ALREADY blocked for another reason (a
+    -- licence, an unpaid charge) is not overwritten: the skip is recorded with that reason, and the pause is applied by the duty
+    -- once the other block lifts, while pause_until has not passed.
+    select coalesce(l.matching_blocked, false), l.matching_block_reason into v_blocked_before, v_block_reason from public.leads l where l.id = d.supplier_id;
+    update public.post_reveal_dispute
+       set pause_until = public.fn_add_working_days(now(), coalesce((select (value::text)::int from public.decision_policy where key = 'dispute_pause_matching_working_days'), 20))
+     where id = d.id;
     update public.leads set matching_blocked = true, matching_block_reason = 'dispute_upheld'
      where id = d.supplier_id and not coalesce(matching_blocked, false);
     get diagnostics v_paused = row_count;
-    v_effect := v_effect || jsonb_build_object('matching_paused', v_paused > 0);
-    v_sup_en := ' Under clause 19 of the Supplier Agreement your account is paused from new requests until we have reviewed it with you; reply to this e-mail to arrange that.';
+    v_effect := v_effect || jsonb_build_object('matching_paused', v_paused > 0,
+      'pause_until', (select pause_until from public.post_reveal_dispute where id = d.id))
+      || case when v_paused = 0 then jsonb_build_object('pause_skipped', 'already blocked', 'blocked_for', coalesce(v_block_reason, 'no reason recorded'))
+              else '{}'::jsonb end;
+    v_sup_en := ' Under clause 19 of the Supplier Agreement your account is paused from new requests until '
+      || to_char((select pause_until from public.post_reveal_dispute where id = d.id) at time zone 'Asia/Dubai', 'DD Mon YYYY')
+      || ', or earlier once we have reviewed it with you; reply to this e-mail to arrange that.';
   elsif p_supplier_action = 'warning' then
     v_sup_en := ' This is a formal warning under clauses 8 and 19 of the Supplier Agreement: a supplier must honour every quotation it submits and any agreed timeline, and a further breach may lead to suspension.';
   end if;
 
   -- THE CUSTOMER'S REMEDY
   if p_remedy = 'refund_reveal_fee' then
-    if exists (select 1 from public.refunds r where r.transaction_id = t.id and r.status not in ('rejected', 'failed', 'cancelled')) then
+    -- an accountant's overcharge return on this payment is not a refund case (review AFTERREVEAL item 2, as fn_refund_open_from_customer
+    -- reads it since 15 Nov): the CEO's refund is still filed, for what remains of the payment after that return (what a00 expects)
+    v_over := (select coalesce(sum(o.amount_fils), 0) from public.refunds o
+                where o.reason_code = 'overcharge_return' and o.status not in ('failed', 'rejected', 'cancelled')
+                  and (o.transaction_id = t.id or (coalesce(btrim(t.payment_ref), '') <> '' and o.stripe_payment_intent = t.payment_ref)));
+    if exists (select 1 from public.refunds r where r.transaction_id = t.id and r.status not in ('rejected', 'failed', 'cancelled')
+                 and r.reason_code is distinct from 'overcharge_return') then
       v_effect := v_effect || jsonb_build_object('refund', 'already_open');
     else
-      v_rf := public.fn_refund_request(round(coalesce(t.total_charged, t.reveal_fee, 0) * 100)::bigint, 'fraud_or_dispute', 'ceo_dispute_decision',
+      v_rf := public.fn_refund_request(round(coalesce(t.total_charged, t.reveal_fee, 0) * 100)::bigint - v_over, 'fraud_or_dispute', 'ceo_dispute_decision',
         t.inquiry_id, t.customer_id, t.supplier_id, t.quote_id, t.payment_ref, null,
         'Dispute ' || v_ref || ' decided ' || p_outcome || ' by the CEO, who chose to refund the reveal fee. ' || coalesce(left(p_note, 1500), ''), t.id);
       v_effect := v_effect || jsonb_build_object('refund', v_rf);
     end if;
     update public.post_reveal_dispute set remedy_transaction_id = t.id, remedy_done_at = now() where id = d.id;
-    v_rem_en := ' As a result, everything you paid for this reveal is refunded to your original payment method; banks take 7 to 14 working days to show it.';
-    v_rem_ar := ' وبناءً عليه، يُردّ إليكم كامل ما دفعتموه مقابل هذا الكشف إلى وسيلة الدفع الأصلية، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهاره.';
+    if v_over > 0 then
+      v_rem_en := ' As a result, everything still owed to you for this reveal (AED ' || round((round(coalesce(t.total_charged, t.reveal_fee, 0) * 100) - v_over) / 100.0, 2)
+        || '; the other AED ' || round(v_over / 100.0, 2) || ' was already returned to you) is refunded to your original payment method; banks take 7 to 14 working days to show it.';
+      v_rem_ar := ' وبناءً عليه، يُردّ إليكم كامل المبلغ المستحق لكم عن هذا الكشف (' || round((round(coalesce(t.total_charged, t.reveal_fee, 0) * 100) - v_over) / 100.0, 2)
+        || ' درهم، إذ سبق أن رددنا إليكم ' || round(v_over / 100.0, 2) || ' درهم) إلى وسيلة الدفع الأصلية، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهاره.';
+    else
+      v_rem_en := ' As a result, everything you paid for this reveal is refunded to your original payment method; banks take 7 to 14 working days to show it.';
+      v_rem_ar := ' وبناءً عليه، يُردّ إليكم كامل ما دفعتموه مقابل هذا الكشف إلى وسيلة الدفع الأصلية، وتستغرق البنوك من 7 إلى 14 يوم عمل لإظهاره.';
+    end if;
   elsif p_remedy = 'next_reveal_free' then
     v_rem_en := ' As a result, if you reveal another supplier''s quotation on this request, everything you pay for that reveal is refunded in full; the refund is filed as soon as you pay.';
     v_rem_ar := ' وبناءً عليه، إن كشفتم عرض مورّد آخر على هذا الطلب، فسيُردّ إليكم كامل ما تدفعونه مقابل ذلك الكشف، ويُقدَّم طلب الاسترداد فور الدفع.';
@@ -1046,7 +1275,7 @@ grant execute on function public.fn_ceo_decides_post_reveal_dispute(bigint, text
 create or replace function public.fn_accountant_dispute_remedy_tick()
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on'; d record; x public.transactions;
-  v_rf jsonb; v_seen int := 0; v_filed int := 0;
+  v_rf jsonb; v_seen int := 0; v_filed int := 0; v_over bigint;
 begin
   for d in select p.*, 'QD-D-' || lpad(p.id::text, 5, '0') as ref from public.post_reveal_dispute p
              join public.customers c on c.id = p.customer_id
@@ -1054,7 +1283,7 @@ begin
               and p.decided_at > now() - interval '180 days'
               and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx
             order by p.id for update of p skip locked loop
-    v_seen := v_seen + 1;
+    v_seen := v_seen + 1; v_rf := null; x := null;
     select t.* into x from public.transactions t
      where t.customer_id = d.customer_id and t.id <> d.transaction_id and t.revealed_at > d.decided_at
        and coalesce(t.total_charged, t.reveal_fee, 0) > 0 and coalesce(btrim(t.payment_ref), '') <> ''
@@ -1062,8 +1291,13 @@ begin
                              where root.id = d.inquiry_id and coalesce(i.parent_inquiry_id, i.id) = coalesce(root.parent_inquiry_id, root.id))
      order by t.revealed_at limit 1;
     continue when x.id is null;
-    if not exists (select 1 from public.refunds r where r.transaction_id = x.id and r.status not in ('rejected', 'failed', 'cancelled')) then
-      v_rf := public.fn_refund_request(round(coalesce(x.total_charged, x.reveal_fee, 0) * 100)::bigint, 'goodwill', 'ceo_dispute_decision',
+    if not exists (select 1 from public.refunds r where r.transaction_id = x.id and r.status not in ('rejected', 'failed', 'cancelled')
+                     and r.reason_code is distinct from 'overcharge_return') then
+      -- what remains of that payment after an accountant's overcharge return (review AFTERREVEAL item 2)
+      v_over := (select coalesce(sum(o.amount_fils), 0) from public.refunds o
+                  where o.reason_code = 'overcharge_return' and o.status not in ('failed', 'rejected', 'cancelled')
+                    and (o.transaction_id = x.id or (coalesce(btrim(x.payment_ref), '') <> '' and o.stripe_payment_intent = x.payment_ref)));
+      v_rf := public.fn_refund_request(round(coalesce(x.total_charged, x.reveal_fee, 0) * 100)::bigint - v_over, 'goodwill', 'ceo_dispute_decision',
         x.inquiry_id, x.customer_id, x.supplier_id, x.quote_id, x.payment_ref, null,
         'Dispute ' || d.ref || ' was decided ' || d.outcome || ' by the CEO with the remedy: the next reveal on this request is refunded in full. This is that reveal.', x.id);
       v_filed := v_filed + 1;
@@ -1080,6 +1314,182 @@ grant execute on function public.fn_accountant_dispute_remedy_tick() to service_
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
   ('accountant.dispute_remedy', 'accountant', interval '1 hour', 'fn_accountant_dispute_remedy_tick',
    'a dispute the CEO decided with "the next reveal refunded": when the customer pays that reveal, its refund is filed through fn_refund_request',
+   'scripts/sql/a_paid_reveal_asks_the_customer_and_every_money_problem_reaches_a_case.sql')
+on conflict (duty) do update set owner_seat = excluded.owner_seat, every = excluded.every, routine = excluded.routine,
+  what = excluded.what, owner_file = excluded.owner_file;
+
+-- ── 17b. THE CEO'S DECISION IS ASKED BY REASONING, AND ITS ANSWER CALLS fn_ceo_decides_post_reveal_dispute ─────────
+-- Review AFTERREVEAL item 6: fn_ceo_decides_post_reveal_dispute had no caller (already true on main): a dispute reached
+-- 'ceo_decision' with the sales engineer's finding and its cross-review, and then waited for a person to type a SELECT (the overdue
+-- finding even said so). Now, as every other CEO decision is applied (fn_seat_duty_reason -> fn_reason_apply_ceo__<surface>, e.g.
+-- ceo.sales_escalation), duty ceo.post_reveal_dispute asks the CEO seat once per dispute, with the whole case (both statements, the
+-- quotation on record, the finding and its reasoning, the customer's word on contact, the supplier's standing), and the answer is a
+-- single option naming the outcome, the remedy for the customer and the action on the supplier. The apply refuses a reasonless
+-- answer (fn_ceo_reasons_problem) and calls the one routine that acts.
+create or replace function public.fn_ceo_post_reveal_dispute_options()
+returns jsonb language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select jsonb_build_array(
+      jsonb_build_object('id', 'supplier_upheld', 'meaning', 'the supplier''s position is upheld: no remedy for the customer and no action on the supplier'),
+      jsonb_build_object('id', 'no_fault', 'meaning', 'no fault is found on either side, or the evidence is too thin: no remedy and no action'))
+    || (select jsonb_agg(jsonb_build_object('id', o.id || '|' || r.id || '|' || a.id,
+                 'meaning', o.m || '; for the customer: ' || r.m || '; for the supplier: ' || a.m) order by o.n, r.n, a.n)
+          from (values (1, 'customer_upheld', 'the customer''s complaint is upheld'), (2, 'shared', 'responsibility is shared by both parties')) o(n, id, m)
+          cross join (values (1, 'none', 'no remedy (the company''s role is facilitation, Complaints Policy section 4)'),
+                             (2, 'refund_reveal_fee', 'the reveal fee he paid for this job is refunded'),
+                             (3, 'next_reveal_free', 'the next reveal he pays on this request is refunded in full')) r(n, id, m)
+          cross join (values (1, 'none', 'no action'), (2, 'warning', 'a formal warning under clauses 8 and 19 of the Supplier Agreement'),
+                             (3, 'pause_matching', 'paused from new requests under clause 19 for the policy period, unless lifted earlier')) a(n, id, m))
+$fn$;
+revoke execute on function public.fn_ceo_post_reveal_dispute_options() from public, anon, authenticated;
+grant execute on function public.fn_ceo_post_reveal_dispute_options() to service_role;
+
+create or replace function public.fn_ceo_post_reveal_dispute_tick()
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on'; d record; v_q bigint; v_asked int := 0;
+begin
+  for d in select p.*, (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) as demo, 'QD-D-' || lpad(p.id::text, 5, '0') as ref
+             from public.post_reveal_dispute p left join public.customers c on c.id = p.customer_id
+            where p.stage = 'ceo_decision' and p.decision_question_id is null
+              and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx
+            order by p.id for update of p skip locked loop
+    v_q := public.fn_seat_duty_reason('ceo', 'ceo.post_reveal_dispute',
+      case when d.demo then 'ZZ DEMO ' else '' end
+      || 'A customer and a supplier disagree about a job after the supplier''s details were revealed. The sales engineer has made a finding and it has been reviewed. '
+      || 'Decide the outcome, what the customer receives and what happens to the supplier. Say why, on the evidence of both parties.',
+      public.fn_ceo_post_reveal_dispute_options(),
+      jsonb_build_object('dispute', d.ref, 'raised_by', d.raised_by, 'opened_at', d.opened_at, 'statement', d.statement,
+        'customer_evidence', d.customer_evidence, 'supplier_evidence', d.supplier_evidence, 'job_on_record', d.job_facts,
+        'sales_engineer_finding', d.finding, 'finding_reasoning', left(d.finding_reasoning, 3000), 'cross_review', d.review,
+        'customer_contact', public.fn_reveal_contact_word(d.transaction_id),
+        'supplier_standing', jsonb_build_object(
+          'upheld_complaints_before', (select count(*) from public.supplier_strike_event e where e.lead_id = d.supplier_id and e.kind = 'dispute_upheld'),
+          'matching_blocked', (select coalesce(l.matching_blocked, false) from public.leads l where l.id = d.supplier_id),
+          'blocked_for', (select l.matching_block_reason from public.leads l where l.id = d.supplier_id)),
+        'decision_due', d.decision_due,
+        'rules', 'Supplier Agreement v17 clause 8 (honour every quotation and agreed timeline), clause 9 (bound by a revealed quotation), clause 19 (suspension for breach); Complaints Policy v1.4 section 4 (quality and conduct are between the parties; our role is facilitation); Terms v11 clause 5'),
+      jsonb_build_object('dispute_id', d.id, 'customer_id', d.customer_id), 'post_reveal_dispute_decision:' || d.id);
+    update public.post_reveal_dispute set decision_question_id = v_q where id = d.id and v_q is not null;
+    v_asked := v_asked + 1;
+  end loop;
+  return jsonb_build_object('asked', v_asked, 'fixture', v_fx);
+end $fn$;
+revoke execute on function public.fn_ceo_post_reveal_dispute_tick() from public, anon, authenticated;
+grant execute on function public.fn_ceo_post_reveal_dispute_tick() to service_role;
+
+create or replace function public.fn_reason_apply_ceo__post_reveal_dispute(p_id bigint, p_result jsonb)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare r public.reasoning_held_question; v_choice text := p_result->'decision'->>'choice'; v_problem text; d public.post_reveal_dispute;
+begin
+  select * into r from public.reasoning_held_question where id = p_id;
+  if v_choice is null or not exists (select 1 from jsonb_array_elements(r.request->'decision'->'options') o where o->>'id' = v_choice) then
+    raise exception 'CHOICE_NOT_AN_OPTION: % is not an option of % (held question %)', coalesce(v_choice, 'no choice'), r.surface, p_id;
+  end if;
+  v_problem := public.fn_ceo_reasons_problem(p_result->>'answer');
+  if v_problem is not null then
+    raise exception using errcode = 'check_violation', message = 'REASONLESS_DECISION: the CEO''s decision on a post-reveal dispute says why: ' || v_problem;
+  end if;
+  select * into d from public.post_reveal_dispute where id = (r.subject->>'dispute_id')::bigint for update;
+  if not found or d.stage not in ('review', 'ceo_decision') then
+    return jsonb_build_object('applied', false, 'reason', 'the dispute is not awaiting a decision (decided already)', 'dispute_id', d.id);
+  end if;
+  return jsonb_build_object('applied', true, 'held_question', p_id)
+    || public.fn_ceo_decides_post_reveal_dispute(d.id, split_part(v_choice, '|', 1), left(coalesce(p_result->>'answer', ''), 3000),
+         coalesce(nullif(split_part(v_choice, '|', 2), ''), 'none'), coalesce(nullif(split_part(v_choice, '|', 3), ''), 'none'));
+end $fn$;
+revoke execute on function public.fn_reason_apply_ceo__post_reveal_dispute(bigint, jsonb) from public, anon, authenticated;
+grant execute on function public.fn_reason_apply_ceo__post_reveal_dispute(bigint, jsonb) to service_role;
+
+insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
+  ('ceo.post_reveal_dispute', 'ceo', interval '1 hour', 'fn_ceo_post_reveal_dispute_tick',
+   'a post-reveal dispute with the sales engineer''s finding is decided by the CEO seat''s reasoning (ceo.post_reveal_dispute); the answer calls fn_ceo_decides_post_reveal_dispute',
+   'scripts/sql/a_paid_reveal_asks_the_customer_and_every_money_problem_reaches_a_case.sql')
+on conflict (duty) do update set owner_seat = excluded.owner_seat, every = excluded.every, routine = excluded.routine,
+  what = excluded.what, owner_file = excluded.owner_file;
+
+-- ── 17c. A PAUSE ON THE SUPPLIER IS LIFTED: by the CEO's decision, or when it ends ─────────────────────────────────
+-- Review AFTERREVEAL item 6: pause_matching could be lifted by no routine. fn_ceo_lifts_dispute_pause lifts the block only when it is
+-- still THIS pause (matching_block_reason 'dispute_upheld') and no other undecided-or-running pause of the same supplier remains, records
+-- who lifted it and why, and tells the supplier. p_by 'ceo' carries the CEO's reasons (fn_ceo_reasons_problem); 'expiry' is the duty.
+create or replace function public.fn_ceo_lifts_dispute_pause(p_dispute_id bigint, p_by text, p_note text default null)
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare d public.post_reveal_dispute; v_problem text; v_lifted int := 0; v_other boolean; s record; v_ref text;
+begin
+  if p_by is null or p_by not in ('ceo', 'expiry') then
+    raise exception 'a pause is lifted by the CEO''s decision or at its end (ceo, expiry), not %', coalesce(p_by, 'nobody') using errcode = '22023';
+  end if;
+  if p_by = 'ceo' then
+    v_problem := public.fn_ceo_reasons_problem(p_note);
+    if v_problem is not null then
+      raise exception using errcode = 'check_violation', message = 'REASONLESS_DECISION: lifting a supplier''s pause says why: ' || v_problem;
+    end if;
+  end if;
+  select * into d from public.post_reveal_dispute where id = p_dispute_id for update;
+  if not found or d.supplier_action is distinct from 'pause_matching' then
+    raise exception 'dispute % paused nobody', p_dispute_id using errcode = '22023';
+  end if;
+  if d.pause_lifted_at is not null then return jsonb_build_object('lifted', false, 'already', true, 'at', d.pause_lifted_at); end if;
+  if p_by = 'expiry' and (d.pause_until is null or d.pause_until > now()) then
+    return jsonb_build_object('lifted', false, 'reason', 'the pause has not ended', 'pause_until', d.pause_until);
+  end if;
+  v_other := exists (select 1 from public.post_reveal_dispute o where o.supplier_id = d.supplier_id and o.id <> d.id
+                       and o.supplier_action = 'pause_matching' and o.pause_lifted_at is null and o.pause_until > now());
+  if not v_other then
+    update public.leads set matching_blocked = false, matching_block_reason = null
+     where id = d.supplier_id and matching_block_reason = 'dispute_upheld';
+    get diagnostics v_lifted = row_count;
+  end if;
+  update public.post_reveal_dispute set pause_lifted_at = now(),
+         pause_lift = jsonb_build_object('by', p_by, 'note', left(p_note, 2000), 'unblocked', v_lifted > 0,
+                                         'kept_for_another_pause', v_other, 'at', now())
+   where id = d.id;
+  v_ref := 'QD-D-' || lpad(d.id::text, 5, '0');
+  if v_lifted > 0 then
+    select coalesce(l.claimed_by, l.email) as email into s from public.leads l where l.id = d.supplier_id;
+    perform public.fn_customer_support_duty_send('dispute.pause_lifted', d.id::text, 'supplier', s.email, 'en',
+      'Dispute ' || v_ref || ': your account receives new requests again',
+      'Hello,' || chr(10) || chr(10) || 'The pause placed on your account after dispute ' || v_ref || ' has been lifted'
+        || case when p_by = 'expiry' then ' at the end of its period' else ' after our review' end
+        || ', and your account receives new requests again. Please keep honouring every quotation you submit and any agreed timeline (clauses 8 and 9 of the Supplier Agreement).',
+      null, d.supplier_id, d.inquiry_id);
+  end if;
+  return jsonb_build_object('lifted', true, 'unblocked', v_lifted > 0, 'kept_for_another_pause', v_other, 'by', p_by);
+end $fn$;
+revoke execute on function public.fn_ceo_lifts_dispute_pause(bigint, text, text) from public, anon, authenticated;
+grant execute on function public.fn_ceo_lifts_dispute_pause(bigint, text, text) to service_role;
+
+-- The duty: a pause that has ended is lifted; a pause that was skipped because the supplier was already blocked for another reason is
+-- applied once that block has lifted, while the pause has not ended.
+create or replace function public.fn_ceo_dispute_pause_tick()
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
+declare v_fx boolean := coalesce(current_setting('qd.duty_fixtures', true), '') = 'on'; d record; v_lifted int := 0; v_applied int := 0; n int;
+begin
+  for d in select p.id from public.post_reveal_dispute p join public.customers c on c.id = p.customer_id
+            where p.supplier_action = 'pause_matching' and p.pause_lifted_at is null and p.pause_until <= now()
+              and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx order by p.id loop
+    perform public.fn_ceo_lifts_dispute_pause(d.id, 'expiry', 'the pause period set by decision_policy dispute_pause_matching_working_days ended');
+    v_lifted := v_lifted + 1;
+  end loop;
+  for d in select p.id, p.supplier_id from public.post_reveal_dispute p join public.customers c on c.id = p.customer_id
+            where p.supplier_action = 'pause_matching' and p.pause_lifted_at is null and p.pause_until > now()
+              and not coalesce((p.effect->>'matching_paused')::boolean, false)
+              and (coalesce(c.is_demo, false) or public.fn_is_demo_email(c.email)) = v_fx order by p.id loop
+    update public.leads set matching_blocked = true, matching_block_reason = 'dispute_upheld'
+     where id = d.supplier_id and not coalesce(matching_blocked, false);
+    get diagnostics n = row_count;
+    if n > 0 then
+      update public.post_reveal_dispute set effect = coalesce(effect, '{}'::jsonb) || jsonb_build_object('matching_paused', true, 'paused_late_at', now())
+       where id = d.id;
+      v_applied := v_applied + 1;
+    end if;
+  end loop;
+  return jsonb_build_object('lifted', v_lifted, 'applied_late', v_applied, 'fixture', v_fx);
+end $fn$;
+revoke execute on function public.fn_ceo_dispute_pause_tick() from public, anon, authenticated;
+grant execute on function public.fn_ceo_dispute_pause_tick() to service_role;
+
+insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
+  ('ceo.dispute_pause', 'ceo', interval '1 hour', 'fn_ceo_dispute_pause_tick',
+   'a supplier paused after an upheld post-reveal dispute is unpaused when the pause ends, and paused late if another block was holding him when the CEO decided',
    'scripts/sql/a_paid_reveal_asks_the_customer_and_every_money_problem_reaches_a_case.sql')
 on conflict (duty) do update set owner_seat = excluded.owner_seat, every = excluded.every, routine = excluded.routine,
   what = excluded.what, owner_file = excluded.owner_file;
@@ -1356,7 +1766,7 @@ begin
       'Post-reveal dispute QD-D-' || lpad(d.id::text, 5, '0') || ' is past its decision date',
       'public.post_reveal_dispute / fn_ceo_decides_post_reveal_dispute', 'agent_facing', 1,
       jsonb_build_object('dispute_id', d.id, 'decision_due', d.decision_due, 'owner_seat', 'ceo'),
-      '{}'::text[], array['the CEO''s decision: public.fn_ceo_decides_post_reveal_dispute with the dispute id, the outcome, a note, the remedy (none, refund_reveal_fee, next_reveal_free) and the supplier action (none, warning, pause_matching)'],
+      '{}'::text[], array['the CEO seat''s reasoning answers held question ceo.post_reveal_dispute (duty ceo.post_reveal_dispute files it; fn_reason_apply_ceo__post_reveal_dispute calls fn_ceo_decides_post_reveal_dispute); check that it was filed and is not failing'],
       'sales_engineer');
     v_overdue := v_overdue + 1;
   end loop;
