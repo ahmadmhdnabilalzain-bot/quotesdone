@@ -15,7 +15,7 @@
 // HTTP 200: the polite busy line when no model was reached (founder_instruction 1339's outage, which includes our own
 // deadline; through modelOrOutage, never otherwise), or no text and error 'no_answer' when the model was up and every draft
 // was refused (the widget shows its own line; code writes no reply while the model is up). The failure is still recorded:
-// index.ts writes agent_runs status 'error' for it, the row fn_watch_failed_runs pages on.
+// index.ts writes agent_runs status 'error' for it, the row fn_it_detect counts as a failure.
 // prevented by: site_assistant/turn_outcome.test.ts
 import { MIN_CALL_MS, PER_CALL_MS, RESERVE_MS } from '../_shared/brief_answer.ts';
 import { modelOrOutage } from '../_shared/openrouter_down.ts';
