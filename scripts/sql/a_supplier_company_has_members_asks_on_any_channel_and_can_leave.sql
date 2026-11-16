@@ -195,7 +195,8 @@ begin
     if found then v_new := v_new + 1; end if;
   end loop;
   update public.supplier_member set screened_at = now(), screen = jsonb_build_object('hits', v_hits, 'new', v_new),
-         status = case when v_hits > 0 and status in ('invited', 'active') then 'screening' else status end
+         -- review wave2joint: only a member who accepted is held; an invited one stays invited, and accepting re-screens him here
+         status = case when v_hits > 0 and status = 'active' then 'screening' else status end
    where id = p_member;
   if v_new > 0 then
     select company_name into l from public.leads where id = m.lead_id;

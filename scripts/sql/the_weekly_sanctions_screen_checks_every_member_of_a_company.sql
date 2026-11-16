@@ -91,7 +91,7 @@ begin
   end loop;
   -- a member with an open hit stops acting for the company until a person decides (fn_supplier_member_counts reads 'screening')
   update public.supplier_member m set status = 'screening', screened_at = now()
-   where m.status in ('invited', 'active')
+   where m.status = 'active'   -- review wave2joint: an invited one stays invited (else, once cleared, he acts without accepting)
      and exists (select 1 from public.supplier_screening_hit sh where sh.member_id = m.id and sh.status = 'open');
 
   -- THE TEAM UPDATE, ON SEATS THAT EXIST (18 Sep 2026). One DECISION task on the ceo, because a confirmed

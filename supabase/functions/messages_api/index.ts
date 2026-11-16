@@ -312,7 +312,8 @@ Deno.serve(siteCors(observe('messages_api', async (req) => {
     const { data: ownLead } = await admin.from('leads').select('id,company_name,banned').eq('claimed_by', email).maybeSingle();
     // A COMPANY'S MEMBER (16 Nov 2026, SUPPLIER hole 4; _shared/supplier_company.ts) reads and asks for his company; a viewer only reads.
     const member = ownLead ? null : (await companyOf(admin, email)).company;
-    if (member && member.role === 'viewer' && action === 'clarify_ask') return J({ error: 'read_only', code: 'read_only' }, 403);
+    // review wave2joint: every action that writes for the company (a job question, a reply to a customer's question, a chat message)
+    if (member && member.role === 'viewer' && ['clarify_ask', 'clarify_reply', 'send'].includes(action)) return J({ error: 'read_only', code: 'read_only' }, 403);
     if (member && await sanctionedLead(admin, member.lead_id)) return J({ error: 'forbidden', code: 'account_sanctioned' }, 403);
     const supLead = ownLead ?? (member ? (await admin.from('leads').select('id,company_name,banned').eq('id', member.lead_id).maybeSingle()).data : null);
     const supEmail = email;
