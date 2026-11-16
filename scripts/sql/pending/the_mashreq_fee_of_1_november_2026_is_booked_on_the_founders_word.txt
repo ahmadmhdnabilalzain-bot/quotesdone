@@ -1,0 +1,11 @@
+Committed, not applied. Assigned: accountant (agent: accountant seat builder), 15 Nov 2026 (founder rulings 1702, 1703).
+
+Why it waits: it books AED 208.95 into the real ledger on the founder's word; it needs
+the_books_hold_a_cost_on_the_founders_word_until_its_document_arrives.sql live first.
+
+What moves it, after that file is applied:
+  1. DRY RUN (writes nothing): node SP/q.mjs scripts/sql/the_mashreq_fee_of_1_november_2026_is_booked_on_the_founders_word_dry_run.sql
+     Expect two {"dry_run": true, "would_book": ...} objects, account 6300, AED 199.00 and 9.95. A "refused" object means a
+     document already books it (a statement arrived): then do NOT apply, delete this file and its dry run.
+  2. node scripts/apply_sql.mjs scripts/sql/the_mashreq_fee_of_1_november_2026_is_booked_on_the_founders_word.sql --apply
+     (expect PROBE OK), then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt.

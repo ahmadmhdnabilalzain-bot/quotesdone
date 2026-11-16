@@ -9,6 +9,7 @@ predate this folder live in [../it/](../it/): [ROLLBACK.md](../it/ROLLBACK.md) a
 | [incident-response.md](incident-response.md) | Severity levels, the first 15 minutes, where to look, who decides what |
 | [restore-and-disaster-recovery.md](restore-and-disaster-recovery.md) | PITR vs the daily export vs the Dropbox copy; running a restore drill on a branch; what to record |
 | [release-without-ci.md](release-without-ci.md) | Shipping with GitHub Actions off: what runs instead, and where |
+| [the-code-defect-session.md](the-code-defect-session.md) | The hourly engineer session that claims a code defect the IT engineer could not repair and fixes it by the full route (ruling 1705); its scheduled-task prompt |
 | [a_paid_reveal_release_13_nov_2026.md](a_paid_reveal_release_13_nov_2026.md) | The paid-reveal money release: the apply order, when to start each step, the lock-timeout retry rule and the checks after each step |
 | [local-database.md](local-database.md) | A local Postgres with the whole production schema, built from the repo in ~15 s and measured object by object |
 | [docker.md](docker.md) | Running the site, the checks and a shell in Docker; graceful shutdown; troubleshooting |

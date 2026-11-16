@@ -7,6 +7,7 @@ import { routing } from '@/i18n/routing';
 import { CookieConsent } from '@/components/CookieConsent';
 import { COOKIE_ASK } from '@/lib/cookieAsk';
 import { FirstTouch } from '@/components/FirstTouch';
+import { WebAnalytics } from '@/components/WebAnalytics';
 import { ChatWidget } from '@/components/ChatWidget';
 import { RouteProgress } from '@/components/ui/route-progress';
 import { NodeField } from '@/components/NodeField';
@@ -79,7 +80,7 @@ export default async function LocaleLayout(props: { children: React.ReactNode; p
         <NodeField />
         {/* The top bar for route changes — the one loading system, see src/components/ui/busy.tsx. */}
         <RouteProgress label={lang === 'ar' ? 'جارٍ التحميل' : 'Loading'} />
-        <NextIntlClientProvider messages={messages}><CookieConsent />{children}<FirstTouch /><ChatWidget /></NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}><CookieConsent />{children}<FirstTouch /><WebAnalytics /><ChatWidget /></NextIntlClientProvider>
       </body>
     </html>
   );

@@ -1,0 +1,14 @@
+Committed, not applied. Assigned: accountant (agent: accountant seat builder), 15 Nov 2026 (founder rulings 1702, 1703).
+
+Why it waits: this branch was built without production writes (session rule of 15 Nov). It redefines four live routines
+(fn_expense_post_to_gl, fn_accountant_book_bank_charges, fn_accountant_statement_booked, and the trigger routine
+fn_emit_invoice_received_from_expense) and adds one table and six routines.
+
+What moves it: review, then at merge, in a quiet minute with lock_timeout (docs/runbooks/release-without-ci.md):
+  node scripts/apply_sql.mjs scripts/sql/the_books_hold_a_cost_on_the_founders_word_until_its_document_arrives.sql --apply --ddl
+then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.
+It must be applied BEFORE the_company_recovers_no_input_vat_so_1150_is_moved_into_cost.sql (that file's fn_expense_post_to_gl
+calls fn_expense_held_document_merge) and before the_mashreq_fee_of_1_november_2026_is_booked_on_the_founders_word.sql.
+Proved on a local Postgres 16 with its probe (PROBE OK twice): the_books_hold_a_cost_on_the_founders_word_until_its_document_arrives_probe.sql.
+15 Nov evening (review fixes 1, 2, 3, 6): PROBE OK twice again, alone and with the 1150 file after it; the same probe on the
+previous version of the file fails 15 named rows. Deploy resend_inbound and accountant after the apply (survivingEntryId).

@@ -14,7 +14,7 @@ import { foldEmail, holdForNoUnsubscribe, plainTextPart } from './supplier_mail.
 import { holdArabicInvitation, withReplyQuestion } from './invitation_copy.ts';
 import { askedKinds, claimQueue, isStale, ownsChannel, STALE_CEILING_H } from './channels.ts';
 import { ownDomain, resendPayload } from './payload.ts';
-import { LANE_CAPPED_TYPES, heldUntil, holdFor, isLaneType, resolveLane, senderFor } from './invite_lane.ts';
+import { LANE_CAPPED_TYPES, campaignStep, heldUntil, holdFor, isCampaignRow, isLaneType, resolveLane, senderFor, type CampaignVerdict } from './invite_lane.ts';
 import { OPEN_TOKEN_MS, invitationHtml, openShare, openTracks, pixelBase, pixelUrl } from './open_tracking.ts';
 import { M365_FROM_NAME, M365_HARD_CEILING, M365_ID_PREFIX, M365_PENDING_PREFIX, M365_PACE_MS, M365_PER_RUN, M365_SECRET_NAMES, M365_SEED_KIND, M365_INBOX_AGENT, afterRefusal, campaignMail, conversationReplyTo, graphSend, holdForM365, isMailboxReply, laneSide, m365Carries, m365Step, replyMail, m365Mime, m365ReplyTo, messageIdFor, refusalFinding, resolveM365, switchOn } from './m365_lane.ts';
 import { UNSUBSCRIBE_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
@@ -255,6 +255,15 @@ Deno.serve(observe('send_outbox', async (req) => {
       laneSentToday = count || 0;
     }
     let laneHeld = 0;
+    // THE LIVE CAMPAIGN SWITCHES, ASKED ONCE PER RUN for the campaign rows in it (invite_lane.ts campaignStep; review item 4).
+    const campIds = rows.filter((r: any) => isCampaignRow(r)).map((r: any) => r.id);
+    let campVerdicts: CampaignVerdict[] | null = [];
+    if (campIds.length) {
+      try {
+        const { data, error } = await admin.rpc('fn_invite_campaign_send_check', { p_ids: campIds });
+        campVerdicts = error || !Array.isArray(data) ? null : (data as CampaignVerdict[]);
+      } catch { campVerdicts = null; }
+    }
     const supReason = new Map<string, string>();
     if (toEmails.length) { const { data: sup } = await admin.from('email_suppressions').select('email,reason').in('email', toEmails); for (const s of (sup || []) as any[]) supReason.set(foldEmail(s.email), String(s.reason || '')); }
     let sent = 0, failed = 0, retried = 0, deadlettered = 0, skipped = 0, suppressed = 0, held = 0, attached = 0, unconfirmed = 0, writeFailed = 0;
@@ -362,6 +371,16 @@ Deno.serve(observe('send_outbox', async (req) => {
       const internal = n.to_role === 'admin' || n.to_role === 'founder';
       const docReq = supplierSide && isDocRequest(n.type);
       if (supplierSide && !supEnabled && !docReq) { await admin.from('notifications').update({ status: 'held', last_error: 'held: supplier_emails_enabled is off' }).eq('id', n.id); held++; continue; }
+      // A CAMPAIGN ROW ALREADY QUEUED OBEYS THE LIVE SWITCHES: a stopped company cancels it, a held or closed provider class
+      // holds it to tomorrow (invite_lane.ts campaignStep, fn_invite_campaign_send_check).
+      if (isCampaignRow(n)) {
+        const st = campaignStep(campVerdicts, n.id, new Date());
+        if (st.step === 'cancel') { await admin.from('notifications').update({ status: 'cancelled', last_error: st.why }).eq('id', n.id); held++; continue; }
+        if (st.step === 'requeue') {
+          await admin.from('notifications').update({ status: 'queued', claimed_at: null, not_before: st.until.toISOString(), last_error: st.why }).eq('id', n.id);
+          laneHeld++; continue;
+        }
+      }
       // A LANE INVITATION IS HELD, NEVER DIVERTED (review of #963; invite_lane.ts holdFor). Left 'queued' with
       // not_before moved on, so it does not come back into the next claim and crowd out other mail.
       const laneHold = holdFor({ lane, type: n.type, supplierSide: supplierSide && !carries(n), laneSentToday, laneCap });

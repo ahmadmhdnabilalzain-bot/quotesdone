@@ -286,7 +286,8 @@ Deno.test('wiring: send_outbox passes the lane Reply-To through m365ReplyTo, rea
   // the nudge included, takes the one subject function; only withPlacementRef can add a token, and only to a seed.
   assert(/subject: mSubject, text: mBody, unsub/.test(src), 'the lane MIME no longer sends the built body as is');
   const lane = Deno.readTextFileSync(new URL('./m365_lane.ts', import.meta.url));
-  assert(/const subject = withPlacementRef\(m365Subject\(/.test(lane), 'the campaign subject is no longer m365Subject + withPlacementRef for every row');
+  // 15 Nov 2026: the last note to a parked lead (a nudge of kind invite_final_touch) has its own subject, through the same withPlacementRef
+  assert(/const subject = withPlacementRef\((?:isFinalTouch\(row\) \? m365FinalTouchSubject\(\{[^}]*\}\)\s*:\s*)?m365Subject\(/.test(lane), 'the campaign subject is no longer m365Subject + withPlacementRef for every row');
 });
 
 Deno.test('the refusal finding closes on a 2xx sendMail, never on a token alone (review of #1473)', async () => {

@@ -2,6 +2,7 @@
 // a person, what it means to the menu (one model call, memoised), the database wiring menuTurn reads, and the menu answer itself.
 // Moved out of index.ts's handleInbound (9 Nov 2026, customer_support); history and sayOutage are read from the turn.
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { caseKeyOf, handFaultToIt } from '../_shared/support_fault_handover.ts';
 import { queueWhatsAppMeaning, whatsappReadings, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
 import { menuMeaning } from '../_shared/reasoned_menus.ts';
 import { defaultDeps, type Phase } from '../_shared/think.ts';
@@ -69,6 +70,12 @@ export async function startClassification(t: WaTurn): Promise<void> {
   let readingsP: Promise<Readings> | null = null;
   const readings = () => (readingsP ??= (async (): Promise<Readings> => {
     const r = await whatsappReadings(classifyDeps(), { ...(await meaningIn()), menu: menuOffer() });
+    // A FAULT THEY REPORT GOES TO THE IT ENGINEER AS A REAL HAND-OVER (ruling 1705; _shared/support_fault_handover.ts). The case
+    // key is a hash of the number, the turns are masked, and no e-mail is looked up from a phone; it never throws.
+    if (r.fault && audience !== 'founder') {
+      await handFaultToIt((fn, args) => admin.rpc(fn, args), { channel: 'whatsapp', caseKey: await caseKeyOf('whatsapp', From), message: Body,
+        lang: audience !== 'supplier' && langOf(Body.trim(), 'en') === 'ar' ? 'ar' : 'en', audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor' });
+    }
     return { intent: r.intent, needsPerson: r.needsPerson, menu: r.menu, why: r.result.reason ?? r.result.status };
   })().catch((e) => ({ intent: null, needsPerson: null, menu: null, why: 'threw: ' + String((e as Error)?.message || e).slice(0, 200) })));
   const menuDeps: MenuDeps = {
