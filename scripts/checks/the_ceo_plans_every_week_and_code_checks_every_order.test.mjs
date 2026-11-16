@@ -188,6 +188,7 @@ test('9. REVIEW_ceoplan 1-6 hold in the text (each item also has a probe row tha
   assert.match(chk, /v_seat is distinct from c\.owner_seat/, 'the seat is the channel\'s owner');
   assert.match(chk, /if v_act ~ r\.act_terms then/, 'the words are read against every refused channel');
   assert.match(chk, /fn_ceo_plan_text_aed\(v_act\)/, 'every amount the words name is a cost');
+  assert.match(chk, /fn_ceo_plan_text_unknown_money\(v_act\)/, 'money in a currency the reader cannot convert is refused (review orderconv item 8)');
   assert.match(chk, /c\.max_cost_aed is not null and v_cost > c\.max_cost_aed/, 'the register bounds the cost');
   assert.match(chk, /fn_ceo_plan_text_asks_founder\(v_said\)/, 'a founder ask in the words is refused, whatever the flag');
   assert.match(chk, /v_leads := public\.fn_ceo_plan_bet_leads\(p_bet\);\s+if v_leads is null then/, 'malformed lead ids refuse the bet');

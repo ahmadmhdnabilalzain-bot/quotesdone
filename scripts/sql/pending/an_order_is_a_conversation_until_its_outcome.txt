@@ -3,3 +3,14 @@ the coverage file and the_ceo_thinks_plans_and_orders_every_week.sql, whose fn_c
 and fn_ceo_plan_text_asks_founder it reads). Moves when that branch and this one are released: the releasing session applies it with
 its probe on a local Postgres first, then on production in a quiet minute, deploys a function that carries _shared/think/routing.ts
 (resilience_ping runs the replay), and appends the file to the end of MANIFEST.txt after the planning file, deleting this note.
+FIX ROUND 1 (16 Nov 2026, REVIEW_orderconv items 1-7 and the money part of 8): the founder's summary and the pack quote a refusal
+cleaned; a closed hand-over is not re-planned or extended; seat_capability.buildable false keeps glockapps_test, dns_write,
+code_change and warmup_volume from any commission, capability need or done request, and the engineer session reads every request
+with an untrusted note; every turn kind reads money in its words (fn_order_text_refusals), a turn's spends are summed against
+today's limit and each spend is its own ceo_own_decision row; later status and response rounds are one past the last; the
+request says easy for the CEO; a pull_in passes fn_ceo_plan_bet_check. Probe rows R1-R8 failed on a28d85ae5 and pass (LOCAL).
+KNOWN LIMITS, left for later (review item 8): the day's cap (order_threads.turns_per_day 40, aed_per_day 1.00) counts asked
+questions, not paid calls: a question can take up to 3 tries of 2 synthesis passes each, so the worst case is about AED 4 a day.
+set_volume and spend only RECORD a decision (ceo_own_decision): nothing reads volume_per_day or sends, and nothing commits money
+(company_spend_commitment), so the summed spend check reads only commitments other code made. The amount reader reads
+"AED 30 200 suppliers" as 30200 (refused on the safe side).

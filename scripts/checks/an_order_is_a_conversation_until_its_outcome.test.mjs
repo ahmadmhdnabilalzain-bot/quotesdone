@@ -7,7 +7,9 @@
 //   2. a plan can name a tool its seat lacks, a need can ask the engineer session for what the register does not give it, or
 //      money in a need skips the company limits;
 //   3. a CEO turn skips a check a plan bet passes: the founder ask, refused acts, the company limits, the message gates, a seat
-//      that takes an order, a measure code can read, the date window; or "close met" stops reading the measure;
+//      that takes an order, a measure code can read, the date window (a sub-order through fn_ceo_plan_bet_check itself); the
+//      turn's spends stop being summed; a forbidden build or a re-plan of a closed hand-over passes; or "close met" stops reading
+//      the measure (review orderconv items 2-7, 16 Nov 2026);
 //   4. the lesson stops reaching the seat's case memory, the shared pool or the next order's turns;
 //   5. the founder's summary or the CEO's planning pack stops reading the conversations;
 //   6. the register stops telling the it_engineer's truth (it reads verdicts; it cannot run GlockApps, write DNS or warm up alone);
@@ -53,7 +55,9 @@ test('1. every turn is a held question of the seat that speaks, and every surfac
   assert.match(ask, /v_seat \|\| '\.order_'/, 'the surface belongs to the seat that speaks');
   const applies = fnBody('fn_order_turn_applies');
   assert.doesNotMatch(applies, /raise exception/, 'a refused turn is recorded and asked again with its reasons, never raised');
-  assert.match(applies, /u\.round < v_max/, 'a refusal goes back once (max_rounds)');
+  assert.match(applies, /v_tries < v_max/, 'a refusal goes back once (max_rounds), counted since the last recorded turn of its kind');
+  assert.match(applies, /fn_ceo_plan_clean_text\(v_ref\[1\], 240\)/, 'blocked_on quotes a refusal cleaned (review orderconv item 1: an address reached the summary)');
+  assert.match(ask, /'easy', v_seat = 'ceo'/, 'the CEO\'s turns say easy in the request (review item 6: routine route before routing.ts lands)');
   assert.match(applies, /risk = 'blocked'/, 'a second refusal blocks the conversation on its reason');
   assert.match(applies, /'ceo_answer'[\s\S]{0,200}NO ACCEPTED PLAN/, 'a seat with no accepted plan leaves the decision to the CEO');
 });
@@ -73,16 +77,25 @@ test('2. a plan names only its seat\'s tools; needs are checked', () => {
 
 test('3. every CEO turn passes the plan bet\'s checks', () => {
   const ceo = fnBody('fn_order_ceo_refusals');
-  for (const [what, re] of [['the company limits', /fn_company_spend_fits\(v_n\)/], ['the message gates per lead', /fn_company_message_gates\('email', null, v_lead\)/],
-    ['a seat that takes an order, never the founder', /a->>'seat' in \('ceo', 'founder'\) or not public\.fn_order_seat_orderable/], ['a measure code can read', /fn_ceo_plan_measures\(\) \? \(a->>'measure'\)/],
-    ['the date window', /v_due < now\(\) \+ interval '12 hours'/], ['every amount in the words', /fn_ceo_plan_text_aed\(/], ['the words', /fn_order_text_refusals\(/],
+  for (const [what, re] of [['the company limits', /fn_company_spend_fits\(v_n\)/], ['a sub-order passes the plan bet\'s own check (review item 7)', /fn_ceo_plan_bet_check\(jsonb_build_object\('channel', f->>'channel'/],
+    ['one open order per seat and measure among sub-orders and within the turn', /v_key = any \(v_pulled\)/], ['the turn\'s spends summed (review item 4)', /v_spent > coalesce\(\(v_fits->>'left_today_aed'\)::numeric, 0\)/],
+    ['no build of a tool a ruling keeps from every seat (review item 3)', /x\.tool = a->>'tool' and not x\.buildable/],
+    ['a seat that takes an order, never the founder', /a->>'seat' in \('ceo', 'founder'\) or not public\.fn_order_seat_orderable/],
+    ['the date window', /v_due < now\(\) \+ interval '12 hours'/], ['the words', /fn_order_text_refusals\(/],
     ['the volume ceiling', /least\(coalesce\(\(pol->>'m365_warmup_max_per_day'\)::int, 40\), 150\)/]]) assert.match(ceo, re, what);
   const words = fnBody('fn_order_text_refusals');
   assert.match(words, /fn_ceo_plan_text_asks_founder\(/, 'the founder is never asked (ledger 1696)');
   assert.match(words, /verdict = 'refused' and act_terms is not null/, 'no refused act in the words');
+  assert.match(words, /fn_ceo_plan_text_aed\(v_act\)/, 'every amount the words name, in every turn kind (review item 4)');
+  assert.match(words, /fn_ceo_plan_text_unknown_money\(v_act\)/, 'money in a currency code cannot convert is refused (review item 8)');
+  assert.match(fnBody('fn_order_ceo_apply'), /':spend:' \|\| p_turn_id \|\| ':' \|\| e\.ix/, 'one decision row per spend (review item 4)');
   const next = fnBody('fn_order_next_refusals');
   assert.match(next, /fn_ceo_plan_bet_reading\(t\.bet_id\)/, 'close met reads the measure');
   assert.match(next, /t\.extensions >= /, 'an order is extended a bounded number of times');
+  assert.match(next, /p_choice in \('extend', 'replan'\) and coalesce\(f->>'status', 'pending'\) <> 'pending'/, 'a closed hand-over is never re-planned or extended (review item 2)');
+  const tick = fnBody('fn_order_threads_tick');
+  assert.match(tick, /'status', 1 \+ coalesce\(\(select max\(round\) from public\.seat_order_turn where handoff_id = t\.handoff_id and kind = 'status'\), 0\)/, 'a later status is one round past the last (review item 5)');
+  assert.match(fnBody('fn_order_advance'), /'ceo_response',\s+1 \+ coalesce\(\(select max\(round\)/, 'so is the CEO\'s response');
 });
 
 test('4. the lesson reaches the seat, the shared pool and the next order', () => {
@@ -112,6 +125,10 @@ test('6. the register tells the it_engineer\'s truth', () => {
   assert.match(SQL, /\('it_engineer', 'dns_write', false,/); assert.match(SQL, /\('it_engineer', 'warmup_volume', false,[^\n]*'sales_engineer'/);
   assert.match(SQL, /\('sales_engineer', 'm365_reply_lane', false,/, 'the M365 lane carries no replies yet');
   assert.match(fnBody('fn_engineer_session_request_done'), /t\.created_at < r\.created_at/, 'a re-test is done only with a test recorded after the request');
+  assert.match(SQL, /where tool in \('glockapps_test', 'dns_write', 'code_change', 'warmup_volume'\) and buildable/, 'four tools no build may give a seat (review item 3)');
+  assert.match(fnBody('fn_engineer_session_request_done'), /not exists \(select 1 from public\.seat_capability x where x\.tool = r\.tool and not x\.buildable\)/, 'a done request never flips one');
+  assert.match(fnBody('fn_engineer_session_request_open'), /p_kind = 'capability' and exists \(select 1 from public\.seat_capability x where x\.tool = p_tool and not x\.buildable\)/, 'nor is one opened');
+  for (const f of ['fn_engineer_session_request_queue', 'fn_engineer_session_request_claim']) assert.match(fnBody(f), /'untrusted', public\.fn_engineer_session_request_note\(\)/, `${f}: the session reads a request as data`);
   assert.match(fnBody('fn_engineer_session_request_open'), /to_regprocedure\('public\.fn_it_code_defect_open\(/, 'a build also reaches it_code_defect when that queue exists, never required');
 });
 

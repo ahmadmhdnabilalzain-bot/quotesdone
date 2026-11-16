@@ -7,7 +7,7 @@
 //   3. the seat's plan comes back as its own writing: the prompt asks for the fields beside the choice (decision.authored)
 //      and no verbatim evidence is demanded, while a reader's fields (no authored flag) still need it.
 import { assert, assertEquals, assertStringIncludes } from 'jsr:@std/assert@1';
-import { EASY_DUTY_SURFACE, INTERNAL_DUTY_SURFACE, think, type LlmReply, type ThinkDeps, type ThinkRequest } from './think.ts';
+import { EASY_DUTY_SURFACE, INTERNAL_DUTY_SURFACE, replayHeld, think, type LlmReply, type ThinkDeps, type ThinkRequest } from './think.ts';
 
 const PLAN_FIELDS = [
   { key: 'reason', question: 'why can, partly or cannot' }, { key: 'steps', question: 'a JSON array of {tool, action, by}' },
@@ -86,4 +86,36 @@ Deno.test('a reader\'s fields (no authored flag) still need the person\'s own wo
   const r = await think(m.d, request('it_engineer', 'it_engineer.order_plan', false));
   assert(r.status !== 'answered', 'unproven fields must be refused without the authored flag: ' + r.status);
   assert(!m.calls[0].system.includes('write every field in your own words'));
+});
+
+// Review orderconv item 6 (16 Nov 2026): fn_order_ask stores 'easy', v_seat = 'ceo' in the request, and replayHeld reads
+// row.request.easy before its surface regex. So if the SQL lands before a function carrying the new routing.ts is deployed,
+// the CEO's turns still run on his routine route. A surface the regex does not know stands in for the old regex here.
+Deno.test('the replay honours easy in the stored request: the CEO\'s turn stays on his routine route before routing.ts lands', async () => {
+  const surface = 'ceo.order_turn_before_the_deploy';
+  assert(!EASY_DUTY_SURFACE.test(surface), 'the stand-in surface is unknown to the regex');
+  const run = async (easy: boolean | undefined) => {
+    const calls: string[] = [];
+    let claimed = false;
+    const d = {
+      gate: () => Promise.resolve(null),
+      llm: (_p: string, _s: string, _i: string, o: { taskClass: string }) => { calls.push(o.taskClass); return Promise.resolve({ content: JSON.stringify({ ...PLAN, decision: { choice: 'can', fields: { reason: { value: 'accept' } } } }), model: 'stub' }); },
+      embed: () => Promise.resolve([0.1, 0.2]),
+      rpc: (fn: string) => {
+        if (fn === 'fn_reason_held_due') {
+          const rows = claimed ? [] : [{ id: 1, seat: 'ceo', surface, subject: null, created_at: new Date().toISOString(),
+            request: { ...request('ceo', surface), easy, internalDuty: undefined } }];
+          claimed = true;
+          return Promise.resolve({ data: rows, error: null });
+        }
+        return Promise.resolve({ data: fn === 'fn_reason_held_resolve' ? { status: 'applied' } : fn.startsWith('fn_case_recall') ? { cases: [] } : fn === 'fn_seat_pool_context' ? { block: '' } : [], error: null });
+      },
+    } as unknown as ThinkDeps;
+    await replayHeld({} as never, 1, d);
+    return calls;
+  };
+  const withFlag = await run(true);
+  assert(withFlag.length >= 1 && withFlag.every((c) => c === 'routine_employee_reasoning'), 'easy true: the routine route, got ' + withFlag.join(','));
+  const without = await run(undefined);
+  assert(without.length >= 1 && without.every((c) => c !== 'routine_employee_reasoning'), 'no flag and an unknown surface: not the routine route, got ' + without.join(','));
 });

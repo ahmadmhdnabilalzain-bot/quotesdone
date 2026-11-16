@@ -9,3 +9,6 @@ may set invite_enabled true); 2) the CEO files: limits, pool, coverage; 3) this 
 an_order_is_a_conversation_until_its_outcome.sql, which reads this file's tables. Why: the seed is inserted where not exists and
 has no revision round; if the loop's first run files it while invite_enabled is false, its invitation bet stays refused for good.
 The seed carries no bet on the founder or his network (ruling 1710): his tagged registrations are a bonus the pack counts.
+Order conversations fix round 1 (16 Nov 2026, REVIEW_orderconv item 8): fn_ceo_plan_text_aed now reads number words
+("five thousand dirhams"), USD at gl_settings.usd_to_aed (3.6725 when unset) and "AED 5 000"; any other currency is refused by
+fn_ceo_plan_text_unknown_money in the bet check. The reader is STABLE now (it reads gl_settings), no longer IMMUTABLE.

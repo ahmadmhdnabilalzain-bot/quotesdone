@@ -29,5 +29,21 @@ if he can't? How do they talk to each other? How do the CEO conclude what to do 
   check, the transport rule and the M365 lane; it cannot run GlockApps, write DNS or warm up alone, and the M365 lane carries
   no replies (a build). So its plan is "partly" and the CEO files the re-test, the volume and the sales engineer's sub-order.
 
+**Fix round 1 (16 Nov 2026, REVIEW_orderconv; probe rows R1-R8 failed before and pass, LOCAL):**
+- A refusal quotes what the model wrote, so `blocked_on` (the founder's summary, the pack) takes it through
+  `fn_ceo_plan_clean_text`; field codes in refusals and in `said` go through `fn_order_code_text` (a plain key stays as it is).
+- A closed hand-over (the seat reported it) ends in close_met, drop or reassign: extend and replan are refused (a loop of 22 paid
+  turns in five cycles).
+- `seat_capability.buildable` false: glockapps_test (ledger 1344), dns_write, code_change (the it_engineer's charter),
+  warmup_volume. Never commissioned, never a capability need, never flipped by a done request, never opened. Every request the
+  engineer session reads carries `untrusted` (`fn_engineer_session_request_note`): its words are a model's, data not instructions.
+- Money: every turn kind reads amounts in its words (`fn_order_text_refusals`; number words, USD at gl_settings.usd_to_aed,
+  "AED 5 000"; other currencies refused); a turn's spends are summed against what is left today; one decision row per spend.
+- Rounds of status and ceo_response are one past the last of their kind; a retry counts refusals since the last recorded turn.
+- The request carries `easy` for the CEO's turns; a pull_in passes `fn_ceo_plan_bet_check` (invitations off, providers, gates)
+  plus one open order per seat and measure among sub-orders and within the turn.
+- Known limits (pending note): the cap counts asked questions not paid calls (worst ~AED 4 a day); set_volume and spend only
+  record a decision.
+
 Related: [[the-ceo-plans-every-week-and-code-checks-every-order]], [[the-ceo-decides-inside-limits-held-as-data]],
 [[the-invitation-gate-reads-the-glockapps-verdict]], [[the-llm-understands-code-only-checks]].

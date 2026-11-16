@@ -71,6 +71,12 @@
 --   apply); ROW EXCLUSIVE on decision_policy (one row), seat_duty (one row; its trigger writes seat_playbook) and
 --   event_subscription (six rows; a row-share on org_role for its key). A re-apply takes SHARE UPDATE EXCLUSIVE on its own
 --   tables and row locks only (63-89 ms). No busy table (agent_actions, company_event) is touched; no trigger is added.
+-- FIX ROUND 1 (16 Nov 2026, REVIEW_orderconv items 1-7 and the money of 8; agent: ceo builder (order conversations fix round 1)):
+--   a refusal quoted in blocked_on is cleaned (an address reached the founder's summary); a closed hand-over is not re-planned
+--   (a 22-turn loop); seat_capability.buildable keeps four tools from any build; every turn kind reads money in its words and a
+--   turn's spends are summed, one decision row each; later status/response rounds no longer collide; easy rides in the request;
+--   a pull_in passes fn_ceo_plan_bet_check. Locks unchanged but for row locks on seat_capability (its own four rows, at apply).
+--   Known limits in the pending note. Probe rows R1-R8 failed on a28d85ae5 and pass (LOCAL).
 -- prevented by: scripts/sql/an_order_is_a_conversation_until_its_outcome_probe.sql (LOCAL),
 --   scripts/checks/an_order_is_a_conversation_until_its_outcome.test.mjs, supabase/functions/_shared/order_thread_surfaces.test.ts
 set local lock_timeout = '3s';
