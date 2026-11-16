@@ -74,8 +74,8 @@ export function calendarBlocks(c: { campaign_key: string; theme: string; month: 
     blocks.push({ t: 'section', text: 'The videos (key frame)' });
     for (const fr of frames) { blocks.push({ t: 'h3', text: fr.video }); blocks.push({ t: 'image', bytes: fr.bytes, kind: fr.kind, w: 150 }); }
   }
-  blocks.push({ t: 'section', text: 'To approve' });
-  blocks.push({ t: 'p', text: 'Reply to this email with the single word "approve" (or "موافق"). That approves every post above exactly as shown, and nothing else. To change anything, reply saying what; a corrected calendar will be sent and this one will no longer be approvable.' });
+  blocks.push({ t: 'section', text: 'Approval' });
+  blocks.push({ t: 'p', text: 'The CEO seat approves every post above exactly as shown (founder ruling 1696); nothing waits on you. To change anything, reply saying what; the marketing seat revises it and a corrected calendar follows.' });
   blocks.push({ t: 'note', text: `Content reference ${c.hash}. Any change to a caption, hashtag, time, video or link after this document was made changes the reference and voids an approval. The video links open the private master files and stop working after ${c.expires}.` });
   return blocks;
 }

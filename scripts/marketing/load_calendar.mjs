@@ -10,8 +10,8 @@
 // 2. The whole month is loaded by ONE call to fn_marketing_calendar_load, one transaction: all posts or none.
 //    Loading the same file twice leaves the same rows (the function rewrites only what changed).
 // 3. Nothing is published by loading. The seat emails the founder the month's calendar (PDF + spreadsheet)
-//    once it has been quiet for 30 minutes; his reply "approve" is the approval (fn_marketing_calendar_reply),
-//    and publishing still waits on app_secrets.marketing_golive.
+//    once it has been quiet for 30 minutes, for information: the CEO seat approves it (founder ruling 1696;
+//    fn_ceo_approves_marketing_calendar). His emergency stop, marketing_publishing_enabled, still holds every post.
 //
 // The calendar file (UTF-8; Node reads it as UTF-8, so Arabic arrives as Arabic):
 //   { "campaign": { "key": "2026-month1-supplier-recruitment", "theme": "...", "month": "2026-10", "title": "..." },

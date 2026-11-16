@@ -18,8 +18,8 @@
 //   cancel {ingest_key} / reschedule {ingest_key, at_utc} / requeue {ingest_key}
 //   The month's posts are loaded by scripts/marketing/load_calendar.mjs (fn_marketing_calendar_load).
 //
-// THE APPROVAL AND THE KILL SWITCH (24 Sep 2026, founder: "It should be one shot. I say approve... it's done").
-// A due post goes to Postiz when the founder approved the month, by replying "approve" to its calendar email,
+// THE APPROVAL AND THE KILL SWITCH. A due post goes to Postiz when the CEO seat approved the month (founder ruling 1696,
+// 15 Nov 2026: fn_ceo_approves_marketing_calendar; until then his "approve" reply to the calendar email did it, 24 Sep 2026),
 // for exactly this content, the post is not a ZZ DEMO post (flag or text), and the database lets the claim
 // through. There is no separate go switch: app_secrets.marketing_publishing_enabled is an EMERGENCY STOP only --
 // missing or anything but 'false' means on; 'false' holds every post (fn_marketing_publishing_on in the gate). Otherwise the scheduler records on marketing_post.dry_run
@@ -319,8 +319,8 @@ async function postByKey(key: unknown) {
 }
 
 // Cancel: a post already in Postiz is deleted THERE first; only then is it cancelled here. A cancelled post
-// leaves the month's content hash, so cancelling one post VOIDS the month's approval by design: the founder
-// is emailed the corrected calendar and approves the month as it now stands.
+// leaves the month's content hash, so cancelling one post VOIDS the month's approval by design: the CEO seat
+// approves the month as it now stands, and the founder is emailed the corrected calendar for information.
 async function cancel(e: Env, body: any) {
   const p = await postByKey(body?.ingest_key);
   if (!p) return { ok: false, error: 'no_such_post' };
@@ -341,7 +341,7 @@ async function cancel(e: Env, body: any) {
 }
 
 // Reschedule: nothing waits in Postiz (our clock sends at the due time), so the new time is set here. The
-// content hash includes the time, so the month's approval is void and a new calendar is emailed to him.
+// content hash includes the time, so the month's approval is void until the CEO approves it again; a new calendar is emailed to him.
 async function reschedule(body: any) {
   const p = await postByKey(body?.ingest_key);
   if (!p) return { ok: false, error: 'no_such_post' };
@@ -351,7 +351,7 @@ async function reschedule(body: any) {
   const local = new Date(at.getTime() + 4 * 3600_000).toISOString().slice(0, 19);
   const err = await patch(p.id, { scheduled_at: at.toISOString(), scheduled_local: local, status: 'scheduled', dry_run: null, error: null });
   return err ? { ok: false, error: err.message } : { ok: true, scheduled_at: at.toISOString(), scheduled_local_dubai: local,
-    note: 'the month\'s approval is void until the founder approves the new calendar, which is emailed automatically' };
+    note: 'the month\'s approval is void until the CEO approves the new calendar; the founder is emailed it automatically' };
 }
 
 // Requeue: a failed or unconfirmed post goes back to scheduled only after Postiz says it does not have it.
@@ -374,7 +374,8 @@ async function requeue(e: Env, body: any) {
 // ── the monthly calendar email (founder_instructions 866, 871, 872) ─────────────────────────────────
 // Rendered from the loaded rows on the company PDF template (pdf_native's renderer, in-process) and as a
 // spreadsheet (the vendored SheetJS), stored in agent-docs (the outbox's attachable bucket), and mailed to him
-// by fn_marketing_calendar_sent with the Reply-To token his "approve" must carry back.
+// by fn_marketing_calendar_sent with a Reply-To token, so a change he asks for reaches the marketing seat. The CEO seat
+// approves the calendar (ruling 1696); the email is his information and asks him for nothing.
 //
 // THE VIDEO LINKS are signed URLs of the PRIVATE marketing-media objects, valid until 14 days after the month
 // ends, so the links work through his review and the whole month. The bucket never becomes public and no
@@ -441,14 +442,14 @@ async function calendarSend(key: string) {
   const body = [
     `Attached is the ${monthName} social calendar: ${rows.length} posts, ${first.date} to ${last.date} (Dubai time), organic only — no ads, no boosting.`,
     'The PDF lists every post with its date, Dubai time, platform, video, the exact caption and hashtags that will be published, and its link. Press a video name to open that video. The spreadsheet has the same rows.',
-    `To approve all ${rows.length} posts exactly as shown, reply to this email with the single word "approve" (or "موافق"). To change anything, reply saying what, and a corrected calendar will follow.`,
+    'The CEO seat approves this calendar exactly as shown (founder ruling 1696); nothing waits on you. To change anything, reply saying what, and the marketing seat revises it. Your emergency stop is unchanged.',
     `Content reference: ${String(hash).slice(0, 12)}.`,
   ].join('\n\n');
   const { data: sent, error } = await admin.rpc('fn_marketing_calendar_sent', { p_campaign_key: c.campaign_key, p_hash: hash,
-    p_pdf_path: `${stem}.pdf`, p_xlsx_path: `${stem}.xlsx`, p_subject: `Social calendar ${monthName}: ${rows.length} posts for your approval`, p_body: body });
+    p_pdf_path: `${stem}.pdf`, p_xlsx_path: `${stem}.xlsx`, p_subject: `Social calendar ${monthName}: ${rows.length} posts, for your information`, p_body: body });
   if (error) return { ok: false, error: error.message };
   // The plan goes to him as drafted; past plans are shown with it, not followed, so none is named.
-  await decideJudgement(admin, memory, `calendar ${c.campaign_key} sent for approval (${rows.length} posts)`, []);
+  await decideJudgement(admin, memory, `calendar ${c.campaign_key} sent to the founder for information (${rows.length} posts)`, []);
   return { ...(sent as Record<string, unknown>), pdf: `${stem}.pdf`, xlsx: `${stem}.xlsx`, posts: rows.length, links: pdf.meta.links, pages: pdf.meta.pages, precedent: memory };
 }
 
