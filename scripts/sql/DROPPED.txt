@@ -770,7 +770,6 @@ fn_inbox_list :: moved to schema retired by the_july_os_console_backend_and_the_
 fn_agent_context :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
 fn_agent_context_v3 :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
 fn_agent_institutional_memory :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
-fn_knowledge_staleness_tag :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
 fn_action_invoke_dispatch :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
 fn_action_resolve_approver :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
 fn_action_authority_rank :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
