@@ -4,7 +4,9 @@ import { rehearsalLetsFixtureThrough } from '../spend_guards.ts';
 import type { Phase, ThinkDeps, ThinkRequest } from './types.ts';
 
 /** The held-question surfaces that are a seat's own scheduled work about the company, never about a person's case. */
-export const INTERNAL_DUTY_SURFACE = /^[a-z_]+\.(knowledge_refresh|postmortem|root_cause|ceo_revision|management_review|target_forecast|marketing_month_plan|experiment_approval|experiment_verdict|it_finding|overdue_handoff|authority|order_plan|order_status|order_retro|order_answer|order_response|order_next)$/;
+// 16 Nov 2026 (OPS_LOOPS): a seat's daily backlog review, its calendar plans, the CEO's calendar owners and compliance changes
+// are its own scheduled work too. Not it_engineer.incident_impact or ceo.partnership: those judge what real people see or sent.
+export const INTERNAL_DUTY_SURFACE = /^[a-z_]+\.(knowledge_refresh|postmortem|root_cause|ceo_revision|management_review|target_forecast|marketing_month_plan|experiment_approval|experiment_verdict|it_finding|overdue_handoff|authority|order_plan|order_status|order_retro|order_answer|order_response|order_next|backlog_review|calendar_plan|calendar_owner|compliance_change)$/;
 /** The class a step is asked as: an easy run's own judgement goes on the seat's routine route (see ThinkRequest.easy). */
 export function easyClass(taskClass: string, easy: boolean | undefined): string {
   return easy === true && taskClass === 'internal_judgement' ? 'routine_employee_reasoning' : taskClass;

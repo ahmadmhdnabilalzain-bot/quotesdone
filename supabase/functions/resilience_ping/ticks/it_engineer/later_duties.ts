@@ -8,6 +8,7 @@ import { runRestoreTable } from '../../../_shared/it_restore_drill.ts';
 import { rotateAndSettle } from '../../../_shared/it_rotate_by_api.ts';
 import { PAUSED, pausedDuties } from '../../../_shared/duty_pause.ts';
 import { timedFetch } from '../../../_shared/timed_fetch.ts';
+import { runComplianceWatch } from '../../../_shared/compliance_watch.ts';
 import { advanceOpenDeliberations } from '../../../_shared/seat_deliberation.ts';
 import { liveDeliveryIO, sendHeldNotices } from '../../../_shared/reasoned_delivery.ts';
 import { customerReplyGate } from '../../../_shared/ai_reply.ts';
@@ -100,6 +101,14 @@ export async function itLaterDutiesTick(clock: StepClock = stepClock()): Promise
     const r = (await rpc('fn_model_catalogue_sync', { p_catalogue: cat })) as Record<string, unknown>;
     return { due: true, compared: r?.compared, open: r?.open, new: r?.new,
              resolved: r?.resolved };
+  });
+  // The compliance sources, once a day (OPS_LOOPS, 16 Nov 2026, hole H6): every active source not checked in 30 days is
+  // fetched from its own allowlisted host and recorded; a changed page goes to the CEO seat's model, which routes it to
+  // the seat it affects (_shared/compliance_watch.ts, scripts/sql/every_compliance_source_is_fetched_monthly_and_a_change_reaches_the_seat_it_affects.sql).
+  // Model-free and due-gated, so it sits with the readings, before the model steps.
+  await step('compliance_watch', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('compliance_watch')) return { due: false };
+    return await runComplianceWatch(rpc);
   });
   await step('supplier_docs', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };

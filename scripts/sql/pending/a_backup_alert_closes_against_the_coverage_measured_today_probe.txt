@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run after a_backup_alert_closes_against_the_coverage_measured_today.sql in the same transaction on a local Postgres 16; it must print PROBE OK. This note stays for the life of the file. Seat: it_engineer.

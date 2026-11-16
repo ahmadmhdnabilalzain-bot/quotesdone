@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run after an_incident_is_one_per_cause_and_the_it_engineers_model_says_who_it_reaches.sql in the same transaction on a local Postgres 16; it must print PROBE OK. This note stays for the life of the file. Seat: it_engineer.
