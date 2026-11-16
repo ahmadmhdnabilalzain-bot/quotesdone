@@ -4,6 +4,8 @@
 // journey step reads a spreadsheet. A dynamic import with a literal path is still bundled (the same
 // pattern supplier_catalog_ingest uses), so nothing is fetched at runtime; it is only evaluated late.
 // The promise is kept so the second workbook in the same isolate does not re-import.
+// Since 16 Nov 2026 the only importer is ../doc_read/workbook_local.ts (the SheetJS engine a function registers by
+// importing it); supplier_api registers the remote engine instead and does not upload SheetJS (doc_read/workbook_engine.ts).
 // @deno-types="./sheetjs-0.20.3/types/index.d.ts"
 import type * as XLSXNS from './sheetjs-0.20.3/xlsx.mjs';
 
