@@ -1,0 +1,3 @@
+Committed, not applied. Assigned: sales_engineer, 16 Nov 2026 (main session). Data only: switches two duties off.
+Apply at merge: node scripts/apply_sql.mjs scripts/sql/the_best_and_final_round_and_framework_rates_stay_off_as_the_founder_removed_them.sql --apply --ddl --seat sales_engineer
+(expect PROBE OK), then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt.
