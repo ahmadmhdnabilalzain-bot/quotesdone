@@ -3,8 +3,9 @@
 -- survives. Every subject is created here, ZZ DEMO, with an @example.invalid address and a number no person holds; the duty fixtures
 -- switch is on (the ticks select only demo rows), and every message is demo-captured (written suppressed, never sent). The one
 -- escalation to the CEO is filed under qd.probe_files_demo_handoff for this transaction only, so its row can be read.
--- 21 scenarios, each named in its failure. Run on a local Postgres 16 built from the schema mirror (scripts/db/local_pg16.mjs),
--- twice, 16 Nov 2026: PROBE OK both times.
+-- 29 scenarios, each named in its failure (12b-12d and 22-26 are review AFTERREVEAL's items 2, 4, 5 and 6). Run on a local Postgres 16
+-- built from the schema mirror plus main's newer files in MANIFEST order (scripts/db/local_pg16.mjs), twice, 16 Nov 2026: PROBE OK
+-- both times; the previous version of the file fails it at 12b.
 do $probe$
 declare
   v_cust uuid; v_other uuid; v_lead bigint; v_inq uuid; v_inq2 uuid; v_q uuid; v_q2 uuid; v_q3 uuid; v_q4 uuid;

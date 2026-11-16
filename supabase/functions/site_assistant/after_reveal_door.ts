@@ -5,9 +5,12 @@
 // NO NEW MODEL CALL AND NO KEYWORD. The widget already reasons, on every message, whether it needs a person: a complaint, a dispute,
 // a refund demand, however it is worded (needsAPerson, _shared/reasoned_decisions.ts; site_assistant.person). When that reading
 // says yes and the caller is a SIGNED-IN customer (identify(): the session's own e-mail, never typed into the chat), the message goes
-// to the one door every channel shares (public.fn_customer_after_reveal_message). The door finds his revealed job (a request number he
-// wrote, else his only one) and files the dispute intake, where the model reads it beside the revealed quotation: the supplier
-// contacted him / did not (the refund door) / a dispute that needs a case / nothing for a case. An anonymous visitor has no job.
+// to the one door every channel shares (public.fn_customer_after_reveal_message, channel 'widget', no job). For the widget the door
+// picks NO job itself (review AFTERREVEAL item 6: not "his only revealed job", not a number spotted in a chat turn): a model reading
+// (customer_support.after_reveal_job) names the job or none, and only a named job is filed with the dispute intake, where the model
+// reads it beside the revealed quotation: the supplier contacted him (from the widget he is asked to CONFIRM with one tap; the reading
+// records nothing) / did not (the refund door) / a dispute that needs a case / nothing for a case. Whatever it reads, he is written to
+// with the result on his own address (the widget's reply is already sent by then). An anonymous visitor has no job.
 // prevented by: ./after_reveal_door.test.ts
 export type Rpc = (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: { message: string } | null }>;
 export type Who = { audience: 'customer' | 'supplier'; id: string; email?: string | null } | null | undefined;

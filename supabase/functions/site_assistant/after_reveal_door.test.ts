@@ -36,3 +36,14 @@ Deno.test('the widget files the door from the reading it already makes, and deci
   const door = await Deno.readTextFile(new URL('./after_reveal_door.ts', import.meta.url));
   assert(!/text\s*\.\s*(match|includes|search)\(|\.test\(text\)/.test(door), 'the message is never pattern-read in code');
 });
+Deno.test('the widget door names no job itself: it passes no transaction, so the SQL door asks the model which job it is', async () => {
+  const { f, calls } = rpc({ ok: true, code: 'reading_the_job', held_question_id: 7 });
+  const r = await fileAfterRevealProblem(f, CUST, 'ZZ DEMO request 1043 the tiler never came back', true);
+  assertEquals([r.filed, calls[0].args.p_transaction, calls[0].args.p_channel], [true, null, 'widget']);
+  const door = await Deno.readTextFile(new URL('../../../scripts/sql/a_paid_reveal_asks_the_customer_and_every_money_problem_reaches_a_case.sql', import.meta.url));
+  const i = door.indexOf('function public.fn_customer_after_reveal_message(');
+  const body = door.slice(i, door.indexOf('$fn$;', i));
+  const widget = body.slice(body.indexOf("if p_transaction is null and p_channel = 'widget' then"), body.indexOf('if p_transaction is not null then'));
+  assert(widget.includes("'customer_support.after_reveal_job'"), 'the widget branch does not ask the model which job');
+  assert(widget.indexOf('return jsonb_build_object') > 0 && !widget.includes('fn_customer_support_dispute_consider'), 'the widget branch files a job itself');
+});

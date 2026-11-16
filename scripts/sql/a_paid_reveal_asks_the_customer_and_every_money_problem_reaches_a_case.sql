@@ -61,6 +61,24 @@
 --   8. fn_customer_money_cases(customer): his open refunds, disputes, waiting intakes and each revealed job's ladder state, for every
 --      channel's facts. A separate routine: fn_customer_inquiry_facts belongs to another branch, so the main session wires it.
 --
+-- REVIEW AFTERREVEAL (16 Nov 2026; agent "customer_support builder (after-reveal review fixes)"), what changed on top of the above:
+--   R1. fn_refund_state and fn_refund_open_from_customer are PRODUCTION's live bodies (pg_get_functiondef, md5(prosrc) b21f76fd... and
+--       11b5baf9..., read 16 Nov 2026) plus only the intended change; the first version rebuilt them from the 12 Nov mirror and undid
+--       the 13 Nov R6 clock (fn_reveal_clock_start / fn_reveal_window; partly_refunded, refunded_aed, clock_starts_at) and the 15 Nov
+--       overcharge_return handling. Every other existing routine redefined here was checked equal to production before the edit.
+--   R2. fn_ceo_decides_post_reveal_dispute: an accountant's overcharge return is not an "already open" refund; the CEO's refund is
+--       filed for what remains of the payment (fn_accountant_dispute_remedy_tick likewise). The CEO's refund checklist that reads the
+--       CEO's own dispute decision and the contested word is the_ceo_refund_checklist_reads_the_customers_word_the_dispute_and_every_channel.sql.
+--   R4. fn_reveal_contact_record: the ten-minute duplicate rule no longer swallows a denial made after the supplier's claim.
+--   R5. Every reading of the intake answers him: not_dispute and supplier_contacted open a complaint ticket (Terms clause 18) and owe
+--       a reply written by the model (what was understood, the ticket, what happens next).
+--   R6. The widget: a chat turn is filed onto a revealed job only when a model reading names it (customer_support.after_reveal_job),
+--       and he is written to; a widget reading of "the supplier contacted me" records nothing and asks him to confirm with one tap.
+--       pause_matching has an end (decision_policy dispute_pause_matching_working_days), is lifted by fn_ceo_lifts_dispute_pause (the
+--       CEO with reasons, or duty ceo.dispute_pause at its end), and a pause skipped because the supplier was already blocked is
+--       recorded with that reason and applied late once that block lifts. The CEO's dispute decision is asked by reasoning (duty
+--       ceo.post_reveal_dispute) and its answer calls fn_ceo_decides_post_reveal_dispute (fn_reason_apply_ceo__post_reveal_dispute).
+--
 -- Every new routine: SECURITY DEFINER, search_path pinned, EXECUTE revoked from public, anon and authenticated, granted to
 -- service_role. A routine whose signature changes is dropped first and its new signature revoked. The new table: RLS on, a
 -- service-role-only policy, revoked from anon and authenticated.
@@ -259,12 +277,8 @@ grant execute on function public.fn_reveal_contact_record(uuid, text, text, text
 -- R6 clock fn_reveal_clock_start / fn_reveal_window and the partly_refunded, refunded_aed and clock_starts_at outputs, which the
 -- 12 Nov schema mirror does not) with ONE change: v_responded comes from fn_reveal_contact_word, which keeps the old two signals
 -- (the acknowledgement, a platform message after the reveal) and adds the customer's own word; the output carries both statements.
-CREATE OR REPLACE FUNCTION public.fn_refund_state(p_transaction uuid)
- RETURNS jsonb
- LANGUAGE plpgsql
- STABLE
- SET search_path TO 'public', 'pg_temp'
-AS $function$
+create or replace function public.fn_refund_state(p_transaction uuid)
+returns jsonb language plpgsql stable set search_path to 'public', 'pg_temp' as $fn$
 declare t record; v_window int; v_chase int; v_notify_days int; v_min int; v_max int;
         v_responded boolean; v_chase_at timestamptz; v_final_at timestamptz; v_notify_at timestamptz;
         v_chased_at timestamptz; v_final_sent_at timestamptz; v_state text; v_start timestamptz; v_word jsonb;
@@ -350,7 +364,7 @@ begin
                                       else public.fn_working_days_between(t.customer_notified_at, now()) end,
     'bank_settlement_working_days', coalesce(v_min,7)::text || '-' || coalesce(v_max,14)::text
   );
-end $function$;
+end $fn$;
 revoke execute on function public.fn_refund_state(uuid) from public, anon, authenticated;
 grant execute on function public.fn_refund_state(uuid) to service_role;
 
@@ -371,13 +385,9 @@ grant execute on function public.fn_refund_rating_shows_dealing(uuid) to service
 --      otherwise (md5(prosrc) 11b5baf9f1a1f0a5c0ee108e445b7a82, read 16 Nov 2026: it carries the 15 Nov overcharge_return handling,
 --      so an accountant's overcharge return on the payment is not answered as "your refund case is already open").
 drop function if exists public.fn_refund_open_from_customer(uuid, text, text);
-CREATE OR REPLACE FUNCTION public.fn_refund_open_from_customer(p_transaction_id uuid, p_requested_by text, p_reason_note text DEFAULT NULL::text,
-  p_channel text DEFAULT 'portal'::text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
+create or replace function public.fn_refund_open_from_customer(p_transaction_id uuid, p_requested_by text, p_reason_note text default null,
+  p_channel text default 'portal')
+returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   t public.transactions; c record; v_id bigint; v_open bigint; v_locale text; v_code text; v_en text; v_ar text;
   v_later boolean := false; v_paid text; v_decide text; v_req bigint; v_amt numeric; v_out bigint; v_over bigint; v_word jsonb;
@@ -529,7 +539,7 @@ begin
     'decision_after', t.refund_deadline, 'delivery_request', v_req, 'contact', v_word,
     'message_en', 'Refund case QD-RF-' || v_id || ' is open. Our chief executive decides it after ' || coalesce(v_decide, 'the fifth working day') || ', and if it is due ' || v_short_en || '. We have emailed you the details.',
     'message_ar', 'فتحنا حالة الاسترداد QD-RF-' || v_id || '، وسيبتّ فيها رئيسنا التنفيذي بعد ' || coalesce(v_decide, 'يوم العمل الخامس') || '، وإن ثبت استحقاق الاسترداد ' || v_short_ar || '. وقد أرسلنا إليكم التفاصيل بالبريد الإلكتروني.');
-end $function$;
+end $fn$;
 revoke execute on function public.fn_refund_open_from_customer(uuid, text, text, text) from public, anon, authenticated;
 grant execute on function public.fn_refund_open_from_customer(uuid, text, text, text) to service_role;
 
@@ -1327,7 +1337,7 @@ on conflict (duty) do update set owner_seat = excluded.owner_seat, every = exclu
 -- single option naming the outcome, the remedy for the customer and the action on the supplier. The apply refuses a reasonless
 -- answer (fn_ceo_reasons_problem) and calls the one routine that acts.
 create or replace function public.fn_ceo_post_reveal_dispute_options()
-returns jsonb language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+returns jsonb language sql immutable security definer set search_path to 'public', 'pg_temp' as $fn$
   select jsonb_build_array(
       jsonb_build_object('id', 'supplier_upheld', 'meaning', 'the supplier''s position is upheld: no remedy for the customer and no action on the supplier'),
       jsonb_build_object('id', 'no_fault', 'meaning', 'no fault is found on either side, or the evidence is too thin: no remedy and no action'))
