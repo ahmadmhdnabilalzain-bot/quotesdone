@@ -1,0 +1,2 @@
+A DRY RUN, so it is never applied: it calls fn_accountant_expense_on_founder_word with p_dry_run => true, which writes
+nothing. It is run right before a_mashreq_fee_the_bank_has_not_taken_is_owed_not_paid_and_the_1_august_fee_is_booked.sql. This note stays for the life of the file. Seat: accountant.

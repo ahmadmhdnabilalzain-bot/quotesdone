@@ -16,6 +16,8 @@
 //  10. conversation calls, or calls in a month with no real request, count as the cost of a request;
 //  11. a cost already stopped counts as a saving;
 //  12. a folded receipt's evidence is filed against the deleted row (receipts.ts, the accountant's sweep).
+//  13. (16 Nov 2026, review of the 1 Aug fee) a fee the bank has not taken is credited to cash instead of 2200 Accrued
+//      Expenses; the statement line that pays it stops moving the debt to cash, or books a second cost.
 // Source checks; the routines run on a local Postgres 16 with their probes.
 //   node --test scripts/checks/the_books_hold_a_cost_on_the_founders_word_and_tell_the_ceo_what_a_request_costs.test.mjs
 import { test } from 'node:test';
@@ -29,6 +31,7 @@ const code = (s) => s.split('\n').filter((l) => !/^\s*--/.test(l)).join('\n');
 const read = (p) => code(readFileSync(join(REPO, 'scripts/sql', p), 'utf8'));
 const HELD = read('the_books_hold_a_cost_on_the_founders_word_until_its_document_arrives.sql');
 const ECON = read('the_books_tell_the_ceo_what_a_request_costs_and_how_long_the_money_lasts.sql');
+const OWED = read('a_mashreq_fee_the_bank_has_not_taken_is_owed_not_paid_and_the_1_august_fee_is_booked.sql');
 const body = (sql, name) => {
   const i = sql.search(new RegExp('create or replace function public\\.' + name + '\\(', 'i'));
   assert.ok(i >= 0, name + ' is defined');
@@ -136,4 +139,22 @@ test('runway and the 13-week forecast count only a recorded commitment, and foun
   assert.match(f, /l\.account_code = '3000'/);
   assert.doesNotMatch(f, /'loan'/);
   assert.match(ECON, /'accountant\.request_economics', 'accountant', interval '1 day', 'fn_accountant_request_economics_tick'/);
+});
+
+test('a fee waiting for its bank statement is owed (2200), and the line that pays it moves the debt to cash, never a second cost', () => {
+  const f = body(OWED, 'fn_accountant_expense_on_founder_word');
+  assert.match(f, /if p_awaits = 'bank_statement' then\s+v_jid := public\.fn_gl_entry\(/);
+  assert.match(f, /jsonb_build_object\('account', '2200', 'credit', v_aed/);
+  // every rule the earlier body kept is still there
+  for (const k of ["'refused', 'already_booked'", "'refused', 'statement_shows_it'", 'if p_dry_run then', "p_awaits = 'bank_statement' and v_cur <> 'AED'"]) assert.ok(f.includes(k), k);
+  const a = body(OWED, 'fn_accountant_attach_statement_line');
+  assert.match(a, /and e\.charged_on <= l\.value_date \+ 7/);
+  assert.match(a, /'bank_charge_settles_accrual', l\.id::text/);
+  assert.match(a, /jsonb_build_object\('account', '2200', 'debit'/);
+  assert.match(a, /jsonb_build_object\('account', '1000', 'credit'/);
+  assert.doesNotMatch(a, /'account', '6300'/, 'the payment books a second cost');
+  // the 1 Nov fee held against cash is moved to 2200 in the same file, and the 1 Aug fee is booked there, never a July one
+  assert.match(OWED, /'expense_accrual', e\.id::text/);
+  assert.equal((OWED.match(/fn_accountant_expense_on_founder_word\('Mashreq', date '2026-08-01'/g) || []).length, 2);
+  assert.doesNotMatch(OWED, /date '2026-07-/);
 });
