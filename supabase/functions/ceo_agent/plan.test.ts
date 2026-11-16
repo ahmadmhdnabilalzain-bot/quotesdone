@@ -4,7 +4,9 @@
 // whatever the model answered through fn_ceo_plan_file and nothing else, never files a broken answer as a plan, and never asks the
 // founder.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { MAX_PLAN_CALLS, PACK_IS_DATA, parsePlan, planAction, type PlanDeps, runPlan } from './plan.ts';
+import { MAX_PLAN_CALLS, PACK_IS_DATA, PLAN_CALL, PLAN_CALL_BASIS, parsePlan, planAction, planCallFor, type PlanDeps, runPlan } from './plan.ts';
+import { headroomFor } from '../_shared/request_shape.ts';
+import { classEffort } from '../_shared/effort_policy.ts';
 
 type Call = { fn: string; args: Record<string, unknown> };
 function depsOf(opts: { answers?: string[]; file?: Array<Record<string, unknown>>; request?: Record<string, unknown>; requests?: Array<Record<string, unknown>>; truncated?: boolean; modelError?: string } = {}) {
@@ -120,4 +122,24 @@ Deno.test('plan: a revision the database will not hand out (the cap, or a revisi
   assertEquals(m.calls.filter((c) => c.fn === 'fn_ceo_plan_request').length, 2, 'the revision asked the database first');
   assertEquals(m.calls.filter((c) => c.fn === 'fn_ceo_plan_file').length, 1);
   assertEquals(r.ok, false);
+});
+
+// 16 Nov 2026 (ledger 1448): the first weekly plan was cut at the gateway's 112 s wall. A weekly call must end inside the wall
+// at Opus 5.5's 5th-percentile throughput with the whole thinking headroom spent, and the wall inside the edge's 150 s.
+Deno.test('plan: the weekly call fits the gateway wall at the slow end of measured Opus throughput, at the class\'s own effort', () => {
+  const b = PLAN_CALL_BASIS;
+  const fits = (max: number, timeoutMs: number) => {
+    const tokens = max + headroomFor(classEffort('ceo_strategic_planning'));
+    const worstMs = b.promptMs + tokens / b.opusTokensPerSecondP5 * 1000;
+    const wallMs = timeoutMs + b.llmDeclaresExtraMs - b.gatewayKeepsMs;
+    return { worstMs, wallMs, ok: worstMs <= wallMs + 2000 && wallMs + b.gatewayKeepsMs + 2000 <= b.edgeWallMs };
+  };
+  assertEquals(classEffort('ceo_strategic_planning'), 'high', 'the plan decides: high effort (ruling 1630)');
+  const now = fits(PLAN_CALL.weekly.max, PLAN_CALL.weekly.timeoutMs);
+  assert(now.ok, 'the weekly call does not fit: ' + JSON.stringify(now));
+  assert(!fits(8000, 110_000).ok, 'the old 8,000 tokens and 110 s fit, so the test proves nothing');
+  assert(PLAN_CALL.weekly.max >= 3000, 'the answer (about 3,000 tokens, the seed plan) must fit in the answer budget');
+  assertEquals(planCallFor('ceo_strategic_planning'), PLAN_CALL.weekly);
+  assertEquals(planCallFor('routine_employee_reasoning'), PLAN_CALL.daily);
+  assert(PLAN_CALL.daily.timeoutMs >= 59_100, 'the daily review waits less than the class\'s measured max (59.1 s)');
 });

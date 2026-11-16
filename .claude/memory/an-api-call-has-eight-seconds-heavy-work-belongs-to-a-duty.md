@@ -27,3 +27,10 @@ after a 1,325 ms tick means the earlier ticks averaged 7,892 ms (ewma = 0.7 old 
 
 Files: scripts/sql/the_ceo_writes_its_weekly_plan_with_a_model_and_carries_it_out.sql,
 supabase/functions/resilience_ping/ticks/ceo.ts, scripts/checks/the_ceo_writes_its_weekly_plan_with_a_model_and_carries_it_out.test.mjs.
+
+**And a model call has the gateway's wall (16 Nov, later the same day).** The first weekly plan reached Opus and was cut at
+the gateway's 112 s wall with 0 output tokens: 8,000 answer tokens + the gateway's 8,000 high-effort thinking headroom =
+16,000 tokens, 147 s at Opus 5.5's measured p50 (108.9 tokens/s; p5 88.5). Size a call as (answer + headroomFor(effort)) /
+p5 throughput + prompt time, keep it inside the declared wall (timeoutMs + 5 s - 3 s) and the wall inside the edge's 150 s
+(ceo_agent/plan.ts PLAN_CALL: 4,000 tokens, 138 s). A cut by our own clock is not the model's answer: retry it
+(fn_ceo_plan_cut_by_our_clock). An hourly tick and a "2 hours" retry miss by seconds: retry after 105 minutes.
