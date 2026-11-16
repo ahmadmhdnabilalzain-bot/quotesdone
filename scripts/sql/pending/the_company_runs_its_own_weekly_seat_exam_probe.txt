@@ -1,0 +1,5 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. Run LOCALLY (Postgres 16 from the
+mirror, net.http_post stood in) after the_company_runs_its_own_weekly_seat_exam.sql, 16 Nov 2026: CHK<<PROBE OK: the week's exam opens on
+its own clock, asks fresh wordings, fixes a miss in the seat's knowledge, stops at its cap and raises a finding when it fails, is late or a
+fix does not hold>> twice; with the fix-opening and the cap removed it reports PROBE FAILED on cases 3 and 5. This note stays for the life
+of the file. Seat: it_engineer.

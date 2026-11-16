@@ -2,7 +2,8 @@
 // for real judgement; ledger 890: no word matching).
 //
 // WHAT FAILS IF THE CAUSE RETURNS (static, over the committed SQL and TypeScript):
-//   * the retired model knowledge exam files a think() question again, or its seat_duty is re-enabled;
+//   * the retired daily model knowledge exam files a think() question again; its duty runs only the capped weekly exam
+//     of 16 Nov (scripts/sql/the_company_runs_its_own_weekly_seat_exam.sql, ledger 1084);
 //   * fn_task_review files ceo.task_responsibility to the model instead of routing ownership by structure;
 //   * the hourly lesson grouping reaches think(), or the weekly run reasons groups below the threshold;
 //   * a weekly CEO report files at high stakes (a second, verify call), the review asks for more than the verdict and
@@ -34,10 +35,18 @@ function body(name) {
   return rest.slice(a, rest.indexOf(tag, a));
 }
 
-test('the model knowledge exam stays retired', () => {
+test('the daily model knowledge exam stays retired; the duty runs only the capped weekly exam (ledger 1084, 16 Nov)', () => {
   assert.match(SQL, /update public\.seat_duty set enabled = false,[\s\S]*?where duty = 'it_engineer\.knowledge_exam'/, 'the exam duty is not disabled');
   const b = body('fn_it_engineer_duty_knowledge_exam');
   assert.ok(!/fn_reason_hold|fn_it_engineer_knowledge_exam\(|fn_seat_duty_reason/.test(b), 'the daily exam duty files a model question again');
+  // 16 Nov 2026 (ledger 1084/1443): the same duty runs the company's own WEEKLY exam, which files nothing into a seat's
+  // queue (think queueWhenHeld false), asks a capped number of items and stops at the week's AED cap.
+  const weekly = code('scripts/sql/the_company_runs_its_own_weekly_seat_exam.sql');
+  assert.match(weekly, /update public\.seat_duty set routine = 'fn_it_engineer_seat_exam_tick'[\s\S]*?where duty = 'it_engineer\.knowledge_exam'/);
+  assert.ok(!/fn_reason_hold|fn_seat_duty_reason/.test(weekly), 'the weekly exam files a model question into a queue');
+  assert.match(weekly, /'week_aed_cap', 10/, 'the weekly exam has no AED cap');
+  assert.match(weekly, /elsif r\.spent_aed >= r\.cap_aed then/, 'the weekly exam does not stop at its cap');
+  assert.match(code('supabase/functions/it_engineer/index.ts'), /queueWhenHeld: false/, 'a held exam answer is filed in the seat\'s queue');
 });
 
 test('task ownership is routed by structure, never filed to the model', () => {
