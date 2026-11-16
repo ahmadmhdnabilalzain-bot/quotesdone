@@ -14,6 +14,7 @@ import { statedSpecs, tradeOf } from '../_shared/reasoned_decisions.ts';
 import { guardSupportReply } from '../_shared/support_reply_guard.ts';
 import { isOpenRouterDown } from '../_shared/openrouter_down.ts';
 import { TurnClock, placeUserTurn, storedReply, turnIdOf, within } from './turn_clock.ts';
+import { OPEN_STATUSES, newestOpenDraft, transcriptOf } from './resume.ts';
 import { CORS, J, admin, logRun, parseJson, sanitizeInput, serviceVocabKept } from './shared.ts';
 import { type LlmFailure, llm } from './llm.ts';
 import { kbFor } from './knowledge.ts';
@@ -53,6 +54,16 @@ export async function handle(req: Request): Promise<Response> {
       return J({ ok: true, polled: true, intake_id: row.id, pending: !a, state: a ? 'answered' : h?.escalated_at ? 'with_team' : 'working',
                  assistant_message: a ? String(a.text || '') : '', status: row.status, agent: ACTOR });
     }
+    // HIS NEWEST OPEN DRAFT, ON ANY RETURN (16 Nov 2026, ./resume.ts). `resume` reads it with its conversation and writes nothing:
+    // a reload, another tab or his phone opens the request chat where he left it. No rate-limit slot.
+    const openDrafts = () => admin.from('inquiry_intake').select('*').eq('email', email).in('status', [...OPEN_STATUSES])
+      .order('updated_at', { ascending: false }).limit(5);
+    if (b && b.resume === true && !String(b.text || '').trim()) {
+      const { data: rows } = await openDrafts();
+      const row = newestOpenDraft(rows as any[]);
+      if (!row) return J({ ok: true, resumed: false, agent: ACTOR });
+      return J({ ...storedReply(row), replayed: false, resumed: true, transcript: transcriptOf(row.turns), agent: ACTOR });
+    }
     try { const { data: ok } = await admin.rpc('rl_check', { p_key: 'intake:' + email, p_limit: 60, p_seconds: 3600 }); if (ok === false) { await logRun('ok', { rate_limited: 1, intake_persisted: 0 }, 'Customer hit the intake rate limit (60/hour) and was turned away before their request was captured — their RFQ was not created and no supplier will ever see it unless they retry.'); return J({ error: 'You are sending requests too quickly. Please wait a moment and try again.' }, 429); } } catch (_e) { /* */ }
     // THE CUSTOMER RECORD IS CREATED HERE, NOT LOOKED UP AND ABANDONED.
     // This line used to be a select only. When it missed — which it did for everyone who came in
@@ -71,7 +82,9 @@ export async function handle(req: Request): Promise<Response> {
     const [custRead, specsRead, draftRead] = await Promise.all([
       admin.from('customers').select('id,locale').eq('email', email).maybeSingle(),
       admin.from('category_specs').select('category'),
-      b.intake_id ? admin.from('inquiry_intake').select('*').eq('id', b.intake_id).maybeSingle() : Promise.resolve({ data: null }),
+      b.intake_id ? admin.from('inquiry_intake').select('*').eq('id', b.intake_id).maybeSingle()
+        // a first message with no draft id continues his newest open draft, unless he chose a fresh request or a carried chat
+        : (!b.fresh && b.carry_from !== 'portal') ? openDrafts().then((x: any) => ({ data: newestOpenDraft(x?.data || []) })) : Promise.resolve({ data: null }),
     ]);
     let cust = custRead.data;
     if (!cust) {
@@ -89,7 +102,7 @@ export async function handle(req: Request): Promise<Response> {
     if (specsErr || !validSlugs.length) { await logRun('error', { category_specs_loaded: validSlugs.length, specs_query_failed: specsErr ? 1 : 0 }, 'category_specs could not be loaded (' + String(specsErr?.message || 'query returned no rows') + ') — with no valid category slugs every trade is treated as invalid, so this customer request will be filed as \'general\' with no checklist and routed to the wrong suppliers or to none at all.'); }
 
     let draft: any = null;
-    if (b.intake_id) { const data = (draftRead as { data: any }).data; if (data && (data.email === email)) draft = data; }
+    { const data = (draftRead as { data: any }).data; if (data && (data.email === email)) draft = data; }
     // "NEW REQUEST" AFTER A PORTAL CHAT OPENS PRE-FILLED (10 Nov 2026, founder ledger 1572; the design audit's G1). The portal
     // told the customer to press New request, and that opened a BLANK request chat (Dashboard.tsx passed only the homepage
     // draft), so they retold the whole job. With carry_from 'portal' and no request yet, the customer's newest portal job

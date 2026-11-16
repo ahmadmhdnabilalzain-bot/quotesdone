@@ -57,6 +57,9 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [messages, setMessages] = useState([{ role: 'assistant', text: t(lang, 'nr_greeting') }]);
   const [input, setInput] = useState('');
   const [intakeId, setIntakeId] = useState(null);
+  // HIS UNFINISHED REQUEST CHAT COMES BACK (16 Nov 2026, inquiry_intake/resume.ts): on opening, the server is asked for his newest
+  // open draft (by his signed-in address, so a reload or his phone finds it too); "Start a new request" asks for a fresh one.
+  const [resumed, setResumed] = useState(false); const freshRef = useRef(false);
   const [drawing, setDrawing] = useState(null); const drawingRef = useRef(null);
   const [marks, setMarks] = useState(null); // { image, width, height, matches } from the symbol counter
   const [pages, setPages] = useState(null); // { images, b64, mime, name } kept for the redaction editor
@@ -153,7 +156,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     const dr = drawingNow || drawing;
     const sp = sitePhotosRef.current.map((p) => ({ shot: p.shot, job_id: p.job_id }));
     const declined = photosDeclined.current; photosDeclined.current = false;
-    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (dr && dr.boq) || null, lang, turn_id: tid, ...(sp.length ? { site_photos: sp } : {}), ...(declined ? { photos_declined: true } : {}), ...extra }, token).catch(() => null);
+    const r = await call('inquiry_intake', { intake_id: intakeId, text: message, drawing_boq: (dr && dr.boq) || null, lang, turn_id: tid, ...(sp.length ? { site_photos: sp } : {}), ...(declined ? { photos_declined: true } : {}), ...(!intakeId && freshRef.current ? { fresh: true } : {}), ...extra }, token).catch(() => null);
     clearTimeout(slowTimer);
     setThinking(false); setSlow(false);
     // Nothing to carry (no portal job waiting): the request chat simply starts as it always did.
@@ -234,6 +237,21 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   // answers its first turn over that whole job; with nothing to carry it answers carried:false and this screen is unchanged.
   // Once per mount, and never beside the homepage draft (that draft IS the first message).
   useEffect(() => { if (carryChat && !initialText && !sentDraft.current) { sentDraft.current = true; runIntake('', null, null, { carry_from: 'portal' }); } }, [carryChat]);
+  // A plain "New request" first looks for his unfinished one (a read: nothing is created or sent).
+  useEffect(() => {
+    if (carryChat || initialText || sentDraft.current || !token) return;
+    let live = true;
+    call('inquiry_intake', { resume: true, lang }, token).then((r) => {
+      if (!live || !r || !r.resumed || !r.intake_id || sentDraft.current) return;
+      setIntakeId(r.intake_id); setResumed(true);
+      const past = (Array.isArray(r.transcript) ? r.transcript : []).map((m) => ({ role: m.role, text: m.text }));
+      const questions = (Array.isArray(r.remaining_questions) ? r.remaining_questions : []).map(qText).filter(Boolean);
+      setMessages((a) => [...a.slice(0, 1), ...past, { role: 'assistant', text: t(lang, r.status === 'ready' ? 'nr_resumed_ready' : 'nr_resumed'), questions, left: r.status === 'ready' ? 0 : questions.length }]);
+      if (r.status === 'ready') { setBrief(r.brief || null); setReady(true); setEdits({}); }
+    }, () => {});
+    return () => { live = false; };
+  }, [token]);
+  const startFresh = () => { freshRef.current = true; setIntakeId(null); setResumed(false); setReady(false); setBrief(null); setMessages((a) => a.slice(0, 1)); };
   const onKey = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
   const answerChip = (q) => { setInput(q + (ar ? ' — ' : ' — ')); setTimeout(() => { try { inputRef.current.focus(); } catch (_e) {} }, 20); };
 
@@ -583,6 +601,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       <div className="flex items-center justify-between gap-2.5 border-b border-border px-5 py-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <h2 className="font-head text-[17px] font-semibold tracking-snug text-foreground">{t(lang, 'nr_title')}</h2>
+          {resumed ? <Button variant="link" className="h-auto px-0 text-[12px]" onClick={startFresh}>{t(lang, 'nr_start_fresh')}</Button> : null}
           {meta.agent_name ? <span className="inline-flex items-center gap-1 rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary"><UserRound className="h-3 w-3" aria-hidden />{tf(lang, 'nr_handled_by', { name: meta.agent_name })}</span> : null}
           {meta.urgency && meta.urgency !== 'normal' ? <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold', meta.urgency === 'emergency' ? 'border-danger/40 bg-danger/10 text-danger-fg' : 'border-warn/40 bg-warn/10 text-warn-fg')}>{(() => { const I = urgencyIcon; return <I className="h-3 w-3" aria-hidden />; })()}{t(lang, 'nr_urgency_' + meta.urgency)}</span> : null}
         </div>

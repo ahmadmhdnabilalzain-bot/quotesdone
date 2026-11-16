@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run after an_unfinished_request_chat_is_kept_and_he_is_nudged_at_a_day_and_three_days.sql on a local Postgres 16; it must print PROBE OK. This note stays for the life of the file. Seat: sales_engineer.

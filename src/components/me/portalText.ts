@@ -217,6 +217,7 @@ export const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 // one merge so the audit's list can be checked against one block; every key has both languages.
 Object.assign(T.en, {
   nr_title: 'New request', nr_cancel: 'Cancel',
+  nr_resumed: 'Welcome back. Here is where we left your request; carry on below.', nr_resumed_ready: 'Welcome back. Your request is complete: check it below and send it to the suppliers.', nr_start_fresh: 'Start a new request instead',
   nr_greeting: "Hi, I'm your QuotesDone sales engineer. Tell me what you need done and which emirate it's in. I'll ask a few quick questions, including materials, installation, warranty and when you need it, so suppliers quote exactly what you want. You can type, or attach a drawing, BOQ, photo or your own quotation. Your identity stays hidden until you choose to reveal a supplier.",
   // 27 Oct 2026: an intake turn the portal stopped waiting for is a progress state and a retry, never an error line.
   nr_slow: 'Still working on it — checking every detail of your request…',
@@ -403,6 +404,7 @@ Object.assign(T.en, {
 });
 Object.assign(T.ar, {
   nr_title: 'طلب جديد', nr_cancel: 'إلغاء',
+  nr_resumed: 'أهلًا بعودتك. هذا طلبك حيث توقفنا، فتابع من الأسفل.', nr_resumed_ready: 'أهلًا بعودتك. طلبك مكتمل: راجعه أدناه وأرسله إلى المورّدين.', nr_start_fresh: 'ابدأ طلبًا جديدًا بدلًا منه',
   nr_greeting: 'مرحبًا، أنا مهندس المبيعات في QuotesDone. أخبرني بالعمل المطلوب والإمارة التي يُنفَّذ فيها، وسأطرح عليك بضعة أسئلة سريعة عن المواد والتركيب والضمان وموعد التسليم، حتى يسعّر الموردون ما تريده بالضبط. يمكنك الكتابة، أو إرفاق مخطط أو جدول كميات أو صورة أو عرض سعر لديك، وتبقى هويتك مخفية حتى تختار كشف مورّد.',
   nr_slow: 'ما زلت أعمل على ذلك، وأراجع كل تفاصيل طلبك…',
   nr_late: 'يستغرق الرد وقتًا أطول من المعتاد. لم يُفقد شيء مما كتبته؛ اضغط «إعادة المحاولة» لنكمل من حيث توقفنا.',
