@@ -1,6 +1,0 @@
-Committed, not applied (16 Nov 2026, L4_LOOPS, seat ceo). Apply AFTER the release this branch builds on is applied and merged:
-node scripts/apply_sql.mjs scripts/sql/every_hand_over_has_an_owner_and_a_clock_and_closes_or_escalates.sql --apply --ddl
-It redefines fn_handoff_overdue_escalate, fn_ceo_files_judgements, fn_ceo_judgement_room, fn_reason_apply_ceo__overdue_handoff,
-fn_ceo_directive_issue, fn_ceo_directive_run and fn_ceo_directive_review from production's text of 16 Nov 2026: diff each against
-live pg_get_functiondef first; if one changed since, merge that change in before applying. Then delete this note and append the
-file to the END of scripts/sql/MANIFEST.txt in the same commit. The probe (..._probe.sql) runs on a local Postgres 16 only.
