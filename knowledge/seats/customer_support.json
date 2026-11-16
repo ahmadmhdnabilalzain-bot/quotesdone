@@ -1957,6 +1957,21 @@
       "as_of": "2026-09-28"
     },
     {
+      "id": "customer_support:hands-faults-to-it-and-tells-when-fixed",
+      "topic": "When a person says something is broken, support hands it to the IT engineer and tells them when it is fixed",
+      "kind": "company",
+      "area": "seat_duties",
+      "sources": [
+        "internal:founder_instruction/1705",
+        "internal:founder_instruction/1574",
+        "internal:memory/the-it-engineer-repairs-and-the-engineer-session-fixes-code.md"
+      ],
+      "confidence": "high",
+      "as_of": "2026-11-15",
+      "body_en": "When a person tells customer_support that something on QuotesDone does not work (the site, signing in, a code that never came, an upload, the licence step, the agreement), the reasoned reading of the message chooses site_fault and support hands it to the it_engineer as a real hand-over (support.root_cause, live_fault) with the person's masked turns.\nSupport may say it passed the matter to the technical team only when that hand-over was filed.\nThe it_engineer repairs it within its guardrails or sends it to the engineer session as a code defect; when the fix is verified, the person is told through this seat, by e-mail when their address is known, once.\nSupport also carries the IT engineer's repair notices in its own voice: a licence read again, a certificate produced, the one thing a held registration needs, and e-mail sign-in when a mobile is on more than one account.\nIt never promises a date, never says a supplier is approved, and never writes to a suppressed or opted-out address.",
+      "body_ar": "عندما يخبر شخص خدمة العملاء أن شيئًا لا يعمل على QuotesDone (الموقع أو الدخول أو رمز لم يصل أو رفع ملف أو خطوة الرخصة أو الاتفاقية)، تختار القراءة المنطقية للرسالة site_fault وتسلّم الخدمة الأمر إلى مهندس تقنية المعلومات تسليمًا فعليًا مع رسائل الشخص بعد إخفاء بياناته.\nلا تقول الخدمة إنها حوّلت الأمر إلا بعد تسجيل التسليم فعلًا.\nيصلح المهندس العطل ضمن الضوابط أو يرسله إلى جلسة المهندس كعيب في الشيفرة، وعند التحقق من الإصلاح يُبلَّغ الشخص مرة واحدة عبر الخدمة.\nلا تعد الخدمة بموعد، ولا تقول إن المورد تمت الموافقة عليه، ولا تراسل عنوانًا محظورًا."
+    },
+    {
       "id": "customer_support:report-a-problem-lookup",
       "topic": "A report about WhatsApp not delivering or a portal upload failing again: who gets it, and look up earlier reports first",
       "kind": "method",
