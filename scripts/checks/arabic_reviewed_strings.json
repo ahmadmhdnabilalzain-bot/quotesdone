@@ -282,7 +282,6 @@
   "3fc395f69163",
   "40c8e7ff8e62",
   "42116f231340",
-  "426f4de99ffc",
   "42a0dedce97b",
   "431dd7550451",
   "44dd7366d472",
@@ -397,6 +396,7 @@
   "886b759a0cc5",
   "88a34f330770",
   "88c761a3731f",
+  "893563bef7d9",
   "8c1f9a35d9cc",
   "8d542cc6879c",
   "8d7494cfba97",
@@ -518,6 +518,7 @@
   "d9d367b7fd03",
   "da5dee163e17",
   "da9f735ce7d3",
+  "dae8908efbbb",
   "db5edef89533",
   "db77f8562232",
   "dbafdb9e2434",
@@ -553,7 +554,6 @@
   "f13f052709ac",
   "f18825c47640",
   "f20b814bb646",
-  "f333ab1701cb",
   "f3b1fd867414",
   "f48ad8bcd647",
   "f553277dc9f3",
@@ -1520,6 +1520,22 @@
   "735f3f9ff862",
   "fb15ef2ad341"
  ],
+ "scripts/sql/every_answer_says_every_trade_but_food_and_a_site_visit_job_sends_photos.sql": [
+  "10a28e435beb",
+  "15bc115f7692",
+  "1871fa14a851",
+  "34fddb5d60da",
+  "3d09cddb751e",
+  "6266fbe7d6f0",
+  "6a5741e15cb6",
+  "6a5fc8d9a0f0",
+  "80acda8d49d2",
+  "8a0f79af5bc1",
+  "a3d26b00695a",
+  "ae22b58a62a8",
+  "b1bc60a1dfd9",
+  "e192c159ed05"
+ ],
  "scripts/sql/every_arabic_message_is_written_not_translated.sql": [
   "031d0af3af9c",
   "03ca1e1afe2a",
@@ -2369,6 +2385,11 @@
  "scripts/sql/the_ceo_holds_the_supplier_target_and_acts_within_bounded_powers.sql": [
   "8625d60560f4"
  ],
+ "scripts/sql/the_company_knowledge_says_the_ceo_decides_and_the_company_is_six_seats.sql": [
+  "104af818a163",
+  "621b784fcad0",
+  "dafd4b0c3df0"
+ ],
  "scripts/sql/the_comparison_hands_its_open_points_to_the_sales_engineer.sql": [
   "7dacb625c72d",
   "9bd3ccfc2d69",
@@ -2378,6 +2399,28 @@
   "0e3944a15f96",
   "3fbfc9c44cae",
   "50d6d400e862"
+ ],
+ "scripts/sql/the_dispute_and_reveal_reasoning_cite_the_supplier_agreement_v18_clauses.sql": [
+  "0f6bc181f81e",
+  "3c9f12e8915e",
+  "4d5c33c90293",
+  "4db3d154084e",
+  "5c65926ba697",
+  "72634def957c",
+  "75e7824fc97c",
+  "763f66fd1088",
+  "806ca8b72740",
+  "859798d5f8bb",
+  "8d22502036a3",
+  "8d6c6a64823e",
+  "a5b89465e490",
+  "ae00303af4fd",
+  "b0c35c6acc99",
+  "cc3d6ea42eb6",
+  "ce481b265d88",
+  "d84aaba829c6",
+  "ec5dd8b55b01",
+  "f84c6d17cdd3"
  ],
  "scripts/sql/the_faq_states_the_fee_base_and_the_supplier_quote_as_stated.sql": [
   "33f3832b06b0",
@@ -3649,6 +3692,15 @@
   "83fa17201bb3",
   "c0a9c47012c7",
   "f5ff9a9edde6"
+ ],
+ "scripts/sql/the_public_answers_say_verification_is_automatic_and_the_licence_names_the_company.sql": [
+  "0d7c369306af",
+  "42ff95037015",
+  "876f4e8d7d91",
+  "9f9484812a9e",
+  "a78393264da8",
+  "aed32c1fca36",
+  "aff5b715b38a"
  ],
  "scripts/sql/the_registered_language_follows_every_message_until_the_reveal.sql": [
   "34d5d7e54ec8",
@@ -5809,17 +5861,17 @@
   "0937105b3ced",
   "18ca9480dc4c",
   "2da9a56c06cf",
+  "36b1eb5cd8fa",
   "399266743f99",
   "399788c2cc20",
   "4218e8fd77b4",
   "4cb48313fe98",
   "68e444216711",
   "75ccb0f018d8",
+  "8f0cdfbc9cdc",
   "935eb5e44b9b",
-  "bc0bd1ac2bec",
   "c2b367f9dfdb",
-  "d12786f8e901",
-  "ed961be130fa"
+  "d12786f8e901"
  ],
  "src/components/portal/supplier/SupplierInsightBoard.tsx": [
   "486a77d61f59",
@@ -8118,9 +8170,6 @@
   "91fc597d717f",
   "ccd82471fddb"
  ],
- "supabase/functions/_shared/marketing_calendar_doc.ts": [
-  "a817fa1cebe5"
- ],
  "supabase/functions/_shared/marketing_outreach.ts": [
   "014c2b62f916",
   "1be15600e7ed",
@@ -9525,9 +9574,6 @@
   "c31b542ceaec",
   "d7bd1ebf3d69",
   "e97a73caf6ff"
- ],
- "supabase/functions/marketing_channels/index.ts": [
-  "b2a80e50ec94"
  ],
  "supabase/functions/marketing_outreach/index.ts": [
   "023f7d608c29",
