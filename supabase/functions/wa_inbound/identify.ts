@@ -24,7 +24,9 @@ export async function identify(t: WaTurn): Promise<void> {
   const mark = (k: string) => { timings[k] = Date.now() - Date.parse(receivedAt); };
   const soft = <T>(p: PromiseLike<T>, empty: T): Promise<T> => Promise.resolve(p).then((v) => v, () => empty);
   const prefetch = {
-    timeline: soft(admin.rpc('fn_contact_timeline', { p_contact: From, p_limit: 40 }), { data: null } as never),
+    // the sender's own timeline (16 Nov 2026, a_phone_tail_never_joins_two_people.sql): fn_contact_timeline matched every customer and
+    // supplier whose UNVERIFIED phone shares the last nine digits; the wrapper reads the number's confirmed owner, or only this number
+    timeline: soft(admin.rpc('fn_contact_timeline_for_sender', { p_contact: From, p_limit: 40 }), { data: null } as never),
     mine: soft(admin.rpc('fn_wa_context', { p_audience: audience, p_phone: From }), { data: null } as never),
     company: soft(admin.rpc('fn_company_context', { p_max_chars: 6000, p_audience: 'public' }), { data: null } as never),
     faq: soft(retrieveFaq(Body), { ctx: '', ids: [] as number[] }),
@@ -39,7 +41,8 @@ export async function identify(t: WaTurn): Promise<void> {
 // should be always up to date with that is going on." fn_contact_timeline assembles, in SQL and
 // with no model, everything the company has done with this person on every channel and every
 // seat: requests, quotes (held/released), reveals, invoices, refunds and the CEO's decisions on
-// them, and every message sent or received. Scoped to the sender's own number.
+// them, and every message sent or received. Scoped to the sender's own number: its confirmed owner (fn_whatsapp_owner), or with
+// none only what this number exchanged with us (fn_contact_timeline_for_sender; a phone may confirm, never select).
 export async function readTimeline(t: WaTurn): Promise<void> {
   const { prefetch } = t;
   let timeline: Record<string, unknown> | null = null;
