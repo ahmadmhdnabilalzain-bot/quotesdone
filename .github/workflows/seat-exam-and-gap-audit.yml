@@ -94,7 +94,7 @@ jobs:
                issues) into judged.json, and run score --results <file> --judged judged.json.
             2. node scripts/e2e/knowledge_gap_audit.mjs list --scored <the .scored.json> > gaps.json
                A gap whose cause is the seat's behaviour (asked again, missed a must-have, accepted a wrong spec) is fixed in
-               the portal reply rules (supabase/functions/_shared/support_reply.ts, PORTAL_INTAKE); a missing fact is
+               the portal reply rules (supabase/functions/sales_engineer/portal_conversation.ts, PORTAL_INTAKE); a missing fact is
                knowledge. A new failure mode found in the week becomes a new scenario in the bank, in the same PR.
             3. Confirm each proposed not_a_gap and close it (close --ids ... --status not_a_gap). For every real gap, author the
                missing knowledge (knowledge/seats or knowledge/packs or the brief), open ONE pull request signed "customer_support:".
