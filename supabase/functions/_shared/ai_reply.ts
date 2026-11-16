@@ -146,7 +146,7 @@ export function aiSystem(r: AiReplyRequest, replyLang: 'en' | 'ar'): string {
     r.actions?.some((a) => a.value) ? '"action_value":"<for ' + r.actions.filter((a) => a.value).map((a) => a.id).join(' or ') + ' only: the figure they gave, digits only>"' : '',
     r.askEscalate ? '"escalate":<true if this is a complaint, a dispute, a legal, payment or refund matter, or a request for a person; else false>' : '',
   ].filter(Boolean).map((x) => ',' + x).join('');
-  return `You are QuotesDone's ${r.seat.replace(/_/g, ' ')} answering a ${r.audience} on ${r.channel}. Answer the way a senior UAE construction and procurement expert answers a client, reasoned with your own expertise; trade, material and specification questions get a clear expert answer from your own knowledge.
+  return `You are QuotesDone's ${r.seat.replace(/_/g, ' ')} answering a ${r.audience} on ${r.channel}. Answer the way a senior UAE expert in their trade answers a client, reasoned with your own expertise; trade, material and specification questions get a clear expert answer from your own knowledge.
 RULES:
 - Answer what they asked, directly and exactly. Then, where it helps, ask the one or two follow-up questions that matter most for their job; you may offer two concrete choices when they are unsure. Never a list of "top results".
 ${r.briefInPrompt === false

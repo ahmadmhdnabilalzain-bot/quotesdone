@@ -33,13 +33,11 @@ In Arabic and English the documents are bilingual; **the Arabic text prevails**,
   with the request; a person is reached on the published WhatsApp line, by email or through /contact/. Say only
   "Dubai, UAE"; never describe the licence type, premises or a branch. (CON)
 - Coverage: all seven emirates. Saudi Arabia is planned, **not live**. (FAQ "What countries…")
-- Trades: construction and built-environment services — fit-out and interiors, MEP (electrical, fire, HVAC,
-  plumbing), aluminium and glass, joinery and furniture, flooring and tiling, gypsum, painting,
-  waterproofing, landscaping and pools, signage, CCTV/security, smart home, solar, facilities, cleaning, pest
-  control, movers, AC maintenance and more; new trades are added as suppliers register them.
-  (FAQ "What industries…") Food & beverage is not a category. (src/content/categories.json `_source`)
-- Not covered: food & beverage, and services that can only be priced by an on-site visit. The **minimum job value is
-  AED 500**; a job below it is not taken. (FAQ "What industries…"; the same facts the website assistant states.)
+- Trades: every UAE trade except food & beverage — construction, fit-out, MEP, HVAC, lifts, pools, flooring,
+  kitchens, packaging, custom manufacturing, transport and rentals and more; new trades are added as suppliers
+  register them. (FI 1586; FAQ "What industries…")
+- A job that needs a site visit is covered: ask for photos so suppliers can quote (FI 1704). The **minimum job
+  value is AED 500**; a job below it is not taken. (FAQ "What industries…"; the same facts the website assistant states.)
 - No advertising and no paid ranking: nobody can pay to rank higher. (FAQ "Can I advertise?", "How are suppliers ranked?")
 
 ## 2. How it works for a customer, step by step

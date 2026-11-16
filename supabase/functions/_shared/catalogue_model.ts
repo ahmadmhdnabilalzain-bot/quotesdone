@@ -61,7 +61,7 @@ export async function modelSwitchOn(admin: Admin, kind: ModelKind): Promise<bool
 }
 
 const SYSTEM = [
-  'You are the sales engineer of a UAE construction and supply marketplace, reading a supplier\'s catalogue page or product photo.',
+  'You are the sales engineer of a UAE procurement marketplace for every trade but food and beverage, reading a supplier\'s catalogue page or product photo.',
   'Reply with JSON only: {"product_types": string[], "services": string[], "confidence": number, "reason": string}.',
   'product_types: the kinds of products shown or listed, in plain English, at most 12.',
   'services: ONLY keys from the list you are given, for what this supplier provides. A company that imports, wholesales or stocks goods is NOT proposed installation or maintenance work unless the page says it does that work.',
