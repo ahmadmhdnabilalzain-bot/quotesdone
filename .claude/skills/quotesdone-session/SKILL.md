@@ -160,15 +160,14 @@ node scripts/apply_sql.mjs <file.sql> --apply --ddl          # apply, then read 
 node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production <slugs>
 node scripts/checks/canonical_routines.test.mjs              # one canonical file per routine, deployed
 node scripts/checks/export_from_either_source_is_identical.mjs
-node --test scripts/checks/phase_c_components_are_owned.test.mjs   # every runtime component owned (reads production)
 ```
 
 - `--promote` is still accepted as an alias for `--apply`; it means the same thing now.
 - A bare `apply_sql.mjs <file>` used to mean "staging only, nothing production sees". It is now a
   DRY RUN, so that muscle memory stays safe rather than becoming a live write.
-- Fixture scripts (`scripts/staging/`) target the one project and refuse to write unless
-  `QD_FIXTURES=1` is set for the run. `assertNotProduction` is NOT weakened — `mgmtFixture` is a
-  separate door, the same way `mgmtWriteData` is. Prefer an aborted-transaction probe over both.
+- The old fixture scripts (`scripts/staging/`) were archived to `scripts/archive/staging/` on 16 Nov 2026
+  (simplification audit, ledgers 1714/1715: no live caller, 54 of their 107 scorer routines no longer exist,
+  and they defaulted to production). Prove a change with an aborted-transaction probe or a local Postgres 16.
 
 - `deno check` is the green build for edge functions.
 - Any function importing `_shared/llm.ts` must be named in the audit-95 credential migration or CI
@@ -226,12 +225,12 @@ Before the one line — or before an honest hand-over:
 
 1. GitHub Actions, Vercel and the Supabase project swept for failures
    *(a zero-step Actions job means quota, not code)*
-2. Row #3 scorer run **to completion** — `node scripts/staging/verify_os2_blueprint.mjs`
-3. Pack scorecard — `node scripts/kb/pack_scorecard.mjs --ref=… --packs=…`
-4. `fn_os_portals_gates()`
-5. `node scripts/checks/canonical_routines.test.mjs` → 0 gaps, 0 drift both ways, and
-   `node scripts/checks/application_source_of_truth.test.mjs` → lines 1b and 6 (retired-still-deployed,
-   ownership ledger) 0, exit 0 *(since 4 Sep 2026 its lines 1–5 are information: `canonical_routine_manifest.mjs`
+2. Pack scorecard — `node scripts/kb/pack_scorecard.mjs --ref=… --packs=…`
+3. `node scripts/checks/canonical_routines.test.mjs` → 0 gaps, 0 drift both ways, exit 0.
+   *(16 Nov 2026: `application_source_of_truth` and `phase_c_components_are_owned` are not in scripts/checks any
+   more (simplification audit, ledgers 1714/1715), so they are no longer named here. the Row #3 scorer (`verify_os2_blueprint.mjs`) and `fn_os_portals_gates()`
+   were removed from this sweep — the scorer was archived with scripts/staging and the routine no longer exists on
+   production; the local gate and the live certification are the end-to-end proof now.) (since 4 Sep 2026 its lines 1–5 are information: `canonical_routine_manifest.mjs`
    is the ONE routine drift gate — docs/agents/RETIRED_PHASE_DRIVES.md step 5)*
    *(these replaced `sql_files_match_live.test.mjs`, retired 17 Aug 2026 — it resolved a routine by
    git commit time and certified the wrong body; the apply order decides now. A retired routine is
@@ -243,14 +242,14 @@ Before the one line — or before an honest hand-over:
    approval digest, and the Phase A/B baseline-digest recompute. Production proves itself:
    `phase_c_components_are_owned`, the kernel boards, the connectivity register and the Phase D
    drives read the database directly. Do NOT re-emit a CSV to make a gate green.
-6. `node scripts/checks/export_from_either_source_is_identical.mjs --write` after the LAST apply →
+4. `node scripts/checks/export_from_either_source_is_identical.mjs --write` after the LAST apply →
    byte-identical, 0 project refs embedded
-7. `node scripts/verify_deploy_parity.mjs --ref=htdblwldjkcgjvmqkbeh --all` → every edge function carries the repo's code
+5. `node scripts/verify_deploy_parity.mjs --ref=htdblwldjkcgjvmqkbeh --all` → every edge function carries the repo's code
 
-8. *(retired 2 Sep 2026 — the founder removed the phase freezes totally. 4 Sep 2026: `fn_phase_a_baseline_drift`
+6. *(retired 2 Sep 2026 — the founder removed the phase freezes totally. 4 Sep 2026: `fn_phase_a_baseline_drift`
    and `fn_phase_b_baseline_drift` were DROPPED (Phase E, `scripts/sql/phase_e_retire_the_frozen_baseline_boards.sql`);
    the organisation's validity is asserted by `fn_phase_a_organization_violations()` = 0 inside the boards)*
-9. *(retired with 8)*
+7. *(retired with 6)*
 
 **AND AS OF 7 SEPTEMBER 2026 THERE IS NO ORGANISATION, NO WORKFLOW AND NO KERNEL GATE EITHER.**
 
@@ -284,11 +283,11 @@ not resurrect them.** When the new structure exists, write new checks against TH
 A check edited until it goes green against an empty schema asserts nothing while still looking like
 a guard — which is worse than no check.
 
-Still green and still guarding: `kernel_invariants`, `cancellation_reaches_the_kernel`,
-`every_discharge_claim_reaches_its_table`, `anon_cannot_execute_security_definer`,
-`phase_c_components_are_owned` (rewritten: a component that NAMES an owner names a live one, and no
-component names a department), `canonical_routine_manifest`,
-`export_from_either_source_is_identical`, `receipts_never_wait_on_the_founder`.
+Still guarding (checked 16 Nov 2026 — only the checks that exist in scripts/checks):
+`anon_cannot_execute_security_definer`, `canonical_routine_manifest`,
+`export_from_either_source_is_identical`, `receipts_never_wait_on_the_founder`. (`kernel_invariants`,
+`cancellation_reaches_the_kernel`, `every_discharge_claim_reaches_its_table` and `phase_c_components_are_owned`
+were listed here and no longer exist.)
 
 ---
 **THERE ARE NO PHASE FREEZES. THERE ARE NO PHASE GATES.** Founder ruling, 7 Sep 2026, in his

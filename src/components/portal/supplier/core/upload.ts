@@ -4,6 +4,7 @@ import { call } from '../api';
 import { SUPA_ANON as ANON, SUPA_URL } from '@/lib/supaEnv';
 import { uploadToSignedUrl, retryTransient } from '@/lib/signedUpload';
 import { fileKind, shrinkSize, jpegName, keptAsSent, PHOTO_QUALITY } from '../fileCheck';
+import { fileToB64, fileToImages as toPages } from '@/components/me/fileImages';
 
 // UPLOADS UP TO 100 MB GO STRAIGHT TO STORAGE (19 Oct 2026, sales_engineer). Vercel caps a request body at 4.5 MB, so a
 // company profile or catalogue is not sent as base64: supplier_api upload_url signs a path in the supplier's own folder,
@@ -71,19 +72,10 @@ async function preparePhoto(file: File): Promise<File> {
     return new File([blob], jpegName(file.name), { type: 'image/jpeg', lastModified: Date.now() });
   } catch (_e) { d.done(); return file; }
 }
-const fileToB64 = (f: Blob) => new Promise<string>((res) => { const rd = new FileReader(); rd.onload = () => res(String(rd.result).split(',')[1]); rd.readAsDataURL(f); });
-
-// pdf.js is the bundled pdfjs-dist the customer portal uses (me/pdfRaster.ts), not a runtime script
-// from cdnjs: a network that blocks cdnjs made every PDF "unreadable", and the CSP can now drop it.
-async function fileToImages(file: File) {
-  const b64 = await fileToB64(file);
-  if (file.type && file.type.startsWith('image/')) return { images: [{ mime: file.type, data: b64 }], b64, mime: file.type };
-  if (file.type === 'application/pdf') {
-    try { const raw = atob(b64); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-      const { rasterisePdf } = await import('@/components/me/pdfRaster');
-      return { images: await rasterisePdf(arr), b64, mime: 'application/pdf' };
-    } catch (_e) { return { images: [], b64, mime: 'application/pdf' }; }
-  }
-  return { images: [], b64, mime: file.type || 'application/octet-stream' };
-}
-export { uploadDirect, preparePhoto, fileToB64, fileToImages };
+// A quotation photo or PDF becomes page images through the ONE converter both portals use (me/fileImages.ts, 16 Nov
+// 2026): until then this file had its own copy, which sent a HEIC or multi-page TIFF up raw. Only the PAGES the reader
+// takes are converted: the supplier's ORIGINAL quotation is kept exactly as sent, as before (every page of a multi-page
+// TIFF, a phone photo at full size; supplier_api stores a TIFF or HEIC as it is, attachment.ts SAFE_PHOTO_EXTRA).
+const quotePages = async (file: File) =>
+  ({ images: (await toPages(file)).images, b64: await fileToB64(file), mime: file.type || 'application/octet-stream' });
+export { uploadDirect, preparePhoto, fileToB64, quotePages as fileToImages };

@@ -1,7 +1,7 @@
 // A one-page PDF built by hand for ZZ DEMO fixtures — a trade licence, a company profile — with no
 // dependency and no embedded font (Standard-14 Helvetica), so a file is ~1.5 kB.
 //
-// Lifted out of scripts/staging/make_fixture_licence_pdf.mjs (12 Aug 2026) on 14 Sep 2026, when the
+// Lifted out of scripts/archive/staging/make_fixture_licence_pdf.mjs (12 Aug 2026) on 14 Sep 2026, when the
 // e2e harness (scripts/e2e/fixtures.mjs) needed the same document with per-run text: every demo
 // supplier it creates carries a licence file the product can open, named for that supplier. One
 // generator, two callers, rather than a second copy of the byte layout.

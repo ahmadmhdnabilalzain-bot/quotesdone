@@ -24,7 +24,7 @@ nothing was left behind.
 | `scripts/e2e/browser.mjs` | a signed-in Playwright page, timings, console capture, screenshots |
 | `scripts/e2e/journeys.mjs` | journeys a-g |
 | `scripts/e2e/founder_demo_tour.mjs` | the STANDING demo of both portals and the sign-in link that opens it (§6) |
-| `scripts/lib/demo_pdf.mjs` | the ZZ DEMO trade-licence PDF (shared with `scripts/staging/make_fixture_licence_pdf.mjs`) |
+| `scripts/lib/demo_pdf.mjs` | the ZZ DEMO trade-licence PDF (shared with the archived `scripts/archive/staging/make_fixture_licence_pdf.mjs`) |
 | `scripts/sql/demo_identities_are_marked_and_never_reach_a_real_person.sql` | the database half: marker, pairing guard, capture, figures |
 | `supabase/functions/_shared/demo_identity.ts` | the TypeScript half of the same rule (`send_whatsapp`, `stripe_checkout`, `stripe_confirm`) |
 | `scripts/checks/demo_identities_never_reach_a_real_person.test.mjs` | proves the database half on production in an aborted transaction |

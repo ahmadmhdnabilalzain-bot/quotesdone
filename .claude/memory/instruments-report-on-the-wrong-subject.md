@@ -9,7 +9,7 @@ metadata:
 ---
 
 Nine of the fourteen contradictions in the 11 Aug 2026 word-by-word audit
-(`docs/audits/WORD_BY_WORD_2026_08_11/`) are one defect:
+(`docs/archive/audits/WORD_BY_WORD_2026_08_11/`) are one defect:
 
 | the green number | what it actually measures |
 |---|---|

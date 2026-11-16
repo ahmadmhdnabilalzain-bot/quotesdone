@@ -43,7 +43,7 @@ the list below that is not, move it into `archive/` and say so in the same commi
 | where | what |
 |---|---|
 | `audit/` | 14 Sep 2026 backend audit and one-year plan; website audit and upgrade plan; package conformance |
-| `audits/` | narrower audits: AI spend (14 Aug), chat answers (21 Sep), word-by-word review (11 Aug) |
+| `audits/` | narrower audits: AI spend (14 Aug), chat answers (21 Sep) |
 | `EMAIL_AUDIT_info_at_quotesdone_2026-09-06.md` | 30 days of mail sent from info@ |
 
 ## Knowledge
@@ -53,7 +53,6 @@ the list below that is not, move it into `archive/` and say so in the same commi
 | `KNOWLEDGE_DOCTRINE.md` | how knowledge is held and trusted |
 | `KNOWLEDGE_PLAN_2026-09-06.md`, `SEAT_KNOWLEDGE_DEPTH_2026-09-09.md` | the staff knowledge plan and the depth gap per seat |
 | `knowledge/` | the V3 knowledge build: ingestion, runtime connection, role crosswalk, trades still UNVERIFIED |
-| `knowledge/certification/` | the V3 blind certification run of 14 Aug 2026. The 49 MB raw-output export is no longer in the tree: its SHA-256 is in `V3_CERTIFICATION_RAW_OUTPUTS.sha256` and the file is `git show c8d91b1:docs/knowledge/certification/V3_CERTIFICATION_RAW_OUTPUTS.jsonl` |
 | `knowledge-import/` | the knowledge package import report |
 | `expertise/` | how knowledge reaches an agent; certification sources and targets; corpus ingestion |
 | `step3/` | the IT / cybersecurity knowledge build and how to regenerate it |
@@ -65,7 +64,6 @@ the list below that is not, move it into `archive/` and say so in the same commi
 | `LAUNCH_READINESS_PLAN.md`, `LAUNCH_STEP1_ORG_CONNECTIVITY.md` | the road to launch |
 | `release/qualification_matrix.md` | the release go/no-go standard (3 Nov 2026): severities, scenarios per flow, AI eval specs, drills, load, gaps, the dated checklist |
 | `UPGRADE_PLAN.md` | hardening and upgrade plan |
-| `DETERMINATIONS_CENSUS.md` | which decisions are deterministic code and which still route to a model |
 | `SUPPORT_AGENT_DELIVERY_v1_2.md` | delivery report of the customer support agent v1.2 |
 | `specs_row1…row8_*.txt` | the founder's original specification rows (architecture, OS, executive UI, both portals, categories, agents, OpenRouter cost) |
 
@@ -90,6 +88,11 @@ any script or workflow — that was the test for moving it (measured 22 Sep 2026
 | `archive/repomix.config.json` | the repomix export config (`npx repomix`); the exports themselves are ignored |
 | `archive/tools/` | the public-API reference and Python toolbox notes |
 | `archive/knowledge-libraries/` | the five UAE knowledge-library source archives the corpus was built from |
+| `archive/knowledge/certification/`, `archive/knowledge/remediation/` | the V3 blind certification run of 14 Aug 2026 and its remediation reports; the agent_brain / agent_train / os_api functions they ran on are gone. The 49 MB raw-output export is not in the tree: its SHA-256 is in `V3_CERTIFICATION_RAW_OUTPUTS.sha256` and the file is `git show c8d91b1:docs/knowledge/certification/V3_CERTIFICATION_RAW_OUTPUTS.jsonl` (moved 16 Nov 2026) |
+| `archive/audits/WORD_BY_WORD_2026_08_11/` | the word-by-word review of 11 Aug 2026, of the organisation before the 7-8 Sep deletions (moved 16 Nov 2026) |
+| `archive/agents/` | four reports of the department-agent organisation (org-runtime closure, reorganisation migration, orchestration evidence, cross-department handoffs), whose routines are gone (moved 16 Nov 2026) |
+| `archive/DETERMINATIONS_CENSUS.md` | which decisions were code and which went to a model, before the 7-8 Sep deletions; 201 of its 320 routines are gone (moved 16 Nov 2026) |
+| `archive/security/WI-001-runbook.md` | the operator runbook for scoped internal credentials, whose routines are gone (moved 16 Nov 2026) |
 | `agents/` | the 90-agent roster, role registry and retired two-project checks — *historical, but read by `project-parity.yml` and four checks, so it stays here* |
 | `rehearsal/` | the 11 Aug 2026 dress rehearsal — *historical, but written to by `scripts/rehearsal/hvac_dress_rehearsal.mjs`* |
 | `prs/` | screenshots attached to a PR (WhatsApp sign-up) |

@@ -36,7 +36,7 @@ export const ALLOWED = new Map([
   ['scripts/checks/every_duty_has_an_owner_and_a_clock.test.mjs', 'its one sql() send is a select it asks only when no pending file exists; the pending file is replayed through replaySql. It cannot be readOnly: the read-only role is refused fn_suppression_stops'],
   ['scripts/invitation_inbox_check.mjs', 'an operator tool that queues one seed invitation on purpose'],
   ['scripts/kb/purge_kb_bulk.mjs', 'the knowledge purge driver; commits batches by design, names scripts/sql only in messages'],
-  ['scripts/staging/prove_quote_builder.mjs', 'sends reads written in the file; names scripts/sql only in a message'],
+  ['scripts/archive/staging/prove_quote_builder.mjs', 'sends reads written in the file; names scripts/sql only in a message'],
 ]);
 
 const READS_SQL_FILES = /scripts\/sql\b|join\([^)]*['"]sql['"]|canonicalReplay\(/;

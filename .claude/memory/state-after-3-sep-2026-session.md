@@ -146,7 +146,7 @@ so stop pushing before you need a green head. PR #490 MERGED into main at 07:53Z
   now call fn_org_task_close_as_fact; guard a10_org_task_done_needs_a_determination refuses a bare
   done; backlog 453 assigned/51 escalated → 0/0, 528 closed through the spine with reviews, 2 parked
   with a reason; department scores 37–90 → 77–100; 5 department episodes resolved on the alerter's tick.
-- Deterministic substitutes (#514): docs/DETERMINATIONS_CENSUS.md — 22 of 43 edge executors are
+- Deterministic substitutes (#514): docs/archive/DETERMINATIONS_CENSUS.md — 22 of 43 edge executors are
   model-backed; 152 of 155 held parks since 1 Sep were recommend / exec_review / knowledge_fill_gap;
   fn_recommend_deterministic, fn_exec_review_deterministic, fn_knowledge_gap_deterministic registered.
 - Bus (#517): the 13 h median lag was two catch-up populations, not latency (trigger path 0.2 s);

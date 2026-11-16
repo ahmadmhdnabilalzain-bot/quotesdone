@@ -1,8 +1,0 @@
-Not loaded. Founder instruction 1005 (28 Sep 2026): "build the sales engineer knowledge".
-knowledge/seats/sales_engineer.json (41 new entries, 110 total), knowledge/exams/sales_engineer.json (69 items) and
-174 new trade packs under knowledge/packs/ (one spec checklist per trade: 213 of 213 trades) reach production only
-when these run AFTER this PR merges, one after the other, never before (an apply before merge deadlocked CI on 28 Sep):
-  node scripts/kb/load_verified_packs.mjs --apply
-  node scripts/kb/load_trade_spec_checklists.mjs knowledge/packs --apply
-Then run: node scripts/eval/seat_qualification_exam.mjs --mode live --seat sales_engineer
-Delete this note in the commit that records the load.

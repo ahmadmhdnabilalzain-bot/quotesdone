@@ -4,25 +4,9 @@ import { STILL_WORKING_MS } from '@/lib/stillWorking';
 
 const DICT_NAME = { en: { en: 'English', ar: 'Arabic' }, ar: { en: 'الإنجليزية', ar: 'العربية' } };
 
-export const fileB64 = (f) => new Promise((res) => { const rd = new FileReader(); rd.onloadend = () => res(String(rd.result).split(',')[1] || ''); rd.readAsDataURL(f); });
-export async function fileToImages(file) {
-  const b64 = await fileB64(file);
-  // Photos (incl. HEIC and multi-page TIFF) become JPEG pages in this browser; ocrClient throws
-  // HEIC_UNSUPPORTED where the browser cannot decode HEIC, which onFile tells the customer.
-  if ((file.type && file.type.startsWith('image/')) || /\.(heic|heif|tiff?)$/i.test(file.name || '')) {
-    const { toJpegPages } = await import('../ocrClient');
-    const images = await toJpegPages(file);
-    return { images, b64: (images[0] && images[0].data) || b64, mime: (images[0] && images[0].mime) || 'image/jpeg' };
-  }
-  if (file.type === 'application/pdf') {
-    try {
-      const { rasterisePdf } = await import('../pdfRaster');
-      const raw = atob(b64); const arr = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
-      return { images: await rasterisePdf(arr), b64, mime: 'application/pdf' };
-    } catch (_e) { return { images: [], b64, mime: 'application/pdf' }; }
-  }
-  return { images: [], b64, mime: file.type || 'application/octet-stream' };
-}
+// One converter for both portals (me/fileImages.ts, 16 Nov 2026): photos (incl. HEIC and multi-page TIFF) become JPEG
+// pages, and HEIC_UNSUPPORTED, where the browser cannot decode HEIC, is what onFile tells the customer.
+export { fileToB64 as fileB64, fileToImages } from '../fileImages';
 // ATTACH A BOQ (founder, 14 Sep 2026). A spreadsheet goes to analyze_boq (cells read with no model);
 // a PDF BOQ is read like a drawing, from its text layer. BOQ_ERR maps the server's refusal to words.
 // 14 Sep 2026 ("the sales agent need to be extremely capable of reading all types of document"): every

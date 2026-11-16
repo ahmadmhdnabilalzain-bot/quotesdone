@@ -127,3 +127,5 @@ graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
 # V3 certification raw outputs: a 49 MB export of certrun_v3.raw_result (staging run, 14 Aug 2026).
 # The digest stays in V3_CERTIFICATION_RAW_OUTPUTS.sha256; the file is `git show c8d91b1:<this path>`.
 docs/knowledge/certification/V3_CERTIFICATION_RAW_OUTPUTS.jsonl
+# 16 Nov 2026: the certification folder moved to docs/archive/knowledge/certification/; the export stays ignored there too.
+docs/archive/knowledge/certification/V3_CERTIFICATION_RAW_OUTPUTS.jsonl
