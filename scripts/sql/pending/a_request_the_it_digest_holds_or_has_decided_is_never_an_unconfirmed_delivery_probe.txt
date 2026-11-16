@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run after a_request_the_it_digest_holds_or_has_decided_is_never_an_unconfirmed_delivery.sql on a local Postgres 16 (never production); it must print PROBE OK. This note stays for the life of the file. Seat: it_engineer.
