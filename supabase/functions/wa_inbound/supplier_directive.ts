@@ -9,6 +9,7 @@ import { repriceOutagePlan } from './reprice_outage.ts';
 import { type Ask, outcomeFacts, supplierInstructionTurn } from '../_shared/supplier_instruction.ts';
 import { defaultDeps } from '../_shared/think.ts';
 import { isDemoPhone } from '../_shared/demo_identity.ts';
+import { waSenderRole } from '../_shared/supplier_company.ts';
 
 // ---- A SUPPLIER ASKING FOR A CHANGE, NOT AN ANSWER (v18) ---------------
 // "Adjust my quotation price" is the one verb on the supplier's list, and until now this
@@ -33,8 +34,11 @@ export async function supplierDirective(t: WaTurn): Promise<Response | undefined
       const parsed = await directiveRead();   // started beside the classification (above); asked here when it was not
       // THE READER IS DOWN (reprice_outage.ts, 10 Nov 2026): a message that states an amount is told so now and filed for
       // one more reading; nothing is applied on a guess. Without an amount it cannot be a re-price: the ordinary path answers.
+      // a VIEWER's confirmed number reads, it never re-prices, now or from a held reading (review supplierw2; supplier_company.ts
+      // VIEWER_MAY). Asked only when there is a price to change, so an ordinary message pays no extra round trip.
+      const viewer = async () => (await waSenderRole(admin, From)).role === 'viewer';
       const out0 = repriceOutagePlan(parsed, From, Body, MessageSid || null);
-      if (out0) {
+      if (out0 && !(await viewer())) {
         const { data: heldId, error: holdErr } = await admin.rpc('fn_reason_hold', out0.hold);
         const enabledO = (await sec('wa_autoreply_enabled')) === 'true';
         const r = enabledO ? await sendWa(From, out0.notice) : { ok: false, err: 'autoreply_disabled' };
@@ -52,7 +56,7 @@ export async function supplierDirective(t: WaTurn): Promise<Response | undefined
         return TW(200);
       }
       const ownAmount = parsed && parsed.outage !== true && parsed.change === true ? amountInOwnWords(parsed.amount, Body) : null;
-      if (ownAmount) {
+      if (ownAmount && !(await viewer())) {
         const { data: applied } = await admin.rpc('fn_supplier_apply_change', {
           p_phone: From, p_field: 'quote_price', p_value: ownAmount,
           p_inbound: Body.slice(0, 1500), p_channel: 'whatsapp',
@@ -100,7 +104,9 @@ async function supplierInstruction(t: WaTurn): Promise<Response | undefined> {
   const deps = defaultDeps(admin, 'wa_inbound');
   const ask: Ask = async (sys, input) => (await deps.llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'sales_engineer', max: 400, timeoutMs: 25_000,
     subject: isDemoPhone(From) ? { fixture: true, phone: From } : { phone: From }, internal: true })).content ?? null;
-  const r = await supplierInstructionTurn(admin, ask, { supplierId: sid, message: Body, channel: 'whatsapp' });
+  // who is writing: a company member's confirmed number carries his role; otherwise the number is the owner's (16 Nov 2026)
+  const sender = await waSenderRole(admin, From);
+  const r = await supplierInstructionTurn(admin, ask, { supplierId: sid, message: Body, channel: 'whatsapp', sender });
   if (!r.handled || !r.outcome) return undefined;   // not one of his instructions, or unreadable: the ordinary reply answers it
   const situation = 'The supplier wrote to us about his job requests or the work we send him. ' + outcomeFacts(r.outcome);
   const out = await sayFor('supplier')(situation, 'en');

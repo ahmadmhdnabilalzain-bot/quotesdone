@@ -1,0 +1,1 @@
+Committed by sales_engineer (CUSTOMER_W2, 16 Nov 2026) and not yet applied: the release applies it after review (local Postgres 16 probe: PROBE OK), then appends it to the END of MANIFEST.txt and deletes this note. Deploy inquiry_intake (either order).

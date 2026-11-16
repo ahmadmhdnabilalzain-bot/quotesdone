@@ -46,7 +46,9 @@ export function portalFindings(src) {
   // or an export; the old end marker was a comment, which code() has already removed, so the slice used to run to the end of the file.
   const nextModule = s.slice(a).search(/\n(import|export) /);
   const turn = s.slice(a, nextModule > 0 ? a + nextModule : undefined);
-  if (!/const owed = !reply && a\.outage !== true;/.test(turn)) out.push('the portal turn does not decide that a refused turn is owed an answer');
+  // 16 Nov 2026 (holes/FAILURES.md item 6): an outage turn is owed an answer too, and filed with its own reason
+  if (!/const owed = !reply;/.test(turn)) out.push('the portal turn does not decide that every unanswered turn is owed an answer');
+  if (!/p_reason: a\.outage === true \? 'model_outage' : 'model_up_no_safe_reply'/.test(turn)) out.push('an outage turn is not filed for the re-ask');
   if (!/p_surface: 'sales_engineer\.portal_unwritten'/.test(turn)) out.push('a refused portal turn is not filed for the re-ask');
   if (!/error: 'no_answer', outage, attempts: a\.attempts, pending, held_id/.test(turn)) out.push('the portal is not told the turn is pending');
   return out;
@@ -91,7 +93,7 @@ test('W2: one list of re-ask surfaces in TypeScript and SQL; the replay leaves t
 
 test('W3: the portal and the request chat show a pending state and poll until the answer lands', () => {
   const ps = code(readSource('src/components/me/PortalShell.tsx'));
-  assert.match(ps, /pendingDue\(j\) \? \[\.\.\.m, \{ role: 'pending', q, content: t\('asst_working'\) \}\]/);
+  assert.match(ps, /pendingDue\(j\) \? \[\.\.\.m, \{ role: 'pending', q, content: t\(j\.done && j\.done\.outage \? 'asst_queued' : 'asst_working'\) \}\]/);
   assert.match(ps, /if \(!reply && pendingDue\(j\)\) watch\(q\);/);
   assert.match(ps, /answerRightAfter\(j && j\.turns, question\)/);
   assert.match(ps, /m\.role === 'user' \|\| m\.role === 'assistant'/, 'a pending marker is UI state: never sent back as history');
@@ -100,7 +102,7 @@ test('W3: the portal and the request chat show a pending state and poll until th
   assert.match(nr, /if \(pending\) watchTurn\(/);
   assert.match(nr, /poll_turn_id: tid/);
   const txt = read('src/components/me/portalText.ts');
-  for (const k of ['asst_working', 'asst_with_team', 'nr_working', 'nr_with_team']) assert.equal((txt.match(new RegExp(k + ':', 'g')) || []).length, 2, k + ' in English and Arabic');
+  for (const k of ['asst_working', 'asst_queued', 'asst_with_team', 'nr_working', 'nr_with_team']) assert.equal((txt.match(new RegExp(k + ':', 'g')) || []).length, 2, k + ' in English and Arabic');
   assert.match(code(functionSource('inquiry_intake')), /const pollId = turnIdOf\(b\?\.poll_turn_id\);/);
 });
 
@@ -166,5 +168,8 @@ test('known-bad: the pre-fix lines are caught', () => {
   const intakeBefore = "        const heldMsg = hv.text;\n        turns.push({ role: 'assistant', text: heldMsg, agent: ACTOR });\n";
   assert.equal(intakeFindings(intakeBefore).length, 5);
   const portalBefore = "    if (action === 'assist') {\n      const outage = a.outage === true;\n      return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', outage, attempts: a.attempts, task_id: r.task_id ?? null }, 503);\n    // ── CONVERSATIONS\n";
-  assert.equal(portalFindings(portalBefore).length, 3);
+  assert.equal(portalFindings(portalBefore).length, 4);
+  // 16 Nov 2026: the line that left an outage turn unfiled (holes/FAILURES.md item 6) is caught on its own
+  const outageBefore = "    if (action === 'assist') {\n      const owed = !reply && a.outage !== true;\n      p_surface: 'sales_engineer.portal_unwritten', p_reason: 'model_up_no_safe_reply',\n      return J({ error: 'no_answer', outage, attempts: a.attempts, pending, held_id });\n";
+  assert.deepEqual(portalFindings(outageBefore), ['the portal turn does not decide that every unanswered turn is owed an answer', 'an outage turn is not filed for the re-ask']);
 });

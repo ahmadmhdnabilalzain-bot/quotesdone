@@ -4,6 +4,7 @@
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,116-line index.ts split into modules, a pure move).
 import { createClient, type User } from 'jsr:@supabase/supabase-js@2';
 import type { SafeInquiry } from './quote_review.ts';
+import type { CompanyReading } from '../_shared/supplier_company.ts';
 import { annotate, maskContact } from '../_shared/observe.ts';
 
 // Access-Control-Max-Age (15 Nov 2026, customer_support): a browser remembers this function's preflight for two hours (Chromium's
@@ -73,4 +74,9 @@ export type ActionCtx = {
   handle: (req: Request) => Promise<Response>;
   /** index.ts safeInquiryOf: the job as the review may read it, through `inbox`. */
   safeInquiryOf: (req: Request, jwt: string, inquiryId: string) => Promise<SafeInquiry | null>;
+  /** The address the sign-in code proved (16 Nov 2026, SUPPLIER hole 4). `email` is the COMPANY's address the person acts for:
+   *  his own when he is the owner, the owner's when he is a member (_shared/supplier_company.ts). */
+  signedIn?: string;
+  /** fn_supplier_company_of for the signed-in address: his company and role, a pending invitation, or a held member. */
+  reading?: CompanyReading;
 };

@@ -9,6 +9,7 @@ import { voiceReplyProblems } from './model_says.ts';
 import { mediaItems, waRow } from './wa_row.ts';
 import { admin, sec, TW } from './shared.ts';
 import { fetchTwilioMedia, handleSupplierDoc } from './media.ts';
+import { waSenderRole } from '../_shared/supplier_company.ts';
 import { customerFile, customerOf, targetOf } from './customer_files.ts';
 import { sendWa, toContact } from './replies.ts';
 import type { WaTurn } from './turn.ts';
@@ -120,6 +121,11 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
           : results.some((r) => r.startsWith('unreadable'))
             ? 'They sent a file and it could not be read clearly. Ask for a clearer copy, in these terms: ' + clearerCopyAsk(ar ? 'customer' : 'supplier', ar ? 'ar' : 'en', 'the file')
             : 'They sent a file but it could not be opened (' + results.join('; ') + '). Ask them to send it again as a PDF or a clear photo.'), ar ? 'ar' : 'en');
+      } else if ((await waSenderRole(admin, From)).role !== 'owner') {
+        // A COMPANY MEMBER'S NUMBER (review supplierw2): the company's papers (licence, profile, signed terms) are the owner's, as on
+        // e-mail (resend_inbound leadWritable) and in the portal (process_docs is OWNER_ONLY). Nothing is stored or filed.
+        results.push('not stored: a member cannot change the company papers');
+        reply = await sayFor('supplier')('A member of the company (not its owner) sent a file from his WhatsApp. The company\'s papers (trade licence, company profile, signed terms) are changed only by the owner, so nothing was stored or changed. Tell him to ask the owner to send it, or to upload it in the portal.', 'en');
       } else {
         // A SUPPLIER'S FILE IS A LICENCE ONLY WHEN IT READS AS ONE (R1, it_engineer, 10 Nov 2026; media.ts handleSupplierDoc).
         // The reply says what was received and what changed: a licence applied, or a file kept for our team with the

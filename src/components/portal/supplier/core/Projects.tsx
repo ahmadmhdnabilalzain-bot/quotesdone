@@ -35,6 +35,14 @@ function Projects({ token, lang, openChat, onExpired }) {
     setBusy('');
     if (j && j.ok) load(); else setMsg(srvMsg(lang, j, ar ? 'تعذّر تسجيل ذلك. يُرجى المحاولة مرة أخرى.' : 'We could not record that. Please try again.'));
   };
+  // THE CUSTOMER IS NOT ANSWERING (16 Nov 2026, SUPPLIER hole 10): one reminder to the customer, kept as evidence for any later refund claim
+  const silent = async (inquiryId) => {
+    setBusy('silent:' + inquiryId); setMsg('');
+    const j = await call('supplier_api', { action: 'customer_not_answering', inquiry_id: inquiryId }, token);
+    setBusy('');
+    setMsg(j && j.ok ? (j.already ? 'We already reminded this customer once; your report is on record.' : 'We reminded the customer once that you are trying to reach them, and kept your report on record.')
+      : srvMsg(lang, j, 'We could not send the reminder. Please try again.'));
+  };
   if (!data) return <Card className="qd-panel p-5" aria-busy="true">{t(lang, 'loading')}</Card>;
   if (data.code === 'session_expired') return <Card role="alert" className="qd-panel p-5">{panelErrorText(lang, 'session_expired')}</Card>;
   if (data.error || data.ok !== true) return <Card role="alert" className="qd-panel p-5">{srvMsg(lang, data, t(lang, 'err_generic'))}</Card>;
@@ -63,6 +71,8 @@ function Projects({ token, lang, openChat, onExpired }) {
           <div className="mt-1 text-[14px] font-semibold text-foreground"><bdi>{c.name || (ar ? 'العميل' : 'Customer')}</bdi></div>
           {/* The exact site is released by the reveal (13 Nov 2026, founder ruling 1683): before it a supplier saw the emirate only. */}
           {c.site ? <div className={cn(S.sub, 'mt-0.5')}>{'Site: '}<bdi>{c.site}</bdi></div> : null}
+          {/* The company the buyer is billed as (16 Nov 2026, public.reveal_bill_to): address the formal quotation and invoices to it. */}
+          {p.bill_to && p.bill_to.company ? <div className={cn(S.sub, 'mt-0.5')}>{'Bill to: '}<bdi>{[p.bill_to.company, p.bill_to.trn ? 'TRN ' + p.bill_to.trn : '', p.bill_to.po_ref ? 'PO ' + p.bill_to.po_ref : ''].filter(Boolean).join(' · ')}</bdi></div> : null}
           {/* 44 PX TO A FINGER (walk of 12 Nov 2026, S8): the customer's phone and e-mail, what he paid the reveal for, were 21 px tall. */}
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[14px]">
             {c.phone ? <a className="inline-flex min-h-11 items-center text-primary font-semibold underline-offset-2 hover:underline" href={'tel:' + String(c.phone).replace(/[^\d+]/g, '')}><Ltr>{c.phone}</Ltr></a> : null}
@@ -85,6 +95,7 @@ function Projects({ token, lang, openChat, onExpired }) {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" variant="outline" onClick={() => openChat(p.inquiry_id)}>{ar ? 'مراسلة العميل' : 'Message the customer'}</Button>
+            <Button size="sm" variant="outline" lang="en" disabled={busy === 'silent:' + p.inquiry_id} onClick={() => silent(p.inquiry_id)}>Customer not answering</Button>
             {!p.acknowledged_at && <Button size="sm" disabled={busy === p.id} onClick={() => ack(p.id)}>{busy === p.id ? (ar ? 'جارٍ التسجيل…' : 'Saving…') : (ar ? 'تأكيد التواصل مع العميل' : 'I have contacted the customer')}</Button>}
           </div>
         </div>

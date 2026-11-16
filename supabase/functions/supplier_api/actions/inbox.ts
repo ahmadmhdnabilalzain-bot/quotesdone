@@ -15,7 +15,7 @@ import { releasedSitePhotos, sitePhotosSection } from '../site_photos_door.ts';
 import { jobNo } from '../quote_review.ts';
 // The identity scrubbers (scrubIdentity, inboxField, inboxBoq) live in ./identity_scrub.ts.
 import { supplierCopy } from '../what_a_supplier_receives.ts';
-import { lossFeedback } from '../loss_feedback.ts';
+import { lossFeedbackShown } from '../loss_feedback.ts';
 import { type ActionCtx, J, admin, failed } from '../context.ts';
 import { CONCLUDED, UUID_RE } from '../lib/fields.ts';
 
@@ -74,27 +74,22 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
         if (x.status === 'draft') { try { const { data: sc } = await admin.rpc('fn_quote_structured_score', { p_quote: String(x.id) }); missing = Array.isArray((sc as any)?.missing) ? (sc as any).missing : null; } catch (_e) { /* the list is advice; the form still opens */ } }
         (qmap[String(x.inquiry_id)] ||= []).push({ ...x, items: itemsOf[String(x.id)] || [], missing, spec_hold: holdOf[String(x.id)] || null });
       }
-      // WHY THIS QUOTE LOST (T3, 5 Oct 2026, sales_engineer). On a concluded job this supplier did not
-      // win, each of its sent quotes carries loss_feedback: fixed English reasons from ./loss_feedback.ts.
-      // The chosen quote is read here and compared there; none of its figures leave this function.
+      // WHY THIS QUOTE LOST (T3, 5 Oct 2026; 16 Nov 2026 SUPPLIER hole 9, ./loss_feedback.ts). The reason is the one the sales
+      // engineer's model WROTE once from the customer's own word and the ex-VAT facts (public.supplier_loss_reason); nothing of the
+      // chosen quotation is read here any more. A concluded job he did not win shows its reason, or that it is being written; a
+      // request that ended revealed or expired shows one once it is written.
       {
         const sent = (q: any) => q.status !== 'draft' && q.status !== 'withdrawn';
-        const lostIds = (inq || []).filter((i) => CONCLUDED.includes(String(i.status)) && Number(i.hired_supplier_id) !== Number(sup.id) && (qmap[String(i.id)] || []).some(sent)).map((i) => String(i.id));
-        if (lostIds.length) {
-          const reasonOf: Record<string, string | null> = {};
-          { const { data: lr } = await admin.from('inquiries').select('id,lost_reason').in('id', lostIds); for (const x of (lr || [])) reasonOf[String(x.id)] = x.lost_reason ?? null; }
-          const hired = (inq || []).filter((i) => lostIds.includes(String(i.id)) && i.hired_supplier_id != null);
-          const chosenOf: Record<string, any> = {};
-          if (hired.length) {
-            const { data: wq } = await admin.from('quotes').select('inquiry_id,supplier_id,quote_amount,lead_time,exclusions,submittable,status').in('inquiry_id', hired.map((i) => i.id)).in('supplier_id', hired.map((i) => i.hired_supplier_id));
-            for (const i of hired) {
-              const c = (wq || []).filter((q) => String(q.inquiry_id) === String(i.id) && Number(q.supplier_id) === Number(i.hired_supplier_id) && sent(q));
-              // The hired supplier's accepted option if marked, else its lowest-priced sent option.
-              chosenOf[String(i.id)] = c.find((q) => q.status === 'accepted') || c.sort((a, b) => (Number(a.quote_amount) || Infinity) - (Number(b.quote_amount) || Infinity))[0] || null;
-            }
-          }
-          for (const id of lostIds) for (const q of qmap[id]) if (sent(q)) q.loss_feedback = lossFeedback(q, chosenOf[id] ?? null, reasonOf[id]);
+        const withQuotes = (inq || []).filter((i) => (qmap[String(i.id)] || []).some(sent)).map((i) => String(i.id));
+        const storedOf: Record<string, { text: string }> = {};
+        if (withQuotes.length) {
+          const { data: lr } = await admin.from('supplier_loss_reason').select('inquiry_id,text').eq('supplier_id', sup.id).in('inquiry_id', withQuotes)
+            .then((r: any) => r, () => ({ data: [] }));
+          for (const x of (lr || [])) storedOf[String(x.inquiry_id)] = { text: String(x.text) };
         }
+        const lostIds = (inq || []).filter((i) => withQuotes.includes(String(i.id)) && Number(i.hired_supplier_id) !== Number(sup.id)
+          && (CONCLUDED.includes(String(i.status)) || storedOf[String(i.id)])).map((i) => String(i.id));
+        for (const id of lostIds) for (const q of qmap[id]) if (sent(q)) q.loss_feedback = lossFeedbackShown(storedOf[id]);
       }
       // Reveal gate for the scrub below. customer_api treats the mere existence of a transactions
       // row as "revealed" (line ~430: every tx row for the customer goes into revealedQ with no
@@ -252,10 +247,15 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
       // say "done". The contact is served HERE and only here, keyed on the supplier's own transactions
       // rows, so it cannot reach a supplier before a reveal. Deadlines come from fn_reveal_window (13 Nov 2026), the one
       // source of the window: from the payment, on the working-day calendar refund_flow and the nudges use.
-      const { data: projs } = await admin.from('transactions').select('id,inquiry_id,customer_id,revealed_at,quote_amount,refund_deadline,supplier_ack_at,refund_status,inquiries(category,emirate,summary,spec)').eq('supplier_id', sup.id).not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(50);
+      const { data: projs } = await admin.from('transactions').select('id,quote_id,inquiry_id,customer_id,revealed_at,quote_amount,refund_deadline,supplier_ack_at,refund_status,inquiries(category,emirate,summary,spec)').eq('supplier_id', sup.id).not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(50);
       const custIds = Array.from(new Set((projs || []).map((p: any) => p.customer_id).filter(Boolean)));
       const cust: Record<string, any> = {};
       if (custIds.length) { const { data: cs } = await admin.from('customers').select('id,full_name,email,phone').in('id', custIds); for (const c of (cs || [])) cust[String(c.id)] = c; }
+      // THE COMPANY THE BUYER IS BILLED AS (16 Nov 2026, public.reveal_bill_to): on his revealed jobs only, so the supplier addresses
+      // the formal quotation and invoices to it (company, TRN, PO reference). Never on a job that is not revealed (these rows are sales).
+      const billTo: Record<string, any> = {};
+      const qids = (projs || []).map((p: any) => p.quote_id).filter(Boolean);
+      if (qids.length) { const { data: bts } = await admin.from('reveal_bill_to').select('quote_id,company,trn,po_ref').in('quote_id', qids); for (const b of (bts || [])) billTo[String(b.quote_id)] = { company: b.company, trn: b.trn ?? null, po_ref: b.po_ref ?? null }; }
       // The window of one sale, from the one source (public.fn_reveal_window, 13 Nov 2026): counted from the payment.
       const winCache: Record<string, any> = {};
       const win = async (tx: string) => { if (tx in winCache) return winCache[tx]; try { const { data } = await admin.rpc('fn_reveal_window', { p_tx: tx }); return (winCache[tx] = data || null); } catch (_e) { return (winCache[tx] = null); } };
@@ -274,6 +274,7 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
           // The exact site is released by the reveal (13 Nov 2026, founder ruling 1683): the customer-only key the request
           // stored it under (_shared/site_location.ts), else the address answer of an older row. Shown with the contact card.
           customer: { name: c.full_name || null, email: c.email || null, phone: c.phone || null, site: String(p.inquiries?.spec?.site_location || p.inquiries?.spec?.location || '').trim() || null },
+          bill_to: billTo[String(p.quote_id)] || null,
           review: rvBy[String(p.id)] ? { rating: rvBy[String(p.id)].rating, comment: rvBy[String(p.id)].comment || null, created_at: rvBy[String(p.id)].created_at,
             photo_urls: (await Promise.all(((rvBy[String(p.id)].photo_paths || []) as string[]).map(photoUrl))).filter(Boolean) } : null });
       }

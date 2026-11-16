@@ -30,7 +30,7 @@ export const SEAT_BY_CREDENTIAL: Record<string, 'sales_engineer'> = {
 // catalogue as well.
 // spec_offer_sweep: resilience_ping's daily pass (founder_instruction #321). The work is sales_engineer's
 // (detect, decide); every message goes out through customer_support's door (_shared/deliver.ts).
-export const SERVICE_ACTIONS = new Set(['match', 'spec_offer_sweep']);
+export const SERVICE_ACTIONS = new Set(['match', 'spec_offer_sweep', 'supplier_loops_sweep']);
 export type Caller =
   | { kind: 'sales_engineer' | 'founder' }
   | { kind: 'service'; context: string }

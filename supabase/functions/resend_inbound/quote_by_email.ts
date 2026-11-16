@@ -85,11 +85,14 @@ export function chooseRequest(open: OpenRequest[], threaded: string[], numbers: 
 }
 
 /** A verified sender: the domain authenticated AND the company's sign-in address (or its listed address, proven). */
-export function verifiedSender(lead: Lead | null, from: string, senderAuth: boolean, listedProven: boolean): boolean {
+export function verifiedSender(lead: Lead | null, from: string, senderAuth: boolean, listedProven: boolean, quotingMember = false): boolean {
   const f = String(from || '').trim().toLowerCase();
   const claimed = String(lead?.claimed_by || '').trim().toLowerCase();
   if (!lead || !senderAuth || !claimed || !f) return false;
   if (f === claimed) return true;
+  // an ESTIMATOR of the company, his own address resolved by fn_supplier_company_of and authenticated by the receiving server
+  // (16 Nov 2026, SUPPLIER hole 4): his quotation is his company's. A viewer's is not (quotingMember is false for him).
+  if (quotingMember) return true;
   return f === String(lead.email || '').trim().toLowerCase() && listedProven;
 }
 
@@ -169,7 +172,7 @@ export type QuoteMailDeps = {
   /** `dedupe`: one such reply per key (the unverified reply: one per company per day). */
   reply: (lead: Lead, to: string, inquiryId: string | null, msg: { subject: string; body: string }, dedupe?: string) => Promise<void>;
 };
-export type Mail = { from: string; subject: string; text: string; inReplyTo: string | null; references: string | null; senderAuth: boolean };
+export type Mail = { from: string; subject: string; text: string; inReplyTo: string | null; references: string | null; senderAuth: boolean; quotingMember?: boolean };
 
 const b64 = (u8: Uint8Array) => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000)); return btoa(s); };
 
@@ -187,7 +190,7 @@ export async function quoteByEmail(mail: Mail, lead: Lead | null, files: MailFil
   const to = String(lead.claimed_by).trim().toLowerCase();
   const listed = String(lead.email || '').trim().toLowerCase();
   const proven = mail.from === listed && mail.from !== to ? await deps.listedProven(listed) : false;
-  if (!verifiedSender(lead, mail.from, mail.senderAuth, proven)) {
+  if (!verifiedSender(lead, mail.from, mail.senderAuth, proven, mail.quotingMember === true)) {
     // review of #1981 N3: a real supplier whose mail failed authentication is told what main told him, at his SIGN-IN address
     // (never the unproven From), with no model call: we cannot accept a quotation by e-mail from it; upload it in the portal.
     if (!files.length) return nothing;

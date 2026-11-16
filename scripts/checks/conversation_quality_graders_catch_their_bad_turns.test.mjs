@@ -39,14 +39,12 @@ test('a superseded quantity in a restatement is caught across a whole scripted c
   assert.equal(g.hallucinated_facts, 0);
 });
 
-test('the brief states the inquiry edit window the product enforces', () => {
+test('the brief states that a request is revised until a supplier is revealed, as the product does (16 Nov 2026)', () => {
   const api = functionSource('customer_api');
-  const ms = api.match(/const EDIT_WINDOW_MS = ([^;]+);/)[1].split('*').map(Number).reduce((a, b) => a * b);   // "60 * 60e3"
-  assert.equal(ms, 3_600_000, 'customer_api EDIT_WINDOW_MS');
-  const line = BRIEF_TEXT.split('\n').find((l) => /edit an inquiry within/i.test(l));
-  assert.ok(line, 'the brief states the edit window');
-  assert.match(line, /within \*\*1 hour\*\*/, line);
-  assert.doesNotMatch(BRIEF_TEXT, /edit an inquiry within \*\*24 hours\*\*/);
+  // no edit window any more: fn_edit_inquiry revises a request until it is revealed, paid or closed
+  assert.doesNotMatch(api, /const EDIT_WINDOW_MS = /, 'customer_api still carries an edit window');
+  assert.match(BRIEF_TEXT, /\*\*until he reveals a supplier\*\*/, 'the brief states the request is changed until a reveal');
+  assert.doesNotMatch(BRIEF_TEXT, /edit an inquiry within \*\*(1 hour|24 hours)\*\*/);
 });
 
 test('the brief states the refund method the Refund Policy states, and no fallback for an uncovered drawing', () => {

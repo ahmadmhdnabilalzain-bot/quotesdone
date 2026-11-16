@@ -20,6 +20,29 @@ function OpenSeal({ play, children }) {
   return <Seal open={open} className="qd-revealed text-accent! max-w-full">{children}</Seal>;
 }
 
+// WHAT DECIDED IT (16 Nov 2026, SUPPLIER hole 9): one optional question at the reveal. His words reach no supplier as written: the sales
+// engineer's model reads them to tell each supplier who was not chosen why, naming nobody (supabase/functions/supplier_api/loss_feedback.ts).
+function DecisionAsk({ q, token, lang }) {
+  const [text, setText] = useState(''); const [done, setDone] = useState(''); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
+  if (!q || !q.id || done) return done ? <div role="status" className={cn(S.sub, 'mt-2')}>{done}</div> : null;
+  const send = async () => {
+    if (text.trim().length < 2) return;
+    setBusy(true); setErr('');
+    const j = await call('customer_api', { action: 'decision_reason', quote_id: q.id, reason: text.trim(), lang }, token).catch(() => null);
+    setBusy(false);
+    if (j && j.ok) setDone(t(lang, 'c_decide_thanks')); else setErr(t(lang, 'c_decide_fail'));
+  };
+  return <div className="mt-3">
+    <label className="block text-[13px] font-semibold text-foreground" htmlFor={'qd-decide-' + q.id}>{t(lang, 'c_decide_q')}</label>
+    <div className={cn(S.sub, 'mb-1.5')}>{t(lang, 'c_decide_hint')}</div>
+    <div className="flex gap-2">
+      <Input id={'qd-decide-' + q.id} value={text} maxLength={500} onChange={(e) => setText(e.target.value)} />
+      <button type="button" aria-busy={busy || undefined} disabled={busy || text.trim().length < 2} onClick={send} className="min-h-11 shrink-0 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-50">{t(lang, 'c_decide_send')}</button>
+    </div>
+    {err && <div role="alert" className={S.err}>{err}</div>}
+  </div>;
+}
+
 function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
   const s = c.supplier || {};
   const [rating, setRating] = useState(0); const [rated, setRated] = useState(!!(q && q.rated)); const [done, setDone] = useState('');
@@ -163,6 +186,7 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
     </div>
     {/* The clock on the customer's own reveal. Hidden once the fee can no longer be refunded
         (hired or rated), because a running clock on a promise that no longer applies misleads. */}
+    <DecisionAsk q={q} token={token} lang={lang} />
     {q.guarantee && !won && !rated ? <RevealGuarantee lang={lang} fee={aed(q.reveal_fee)} terms={terms} facts={q.guarantee} compact /> : null}
   </div>);
 }

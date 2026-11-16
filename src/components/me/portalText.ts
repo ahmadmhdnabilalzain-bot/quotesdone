@@ -79,7 +79,7 @@ export const T = {
     // 27 Oct 2026: a slow or dropped turn is never an error line (ledger 1200); the answer is looked for, then this is said
     asst_late:'Your answer is taking a little longer. It will appear here.',
     asst_not_sent:'Your message did not reach us, so it was not saved. It is back in the box below; please send it again.', asst_saved:'Your question is saved with your sales engineer, but the answer did not reach this chat. Please send it again in a moment; nothing you wrote is lost.',
-    asst_working:'Still working on your answer. It will appear here in a minute or two.',
+    asst_working:'Still working on your answer. It will appear here in a minute or two.', asst_queued:'Our assistant is briefly unavailable. Your question is saved with your sales engineer and the answer will appear here as soon as it is written; you do not need to send it again.',
     asst_still:'Still working on your answer…',
     asst_with_team:'Your sales engineer is reviewing your question. The answer will appear here.',
     // ── request lifecycle ──
@@ -179,7 +179,7 @@ export const T = {
     asst_s1:'ما حالة طلباتي؟', asst_s2:'كم عرض سعر وصلني؟', asst_s3:'ما الخطوة التالية المطلوبة مني؟',
     asst_late:'تستغرق إجابتك وقتًا أطول قليلًا، وستظهر هنا.',
     asst_not_sent:'لم تصلنا رسالتك ولم تُحفظ. أعدناها إلى مربع الكتابة أدناه، يُرجى إرسالها مرة أخرى.', asst_saved:'سؤالك محفوظ لدى مهندس المبيعات، لكن الإجابة لم تصل إلى هذه المحادثة. يُرجى إرساله مرة أخرى بعد قليل، ولم يُفقد شيء مما كتبته.',
-    asst_working:'ما زلنا نعمل على إجابتك، وستظهر هنا خلال دقيقة أو دقيقتين.',
+    asst_working:'ما زلنا نعمل على إجابتك، وستظهر هنا خلال دقيقة أو دقيقتين.', asst_queued:'المساعد غير متاح لدقائق. سؤالك محفوظ لدى مهندس المبيعات، وستظهر الإجابة هنا فور كتابتها، فلا داعي لإرساله مرة أخرى.',
     asst_still:'ما زلتُ أعمل على إجابتك…',
     asst_with_team:'يراجع مهندس المبيعات سؤالك الآن، وستظهر الإجابة هنا.',
     // ── دورة حياة الطلب ──
@@ -217,6 +217,7 @@ export const t = (lang, k) => (T[lang] && T[lang][k]) || T.en[k] || k;
 // one merge so the audit's list can be checked against one block; every key has both languages.
 Object.assign(T.en, {
   nr_title: 'New request', nr_cancel: 'Cancel',
+  nr_resumed: 'Welcome back. Here is where we left your request; carry on below.', nr_resumed_ready: 'Welcome back. Your request is complete: check it below and send it to the suppliers.', nr_start_fresh: 'Start a new request instead',
   nr_greeting: "Hi, I'm your QuotesDone sales engineer. Tell me what you need done and which emirate it's in. I'll ask a few quick questions, including materials, installation, warranty and when you need it, so suppliers quote exactly what you want. You can type, or attach a drawing, BOQ, photo or your own quotation. Your identity stays hidden until you choose to reveal a supplier.",
   // 27 Oct 2026: an intake turn the portal stopped waiting for is a progress state and a retry, never an error line.
   nr_slow: 'Still working on it — checking every detail of your request…',
@@ -309,7 +310,7 @@ Object.assign(T.en, {
   rd_page: 'Page {n} of {total}', rd_clear: 'Clear this page', rd_apply: 'Hide these areas and attach', rd_applying: 'Preparing…', rd_skip: 'Send without the drawing',
   rd_done: 'Done — {c} prepared with your boxes and attached for suppliers.', rd_failed: 'I still could not prepare the pages. Your request can go without the drawing.',
   rd_boxes: '{c} marked', rd_prev: 'Previous page', rd_next: 'Next page', rd_canvas: 'Drawing page {n}. Drag to mark an area to hide.',
-  rc_request: 'Request', rc_quote_one: 'quote', rc_quote_many: 'quotes', rc_lines: 'line items', rc_editable: 'editable {m}m', rc_open: 'Open request', rc_hide: 'Hide details',
+  rc_request: 'Request', rc_quote_one: 'quote', rc_quote_many: 'quotes', rc_lines: 'line items', rc_revision: 'revision {n}', q_bill_toggle: 'Bill this to a company', q_bill_company: 'Company name, as on the invoice', q_bill_trn: 'Company TRN (15 digits, optional)', q_bill_po: 'Your PO reference (optional)', q_bill_hint: 'The invoice and receipt are made out to the company. The supplier is given these details only after you reveal, to address his formal quotation.', cl_you_asked: 'You asked {label}', cl_by_engineer: 'Your sales engineer, from the quote', cl_by_supplier: 'The supplier answered', cl_due: 'Asked of the supplier; answer due by {d}', cl_with_engineer: 'With your sales engineer, who answers from the quote or asks the supplier', cl_ask_open: 'Ask about this quote', cl_ask_label: 'Your question about this quote. Your sales engineer answers from the quote, or asks this supplier for you without your name.', cl_ask_send: 'Send question', cl_ask_sent: 'Sent to your sales engineer. The answer will appear under the request\'s questions and by e-mail.', rc_date_opt: 'Needed by (date)', q_priced_rev: 'Priced revision {n}; the request has changed since', rc_open: 'Open request', rc_hide: 'Hide details',
   rc_edit: 'Edit request', rc_cancel: 'Cancel request', rc_cancelling: 'Cancelling…', rc_cancel_confirm: 'Cancel this request? Suppliers will stop quoting.', rc_cancel_fail: 'Could not cancel. Please try again.',
   rc_repeat: 'Request again', rc_repeating: 'Posting…', rc_repeat_confirm: 'A new request with the same specs. Change anything you need, then post it. A needed-by date that has passed was moved forward by the same lead time. A drawing is not copied; attach it to a new request if suppliers need it.',
   rc_repeat_post: 'Post request', rc_repeat_date: 'Needed by', rc_repeat_nothing: 'This request has no saved answers to repeat. Please start a new request instead.',
@@ -351,6 +352,7 @@ Object.assign(T.en, {
   pay_failed: 'The payment did not go through, and nothing was charged. Please try again or use another card.',
   q_unlocked: 'Unlocked', c_supplier: 'Supplier', c_revealed_on: 'Revealed on {d}', c_hired_badge: 'Hired supplier for this project', c_paid: 'You paid {fee} to reveal this supplier',
   c_website: 'Website', c_download: 'Download their quotation', c_rate_group: 'Rate this supplier', c_rate_n: 'Rate {n} of 5', c_rated: '★ Rated — press a star to change it', c_rate_change: 'You have rated this supplier — press a star to change your rating', c_thanks: 'Thanks for rating.', c_rate_fail: 'Could not save rating.',
+  c_decide_q: 'What decided it? (optional)', c_decide_hint: 'A word or a sentence is enough. It helps us tell the other suppliers why their quotations were not chosen, without your name or any supplier\'s.', c_decide_send: 'Send', c_decide_thanks: 'Thank you, we have your answer.', c_decide_fail: 'We could not save your answer. Please try again.',
   // The stars are the rating; the words are optional and are offered only AFTER the rating is saved,
   // so nothing a customer chooses not to write can ever stand between them and rating a supplier.
   c_note_h: 'Add a few words for the next customer (optional)', c_note_ph: 'What were they like to work with?', c_note_save: 'Add comment', c_note_min: 'At least 10 characters, up to 500. Your stars are already saved.', c_note_done: 'Thanks — your comment is saved.',
@@ -403,6 +405,7 @@ Object.assign(T.en, {
 });
 Object.assign(T.ar, {
   nr_title: 'طلب جديد', nr_cancel: 'إلغاء',
+  nr_resumed: 'أهلًا بعودتك. هذا طلبك حيث توقفنا، فتابع من الأسفل.', nr_resumed_ready: 'أهلًا بعودتك. طلبك مكتمل: راجعه أدناه وأرسله إلى المورّدين.', nr_start_fresh: 'ابدأ طلبًا جديدًا بدلًا منه',
   nr_greeting: 'مرحبًا، أنا مهندس المبيعات في QuotesDone. أخبرني بالعمل المطلوب والإمارة التي يُنفَّذ فيها، وسأطرح عليك بضعة أسئلة سريعة عن المواد والتركيب والضمان وموعد التسليم، حتى يسعّر الموردون ما تريده بالضبط. يمكنك الكتابة، أو إرفاق مخطط أو جدول كميات أو صورة أو عرض سعر لديك، وتبقى هويتك مخفية حتى تختار كشف مورّد.',
   nr_slow: 'ما زلت أعمل على ذلك، وأراجع كل تفاصيل طلبك…',
   nr_late: 'يستغرق الرد وقتًا أطول من المعتاد. لم يُفقد شيء مما كتبته؛ اضغط «إعادة المحاولة» لنكمل من حيث توقفنا.',
@@ -491,7 +494,7 @@ Object.assign(T.ar, {
   rd_page: 'الصفحة {n} من {total}', rd_clear: 'مسح هذه الصفحة', rd_apply: 'أخفِ هذه المناطق وأرفق المخطط', rd_applying: 'جارٍ التجهيز…', rd_skip: 'أرسل دون المخطط',
   rd_done: 'تم — جُهّزت {c} بالمربعات التي حددتها وأُرفقت للموردين.', rd_failed: 'تعذّر تجهيز الصفحات. يمكن إرسال طلبك دون المخطط.',
   rd_boxes: 'المناطق المحددة: {n}', rd_prev: 'الصفحة السابقة', rd_next: 'الصفحة التالية', rd_canvas: 'صفحة المخطط {n}. اسحب لتحديد منطقة لإخفائها.',
-  rc_request: 'طلب', rc_quote_one: 'عرض سعر', rc_quote_many: 'عروض أسعار', rc_lines: 'بند', rc_editable: 'قابل للتعديل {m} د', rc_open: 'عرض التفاصيل', rc_hide: 'إخفاء التفاصيل',
+  rc_request: 'طلب', rc_quote_one: 'عرض سعر', rc_quote_many: 'عروض أسعار', rc_lines: 'بند', rc_revision: 'النسخة {n}', q_bill_toggle: 'إصدار الفاتورة باسم شركة', q_bill_company: 'اسم الشركة كما يظهر في الفاتورة', q_bill_trn: 'الرقم الضريبي للشركة (15 رقمًا، اختياري)', q_bill_po: 'مرجع أمر الشراء (اختياري)', q_bill_hint: 'تصدر الفاتورة والإيصال باسم الشركة، ولا يحصل المورّد على هذه البيانات إلا بعد الكشف، ليوجّه عرضه الرسمي إليها.', cl_you_asked: 'سألتَ {label}', cl_by_engineer: 'مهندس المبيعات، من العرض نفسه', cl_by_supplier: 'أجاب المورّد', cl_due: 'سُئل المورّد، والجواب مطلوب قبل {d}', cl_with_engineer: 'لدى مهندس المبيعات، يجيب من العرض أو يسأل المورّد', cl_ask_open: 'اسأل عن هذا العرض', cl_ask_label: 'سؤالك عن هذا العرض. يجيبك مهندس المبيعات من العرض، أو يسأل المورّد عنك دون ذكر اسمك.', cl_ask_send: 'إرسال السؤال', cl_ask_sent: 'أُرسل السؤال إلى مهندس المبيعات، وسيظهر الجواب تحت أسئلة الطلب وفي بريدك الإلكتروني.', rc_date_opt: 'تاريخ إنجاز العمل', q_priced_rev: 'سُعِّر على النسخة {n}، وتغيّر الطلب بعدها', rc_open: 'عرض التفاصيل', rc_hide: 'إخفاء التفاصيل',
   rc_edit: 'تعديل الطلب', rc_cancel: 'إلغاء الطلب', rc_cancelling: 'جارٍ الإلغاء…', rc_cancel_confirm: 'هل تريد إلغاء هذا الطلب؟ سيتوقف الموردون عن التسعير.', rc_cancel_fail: 'تعذّر الإلغاء. يُرجى المحاولة مرة أخرى.',
   rc_repeat: 'اطلب مرة أخرى', rc_repeating: 'جارٍ النشر…', rc_repeat_confirm: 'طلب جديد بالمواصفات نفسها. عدّل ما تحتاج إليه ثم انشره. إن كان موعد التسليم قد مضى، فقد قُدِّم بالمدة نفسها التي حددتها أول مرة. لا يُنسخ المخطط؛ أرفقه بطلب جديد إن احتاجه الموردون.',
   rc_repeat_post: 'نشر الطلب', rc_repeat_date: 'مطلوب بحلول', rc_repeat_nothing: 'لا توجد إجابات محفوظة لهذا الطلب لتكراره. يُرجى إنشاء طلب جديد.',
@@ -533,6 +536,7 @@ Object.assign(T.ar, {
   pay_failed: 'لم يكتمل الدفع ولم يُخصم أي مبلغ. يُرجى المحاولة مرة أخرى أو استخدام بطاقة أخرى.',
   q_unlocked: 'تم الكشف', c_supplier: 'المورّد', c_revealed_on: 'كُشف بتاريخ {d}', c_hired_badge: 'المورّد المتعاقد معه لهذا المشروع', c_paid: 'دفعت {fee} لكشف هذا المورّد',
   c_website: 'الموقع الإلكتروني', c_download: 'تنزيل عرض سعره', c_rate_group: 'قيّم هذا المورّد', c_rate_n: 'تقييم {n} من 5', c_rated: '★ تم التقييم — اضغط نجمة لتغييره', c_rate_change: 'قيّمت هذا المورّد من قبل — اضغط نجمة لتغيير تقييمك', c_thanks: 'شكرًا على تقييمك.', c_rate_fail: 'تعذّر حفظ التقييم.',
+  c_decide_q: 'ما الذي حسم اختياركم؟ (اختياري)', c_decide_hint: 'تكفي كلمة أو جملة. نستعين بها لنوضح للمورّدين الآخرين سبب عدم اختيار عروضهم، دون ذكر اسمكم أو اسم أي مورّد.', c_decide_send: 'إرسال', c_decide_thanks: 'شكرًا لكم، وصلنا ردّكم.', c_decide_fail: 'تعذّر حفظ ردّكم. يُرجى المحاولة مرة أخرى.',
   // Western digits inside Arabic, matching every other string in this file ('تقييم {n} من 5',
   // '3%', '20 ميغابايت'). Arabic-Indic digits here would put 'تقييم 3 من 5' and 'من ١ إلى ٥' on
   // the same screen.

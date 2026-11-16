@@ -13,21 +13,27 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 import { observe } from '../_shared/observe.ts';
 import { isCustomerCorrespondence } from '../_shared/customer_mail.ts';
-import { asLocale } from '../_shared/registered_locale.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 // The supplier's alias on this job is the same one its own quotation prints (audit 21 Sep 2026, finding 29).
 import { jobAlias, NO_LETTER, recordShown } from '../_shared/quote_labels.ts';
 import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
 import { buildSupplierMailbox } from './mailbox.ts';
-import { stripContact, stripSupplierQuestion } from './strip_contact.ts';
+import { stripContact } from './strip_contact.ts';
+import { clarifyVisible } from './clarify_visibility.ts';
 import { sanctionedLead } from '../_shared/sanctioned.ts';
 import { refusalBody, signedInUser } from '../_shared/signed_in_user.ts';
 import { isClosedRequest } from '../_shared/request_closed.ts';
+import { fileJobQuestion, firstAnswerLater } from '../_shared/job_question.ts';
+import { companyOf } from '../_shared/supplier_company.ts';
+import { defaultDeps } from '../_shared/think.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Content-Type': 'application/json' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: CORS });
 const clip = (v: unknown, n: number) => String(v ?? '').trim().slice(0, n);
 const WARNING = 'Messages here are kept on record for both of you. Please keep them about this job.';
+// The supplier copy of a customer question whose words could not be proved clean (or are Arabic): never relayed as it is
+// (fn_customer_question_relay refuses it); the sales engineer's English replaces it.
+const CUSTOMER_QUESTION_HELD = 'A question from the customer, held for the sales engineer.';
 
 async function notify(rows: Record<string, unknown>[]) { try { if (rows.length) await requestDelivery(admin, rows); } catch (_e) {} }
 
@@ -116,6 +122,12 @@ async function otherChannels(cust: { id: string; phone?: string | null; phone_ve
 //                                    questions plus every answered one (answers are addenda to the RFQ)
 //   clarify_ask    {inquiry_id, text}  supplier session, must be matched to the inquiry
 //   clarify_answer {id, text}          customer session, owner only; every matched supplier is told
+//   clarify_ask_supplier {quote_id, text}  customer session (16 Nov 2026): a question about ONE supplier's quote before the
+//                                    reveal. The sales engineer's model answers it from the quote's own words, or relays it in
+//                                    English to that supplier with a date (fn_sales_engineer_customer_question_file); only he
+//                                    hears the answer. Never another supplier.
+//   clarify_reply  {id, text}          supplier session: the quoted supplier answers a relayed customer question; the customer
+//                                    is told (fn_customer_question_answered_tell)
 // Identities are masked both ways: suppliers appear to the customer as "Supplier A/B..." by the letter his quotes carry
 // (_shared/quote_labels.ts customerSupplierLetters; until 15 Nov 2026 the match order), to a supplier by the job's
 // match-order aliases (jobAlias); the customer never appears at all, and contact details are stripped from
@@ -124,13 +136,15 @@ async function otherChannels(cust: { id: string; phone?: string | null; phone_ve
 type Res = { status: number; body: Record<string, unknown> };
 const R = (status: number, body: Record<string, unknown>): Res => ({ status, body });
 
-async function clarify(action: string, b: Record<string, unknown>, supLead: any, cust: any): Promise<Res> {
+async function clarify(action: string, b: Record<string, unknown>, supLead: any, cust: any, supEmail: string | null = null): Promise<Res> {
   if (action === 'clarify_answer') {
     if (!cust) return R(403, { error: 'forbidden' });
     const id = Number(b.id);
     if (!id) return R(400, { error: 'id_required' });
-    const { data: row } = await admin.from('rfq_clarification').select('id,inquiry_id,kind,question,answered_at').eq('id', id).maybeSingle();
+    const { data: row } = await admin.from('rfq_clarification').select('id,inquiry_id,kind,question,answered_at,asked_by').eq('id', id).maybeSingle();
     if (!row) return R(404, { error: 'not_found' });
+    // his own question about one quote is answered by the sales engineer or that supplier, never by him (16 Nov 2026)
+    if (row.asked_by === 'customer') return R(400, { error: 'not_a_question' });
     const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,status,project_id').eq('id', row.inquiry_id).maybeSingle();
     if (!inq || inq.customer_id !== cust.id) return R(403, { error: 'not_your_inquiry' });
     if (row.kind !== 'question') return R(400, { error: 'not_a_question' });
@@ -171,6 +185,59 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     return R(200, { ok: true, id, answer: text, notified });
   }
 
+  // A CUSTOMER ASKS ONE SUPPLIER ABOUT ITS QUOTE BEFORE PAYING (16 Nov 2026, holes/CUSTOMER.md item 6). Stored on the same table
+  // (kind question, the quoted supplier's id, asked_by customer). His own words stay his (question_as_written); the supplier copy
+  // is what passes the supplier gate, or a held placeholder that is never relayed (the sales engineer's English replaces it).
+  if (action === 'clarify_ask_supplier') {
+    if (!cust) return R(403, { error: 'forbidden' });
+    if (cust.banned === true) return R(403, { error: 'suspended' });
+    const qid = String(b.quote_id || '');
+    if (!/^[0-9a-f-]{36}$/i.test(qid)) return R(400, { error: 'quote_id_required' });
+    const { data: qt } = await admin.from('quotes').select('id,inquiry_id,supplier_id,status').eq('id', qid).maybeSingle();
+    if (!qt) return R(404, { error: 'not_found' });
+    const { data: inq } = await admin.from('inquiries').select('id,customer_id,status').eq('id', qt.inquiry_id).maybeSingle();
+    if (!inq || inq.customer_id !== cust.id) return R(403, { error: 'not_your_inquiry' });
+    if (isClosedRequest(inq.status)) return R(409, { error: 'inquiry_closed' });
+    if (['draft', 'withdrawn', 'rejected', 'expired', 'cancelled', 'held'].includes(String(qt.status || ''))) return R(409, { error: 'quote_not_live' });
+    // after a reveal they talk directly (the post-reveal chat below)
+    if (await revealed(String(qt.inquiry_id), Number(qt.supplier_id))) return R(409, { error: 'already_revealed' });
+    const raw = clip(b.text, 1500);
+    if (raw.length < 3) return R(400, { error: 'text_required' });
+    const since = new Date(Date.now() - 24 * 3600e3).toISOString();
+    const { count } = await admin.from('rfq_clarification').select('id', { count: 'exact', head: true }).eq('quote_id', qid).eq('asked_by', 'customer').gte('asked_at', since);
+    if ((count || 0) >= 5) return R(429, { error: 'too_many_questions' });
+    const owner = await readOwner(admin, String(qt.inquiry_id));
+    const clean = !hasArabic(raw) && owner.resolved ? forSuppliers(raw, owner) : null;
+    const { data: ins, error } = await admin.from('rfq_clarification').insert({ inquiry_id: qt.inquiry_id, supplier_id: qt.supplier_id, kind: 'question',
+      question: clean || CUSTOMER_QUESTION_HELD, question_as_written: raw, asked_by: 'customer', quote_id: qid, source: 'portal' }).select('id').single();
+    if (error || !ins) return R(500, { error: 'save_failed' });
+    // the sales engineer reads it against the quote (a reasoning question; nothing is filed for a demo customer)
+    try { await admin.rpc('fn_sales_engineer_customer_question_file', { p_id: ins.id }); } catch (_e) { /* the hourly duty hands an unread one to the seat */ }
+    return R(200, { ok: true, id: ins.id, state: 'with_sales_engineer' });
+  }
+
+  if (action === 'clarify_reply') {
+    if (!supLead) return R(403, { error: 'forbidden' });
+    if (supLead.banned === true) return R(403, { error: 'suspended' });
+    const id = Number(b.id);
+    if (!id) return R(400, { error: 'id_required' });
+    const { data: row } = await admin.from('rfq_clarification').select('id,inquiry_id,supplier_id,asked_by,relayed_at,answered_at').eq('id', id).maybeSingle();
+    if (!row || row.asked_by !== 'customer' || Number(row.supplier_id) !== Number(supLead.id) || !row.relayed_at) return R(404, { error: 'not_found' });
+    if (row.answered_at) return R(409, { error: 'already_answered' });
+    const { data: inq } = await admin.from('inquiries').select('status').eq('id', row.inquiry_id).maybeSingle();
+    if (isClosedRequest(inq?.status)) return R(409, { error: 'inquiry_closed' });
+    // the supplier stays anonymous until the reveal: its own name and contact details come out first
+    const text = stripContact(b.text, [supLead.company_name]);
+    if (text.replace(/\[removed\]/g, '').trim().length < 1) return R(400, { error: 'text_required' });
+    const { data: upd, error } = await admin.from('rfq_clarification').update({ answer: text, answered_at: new Date().toISOString(), answered_by: 'supplier' })
+      .eq('id', id).is('answered_at', null).select('id');
+    if (error) return R(500, { error: 'save_failed' });
+    if (!upd?.length) return R(409, { error: 'already_answered' });
+    let told = false;
+    try { const { data: t } = await admin.rpc('fn_customer_question_answered_tell', { p_id: id }); told = !!(t && (t as { told?: boolean }).told); } catch (_e) { /* the answer is on his thread either way */ }
+    return R(200, { ok: true, id, answer: text, told });
+  }
+
   const inquiry_id = String(b.inquiry_id || '');
   if (!inquiry_id) return R(400, { error: 'inquiry_id_required' });
   const { data: inq } = await admin.from('inquiries').select('id,customer_id,category,emirate,status').eq('id', inquiry_id).maybeSingle();
@@ -185,46 +252,31 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     if (!isMatched) return R(403, { error: 'not_matched' });
     if (supLead.banned === true) return R(403, { error: 'suspended' });
     if (isClosedRequest(inq.status)) return R(409, { error: 'inquiry_closed' });
-    // The supplier's question: contacts AND brands out before the customer reads it (strip_contact.ts stripSupplierQuestion).
-    const text = stripSupplierQuestion(b.text, [supLead.company_name]);
-    if (text.replace(/\[removed\]/g, '').trim().length < 3) return R(400, { error: 'text_required' });
-    // Five a day per supplier per request: enough to scope a job, too few to turn it into a chat.
-    const since = new Date(Date.now() - 24 * 3600e3).toISOString();
-    const { count } = await admin.from('rfq_clarification').select('id', { count: 'exact', head: true }).eq('inquiry_id', inquiry_id).eq('supplier_id', supLead.id).gte('asked_at', since);
-    if ((count || 0) >= 5) return R(429, { error: 'too_many_questions' });
+    // ONE QUESTION, ONE ROW, WHATEVER THE CHANNEL (16 Nov 2026, SUPPLIER hole 5; _shared/job_question.ts). The portal files it the
+    // way an e-mail or a WhatsApp question is filed (stripped of contacts and his brand, five a day), and the sales engineer reads
+    // it first, after this response: answered from the request's own facts for every invited supplier, or asked of the customer
+    // by the letter his quote cards use, and reminded once. The customer is no longer e-mailed here before anyone looked.
     const source = b.source === 'rfq_flag' ? 'rfq_flag' : 'portal';
-    const { data: ins, error } = await admin.from('rfq_clarification').insert({ inquiry_id, supplier_id: supLead.id, kind: 'question', question: text, source }).select('id').single();
-    if (error || !ins) return R(500, { error: 'save_failed' });
+    const filed = await fileJobQuestion(admin, { supplierId: Number(supLead.id), inquiryId: inquiry_id, text: String(b.text ?? ''), source, askedBy: supEmail ?? null });
+    if (!filed.ok) return R(filed.code === 'too_many_questions' ? 429 : filed.code === 'save_failed' ? 500 : filed.code === 'inquiry_closed' ? 409 : filed.code === 'text_required' ? 400 : 403, { error: filed.code });
+    const deps = defaultDeps(admin, 'messages_api');
+    firstAnswerLater(admin, async (sys, input) => (await deps.llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'sales_engineer', max: 500, timeoutMs: 25_000,
+      subject: { inquiry_id, channel: 'portal' }, internal: true })).content ?? null, filed.id);
     const label = jobAlias(order, Number(supLead.id));   // the supplier's own alias on this job, what the supplier is shown
-    try {
-      // THE CUSTOMER'S LETTER for this supplier (_shared/quote_labels.ts, 15 Nov 2026): this question is the customer's first sight
-      // of the supplier if it has not quoted yet, so its letter is recorded here, and his quote cards, quotation and comparison use
-      // the same one: "Supplier B asked..." is the Supplier B whose quote arrives later. Unrecorded or unreadable: no letter at all.
-      const rec = await recordShown(admin, { [inquiry_id]: [{ id: String(ins.id), supplier_id: Number(supLead.id), created_at: new Date().toISOString() }] }, 'question');
-      const custLetter = rec?.get(inquiry_id)?.get(String(supLead.id));
-      const custLabel = custLetter ? 'Supplier ' + custLetter : 'A supplier';
-      const { data: c } = await admin.from('customers').select('email,full_name,locale').eq('id', inq.customer_id).maybeSingle();
-      if (c?.email && /@/.test(c.email)) {
-        // customers.locale through the one helper: 'ar-AE' is Arabic too, which the exact test missed.
-        const ar = asLocale(c.locale) === 'ar';
-        await notify([{ type: 'clarification_requested', to_email: c.email, to_role: 'customer', inquiry_id, channel: 'email', status: 'queued',
-          subject: ar ? 'استفسار من أحد المورّدين بشأن طلبكم' : 'A supplier has a question about your request',
-          body: ar
-            ? ('حضرة ' + (c.full_name || 'العميل الكريم') + '،\n\nتحية طيبة وبعد،\n\nوردنا من ' + (custLetter ? 'المورّد ' + custLetter : 'أحد المورّدين') + ' استفسار بشأن طلبكم (' + (inq.category || '') + '):\n\n«' + text + '»\n\nيُرجى فتح طلبكم على QuotesDone والرد على الاستفسار من هناك؛ إذ يصل ردّكم إلى جميع المورّدين المدعوّين دون اسمكم أو رقمكم، ليسعّروا جميعًا النطاق نفسه.')
-            : ('Hi ' + (c.full_name || 'there') + ',\n\n' + custLabel + ' asked about your ' + (inq.category || '') + ' request:\n\n"' + text + '"\n\nOpen your request on QuotesDone and answer it there. Your answer reaches every invited supplier without your name or number, so they can all quote the same scope.') }]);
-      }
-    } catch (_e) { /* the question is stored either way; the portal shows it on the next load */ }
-    return R(200, { ok: true, id: ins.id, supplier_label: label });
+    return R(200, { ok: true, id: filed.id, supplier_label: label });
   }
 
   if (action === 'clarify_list') {
-    const { data: rows, error } = await admin.from('rfq_clarification').select('id,supplier_id,kind,question,answer,answer_as_written,english_held_at,asked_at,answered_at').eq('inquiry_id', inquiry_id).order('asked_at', { ascending: true }).limit(200);
+    const { data: rows, error } = await admin.from('rfq_clarification').select('id,supplier_id,kind,question,answer,answer_as_written,english_held_at,asked_at,answered_at,asked_by,quote_id,question_as_written,answered_by,relayed_at,reply_by').eq('inquiry_id', inquiry_id).order('asked_at', { ascending: true }).limit(200);
     if (error) return R(500, { error: 'load_failed' });
     // A supplier never sees a text whose English is still held: it reads as not answered yet, and a held note is not
     // listed. The customer sees what they wrote, as written.
     const forSupplier = (r: any) => (r.english_held_at ? { ...r, answer: null, answered_at: null } : r);
-    const shaped = (rows || []).map((r: any) => (isOwner ? { ...r, answer: r.answer_as_written ?? r.answer } : forSupplier(r)));
-    const visible = shaped.filter((r: any) => isOwner || (r.kind === 'note' && r.answer) || Number(r.supplier_id) === Number(supLead?.id) || r.answered_at);
+    // HIS QUESTION ABOUT ONE QUOTE (16 Nov 2026) is his own words to him; to a supplier only the quoted one, only once relayed, and
+    // only the relayed English. Never another supplier, answered or not: a supplier's answer about its own quote is not an
+    // addendum to the request.
+    const shaped = (rows || []).map((r: any) => (isOwner ? { ...r, answer: r.answer_as_written ?? r.answer, question: r.asked_by === 'customer' ? (r.question_as_written ?? r.question) : r.question } : forSupplier(r)));
+    const visible = shaped.filter((r: any) => clarifyVisible(r, isOwner, supLead ? Number(supLead.id) : null));
     // the customer reads each supplier by HIS letter (the quotes' one); a supplier reads the job's own aliases
     // (the questions listed here are shown to him, so a supplier he meets here first is lettered here, in the order it asked)
     const asked = isOwner ? visible.filter((r: any) => r.kind === 'question' && r.supplier_id != null).map((r: any) => ({ id: String(r.id), supplier_id: Number(r.supplier_id), created_at: r.asked_at })) : [];
@@ -235,6 +287,10 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
       held_for_english: isOwner && !!r.english_held_at,
       supplier_label: r.supplier_id == null ? null : labelOf(Number(r.supplier_id)),
       mine: !isOwner && Number(r.supplier_id) === Number(supLead?.id),
+      asked_by: r.asked_by || 'supplier', quote_id: r.asked_by === 'customer' ? (r.quote_id ?? null) : null,
+      answered_by: r.answered_at ? (r.answered_by ?? null) : null, reply_by: r.asked_by === 'customer' ? (r.reply_by ?? null) : null,
+      // a relayed customer question the supplier still owes an answer to (its reply box in the supplier portal)
+      awaiting_your_reply: !isOwner && r.asked_by === 'customer' && !r.answered_at && Number(r.supplier_id) === Number(supLead?.id),
     }));
     return R(200, { ok: true, role: isOwner ? 'customer' : 'supplier', items });
   }
@@ -253,7 +309,14 @@ Deno.serve(siteCors(observe('messages_api', async (req) => {
     const { email } = who;
     const body = await req.json().catch(() => ({})); const action = String(body.action || '');
 
-    const { data: supLead } = await admin.from('leads').select('id,company_name,banned').eq('claimed_by', email).maybeSingle();
+    const { data: ownLead } = await admin.from('leads').select('id,company_name,banned').eq('claimed_by', email).maybeSingle();
+    // A COMPANY'S MEMBER (16 Nov 2026, SUPPLIER hole 4; _shared/supplier_company.ts) reads and asks for his company; a viewer only reads.
+    const member = ownLead ? null : (await companyOf(admin, email)).company;
+    // review wave2joint: every action that writes for the company (a job question, a reply to a customer's question, a chat message)
+    if (member && member.role === 'viewer' && ['clarify_ask', 'clarify_reply', 'send'].includes(action)) return J({ error: 'read_only', code: 'read_only' }, 403);
+    if (member && await sanctionedLead(admin, member.lead_id)) return J({ error: 'forbidden', code: 'account_sanctioned' }, 403);
+    const supLead = ownLead ?? (member ? (await admin.from('leads').select('id,company_name,banned').eq('id', member.lead_id).maybeSingle()).data : null);
+    const supEmail = email;
     // phone_verified is read here because waPhoneOf gates the WhatsApp channel on it — see the note
     // above otherChannels. Selecting `phone` without it is what made an unverified number usable.
     const { data: cust } = await admin.from('customers').select('id,banned,phone,email,phone_verified').eq('email', email).maybeSingle();
@@ -367,8 +430,8 @@ Deno.serve(siteCors(observe('messages_api', async (req) => {
 
     // Pre-reveal Q&A is keyed on the inquiry alone, never on a supplier the customer has paid to
     // see, so it is answered before the reveal gate below.
-    if (action === 'clarify_list' || action === 'clarify_ask' || action === 'clarify_answer') {
-      const res = await clarify(action, body, supLead, cust);
+    if (action === 'clarify_list' || action === 'clarify_ask' || action === 'clarify_answer' || action === 'clarify_ask_supplier' || action === 'clarify_reply') {
+      const res = await clarify(action, body, supLead, cust, supLead ? supEmail : null);
       return J(res.body, res.status);
     }
 

@@ -68,7 +68,7 @@ In Arabic and English the documents are bilingual; **the Arabic text prevails**,
 8. **Deal directly.** Price, scope and timing are then agreed between customer and supplier; QuotesDone is
    not a party and holds no money for the job (no escrow). (CT§8, CT§15)
 
-Other customer rules (FAQ): edit an inquiry within **1 hour** of submitting it; after that, create a new one. Cancel any
+Other customer rules (FAQ): he can revise a request until he reveals; suppliers are told. Cancel any
 time before reveal at no cost. No quote revisions, no reopen. Declining every quote costs nothing. Budget
 is optional; the engine never invents a price or a delivery date and is brand-neutral (no approved-brand
 or approved-manufacturer list; products must meet the UAE approvals for the job).
