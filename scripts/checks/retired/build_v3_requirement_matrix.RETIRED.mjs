@@ -2,17 +2,17 @@
 // V3 REMEDIATION — STAGE 1: build the requirement matrix.
 //
 // Sources, deliberately limited to the SANITIZED set the builder is allowed to hold:
-//   docs/knowledge/certification/V3_CERTIFICATION_REMEDIATION_HANDOFF.md    (competency codes)
-//   docs/knowledge/certification/V3_CERTIFICATION_RESULTS_BY_ROLE.csv       (aggregate)
-//   docs/knowledge/certification/V3_CERTIFICATION_RESULTS_BY_DEPARTMENT.csv (aggregate)
-//   docs/knowledge/certification/V3_CERTIFICATION_RESULTS_BY_CATEGORY.csv   (aggregate)
+//   docs/archive/knowledge/certification/V3_CERTIFICATION_REMEDIATION_HANDOFF.md    (competency codes)
+//   docs/archive/knowledge/certification/V3_CERTIFICATION_RESULTS_BY_ROLE.csv       (aggregate)
+//   docs/archive/knowledge/certification/V3_CERTIFICATION_RESULTS_BY_DEPARTMENT.csv (aggregate)
+//   docs/archive/knowledge/certification/V3_CERTIFICATION_RESULTS_BY_CATEGORY.csv   (aggregate)
 // No answer key, no gold answers, no certification question text is read or emitted.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 const REPO = fileURLToPath(new URL('../../../', import.meta.url));
 
-const C = REPO + 'docs/knowledge/certification/';
-const OUT = REPO + 'docs/knowledge/remediation/V3_REMEDIATION_REQUIREMENT_MATRIX.csv';
+const C = REPO + 'docs/archive/knowledge/certification/';
+const OUT = REPO + 'docs/archive/knowledge/remediation/V3_REMEDIATION_REQUIREMENT_MATRIX.csv';
 
 const csv = (p) => {
   const lines = readFileSync(C + p, 'utf8').trim().split('\n');

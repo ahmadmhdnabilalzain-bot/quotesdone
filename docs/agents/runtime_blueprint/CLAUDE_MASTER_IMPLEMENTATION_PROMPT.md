@@ -132,7 +132,7 @@ Create:
 - `docs/agents/decision_trace_coverage.md`
 - `docs/agents/knowledge_retrieval_coverage.md`
 - `docs/agents/model_assignment_report.csv`
-- `docs/agents/cross_department_handoff_report.md`
+- `docs/archive/agents/cross_department_handoff_report.md`
 - `docs/agents/output_truncation_report.md`
 - `docs/agents/cost_guardrail_report.md`
 - `docs/agents/runtime_connection_test_evidence.md`
