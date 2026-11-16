@@ -21,6 +21,14 @@
 --   where entity_id = 'table_export' and status = 'abandoned' and error like 'abandoned: the 2026-11-1_ export stopped at%';
 set local lock_timeout = '3s';
 
+-- refuse an early apply: the 15 Nov pages are refiled by the backup recheck at about 22:31 UTC on 16 Nov (review W3OPS)
+do $g$ begin
+  if not exists (select 1 from public.doc_backups d where d.entity = 'company' and d.entity_id = 'table_export' and d.bucket = 'backups'
+                    and split_part(d.path, '/', 1) = '2026-11-15') then
+    raise exception 'apply after the 15 Nov export pages are refiled (about 22:31 UTC on 16 Nov 2026): none exists yet';
+  end if;
+end $g$;
+
 update public.doc_backups d
    set status = 'abandoned',
        error = left('abandoned: the ' || r.stamp || ' export stopped at public.ceo_year_plan_archive (no primary key to page on) after '
