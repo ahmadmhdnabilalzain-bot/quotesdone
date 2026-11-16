@@ -22,7 +22,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Supplier campaign sends FROM supplier@quotesdone.com](supplier-campaign-sends-from-supplier-at-quotesdone-com.md) — repeated 19 Oct; never invite@hello
 - [An invitation open is measured on a tracked share (3 Nov)](an-invitation-open-is-measured-on-a-tracked-share.md) — invite_open_tracking (seeded 20%) adds an HTML twin + one first-party pixel; changes ruling 1301 for that share only; opens are a floor
 - [WhatsApp supplier invites need an opt-in](whatsapp-supplier-invites-need-an-opt-in.md) — 27 Oct: Meta policy; scraped mobiles are not opt-ins (0 of 2,863); both switches + HIGH sender + brake; #1511 WAS merged
-- [WhatsApp opt-in = the button or a yes to consent (27 Oct)](whatsapp-opt-in-is-the-button-or-a-yes-to-consent.md) — ledger 1341: "Set up my page" or a yes to fn_wa_consent_question; a message they send is never one; one rule, fn_wa_optin_rule
+- [WhatsApp opt-in = the button or a yes to consent (27 Oct; 16 Nov model-read)](whatsapp-opt-in-is-the-button-or-a-yes-to-consent.md) — ledger 1341: "Set up my page" or a yes to fn_wa_consent_question / the WhatsApp offer in every invitation; the yes is read by a model (fn_wa_optin_counts), the number confirmed by a code sent from it; a message they send is never one
 - [EVERY founder message is an instruction](every-founder-message-is-an-instruction.md) — 22 Sep, instr 644: record each ask in founder_instruction at once; reconcile before any "nothing pending"
 - [US law out of scope](us-law-out-of-scope-for-uae.md) — UAE/GCC/international only
 - [Autonomy and staging rules](quotesdone-autonomy-and-staging-rules.md) — fix defects without asking

@@ -1,0 +1,1 @@
+A pure probe (no DDL, always raises, so every row rolls back) for every_supplier_invitation_offers_whatsapp_and_a_model_read_yes_opens_job_requests_there.sql. Run it on a LOCAL Postgres 16 only (scripts/db/local_pg16.mjs), after the file; never on production. It is never applied, so it never gets a MANIFEST line.

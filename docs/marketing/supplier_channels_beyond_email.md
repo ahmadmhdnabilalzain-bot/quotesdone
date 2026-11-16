@@ -68,6 +68,40 @@ Any WhatsApp message from an invited lead with no company page still becomes an 
 engineer (`opted_in` says whether it counted), the same conversation an email reply starts. No cold messages are sent
 to collect opt-ins.
 
+**Every invitation and every reply now offers job requests on WhatsApp (16 Nov 2026, marketing, ledger 1184/1373).** Measured
+that day: 0 opt-ins and 0 consent asks ever, because nothing asked; of the 338 real leads ever invited, 245 have a phone on
+record and 113 a UAE mobile, and none of those numbers may be messaged on that basis alone. The path, one door per step:
+
+1. **The offer.** Every invitation variant and the last note (`send_outbox/m365_lane.ts`, held by `m365CopyLint`), the stored
+   copy `app_secrets.invite_body`, and every e-mail reply to a supplier (`email_triage`) carry, word for word,
+   `fn_wa_job_request_offer()` = `_shared/whatsapp_offer.ts` `WHATSAPP_OFFER`:
+   > Want job requests on WhatsApp too? Reply "WhatsApp" and we will send you a code to confirm your number.
+
+   English only (suppliers are written to in English; they may answer in Arabic). No link (ruling 1301): one reply word.
+2. **The yes is read by a model, never a keyword** (rulings 1663/1664 supersede the 27 Oct keyword reader). By e-mail, the
+   supplier-mailbox reading that already reads every mail returns `whatsapp_yes` in the same call; on WhatsApp, a reply to
+   the consent question is read by `readConsentReply` and its model is put on the ask (`fn_supplier_whatsapp_consent_read`).
+   Code checks only facts: the sender is the lead by his exact address, one of our mails to him carried the offer, he has not
+   said no or STOP (`fn_supplier_whatsapp_optin_from_mail`). The one rule is now `fn_wa_optin_counts(..., read_by)`;
+   `fn_wa_optin_rule` answers through it with no reader (only the button counts there).
+3. **The number confirms itself.** The reply to his yes carries an 8-digit code; he sends it from the WhatsApp that should
+   receive the requests to our number (+1 218 316 6814), the same proof a company member gives. `wa_inbound/optin_code.ts`
+   -> `fn_supplier_whatsapp_optin_confirm` records the consent on THAT number with source, question, answer, the model that
+   read it, `opted_in_at` and `phone_confirmed_at`. He writes first, so no number is messaged before it agreed. Five wrong
+   codes from a number stop it for the day; a number that already names another party is refused.
+4. **The gate.** A job request (`new_inquiry`, `rfq_invite`, `rfq_addendum`) goes on WhatsApp only through
+   `fn_supplier_job_request_whatsapp`: the portal's own WhatsApp answer (as before), else his latest confirmed opt-in; 'none'
+   (he said no, or STOP) wins. `trg_wa_fanout` makes no twin without it and a03 skips a direct WhatsApp job request with the
+   reason. Every other notice is unchanged.
+5. **What the independent review closed (16 Nov 2026).** The "Set up my page" tap is no consent to job requests (the gate needs
+   a model-read yes, `answer_read_by`); a number another company also holds an opt-in on names nobody (7 numbers are shared by
+   14 leads on production); 'none' (STOP or "I do not use WhatsApp") cancels his WhatsApp job requests still queued, pending
+   or held; a model-read NO by e-mail is kept (`supplier_whatsapp_offer_declined`) and the offer is never shown to him again,
+   in replies or in a nudge or last note (`campaignMail` drops it).
+
+SQL: `scripts/sql/every_supplier_invitation_offers_whatsapp_and_a_model_read_yes_opens_job_requests_there.sql` (and its probe).
+The marketing WhatsApp invitation above (template, both switches) is not changed by this.
+
 **The template (draft, not submitted to Meta).** It is MARKETING category, English only, with no link, one variable,
 and two quick-reply buttons: **Set up my page** and **Stop**. Its source is
 `supabase/functions/_shared/marketing_send_gate.ts` `WA_INVITE_TEMPLATE_EN`:
