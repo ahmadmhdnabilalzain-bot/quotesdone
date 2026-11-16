@@ -329,7 +329,7 @@ Deno.test('7. a short document set is read at once as ONE call for the whole (no
   assert(peak >= 3, 'the calls run at once');
   const given = parts.map((x) => x.text.split('[The PART to read:]\n')[1]);
   // every part is given the parts before and after it for context (a partner sentence below a heading), never the whole documents
-  assert(parts.every((x, i) => x.text.includes('[The lines just before and after the part, for context:]') && !x.text.includes(body)), 'a part is given its neighbours');
+  assert(parts.every((x) => x.text.includes('[The lines just before and after the part, for context:]') && !x.text.includes(body)), 'a part is given its neighbours');
   assert(given.every((g) => g.length <= SHORT_PART_CHARS), 'a part is at most SHORT_PART_CHARS');
   assertEquals(given.join(' ').replace(/\s+/g, ' '), body.replace(/\s+/g, ' '), 'the parts hold every word, the long line broken at spaces, never cut');
   assertEquals(r.reading.summary, 'The whole.', 'the whole call gives the summary');

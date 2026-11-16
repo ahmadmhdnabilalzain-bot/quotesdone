@@ -590,6 +590,12 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
   const bad = each.find((x) => !x.ok);
   if (bad) { await Promise.allSettled(mapping); return bad as { ok: false; error: string }; }
   const reading = mergeReadings(each.map((x) => (x as { reading: ProfileReading }).reading));
+  // THE LICENCE'S FIT OVER THE PARTS (WHOLE): the call for the whole judges the fit without listing a claim, the parts judge every claim
+  // against the licence. Measured 16 Nov 2026 (runs 70eb0bd5, 4c69e153, H11: a garments licence, an events profile): the whole call said
+  // "partly" while the parts judged 24 and 26 of 24 and 26 claims not covered, so the mismatch was never asked (the one call said "no").
+  // When the parts judged every claim not covered, that is the model's own answer for the profile: 'no'.
+  const judged = reading.evidence.filter((e) => e.licence);
+  if (whole && reading.licence.covers_profile === 'partly' && judged.length && judged.every((e) => e.licence === 'not_covered')) reading.licence = { ...reading.licence, covers_profile: 'no' };
   const read_ms = Date.now() - t0;
   const told = opts.onRead ? opts.onRead(reading).catch(() => {}) : Promise.resolve();
   await Promise.all(mapping); await told;
