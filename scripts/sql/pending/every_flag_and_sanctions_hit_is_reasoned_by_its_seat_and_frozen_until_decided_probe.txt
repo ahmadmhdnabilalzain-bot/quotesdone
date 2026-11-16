@@ -1,0 +1,5 @@
+A PROBE, so it is never applied at all. It is run by
+scripts/checks/every_flag_and_sanctions_hit_is_reasoned_by_its_seat_and_frozen_until_decided.test.mjs against the local
+database (QD_LOCAL_DB_URL): while the change is pending, the change's file is run first in the same transaction. It writes
+ZZ DEMO parties, a probe-only sanctions list entry and @example.invalid notifications inside a block that always raises,
+so nothing survives it. This note therefore stays for the life of the file. Seats: ceo, accountant.
