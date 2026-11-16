@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run after a_partnership_email_reaches_the_ceo_with_the_senders_facts.sql in the same transaction on a local Postgres 16; it must print PROBE OK. This note stays for the life of the file. Seat: ceo.

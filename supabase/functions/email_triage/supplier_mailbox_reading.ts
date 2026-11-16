@@ -74,16 +74,37 @@ export function threadText(items: ThreadItem[]): string {
   }).join('\n\n');
 }
 
+// A SECOND READING DECIDES (customer_support, 16 Nov 2026, COO hole H1). MEASURED: a known supplier's mail read 'unclear' waited
+// for "a person" who does not exist, and 4 known suppliers' mails stamped "Auto-Submitted: auto-generated" (helpdesk and CRM
+// systems stamp a person's message so) were refused by that header alone. Now the reading is told what code KNOWS about the
+// sender (an invited or registered supplier, a customer, or nobody) and the header as a fact; and when the duty asks for a second
+// reading of an 'unclear' mail from a known sender (raw.second_reading_requested_at), 'unclear' is not offered: the model decides
+// whether they are owed an answer and says why. A stranger's mail keeps 'unclear' (a wrong answer would go to a stranger).
+// prevented by: email_triage/supplier_mailbox_second_reading.test.ts
+export const SECOND_READING = 'SECOND READING: an earlier reading could not tell what this is. The sender is known to QuotesDone (see above), so '
+  + '"unclear" is not an answer here: decide whether they wrote to us wanting an answer (supplier_registration, supplier_account_question '
+  + 'or customer) or not (one of the other readings), and say why in "why".';
+export type SenderKnown = 'supplier' | 'customer' | null;
+export const knownFact = (k: SenderKnown): string => k === 'supplier' ? 'Known to QuotesDone as: a supplier we invited or that registered with us (this address is on our supplier list).'
+  : k === 'customer' ? 'Known to QuotesDone as: a registered customer (this address has a customer account).' : 'Known to QuotesDone as: nobody (no account or invitation with this address).';
+/** Whether this mail is a second reading of a known sender's mail (the duty asked for it). */
+export const isSecondReading = (m: Mail, known: SenderKnown): boolean =>
+  !!known && String(((m.raw ?? {}) as Record<string, unknown>).second_reading_requested_at ?? '').trim() !== '';
+
 /** What the model is given: the mail with the facts code knows about it, and the correspondence. */
-export function readingInput(m: Mail, thread: ThreadItem[]): string {
+export function readingInput(m: Mail, thread: ThreadItem[], o: { known?: SenderKnown } = {}): string {
   const raw = (m.raw ?? {}) as Record<string, unknown>;
   const irt = String(raw.in_reply_to ?? '').trim();
+  const auto = String(raw.auto_submitted ?? '').trim().toLowerCase();
   const facts = [
     'From: ' + String(m.from_email ?? ''),
     'To: ' + String(m.to_email ?? ''),
     irt ? 'It replies to the message ' + (/qd-notif-\d+\./i.test(irt) ? 'one of our automatic mails (' + irt + ')' : irt) : 'It replies to no earlier message (a new mail).',
+    ...('known' in o ? [knownFact(o.known ?? null)] : []),
+    ...(auto && auto !== 'no' ? ['Its Auto-Submitted header says "' + auto.slice(0, 40) + '": a system sent it; a helpdesk or CRM may send a person\'s own message this way, so read what it says.'] : []),
   ].join('\n');
-  return 'THE E-MAIL\n' + facts + '\n' + untrustedMail(m.subject, m.body) + '\nEARLIER CORRESPONDENCE WITH THIS ADDRESS (oldest first)\n' + threadText(thread);
+  return 'THE E-MAIL\n' + facts + '\n' + untrustedMail(m.subject, m.body) + '\nEARLIER CORRESPONDENCE WITH THIS ADDRESS (oldest first)\n' + threadText(thread)
+    + (isSecondReading(m, o.known ?? null) ? '\n\n' + SECOND_READING : '');
 }
 
 /** The model's answer, or null when it is not one of the nine with a reason. */
@@ -148,7 +169,10 @@ export async function readSupplierMailbox(admin: Db, deps: ThinkDeps, m: Mail): 
     } else {
       thread = loaded;
       const subject = { message_id: m.id, channel: 'email', ...(/@example\.invalid$/i.test(senderAddress(m.from_email)) ? { fixture: true } : {}) };
-      const res = await deps.llm('synthesise', READING_SYS, readingInput(m, thread),
+      // who the sender is to us, as code knows it (exact address); unreadable: said as nobody, never guessed
+      const { data: rel } = await admin.rpc('fn_mail_sender_known', { p_email: senderAddress(m.from_email) }).then((x: unknown) => x, () => ({ data: null }));
+      const known: SenderKnown = rel === 'supplier' || rel === 'customer' ? rel : null;
+      const res = await deps.llm('synthesise', READING_SYS, readingInput(m, thread, { known }),
         { taskClass: 'internal_judgement', seat: 'customer_support', effort: READING_EFFORT, max: 700, temperature: 0, subject });
       const p = parseReading(res.content);
       model = res.model ?? null;
@@ -189,4 +213,12 @@ export function audienceFor(relation: unknown, d: MailboxDecision | null): 'cust
   if (relation === 'supplier') return 'supplier';
   if (relation === 'customer') return 'customer';
   return d && (d.reading === 'supplier_registration' || d.reading === 'supplier_account_question') ? 'supplier' : 'customer';
+}
+
+/** The mail as the answer's last code check sees it: when the MODEL read it (not a code rule) and allowed an answer, a header of
+ *  exactly "auto-generated" is a fact it already weighed, so it is not a refusal by itself (customer_mail.ts noAutoReply). */
+export function readAllowsAutoGenerated<T extends { raw?: Record<string, unknown> | null }>(m: T, d: Pick<MailboxDecision, 'may_reply' | 'method'> | null): T {
+  const auto = String((m.raw ?? {}).auto_submitted ?? '').trim().toLowerCase();
+  if (!d || d.may_reply !== true || d.method !== 'model' || auto !== 'auto-generated') return m;
+  return { ...m, raw: { ...(m.raw ?? {}), auto_submitted: '' } };
 }

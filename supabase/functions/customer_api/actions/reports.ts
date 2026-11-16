@@ -11,6 +11,7 @@ import { compareTable, toCsv, quoteRef, jobNoOf, isCurrentDoc } from '../../_sha
 import { arabicOf } from '../../_shared/reasoned_governance.ts';
 import { type ActionCtx, J, PDF_LIMIT_PER_HOUR, admin } from '../context.ts';
 import { signedDoc } from '../lib/storage.ts';
+import { BEING_CHECKED_REFUSAL, withheldWhileChecked } from '../../_shared/quotes_being_checked.ts';
 import { ARABIC_COMPARE_BUDGET_MS, buildBriefPdf, buildComparePdf, buildQuotePdf, compareMaskNames, fetchCompareAnalysis, heldReply, letterOf } from '../lib/pdfs.ts';
 
 export async function reportActions(c: ActionCtx): Promise<Response | undefined> {
@@ -49,6 +50,8 @@ export async function reportActions(c: ActionCtx): Promise<Response | undefined>
       } catch (e) { return J({ error: String((e as Error)?.message || e) }, 500); }
     }
 
+    // compare_pdf and compare_csv withhold the quotes being checked (hole 5) with no check of their own: their analysis comes only
+    // from quote_compare (fetchCompareAnalysis), which leaves those quotes out (_shared/quotes_being_checked.ts).
     // W10: the comparison as a spreadsheet. Same ownership check, same rate limit and the same
     // quote_compare analysis as compare_pdf, rendered through the same compareTable().
     if (action === 'compare_csv') {
@@ -111,6 +114,9 @@ export async function reportActions(c: ActionCtx): Promise<Response | undefined>
       if (!inq || inq.customer_id !== cust.id) return J({ error: 'Not your inquiry' }, 403);
       // A draft is not a quote the customer has; it has no letter and no document.
       if (!isLiveQuote(q.status)) return J({ error: 'Quote not found' }, 404);
+      // BEING CHECKED (hole 5, _shared/quotes_being_checked.ts): withheld on the cards = not printed, cached or new, unless paid.
+      try { if ((await withheldWhileChecked(admin, String(cust.id), String(inq.id), [qid])).has(qid)) return J(BEING_CHECKED_REFUSAL, 409); }
+      catch (_e) { return J({ error: 'try_again', retry: true, message: 'Please try again in a moment.', message_ar: 'يُرجى المحاولة بعد قليل.' }, 503); }
       const { data: cached } = await admin.from('quote_pdf_cache').select('bucket,path,created_at').eq('quote_id', qid).eq('lang', lang).maybeSingle();
       const touched = q.updated_at ? new Date(q.updated_at) : (q.created_at ? new Date(q.created_at) : null);
       // A cached file is served only if it was rendered by THIS layout (isCurrentDoc: DOC_VERSION is in the

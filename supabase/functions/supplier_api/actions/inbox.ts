@@ -28,6 +28,14 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
       const only = typeof body.inquiry_id === 'string' && UUID_RE.test(body.inquiry_id) ? body.inquiry_id.toLowerCase() : null;
       const { data: matches } = await admin.from('inquiry_matches').select('inquiry_id').eq('supplier_id', sup.id); const ids = (matches || []).map((m) => m.inquiry_id).filter((x) => !only || String(x).toLowerCase() === only);
       if (!ids.length) return J({ inquiries: [], approval_status: sup.approval_status });
+      // "NOT FOR ME" (16 Nov 2026, sales_engineer): which of his requests he already declined. A read of its own, so an inbox served
+      // before a_supplier_can_say_not_for_me_and_is_never_stopped_without_being_told.sql (the column) is applied still opens.
+      const declinedSet = new Set<string>(await (async () => {
+        try {
+          const r = await admin.from('inquiry_matches').select('inquiry_id,declined_at').eq('supplier_id', sup.id).not('declined_at', 'is', null);
+          return r.error ? [] : (r.data || []).map((x: { inquiry_id: string }) => String(x.inquiry_id));
+        } catch (_e) { return []; }
+      })());
       // SUPPLIER-SAFE PROJECTION (independent audit 9.3). The supplier inbox used to read the raw
       // inquiries row and redact on the way out, which meant every present and future
       // supplier-facing endpoint had to remember to do the same. public.inquiries_supplier_safe is
@@ -214,7 +222,7 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
         // loop in one batch (decision point trade_glossary_ar); until it exists — under the model hold — it stays
         // null and the portal shows the customer's own words, never a partial or word-by-word reading.
         const sSummaryAr: string | null = null;
-        out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_withheld: summaryWithheld, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), site_photos: photosOf(i), status: i.status, concluded, you_won: youWon, revealed, quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
+        out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_withheld: summaryWithheld, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), site_photos: photosOf(i), status: i.status, concluded, you_won: youWon, revealed, declined: declinedSet.has(String(i.id)), quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       // The BOQ read in Arabic (audit 21 Sep 2026, findings 26/27). Which Arabic heading a section means is
       // reasoned (decision point documents.boq_arabic) over the GATED BOQs only — a revealed BOQ is the customer's

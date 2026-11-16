@@ -26,6 +26,7 @@ import { profileActions } from './actions/profile.ts';
 import { inboxActions } from './actions/inbox.ts';
 import { printActions } from './actions/prints.ts';
 import { askQuoteExtract, quoteActions } from './actions/quotes.ts';
+import { notForMeActions } from './actions/not_for_me.ts';
 import { emailQuote, emailQuoteRead } from './email_quote.ts';
 
 // The action groups, in the order their first action appeared in the old single if-chain. Each group is that
@@ -34,7 +35,7 @@ import { emailQuote, emailQuoteRead } from './email_quote.ts';
 // and the four-document print block (quote_pdf | inquiry_pdf | receipts | receipt_pdf) stays one unit.
 const ACTION_GROUPS: readonly ((c: ActionCtx) => Promise<Response | undefined>)[] = [
   quoteReviewChatActions, accountActions, capabilityActions, documentActions, profileActions, inboxActions, printActions,
-  quoteActions,
+  quoteActions, notForMeActions,
 ];
 
 // THE JOB AS THE REVIEW MAY READ IT. `inbox` run in-process with the caller's own session is the one

@@ -14,7 +14,8 @@
 --
 -- PROBE OK only if
 --   1. every format of A's number identifies the customer; A's context carries A1's ref, status, 3 suppliers, 2 quotes and
---      a rounded band, and no quote amount and no supplier name; the status question (EN and AR) answers from it;
+--      a rounded band, and no supplier name (each quote's amount is given under its letter since 16 Nov, as the portal shows it:
+--      a_customer_is_answered_from_his_whole_request_on_every_channel.sql); the status question (EN and AR) answers from it;
 --   L1 the late requests open inquiry.status_chase to the sales engineer, the supplier who had not quoted is reminded, and
 --      customer_support closes each only after telling the customer (a quote arrived -> WhatsApp; the dated update -> email);
 --   2. after a reveal of ONE quote, that quote's supplier and amount are shown and the others stay sealed;
@@ -96,7 +97,9 @@ begin
      or (r->'price_band'->>'average_rounded_to_nearest_1000')::numeric <> 14000 or r->'price_band'->>'average_label' <> 'about AED 14,000'
      or r->>'late' <> 'true' then
     fails := fails || ' 1:context(' || coalesce(r::text, 'no A1') || ')'; end if;
-  if v::text ~ '12400|15800|Supplier One|Supplier Two|Supplier Three' then fails := fails || ' 1:pre_reveal_leak'; end if;
+  -- 16 Nov 2026 (a_customer_is_answered_from_his_whole_request_on_every_channel.sql): each quote's price is now given under its
+  -- letter, as the portal shows it; what stays sealed before a reveal is the supplier
+  if v::text ~ 'Supplier One|Supplier Two|Supplier Three' then fails := fails || ' 1:pre_reveal_leak'; end if;
   o := o || jsonb_build_object('case1_context_A1', r - 'id');
 
   -- R2. a buyer's own documents, never the supplier template
@@ -111,7 +114,7 @@ begin
   if v->>'deterministic_intent' <> 'my_requests' or t not like '%Request ' || ref1 || '%2 quote(s) so far%' or t not like '%Request ' || ref2 || '%0 quote(s)%'
      or t not like '%asked our sales engineer to chase it%' or t not like '%average about AED 14,000 (rounded)%' then fails := fails || ' 1:reply_en(' || coalesce(t, 'null') || ')'; end if;
   if v->'fact_pack'->'identity'->>'kind' <> 'customer' or (v->'fact_pack')::text like '%no job status can be given%' then fails := fails || ' 1:fact_pack'; end if;
-  if v::text ~ '12400|15800|Supplier One|Supplier Two' then fails := fails || ' 1:route_leak'; end if;
+  if v::text ~ 'Supplier One|Supplier Two' then fails := fails || ' 1:route_leak'; end if;   -- prices as the portal shows them (16 Nov)
   o := o || jsonb_build_object('case1_reply_en', t, 'case1_pack_identity_kind', v->'fact_pack'->'identity'->>'kind',
                                'case1_pack_unknown', v->'fact_pack'->'unknown');
   v := public.fn_wa_route(pA, 'وين وصل طلبي؟', false, false, 'my_requests');
@@ -200,7 +203,7 @@ begin
   r := (select x from jsonb_array_elements(v->'inquiries') x where (x->>'ref')::int = ref1);
   if r->'revealed_quotes'->0->>'supplier' <> 'ZZ DEMO Supplier One' or (r->'revealed_quotes'->0->>'amount_aed')::numeric <> 12400
      or jsonb_array_length(r->'revealed_quotes') <> 1 or (r->>'sealed_quotes')::int <> 2 or (r->>'quotes_received')::int <> 3
-     or v::text ~ '15800|14100|Supplier Two|Supplier Three' then fails := fails || ' 2:reveal(' || coalesce(r::text, 'null') || ')'; end if;
+     or v::text ~ 'Supplier Two|Supplier Three' then fails := fails || ' 2:reveal(' || coalesce(r::text, 'null') || ')'; end if;   -- prices as the portal (16 Nov)
   o := o || jsonb_build_object('case2_context_A1', r - 'id');
 
   -- 3. B and the unconfirmed C

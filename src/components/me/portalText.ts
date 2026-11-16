@@ -317,6 +317,7 @@ Object.assign(T.en, {
   rc_describe: 'Describe your request', rc_emirate_opt: 'Emirate (optional)', rc_budget_opt: 'Budget (optional)', rc_save: 'Save changes', rc_saving: 'Saving…', rc_cancel_edit: 'Cancel edit',
   rc_save_fail: 'Could not save changes.', rc_quotes_received: 'Quotes received ({n})',
   rc_on_hold: '{n} more quote(s) are on hold: the supplier has not stated every detail your request needs and we are asking them for it. They appear here once they are complete.',
+  rc_being_checked: '{n} more quote(s) are being checked by our team. They appear here once the check is done.',
   cl_title: 'Questions and additions', cl_sub: 'Suppliers can ask before they quote. They never see your name or number, and you see them as Supplier A, B and so on.',
   cl_open: 'Add detail or answer supplier questions', cl_note_ph: 'Add detail for every invited supplier — scope, sizes, timing…', cl_note_label: 'Add detail to this request',
   cl_note_send: 'Add to request', cl_note_sent: 'Added — {n} invited supplier(s) notified.', cl_note_sent0: 'Added to your request. It reaches suppliers as they are invited.',
@@ -361,6 +362,7 @@ Object.assign(T.en, {
   c_refund: 'Request refund', c_refund_confirm: 'Tell us the supplier is not responding? We chase them after {c} working days and the fee is refunded in full if they are still silent after {w}. Every refund is checked by a person against the record — none is automatic. Banks take {bmin}-{bmax} working days to show a refund.',
   c_refund_ok: 'Refund requested — a person here checks it against the record, and if it is due everything you paid is refunded.', c_refund_fail: 'Could not request a refund.',
   c_refund_ref: 'Refund case {r}', c_decision_ref: 'Decision {d}', c_decision_wait: 'being checked against the record',
+  c_problem: 'A problem with this job', c_problem_h: 'Tell us what happened, in your own words: for example a price above the quotation, a no-show, unfinished work or a warranty problem. Customer support reads it with the quotation on record and replies within two working days.', c_problem_ph: 'What happened?', c_problem_send: 'Send to customer support', c_problem_min: 'Please write at least 10 characters.', c_problem_fail: 'Could not send your message. Please try again.',
   g_step_paid_any: 'You pay the reveal fee for the quote you choose. The contact unlocks and the supplier is emailed at once.',
   g_verify: 'How we verify suppliers',
   cmp_csv: 'Download as a spreadsheet', cmp_csv_fail: 'Could not build the spreadsheet.', q_pdf_fail: 'Could not open the PDF.',
@@ -497,6 +499,7 @@ Object.assign(T.ar, {
   rc_describe: 'صِف طلبك', rc_emirate_opt: 'الإمارة (اختياري)', rc_budget_opt: 'الميزانية (اختياري)', rc_save: 'حفظ التغييرات', rc_saving: 'جارٍ الحفظ…', rc_cancel_edit: 'إلغاء التعديل',
   rc_save_fail: 'تعذّر حفظ التغييرات.', rc_quotes_received: 'عروض الأسعار المستلمة ({n})',
   rc_on_hold: 'هناك {n} عرض/عروض معلّقة: لم يذكر المورّد كل التفاصيل التي يحتاجها طلبك ونحن نطلبها منه. ستظهر هنا فور اكتمالها.',
+  rc_being_checked: 'يتحقق فريقنا من {n} عرض/عروض أخرى، وستظهر هنا فور انتهاء التحقق.',
   cl_title: 'الأسئلة والإضافات', cl_sub: 'يمكن للموردين السؤال قبل التسعير. لا يرون اسمك أو رقمك، وتراهم أنت بأسماء: المورّد A وB وهكذا.',
   cl_open: 'أضف تفاصيل أو أجب عن أسئلة الموردين', cl_note_ph: 'أضف تفاصيل لجميع الموردين المدعوين — النطاق، المقاسات، التوقيت…', cl_note_label: 'أضف تفاصيل إلى هذا الطلب',
   cl_note_send: 'أضف إلى الطلب', cl_note_sent: 'تمت الإضافة — أُبلغ {n} من الموردين المدعوين.', cl_note_sent0: 'أُضيفت إلى طلبك، وتصل إلى الموردين عند دعوتهم.',
@@ -542,6 +545,7 @@ Object.assign(T.ar, {
   c_refund: 'طلب استرداد', c_refund_confirm: 'هل تريد إبلاغنا بأن المورّد لا يردّ؟ نتابعه بعد {c} أيام عمل، وتُردّ الرسوم كاملة إذا لم يردّ خلال {w}. يراجع أحد موظفينا كل طلب استرداد وفق السجل، ولا يُصرف أي استرداد آليًا. ويظهر المبلغ في حسابك خلال {bmin}-{bmax} يوم عمل بحسب البنك.',
   c_refund_ok: 'قُدّم طلب الاسترداد، وسيراجعه أحد موظفينا وفق السجل؛ فإن كان مستحقًا يُردّ إليك كامل ما دفعته.', c_refund_fail: 'تعذّر تقديم طلب الاسترداد.',
   c_refund_ref: 'حالة الاسترداد {r}', c_decision_ref: 'القرار {d}', c_decision_wait: 'قيد التحقق بناءً على السجل',
+  c_problem: 'مشكلة في هذا العمل', c_problem_h: 'أخبرونا بما حدث بكلماتكم: مثل سعر أعلى من عرض السعر، أو عدم الحضور، أو عمل غير مكتمل، أو مشكلة في الضمان. تقرؤه خدمة العملاء مع عرض السعر المسجّل وتردّ عليكم خلال يومي عمل.', c_problem_ph: 'ماذا حدث؟', c_problem_send: 'إرسال إلى خدمة العملاء', c_problem_min: 'يُرجى كتابة 10 أحرف على الأقل.', c_problem_fail: 'تعذّر إرسال رسالتكم. يُرجى المحاولة مرة أخرى.',
   g_step_paid_any: 'تدفع رسوم الكشف عن العرض الذي تختاره. تُفتح بيانات التواصل ويُراسَل المورّد فورًا.',
   g_verify: 'كيف نتحقق من الموردين',
   cmp_csv: 'تنزيل كجدول بيانات', cmp_csv_fail: 'تعذّر إنشاء جدول البيانات.', q_pdf_fail: 'تعذّر فتح ملف PDF.',
@@ -653,6 +657,7 @@ Object.assign(T.en, {
   qq_missing_spec: 'does not state: {specs}',
   qq_price_above: 'line {line} is {pct}% above the usual UAE price (AED {lo} to {hi} per {unit})',
   qq_price_below: 'line {line} is {pct}% below the usual UAE price (AED {lo} to {hi} per {unit}); check what it leaves out',
+  qq_price_far_from_peers: 'the total (AED {total}) is far from the other quotes on your request; the supplier is asked to confirm it',
   qq_no_validity: 'no validity stated',
   qq_no_delivery_time: 'no delivery time stated',
   qq_no_vat_treatment: 'does not say whether VAT is included',
@@ -664,6 +669,7 @@ Object.assign(T.ar, {
   qq_missing_spec: 'لم يذكر: {specs}',
   qq_price_above: 'سعر البند {line} أعلى بنسبة {pct}% من السعر المعتاد في الإمارات (من {lo} إلى {hi} درهم لكل {unit})',
   qq_price_below: 'سعر البند {line} أقل بنسبة {pct}% من السعر المعتاد في الإمارات (من {lo} إلى {hi} درهم لكل {unit})، ويُستحسن التحقق مما لا يشمله',
+  qq_price_far_from_peers: 'الإجمالي ({total} درهم) بعيد جدًا عن بقية العروض على طلبكم، وقد طُلب من المورّد تأكيده',
   qq_no_validity: 'لم يذكر مدة صلاحية العرض',
   qq_no_delivery_time: 'لم يذكر مدة التسليم',
   qq_no_vat_treatment: 'لم يوضّح إن كان السعر شاملًا ضريبة القيمة المضافة',
@@ -674,5 +680,6 @@ export function qualityReason(f, lang) {
   const money = (x) => Number(x).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (code === 'missing_spec') return tf(lang, 'qq_missing_spec', { specs: (Array.isArray(f.specs) ? f.specs : []).map((s) => s && s.label).filter(Boolean).join(', ') });
   if (code === 'price_above' || code === 'price_below') return tf(lang, 'qq_' + code, { line: f.line_no, pct: Math.abs(Number(f.pct_vs_median) || 0), lo: money(f.p25), hi: money(f.p75), unit: f.unit });
+  if (code === 'price_far_from_peers') return tf(lang, 'qq_price_far_from_peers', { total: money(f.total) });
   return T.en['qq_' + code] ? t(lang, 'qq_' + code) : '';
 }

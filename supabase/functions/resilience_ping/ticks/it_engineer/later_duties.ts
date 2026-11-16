@@ -8,6 +8,7 @@ import { runRestoreTable } from '../../../_shared/it_restore_drill.ts';
 import { rotateAndSettle } from '../../../_shared/it_rotate_by_api.ts';
 import { PAUSED, pausedDuties } from '../../../_shared/duty_pause.ts';
 import { timedFetch } from '../../../_shared/timed_fetch.ts';
+import { runComplianceWatch } from '../../../_shared/compliance_watch.ts';
 import { advanceOpenDeliberations } from '../../../_shared/seat_deliberation.ts';
 import { liveDeliveryIO, sendHeldNotices } from '../../../_shared/reasoned_delivery.ts';
 import { customerReplyGate } from '../../../_shared/ai_reply.ts';
@@ -101,6 +102,14 @@ export async function itLaterDutiesTick(clock: StepClock = stepClock()): Promise
     return { due: true, compared: r?.compared, open: r?.open, new: r?.new,
              resolved: r?.resolved };
   });
+  // The compliance sources, once a day (OPS_LOOPS, 16 Nov 2026, hole H6): every active source not checked in 30 days is
+  // fetched from its own allowlisted host and recorded; a changed page goes to the CEO seat's model, which routes it to
+  // the seat it affects (_shared/compliance_watch.ts, scripts/sql/every_compliance_source_is_fetched_monthly_and_a_change_reaches_the_seat_it_affects.sql).
+  // Model-free and due-gated, so it sits with the readings, before the model steps.
+  await step('compliance_watch', async () => {
+    if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('compliance_watch')) return { due: false };
+    return await runComplianceWatch(rpc);
+  });
   await step('supplier_docs', async () => {
     if (!(((await rpc('fn_it_scheduled_due')) ?? []) as string[]).includes('supplier_docs')) return { due: false };
     const r = (await rpc('fn_sales_engineer_supplier_documents_tick')) as Record<string, unknown>;
@@ -125,6 +134,14 @@ export async function itLaterDutiesTick(clock: StepClock = stepClock()): Promise
       body: JSON.stringify({ __secret: await sec('cred_fn_ceo_agent'), action: 'review_requests', limit: 1 }), signal: AbortSignal.timeout(55000) });
     const j = await r.json().catch(() => null);
     return r.ok ? j : { ok: false, error: 'ceo_agent review_requests ' + r.status, body: j };
+  });
+  // Every escalation carries a clock (16 Nov 2026, escalation_clock.ts): the CEO seat decides and customer_support tells the person,
+  // in the CEO seat's own function (this heartbeat never imports the model client). Nothing due: two reads and no model.
+  await step('escalation_clocks', async () => {
+    const r = await fetch(FN + '/ceo_agent', { method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
+      body: JSON.stringify({ __secret: await sec('cred_fn_ceo_agent'), action: 'escalation_clocks', limit: 1 }), signal: AbortSignal.timeout(55000) });
+    const j = await r.json().catch(() => null);
+    return r.ok ? j : { ok: false, error: 'ceo_agent escalation_clocks ' + r.status, body: j };
   });
   await step('deliberation_independence', async () => rpc('fn_it_deliberation_independence_watch'));
   // Reviews held for want of an independent model, and third-family last-resort reviews, reach the CEO (#880).

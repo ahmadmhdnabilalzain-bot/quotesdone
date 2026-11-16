@@ -23,6 +23,9 @@ const COPY = {
   save: 'Save availability', saving: 'Saving…', saved: 'Saved.',
   err: 'We could not save your availability. Please try again.',
   now: 'Now:', nowAvailable: 'available', nowBusy: (d: string) => `busy, available again on ${d}`, nowPaused: 'paused',
+  // GOING ON LEAVE (16 Nov 2026, SUPPLIER hole 3): his quotations still with customers, kept or withdrawn by his choice
+  leave: (n: number) => `You have ${n} quotation${n === 1 ? '' : 's'} with customers. Keep ${n === 1 ? 'it' : 'them'}: a customer who wants to reveal you is told the date you are back before paying anything. Or withdraw ${n === 1 ? 'it' : 'them'} now.`,
+  keep: 'Keep my quotations', withdraw: 'Withdraw them', kept: 'Your quotations stay with the customers.', withdrawn: (n: number) => `${n} quotation${n === 1 ? '' : 's'} withdrawn.`,
 };
 
 const REFUSALS = new Set(['busy_date_not_future', 'busy_date_too_far', 'bad_state']);
@@ -38,6 +41,7 @@ export default function SupplierAvailability({ token, initial }: { token?: strin
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
+  const [live, setLive] = useState(0);
 
   const save = async () => {
     setBusy(true); setMsg(''); setErr('');
@@ -46,6 +50,13 @@ export default function SupplierAvailability({ token, initial }: { token?: strin
     // The writer's own refusals are plain English sentences meant for the supplier; anything else is generic.
     if (!(j && j.ok && j.availability)) { setErr(REFUSALS.has(j?.code) && j?.error ? j.error : COPY.err); return; }
     setCur(j.availability); setMsg(COPY.saved);
+    setLive(Array.isArray(j.live_quotes) ? j.live_quotes.length : 0);
+  };
+  const leave = async (decision: 'keep' | 'withdraw') => {
+    setErr('');
+    const j = await call('supplier_api', { action: 'leave_quotes', decision }, token);
+    if (!j?.ok) { setErr(COPY.err); return; }
+    setLive(0); setMsg(decision === 'keep' ? COPY.kept : COPY.withdrawn(Number(j.withdrawn) || 0));
   };
 
   const now = cur.state === 'busy' && cur.busy_until ? COPY.nowBusy(fmt(cur.busy_until)) : cur.state === 'paused' ? COPY.nowPaused : COPY.nowAvailable;
@@ -81,6 +92,15 @@ export default function SupplierAvailability({ token, initial }: { token?: strin
       </button>
       {msg && <p role="status" className="text-[12px] text-ok-fg mt-2">{msg}</p>}
       {err && <p role="alert" className="text-[12px] text-warn-fg mt-2">{err}</p>}
+      {live > 0 && (
+        <div className="mt-3 space-y-2" role="group" aria-label={COPY.keep}>
+          <p className="text-[12.5px] text-foreground">{COPY.leave(live)}</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => leave('keep')} className="min-h-11 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">{COPY.keep}</button>
+            <button type="button" onClick={() => leave('withdraw')} className="min-h-11 rounded-md border border-input px-4 py-2 text-sm text-foreground hover:bg-muted">{COPY.withdraw}</button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

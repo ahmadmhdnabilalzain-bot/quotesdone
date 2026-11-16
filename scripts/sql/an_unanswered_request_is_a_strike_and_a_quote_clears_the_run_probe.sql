@@ -31,6 +31,11 @@ begin
   insert into public.inquiry_matches (inquiry_id, supplier_id, similarity, sent_at, match_reason)
   select x, s, 0.9, case when x = ir then now() - interval '3 days' else now() - interval '30 days' end, 'ZZ DEMO strike probe'
     from unnest(array[i1, i2, i3, ic, ir, ih]) x cross join unnest(array[s_quiet, s_quoted]) s;
+  -- each request REACHED the silent supplier (read on WhatsApp): since
+  -- a_supplier_can_say_not_for_me_and_is_never_stopped_without_being_told.sql an unread request is not a strike
+  insert into public.notifications (type, to_email, to_role, lead_id, inquiry_id, subject, body, status, channel, provider_status)
+  select 'new_inquiry', 'zz-demo-strike-q@example.invalid', 'supplier', s_quiet, x, 'New job request on QuotesDone', 'ZZ DEMO', 'sent', 'whatsapp', 'read'
+    from unnest(array[i1, i2, i3, ic, ir, ih]) x;
   insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, status, created_at)
   select gen_random_uuid(), x, s_quoted, 9000, 'submitted', now() - interval '20 days' from unnest(array[i1, i2, i3, ic, ir]) x;
   if (select chat_strikes from public.leads where id = s_quoted) <> 0 then fails := fails || ' 0:quoted_starts_struck'; end if;
@@ -45,7 +50,11 @@ begin
   update public.inquiries set status = 'expired' where id = ih;   -- still waiting for the customer's details
   if (select coalesce(chat_strikes, 0) from public.leads where id = s_quiet) <> 1 then fails := fails || ' 2:twice_or_cancel_or_recent'; end if;
 
-  update public.inquiries set status = 'expired' where id in (i2, i3);
+  update public.inquiries set status = 'expired' where id = i2;
+  -- the warning at limit-1 reached him (delivered): since a_supplier_can_say_not_for_me_and_is_never_stopped_without_being_told.sql
+  -- the strike that pauses him counts only then (release wave C: without this line the probe stopped at 2 on the merged tree)
+  update public.notifications set status = 'sent', provider_status = 'delivered' where type = 'supplier_strike_warning' and lead_id = s_quiet;
+  update public.inquiries set status = 'expired' where id = i3;
   select * into l from public.leads where id = s_quiet;
   if coalesce(l.chat_strikes, 0) <> 3 or public.fn_is_matchable(true, l.banned, l.matching_blocked, 'approved', l.permanently_closed, l.chat_strikes) then
     fails := fails || ' 3:not_paused(' || coalesce(l.chat_strikes, 0) || ')'; end if;

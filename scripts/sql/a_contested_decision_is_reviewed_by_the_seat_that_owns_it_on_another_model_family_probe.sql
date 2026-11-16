@@ -4,10 +4,10 @@
 -- raises CHK<<json>>, so every row it writes rolls back. Run with the main file prepended while that file is
 -- pending (scripts/checks/a_contested_decision_is_reviewed_by_the_seat_that_owns_it_on_another_model_family.test.mjs does).
 -- Subjects are ZZ DEMO text with @example.invalid requesters, and no real customer, supplier or lead is named,
--- so fn_seat_handoff files no handoff. RULING 1264: afterwards an EXPLICIT person request on WhatsApp, site chat and
--- e-mail must each reach the founder through founder_mail_policy (founder_alerts + queued founder notifications, all
--- rolled back with the rest, so nothing is ever sent), a person request from the portal is refused, and a founder
--- delivery stamped on a decision row is refused by the CHECK.
+-- so fn_seat_handoff files no handoff. Afterwards an EXPLICIT person request on WhatsApp, site chat and e-mail must each go
+-- to the CEO on an escalation clock (status 'with_ceo') with 0 founder alerts and 0 founder notifications (16 Nov 2026,
+-- rulings 1696/1706/1710 supersede ruling 1264's founder route: every_escalation_carries_a_clock_and_the_ceo_decides_it_not_the_founder.sql),
+-- a person request from the portal is refused, and a founder delivery stamped on a decision row is refused by the CHECK.
 do $probe$
 declare
   t record; v_open jsonb; v_dec jsonb; v_out jsonb := '[]'::jsonb; i int := 0;
@@ -47,7 +47,7 @@ begin
   select count(*) into v_handoffs from public.agent_actions where created_at = now() and target_id like 'review.requested:%';
   select count(*) into v_rows from public.decision_review_request where dedupe_key like 'zz_demo_probe_1152:%';
 
-  -- RULING 1264: the one founder route. Each channel's explicit person request reaches him through founder_mail_policy.
+  -- An explicit person request on each channel: the CEO's, on a clock; the founder is not reached (rulings 1696/1706/1710).
   foreach v_ch in array array['whatsapp', 'site_chat', 'email'] loop
     select count(*) into v_fa0 from public.founder_alerts where created_at = now();
     select count(*) into v_fn0 from public.notifications where created_at = now() and to_role = 'founder';
@@ -56,7 +56,7 @@ begin
                 'ZZ DEMO I want to speak to a person, please', null, null, null, null, null, 'zz_demo_probe_1152:person:' || v_ch);
     v_person := v_person || jsonb_build_object(v_ch, jsonb_build_object(
       'status', (select status from public.decision_review_request where id = (v_open ->> 'id')::bigint),
-      'kind', v_open -> 'founder_notified' ->> 'kind', 'emailed', v_open -> 'founder_notified' -> 'emailed',
+      'owner_seat', v_open ->> 'owner_seat', 'clock_ok', v_open -> 'escalation_clock' -> 'ok',
       'founder_alerts', (select count(*) from public.founder_alerts where created_at = now()) - v_fa0,
       'founder_notifications', (select count(*) from public.notifications where created_at = now() and to_role = 'founder') - v_fn0));
   end loop;

@@ -12,6 +12,8 @@
 import { readerOfTheirOwnText, think, withDeadline, type ThinkDeps, type ThinkResult, type Turn } from './think.ts';
 import { surfaceEffort } from './effort_policy.ts';
 import { handFaultToIt, type FaultReport } from './support_fault_handover.ts';
+import { COMPLAINT_OPTIONS, isComplaint, registerComplaint, type ComplaintReport, type Ticket } from './complaint_register.ts';
+import { isStanding, type Standing, STANDING_OPTIONS } from './escalation_clock.ts';
 
 export type Reasoned<T> = { value: T | null; result: ThinkResult };
 
@@ -32,7 +34,10 @@ export async function needsAPerson(deps: ThinkDeps, o: {
   audience?: 'customer' | 'supplier' | 'visitor'; dedupeKey?: string; subject?: Record<string, unknown>;
   /** What the surface knows to hand a reported fault to the it_engineer (support_fault_handover.ts); absent, nothing is filed. */
   fault?: Omit<FaultReport, 'message'>;
-}): Promise<Reasoned<boolean> & { fault?: boolean }> {
+  /** What the surface knows to register a complaint (complaint_register.ts): when given, the SAME call also reads whether the
+   *  message is a complaint (COMPLAINT_OPTIONS) and, when the model says so, the ticket is opened once for the message. */
+  complaint?: Omit<ComplaintReport, 'message' | 'reading'> & { message?: string };
+}): Promise<Reasoned<boolean> & { fault?: boolean; standing?: Standing | null; complaint?: boolean; ticket?: Ticket | null }> {
   const result = await think(deps, {
     seat: o.seat, surface: o.surface, question: o.message, dedupeKey: o.dedupeKey, subject: o.subject,
     context: { audience: o.audience ?? 'customer', conversation: o.conversation },
@@ -43,11 +48,23 @@ export async function needsAPerson(deps: ThinkDeps, o: {
       name: 'needs_a_person',
       options: NEEDS_PERSON_OPTIONS,
     },
+    // WHO IS WRITING, IN THE SAME CALL (customer_support, 16 Nov 2026; hole hunt item 4): a journalist, a lawyer or a regulator was
+    // answered at once as a new customer. The model reads it beside the person question (no second call, ruling 1663: never a word
+    // list); a surface that sees press, legal or regulator gives the holding line and hands the case to the CEO (escalation_clock.ts).
+    // A COMPLAINT IS READ IN THE SAME CALL too (customer_support, 16 Nov 2026, COO hole H2): no second model call per message
+    also: [{ key: 'standing', options: STANDING_OPTIONS }, ...(o.complaint ? [{ key: 'complaint', options: COMPLAINT_OPTIONS }] : [])],
   });
   const fault = result.status === 'answered' && isSiteFault(result.decision?.choice);
   // the hand-over never stands in the reply's way and never throws (handFaultToIt answers filed:false with the reason)
   if (fault && o.fault) await handFaultToIt((fn, args) => deps.rpc(fn, args), { ...o.fault, message: o.message, conversation: o.fault.conversation ?? o.conversation });
-  return { value: result.status === 'answered' ? result.decision?.choice === 'needs_a_person' : null, result, fault };
+  const standing = result.status === 'answered' && isStanding(result.also?.standing) ? result.also!.standing as Standing : null;
+  // a complaint enters the register with its legal clock, whatever the channel (complaint_register.ts; never throws)
+  const complaint = !!o.complaint && result.status === 'answered' && isComplaint(result.also?.complaint);
+  const opened = complaint && o.complaint
+    ? await registerComplaint((fn, args) => deps.rpc(fn, args), { ...o.complaint, message: o.complaint.message ?? o.message, reading: (result.answer || '').slice(0, 600) || 'read as a complaint (' + o.surface + ')' })
+    : null;
+  return { value: result.status === 'answered' ? result.decision?.choice === 'needs_a_person' : null, result, fault, standing,
+           ...(o.complaint ? { complaint, ticket: opened?.ticket ?? null } : {}) };
 }
 
 /** The founder's command: which intent in ceo_command_intent does it carry? (surface ceo.command_intent) */

@@ -3,6 +3,8 @@
 // Moved out of index.ts's handleInbound (9 Nov 2026, customer_support); history and sayOutage are read from the turn.
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { caseKeyOf, handFaultToIt } from '../_shared/support_fault_handover.ts';
+import { registerComplaint } from '../_shared/complaint_register.ts';
+import { waComplaintReport } from './complaint.ts';
 import { queueWhatsAppMeaning, whatsappReadings, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
 import { menuMeaning } from '../_shared/reasoned_menus.ts';
 import { defaultDeps, type Phase } from '../_shared/think.ts';
@@ -74,7 +76,19 @@ export async function startClassification(t: WaTurn): Promise<void> {
     // key is a hash of the number, the turns are masked, and no e-mail is looked up from a phone; it never throws.
     if (r.fault && audience !== 'founder') {
       await handFaultToIt((fn, args) => admin.rpc(fn, args), { channel: 'whatsapp', caseKey: await caseKeyOf('whatsapp', From), message: Body,
-        lang: audience !== 'supplier' && langOf(Body.trim(), 'en') === 'ar' ? 'ar' : 'en', audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor' });
+        lang: audience !== 'supplier' && langOf(Body.trim(), 'en') === 'ar' ? 'ar' : 'en', audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor',
+        // the fault goes onto THEIR case too, found by this number the way their WhatsApp case already is (fn_support_open_cases),
+        // so the widget, the e-mail and the CEO see it in the timeline (16 Nov 2026, ledgers 1711-1713). Not sent to IT.
+        person: { phone: From } });
+    }
+    // A COMPLAINT ENTERS THE REGISTER (customer_support, 16 Nov 2026, COO hole H2): it was only reported to the CEO seat. The
+    // same call read it (whatsappReadings `complaint`); the ticket is opened once for this message, linked to the confirmed owner
+    // of the number (fn_complaint_open_from_message), and the reply names it (general_turn.ts). Never throws.
+    if (r.complaint && audience !== 'founder') {
+      const opened = await registerComplaint((fn, args) => admin.rpc(fn, args), await waComplaintReport({ from: From, body: Body, messageSid: MessageSid,
+        receivedAt, reading: String(r.result.answer ?? ''), name: (known?.name as string) || null,
+        arabic: audience !== 'supplier' && langOf(Body.trim(), 'en') === 'ar' }));
+      t.complaint = opened.ticket ?? null;
     }
     return { intent: r.intent, needsPerson: r.needsPerson, menu: r.menu, why: r.result.reason ?? r.result.status };
   })().catch((e) => ({ intent: null, needsPerson: null, menu: null, why: 'threw: ' + String((e as Error)?.message || e).slice(0, 200) })));

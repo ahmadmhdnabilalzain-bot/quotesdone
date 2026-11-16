@@ -1,0 +1,4 @@
+Committed, not applied (customer_support, INBOUND_COMPLAINTS, 16 Nov 2026). Moves when the main session releases the branch:
+apply with --ddl AFTER every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql, run its
+_probe.sql locally, then deploy email_triage, wa_inbound, site_assistant, sales_engineer and resilience_ping. Then delete this
+note and append the file to the END of MANIFEST.txt in the same commit.

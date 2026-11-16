@@ -1,6 +1,7 @@
 // resilience_ping ticks owned by the customer_support seat. Moved out of index.ts unchanged (9 Nov 2026);
 // the order they run in is still set in index.ts (STEP_RUN).
 import { heartbeatDeps } from '../../_shared/think.ts';
+import { emailCaseCatchup } from './email_case_catchup.ts';
 import { renderPdfAndAttach } from './ceo.ts';
 import { admin } from '../shared.ts';
 
@@ -61,11 +62,12 @@ export async function caseCatchupTick(): Promise<unknown> {
     const since = () => new Date(Date.now() - 86_400_000).toISOString();
     // heartbeatDeps, never defaultDeps: an embedding this step asks for runs in embed_ml, not in this worker (2 s CPU cap, #1678).
     // Measured 12 Nov 2026 on main 2f6074958: held_replay_keeps_gte_out_of_the_worker.test.ts failed on this line after #1953.
-    return await catchUpOwedSummaries(heartbeatDeps(admin), async (tail) => {
+    const whatsapp = await catchUpOwedSummaries(heartbeatDeps(admin), async (tail) => {
       if (!/^[0-9]{9}$/.test(tail)) return null;
       const { data, error } = await admin.from('wa_messages').select('inbound,reply,created_at').like('wa_from', '%' + tail)
         .gte('created_at', since()).order('created_at', { ascending: true }).limit(40);
       return error || !Array.isArray(data) ? null : (data as { inbound: string | null; reply: string | null }[]).map((r) => ({ inbound: String(r.inbound ?? ''), reply: String(r.reply ?? '') }));
     }, 3);
+    return { ...(whatsapp as Record<string, unknown>), email: await emailCaseCatchup(heartbeatDeps(admin), 3) };
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }

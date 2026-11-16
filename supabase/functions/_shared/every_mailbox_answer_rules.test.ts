@@ -84,7 +84,8 @@ Deno.test('wiring: email_triage uses these rules, checks the founder\'s own inbo
   assert(src.includes('tenantMailAnswerable(m, !!(sup && sup.length))'));
   assert(src.includes("rpc('fn_is_founder_own_inbox'"));
   assert(src.includes('...declinedRowFields(m)'));
-  assert(src.includes("m.lead_id ? reply1(m, 'supplier', SEPARATE_COMPANY_FACT)"));
+  // the supplier mailbox reply also carries what his own instruction did (supplier_instruction.ts, not-for-me branch)
+  assert(src.includes("m.lead_id ? reply1(m, 'supplier', [SEPARATE_COMPANY_FACT, instructed].filter(Boolean).join('\\n\\n'))"));
   const failed = src.slice(src.indexOf('counts.answer_failed++'), src.indexOf('for (const m of ((msgs'));
   assert(failed.includes("rpc('fn_seat_handoff'") && failed.includes("p_to: 'ceo'"), 'a failed answer no longer reaches the ceo seat');
   assert(!failed.includes('inbound_review'), 'nothing comes back to the founder (ledger 1438)');
