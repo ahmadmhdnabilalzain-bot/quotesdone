@@ -99,7 +99,8 @@ test('local database, rolled back, ZZ DEMO only: the probe passes', { skip: LOCA
   const pre = pendingNotes().has(FILE) ? R(FILE) + '\n' : '';
   let out = null;
   try { await replaySql(pre + R(PROBE), { retry: false }); } catch (e) {
-    const m = String(e.message || e).match(/CHK<<([\s\S]*?)>>/);
+    // the local runner keeps the whole stderr on e.body (its message is cut at 2,000 characters, which the NOTICEs fill)
+    const m = (String(e.body || '') + '\n' + String(e.message || e)).match(/CHK<<([\s\S]*?)>>/);
     assert.ok(m, 'the probe failed before it could report: ' + String(e.message || e).slice(0, 1500));
     try { out = JSON.parse(m[1]); } catch (_e) { out = JSON.parse(m[1].replace(/\\"/g, '"')); }
   }

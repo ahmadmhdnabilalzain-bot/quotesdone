@@ -161,12 +161,12 @@ end $fn$;
 revoke execute on function public.fn_customer_sanctions_screen(bigint[], text) from public, anon, authenticated;
 
 -- ── 2b. the supplier screen, unchanged except that it screens the customers at the end and keeps an entry a customer hit cites ──
-create or replace function public.fn_supplier_sanctions_screen(p_run_ids bigint[], p_rehearsal_tag text DEFAULT NULL::text)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
+create or replace function public.fn_supplier_sanctions_screen(p_run_ids bigint[], p_rehearsal_tag text default null)
+returns jsonb
+language plpgsql
+security definer
+set search_path to 'public', 'pg_temp'
+as $function$
 declare
   v_reh boolean := p_rehearsal_tag is not null;
   v_suppliers int := 0; v_entries int := 0; v_new int := 0; v_leads_hit int := 0; v_open int := 0;
