@@ -5,7 +5,8 @@
 //     his and not his last, one more tap to stop receiving that trade. The tap is his confirmation (supplier_api not_for_me.ts).
 //   * UnansweredNote: his count of unanswered requests that reached him, what it means and "I'm available" (supplier_api standing,
 //     say_available). Shown only when the count is above zero.
-// Every sentence here is bilingual like the rest of the inquiries tab; what the server answers in English is shown as sent.
+// English only, whatever the page's language: a supplier is never given Arabic (founder ruling 1008;
+// scripts/checks/nothing_a_supplier_reads_can_be_arabic.test.mjs).
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { call } from './api';
@@ -22,20 +23,10 @@ const COPY = {
     how: 'Press “Not for me” on requests that are not yours (that never counts), or tell us you are available.',
     available: 'I’m available', cleared: 'Thank you. Your count is back to zero and new requests will reach you.',
   },
-  ar: {
-    notForMe: 'ليس لنا', why: 'لماذا؟ (اختياري: يساعدنا على إرسال الطلبات المناسبة لكم)', send: 'إرسال', cancel: 'إلغاء', sending: 'جارٍ الإرسال…',
-    done: 'تم التسجيل: هذا الطلب ليس لكم، ولن يُحتسب عليكم أبدًا.', declined: 'أفدتم بأن هذا الطلب ليس لكم.',
-    stop: (t: string) => `أوقفوا إرسال طلبات ${t} إلينا`, stopped: (t: string) => `تم: لن تصلكم طلبات ${t} بعد الآن، ويمكنكم إعادتها من قسم الخدمات.`,
-    err: 'لم يتم ذلك. يُرجى المحاولة مرة أخرى.',
-    note: (n: number, limit: number) => `لم تردّوا على ${n} من الطلبات المرسلة إليكم (الحد ${limit}). عند ${limit} طلبات متتالية دون رد نوقف إرسال الطلبات الجديدة إليكم مؤقتًا.`,
-    paused: (limit: number) => `بقيت ${limit} طلبات متتالية دون رد، لذلك أُوقف إرسال الطلبات الجديدة إليكم مؤقتًا.`,
-    how: 'اضغطوا «ليس لنا» على الطلبات التي لا تخصّكم (لا يُحتسب ذلك أبدًا)، أو أخبرونا أنكم متاحون.',
-    available: 'نحن متاحون', cleared: 'شكرًا لكم. عاد العدد إلى الصفر وستصلكم الطلبات الجديدة.',
-  },
 };
 
 export function NotForMe({ token, lang, inquiryId, declined = false, onDone }: { token: string; lang: Lang; inquiryId: string; declined?: boolean; onDone?: () => void }) {
-  const t = COPY[lang];
+  const t = COPY.en; void lang;
   const [stage, setStage] = useState<'idle' | 'asking' | 'sending' | 'done'>(declined ? 'done' : 'idle');
   const [reason, setReason] = useState('');
   const [offer, setOffer] = useState<{ trades: string[]; label: string } | null>(null);
@@ -80,7 +71,7 @@ export function NotForMe({ token, lang, inquiryId, declined = false, onDone }: {
 }
 
 export function UnansweredNote({ token, lang }: { token: string; lang: Lang }) {
-  const t = COPY[lang];
+  const t = COPY.en; void lang;
   const [s, setS] = useState<{ strikes: number; strike_limit: number } | null>(null);
   const [msg, setMsg] = useState('');
   useEffect(() => {

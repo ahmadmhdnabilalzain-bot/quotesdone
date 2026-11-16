@@ -984,6 +984,13 @@
  "scripts/sql/a_stalled_request_puts_its_trade_and_area_first_in_the_invitation_queue.sql": [
   "d4da55db16ad"
  ],
+ "scripts/sql/a_supplier_can_say_not_for_me_and_is_never_stopped_without_being_told.sql": [
+  "23987a9ae7f3",
+  "24e91a12c00d",
+  "4939ef810d19",
+  "69595832d45b",
+  "cbc9c2d0971a"
+ ],
  "scripts/sql/a_supplier_may_refresh_a_quotation_before_reveal_as_the_agreement_says.sql": [
   "2d40f052e0dc",
   "8e9efb918bad",
@@ -8177,8 +8184,12 @@
   "605a93533c3b",
   "81313df707ef",
   "81add0237226",
+  "822e4a9a1809",
+  "88c648ce1ab2",
   "90032d0e95ed",
+  "9e114677678f",
   "a49713c03f13",
+  "abbab5c69f85",
   "c1c78f7840ee",
   "d0629661fd94"
  ],
