@@ -1,1 +1,0 @@
-Committed, not yet applied (simplification wave D, 16 Nov 2026). Rehearsed on a LOCAL Postgres 16 seeded with production's company_faq rows: the verdict row reads PROBE OK, and PROBE FAILED before the updates. What moves it: the release session applies it with scripts/apply_sql.mjs, deletes this note and appends the file to the end of MANIFEST.txt. Seat: sales_engineer.
