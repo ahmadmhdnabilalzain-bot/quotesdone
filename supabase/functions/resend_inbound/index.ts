@@ -23,6 +23,7 @@
 // svix-signature) against app_secrets.resend_inbound_signing_secret. The ?s= token is KEPT as a
 // second factor - both must now pass. The body is read ONCE as raw text because the signature is
 // over the exact bytes; it is parsed only after verification succeeds.
+import '../_shared/doc_read/workbook_local.ts'; // reads workbooks and .doc/.msg here with SheetJS (why one line: that file's header)
 import { observe } from '../_shared/observe.ts';
 import { ackThenWork, runtimeWaitUntil } from '../_shared/async_webhook.ts';
 import { requireInternal } from '../_shared/internal_auth.ts';

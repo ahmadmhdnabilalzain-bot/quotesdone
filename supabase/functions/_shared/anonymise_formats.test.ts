@@ -9,6 +9,7 @@ import { assert, assertEquals } from 'jsr:@std/assert@1';
 // @deno-types="./vendor/sheetjs-0.20.3/types/index.d.ts"
 import * as XLSX from './vendor/sheetjs-0.20.3/xlsx.mjs';
 import { readDocument } from './doc_read/index.ts';
+import './doc_read/workbook_local.ts'; // the SheetJS engine the reading functions register (doc_read/workbook_engine.ts)
 import { redactDxf } from './doc_read/cad.ts';
 import { dxfTitleBlockFixture } from './doc_read/cad.fixtures.ts';
 import { pdfPages } from './pdf_text_positions.ts';

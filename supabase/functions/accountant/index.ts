@@ -53,6 +53,7 @@
 // actions_contract.test.ts pinned the door, every action's dispatch and the refund guards before the move. Checks
 // that read this function as text read the whole folder through scripts/lib/function_sources.mjs
 // functionSource('accountant').
+import '../_shared/doc_read/workbook_local.ts'; // reads workbooks and .doc/.msg here with SheetJS (why one line: that file's header)
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { adminCaller, type TwoStepBody } from '../_shared/admin_session.ts';
 import { observe } from '../_shared/observe.ts';

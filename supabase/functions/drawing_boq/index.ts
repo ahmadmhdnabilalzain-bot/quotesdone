@@ -5,6 +5,7 @@
 //
 // Restored 9 Sep 2026 (deleted by the 137-function sweep, 182308b, with customer_api:618 still
 // calling it — the buyer got HTTP 200 with ok:false and was told nothing).
+import '../_shared/doc_read/workbook_local.ts'; // reads workbooks and .doc/.msg here with SheetJS (why one line: that file's header)
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { tooLargeToParse } from '../_shared/parse_ceiling.ts';

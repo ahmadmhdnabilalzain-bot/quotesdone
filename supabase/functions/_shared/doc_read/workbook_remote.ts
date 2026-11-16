@@ -7,7 +7,7 @@
 // WHAT IT DOES. The bytes go, base64, to doc_extract as {__secret, op:'read_workbook' | 'read_compound_file', b64}.
 // __secret is the CALLER's own credential (supplier_api: cred_fn_supplier_api), checked by doc_extract's
 // requireInternal against internal_credential.scope, so that scope must name doc_extract
-// (scripts/sql/the_supplier_portal_reads_a_workbook_through_doc_extract.sql). doc_extract reads them with the LOCAL
+// (scripts/sql/the_supplier_api_reads_workbooks_through_doc_extract.sql). doc_extract reads them with the LOCAL
 // engine and answers the same SheetsRead / compound-file streams workbook_local.ts would have produced here.
 //
 // EVERY FAILURE IS A THROW WITH A SENTENCE, which office.ts / ole.ts turn into refuse('unreadable', ...) — or

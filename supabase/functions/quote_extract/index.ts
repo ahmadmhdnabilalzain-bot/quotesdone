@@ -11,6 +11,7 @@
 //
 // Restored 9 Sep 2026 (deleted by the 137-function sweep, 182308b). Of the five this one degraded
 // best: supplier_api saw a 502 and showed the manual form.
+import '../_shared/doc_read/workbook_local.ts'; // reads workbooks and .doc/.msg here with SheetJS (why one line: that file's header)
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { observe } from '../_shared/observe.ts';
