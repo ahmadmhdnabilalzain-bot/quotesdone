@@ -87,8 +87,9 @@ Deno.test('the money screen runs before a charge, never on a paid reveal, and fa
   const base = { quotes: COMPLETE, inquiries: { id: 'i1', customer_id: 'c1', status: 'sent', category: 'joinery', spec: null }, quote_items: [ITEM], transactions: null, sanctions_ban: [] };
   const a = fakeAdmin(base);
   assert((await canReveal(a, { quoteId: 'q1', customerId: 'c1' })).ok);
-  // the trade floor is read first (it writes nothing), then the screen, which writes (ledger 1614)
-  assertEquals(a.calls, [{ fn: 'fn_trade_reveal_allowed', args: { p_inquiry: 'i1' } }, { fn: 'fn_accountant_money_screen', args: { p_move: 'reveal', p_ref: 'q1', p_customer: 'c1', p_supplier: 7 } }]);
+  // the trade floor is read first (it writes nothing), then the supplier's live standing (16 Nov 2026), then the screen,
+  // which writes (ledger 1614)
+  assertEquals(a.calls, [{ fn: 'fn_trade_reveal_allowed', args: { p_inquiry: 'i1' } }, { fn: 'fn_reveal_standing', args: { p_quote: 'q1' } }, { fn: 'fn_accountant_money_screen', args: { p_move: 'reveal', p_ref: 'q1', p_customer: 'c1', p_supplier: 7 } }]);
   const paid = fakeAdmin({ ...base, transactions: { id: 'tx1' }, money_screen: { hold: true } });
   assert((await canReveal(paid, { quoteId: 'q1', customerId: 'c1' })).ok, 'a paid reveal is disclosed again, whatever the screen says now');
   assertEquals(paid.calls, []);
