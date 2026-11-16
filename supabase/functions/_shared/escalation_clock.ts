@@ -22,7 +22,7 @@
 // WhatsApp only in their window, e-mail through the duty send, a fixture never). No import here: the live IO (ceo_agent) and the
 // test pass their own, so the one path is the one that is proved.
 // prevented by: _shared/escalation_clock.test.ts, scripts/sql/every_escalation_carries_a_clock_and_the_ceo_decides_it_not_the_founder_probe.sql
-import { BRIEF_TEXT } from './brief.generated.ts';
+import { BRIEF_PRESS_LEGAL } from './brief.generated.ts';
 
 export type DueFor = 'decide' | 'tell' | 'status';
 export interface FounderFacts {
@@ -55,12 +55,11 @@ export interface ClockIO {
 export const CEO_TASK_CLASS = 'ceo_judgement';            // the class the review decider already uses (review_decide.ts)
 export const SUPPORT_TASK_CLASS = 'conversation_reply';   // customer_support's reply class (ai_reply.ts REPLY_CLASS)
 
-/** The company's press, legal-notice and regulator position: section 14 of the brief (knowledge/brief/company.md), the one copy. */
-export function pressLegalPosition(brief: string = BRIEF_TEXT): string {
-  const at = brief.indexOf('## 14. Press');
-  if (at < 0) return '';
-  const end = brief.indexOf('\n## ', at + 5);
-  return brief.slice(at, end < 0 ? undefined : end).trim();
+/** The company's press, legal-notice and regulator position: knowledge/brief/press_and_legal.md, compiled as BRIEF_PRESS_LEGAL (the one
+ *  copy; not in the core every reply carries, which is at its token cap). The section itself, without the file's own header. */
+export function pressLegalPosition(text: string = BRIEF_PRESS_LEGAL): string {
+  const at = text.indexOf('## Press');
+  return (at < 0 ? text : text.slice(at)).trim();
 }
 
 const dubai = (iso: string | null | undefined): string => {

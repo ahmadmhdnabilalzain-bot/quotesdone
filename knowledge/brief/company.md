@@ -262,25 +262,3 @@ or subscriptions; a supplier's own quotation may state discounts, which we relay
   changes policy are decided by QuotesDone's CEO. (CT§5; FAQ "What can't the Smart Engine decide?")
 - Regulations: give general guidance with the authority's name; the authority's current text governs, and the
   supplier/consultant is responsible for code compliance and approvals. (FAQ "What regulations apply?")
-
-## 14. Press, legal notices and regulators — the company's position
-
-- **Who QuotesDone is, formally:** QuotesDone Technologies, Dubai, UAE, licensed by the Dubai Department of
-  Economy and Tourism (never give the licence number in a reply). Governing law: UAE; courts of Dubai. (CT§19; CF)
-- **One voice.** Customer support does not give interviews, comments, statements, figures or opinions on the
-  company, a customer, a supplier, a dispute or the market. A journalist, a lawyer or an authority gets the
-  holding line below, and the matter goes to QuotesDone's management (the CEO), who replies. (FI 1696)
-- **The holding line** (in substance, in the writer's language): *"Thank you, we have received your message.
-  It has been passed to the management of QuotesDone Technologies, who will reply to you. Formal correspondence:
-  management@quotesdone.com."* Nothing is admitted, denied or promised in it, and no date is given. (CON; FI 1696)
-- **Press:** only public facts may be repeated (§1, what QuotesDone is); never a number of customers or
-  suppliers, never a name, never a price or a figure that is not on the public site. (§13; CF)
-- **Legal notices, claims, a lawyer's letter, court or police matters:** acknowledged and passed to management
-  the same day; no comment on the merits. Notices to QuotesDone Technologies go to management@quotesdone.com.
-  A customer's complaint about the platform is not a legal notice: it follows the complaints procedure (§5,
-  CT§18). (CT§18, CT§19)
-- **Regulators and authorities** (the Department of Economy and Tourism and its Consumer Rights service, the
-  Ministry of Economy, the UAE Data Office, a free-zone authority, the police, a court): acknowledged with
-  respect and passed to management, who cooperate; no account data, document or personal data is given
-  through a support conversation. A person exercising their own data rights is answered under §9, not here.
-  (CT§10, CT§18; PP§7–§11)

@@ -1530,6 +1530,17 @@
   "71425d07f632",
   "735f3f9ff862"
  ],
+ "scripts/sql/every_escalation_carries_a_clock_and_the_ceo_decides_it_not_the_founder.sql": [
+  "004b0c6ae209",
+  "0c59694035a7",
+  "50821cf06cba",
+  "92fd5e18c333",
+  "993c61d77fe2",
+  "a3ccb2a17bbd",
+  "cd8fa5a44aad",
+  "d892ff992be1",
+  "e480cc80be8a"
+ ],
  "scripts/sql/every_social_message_is_answered_probe.sql": [
   "debfd4865d39"
  ],

@@ -109,11 +109,11 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
       subject, forbidden, ...(replyFacts ? { facts: replyFacts } : {}), rules: 'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
     if (standing) {
       // A JOURNALIST, A LAWYER OR A REGULATOR (16 Nov 2026, hole hunt item 4): the model's reading of who writes (needsAPerson's
-      // `standing`, the same call) gives the company's holding line from the brief (section 14), never a new-customer answer; the case
+      // `standing`, the same call) gives the company's holding line (knowledge/brief/press_and_legal.md), never a new-customer answer; the case
       // goes to the CEO on a clock (below, after the send).
       const body = await direct(holdingRules(standing));
       if (!body) throw new Error('no model answered the e-mail');
-      text = composeMailReply({ lang, answer: body }); how = standing;
+      text = composeMailReply({ lang, answer: withClaimLink(body, facts) }); how = standing;
     } else if (person.value === true) {
       const body = await direct(' They asked to speak to a person: say plainly that their request is now with the manager who decides at QuotesDone and that we will write back to them by e-mail, and answer whatever else they asked.');
       if (!body) throw new Error('no model answered the e-mail');

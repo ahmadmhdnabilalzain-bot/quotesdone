@@ -7,7 +7,7 @@ import {
 } from './escalation_clock.ts';
 import { needsAPerson } from './reasoned_decisions.ts';
 import type { LlmReply, ThinkDeps } from './think.ts';
-import { BRIEF_TEXT } from './brief.generated.ts';
+import { BRIEF_PRESS_LEGAL, BRIEF_TEXT } from './brief.generated.ts';
 
 const NOW = Date.parse('2026-11-16T08:00:00Z');
 const J = (x: unknown) => JSON.stringify(x);
@@ -35,13 +35,14 @@ function io(o: { due: DueClock[]; ceo?: string | null; write?: string | null; de
 }
 const MSG = J({ subject: 'About your request', message: 'ZZ DEMO We said we would reply and we are late; we are sorry. ... QuotesDone Customer Support' });
 
-Deno.test('1. the company position is section 14 of the brief, the one copy, with the holding line and the formal address', () => {
+Deno.test('1. the company position is the brief\'s press_and_legal.md, the one copy, with the holding line and the formal address', () => {
   const p = pressLegalPosition();
-  assertMatch(p, /^## 14\. Press/);
+  assertMatch(p, /^## Press, legal notices and regulators/);
   assertMatch(p, /management@quotesdone\.com/);
   assertMatch(p, /holding line/i);
   assert(!/1633275/.test(p), 'never the licence number');
-  assert(BRIEF_TEXT.includes(p), 'compiled into the brief every customer-facing seat reads');
+  assert(BRIEF_PRESS_LEGAL.includes(p), 'compiled from knowledge/brief');
+  assert(!BRIEF_TEXT.includes('## Press, legal notices'), 'not in the core every reply carries (at its token cap)');
 });
 
 Deno.test('2. "I want a person": the CEO decides within its authority and the person is told the decision in the same tick', async () => {
@@ -120,7 +121,7 @@ Deno.test('7. a payer held by the live hold: an honest status while it is on, "p
 Deno.test('8. a journalist: the message keeps to the company position; the CEO is told who is writing', () => {
   const { system, input } = messagePrompt(clock({ kind: 'press', audience: 'press', due_for: 'status' }), 'status', NOW);
   assertMatch(system, /They write as press: keep to the company position/);
-  assert(JSON.parse(input).company_position.startsWith('## 14. Press'));
+  assert(JSON.parse(input).company_position.startsWith('## Press, legal notices'));
   const ceo = JSON.parse(ceoPrompt(clock()).input);
   assert(String(ceo.company_position_press_legal_regulator).includes('holding line'));
   assertEquals(ceo.founder.hours_since, 215, 'the CEO knows the founder has not answered for nine days');

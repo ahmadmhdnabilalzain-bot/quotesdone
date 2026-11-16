@@ -114,6 +114,9 @@ export function renderModule(b) {
     `export const CONVERSATION_STYLE: string = ${JSON.stringify(readFileSync(join(DIR, 'conversation_style.md'), 'utf8').replace(/\r\n/g, '\n').trim())};\n` +
     `export const BRIEF_TEXT: string = ${JSON.stringify(b.core)};\n` +
     `export const BRIEF_SUPPLIER: string = ${JSON.stringify(b.supplier)};\n` +
+    // the press, legal-notice and regulator position: read by the holding line and the CEO's escalation clock, never by every reply
+    // (the core is at its cap; knowledge/brief/press_and_legal.md says why)
+    `export const BRIEF_PRESS_LEGAL: string = ${JSON.stringify(readFileSync(join(DIR, 'press_and_legal.md'), 'utf8').replace(/\r\n/g, '\n').trim())};\n` +
     `export const BRIEF_PART_IDS: string[] = ${JSON.stringify(b.partIds)};\n` +
     `export const BRIEF_PART_TEXT: string[] = ${JSON.stringify(b.partText)};\n` +
     `// one row per trade: [category code, trade family, ...the part ids of its pack, in order]\n` +
