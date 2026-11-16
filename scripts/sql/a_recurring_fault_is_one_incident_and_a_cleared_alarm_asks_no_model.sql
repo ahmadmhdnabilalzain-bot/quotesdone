@@ -46,7 +46,7 @@
 --
 -- Routine bodies are production's (pg_get_functiondef, 16 Nov 2026) with only the lines marked "16 Nov 2026 (ledger 1557)"
 -- changed; md5 before the edit: fn_it_incident_open 880c215b..., fn_it_engineer_postmortem 2628da5a...,
--- fn_reason_held_sweep d92fd428..., fn_it_daily_line (see the hand-back), fn_it_incident_impact_tick 0f8b1c53....
+-- fn_reason_held_sweep d92fd428..., fn_it_daily_line 3725dea5..., fn_it_incident_impact_tick 0f8b1c53....
 
 
 -- 1. THE CAUSE OF AN OCCURRENCE, KNOWN WHEN IT OPENS. The same three-step key fn_it_incident_collapse writes after the fact
