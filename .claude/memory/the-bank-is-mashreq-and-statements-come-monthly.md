@@ -57,3 +57,14 @@ reader.
 
 Related: [[the-accountant-only-sees-what-was-forwarded]], [[expenses-email-source-of-truth]],
 [[never-state-what-you-have-not-measured]].
+
+**16 Nov 2026 — the fees of July to November, counted (ledger 1702 "210 monthly fee since july", 1703).** There are
+five fees. 19 Aug, 1 Sep and 1 Oct are booked from the statements as `bank_charge` journals (692-695, 2646-2647), not as
+expense_entries, so a count of expense rows alone undercounts them. The September statement (issued 2 Oct, closing balance
+59.25) also lists 208.95 UNCOLLECTED, initiated 1 Aug: the bank could not take it. A fee the bank has not taken is OWED, not
+paid. A fee booked on his word while it waits for its statement posts Dr 6300 / Cr **2200 Accrued Expenses**. The
+statement line that pays it attaches to it and moves the debt to cash, Dr 2200 / Cr 1000
+(`bank_charge_settles_accrual`), with no second cost. The 1 Nov fee's cash credit was moved to 2200 the same way.
+File: `a_mashreq_fee_the_bank_has_not_taken_is_owed_not_paid_and_the_1_august_fee_is_booked.sql`. There is no separate July
+DEBIT: "since July" is five charges, not six. Check: `the_mashreq_fees_of_july_to_november_2026_are_each_in_the_books_once_probe.sql`
+(6300 = 1,044.75; 2200 = the fees still waiting).

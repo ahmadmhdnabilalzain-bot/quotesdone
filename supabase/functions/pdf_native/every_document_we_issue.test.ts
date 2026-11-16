@@ -22,22 +22,9 @@ import { assert } from 'jsr:@std/assert@1';
 import { renderPdf } from './render.ts';
 import { pdfPageContents, pdfTextByRows } from '../_shared/pdf_text_positions.ts';
 import { BRAND } from '../_shared/brand.ts';
-import * as QD from '../_shared/quote_documents.ts';
-import * as F from '../_shared/quote_documents.fixture.ts';
-import { deterministicCompare, rosterOf } from '../quote_compare/deterministic.ts';
-import { portalLink } from '../_shared/site_origins.ts';
-import { revealInvoiceDocument, revealReceiptDocument, type RevealSale } from '../_shared/reveal_fee_documents.ts';
-import { supplierInvoiceDocument, supplierReceiptDocument, duesLines, type SupplierPayment } from '../_shared/supplier_payment_documents.ts';
-import { certFields, certificate } from '../compliance_archive/certificate.ts';
-import { recoveryPack } from '../_shared/supplier_charge_documents.ts';
-import { DEMO_CASE } from '../_shared/supplier_charge.fixture.ts';
-import { conversationDocument, type ConversationRow } from '../conversation_archive/document.ts';
-import { pdfBody, type Standardised } from '../_shared/line_specs/workflow.ts';
-import { emailPrintPdf } from '../_shared/email_print.ts';
-
-type Lang = 'en' | 'ar';
-// deno-lint-ignore no-explicit-any
-type Doc = { type: string; lang: Lang; body: any; data: unknown; needle?: string };
+// The documents (each through its real builder, ZZ DEMO data) live in every_document_we_issue.fixtures.ts, shared with the
+// investor pack (scripts/investor_pack/every_template_in_one_pdf.ts, ledger 1547).
+import { docs } from './every_document_we_issue.fixtures.ts';
 
 const FONTS = new URL('./fixtures/brand/', import.meta.url);
 const granted = (d: Deno.PermissionDescriptor) => Deno.permissions.querySync(d).state === 'granted';
@@ -48,86 +35,6 @@ const fetchBytes = async (p: string) => {
   if (!URL_) return null;
   try { const r = await fetch(`${URL_}/storage/v1/object/public/brand/${p}`); return r.ok ? new Uint8Array(await r.arrayBuffer()) : null; } catch { return null; }
 };
-
-// ── Every document type, through its real builder ─────────────────────────────────────────────
-const docs: Doc[] = [];
-const add = (type: string, lang: Lang, body: unknown, data: unknown, needle?: string) => docs.push({ type, lang, body, data, needle });
-const on = (l: Lang) => l === 'ar' ? { date_ar: '22 سبتمبر 2026' } : { date: '22 September 2026' };
-
-// The regenerated quotation (supplier_api spec_fill → line_specs/workflow.ts pdfBody).
-const REGEN: Standardised = {
-  contract: 'standardised_quotation', version: 1, quote_id: 'zzdemo00-0000-4000-8000-000000000001', option_no: 1, category: 'hvac', trade: 'hvac', currency: 'AED',
-  total: 25920, price_basis: 'ex_vat',
-  lines: [{ line_no: 1, description: 'ZZ DEMO split AC unit', qty: 4, unit: 'nos', unit_price: 6480, amount: 25920, trade: 'hvac',
-    spec: [{ code: 'capacity', label_en: 'Capacity', label_ar: 'السعة', value: '2.5', unit: 'TR', unit_ar: 'طن تبريد', source: 'supplier_portal' }] }],
-  terms: { delivery: '21 days', installation: 'Included', installation_included: true, installation_detail: null, warranty: '2 years — parts and labour', validity: '30 days', payment_terms: '50% advance', exclusions: null },
-  prepared_by: 'sales_engineer', prepared_at: '2026-09-22T08:00:00Z',
-};
-const HASH = '94151f940a4567944ff04f362e8c8c3ae6ad87d96cbb7ef280f505420aa11bb2';
-const REGEN_INQ = { id: 'zzdemo00-0000-4000-8000-00000000000a', rfq_no: 990001, category: 'hvac', emirate: 'Dubai' };
-
-const SALE: RevealSale = { tx_id: 'tx-zzdemo', invoice_no: 'ZZDEMO-0001', paid_at: '2026-09-06T09:33:20Z', reveal_fee: 777.6, processing_fee: 38.77, total_charged: 816.37,
-  quote_amount: 25920, payment_ref: 'pi_zzdemo', customer: { name: 'ZZ DEMO Buyer', email: 'zz.demo.buyer@example.invalid', phone: null },
-  request: { summary: 'ZZ DEMO gypsum ceilings', category: 'gypsum', ref: 'QD-ZZDEMO01' }, card: { brand: 'visa', last4: '4242' }, refund: null };
-const REG: SupplierPayment = { kind: 'registration', ref: 'QD-REG-990001-2026', paid_at: '2026-09-06T10:00:00Z', payment_ref: 'pi_zzdemo_reg',
-  supplier: { name: 'ZZ DEMO Supplier LLC', email: 'zz.demo.supplier@example.invalid' }, period: { from: '2026-09-06', to: '2027-09-06' },
-  // The fee's name comes from the signed Supplier Agreement v12, clause 2: "Subscription Fee" /
-  // «رسوم الاشتراك». This fixture said "Annual supplier listing fee" / «رسوم الإدراج السنوية للمورّد»
-  // until 22 Sep 2026, which was a third name for one fee and, being the fixture, it was the name the
-  // golden receipt was rendered and eyeballed with. Updated to the name the company now issues —
-  // scripts/checks/one_fee_has_one_name.test.mjs is what keeps the two in step.
-  lines: [{ en: 'Annual supplier Subscription Fee', ar: 'رسوم الاشتراك السنوية للمورّد', amount: 1250 }], total: 1250 };
-const DUES_ROWS = [{ id: 990001, amount_due: 1000, admin_fee: 250, interest_amount: 0, fine_amount: 0 }];
-const DUES: SupplierPayment = { kind: 'dues', ref: 'QD-DU-990001', paid_at: '2026-09-06T10:00:00Z', payment_ref: 'pi_zzdemo_dues',
-  supplier: { name: 'ZZ DEMO Supplier LLC', email: 'zz.demo.supplier@example.invalid' }, lines: duesLines(DUES_ROWS), total: 1250 };
-const ROW: ConversationRow = { source_table: 'inbound_messages', source_id: '999001', channel: 'email', direction: 'in', occurred_at: '2026-09-14T08:05:00Z',
-  from_addr: 'zz.demo.customer@example.invalid', to_addr: 'info@quotesdone.com', cc: '', subject: 'ZZ DEMO - fire alarm quotation',
-  body: 'Line one.\n\nLine two of the ZZ DEMO email.', html: '', attachments: [{ filename: 'zz_demo_drawing.pdf' }], party_kind: 'company', party_id: null, inquiry_id: null };
-const ROW_AR: ConversationRow = { ...ROW, source_id: '999002', subject: 'ZZ DEMO - طلب عرض سعر لنظام إنذار الحريق', body: 'مرحبا، نرجو تزويدنا بعرض سعر لنظام إنذار الحريق.\nشكرا لكم.' };
-
-for (const l of ['en', 'ar'] as Lang[]) {
-  const q = F.liveQuotes()[0];
-  add('quotation', l, F.reasoned((arTexts) => QD.quoteDocument({ quote: q, inquiry: F.INQUIRY, items: q.items, letter: QD.supplierLabel(0), lang: l, maskNames: F.identities(), requestUrl: portalLink(l, F.INQUIRY.id, q.id), ...on(l) , arTexts })).body, [q, F.INQUIRY]);
-  const lab = F.labelled();
-  // deno-lint-ignore no-explicit-any
-  const a: any = deterministicCompare(lab, l); a.all_quotes = rosterOf(lab, a.top3); a.total_quotes = lab.length; a.technical = F.HVAC_TECHNICAL;
-  add('comparison_report', l, F.reasoned((arTexts) => QD.compareDocument({ analysis: a, inquiry: F.INQUIRY, lang: l, maskNames: F.identities(), portalUrl: portalLink(l, F.INQUIRY.id), linkFor: (x: string) => portalLink(l, F.INQUIRY.id, x), ...on(l) , arTexts })).body, [F.QUOTES, F.INQUIRY, F.HVAC_TECHNICAL]);
-  add('request_brief', l, F.reasoned((arTexts) => QD.inquiryDocument({ inquiry: F.REQUEST, lang: l, portalUrl: 'https://quotesdone.ae/portal', ...on(l) , arTexts })).body, [F.REQUEST]);
-  add('regenerated_quotation', l, pdfBody(REGEN, { inquiry: REGEN_INQ, letter: 'A', lang: l }), [REGEN, REGEN_INQ], l === 'ar' ? '25,920.00' : 'ZZ DEMO split AC unit');
-  add('reveal_invoice', l, revealInvoiceDocument(SALE, l), SALE, 'ZZDEMO-0001');
-  add('reveal_receipt', l, revealReceiptDocument(SALE, l), SALE, 'ZZDEMO-0001');
-  add('supplier_registration_invoice', l, supplierInvoiceDocument(REG, l), REG, '1,250.00');
-  add('supplier_registration_receipt', l, supplierReceiptDocument(REG, l), REG, '1,250.00');
-  add('supplier_dues_invoice', l, supplierInvoiceDocument(DUES, l), DUES, '1,250.00');
-  add('supplier_dues_receipt', l, supplierReceiptDocument(DUES, l), DUES, '1,250.00');
-  for (const kind of ['supplier', 'customer']) {
-    const rec = { contact_name: 'ZZ DEMO Contact', signatory_name: 'ZZ DEMO Signatory', company_name: 'ZZ DEMO Co', full_name: 'ZZ DEMO Contact', locale: l };
-    const fields = { ...certFields(rec, kind), company: 'ZZ DEMO Co', phone: '+971500000012', email: 'qd-x@example.invalid', terms_label: kind === 'supplier' ? 'Supplier Agreement — Version 12' : 'Terms of Service — Version 9', accepted_utc: '2026-09-21 17:39:59 UTC', accepted_iso: '2026-09-21T17:39:59Z', ip: '' };
-    const c = certificate(fields, kind, HASH, 'https://quotesdone.ae/terms', l);
-    add('terms_certificate_' + kind, l, { title: c.title, lang: l, body_html: c.body_html, options: { letterhead: true, sign: true, stamp: true } }, [rec, fields, HASH, 'https://quotesdone.ae/terms']);
-  }
-  add('conversation_archive', l, conversationDocument(l === 'ar' ? ROW_AR : ROW), l === 'ar' ? ROW_AR : ROW);
-}
-for (const p of recoveryPack(DEMO_CASE)) add('recovery_' + p.name, p.lang, p.body, DEMO_CASE);
-
-// The email print, captured from the real builder at the door it posts to (no network is reached).
-const EMAIL = { vendor: 'ZZ DEMO Vendor', amount: '100.00', currency: 'AED', chargedOn: '2026-09-20', subject: 'ZZ DEMO invoice', from: 'billing@zzdemo.example.invalid', to: 'expenses@quotesdone.com', date: '2026-09-20', text: 'ZZ DEMO body of the vendor email.' };
-{
-  const real = globalThis.fetch;
-  let captured: unknown = null;
-  globalThis.fetch = ((_u: string, init?: RequestInit) => { captured = JSON.parse(String(init?.body || '{}')); return Promise.resolve(new Response(JSON.stringify({ ok: false }), { status: 500 })); }) as typeof fetch;
-  // deno-lint-ignore no-explicit-any
-  const admin: any = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: () => Promise.resolve({ data: { value: 'zz-demo-secret' } }) }) }) }) };
-  try { await emailPrintPdf(admin, 'https://zzdemo.example.invalid', EMAIL); } finally { globalThis.fetch = real; }
-  // deno-lint-ignore no-explicit-any
-  const { __secret: _s, bucket: _b, folder: _f, name: _n, ...body } = (captured ?? {}) as any;
-  add('email_print', 'en', body, EMAIL);
-}
-// Callers that build their body inline in a Deno.serve file (not importable without serving): the exact
-// call shapes, taken from the call sites, with the options they send.
-add('it_incident', 'en', { title: 'ZZ DEMO Incident #0 — outbox stalled', blocks: [{ t: 'h2', text: 'Summary' }, { t: 'p', text: 'ZZ DEMO incident text for the external auditor.' }, { t: 'kv', pairs: [['Severity', 'P2'], ['Opened', '2026-09-20']] }, { t: 'p', text: 'ZZ DEMO root cause and remedy.' }], options: { letterhead: true } }, null);
-add('internal_report', 'en', { title: 'ZZ DEMO Weekly report', blocks: [{ t: 'h2', text: 'Summary' }, { t: 'p', text: 'ZZ DEMO week in review.' }, { t: 'table', head: ['Item', 'Amount'], rows: [['ZZ DEMO', 'AED 1,250.00']] }], options: { letterhead: true, strict_glyphs: true } }, null);
-add('dropbox_backup_profile', 'en', { title: 'Customer Profile — zzdemo01', body_html: '<table><tr><th>Field</th><th>Value</th></tr><tr><td>Name</td><td>ZZ DEMO</td></tr><tr><td>Email</td><td>zz.demo@example.invalid</td></tr></table><p>Auto-generated backup document — QuotesDone · 2026-09-22</p>', options: { letterhead: true } }, null);
 
 // ── The page checks ─────────────────────────────────────────────────────────────────────────────
 const norm = (s: string) => s.normalize('NFKC');

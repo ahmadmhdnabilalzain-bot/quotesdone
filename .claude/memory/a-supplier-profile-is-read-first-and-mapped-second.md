@@ -24,7 +24,7 @@ the new H13-H15 (written before tuning).
 
 **Effort.** Step A runs at MEDIUM BECAUSE OF ITS CLOCK (`effort_policy.SURFACES['supplier_doc_trades.profile_reading']`): at high it
 took 45-113 s a call and 2 of 6 readings died at the gateway's 115 s wall (run 62033fde). Step B (mapping) fits at high. Parts (a set over 6,000 characters; shorter sets: below) are
-4,000 characters, all at once (PARALLEL 24 since 16 Nov; five before) (a 5,300-character glossy profile took 112.5 s in one call at 6,000).
+4,000 characters, all at once (five at once; the 16 Nov 'PARALLEL 24' change was REVERTED the same day) (a 5,300-character glossy profile took 112.5 s in one call at 6,000).
 
 **Lessons.** A model given the whole catalogue plus precision rules suppresses everything the catalogue cannot name: separate
 reading from mapping. A trade card for every caption-only trade crowds out the main trades (asked as 'shown' cards, biggest first).
@@ -34,12 +34,14 @@ Report: `docs/reports/2026-11-12-supplier-service-profiling.md` (Part 6 is the b
 **After the review of branch 2 (12 Nov, run c0afdde7 is the recording).**
 - A trade is LISTED only through a stated claim mapped to a key in it, and is his at Confirm only when he ticked in it (client and server,
   `keepTickedProposed`).
-- Code maps names and approved aliases first; the model maps the rest 4 a call since 16 Nov (8 before), all at once, failed calls in halves; unmapped = owed ->
+- Code maps names and approved aliases first; the model maps the rest 8 a call (a 16 Nov '4 a call' change was REVERTED the same day), all at once, failed calls in halves; unmapped = owed ->
   `unavailable` -> sweep. Never silently "his own words".
 - The mapping request must not depend on timing: replay found it.
 - The step-A result is stored as `reading_progress` for the tab.
 - Do not kill a process on a shared port without checking its cwd: other engineers run stubs and dev servers on this machine
   (I killed the slice-4 stub on 8787 once).
+
+**REVERTED 16 Nov 2026 (main session).** The speed change below shipped in #2025 and was reverted the same evening (branch sales_engineer-the-services-reading-returns-to-its-measured-quality): the paid certification on the live system (run paid-2026-11-16T18-55-40) failed quality steps the earlier run passed — an MEP contractor proposed industrial_pumps (J1), masonry_blockwork for J9, J9's services/answers in both runs, and Arabic on the English services tab (ruling 1008). The 15-profile set held recall but did not catch cross-trade picks. A faster list must be proven on the certification itself, not only on the 15-profile set.
 
 **The list within a minute (16 Nov 2026, branch `sales_engineer-a-suppliers-services-are-on-screen-within-a-minute`).** The paid
 certification's list took 117-122 s: step A one call of 74-86 s (~10k output tokens of reasoning on 1,800 characters), then the slowest of

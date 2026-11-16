@@ -1,0 +1,5 @@
+A PROBE, so it is never applied and never enters MANIFEST.txt. It reads tables only (no routine is called, nothing is
+written) and answers with ONE ROW: PROBE OK, or PROBE FAILED: <why>. It holds the books to the five Mashreq fees of July to
+November 2026, each once in 6300 (AED 1,044.75), and to every posted journal balancing. Production SELECT, 16 Nov 2026,
+before the data file: PROBE FAILED (the fee initiated 1 Aug 2026 is not held). Local Postgres 16 after it: PROBE OK, twice.
+This note stays for the life of the file. Seat: accountant.
