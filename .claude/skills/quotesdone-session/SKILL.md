@@ -160,7 +160,6 @@ node scripts/apply_sql.mjs <file.sql> --apply --ddl          # apply, then read 
 node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production <slugs>
 node scripts/checks/canonical_routines.test.mjs              # one canonical file per routine, deployed
 node scripts/checks/export_from_either_source_is_identical.mjs
-node --test scripts/checks/phase_c_components_are_owned.test.mjs   # every runtime component owned (reads production)
 ```
 
 - `--promote` is still accepted as an alias for `--apply`; it means the same thing now.
@@ -227,9 +226,9 @@ Before the one line — or before an honest hand-over:
 1. GitHub Actions, Vercel and the Supabase project swept for failures
    *(a zero-step Actions job means quota, not code)*
 2. Pack scorecard — `node scripts/kb/pack_scorecard.mjs --ref=… --packs=…`
-3. `node scripts/checks/canonical_routines.test.mjs` → 0 gaps, 0 drift both ways, and
-   `node scripts/checks/application_source_of_truth.test.mjs` → lines 1b and 6 (retired-still-deployed,
-   ownership ledger) 0, exit 0. *(16 Nov 2026: the Row #3 scorer (`verify_os2_blueprint.mjs`) and `fn_os_portals_gates()`
+3. `node scripts/checks/canonical_routines.test.mjs` → 0 gaps, 0 drift both ways, exit 0.
+   *(16 Nov 2026: `application_source_of_truth` and `phase_c_components_are_owned` are not in scripts/checks any
+   more (simplification audit, ledgers 1714/1715), so they are no longer named here. the Row #3 scorer (`verify_os2_blueprint.mjs`) and `fn_os_portals_gates()`
    were removed from this sweep — the scorer was archived with scripts/staging and the routine no longer exists on
    production; the local gate and the live certification are the end-to-end proof now.) (since 4 Sep 2026 its lines 1–5 are information: `canonical_routine_manifest.mjs`
    is the ONE routine drift gate — docs/agents/RETIRED_PHASE_DRIVES.md step 5)*
@@ -284,11 +283,11 @@ not resurrect them.** When the new structure exists, write new checks against TH
 A check edited until it goes green against an empty schema asserts nothing while still looking like
 a guard — which is worse than no check.
 
-Still green and still guarding: `kernel_invariants`, `cancellation_reaches_the_kernel`,
-`every_discharge_claim_reaches_its_table`, `anon_cannot_execute_security_definer`,
-`phase_c_components_are_owned` (rewritten: a component that NAMES an owner names a live one, and no
-component names a department), `canonical_routine_manifest`,
-`export_from_either_source_is_identical`, `receipts_never_wait_on_the_founder`.
+Still guarding (checked 16 Nov 2026 — only the checks that exist in scripts/checks):
+`anon_cannot_execute_security_definer`, `canonical_routine_manifest`,
+`export_from_either_source_is_identical`, `receipts_never_wait_on_the_founder`. (`kernel_invariants`,
+`cancellation_reaches_the_kernel`, `every_discharge_claim_reaches_its_table` and `phase_c_components_are_owned`
+were listed here and no longer exist.)
 
 ---
 **THERE ARE NO PHASE FREEZES. THERE ARE NO PHASE GATES.** Founder ruling, 7 Sep 2026, in his
