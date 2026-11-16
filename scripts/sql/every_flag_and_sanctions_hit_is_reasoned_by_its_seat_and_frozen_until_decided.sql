@@ -207,7 +207,8 @@ begin
              and (s.toks <@ e.tokens or e.tokens <@ s.toks))
          -- a PERSON (owner, contact) matches as a customer does: exact, or every word of the listing in his name. An open hit
          -- now freezes matching, and an owner's two common names inside a four-part listing is not a match (the customer
-         -- measurement of 16 Nov: 61 of 64 hits on 22 common names were that direction; the same names, the same list)
+         -- measurement of 16 Nov: 61 of 64 hits on 22 common names were that direction; the same names, the same list, 3 hits
+         -- left). SELECT 16 Nov: 2 live owner/contact values on registered suppliers, 0 hits under either rule (4,378 entries).
          or (s.field in ('owner', 'contact') and cardinality(s.toks) >= 2 and cardinality(e.tokens) >= 2 and e.tokens <@ s.toks)
          or (s.field = 'email_domain' and length(s.norm) >= 6 and replace(e.name_norm, ' ', '') = s.norm))
   loop

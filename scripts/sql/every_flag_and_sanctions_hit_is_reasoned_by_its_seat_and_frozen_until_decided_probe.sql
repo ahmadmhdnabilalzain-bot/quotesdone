@@ -74,12 +74,13 @@ begin
     (v_c7, 'ZZ DEMO Zzprobe Listed Holdings Trading', 'zzprobe-c7@example.invalid', now());
   -- H1: a request held for the screening decision exactly as customer_api writes it (lib/compliance_hold.ts), 20 days old,
   -- and an ordinary unreached request of the same age (the control the closer must take)
-  insert into public.inquiries (id, customer_id, category, summary, status, created_at, routing) values
-    (v_i7, v_c7, 'zzprobe_other_trade', 'ZZ DEMO probe held request', 'sent', now() - interval '20 days',
+  -- (rfq_ready: complete briefs, so "held for its own specs" is not what keeps either open)
+  insert into public.inquiries (id, customer_id, category, summary, status, created_at, rfq_ready, routing) values
+    (v_i7, v_c7, 'zzprobe_other_trade', 'ZZ DEMO probe held request', 'sent', now() - interval '20 days', true,
      jsonb_build_object('matcher_unavailable', true, 'waiting_for', 'compliance_review', 'held_for', 'compliance_review', 'outcome', 'held', 'fanout', 0,
                         'rematch', jsonb_build_object('attempts', 0, 'first_failed_at', now() - interval '20 days', 'failed_at', now() - interval '20 days',
                                                       'next_at', null, 'exhausted', false, 'extra', '', 'held_for', 'compliance_review'))),
-    (v_i7b, v_c7, 'zzprobe_other_trade', 'ZZ DEMO probe unreached request', 'sent', now() - interval '20 days', '{}'::jsonb);
+    (v_i7b, v_c7, 'zzprobe_other_trade', 'ZZ DEMO probe unreached request', 'sent', now() - interval '20 days', true, '{}'::jsonb);
   update public.customers set tos_ip = '198.51.100.23' where id = v_c3;
   update public.customers set tos_ip = '198.51.100.77' where id = v_c4;
   insert into public.inquiries (id, customer_id, category, summary, status) values
