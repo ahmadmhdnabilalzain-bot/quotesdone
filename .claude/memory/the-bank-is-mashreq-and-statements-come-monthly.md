@@ -57,3 +57,11 @@ reader.
 
 Related: [[the-accountant-only-sees-what-was-forwarded]], [[expenses-email-source-of-truth]],
 [[never-state-what-you-have-not-measured]].
+
+**16 Nov 2026 — the fees of July to November, counted (ledger 1702 "210 monthly fee since july", 1703).** Five fees:
+19 Aug, 1 Sep and 1 Oct are booked from the statements as `bank_charge` journals (692-695, 2646-2647), NOT as
+expense_entries, so a count of expense rows alone undercounts them. The September statement (issued 2 Oct) also lists
+208.95 UNCOLLECTED, initiated 1 Aug, 62 days overdue: that fifth fee is booked on his word, awaiting the statement
+(`the_mashreq_fee_of_1_august_2026_left_uncollected_is_booked_on_the_founders_word.sql`, a prior-period adjustment because
+August is closed), like 1 Nov. There is no separate July DEBIT; the fee "since July" is five charges, not six. Check:
+`the_mashreq_fees_of_july_to_november_2026_are_each_in_the_books_once_probe.sql` (6300 holds 1,044.75 = 5 x 208.95).
