@@ -77,7 +77,9 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
   const person = await needsAPerson(deps, { seat: 'customer_support', surface: 'email_triage.needs_a_person', message: q,
     audience, dedupeKey: 'email_person:' + m.id, subject,
     fault: { channel: 'email', caseKey: await caseKeyOf('email', String(m.from_email || '') + ':' + String(m.subject || '').replace(/^(re|fwd?):\s*/gi, '').slice(0, 120)),
-             email: String(m.from_email || '') || null, lang, audience, conversation: [] } });
+             email: String(m.from_email || '') || null, lang, audience, conversation: [],
+             // the sender's fault goes onto their case too, so WhatsApp and the widget see it (ledgers 1711-1713)
+             person: { email: String(m.from_email || '') || null } } });
   // EVERY E-MAIL REPLY IS WRITTEN BY A MODEL (rulings 1195/1196, 12 Oct 2026): the reasoned, independently checked answer
   // when it agrees; otherwise a direct model reply from the company brief (aiReply). The quoted knowledge passage, the
   // person-handoff sentence and the "we received it" receipt are gone. No model at all: nothing is sent (it throws, and

@@ -407,7 +407,9 @@ async function handle(req: Request, T: Timer): Promise<Response> {
         seat: 'customer_support', surface: 'site_assistant.person', message: message.slice(0, 4000), audience: 'visitor',
         dedupeKey: 'widget:person:' + ip + ':' + hour + ':' + msgKey, subject: { path },
         fault: { channel: 'widget', caseKey: await caseKeyOf('widget', (who ? accountKey(who.audience, who.id) : ip) + ':' + hour), lang: uiLang === 'ar' ? 'ar' : 'en',
-                 email: who?.email ?? null, audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor' },
+                 email: who?.email ?? null, audience: audience === 'supplier' ? 'supplier' : audience === 'customer' ? 'customer' : 'visitor',
+                 // a signed-in person's fault goes onto their case too, so WhatsApp and the e-mail see it (ledgers 1711-1713)
+                 ...(who ? { person: { partyId: String(who.id), email: who.email ?? null } } : {}) },
       })).value;
       // Ledger 1152 / ruling 1264: a contested decision goes to its owning seat; an explicit ask for a person to the founder.
       if (person === true) {

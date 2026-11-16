@@ -26,7 +26,12 @@ export interface FaultReport {
   email?: string | null;                   // only when the channel already knows it
   lang?: 'en' | 'ar';
   audience?: 'customer' | 'supplier' | 'visitor';
+  /** WHO THE PERSON IS, only to put the fault on their support case (fn_support_case_links_a_fault): the identity the channel
+   *  already holds (a WhatsApp number, a signed-in account, an e-mail sender). Never sent to the IT engineer's report. */
+  person?: { partyId?: string | null; email?: string | null; phone?: string | null };
 }
+/** The fault on the person's case: what the link answered (linked, and the case), or why it did not. */
+export interface FaultLink { linked: boolean; caseRef?: string; reason?: string }
 export type Rpc = (fn: string, args: Record<string, unknown>) => PromiseLike<{ data?: unknown; error?: { message?: string } | null }>;
 
 const PERSON_ROLES = new Set(['user', 'person', 'customer', 'supplier', 'visitor', 'in']);
@@ -44,7 +49,33 @@ export async function caseKeyOf(channel: FaultChannel, raw: string): Promise<str
   return channel + ':' + Array.from(d.slice(0, 12), (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
-export async function handFaultToIt(rpc: Rpc, r: FaultReport): Promise<{ filed: boolean; reason?: string; issueKey?: string; canTell?: boolean }> {
+// THE FAULT IS ON THE PERSON'S CASE, NOT ONLY ON ONE CONVERSATION (16 Nov 2026, founder ledgers 1711-1713; WHO_KNOWS_WHAT item 8).
+// The case key above is per conversation by design (it carries no identity), so a fault reported in the widget was a stranger to
+// WhatsApp: "is it fixed?" there was answered blind, or filed again. When the surface knows who the person is, the fault's key is
+// written into their support case's linked_refs.faults, and fn_contact_timeline shows every door where its repair stands. The
+// link is never awaited by the hand-over (EdgeRuntime.waitUntil keeps it alive past the response) and never throws; `linking` is
+// the work, for a test to await. A report that was not filed links nothing; one already filed this hour is linked again (a no-op).
+export function linkFaultToCase(rpc: Rpc, r: Pick<FaultReport, 'person' | 'audience' | 'channel'>, issueKey: string | undefined): Promise<FaultLink> | null {
+  const p = r.person;
+  if (!p || !issueKey) return null;
+  const email = p.email && /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(p.email.trim()) ? p.email.trim().toLowerCase() : null;
+  const phone = String(p.phone ?? '').replace(/\D/g, '').length >= 9 ? String(p.phone) : null;
+  const partyId = String(p.partyId ?? '').trim() || null;
+  if (!email && !phone && !partyId) return null;
+  const work = Promise.resolve().then(() => rpc('fn_support_case_links_a_fault', {
+    p_party_kind: r.audience === 'supplier' ? 'supplier' : r.audience === 'customer' ? 'customer' : 'unknown',
+    p_party_id: partyId, p_email: email, p_phone: phone, p_issue_key: issueKey, p_channel: r.channel,
+  })).then(({ data, error }) => {
+    if (error) return { linked: false, reason: String(error.message ?? 'rpc error').slice(0, 200) };
+    const d = (data ?? {}) as { linked?: boolean; case_ref?: string; reason?: string };
+    return { linked: d.linked === true, caseRef: d.case_ref, reason: d.reason };
+  }, (e) => ({ linked: false, reason: 'threw: ' + String((e as Error)?.message || e).slice(0, 200) }));
+  // deno-lint-ignore no-explicit-any
+  (globalThis as any).EdgeRuntime?.waitUntil?.(work);
+  return work;
+}
+
+export async function handFaultToIt(rpc: Rpc, r: FaultReport): Promise<{ filed: boolean; reason?: string; issueKey?: string; canTell?: boolean; linking?: Promise<FaultLink> }> {
   try {
     if (!r.caseKey || /@|\d{7,}/.test(r.caseKey)) return { filed: false, reason: 'the case key must carry no address or number' };
     const email = r.email && /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(r.email.trim()) ? r.email.trim().toLowerCase() : null;
@@ -54,7 +85,8 @@ export async function handFaultToIt(rpc: Rpc, r: FaultReport): Promise<{ filed: 
     });
     if (error) return { filed: false, reason: String(error.message ?? 'rpc error').slice(0, 200) };
     const d = (data ?? {}) as { filed?: boolean; reason?: string; issue_key?: string; can_tell?: boolean };
-    return { filed: d.filed === true, reason: d.reason, issueKey: d.issue_key, canTell: d.can_tell };
+    const linking = r.person ? linkFaultToCase(rpc, r, d.issue_key) : null;
+    return { filed: d.filed === true, reason: d.reason, issueKey: d.issue_key, canTell: d.can_tell, ...(linking ? { linking } : {}) };
   } catch (e) {
     return { filed: false, reason: 'threw: ' + String((e as Error)?.message || e).slice(0, 200) };
   }
