@@ -11,7 +11,7 @@ import { recordAcceptance, TERMS_NOT_RECORDED } from './acceptance_write.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
 import { askedPatch, channelOfRow, choosePatch, waDeliveredCode, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, sidOfRow, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, voiceAfterSms, waAfterMobileVerified, whatsappState, type Patch, type VerifySent, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
-import { checkOwnCode, ownMarker, ownMessageStatus, ownSent, sendOwnWhatsAppCode, type WaCodeDeps } from '../_shared/wa_code.ts';
+import { checkOwnCode, newCode, ownMarker, ownMessageStatus, ownSent, sendOwnWhatsAppCode, type WaCodeDeps } from '../_shared/wa_code.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
@@ -65,7 +65,8 @@ async function secCached(k: string): Promise<string | null> {
 }
 function emailOk(e: string) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || '')); }
 function toE164(p: string): string { let d = String(p || '').replace(/[^\d+]/g, ''); if (d.startsWith('+')) { const n = d.slice(1).replace(/\D/g, ''); return n.length >= 8 ? '+' + n : ''; } d = d.replace(/\D/g, ''); if (d.startsWith('00')) d = d.slice(2); if (d.startsWith('971')) return '+' + d; if (d.startsWith('0')) return '+971' + d.slice(1); if (d.length === 9 && d.startsWith('5')) return '+971' + d; if (d.length >= 8) return '+' + d; return ''; }
-function code6() { return String(Math.floor(100000 + Math.random() * 900000)); }
+// The e-mail code is drawn by _shared/wa_code.ts newCode, the CSPRNG (16 Nov 2026): this file kept a V8-PRNG copy
+// for two months after login_otp retired its own on 18 Sep.
 // SECURITY FIX (27 Jul 2026): email codes here were stored in PLAINTEXT (email_verifications.token)
 // and checked with .eq('token', code) — a WHERE clause on the secret. A wrong guess simply matched no
 // row, so nothing could be counted: no attempt cap, no lockout, no per-caller ceiling. 10^6 codes is
@@ -323,10 +324,9 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       const since = new Date(Date.now() - 3600e3).toISOString();
       const { count: sentLastHour } = await admin.from('email_verifications').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since);
       if ((sentLastHour || 0) >= 8) return J({ ok: false, error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
-      const c = code6();
-      // 27 Jul 2026: store token_hash (HMAC), never the bare code. token stays NULL from here on;
-      // verify_email still honours a plaintext token row so codes issued before this deploy work out
-      // their 10 minutes. Expiry was and stays 10 minutes and is enforced on the verify side.
+      const c = newCode();
+      // 27 Jul 2026: store token_hash (HMAC), never the bare code; token stays NULL. Expiry is 10 minutes,
+      // enforced on the verify side.
       await admin.from('email_verifications').insert({ email, token_hash: await otpHash(c), purpose: 'kyc', user_kind: kind, expires_at: new Date(Date.now() + 10 * 60e3).toISOString() });
       // previously the send result was discarded: a failed send left the user waiting with no trace
       const codeAr = (await registeredLocale(admin, { role: kind, email }, b.lang)) === 'ar';
@@ -362,8 +362,9 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
         await logRun('error', { action, kind, locked: 1 }, 'kyc burned an email code after ' + KYC_EMAIL_MAX_ATTEMPTS + ' wrong guesses; the user must request a new one. Sustained hits on one account mean someone is guessing.');
         return J({ error: 'Too many incorrect attempts. Please request a new code.', code: 'code_burned' }, 429);
       }
-      // row.token is only set for codes issued before hashing shipped on 27 Jul 2026
-      const match = row.token_hash ? ((await otpHash(c)) === row.token_hash) : (!!row.token && c === row.token);
+      // Only the HMAC is compared (16 Nov 2026): the plaintext `token` fallback for codes issued before 27 Jul
+      // was removed when production held 0 rows with a token (SELECT, 625 rows, 0 without token_hash).
+      const match = !!row.token_hash && (await otpHash(c)) === row.token_hash;
       if (!match) { await admin.from('email_verifications').update({ attempts: (row.attempts || 0) + 1 }).eq('id', row.id); return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400); }
       // verified_at: this code was entered RIGHT, the one mark public.fn_email_proven counts (10 Nov 2026,
       // an_email_is_proven_only_by_a_code_that_was_verified.sql); the burn above sets used_at only.

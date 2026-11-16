@@ -78,8 +78,16 @@ test('no sign-in code reaches a log, a row or the response', () => {
 });
 
 test('the code generator is the CSPRNG and the code is checked in one locked statement', () => {
-  assert.match(OTP, /function code6\(\)[^\n]*crypto\.getRandomValues/);
-  assert.ok(!/Math\.random/.test(strip(OTP)), 'Math.random must not generate a credential');
+  // ONE GENERATOR (16 Nov 2026, it_engineer). kyc kept its own `Math.random()` copy after login_otp fixed its
+  // copy on 18 Sep; the e-mail code of every supplier and customer registration came from it. Both now draw
+  // from _shared/wa_code.ts newCode (the CSPRNG, rejection-sampled), so there is no local generator to drift.
+  for (const [name, src] of [['login_otp', OTP], ['kyc', R('supabase/functions/kyc/index.ts')]]) {
+    const code = strip(src);
+    assert.ok(!/Math\.random/.test(code), name + ': Math.random must not generate a credential');
+    assert.ok(!/function code6\(/.test(code), name + ': a local code generator is back; import newCode from _shared/wa_code.ts');
+    assert.match(code, /import \{[^}]*\bnewCode\b[^}]*\} from '\.\.\/_shared\/wa_code\.ts'/, name + ' must import newCode');
+    assert.match(code, /const c = newCode\(\);/, name + ' must issue the e-mail code from newCode');
+  }
   // 6 Oct 2026 (H1): the compare moved into public.fn_login_otp_email_verify, which counts, compares and
   // spends under a row lock. The function hands it the HMAC and never reads the code row to compare itself.
   assert.match(OTP, /rpc\("fn_login_otp_email_verify", \{ p_email: email, p_hash: await otpHash\(code\)/);
