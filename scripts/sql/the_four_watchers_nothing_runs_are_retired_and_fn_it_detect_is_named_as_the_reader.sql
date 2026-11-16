@@ -32,10 +32,10 @@
 -- days: scripts/sql/pending/the_retired_schema_is_dropped_only_after_seven_clean_days_probe.txt says how clean is measured.
 
 -- THE OBJECTS (public signature, then who still mentions the name - a scripts/sql definition, a check, an archived file):
---   fn_watch_failed_runs()                                                 mentioned only by: sqlfile:6 archive:1 test:1
---   fn_runner_silence_watch()                                              mentioned only by: sqlfile:7
---   fn_agent_silence_watch()                                               mentioned only by: sqlfile:6 test:1
---   fn_agents_board()                                                      mentioned only by: sqlfile:11 archive:1 script:2 body of fn_ws_exec_home
+--   fn_watch_failed_runs()                                                 mentioned only by: sqlfile:7 archive:1 test:1
+--   fn_runner_silence_watch()                                              mentioned only by: sqlfile:8
+--   fn_agent_silence_watch()                                               mentioned only by: sqlfile:7 test:1
+--   fn_agents_board()                                                      mentioned only by: sqlfile:12 archive:1 script:2 body of fn_ws_exec_home
 --
 -- REVERSAL, one line per object (run as postgres): back to public, with the EXECUTE grants it had on 16 Nov:
 --   alter function retired.fn_watch_failed_runs() set schema public; grant execute on function public.fn_watch_failed_runs() to service_role;

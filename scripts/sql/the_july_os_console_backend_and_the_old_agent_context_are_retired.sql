@@ -37,60 +37,60 @@
 -- days: scripts/sql/pending/the_retired_schema_is_dropped_only_after_seven_clean_days_probe.txt says how clean is measured.
 
 -- THE OBJECTS (public signature, then who still mentions the name - a scripts/sql definition, a check, an archived file):
---   fn_os_ai_quality()                                                     mentioned only by: sqlfile:1
---   fn_os_automation_list()                                                mentioned only by: sqlfile:2
---   fn_os_automation_reschedule(bigint,text,text)                          mentioned only by: nothing
---   fn_os_automation_run(bigint,text)                                      mentioned only by: nothing
---   fn_os_automation_set_active(bigint,boolean,text)                       mentioned only by: nothing
---   fn_os_catalog_get(text)                                                mentioned only by: nothing
---   fn_os_catalog_list()                                                   mentioned only by: nothing
---   fn_os_catalog_save_fields(text,jsonb,text)                             mentioned only by: nothing
---   fn_os_catalog_spec_delete(bigint,text)                                 mentioned only by: nothing
---   fn_os_catalog_spec_upsert(bigint,text,text,text,text,boolean,text,text) mentioned only by: nothing
---   fn_os_incident_list(text)                                              mentioned only by: sqlfile:1
---   fn_os_incident_open(text,text,text,jsonb,text)                         mentioned only by: sqlfile:4
---   fn_os_incident_resolve(bigint,text,text)                               mentioned only by: sqlfile:1
---   fn_os_open_access()                                                    mentioned only by: sqlfile:3
---   fn_os_reconcile()                                                      mentioned only by: nothing
---   fn_os_runbooks()                                                       mentioned only by: sqlfile:1
---   fn_os_settings_history(text)                                           mentioned only by: nothing
---   fn_os_settings_list()                                                  mentioned only by: nothing
---   fn_os_settings_revert(text,text)                                       mentioned only by: nothing
---   fn_os_settings_set(text,text,text,boolean)                             mentioned only by: nothing
---   fn_os_dashboard_viz()                                                  mentioned only by: sqlfile:1 script:2
---   fn_os_detail(text,text)                                                mentioned only by: sqlfile:1 script:2
---   fn_os_list(text,jsonb)                                                 mentioned only by: sqlfile:1 script:2
---   fn_os_nav()                                                            mentioned only by: sqlfile:1 script:2
---   fn_os_record(text,text)                                                mentioned only by: script:3
---   fn_os_search(text)                                                     mentioned only by: sqlfile:3 script:3
---   fn_os_health()                                                         mentioned only by: sqlfile:4 archive:1 script:2
---   fn_os_health_brief()                                                   mentioned only by: sqlfile:5 script:1
---   fn_os_review()                                                         mentioned only by: sqlfile:3 archive:1 script:2 body of fn_os_health_brief
---   fn_os_memory(text,date,date)                                           mentioned only by: sqlfile:1 test:1
---   fn_self_review()                                                       mentioned only by: sqlfile:1 archive:1
---   fn_ws_exec_home()                                                      mentioned only by: sqlfile:13 archive:3
---   fn_ws_company_os()                                                     mentioned only by: sqlfile:6 archive:2
---   fn_ws_live_company()                                                   mentioned only by: sqlfile:2
---   fn_ws_notifications()                                                  mentioned only by: sqlfile:4 archive:1
---   fn_ws_customer_behavior()                                              mentioned only by: sqlfile:1
---   fn_customers_board(text,integer,integer)                               mentioned only by: sqlfile:1 script:1
---   fn_suppliers_board(text,text,integer,integer)                          mentioned only by: sqlfile:1 script:2
---   fn_rfq_board(text,integer,integer)                                     mentioned only by: script:1
---   fn_report_drilldown(text,integer)                                      mentioned only by: sqlfile:2
---   fn_entity_files(text,text)                                             mentioned only by: sqlfile:1 script:1
---   fn_entity_comment_add(text,text,text,text)                             mentioned only by: sqlfile:1
---   fn_goal_attainment(text)                                               mentioned only by: sqlfile:16 body of fn_ws_exec_home
---   fn_inbox_list()                                                        mentioned only by: sqlfile:3
---   fn_agent_context(text,integer)                                         mentioned only by: sqlfile:28 archive:3 script:21 test:1
---   fn_agent_context(text,integer,text)                                    mentioned only by: sqlfile:28 archive:3 script:21 test:1
---   fn_agent_context_v3(text,text,text,text,integer)                       mentioned only by: sqlfile:23 archive:2 script:2 test:3 body of fn_agent_context
---   fn_agent_institutional_memory(text,integer)                            mentioned only by: sqlfile:15 script:3 body of fn_agent_context
---   fn_knowledge_staleness_tag(date,text)                                  mentioned only by: sqlfile:13 body of fn_agent_context
---   fn_action_invoke_dispatch(integer)                                     mentioned only by: sqlfile:9 archive:3 script:3
---   fn_action_resolve_approver(text,text)                                  mentioned only by: sqlfile:8 archive:2 body of fn_action_invoke_dispatch
---   fn_action_authority_rank(text)                                         mentioned only by: sqlfile:3 body of fn_action_resolve_approver
---   fn_agent_handoff_inbox(text)                                           mentioned only by: sqlfile:4 archive:1
---   fn_dbx_category(bigint)                                                mentioned only by: sqlfile:17
+--   fn_os_ai_quality()                                                     mentioned only by: sqlfile:2
+--   fn_os_automation_list()                                                mentioned only by: sqlfile:3
+--   fn_os_automation_reschedule(bigint,text,text)                          mentioned only by: sqlfile:1
+--   fn_os_automation_run(bigint,text)                                      mentioned only by: sqlfile:1
+--   fn_os_automation_set_active(bigint,boolean,text)                       mentioned only by: sqlfile:1
+--   fn_os_catalog_get(text)                                                mentioned only by: sqlfile:1
+--   fn_os_catalog_list()                                                   mentioned only by: sqlfile:1
+--   fn_os_catalog_save_fields(text,jsonb,text)                             mentioned only by: sqlfile:1
+--   fn_os_catalog_spec_delete(bigint,text)                                 mentioned only by: sqlfile:1
+--   fn_os_catalog_spec_upsert(bigint,text,text,text,text,boolean,text,text) mentioned only by: sqlfile:1
+--   fn_os_incident_list(text)                                              mentioned only by: sqlfile:2
+--   fn_os_incident_open(text,text,text,jsonb,text)                         mentioned only by: sqlfile:5
+--   fn_os_incident_resolve(bigint,text,text)                               mentioned only by: sqlfile:2
+--   fn_os_open_access()                                                    mentioned only by: sqlfile:4
+--   fn_os_reconcile()                                                      mentioned only by: sqlfile:1
+--   fn_os_runbooks()                                                       mentioned only by: sqlfile:2
+--   fn_os_settings_history(text)                                           mentioned only by: sqlfile:1
+--   fn_os_settings_list()                                                  mentioned only by: sqlfile:1
+--   fn_os_settings_revert(text,text)                                       mentioned only by: sqlfile:1
+--   fn_os_settings_set(text,text,text,boolean)                             mentioned only by: sqlfile:1
+--   fn_os_dashboard_viz()                                                  mentioned only by: sqlfile:2 script:2
+--   fn_os_detail(text,text)                                                mentioned only by: sqlfile:2 script:2
+--   fn_os_list(text,jsonb)                                                 mentioned only by: sqlfile:2 script:2
+--   fn_os_nav()                                                            mentioned only by: sqlfile:2 script:2
+--   fn_os_record(text,text)                                                mentioned only by: sqlfile:1 script:3
+--   fn_os_search(text)                                                     mentioned only by: sqlfile:4 script:3
+--   fn_os_health()                                                         mentioned only by: sqlfile:5 archive:1 script:2
+--   fn_os_health_brief()                                                   mentioned only by: sqlfile:6 script:1
+--   fn_os_review()                                                         mentioned only by: sqlfile:4 archive:1 script:2 body of fn_os_health_brief
+--   fn_os_memory(text,date,date)                                           mentioned only by: sqlfile:2 test:1
+--   fn_self_review()                                                       mentioned only by: sqlfile:2 archive:1
+--   fn_ws_exec_home()                                                      mentioned only by: sqlfile:14 archive:3
+--   fn_ws_company_os()                                                     mentioned only by: sqlfile:7 archive:2
+--   fn_ws_live_company()                                                   mentioned only by: sqlfile:3
+--   fn_ws_notifications()                                                  mentioned only by: sqlfile:5 archive:1
+--   fn_ws_customer_behavior()                                              mentioned only by: sqlfile:2
+--   fn_customers_board(text,integer,integer)                               mentioned only by: sqlfile:2 script:1
+--   fn_suppliers_board(text,text,integer,integer)                          mentioned only by: sqlfile:2 script:2
+--   fn_rfq_board(text,integer,integer)                                     mentioned only by: sqlfile:1 script:1
+--   fn_report_drilldown(text,integer)                                      mentioned only by: sqlfile:3
+--   fn_entity_files(text,text)                                             mentioned only by: sqlfile:2 script:1
+--   fn_entity_comment_add(text,text,text,text)                             mentioned only by: sqlfile:2
+--   fn_goal_attainment(text)                                               mentioned only by: sqlfile:17 body of fn_ws_exec_home
+--   fn_inbox_list()                                                        mentioned only by: sqlfile:4
+--   fn_agent_context(text,integer)                                         mentioned only by: sqlfile:29 archive:3 script:21 test:1
+--   fn_agent_context(text,integer,text)                                    mentioned only by: sqlfile:29 archive:3 script:21 test:1
+--   fn_agent_context_v3(text,text,text,text,integer)                       mentioned only by: sqlfile:24 archive:2 script:2 test:3 body of fn_agent_context
+--   fn_agent_institutional_memory(text,integer)                            mentioned only by: sqlfile:16 script:3 body of fn_agent_context
+--   fn_knowledge_staleness_tag(date,text)                                  mentioned only by: sqlfile:14 body of fn_agent_context
+--   fn_action_invoke_dispatch(integer)                                     mentioned only by: sqlfile:10 archive:3 script:3
+--   fn_action_resolve_approver(text,text)                                  mentioned only by: sqlfile:9 archive:2 body of fn_action_invoke_dispatch
+--   fn_action_authority_rank(text)                                         mentioned only by: sqlfile:4 body of fn_action_resolve_approver
+--   fn_agent_handoff_inbox(text)                                           mentioned only by: sqlfile:5 archive:1
+--   fn_dbx_category(bigint)                                                mentioned only by: sqlfile:18
 --
 -- REVERSAL, one line per object (run as postgres): back to public, with the EXECUTE grants it had on 16 Nov:
 --   alter function retired.fn_os_ai_quality() set schema public; grant execute on function public.fn_os_ai_quality() to service_role;

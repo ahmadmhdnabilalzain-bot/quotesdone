@@ -96,8 +96,10 @@ const SKIP = hasToken ? false : 'no Supabase management token in this environmen
 if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
 // The seven D35 closed. Named individually because these are the ones a probe PROVED reachable.
+// 16 Nov 2026: six. fn_os_memory left public for schema retired (the_july_os_console_backend_and_the_old_agent_context_are_retired.sql,
+// no caller anywhere), where no API role can even reach the schema; that file's probe asserts it is executable by none.
 const REVOKED = [
-  'fn_customer_preference_learn', 'fn_os_memory', 'fn_supplier_document_impact',
+  'fn_customer_preference_learn', 'fn_supplier_document_impact',
   'fn_supplier_knowledge_graph', 'fn_supplier_opportunities', 'fn_supplier_quote_recommend',
   'fn_supplier_twin',
 ];

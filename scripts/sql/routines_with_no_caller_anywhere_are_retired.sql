@@ -9,6 +9,13 @@
 -- the backups, an audit log, the v1.2 support toolkit, the knowledge library, a founder-decision tool run by hand, or work
 -- another seat has open. fn_workflow_step_done stays: fn_workflow_step_deterministic_done (a check reads it) calls it.
 -- registered_supplier_count was executable by anon; no page, statement or body calls it.
+-- KEPT although nothing calls them today: fn_order_thread_transcript, fn_escalation_clock_adopts_stale_person_requests and
+-- fn_escalation_stale_apology (defined 13-16 Nov; a caller may be on an open branch); the books (fn_accountant_*), ads
+-- (fn_ad_decision_mark_executed), sanctions (fn_sanctions_screen_tick*), the v1.2 support toolkit (fn_support_*), the
+-- knowledge library, the demo purge (ruling 1539), the session work queues (fn_it_code_defect_*), and the approve, decide
+-- and publish routines a session may run by hand on the founder's word (fn_kb_gov_approve, fn_review_decide,
+-- fn_prompt_reject_draft, fn_report_recommendation_approve, fn_marketing_blog_publish, fn_marketing_month_plan_founder_decides,
+-- fn_marketing_social_handoff_answered, fn_supplier_invite_test_send, fn_founder_open_instructions).
 --
 -- HOW "NO CALLER" WAS MEASURED (16 Nov 2026, it_engineer, production read with light SELECTs only):
 --   * every live routine body in every schema, read with pg_get_functiondef (2,667 in public), comments stripped;
@@ -29,33 +36,33 @@
 -- days: scripts/sql/pending/the_retired_schema_is_dropped_only_after_seven_clean_days_probe.txt says how clean is measured.
 
 -- THE OBJECTS (public signature, then who still mentions the name - a scripts/sql definition, a check, an archived file):
---   fn_action_release_held()                                               mentioned only by: sqlfile:1
---   fn_ceo_standing()                                                      mentioned only by: sqlfile:1
---   fn_dispatch_agent_knowledge_gaps(integer,integer)                      mentioned only by: sqlfile:1
---   kn_task(text,boolean,text,text,text,jsonb,text,text)                   mentioned only by: sqlfile:2 body of fn_dispatch_agent_knowledge_gaps
---   fn_it_refusal_is_policy(text,jsonb)                                    mentioned only by: sqlfile:8
---   fn_it_run_is_held(text,timestamp with time zone,jsonb,text)            mentioned only by: sqlfile:6
---   fn_kb_embed_backlog()                                                  mentioned only by: sqlfile:1
---   fn_kb_embed_claim(integer,text[],text[],boolean)                       mentioned only by: sqlfile:3 archive:1
---   fn_knowledge_exam_summary()                                            mentioned only by: sqlfile:2
---   fn_licence_ask_close_on_intake(bigint)                                 mentioned only by: sqlfile:2
---   fn_org_task_assign(integer)                                            mentioned only by: sqlfile:9 archive:2
---   fn_recommend_deterministic(bigint,boolean)                             mentioned only by: sqlfile:3
---   fn_security_watch(interval)                                            mentioned only by: sqlfile:1
---   fn_target_baseline(bigint)                                             mentioned only by: sqlfile:1
---   fn_resilience_step_board()                                             mentioned only by: sqlfile:1
---   fn_ai_quality_watch()                                                  mentioned only by: sqlfile:8 script:2
---   fn_expiring_docs(integer)                                              mentioned only by: sqlfile:1 script:2
---   registered_supplier_count()                                            mentioned only by: sqlfile:11 script:2
---   fn_supplier_exception_open(bigint,text)                                mentioned only by: sqlfile:3 script:2
---   fn_supplier_exception_close(bigint,text)                               mentioned only by: sqlfile:3 script:1
---   fn_event_consolidate()                                                 mentioned only by: sqlfile:6 script:1
---   fn_workflow_start_due(integer)                                         mentioned only by: sqlfile:2 archive:1 script:2
---   fn_workflow_step_sweep(integer)                                        mentioned only by: sqlfile:14 archive:1 script:1
---   fn_execution_sweep(integer)                                            mentioned only by: sqlfile:6 archive:1 body of fn_workflow_step_sweep
---   fn_workflow_step_claim(integer)                                        mentioned only by: sqlfile:12
---   fn_knowledge_gaps(integer,integer)                                     mentioned only by: sqlfile:3 archive:1 script:1 body of fn_dispatch_agent_knowledge_gaps
---   fn_employee_knowledge_freshness(integer,integer)                       mentioned only by: sqlfile:1 body of fn_knowledge_gaps
+--   fn_action_release_held()                                               mentioned only by: sqlfile:2
+--   fn_ceo_standing()                                                      mentioned only by: sqlfile:2
+--   fn_dispatch_agent_knowledge_gaps(integer,integer)                      mentioned only by: sqlfile:2
+--   kn_task(text,boolean,text,text,text,jsonb,text,text)                   mentioned only by: sqlfile:3 body of fn_dispatch_agent_knowledge_gaps
+--   fn_it_refusal_is_policy(text,jsonb)                                    mentioned only by: sqlfile:9
+--   fn_it_run_is_held(text,timestamp with time zone,jsonb,text)            mentioned only by: sqlfile:7
+--   fn_kb_embed_backlog()                                                  mentioned only by: sqlfile:2
+--   fn_kb_embed_claim(integer,text[],text[],boolean)                       mentioned only by: sqlfile:4 archive:1
+--   fn_knowledge_exam_summary()                                            mentioned only by: sqlfile:3
+--   fn_licence_ask_close_on_intake(bigint)                                 mentioned only by: sqlfile:3
+--   fn_org_task_assign(integer)                                            mentioned only by: sqlfile:10 archive:2
+--   fn_recommend_deterministic(bigint,boolean)                             mentioned only by: sqlfile:4
+--   fn_security_watch(interval)                                            mentioned only by: sqlfile:2
+--   fn_target_baseline(bigint)                                             mentioned only by: sqlfile:2
+--   fn_resilience_step_board()                                             mentioned only by: sqlfile:2
+--   fn_ai_quality_watch()                                                  mentioned only by: sqlfile:9 script:2
+--   fn_expiring_docs(integer)                                              mentioned only by: sqlfile:2 script:2
+--   registered_supplier_count()                                            mentioned only by: sqlfile:12 script:2
+--   fn_supplier_exception_open(bigint,text)                                mentioned only by: sqlfile:4 script:2
+--   fn_supplier_exception_close(bigint,text)                               mentioned only by: sqlfile:4 script:1
+--   fn_event_consolidate()                                                 mentioned only by: sqlfile:7 script:1
+--   fn_workflow_start_due(integer)                                         mentioned only by: sqlfile:3 archive:1 script:2
+--   fn_workflow_step_sweep(integer)                                        mentioned only by: sqlfile:15 archive:1 script:1
+--   fn_execution_sweep(integer)                                            mentioned only by: sqlfile:7 archive:1 body of fn_workflow_step_sweep
+--   fn_workflow_step_claim(integer)                                        mentioned only by: sqlfile:13
+--   fn_knowledge_gaps(integer,integer)                                     mentioned only by: sqlfile:4 archive:1 script:1 body of fn_dispatch_agent_knowledge_gaps
+--   fn_employee_knowledge_freshness(integer,integer)                       mentioned only by: sqlfile:2 body of fn_knowledge_gaps
 --
 -- REVERSAL, one line per object (run as postgres): back to public, with the EXECUTE grants it had on 16 Nov:
 --   alter function retired.fn_action_release_held() set schema public; grant execute on function public.fn_action_release_held() to public, service_role;

@@ -29,15 +29,15 @@
 -- days: scripts/sql/pending/the_retired_schema_is_dropped_only_after_seven_clean_days_probe.txt says how clean is measured.
 
 -- THE OBJECTS (public signature, then who still mentions the name - a scripts/sql definition, a check, an archived file):
---   trg_legal_documents_hash()                                             mentioned only by: sqlfile:2
---   trg_terms_pins_sync()                                                  mentioned only by: sqlfile:1 script:1
---   fn_customer_terms_accepted_trg()                                       mentioned only by: sqlfile:1
---   fn_customer_terms_accept(uuid,text)                                    mentioned only by: sqlfile:4 body of fn_customer_terms_accepted_trg
---   fn_customer_welcome_trg()                                              mentioned only by: sqlfile:1
---   fn_emit_campaign_published()                                           mentioned only by: sqlfile:1
---   fn_org_authority_guard()                                               mentioned only by: sqlfile:2
---   trg_agent_knowledge_metadata()                                         mentioned only by: sqlfile:4
---   fn_page_high_agent_action()                                            mentioned only by: sqlfile:4
+--   trg_legal_documents_hash()                                             mentioned only by: sqlfile:3
+--   trg_terms_pins_sync()                                                  mentioned only by: sqlfile:2 script:1
+--   fn_customer_terms_accepted_trg()                                       mentioned only by: sqlfile:2
+--   fn_customer_terms_accept(uuid,text)                                    mentioned only by: sqlfile:5 body of fn_customer_terms_accepted_trg
+--   fn_customer_welcome_trg()                                              mentioned only by: sqlfile:2
+--   fn_emit_campaign_published()                                           mentioned only by: sqlfile:2
+--   fn_org_authority_guard()                                               mentioned only by: sqlfile:3
+--   trg_agent_knowledge_metadata()                                         mentioned only by: sqlfile:5
+--   fn_page_high_agent_action()                                            mentioned only by: sqlfile:5
 --
 -- REVERSAL, one line per object (run as postgres): back to public, with the EXECUTE grants it had on 16 Nov:
 --   alter function retired.trg_legal_documents_hash() set schema public; grant execute on function public.trg_legal_documents_hash() to public, service_role;

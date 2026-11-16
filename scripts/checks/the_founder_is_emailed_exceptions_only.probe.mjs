@@ -28,43 +28,12 @@ begin
   select coalesce(max(id),0) into t0 from public.org_tasks;
   select coalesce(max(id),0) into a0 from public.agent_actions;
 
-  -- ---------------------------------------------------------------- 1. scheduled runs failed
-  -- the failed run is stamped BEFORE the rehearsal window opened: the watcher (correctly) does not page on
-  -- a failure inside a declared window, and the point here is what it does with a real one
-  insert into public.agent_runs (agent, started_at, finished_at, status, note)
-  values ('zz_demo_probe_runner', clock_timestamp() - interval '3 seconds', clock_timestamp() - interval '2 seconds', 'error', 'ZZ DEMO probe: a real failure shape');
-  update public.rehearsal_window set started_at = clock_timestamp() - interval '1 second' where run_tag = 'qd_run:founder_mail_probe';
-  r := public.fn_watch_failed_runs();
-  select count(*) into emails from public.notifications where id > q0 and channel in ('email','whatsapp') and (to_role in ('founder','admin') or lower(to_email) = v_admin);
-  select count(*), max(id) into tasks, task_id from public.org_tasks where id > t0 and result->'founder_mail'->>'kind' = 'scheduled_runs_failed';
-  select assigned_agent, dept_key into task_owner, task_dept from public.org_tasks where id = task_id;
-  out := out || jsonb_build_object('1', jsonb_build_object('al', r->'new_conditions_alerted', 'e', emails, 't', tasks, 'o', task_owner, 'd', task_dept));
-  q0 := (select max(id) from public.notifications); t0 := (select max(id) from public.org_tasks);
-
-  -- an UNCHANGED condition on the next pass: a second failure of the same shape (stamped outside the window,
-  -- watermark rewound, the watcher's own 24h hold lifted so it reaches the door again): the same task is
-  -- bumped, no second task, no email
-  update public.rehearsal_window set started_at = clock_timestamp() + interval '2 seconds' where run_tag = 'qd_run:founder_mail_probe';
-  insert into public.agent_runs (agent, started_at, finished_at, status, note)
-  values ('zz_demo_probe_runner', clock_timestamp(), clock_timestamp(), 'error', 'ZZ DEMO probe: a real failure shape');
-  update public.alert_watermark set last_run_at = clock_timestamp() - interval '1 second' where watcher = 'failed_runs';
-  update public.alert_signature set last_alerted_at = null where watcher = 'failed_runs' and signature like 'zz_demo_probe_runner:%';
-  r := public.fn_watch_failed_runs();
-  update public.rehearsal_window set started_at = clock_timestamp() - interval '1 second' where run_tag = 'qd_run:founder_mail_probe';
-  select count(*) into emails from public.notifications where id > q0 and channel in ('email','whatsapp') and (to_role in ('founder','admin') or lower(to_email) = v_admin);
-  select count(*) into tasks from public.org_tasks where id > t0 and result ? 'founder_mail';
-  select (result->'founder_mail'->>'seen_count')::int into seen from public.org_tasks where id = task_id;
-  out := out || jsonb_build_object('1b', jsonb_build_object('al', r->'new_conditions_alerted', 'e', emails, 'nt', tasks, 'seen', seen));
-
-  -- ---------------------------------------------------------------- 2. agent silence (a job that never ran)
+  -- 1, 1b and 2 (a failed scheduled run, an agent that went silent) are gone (16 Nov 2026): fn_watch_failed_runs and
+  -- fn_agent_silence_watch had no caller and left public for schema retired
+  -- (the_four_watchers_nothing_runs_are_retired_and_fn_it_detect_is_named_as_the_reader.sql). fn_it_detect reads a failed
+  -- or silent run now (its D1 and D2) and raises an it_finding, not a founder email.
+  -- The probe job section 9 fails on purpose is still scheduled here, as section 2 used to do (rolled back with the rest).
   select cron.schedule('zz_demo_probe_job', '* * * * *', 'select 1') into cron_id;
-  insert into public.cron_job_seen (jobid, jobname, schedule, first_seen) values (cron_id, 'zz_demo_probe_job', '* * * * *', clock_timestamp() - interval '2 days');
-  r := public.fn_agent_silence_watch();
-  select count(*) into emails from public.notifications where id > q0 and channel in ('email','whatsapp') and (to_role in ('founder','admin') or lower(to_email) = v_admin);
-  select count(*), max(id) into tasks, task_id from public.org_tasks where id > t0 and result->'founder_mail'->>'kind' = 'agent_silence' and title like '%zz_demo_probe_job%';
-  select assigned_agent, dept_key into task_owner, task_dept from public.org_tasks where id = task_id;
-  out := out || jsonb_build_object('2', jsonb_build_object('nr', r->'never_ran_alerts', 'e', emails, 't', tasks, 'o', task_owner, 'd', task_dept));
-  q0 := (select max(id) from public.notifications); t0 := (select max(id) from public.org_tasks);
 
   -- ---------------------------------------------------------------- 3. resilience (the routine's exact call; its findings cannot be manufactured here)
   r := public.fn_notify_founder('Resilience: the platform needs attention', 'The self-healing watchdog found issues it could not auto-fix:' || E'\\n' || 'ZZ DEMO probe finding', 'critical', p_kind => 'resilience', p_dedupe_key => 'resilience');
@@ -208,9 +177,6 @@ const out = JSON.parse(m[1]);
 console.log(JSON.stringify(out, null, 2));
 const g = (k) => out[k] || {};
 const checks = [
-  ['1  scheduled runs failed: 0 founder emails, 1 task for it/product_eng', g('1').e === 0 && g('1').t === 1 && g('1').d === 'product_eng'],
-  ['1b same condition again: 0 emails, 0 new tasks, first task bumped',      g('1b').e === 0 && g('1b').nt === 0 && g('1b').seen >= 2],
-  ['2  agent silence: 0 founder emails, 1 task for it/product_eng',          g('2').e === 0 && g('2').t === 1 && g('2').d === 'product_eng'],
   ['3  resilience: routed, 0 emails, 1 task for product_eng',               g('3').m === 'routed' && g('3').e === 0 && g('3').t === 1 && g('3').d === 'product_eng'],
   ['4  AI credit low: routed, 0 emails, 1 task for finance',                g('4').m === 'routed' && g('4').e === 0 && g('4').t === 1 && g('4').d === 'finance'],
   ['5  business health: routed, 0 emails, 1 task for exec',                 g('5').m === 'routed' && g('5').e === 0 && g('5').t === 1 && g('5').d === 'exec'],

@@ -51,9 +51,12 @@ export const createdIn = (sql) => [...stripComments(sql).matchAll(/create\s+tabl
 // A pending `drop table public.x` removes x the same way: the mirror still has it until the release train applies the
 // file, and that same file deletes its registry row (30 Sep 2026, enterprise accounts).
 export const droppedIn = (sql) => [...stripComments(sql).matchAll(/drop\s+table\s+(?:if\s+exists\s+)?public\."?([a-z0-9_]+)"?/gi)].map((m) => m[1].toLowerCase());
+// A pending `alter table public.x set schema retired` takes x out of public the same way (16 Nov 2026, it_engineer: phase 1 of
+// the simplification moves unused tables to schema retired instead of dropping them, and deletes their registry rows).
+export const movedOutIn = (sql) => [...stripComments(sql).matchAll(/alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?public\."?([a-z0-9_]+)"?\s+set\s+schema\s+(?!public\b)[a-z_]/gi)].map((m) => m[1].toLowerCase());
 
 const PENDING = manifestWithPending(REPO).filter((f) => !manifestHas(f)).map((f) => read(f));
-const DROPPED_PENDING = new Set(PENDING.flatMap(droppedIn));
+const DROPPED_PENDING = new Set([...PENDING.flatMap(droppedIn), ...PENDING.flatMap(movedOutIn)]);
 const TABLES = new Set([
   ...[...SCHEMA.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?public\."?([a-z0-9_]+)"? \(/g)].map((m) => m[1]),
   ...PENDING.flatMap(createdIn),
@@ -149,4 +152,9 @@ test('self-test: a pending create table that nobody registered is caught, and a 
     + "  ('zz_probe_t', true, 'supplier', 'the CEO''s probe -- a test', 'it_engineer') -- a real comment\non conflict (table_name) do nothing;");
   assert.deepEqual(rows.map((r) => [r.table, r.reason]), [['zz_probe_t', "the CEO's probe -- a test"]]);
   assert.deepEqual(unaccounted(tables, new Map([...REG, ['zz_probe_t', rows[0]]])), []);
+});
+
+test('self-test: a table moved out of public by a set schema is read as gone, one moved back is not', () => {
+  assert.deepEqual(movedOutIn('-- alter table public.zz_commented set schema retired;\nalter table if exists public.zz_moved set schema retired;'), ['zz_moved']);
+  assert.deepEqual(movedOutIn('alter table retired.zz_back set schema public;\nalter table public.zz_stays set schema public;'), []);
 });
