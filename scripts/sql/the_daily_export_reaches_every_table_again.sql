@@ -10,7 +10,7 @@
 --   suppliers among them -- have had no daily database export since 12 Nov. Those days cannot be re-exported; today's can.
 -- WHAT THIS FILE DOES:
 --   1. gives ceo_year_plan_archive the key its source table has (PRIMARY KEY (month)); 12 rows, unique, not null;
---   2. lets today's failed export run again from its saved page (attempts 0, heartbeat cleared): fn_table_export_due resumes it.
+--   2. lets today's failed export run again from its saved page (attempts 0; its heartbeat is already hours old): fn_table_export_due resumes it.
 -- Not done here (after today's run reads 'done'): closing the never-written 12-15 Nov doc_backups pages as abandoned with
 -- their reason, and making the export registry refuse a table with no primary key.
 -- Rollback: alter table public.ceo_year_plan_archive drop constraint ceo_year_plan_archive_pkey;
@@ -18,7 +18,9 @@ set local lock_timeout = '1500ms';
 
 alter table public.ceo_year_plan_archive add primary key (month);
 
-update public.table_export_run set attempts = 0, heartbeat_at = null
+-- heartbeat_at is NOT NULL (first apply 16 Nov 03:01 UTC refused, nothing changed); the resume check only needs it older than
+-- 10 minutes (fn_table_export_due), and today's failed run last beat at 15 Nov 23:15 UTC, so only the attempts reset.
+update public.table_export_run set attempts = 0
  where stamp = (now() at time zone 'Asia/Dubai')::date and status = 'failed';
 
 select case
