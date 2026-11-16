@@ -18,8 +18,10 @@ import { defaultDeps } from '../../_shared/think.ts';
 import { approve, deskAssess, deskView, fillIn, formSchema, gate, gateInputKey, readAndAssess, supabaseRepo, type Ctx, type Precheck } from '../../_shared/line_specs/workflow.ts';
 import { readQuote } from '../../_shared/reasoned_matching.ts';
 import { requirementsOf } from '../../_shared/line_specs/assess.ts';
+import { answerStands } from '../../_shared/line_specs/vat.ts';
 import { optionAmount, splitOptions } from '../../_shared/line_specs/options.ts';
 import { statedPrice, storedPrice } from '../../_shared/stated_price.ts';
+import { quotationDateOf } from '../../_shared/quotation_date.ts';
 import { findTrn } from '../../_shared/identity_numbers.ts';
 import { deriveLineFields, deriveTermsFromScope } from '../../_shared/line_specs/derive.ts';
 import { jobNo, readWorking, reviewQuotation, sanitizeSpec, sanitizeTermsSpec } from '../quote_review.ts';
@@ -33,7 +35,7 @@ import type { Recorded } from '../../_shared/recorded_write.ts';
 import { CONCLUDED, UUID_RE, clip, numOrNull } from '../lib/fields.ts';
 import { isRequestRevealed, REQUEST_REVEALED } from '../lib/request_revealed.ts';
 import { NOT_MY_FILE, matchedInquiry, ownQuoteFile, sameVerdict, specChecklist } from '../lib/quote_gate.ts';
-import { QUOTE_NOT_SAVED, QUOTE_NOT_SENT, QUOTE_NOT_SENT_APPROVE, type QuoteSnapshot, acceptForRelease, acceptLive, acceptRule, kickDelivery, notifyNewQuote, restoreQuote, snapshotQuote, storeReviewNotes, supersedeQualityHold, supplierOf, writeQuoteLines } from '../lib/quote_acceptance.ts';
+import { QUOTE_NOT_SAVED, QUOTE_NOT_SENT, QUOTE_NOT_SENT_APPROVE, type QuoteSnapshot, acceptForRelease, acceptLive, acceptRule, kickDelivery, notifyNewQuote, restoreQuote, snapshotQuote, storeReviewNotes, supersedeQualityHold, supplierOf, writeQuoteLines, writeQuoteRow } from '../lib/quote_acceptance.ts';
 import { regenRender } from '../lib/arabic_quotation.ts';
 
 export async function quoteActions(c: ActionCtx): Promise<Response | undefined> {
@@ -363,6 +365,12 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       // straight to this endpoint has no such row, and every rule applies to them in full.
       const confirmedTerms = (() => { const t = sanitizeTermsSpec(sent.terms_spec); return t ? scrubDeep(t, sup.company_name, maskHits) as typeof t : t; })();
       const reviewRow = await supabaseReviewRepo(admin).review(inquiryId, Number(sup.id)).catch(() => null);
+      // His VAT answer, never the caller's: the hold desk's on an earlier submission of these options (carryHeldAnswers), else
+      // the chat's (quote_reviews.working). It settles the basis for the review AND for the price stored below, but only while
+      // this submission states that same basis (vat.ts answerStands): the chat's "before VAT" was otherwise asked again here.
+      const resolved0 = resolvedFrom(reviewRow?.working);
+      const resolved = { ...resolved0, vat_answered: carry.vat_answered ?? resolved0.vat_answered ?? null };
+      const vatAnswered = answerStands(resolved.vat_answered, body.vat_treatment ? String(body.vat_treatment) : null);
       const safeInq = await safeInquiryOf(req, jwt, inquiryId);
       if (!safeInq) return J({ error: 'not_found', code: 'not_found' }, 404);
       // Read as the hold gate reads it (reasoned_matching.ts); held: nothing is read and every detail is asked. Its exact
@@ -370,7 +378,7 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       // the review hold and the spec hold of one submission ask the same (live re-run ea40c830, 10 Nov 2026).
       const rv = reviewQuotation(safeInq, await readWorking(defaultDeps(admin, 'supplier_api'), safeInq, withResolved(
         workingFromSubmit(sent, { notes: String(sNotes ?? ''), scope: String(sScope ?? ''), conditions: String(sCond ?? ''), exclusions: String(sExcl ?? '') }, confirmedTerms || {}, allMasked, trn),
-        resolvedFrom(reviewRow?.working)), 'review:' + safeInq.id + ':' + sup.id), new Date(), { requirements });
+        resolved), 'review:' + safeInq.id + ':' + sup.id), new Date(), { requirements });
       const lang: 'en' | 'ar' = SUPPLIER_LOCALE;
       const reviewIssues = rv.approved ? null : rv.issues.map((i) => ({ code: i.code, kind: i.kind, line_no: i.line_no, boq_line: i.boq_line, attr: i.attr, en: i.en, ar: i.ar }));
       const reviewMissing = rv.approved ? [] : rv.issues.map(issueAsMissing);
@@ -395,10 +403,19 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         const vat = statedPrice({ amount: p.amount, subtotal: multi ? null : numOrNull(body.subtotal), vat_amount: multi ? null : numOrNull(body.vat_amount), text: vatText,
           stated: body.vat_treatment ? String(body.vat_treatment) : null, price_ex_vat: multi ? null : numOrNull(body.price_ex_vat),
           gross_amount: multi ? null : numOrNull(body.gross_amount), discount_amount: multi ? null : numOrNull(body.discount_amount),
-          discount_label: multi ? null : clip(body.discount_label, 80), net_amount: multi ? null : numOrNull(body.net_amount) });
+          discount_label: multi ? null : clip(body.discount_label, 80), net_amount: multi ? null : numOrNull(body.net_amount),
+          // The supplier's own lines and TRN are evidence of the VAT basis (line_specs/vat.ts, accountant 15 Nov 2026): a total
+          // that is exactly his lines plus 5% has VAT in it, whatever the form's basis said, so the review asks before any fee.
+          lines_sum: multi ? null : (p.lines as { amount?: unknown }[]).reduce((a, l) => a + (Number(l?.amount) > 0 ? Number(l.amount) : 0), 0),
+          lines_count: multi ? null : (p.lines as { amount?: unknown }[]).filter((l) => Number(l?.amount) > 0).length, trn, answered: vatAnswered });
+        const qDate = quotationDateOf(body.quotation_date);
         const det = { inquiry_id: inquiryId, supplier_id: sup.id, option_no: p.option_no, submission_id, ...storedPrice(vat, p.amount), supplier_trn: trn,
           discount_label: vat.discount_label ? scrub(vat.discount_label, 80) : null,
-          notes: sNotes, lead_time: scrub(body.lead_time, 200), validity: scrub(body.validity, 200), payment_terms: scrub(body.payment_terms, 400), warranty: scrub(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: (() => { const m = [...allMasked, ...maskHits.filter((h) => !allMasked.includes(h))]; return m.length ? m : null; })(), structured: p.lines.length > 0 };
+          notes: sNotes, lead_time: scrub(body.lead_time, 200), validity: scrub(body.validity, 200),
+          // Ledger 1697: the date printed on his quotation, when it was read for certain; his stated validity counts from it
+          // (fn_quote_validity_until), else from the day received. No validity of ours is ever written here. The key is written
+          // only with a date, and writeQuoteRow drops it once if the column is not applied yet (deploy before the SQL).
+          ...(qDate ? { quotation_date: qDate } : {}), payment_terms: scrub(body.payment_terms, 400), warranty: scrub(body.warranty, 200), scope: sScope, conditions: sCond, exclusions: sExcl, source: isUpload ? 'upload' : 'form', extracted_by_model: quoteAuthor, anonymized: true, original_file_path: origPath, original_file_name: body.original_file_name || null, masked_terms: (() => { const m = [...allMasked, ...maskHits.filter((h) => !allMasked.includes(h))]; return m.length ? m : null; })(), structured: p.lines.length > 0 };
         // Delivery / installation / warranty the supplier confirmed in the quotation review, cleaned
         // (quote_review.ts) — the hold gate reads them exactly as it reads the portal's fill-in.
         if (confirmedTerms) (det as Record<string, unknown>).terms_spec = confirmedTerms;
@@ -426,12 +443,13 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         let snap: QuoteSnapshot | null = null;
         if (prior) {
           snap = await snapshotQuote(String(prior.id), snapCols);
+          for (const c of snap?.dropped || []) delete (det as Record<string, unknown>)[c];   // its column is not applied yet
           if (!snap && dryRun) return J({ error: 'preflight_unavailable', code: 'preflight_unavailable', message: 'We could not run the check just now. Please try again in a moment.' }, 503);
           if (!snap) return J({ ok: false, error: 'quote_not_saved', ...QUOTE_NOT_SAVED }, 503);   // nothing written yet
         }
         let qid: string;
-        if (prior) { const { error } = await admin.from('quotes').update(det).eq('id', prior.id); if (error) return failed(String(action), error); qid = String(prior.id); }
-        else { const { data: ins, error } = await admin.from('quotes').insert({ ...det, status: 'draft' }).select('id').single(); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error && isRequestRevealed(error)) return J(REQUEST_REVEALED, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
+        if (prior) { const { error } = await writeQuoteRow(det, (d) => admin.from('quotes').update(d).eq('id', prior.id)); if (error) return failed(String(action), error); qid = String(prior.id); }
+        else { const { data: ins, error } = await writeQuoteRow(det, (d) => admin.from('quotes').insert({ ...d, status: 'draft' }).select('id').single()); if (error && (error as { code?: string }).code === '23505') return J({ error: 'This option was just saved from another click or tab. Refresh to see it.', code: 'option_exists' }, 409); if (error && isRequestRevealed(error)) return J(REQUEST_REVEALED, 409); if (error) return failed(String(action), error); qid = String(ins.id); }
         let linesW: Recorded;
         try {
           // A line's own words fill brand / model / specification where the caller sent none; a scope

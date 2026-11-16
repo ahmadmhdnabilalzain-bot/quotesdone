@@ -172,7 +172,24 @@
         }
       ],
       "site_visit_required_when": "A site visit is unavoidable before a firm fit-out price, to check the landlord handover condition, existing MEP and access.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
+      "photos_to_ask": [
+        {
+          "shot": "The space as handed over, from each corner, with the ceiling and floor in view",
+          "shot_ar": "المساحة كما سُلِّمت، من كل زاوية مع ظهور السقف والأرضية",
+          "from": "landlord handover condition"
+        },
+        {
+          "shot": "Close-ups of the surface as it is now (cracks, peeling, rust or old coating)",
+          "shot_ar": "صور قريبة للسطح بحالته الحالية (تشققات، تقشر، صدأ أو طلاء قديم)",
+          "from": "condition"
+        },
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "access"
+        }
+      ]
     },
     {
       "id": "interior_fitout:dubai-municipality-fitout-permit",

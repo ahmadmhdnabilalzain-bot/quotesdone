@@ -241,7 +241,24 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for an existing building, to check cable routes, ceilings and the existing panel.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "Where the cables would run (ceiling, walls, trunking or trays)",
+          "shot_ar": "أماكن مرور الكابلات (السقف، الجدران، المجاري أو الحوامل)",
+          "from": "cable routes"
+        },
+        {
+          "shot": "Inside the false ceiling through an access panel, if one opens",
+          "shot_ar": "داخل السقف المستعار من فتحة الصيانة إن أمكن فتحها",
+          "from": "ceilings"
+        },
+        {
+          "shot": "The existing panel or equipment room, with the panel front readable",
+          "shot_ar": "اللوحة أو غرفة الأجهزة الحالية، مع وضوح واجهة اللوحة",
+          "from": "existing panel"
+        }
+      ]
     },
     {
       "id": "fire_fighting:voice-evac",
@@ -476,7 +493,29 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for replacing an existing pump set, to check the pump room and the suction arrangement.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "Each existing unit or item to be replaced, from the front",
+          "shot_ar": "كل وحدة أو قطعة سيتم استبدالها، من الأمام",
+          "from": "replacing"
+        },
+        {
+          "shot": "The label or nameplate on it, close up (make, model, size)",
+          "shot_ar": "الملصق أو اللوحة التعريفية عليها عن قرب (الماركة، الموديل، الحجم)",
+          "from": "replacing"
+        },
+        {
+          "shot": "The room or space where it goes, from the doorway, showing all four sides if you can",
+          "shot_ar": "الغرفة أو المساحة المخصصة لها من الباب، مع إظهار جوانبها كلها إن أمكن",
+          "from": "pump room"
+        },
+        {
+          "shot": "The pipes, cables and connections at the point where it will be connected",
+          "shot_ar": "الأنابيب والكابلات ونقاط التوصيل في مكان التركيب",
+          "from": "suction arrangement"
+        }
+      ]
     },
     {
       "id": "fire_fighting:fire-water-tank",
@@ -642,7 +681,24 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for an existing building, to check ceiling voids, existing pipework and the water supply.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "Inside the false ceiling through an access panel, if one opens",
+          "shot_ar": "داخل السقف المستعار من فتحة الصيانة إن أمكن فتحها",
+          "from": "ceiling voids"
+        },
+        {
+          "shot": "The route the pipes would take, from one end to the other",
+          "shot_ar": "المسار الذي ستمر به الأنابيب، من طرف إلى آخر",
+          "from": "pipework"
+        },
+        {
+          "shot": "The nearest water point or pipe, and the valve that feeds it",
+          "shot_ar": "أقرب نقطة مياه أو أنبوب، والمحبس الذي يغذيه",
+          "from": "water supply"
+        }
+      ]
     },
     {
       "id": "fire_fighting:clean-agent-comparison",
@@ -786,7 +842,19 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed to check room integrity, volume and cylinder location.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "The room as a whole, showing doors, openings and the ceiling",
+          "shot_ar": "الغرفة كاملة، مع إظهار الأبواب والفتحات والسقف",
+          "from": "room integrity"
+        }
+      ]
     },
     {
       "id": "fire_fighting:kitchen-wet-chemical",

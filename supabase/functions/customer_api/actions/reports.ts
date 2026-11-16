@@ -117,9 +117,15 @@ export async function reportActions(c: ActionCtx): Promise<Response | undefined>
       // file name). Measured 21 Sep 2026: 14 Arabic rows in quote_pdf_cache, the first from 14 Sep — every
       // one rendered before the Arabic fixes of #782/#790/#794 and served for as long as the quote itself
       // was untouched, so a customer kept getting the old, part-English document after the fix shipped.
-      if (cached && isCurrentDoc(cached.path) && (!touched || new Date(cached.created_at) >= touched)) {
+      // ...and only if it carries the quote's letter as it is now (its ref is in the file name): a file made under the old price-rank
+      // letter (journey A: two quotations both "QD-166739-A") is made again with the one letter (_shared/quote_labels.ts).
+      const letterNow = await letterOf(q);
+      // the stored letter could not be read: refuse and let the portal retry, never print a guessed letter (quote_labels.ts)
+      if (letterNow === null) return J({ error: 'letter_unread', retry: true, message: 'Please try again in a moment.', message_ar: 'يُرجى المحاولة بعد قليل.' }, 503);
+      const refNow = quoteRef(inq, letterNow);
+      if (cached && isCurrentDoc(cached.path) && String(cached.path).includes(refNow + '-') && (!touched || new Date(cached.created_at) >= touched)) {
         const url = await signedDoc(cached.bucket, cached.path);
-        if (url) return J({ ok: true, url, ref: quoteRef(inq, await letterOf(q)), lang, cached: true });
+        if (url) return J({ ok: true, url, ref: refNow, lang, cached: true });
       }
       const hourAgo = new Date(Date.now() - 3600e3).toISOString();
       const { count: gens } = await admin.from('quote_pdf_cache').select('quote_id', { count: 'exact', head: true }).eq('customer_id', cust.id).gte('created_at', hourAgo);

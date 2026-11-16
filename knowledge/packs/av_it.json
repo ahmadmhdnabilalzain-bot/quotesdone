@@ -464,7 +464,19 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed when the wall is retrofitted onto an existing structure or the power and data routes are unknown.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "Where it would be fixed: the wall, frame or structure, close enough to see what it is made of",
+          "shot_ar": "مكان التثبيت: الجدار أو الإطار أو الهيكل، عن قرب يكفي لمعرفة مادته",
+          "from": "existing structure"
+        }
+      ]
     },
     {
       "id": "av_it:spec-conference-room",
@@ -650,7 +662,24 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for an existing room, to check ceiling void, wall construction and containment; a new room can be priced from drawings.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 5 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 5 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "Inside the false ceiling through an access panel, if one opens",
+          "shot_ar": "داخل السقف المستعار من فتحة الصيانة إن أمكن فتحها",
+          "from": "ceiling void"
+        },
+        {
+          "shot": "Where it would be fixed: the wall, frame or structure, close enough to see what it is made of",
+          "shot_ar": "مكان التثبيت: الجدار أو الإطار أو الهيكل، عن قرب يكفي لمعرفة مادته",
+          "from": "wall construction"
+        },
+        {
+          "shot": "The existing cable trays or trunking",
+          "shot_ar": "حوامل أو مجاري الكابلات الحالية",
+          "from": "containment"
+        }
+      ]
     },
     {
       "id": "av_it:spec-pa-voice-evac",
@@ -836,7 +865,24 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for an existing building, to check cable routes, zones and the fire alarm panel.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "Where the cables would run (ceiling, walls, trunking or trays)",
+          "shot_ar": "أماكن مرور الكابلات (السقف، الجدران، المجاري أو الحوامل)",
+          "from": "cable routes"
+        },
+        {
+          "shot": "The room as a whole, showing doors, openings and the ceiling",
+          "shot_ar": "الغرفة كاملة، مع إظهار الأبواب والفتحات والسقف",
+          "from": "zones"
+        },
+        {
+          "shot": "The existing panel or equipment room, with the panel front readable",
+          "shot_ar": "اللوحة أو غرفة الأجهزة الحالية، مع وضوح واجهة اللوحة",
+          "from": "fire alarm panel"
+        }
+      ]
     },
     {
       "id": "av_it:spec-structured-cabling",
@@ -1015,7 +1061,24 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for an occupied or existing building, to check containment, telecom rooms and access hours.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "The existing cable trays or trunking",
+          "shot_ar": "حوامل أو مجاري الكابلات الحالية",
+          "from": "containment"
+        },
+        {
+          "shot": "The existing panel or equipment room, with the panel front readable",
+          "shot_ar": "اللوحة أو غرفة الأجهزة الحالية، مع وضوح واجهة اللوحة",
+          "from": "telecom rooms"
+        },
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "access hours"
+        }
+      ]
     },
     {
       "id": "av_it:buyer-mistakes",

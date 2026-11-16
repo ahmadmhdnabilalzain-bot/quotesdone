@@ -38,6 +38,7 @@ export function supabaseReviewRepo(admin: any): ReviewRepo {
       const { error } = await admin.from('quote_extraction_model').upsert({ subject_key: `${supplierId}:${inquiryId}`, model, extracted_at: new Date().toISOString() });
       if (error) console.error('quote_extraction_model: ' + error.message);
     },
+    async pointsAnswered(reviewId) { try { await admin.rpc('fn_sales_engineer_comparison_points_answered', { p_review_id: reviewId }); } catch (_e) { /* the seat's desk shows it open; its reply_within chases it */ } },
     async log(counts, note) { try { await admin.from('agent_runs').insert({ agent: SEAT, status: 'ok', started_at: new Date().toISOString(), finished_at: new Date().toISOString(), counts, note: note.slice(0, 500) }); } catch (_e) { /* the trail never blocks the conversation */ } },
   };
 }

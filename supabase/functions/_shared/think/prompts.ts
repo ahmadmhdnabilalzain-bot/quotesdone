@@ -41,6 +41,9 @@ export function synthesisPrompt(seat: Seat, audience: string, language: string, 
   const dec = decision
     ? decision.options?.length
       ? `\nThis is a DECISION. Set "decision":{"choice":"<exactly one id>"} with one of: ${decision.options.map((o) => `${o.id} (${o.meaning})`).join('; ')}. "answer" states the reasoning in two or three sentences.`
+        + (decision.authored && decision.fields?.length
+          ? ` Beside the choice, write every field in your own words: "decision":{"choice":"<id>","fields":{"<key>":{"value":"<text>"}}} for ${decision.fields.map((f) => `${f.key} (${f.question})`).join('; ')}. Each value is one string; a list is a JSON array written inside that string.`
+          : '')
       : `\nThis is a DECISION about which facts the person has ALREADY stated. Set "decision":{"fields":{"<key>":{"value":"<value>","evidence":"<their exact words, copied verbatim>"}}} ONLY for fields the conversation actually answers: ${(decision.fields ?? []).map((f) => `${f.key} (${f.question})`).join('; ')}. Leave out anything not stated. "answer" summarises what was and was not stated.`
     : '';
   return `${RULINGS}

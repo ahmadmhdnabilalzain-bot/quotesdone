@@ -48,6 +48,8 @@ export type Proposal = {
   /** Why no amount was taken although figures were found: the total is held for the supplier to state (#1562). */
   review_reason?: 'total_without_currency' | 'conflicting_totals' | 'option_total_mismatch' | 'foreign_currency' | 'line_needs_review' | null;
   amount: number | null; currency: 'AED'; line_items: QuoteLine[]; lead_time: string; validity: string;
+  /** The date printed on the quotation as written ('' when none was read); submit_quote stores it as quotes.quotation_date (ledger 1697). */
+  quotation_date?: string;
   payment_terms: string; warranty: string; scope: string; conditions: string; exclusions: string; notes: string;
   description_anonymized: string; masked_terms: string[]; confidence: 'low'; method: 'document';
   /** Internal record only; never shown to a customer. */
@@ -396,7 +398,7 @@ export function quoteFromExtracted(ex: Extracted, terms: string[] = [], read: Pa
   const lineItems = (b ? b.lines.slice(0, 200) : []).map((l) => { const c = forCustomer(l.description); return c !== l.description ? { ...l, customer_description: c } : l; });
   const p: Proposal = {
     amount: options.length ? options[0].amount : (vat.price_ex_vat ?? gross), currency: 'AED', line_items: lineItems,
-    lead_time: '', validity: '', payment_terms: '', warranty: '', scope: '', conditions: '', exclusions: '', description_anonymized: '', masked_terms: [], confidence: 'low', method: 'document',
+    lead_time: '', validity: '', quotation_date: '', payment_terms: '', warranty: '', scope: '', conditions: '', exclusions: '', description_anonymized: '', masked_terms: [], confidence: 'low', method: 'document',
     notes: `Read from the ${ex.kind.toUpperCase()} file with no model${b ? `: ${plain.length} priced line(s)` : ''}${options.length ? `, ${options.length} options (each is sent as its own quotation)` : ''}. Please check every figure before sending.`,
     subtotal: b?.subtotal ?? null, vat_amount: vat.vat_amount, total_incl_vat: vat.vat_amount && vat.total_as_stated ? vat.total_as_stated : null, vat_treatment: vat.treatment,
     price_ex_vat: options.length ? null : vat.price_ex_vat, trn: vat.trn, options, option_totals,

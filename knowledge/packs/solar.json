@@ -178,7 +178,34 @@
         }
       ],
       "site_visit_required_when": "A site visit is unavoidable before a firm solar price, to check the roof structure, shading, cable routes and the main board.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "The roof from one corner, showing its surface and what is on it",
+          "shot_ar": "السطح من إحدى الزوايا، مع إظهار سطحه وما عليه",
+          "from": "roof structure"
+        },
+        {
+          "shot": "Where it would be fixed: the wall, frame or structure, close enough to see what it is made of",
+          "shot_ar": "مكان التثبيت: الجدار أو الإطار أو الهيكل، عن قرب يكفي لمعرفة مادته",
+          "from": "structure"
+        },
+        {
+          "shot": "Anything that throws shade on the roof (walls, tanks, nearby buildings, trees)",
+          "shot_ar": "كل ما يلقي ظلاً على السطح (جدران، خزانات، مبانٍ مجاورة، أشجار)",
+          "from": "shading"
+        },
+        {
+          "shot": "Where the cables would run (ceiling, walls, trunking or trays)",
+          "shot_ar": "أماكن مرور الكابلات (السقف، الجدران، المجاري أو الحوامل)",
+          "from": "cable routes"
+        },
+        {
+          "shot": "The electrical board (DB) with its door open, and any isolator switch near the work",
+          "shot_ar": "لوحة الكهرباء مفتوحة الباب، وأي مفتاح فصل قريب من مكان العمل",
+          "from": "the main board"
+        }
+      ]
     },
     {
       "id": "solar:uae-standards-and-approvals",

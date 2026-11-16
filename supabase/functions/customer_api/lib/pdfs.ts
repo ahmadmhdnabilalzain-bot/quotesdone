@@ -1,7 +1,7 @@
 // customer_api — the customer's documents: the quotation, the brief and the comparison report, and the
 // IO of the held Arabic comparison's finisher.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,516-line index.ts split into modules, a pure move).
-import { NOT_LIVE_QUOTE_IN } from '../../_shared/quote_live.ts';
+import { storedLetterOf } from '../../_shared/quote_labels.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 import { ctxOfQuote, generaliseLine, generaliseQuoteTerms } from '../../_shared/quote_generalise.ts';
 import { requestOf, reviewNotes } from '../../_shared/quote_review_notes.ts';
@@ -12,18 +12,19 @@ import { MAX_ATTEMPTS as MAX_COMPARE_ATTEMPTS, type CompareFinishIO } from '../c
 import { nativeArabic } from '../../_shared/reasoned_governance.ts';
 import { readRevealRate, recordRateUnreadable } from '../../_shared/reveal_rate.ts';
 import { J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
-import { supplierLabel } from './inquiry_rules.ts';
 
 // THE QUOTATION DOCUMENT (14 Sep 2026, agent: ceo). quoteDocument lays it out with no model; the
 // Arabic copy translates what the platform knows the meaning of and reproduces the supplier's own
 // words as written (see _shared/quote_documents.ts for why). translateQuoteAr — an ai_gateway call
 // whose failure under the OpenRouter hold silently shipped English under Arabic headings — is gone.
-// The anonymous letter of a quote is its place among the LIVE quotes by ascending price: the rule
-// my_inquiries and quote_compare both use. This used to count drafts too, so a draft priced below a
-// quote made its PDF say "Supplier C" on a card the customer sees as "Supplier B".
-export async function letterOf(q: any): Promise<string> {
-  const { data: sibs } = await admin.from('quotes').select('id,quote_amount').eq('inquiry_id', q.inquiry_id).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true });
-  const idx = (sibs || []).findIndex((s: any) => s.id === q.id); return supplierLabel(idx >= 0 ? idx : 0);
+// The anonymous letter of a quote: the letter STORED the first time the customer was shown its supplier (_shared/quote_labels.ts,
+// public.customer_supplier_letter). Until 15 Nov 2026 this was the place among the live quotes by ascending PRICE at the moment
+// the PDF was made, so journey A's two quotation PDFs both said "Supplier A". THE PDF NEVER GUESSES (review REVIEW_plain item 2):
+// this fell back to "A" when the read failed. Now a failed read is null and the caller refuses (the portal retries; the backup row
+// retries); a supplier the customer has not been shown yet is '' and the document says "Supplier" with no letter.
+export async function letterOf(q: any): Promise<string | null> {
+  const r = await storedLetterOf(admin, q);
+  return r.ok ? (r.letter ?? '') : null;
 }
 // The strings that must not appear on a customer's document before the reveal.
 async function supplierIdentities(ids: any[]): Promise<string[]> {
@@ -51,6 +52,7 @@ export async function buildQuotePdf(q: any, inq: any, lang: 'en' | 'ar', target?
   const override = target?.request;
   const partyName = await revealedPartyName(q);
   const letter = await letterOf(q);
+  if (letter === null) return { j: { ok: false, error: 'letter_unread' }, ref: '' };
   // The supplier's OWN priced breakdown lives in quote_items; the customer's requested BOQ is only
   // the fallback when the supplier priced a lump sum.
   // Each line carries its own price and technical specification (brand, model, specification, and the

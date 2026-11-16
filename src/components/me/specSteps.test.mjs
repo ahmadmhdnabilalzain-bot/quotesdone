@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { choicesFor, answerOf, stepDone, collectAnswers, notSureKeys, optionLabel, NOT_SURE, OTHER } from './specSteps.ts';
-import { SPEC_OPTION_AR } from './specOptionsAr.ts';
+import { SPEC_OPTION_AR } from '../../../supabase/functions/_shared/spec_options_ar.ts';
 
 const product = { key: 'product', ask: 'What are you after?', options: ['Sign/letters', 'Display/stand', 'Other'] };
 const area = { key: 'area_m2', ask: 'How big?', type: 'number', options: [] };

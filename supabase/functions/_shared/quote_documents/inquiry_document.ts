@@ -43,6 +43,9 @@ export type InquiryDocRow = {
   /** What inquiry_documents offers for download, by name: the redacted drawing pages and the BOQ CSV. */
   documents: Array<{ kind: 'drawing_page' | 'boq_csv'; name: string; lines?: number }>;
   drawing_pages_failed?: number | null;
+  /** Photos from the site (supplier_api/site_photos_door.ts sitePhotosSection, without its signed URLs): how many checked copies
+   *  the portal shows, which asked shots they show and which were not provided. null/absent = nothing asked or sent. */
+  site_photos?: { shown: number; provided: string[]; not_provided: string[]; provided_ar?: string[]; not_provided_ar?: string[] } | null;
 };
 const URGENCY: Record<string, [string, string]> = { urgent: ['Urgent', 'عاجل'], high: ['Urgent', 'عاجل'], normal: ['Standard', 'عادي'], standard: ['Standard', 'عادي'], low: ['Not urgent', 'غير عاجل'], flexible: ['Flexible', 'مرن'] };
 export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; portalUrl?: string; date?: string; date_ar?: string; arTexts?: ArTexts }) {
@@ -143,6 +146,24 @@ export function inquiryDocument(args: { inquiry: InquiryDocRow; lang: Lang; port
     if (open && !fromQuotation) blocks.push({ t: 'note', text: T(`${open} line${open === 1 ? ' is' : 's are'} marked "To confirm" or "Not counted": the quantity is our take-off estimate from the drawing, not the customer's figure. Measure it, and state the quantity you priced on your quotation.`, `${open} من البنود معلّمة «للتأكيد» أو «لم تُعدّ»: الكمية تقديرنا من المخطط وليست رقم العميل. تحقّق منها واذكر الكمية التي سعّرتها في عرضك.`) });
     if (rows.length > 600) blocks.push({ t: 'note', text: T(`${rows.length - 600} further lines are in the BOQ file.`, `يوجد ${rows.length - 600} بندًا إضافيًا في ملف جدول الكميات.`) });
   } else blocks.push({ t: 'note', text: T('No bill of quantities was attached. Price from the scope and the drawings.', 'لم يُرفق جدول كميات. سعّر من النطاق والمخططات.') });
+
+  // PHOTOS FROM THE SITE (15 Nov 2026, sales_engineer; founder ledger 1704, ruling 1683): the checked copies are in the portal (a
+  // signed link expires; this document is kept), so it says how many there are, which shots they show and which were not
+  // provided, and that a final price may still need a visit.
+  const sp = i.site_photos;
+  if (sp && (sp.shown || sp.provided?.length || sp.not_provided?.length)) {
+    section('Photos from the site', 'صور من الموقع');
+    blocks.push({ t: 'p', text: sp.shown
+      ? T(`${sp.shown} checked photo${sp.shown === 1 ? '' : 's'} from the customer, with anything that could identify them covered, ${sp.shown === 1 ? 'is' : 'are'} on this inquiry in the portal.`, `${sp.shown} من الصور التي فُحصت من العميل، مع تغطية كل ما قد يدل عليه، متاحة على هذا الطلب في البوابة.`)
+      : T('No checked photo from the customer yet. Photos still being checked appear on this inquiry in the portal once they clear.', 'لا توجد بعد صورة مفحوصة من العميل. تظهر الصور قيد الفحص على هذا الطلب في البوابة عند اجتيازها الفحص.') });
+    const shots = (en: string[] | undefined, arx: string[] | undefined) => k.cell((ar && arx?.length ? arx : en ?? []).join('; '), 600);
+    const rowsP: Cell[][] = [
+      ...(sp.provided?.length ? [[T('Shots provided', 'اللقطات المرفقة'), shots(sp.provided, sp.provided_ar)]] : []),
+      ...(sp.not_provided?.length ? [[T('Not provided', 'غير مرفقة'), shots(sp.not_provided, sp.not_provided_ar)]] : []),
+    ];
+    if (rowsP.length) blocks.push({ t: 'table', head: [T('Shots', 'اللقطات'), T('As asked of the customer', 'كما طُلبت من العميل')], rows: rowsP, widths: [0.32, 0.68], align: ['s', 's'], zebra: true });
+    blocks.push({ t: 'note', text: T('A final price may still need a site visit.', 'قد يحتاج السعر النهائي إلى زيارة للموقع.') });
+  }
 
   section('Documents attached', 'المستندات المرفقة');
   if (i.documents.length) {

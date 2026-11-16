@@ -81,3 +81,18 @@ Deno.test('the portal\'s turn reading carries the complaint in the same call (co
   assertEquals(n.complaint, undefined, 'no complaint, no field');
   assertEquals(parseReading(JSON.stringify({ trade_codes: ['joinery'], complaint: 42 }), { taxonomy: TAX, services: SVC })!.complaint, undefined);
 });
+
+// THE SITE VISIT A JOB MEETS (15 Nov 2026, sales_engineer; ledger 1704; review of bf8b9ea45, item 8): given each held trade's site-visit
+// condition, the reading says which the job meets; only a trade whose condition was shown is kept; the patch marks it 'visit:<code>',
+// which the next WhatsApp reply reads to ask for the photos once (wa_inbound/say.ts waPhotoAsk).
+Deno.test('the reading marks the trades whose site-visit condition the job meets, and only those it was shown', () => {
+  const siteVisits = [{ code: TAX[0].code, when: 'ZZ DEMO a site visit is needed for replacements' }];
+  const p = readingPrompt({ taxonomy: TAX, problems: [], lastSeat: '', message: 'replace my units', siteVisits });
+  assert(p.sys.includes('SITE VISIT CONDITIONS') && p.sys.includes('"site_visit":[]') && p.sys.includes('ZZ DEMO a site visit is needed for replacements'));
+  assert(!readingPrompt({ taxonomy: TAX, problems: [], lastSeat: '', message: 'x' }).sys.includes('SITE VISIT'), 'the conditions block appears with no conditions');
+  const r = parseReading(JSON.stringify({ trade_codes: [TAX[0].code], site_visit: [TAX[0].code, 'made_up_trade', TAX[1].code] }), { taxonomy: TAX, siteVisits })!;
+  assertEquals(r.site_visit, [TAX[0].code], 'a trade whose condition was not shown was kept');
+  assertEquals(readingPatch(r).asked, ['visit:' + TAX[0].code]);
+  assertEquals(parseReading(JSON.stringify({ trade_codes: [TAX[0].code], site_visit: [TAX[0].code] }), { taxonomy: TAX })!.site_visit, [], 'kept with no condition shown');
+  assertEquals(readingPatch({ ...r, site_visit: [] }).asked, undefined);
+});

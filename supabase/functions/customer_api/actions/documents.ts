@@ -21,6 +21,7 @@ import { LENGTHS_FAILED_NOTE, LENGTHS_QUEUED_NOTE } from '../../drawing_boq/leng
 import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../../_shared/drawing_format.ts';
 import { cadJobNeedsRedispatch, claimCadDispatch } from '../cad_dispatch.ts';
+import { PHOTOS_PER_DAY, photosToday, recordSitePhotos } from '../../_shared/site_photos.ts';
 import { type ActionCtx, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
 import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, queueCadRead, recordHeld, redactCad, scheduleTables, storeOriginal } from '../lib/drawings.ts';
 
@@ -68,7 +69,34 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         }
         counted = { boq: applyVisionCounts((job.boq_in as any).vision_lines, vj), vision_count: { source: vj?.source ?? null, why: vj?.why ?? null, agrees: vj?.agrees ?? null } };
       }
-      return J({ ok: true, status: job.status, ...(job.status === 'queued' || job.status === 'running' ? { held_for: 'sales_engineer' } : {}), boq: res?.boq ?? null, ...(counted ? { counted_boq: counted.boq, vision_count: counted.vision_count } : {}), ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
+      return J({ ok: true, status: job.status, ...(job.status === 'queued' || job.status === 'running' ? { held_for: 'sales_engineer' } : {}), boq: res?.boq ?? null,
+        // a site photo's verdict and the customer's notice (which photo, why) from _shared/site_photo_gate.ts on the worker
+        ...(res?.photo && typeof res.photo === 'object' ? { photo: { status: String(res.photo.status || 'withheld'), shot: res.photo.shot ?? null, notice_en: String(res.photo.notice_en || ''), notice_ar: String(res.photo.notice_ar || '') } } : {}), ...(counted ? { counted_boq: counted.boq, vision_count: counted.vision_count } : {}), ...(pages.length ? { drawing_redacted_paths: pages, redaction_job_id: String(res.redaction_job_id || ''), redaction_job_ids: Array.isArray(res.redaction_job_ids) ? res.redaction_job_ids.map((x: unknown) => String(x)) : [String(res.redaction_job_id || '')], redaction_complete: true, drawing_held: false } : {}) });
+    }
+
+    // A SITE PHOTO FOR A SITE-VISIT JOB (15 Nov 2026, sales_engineer; founder ledger 1704, ruling 1683). Stored privately and
+    // queued for its check on the worker (scripts/cad_read_worker.ts sitePhoto, _shared/site_photo_gate.ts). Nothing of it is
+    // returned or shared: the request records the job (inquiry_intake site_photos), and a supplier sees only the copy the check
+    // released and recorded. The customer's notice comes back on cad_read_status.
+    if (action === 'site_photo') {
+      const raw = String(body.image_b64 || '').replace(/^data:[^;]+;base64,/, '');
+      const mime = /^image\/(jpeg|png|webp)$/i.test(String(body.mime || '')) ? String(body.mime).toLowerCase() : 'image/jpeg';
+      if (!raw || raw.length > 8_000_000 || !/^[A-Za-z0-9+/=]+$/.test(raw.slice(0, 2000))) return J({ ok: false, error: 'photo_unreadable' }, 400);
+      // A CAP PER CUSTOMER PER DAY (review of bf8b9ea45, item 6): each photo is a worker job with paid looks; unreadable = refused.
+      const today = await photosToday(admin, cust.id);
+      if (today === null || today >= PHOTOS_PER_DAY) return J({ ok: false, error: 'photo_daily_limit', limit: PHOTOS_PER_DAY }, 429);
+      const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
+      const path = await storeOriginal(cust.id, email, `site_photo.${ext}`, mime, raw, SAFE_UPLOAD);
+      if (!path) return J({ ok: false, error: 'photo_not_stored' }, 500);
+      const shot = String(body.shot || '').replace(/\s+/g, ' ').trim().slice(0, 140) || null;
+      const job = await queueCadRead({ customerId: cust.id, email, path, name: 'site_photo', mime, b64Len: raw.length, why: 'site_photo_check', boqIn: { shot } });
+      if (!job) return J({ ok: false, error: 'photo_not_queued' }, 500);
+      // THE PHOTO IS ON THE REQUEST NOW, NOT AT THE NEXT CHAT TURN (review item 2): recorded on the customer's own intake in one
+      // statement (_shared/site_photos.ts recordSitePhotos). `recorded` false = the intake was not found as theirs; the portal
+      // then sends the job with Send, and create_inquiry checks it is theirs before keeping it.
+      const rec = /^[0-9a-f-]{36}$/i.test(String(body.intake_id || '')) ? await recordSitePhotos(admin, { table: 'inquiry_intake', id: String(body.intake_id), customerId: cust.id, email, photos: [{ job_id: job, shot }], via: 'portal' }) : null;
+      const recorded = !!rec?.photos?.some((p) => p.job_id === job);
+      return J({ ok: true, job_id: job, shot, status: 'checking', recorded });
     }
 
     if (action === 'analyze_boq') {
