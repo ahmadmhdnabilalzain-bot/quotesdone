@@ -41,6 +41,8 @@ begin
        and exists (select 1 from jsonb_array_elements(case when jsonb_typeof(it.turns) = 'array' then it.turns else '[]'::jsonb end) t
                     where t ->> 'role' = 'user' and btrim(coalesce(t ->> 'text', '')) <> '')
        and coalesce(c.email, it.email, '') like '%@%'
+       -- only his newest draft: one he set aside with "Start a new request", or left before he sent another, is never nudged
+       and not exists (select 1 from public.inquiry_intake n where n.email = it.email and n.id <> it.id and n.created_at > it.created_at)
      order by coalesce(it.updated_at, it.created_at) limit 200
   loop
     continue when x.demo is distinct from v_fx;

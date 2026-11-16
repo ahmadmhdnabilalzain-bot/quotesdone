@@ -27,7 +27,8 @@ begin
   insert into public.inquiry_intake (id, customer_id, email, category, status, turns, missing, created_at, updated_at) values
     (dA, cE, 'zz-demo-nudge-en@example.invalid', 'painting', 'needs_info', t, '["emirate","area"]', now() - interval '31 hours', now() - interval '30 hours'),
     (dB, cA, 'zz-demo-nudge-ar@example.invalid', 'plumbing', 'ready', t, '[]', now() - interval '81 hours', now() - interval '80 hours'),
-    (dC, cE, 'zz-demo-nudge-en@example.invalid', 'painting', 'needs_info', t, '["emirate"]', now() - interval '3 hours', now() - interval '2 hours'),
+    -- (a draft of his own started later would make dA one he set aside: never nudged; this not-yet-due draft is another fixture's)
+    (dC, null, 'zz-demo-nudge-c@example.invalid', 'painting', 'needs_info', t, '["emirate"]', now() - interval '3 hours', now() - interval '2 hours'),
     (dD, cE, 'zz-demo-nudge-en@example.invalid', 'painting', 'needs_info', t, '["emirate"]', now() - interval '11 days', now() - interval '10 days'),
     (dE, cE, 'zz-demo-nudge-en@example.invalid', 'painting', 'needs_info', '[{"role":"assistant","text":"Hi"}]', '["emirate"]', now() - interval '31 hours', now() - interval '30 hours'),
     (dR, cR, 'probe-not-demo-cw2@quotesdone-probe.local', 'painting', 'needs_info', t, '["emirate"]', now() - interval '31 hours', now() - interval '30 hours');
@@ -52,6 +53,12 @@ begin
   -- and 72 hours on from his last word, the second nudge
   v := public.fn_sales_engineer_nudges_unfinished_requests(now() + interval '47 hours');
   if (v->>'nudged_72h')::int <> 1 then fails := fails || ' [4: no 72-hour nudge: ' || v::text || ']'; end if;
+  -- 6. he set dA aside and started a new request chat: dA, the draft "Start a new request" left behind, is never nudged again
+  update public.inquiry_intake set nudged_24h_at = null, nudged_72h_at = null, updated_at = now() - interval '30 hours' where id = dA;
+  insert into public.inquiry_intake (id, customer_id, email, category, status, turns, missing, created_at, updated_at)
+  values (gen_random_uuid(), cE, 'zz-demo-nudge-en@example.invalid', 'tiling', 'needs_info', t, '["area"]', now() - interval '1 hour', now() - interval '1 hour');
+  v := public.fn_sales_engineer_nudges_unfinished_requests(now());
+  if v->'ids' ? dA::text then fails := fails || ' [6: the draft he set aside was nudged: ' || v::text || ']'; end if;
 
   if fails <> '' then raise exception 'CHK<<PROBE FAILED:%>>', fails; end if;
   raise exception 'CHK<<PROBE OK>>';

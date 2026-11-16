@@ -270,6 +270,8 @@ begin
       join public.leads l on l.id = r.supplier_id
       left join lateral (select f.letter from public.fn_customer_quote_letters(i.id) f where f.quote_id = r.quote_id) lt on true
      where r.asked_by = 'customer' and r.answered_at is null and r.relayed_at is not null and r.reply_by <= p_at and r.overdue_told_at is null
+       -- a request that ended or was revealed meanwhile is chased of nobody
+       and coalesce(i.status, '') not in ('revealed', 'completed', 'cancelled', 'closed', 'expired', 'lost')
        and coalesce(c.is_demo, false) = v_fx
      order by r.reply_by limit 100
   loop
@@ -350,10 +352,10 @@ returns jsonb language sql stable security definer set search_path to 'public', 
          else jsonb_strip_nulls(jsonb_build_object('asked_at', c.asked_at,
            'supplier_asked', left(c.question, 400),
            'he_answered', left(coalesce(c.answer_as_written, c.answer), 400), 'answered_at', c.answered_at)) end
-         order by c.asked_at)
+         order by c.asked_at, c.id)
     from (select * from public.rfq_clarification c0
            where c0.inquiry_id = p_inquiry and c0.kind = 'question' and c0.supplier_id = p_supplier
-           order by c0.asked_at desc limit 8) c
+           order by c0.asked_at desc, c0.id desc limit 8) c
 $fn$;
 revoke execute on function public.fn_customer_quote_thread(uuid, bigint) from public, anon, authenticated;
 

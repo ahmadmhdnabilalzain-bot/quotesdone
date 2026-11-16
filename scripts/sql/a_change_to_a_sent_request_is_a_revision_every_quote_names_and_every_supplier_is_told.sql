@@ -166,13 +166,14 @@ begin
 
   -- The change in words a supplier reads (English; suppliers see the budget, the emirate and the date, never the customer).
   v_lines := concat_ws(chr(10),
-    case when v_changes ? 'budget' then '- Budget: ' || coalesce(v_changes->'budget'->>'from', 'not stated') || ' -> ' || (v_changes->'budget'->>'to') end,
+    -- the budget is his free text and this line reaches suppliers by e-mail, outside the supplier gate: his contacts and name come out
+    case when v_changes ? 'budget' then '- Budget: ' || coalesce(public.fn_scrub_customer_identity(v_changes->'budget'->>'from', v.customer_id), 'not stated') || ' -> ' || public.fn_scrub_customer_identity(v_changes->'budget'->>'to', v.customer_id) end,
     case when v_changes ? 'required_by' then '- Needed by: ' || coalesce(to_char((v_changes->'required_by'->>'from')::date, 'DD Mon YYYY'), 'not stated') || ' -> ' || to_char((v_changes->'required_by'->>'to')::date, 'DD Mon YYYY') end,
     case when v_changes ? 'emirate' then '- Emirate: ' || coalesce(v_changes->'emirate'->>'from', 'not stated') || ' -> ' || (v_changes->'emirate'->>'to') end,
     case when v_changes ? 'summary' then '- The description of the work was updated (open the request to read it).' end,
     case when v_changes ?| array['spec', 'boq', 'trades', 'scope_type'] then '- The specification or items changed (open the request to read them).' end);
   v_lines_ar := concat_ws(chr(10),
-    case when v_changes ? 'budget' then '- الميزانية: ' || (v_changes->'budget'->>'to') end,
+    case when v_changes ? 'budget' then '- الميزانية: ' || public.fn_scrub_customer_identity(v_changes->'budget'->>'to', v.customer_id) end,
     case when v_changes ? 'required_by' then '- التاريخ المطلوب: ' || to_char((v_changes->'required_by'->>'to')::date, 'YYYY-MM-DD') end,
     case when v_changes ? 'emirate' then '- الإمارة: ' || (v_changes->'emirate'->>'to') end,
     case when v_changes ? 'summary' then '- وصف العمل' end);

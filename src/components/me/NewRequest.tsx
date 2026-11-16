@@ -231,7 +231,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   // composer alone, which left the customer looking for the paperclip the button was named after.
   // Runs in the effect flush of that same click, so the browser still counts it as user-initiated.
   useEffect(() => { if (pickFile && fileRef.current) fileRef.current.click(); }, [pickFile]);
-  useEffect(() => { if (initialText && !sentDraft.current) { sentDraft.current = true; push({ role: 'assistant', text: t(lang, 'nr_draft_picked') }); sendText(initialText); } }, [initialText]);
+  useEffect(() => { if (initialText && !sentDraft.current) { sentDraft.current = true; freshRef.current = true; push({ role: 'assistant', text: t(lang, 'nr_draft_picked') }); sendText(initialText); } }, [initialText]);
   // "NEW REQUEST" AFTER A PORTAL CHAT (10 Nov 2026, founder ledger 1572): the request opens pre-filled from the chat. The
   // server carries the customer's newest portal job that is not a request yet (inquiry_intake carry_from 'portal') and
   // answers its first turn over that whole job; with nothing to carry it answers carried:false and this screen is unchanged.
