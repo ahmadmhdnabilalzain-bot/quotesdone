@@ -44,6 +44,7 @@ const SITE = process.env.QD_SITE || 'https://quotesdone.ae';
 import { sinkAddress, readCode, cleanSink } from './resend_sink.mjs';
 import { BASE, internalCred } from '../lib/demo_factory.mjs';
 import { recordFixtureMobileBeforeTheForm } from './fixture_mobile.mjs';
+import { holdConnectionsLikeABrowser } from './node_keepalive.mjs';
 import { LICENCES, NOT_LICENCES, PROFILES, fixturePath, fixturesPresent } from './registration_fixtures.mjs';
 import { walkServices } from './services_screens_walk.mjs';
 import { readiness, judgeVagueProposals, stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, failureOrigin, splitEnvironmentFaults, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
@@ -778,6 +779,8 @@ async function main() {
   if (held.length) { console.error('REFUSED: a lead already holds a fixture licence or name (a leftover run?): ' + JSON.stringify(held) + '\n  purge it: node scripts/e2e/run.mjs --purge-tag <tag>'); process.exit(2); }
   const est = await estimate().catch((e) => ({ error: e.message }));
   log(`${PAID ? 'PAID' : 'FREE'} certification, ${RUNS} run(s), out ${OUT}; paid-round estimate ${JSON.stringify(est)}`);
+  // the page's calls go through Node on a paid run: its connections are held across the code e-mail's wait, as the browser's are
+  if (VIA_NODE) await holdConnectionsLikeABrowser();
   BROWSER = await launch();
   const runs = [];
   try { for (let i = 1; i <= RUNS; i++) runs.push(await oneRun(i)); } finally { await BROWSER.close().catch(() => {}); }

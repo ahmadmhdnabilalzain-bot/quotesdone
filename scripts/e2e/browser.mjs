@@ -7,6 +7,7 @@
 // All THREE keys are written. Writing only the two tokens is the trap recorded in quotesdone-session §7:
 // the mount effect calls SB.auth.getSession() and would restore whichever session qd-*-auth held.
 import { chromium } from 'playwright';
+import { holdConnectionsLikeABrowser } from './node_keepalive.mjs';
 
 export const SITE = process.env.QD_SITE || 'https://quotesdone.com';
 export const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 375, height: 812 }, tablet: { width: 768, height: 1024 } };
@@ -168,6 +169,7 @@ export async function signedInPage(browser, who, { lang = 'en', viewport = 'desk
   // browser go direct. The run-tag headers are forwarded, so a model call stays inside the run's capped window.
   if (process.env.QD_ROUTE_FUNCTIONS_VIA_NODE === '1') {
     const { BASE, internalCred } = await import('../lib/demo_factory.mjs');
+    await holdConnectionsLikeABrowser();   // a browser keeps its connection across a wait; Node's fetch drops it after 4 s (node_keepalive.mjs)
     // Registered after the run-tag route, so it runs first (Playwright: last registered, first matched) and that
     // route's continue() never adds the tag: it is added here, on the same exact-host calls only.
     const tagged = process.env.QD_E2E_RUN_TAG ? { 'x-qd-e2e-run': process.env.QD_E2E_RUN_TAG, 'x-qd-e2e-secret': await internalCred() } : {};
