@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button';
 // link on the site landed on that form (website audit §1 finding 6). It is now the supplier pitch;
 // the app stays at /portal. Every figure below is the FAQ's (src/content/marketing.json, checked
 // 14 Sep 2026): no commission; registration free permanently for the first 1,000 suppliers, AED
-// 1,000/year from the 1,001st; the non-response charge; verification within 3 working days.
+// 1,000/year from the 1,001st; the non-response charge. Verification is automatic (16 Nov 2026, ruling 1681: the licence
+// reader decides the moment a document is saved; the name and trade are read from the licence, ruling 1672).
 // THE PRODUCT VISUAL IS GONE (founder instruction 70, 14 Sep 2026: "i dont like the product visuals at
 // all. cancel that idea"). The hero carried a drawing-to-BOQ mock-up (DrawingToBoq) whose title block
 // printed CLIENT / PROJECT / TEL / EMAIL in English on /ar/supplier too; it was removed 22 Sep 2026

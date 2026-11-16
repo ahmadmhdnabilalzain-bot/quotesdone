@@ -40,7 +40,7 @@ const pick = <T>(xs: readonly T[], id: number, salt: number) => xs[Math.abs((id 
 const T = {
   en: {
     hello: (n: string) => `Hello ${n},`,
-    intro: 'I founded QuotesDone, a Dubai-licensed platform for construction and fit-out procurement.',
+    intro: 'I founded QuotesDone, a Dubai-licensed procurement platform for every trade in the UAE.',
     value: {
       developer: 'It lets a project team post a package once and receive anonymised, like-for-like quotes from verified UAE suppliers.',
       contractor_procurement: 'It lets a procurement team send one request and compare structured quotes from verified UAE suppliers, with no supplier calls until you choose one.',

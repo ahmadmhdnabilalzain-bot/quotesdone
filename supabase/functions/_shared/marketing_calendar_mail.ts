@@ -46,8 +46,9 @@ export function ownWords(text: string | null | undefined): string {
 
 /**
  * 'approve' only when his own words are an approval and nothing else: an EXACT reply keyword, English or
- * Arabic ("approve", "approved", "ok approve", "موافق", "أوافق"...). Anything else he writes is a change
- * request the marketing seat acts on (fn_marketing_calendar_reply files it); an empty reply is 'unclear'.
+ * Arabic ("approve", "approved", "ok approve", "موافق", "أوافق"...). Since 16 Nov 2026 such a reply approves nothing: the
+ * CEO seat approves the calendar (founder ruling 1696) and fn_marketing_calendar_reply answers him so. Anything else he
+ * writes is a change request the marketing seat acts on (fn_marketing_calendar_reply files it); an empty reply is 'unclear'.
  */
 export function replyIntent(text: string | null | undefined): 'approve' | 'change' | 'unclear' {
   const said = ownWords(text).replace(/\n/g, ' ').toLowerCase()

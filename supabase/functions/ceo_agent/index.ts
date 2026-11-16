@@ -35,8 +35,7 @@ import { decideOpenReviews } from '../_shared/review_decide.ts';
 import { liveReviewIO } from '../_shared/review_request.ts';
 import { workEscalationClocks } from '../_shared/escalation_clock.ts';
 import { liveClockIO } from '../_shared/escalation_clock_io.ts';
-import { precedentBlock, recallCases, recallTrace } from '../_shared/case_recall.ts';
-import { seatPool } from '../_shared/seat_pool.ts';
+import { recallCases, recallTrace } from '../_shared/case_recall.ts';
 import { COVERAGE_ACTIONS, coverageAction } from './coverage.ts';
 import { PLAN_ACTIONS, planAction } from './plan.ts';
 
@@ -387,60 +386,10 @@ Deno.serve(observe('ceo_agent', async (req) => {
       return J({ ok: true, decided: await decideOpenReviews(liveReviewIO(admin), Math.min(5, Number(body.limit) || 3), id) });
     }
 
-    // ── JUDGEMENT (plan A/B) ───────────────────────────────────────────────────────────────────
-    // 22 Sep 2026, instruction 643: the CEO will run on a model, not yet chosen. The coded plan (plan C,
-    // fn_ceo_plan_tick) has ALREADY acted when this runs; the heartbeat calls it only when the founder
-    // has set app_secrets.ceo_model_slot = 'on', and it re-checks the slot itself. The request is built
-    // by fn_ceo_judgement_request from measured numbers and code-computed options, and the answer does
-    // nothing until fn_ceo_judgement_accept has validated it against ceo-judgement-v1. The slot is off
-    // today, so this branch has never reached ai_gateway: the first call after the switch is the one
-    // to watch (credential: cred_fn_ceo_agent, scope widened with ai_gateway).
-    if (action === 'judgement') {
-      if (who !== 'ceo') return J({ error: 'only the ceo judges' }, 403);
-      if ((await sec('ceo_model_slot') || 'off') !== 'on') return J({ ok: true, skipped: 'ceo_model_slot is off; plan C stands' });
-      const planId = Number(body.plan_id);
-      const { data: req, error: rerr } = await admin.rpc('fn_ceo_judgement_request', { p_plan_id: planId });
-      if (rerr || !req) return J({ ok: false, error: rerr?.message || 'no plan ' + planId }, 400);
-      // deno-lint-ignore no-explicit-any
-      const q = req as any;
-      // 2000, NOT 900 (it_engineer, 23 Sep 2026). ai_gateway takes min(body.max, route.max_tokens),
-      // and `ceo_judgement` had NO model_policy row at all, so fn_ai_route fell back to
-      // general_drafting — ~anthropic/claude-haiku-latest at 900 tokens. The CEO's judgements on
-      // refunds and exceptions were being drafted on the cheapest model in the fleet with a ceiling
-      // inside the answer's natural range. every_seat_gets_the_model_its_own_work_needs.sql adds the
-      // class on anthropic/claude-opus-5.5 with 2000; this side has to ask for 2000 or the clamp
-      // keeps the old ceiling with a better model behind it.
-      const llm = makeLlmRich(undefined, { json: true, fn: 'ceo_agent', taskClass: 'ceo_judgement', max: 2000, timeoutMs: 25000, temperature: 0.1 });
-      // THE CEO NEVER JUDGES ON A SEAT'S OWN FAMILY (founder instruction ~891). The input carries the marketing
-      // report (built in SQL) and the open directive replies; fn_ceo_judgement_counterparts names the models those
-      // replies' seats wrote on (or 'deterministic'), and ai_gateway routes the judgement away from all of their families.
-      const { data: authors, error: cpErr } = await admin.rpc('fn_ceo_judgement_counterparts', { p_plan_id: planId });
-      if (cpErr || typeof authors !== 'string' || !authors) return J({ ok: false, error: 'judgement authors: ' + (cpErr?.message || 'none') }, 500);
-      // PAST DECISIONS LIKE THIS PLAN (23 Sep 2026), by meaning, handed to the judgement as evidence.
-      const memory = await recallCases(admin, { seat: 'ceo', path: 'judgement',
-        situation: String(q.input?.summary ?? JSON.stringify(q.input ?? {})).slice(0, 1200) });
-      // THE SHARED POOL (13 Nov 2026, founder ledger 1688): the CEO judges knowing what the company did today and which
-      // hand-overs wait on him (_shared/seat_pool.ts); '' when the routine does not answer.
-      const pool = await seatPool(admin, 'ceo', null, 'internal');
-      const r = await llm(String(q.system) + precedentBlock(memory) + (pool.block ? '\n\n' + pool.block : ''),
-        JSON.stringify({ output_schema: q.output_schema, input: q.input, precedent: memory.cases }), 2000, '', { counterpartModel: authors });
-      // deno-lint-ignore no-explicit-any
-      let out: any = null;
-      try { out = JSON.parse(String(r.content ?? '').replace(/^```(?:json)?\s*|\s*```$/g, '')); } catch { out = null; }
-      // Branch on what the gateway actually answered. No independent reviewer: HELD (review_hold, CEO-owned finding),
-      // never accepted, never re-run on an author's family. The founder's hold and a budget halt are said as themselves.
-      const held: Record<string, string> = {
-        review_held_no_independent_reviewer: 'held: no reviewer outside the seats\' model families (review_hold)',
-        review_author_unknown: 'withheld: a seat\'s author model is not in model_registry (review_author_unknown finding, no review_hold)',
-        refused_deterministic: 'held: the route refused a model for this class',
-      };
-      const why = (r.outcome && held[r.outcome]) ? held[r.outcome]
-        : (r.used_llm === false && !r.content) ? 'held: no model answered (' + (r.outcome || r.error || 'no outcome') + ')'
-        : r.error ?? (r.truncated ? 'the answer was truncated' : (out ? null : 'the answer was not JSON'));
-      const { data: acc, error: aerr } = await admin.rpc('fn_ceo_judgement_accept', { p_plan_id: planId, p_output: out, p_error: why });
-      if (aerr) return J({ ok: false, error: 'judgement accept: ' + aerr.message }, 500);
-      return J({ ok: true, seat: 'ceo', accepted: acc });
-    }
+    // ── JUDGEMENT (plan A/B) — REMOVED 16 Nov 2026 (ceo, wave D; founder ledgers 1714/1715). The daily request was built
+    // by fn_ceo_plan_tick and never sent: app_secrets.ceo_model_slot does not exist, so 0 of 56 daily plans were answered.
+    // The CEO reasons on a model in its weekly plan instead (action 'plan', fn_ceo_plan_due / fn_ceo_plan_contract; rulings
+    // 1696, 1705, 1708). scripts/sql/the_ceos_unsent_daily_judgement_request_is_retired.sql.
 
     // `task` is deliberately open to BOTH seats and carries no guard of its own. whoami returns
     // only 'founder', 'ceo' or null, the null is already refused above, and both remaining seats
@@ -478,7 +427,7 @@ Deno.serve(observe('ceo_agent', async (req) => {
     }, who, action, body);
     if (plan) return J(plan.body, plan.status);
 
-    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'review_refund', 'accept', 'judgement', ...COVERAGE_ACTIONS, ...PLAN_ACTIONS] }, 400);
+    return J({ error: 'unknown_action', actions: ['command', 'context', 'inbox', 'task', 'decide', 'review_refund', 'accept', ...COVERAGE_ACTIONS, ...PLAN_ACTIONS] }, 400);
   } catch (e) {
     return J({ error: String((e as Error)?.message || e) }, 500);
   }

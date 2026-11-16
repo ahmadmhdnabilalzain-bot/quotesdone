@@ -1,9 +1,9 @@
 ---
 name: quotesdone-parallel-agents
-description: The founder's standing rule of 8 Sep 2026 — use agents in parallel to speed the work up, at most 5 at once with Sonnet for simple tasks (1 Nov 2026, ledger 1417). Fan out by default; work serially only when a step genuinely depends on the one before it.
+description: The founder's standing rule of 8 Sep 2026 — use agents in parallel to speed the work up, up to 10 at once (15 Nov 2026, ledger 1707), each on the model its task needs (Opus / Sonnet / Haiku 5.5, ledger 1708). Fan out by default; work serially only when a step genuinely depends on the one before it.
 ---
 
-# Use agents in parallel, up to the cap of 5
+# Use agents in parallel, up to the cap of 10
 
 Founder's instruction, 8 September 2026: **"use multiple agents. its taking ages for every task"**
 and **"use as many agents possible to speed up the process"**.
@@ -11,8 +11,9 @@ and **"use as many agents possible to speed up the process"**.
 This is a standing rule about HOW the session runs, not a suggestion for one task. It sits beside
 `quotesdone-session` (conduct) and `quotesdone-build-until-done` (do not stop).
 
-**The cap, 1 Nov 2026 (ledger 1417): at most 5 agents at once, and simple tasks run with `model: "sonnet"`.**
-One task per agent; start a fresh agent for the next task. See `.claude/memory/max-five-agents.md`.
+**The cap, 15 Nov 2026 (ledger 1707, replacing the 5 of ledger 1417): up to 10 agents at once. The model follows the task
+(ledger 1708): Opus 5.5 for hard work, Sonnet 5.5 for moderate, Haiku 5.5 for simple.**
+One task per agent; start a fresh agent for the next task. See `.claude/memory/max-ten-agents.md`.
 
 ---
 

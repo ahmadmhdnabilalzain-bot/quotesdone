@@ -814,3 +814,9 @@ fn_execution_sweep :: moved to schema retired by routines_with_no_caller_anywher
 fn_workflow_step_claim :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
 fn_knowledge_gaps :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
 fn_employee_knowledge_freshness :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+# 16 Nov 2026 (ceo, wave D) — the_ceos_unsent_daily_judgement_request_is_retired.sql (pending apply): the daily CEO model
+# request was built 56 times and sent 0 times (app_secrets.ceo_model_slot never existed); the CEO reasons in its weekly plan.
+fn_ceo_judgement_request :: dropped by the_ceos_unsent_daily_judgement_request_is_retired.sql (pending apply); built the never-sent daily request, read only by fn_ceo_plan_tick :: nothing; the proof is in that file
+fn_ceo_judgement_accept :: dropped by the_ceos_unsent_daily_judgement_request_is_retired.sql (pending apply); validated an answer that never came, called only by ceo_agent's removed judgement action :: nothing; the proof is in that file
+fn_ceo_judgement_contract :: dropped by the_ceos_unsent_daily_judgement_request_is_retired.sql (pending apply); the construction-only contract asking for a founder_decision, read only by the two routines above :: nothing; the proof is in that file
+fn_ceo_judgement_counterparts :: dropped by the_ceos_unsent_daily_judgement_request_is_retired.sql (pending apply); named the authors' model families for the removed judgement action :: nothing; the proof is in that file

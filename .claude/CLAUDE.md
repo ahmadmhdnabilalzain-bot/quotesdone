@@ -48,8 +48,9 @@ Load this alongside `quotesdone-session` at the START of every session on this r
   founder's ruling of 8 Sep 2026: "use as many agents possible to speed up the process". Fan out by
   default — independent tool calls in ONE message, independent investigations to subagents launched
   together, long work to the background while you pick up something else. Serial only where a step
-  genuinely depends on the one before it, and NEVER for production writes, applies or git. Capped at
-  5 agents at once, with Sonnet for simple tasks (1 Nov 2026, ledger 1417).
+  genuinely depends on the one before it, and NEVER for production writes, applies or git. Up to
+  10 agents at once (15 Nov 2026, ledger 1707, replacing the cap of 5 of ledger 1417), each on the model its task
+  needs: Opus 5.5 for hard work, Sonnet 5.5 for moderate, Haiku 5.5 for simple (ledger 1708).
 
 Load this alongside `quotesdone-session` at the START of every session on this repository.
 
