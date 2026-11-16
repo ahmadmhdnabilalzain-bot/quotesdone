@@ -46,23 +46,14 @@ for (const p of REC.profiles) {
     const asked = new Set(proposal.questions.filter((q) => q.kind !== 'umbrella').flatMap((q) => q.options.map((o) => o.key).filter(Boolean) as string[]));
     // nothing is ticked for him: proposalOf has no tick field to set, and nothing writes `services`
     assert(proposal.tick.every((x) => Object.keys(x).filter((k) => k !== 'check' && k !== 'licence').sort().join() === 'doc,key,label_en,quote,trade,words'));
-    // 0 wrong or absurd in what is listed; a partner service never listed as his own. KNOWN, measured in the recorded run (9e8dff91,
-    // 16 Nov 2026, 15 profiles: the short profiles read at once in parts, mapped as one reading with its main trades shown to every
-    // call, the mapping at medium, effort_policy): what it listed outside the key, 28 (run 4c69e153 before the main trades: 25). The
-    // baseline run of the same day on the code before (83dda28c, 15 profiles, recorded with that code and replayed through this test)
-    // listed outside the key on 11 profiles, these same kinds (H04's staff lines, H08's contract cleaning, H07's neon signs, H01's
-    // garden lines), 27 against 25 here; the run of 12 Nov (c0afdde7, the mapping then at high) 3. The bar's "0 wrong" row is met by
-    // none; any OTHER wrong listing fails here. Report: docs/reports/supplier-service-profiling-2026-11-12/speed_2026-11-16.md.
-    const KNOWN_WRONG: Record<string, string[]> = {
-      H01: ['interior_fitout.residential', 'masonry_blockwork.plastering', 'swimming_pools.jacuzzi_spa_sauna'],
-      H04: ['cleaning.contract_cleaning', 'facilities_management.concierge_reception', 'facilities_management.handyman', 'facilities_management.lifeguards', 'facilities_management.make_ready', 'joinery.repairs', 'labour_supply.office_admin_staff', 'labour_supply.office_boys', 'labour_supply.receptionists'],
-      H05: ['flooring.repairs', 'joinery.repairs'], H06: ['electrical.earthing_lightning', 'engineering_consultancy.authority_approvals', 'industrial_pumps.booster_sets'],
-      H07: ['signage.neon_signs', 'signage.vehicle_branding', 'packaging.labels'],
-      H08: ['cleaning.carpet_upholstery', 'cleaning.contract_cleaning'], H08D: ['cleaning.carpet_upholstery', 'cleaning.contract_cleaning'],
-      H11: ['event_management.brand_activations', 'labour_supply.hospitality_staff', 'labour_supply.promoters_merchandisers'], H13: ['gypsum.plastering'] };
+    // 0 wrong or absurd in what is listed; a partner service never listed as his own. KNOWN, measured in the recorded run (c0afdde7,
+    // 12 Nov 2026, after the review of branch 2): H06 "booster pumps" (read by the model as the industrial-pumps trade) to
+    // industrial_pumps.booster_sets; H07 "labels" to packaging.labels; H04 a staff line to labour_supply.general, listed "please check" and
+    // left out of "Tick all". The bar's "0 wrong" row is NOT met by that run; any OTHER wrong listing fails here.
+    const KNOWN_WRONG: Record<string, string[]> = { H06: ['industrial_pumps.booster_sets'], H07: ['packaging.labels'], H04: ['labour_supply.general'] };
     assertEquals(listed.filter((k) => !fair.has(k) && !partner.has(k) && !(KNOWN_WRONG[p.id] ?? []).includes(k)), [], 'listed outside the key');
     assertEquals(listed.filter((k) => partner.has(k) && !fair.has(k)), [], 'a partner service listed as his own');
-    assertEquals(viaPartner.filter((k) => !partner.has(k) && !fair.has(k) && !(KNOWN_WRONG[p.id] ?? []).includes(k)), [], 'marked partner outside the key');
+    assertEquals(viaPartner.filter((k) => !partner.has(k) && !fair.has(k)), [], 'marked partner outside the key');
     // marked partner: as keys, or (no key covers the phrase, H13's "Electrical works") as his partner phrases, asked on a partner card
     if (K.partner.length) assert(viaPartner.length > 0 || proposal.questions.some((q) => q.kind === 'partner'), 'the partner services the documents name are marked partner');
     // stated services found, listed or asked (never counting a card of "companies like yours"): >= 75% on every profile
@@ -123,18 +114,13 @@ for (const p of REC.profiles) {
       // KNOWN, measured in the recording of run c0afdde7 (slice 3's final run, re-recorded 12 Nov 2026, read on merge into slice 4): the
       // maintenance company's "all kinds of maintenance works" offers Blockwork and Plastering, and the hygiene company's "complete hygiene
       // solutions" offers PPE. Both are fair things to ASK (he taps None if not) but neither is in its answer key; any OTHER option fails.
-      // Re-recorded 16 Nov 2026 (runs 4c69e153 and 9e8dff91; not every one recurs in the recording): the trader's vague card offers oilfield consumables, the maintenance company's drain
-      // jetting, the logistics company's cash-on-delivery courier; fair to ASK, not in the key (the baseline run of that day: H09's card).
-      const KNOWN_ASKED: Record<string, string[]> = { H03: ['oilfield.consumables', 'steel_stock.beams_sections', 'steel_stock.plates_sheets'], H05: ['masonry_blockwork.blockwork', 'masonry_blockwork.plastering', 'sewage_tanker.drain_jetting_cctv'], H14: ['safety_equipment.ppe'], H15: ['courier_express.last_mile_cod'] };
+      const KNOWN_ASKED: Record<string, string[]> = { H05: ['masonry_blockwork.blockwork', 'masonry_blockwork.plastering'], H14: ['safety_equipment.ppe'] };
       if (['vague', 'partner', 'shown', 'licence'].includes(q.kind)) assertEquals(q.options.filter((o) => !askable(o) && !(KNOWN_ASKED[p.id] ?? []).includes(o.key ?? '')).map((o) => o.key), [], `${q.kind} "${q.prompt_en.slice(0, 60)}": an option the key does not ask`);
     }
     if (k.vague) {
       const v = stored.find((q) => q.kind === 'vague' || q.kind === 'nothing');
       assert(v && v.status === 'open', 'the vague profile is asked, on an open card');
-      // with two vague cards, ONE asks the specific question (16 Nov 2026, run 4c69e153: H05's parts also asked about its heading
-      // "General maintenance and technical services", whose options are mostly listed for his tick already, so two are left on it)
-      const good = (q: typeof v) => q.multi && q.options.filter((o) => o.key && askable(o)).length + q.options.filter((o) => !o.key).length >= 3;
-      if (v.kind === 'vague') assert(stored.some((q) => q.kind === 'vague' && q.status === 'open' && good(q)), `a specific question with options from the key: ${stored.filter((q) => q.kind === 'vague').map((q) => q.options.map((o) => o.label_en))}`);
+      if (v.kind === 'vague') assert(v.multi && v.options.filter((o) => o.key && askable(o)).length + v.options.filter((o) => !o.key).length >= 3, `a specific question with options from the key: ${v.options.map((o) => o.label_en)}`);
       if (K.must_be_empty) assertEquals(v.kind === 'nothing' || v.options.length === 0 || v.kind === 'vague', true);
     }
     if (k.partner) {
