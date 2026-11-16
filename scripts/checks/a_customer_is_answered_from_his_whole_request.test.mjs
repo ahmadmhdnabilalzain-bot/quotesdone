@@ -20,7 +20,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SCENARIOS, REQUESTS, COVERAGE, SUPPLIERS, PLANTED, TIMELINE, fixtureSql, has, codeGrade } from '../eval/customer_follow_up_bank.mjs';
+import { SCENARIOS, REQUESTS, COVERAGE, SUPPLIERS, PLANTED, TIMELINE, INTENT_OF, fixtureSql, has, codeGrade } from '../eval/customer_follow_up_bank.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -73,7 +73,11 @@ test('every customer channel gives the model the one rule and the facts pass the
 
 test('local database: every fact each scenario needs is in the WhatsApp pack and the own record, and nothing sealed is', { skip: LOCAL ? false : 'NOT RUN: no local database (QD_LOCAL_DB_URL); never run against production' }, () => {
   assert.doesNotMatch(LOCAL, /supabase\.(co|com)|pooler/i, 'QD_LOCAL_DB_URL must be a LOCAL database');
-  const input = ['begin;', R(SQL), fixtureSql(), 'rollback;'].join('\n');
+  // the mirror holds no rows: the three buyer intents the routes answer on are the canonical file's own statement
+  const intents = R('scripts/sql/a_customer_asking_on_whatsapp_reads_their_own_requests_and_every_ask_closes_its_loop.sql')
+    .match(/insert into public\.wa_reply_intent [\s\S]*?excluded\.active;/)?.[0];
+  assert.ok(intents, 'the canonical intent rows were not found');
+  const input = ['begin;', R(SQL), intents, fixtureSql(), 'rollback;'].join('\n');
   const r = spawnSync('psql', [LOCAL, '-q', '-tA', '-v', 'ON_ERROR_STOP=1'], { input, encoding: 'utf8', maxBuffer: 64 << 20, timeout: 120_000 });
   assert.equal(r.status, 0, 'the fixture did not run: ' + String(r.stderr).slice(0, 800));
   const line = String(r.stdout).trim().split('\n').filter((l) => l.startsWith('{')).pop();
@@ -106,6 +110,8 @@ test('local database: every fact each scenario needs is in the WhatsApp pack and
   // the paid eval composes on each scenario's route, as production does: a change or a cancel carries the database's answer
   for (const s of SCENARIOS) assert.ok(out.routes?.[s.id], `${s.id}: no route`);
   for (const s of SCENARIOS.filter((x) => ['change', 'cancel'].includes(x.action))) {
-    assert.ok(String(out.routes[s.id].deterministic_reply || '').trim(), `${s.id}: the ${s.action} route gives no database answer`);
+    const rt = out.routes[s.id];
+    assert.equal(rt.deterministic_intent, INTENT_OF[s.action], `${s.id}: the route answered ${rt.deterministic_intent}`);
+    assert.ok(String(rt.deterministic_reply || '').trim(), `${s.id}: the ${s.action} route gives no database answer`);
   }
 });
