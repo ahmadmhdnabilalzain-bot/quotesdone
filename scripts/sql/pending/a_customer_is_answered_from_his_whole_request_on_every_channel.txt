@@ -1,1 +1,8 @@
-Not applied: written 16 Nov 2026 by the customer_support builder (whole request on every channel, ledger 1711) on a branch, proved only on a local Postgres 16 built from the mirror (its probe printed PROBE OK twice). It moves when the branch is merged: apply this file with scripts/apply_sql.mjs, delete this note and append the file as the last line of scripts/sql/MANIFEST.txt in the same commit, then deploy wa_inbound, site_assistant, email_triage and sales_engineer. Seat: customer_support.
+Not applied: written 16 Nov 2026 by the customer_support builder (whole request on every channel, ledger 1711) on a branch, review fixes of 16 Nov (REVIEW_CASEFACTS) applied the same day; proved only on a local Postgres 16 built from the mirror with main's newer scripts/sql files applied in MANIFEST order (its probe printed PROBE OK twice). It moves when the branch is merged: apply this file with scripts/apply_sql.mjs, delete this note and append the file as the last line of scripts/sql/MANIFEST.txt in the same commit, then deploy wa_inbound, site_assistant, email_triage and sales_engineer. Seat: customer_support.
+
+FOLLOW-UP, NOT IN THIS FILE (REVIEW_CASEFACTS item 7): quotes his portal is still checking. public.fn_customer_quotes_being_checked is on another branch and not yet on main, and apply_sql's dry run refuses a reference to a missing routine, so the wiring goes in a NEW file, applied in the release that carries both branches, after both files:
+  - fn_customer_inquiry_facts `cfg`: add `chk` = `fn_customer_quotes_being_checked(p_customer)->'inquiry_ids'`;
+  - the `q` filter: drop a quote on a request in `chk` unless he has a transaction on that quote;
+  - each request: add `quotes_being_checked`;
+  - sales_engineer/lib/own_quotes.ts: carry `quotesBeingChecked`.
+Start that file from production's pg_get_functiondef of fn_customer_inquiry_facts (this file's body once applied) and check its md5 before the edit.
