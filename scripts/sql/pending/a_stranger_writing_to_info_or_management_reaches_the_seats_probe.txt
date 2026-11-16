@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes (it writes none). It is run after a_stranger_writing_to_info_or_management_reaches_the_seats.sql is applied and must print PROBE OK; before that apply it prints PROBE FAILED. This note therefore stays for the life of the file. Seat: it_engineer.
