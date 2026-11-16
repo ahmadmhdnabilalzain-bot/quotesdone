@@ -339,3 +339,21 @@ Deno.test('7. a short document set is read at once as ONE call for the whole (no
   const typed = await run(docs, { claimsOnly: true, partChars: 600 });
   assert(typed.reads.every((x) => x.sys === profileReadSystem(tax.trades)), 'typed text: the one prompt');
 });
+
+import { hedged, HEDGE_MS } from './supplier_profile_reading.ts';
+Deno.test('9. the slow tail: a call unanswered after HEDGE_MS is asked once more and the first good answer is taken; a fast answer or a fast failure asks nothing more', async () => {
+  const wait = (ms: number) => new Promise((res) => setTimeout(res, ms));
+  let n = 0;
+  const slowThenFast = () => { n++; return n === 1 ? wait(80).then(() => ({ ok: true as const, v: 'slow' })) : wait(5).then(() => ({ ok: true as const, v: 'fast' })); };
+  assertEquals([(await hedged(slowThenFast, 20) as { v: string }).v, n], ['fast', 2]);
+  await wait(100);   // the slow answer lands after: it is dropped
+  n = 0;
+  assertEquals([(await hedged(() => { n++; return wait(5).then(() => ({ ok: true as const, v: 'one' })); }, 50) as { v: string }).v, n], ['one', 1]);
+  n = 0;
+  assertEquals([(await hedged(() => { n++; return Promise.resolve({ ok: false as const, error: 'model unavailable (502)' }); }, 50)).ok, n], [false, 1], 'a failure before the hedge is the answer (the callers retry it)');
+  n = 0;
+  type R = { ok: boolean; v?: string; error?: string };
+  const failsLate = (): Promise<R> => { n++; return n === 1 ? wait(40).then(() => ({ ok: false, error: 'x' })) : wait(60).then(() => ({ ok: true, v: 'second' })); };
+  assertEquals((await hedged(failsLate, 10)).v, 'second', 'the first failing after the hedge waits for the second');
+  assert(HEDGE_MS.read > HEDGE_MS.map && HEDGE_MS.map >= 10_000);
+});

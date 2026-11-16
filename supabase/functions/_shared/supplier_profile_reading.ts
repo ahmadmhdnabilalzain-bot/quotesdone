@@ -124,6 +124,21 @@ export const LIMITS = { openCards: 5, options: 8, umbrellaChips: 12, umbrellaCar
 // Effort unchanged (effort_policy: step A medium, step B medium). Scores and times: docs/reports/supplier-service-profiling-2026-11-12/
 // speed_2026-11-16.md.
 export const READ_PART_CHARS = 4_000, SHORT_PART_CHARS = 300, READ_CONTEXT_CHARS = 6_000, MAP_PHRASES = 4, PARALLEL = 24;
+// THE SLOW TAIL (measured the same day, run 70eb0bd5): the same model on the same size of part answers in 15-35 s, and now and then in
+// 70 s (H06: one 300-character part of 14 claims 69.5 s while a part of 16 took 32 s). A call still unanswered after HEDGE_MS is asked
+// once more, the same request, and the first answer is taken: the slow tail is the provider's, not the part's. The later answer is
+// paid for (USD 0.001-0.003 a call) and dropped.
+export const HEDGE_MS = { read: 35_000, map: 16_000 } as const;
+/** `call` once, and once more if it has not answered after `ms`; the first good answer, else the last failure. */
+export function hedged<T extends { ok: boolean }>(call: () => Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve) => {
+    let done = false, pending = 1;
+    const settle = (r: T) => { if (done) return; if (r.ok || --pending === 0) { done = true; clearTimeout(timer); resolve(r); } };
+    const go = () => call().then(settle, (e) => settle({ ok: false, error: String((e as Error)?.message || e) } as unknown as T));
+    const timer = setTimeout(() => { if (!done) { pending++; go(); } }, ms);
+    go();
+  });
+}
 
 const str = (x: unknown) => String(x ?? '').trim();
 const BASES = new Set<Basis>(['stated', 'shown', 'partner', 'brand']);
@@ -499,7 +514,7 @@ export type TwoStepTimes = { read_ms: number; map_ms: number; read_calls: number
  *  rest in calls of MAP_PHRASES, every call at once; a failed call is retried in halves, twice at most. A phrase that still could not be
  *  mapped is OWED: the reading is not proposed (unavailable, nothing guessed) and the re-read sweep reads it again; never silently left
  *  in his own words. `onRead`: called with the reading as soon as step A has landed, before the mapping ends (the tab shows it). */
-export async function readInTwoSteps(docs: ReadDoc[], company: string | null, tax: Taxonomy, ask: Ask, opts: ReadOpts = {}): Promise<{ ok: true; reading: ProfileReading; times: TwoStepTimes } | { ok: false; error: string }> {
+export async function readInTwoSteps(docs: ReadDoc[], company: string | null, tax: Taxonomy, askOnce: Ask, opts: ReadOpts = {}): Promise<{ ok: true; reading: ProfileReading; times: TwoStepTimes } | { ok: false; error: string }> {
   const codes = new Set(tax.trades.map((t) => t.code));
   const own = docs.filter((d) => d.kind !== 'licence' && d.text.trim());
   if (!own.length) return { ok: false, error: 'no profile or catalogue text to read' };
@@ -521,6 +536,7 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
   const who = (company ? `The company registered as: ${company.slice(0, 160)}\n\n` : '') + (opts.said ? `The supplier himself says: ${opts.said.slice(0, 300)}\n\n` : '')
     + (opts.claimsOnly ? 'This is a short text the supplier typed about his own company, not a document. Return "also_ask":[] and give every "vague" entry "options":[].\n\n' : '');
   const t0 = Date.now(); let readCalls = 0, mapCalls = 0;
+  const ask = (step: 'read' | 'map', system: string, text: string) => hedged(() => askOnce(step, system, text), HEDGE_MS[step]);
   // THE MAPPING'S REQUEST NEVER DEPENDS ON TIMING (review of branch 2, found replaying run c0afdde7): the first part's phrases are mapped
   // with its summary, a later part's without one (each phrase carries its own line), whichever part lands first.
   const summaryFor = (i: number, own: string) => (i === 0 ? own : '');
