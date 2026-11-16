@@ -1,5 +1,5 @@
 // deno test --no-lock supabase/functions/resilience_ping/steps.test.ts
-import { detachedItems, failureOf, runSteps, stepClock } from './steps.ts';
+import { detachedItems, failureOf, runSteps, stepClock, withLoop } from './steps.ts';
 
 const eq = (a: unknown, b: unknown, m: string) => {
   if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m}: ${JSON.stringify(a)} != ${JSON.stringify(b)}`);
@@ -12,6 +12,19 @@ Deno.test('a failed step is one that threw, answered ok:false with an error, or 
   eq(failureOf({ due: false }), null, 'not due');
   eq(failureOf(null), null, 'nothing');
   eq(failureOf([{ fn: 'kyc', ok: false }]), null, 'an array is not a step result');
+});
+
+// 16 Nov 2026 (ceo, ledger 1448): fn_ceo_plan_due timed out on every Monday tick (ceoPlan ticks averaged 7.9 s against an 8 s timeout) while ceoPlan read healthy,
+// because the loop's error sat under 'loop' and plan C answered ok. A failed loop now fails the step.
+Deno.test('the CEO planning loop failing fails the ceoPlan step; a busy or quiet loop does not', () => {
+  const planC = { ok: true, planned: false, reason: "today's plan exists" };
+  eq(failureOf(withLoop(planC, { ok: false, error: 'canceling statement due to statement timeout' })),
+    'planning loop: canceling statement due to statement timeout', 'a timed-out loop');
+  eq(failureOf(withLoop(planC, { call_model: true, plan_id: 12, ok: false, error: 'ceo_agent plan 400' })), 'planning loop: ceo_agent plan 400', 'a refused hand-over');
+  eq(failureOf(withLoop(planC, { call_model: false, busy: 'the duty is opening or measuring a plan' })), null, 'a busy loop waits for the next tick');
+  eq(failureOf(withLoop(planC, { call_model: true, plan_id: 12, answer: { ok: true, started: true } })), null, 'a plan handed over');
+  eq(failureOf(withLoop({ ok: false, error: 'plan C' }, { ok: false, error: 'x' })), 'plan C; planning loop: x', 'both named');
+  eq((withLoop(planC, { call_model: false }) as Record<string, unknown>).loop, { call_model: false }, 'the loop stays readable under loop');
 });
 
 Deno.test('one step failing never stops the next, and every failure is named', async () => {

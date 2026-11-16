@@ -68,8 +68,9 @@ Deno.test('1195-1197: no stored-sentence road remains, and no path leaves the pe
     assert(!code.includes(gone), gone + ' is back in wa_inbound');
   }
   // spec offer, founder setting, document, supplier price, supplier instruction (16 Nov 2026), a member's number code (16 Nov 2026,
-  // member_phone.ts), main reply: each sends the held notice when no model answered
-  assertEquals((code.match(/const h = await heldTurn\(/g) || []).length, 7, 'every direct no-model path sends the held notice');
+  // member_phone.ts), a supplier's WhatsApp opt-in code (16 Nov 2026, optin_code.ts), main reply: each sends the held notice when
+  // no model answered
+  assertEquals((code.match(/const h = await heldTurn\(/g) || []).length, 8, 'every direct no-model path sends the held notice');
   assert(/held: \(r\) => heldTurn\(/.test(code), 'the menu sends the held notice too');
 });
 

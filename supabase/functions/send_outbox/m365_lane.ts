@@ -27,6 +27,7 @@
 // Pure apart from the injected fetch and finding writer, so m365_lane.test.ts replays every branch offline.
 import { isLaneType, LANE_CAPPED_TYPES } from './invite_lane.ts';
 import { invitationCopyLint, type CopyRule } from './invitation_copy.ts';
+import { carriesOffer, WHATSAPP_OFFER } from '../_shared/whatsapp_offer.ts';
 
 export const M365_SECRET_NAMES = ['MS_TENANT_ID', 'MS_CLIENT_ID', 'MS_CLIENT_SECRET'] as const;
 export const M365_REFUSED_ISSUE = 'invite_m365_lane_refused';
@@ -182,7 +183,9 @@ export const SIGNATURE = 'Best regards,\nAhmad Alzain\nFounder, QuotesDone\nQuot
 // Promotions, SPF/DKIM/DMARC passing, no blocklist. So the content changed: a short note from a named person,
 // addressed to the company and its trade, no promotional word in the subject or the opening, and the opt-out in the
 // List-Unsubscribe headers plus one "reply stop" line. Since 27 Oct 2026 the body carries no link at all (above).
-export type Who = { company?: string; trade?: string };
+export type Who = { company?: string; trade?: string;
+  /** he said no to job requests on WhatsApp (supplier_whatsapp_offer_declined): the offer is never shown to him again (16 Nov 2026) */
+  declinedWhatsapp?: boolean };
 // THE GREETING READS A COMPANY NAME, NOT A PAGE TITLE (sales_engineer, 28 Oct 2026). leads.company_name is often a
 // scraped page title. MEASURED on notifications 116649-116668: "Speed Blast Trading L.L.C &#8211; Top notch Industrial
 // Equipments Suppliers in Dubai, UAE" reached the greeting whole (the entity map had no numeric entities, so the dash cut
@@ -299,6 +302,7 @@ export function m365InvitationText(who: Who = {}, variant: InviteVariant = 'a'):
       hello,
       "I'm Ahmad, founder of QuotesDone in Dubai. Companies in the UAE will post their requests for quotation with us, and each request will go only to suppliers in that exact trade. Buyers have not started sending requests yet: we are putting the supplier list together first.",
       "Which trades does your company cover? If you reply with them, I will send you your company's own sign-up link, so you can add your company and those trades yourself.",
+      WHATSAPP_OFFER,   // ledger 1184/1373: job requests on WhatsApp, one reply word, no link (_shared/whatsapp_offer.ts)
       SIGNATURE,
       STOP_LINE,
     ].join('\n\n');
@@ -308,6 +312,7 @@ export function m365InvitationText(who: Who = {}, variant: InviteVariant = 'a'):
       hello,
       `Do you take on ${t ? t + ' work' : 'work in your trade'} for companies in the UAE? I'm Ahmad, founder of QuotesDone in Dubai, and before buyers ` +
         `start sending requests for quotation I am collecting the ${t ? t + ' ' : ''}suppliers each request will go to.`,
+      WHATSAPP_OFFER,   // ledger 1184/1373: job requests on WhatsApp, one reply word, no link (_shared/whatsapp_offer.ts)
       SIGNATURE,
       STOP_LINE,
     ].join('\n\n');
@@ -317,6 +322,7 @@ export function m365InvitationText(who: Who = {}, variant: InviteVariant = 'a'):
     "I'm Ahmad, founder of QuotesDone in Dubai. QuotesDone is a platform where companies in the UAE post requests for quotation, and each request goes only to suppliers who work in that exact trade.",
     `We are putting together our list of ${t ? t + ' ' : ''}suppliers now, before buyers start sending requests. ` +
       `Would your company like to receive ${t ? t + ' requests' : 'the requests that match your trade'} when they come in?`,
+    WHATSAPP_OFFER,   // ledger 1184/1373: job requests on WhatsApp, one reply word, no link (_shared/whatsapp_offer.ts)
     SIGNATURE,
     STOP_LINE,
   ].join('\n\n');
@@ -350,6 +356,7 @@ export function m365FinalTouchText(who: Who = {}): string {
       ", reply to this email and I will send you your company's own sign-up link.",
     // The number as plain text, no link and no tel: (founder ruling 1301 of 27 Oct 2026, applied 16 Nov); src/content/company.json `phone`.
     `If you would rather talk on WhatsApp, our number is ${FINAL_TOUCH_PHONE}.`,
+    WHATSAPP_OFFER,   // ledger 1184/1373: job requests on WhatsApp, one reply word, no link (_shared/whatsapp_offer.ts)
     SIGNATURE,
     STOP_LINE,
   ].join('\n\n');
@@ -388,7 +395,8 @@ export function m365Body(type: unknown, rowBody: string, kind?: unknown, who: Wh
   const marker = kind === M365_SEED_KIND ? seedMarker(rowBody) : '';
   const own = marker ? String(rowBody).trimEnd().slice(0, -marker.length).trimEnd() : (rowBody || '');
   const w = { company: who.company ?? companyFromBody(own), trade: who.trade };
-  const built = isFinalTouch({ type, kind }) ? m365FinalTouchText(w) : m365InvitationText(w, variantOfKind(kind));
+  const built0 = isFinalTouch({ type, kind }) ? m365FinalTouchText(w) : m365InvitationText(w, variantOfKind(kind));
+  const built = who.declinedWhatsapp ? built0.replace('\n\n' + WHATSAPP_OFFER, '') : built0;
   return marker ? built + '\n\n' + marker : built;
 }
 
@@ -411,7 +419,7 @@ export function campaignMail(row: { type?: unknown; body?: unknown; subject?: un
   // address never reaches it: companyName gives the neutral greeting instead).
   const name = companyName(company);
   const mask = (s: string) => (name ? s.split(name).join('Company') : s);
-  const bad = m365CopyLint({ subject: mask(subject), body: mask(text), seed: row.kind === M365_SEED_KIND }).filter((l) => !l.ok);
+  const bad = m365CopyLint({ subject: mask(subject), body: mask(text), seed: row.kind === M365_SEED_KIND, declinedWhatsapp: who.declinedWhatsapp === true }).filter((l) => !l.ok);
   if (ANY_LINK.test(text) || ANY_LINK.test(subject)) {
     bad.push({ rule: 'no link anywhere in the email as sent', ok: false, detail: String((text + ' ' + subject).match(ANY_LINK)?.[0] || '') });
   }
@@ -440,7 +448,7 @@ const MARKER_EXEMPT = /date|closes with/;
 // The question-ending rules of invitationCopyLint belong to the stored Resend-lane copy; the founder's approved text
 // (27 Oct 2026) closes with the reply-"stop" line instead, so this lane does not apply them.
 const NOT_THIS_LANE = /question/;
-export function m365CopyLint(o: { subject: string; body: string; preheader?: string; seed?: boolean }): CopyRule[] {
+export function m365CopyLint(o: { subject: string; body: string; preheader?: string; seed?: boolean; declinedWhatsapp?: boolean }): CopyRule[] {
   const marker = o.seed ? seedMarker(o.body) : '';
   if (marker) {
     const rest = o.body.trimEnd().slice(0, -marker.length).trimEnd();
@@ -455,6 +463,9 @@ export function m365CopyLint(o: { subject: string; body: string; preheader?: str
     { rule: 'the signature names no street address and no permit or licence number (founder, 27 Oct 2026)', ok: !/al[\s-]*furjan|\bNOL-|TDRA|licen[cs]e\s*(no|number)|\b1633275\b/i.test(o.body),
       detail: 'Al Furjan, a TDRA permit or a licence number found' },
     { rule: 'no HTML in a plain-text invitation', ok: !/<\/?[a-z][^>]*>/i.test(o.body), detail: 'markup found' },
+    // THE OFFER OF WHATSAPP (16 Nov 2026, marketing, ledger 1184/1373): every invitation and its last note carry it word for word
+    { rule: 'the invitation offers job requests on WhatsApp (whatsapp_offer.ts WHATSAPP_OFFER, word for word)', ok: o.declinedWhatsapp ? !carriesOffer(o.body) : carriesOffer(o.body),
+      detail: o.declinedWhatsapp ? 'he said no to WhatsApp: the offer must not be shown again' : 'the offer sentence is missing' },
     { rule: '"free for the first 1,000 suppliers" carries no date', ok: !/1,000/.test(o.body) || !DATED.test(o.body), detail: 'a date or deadline word next to the offer' },
     { rule: 'never a cap on how many suppliers quote: any number may quote, top 3 is only the report', ok: !UP_TO_THREE.test(o.body + ' ' + o.subject), detail: 'the forbidden wrong form' },
     { rule: 'never promises to set up their page or do a step for them (ledger 1401: nothing performs it; only they verify, upload and accept)',

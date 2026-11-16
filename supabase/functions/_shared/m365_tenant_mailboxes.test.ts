@@ -3,6 +3,7 @@
 // Controls: the founder's mail is never handed, nothing outside supplier@ is ever marked, moved, deleted or replied to,
 // random junk stays where it is, a failure elsewhere cannot touch supplier@'s proof, one busy mailbox cannot take the tick.
 import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1';
+import { isCustomerCorrespondence, noAutoReply } from './customer_mail.ts';
 import { DEFAULT_MAILBOXES, MAILBOX_HAND_CAP, TENANT_HAND_CAP, folderHands, inboundOnFile, pollReplyInbox, pollTenantMailboxes, type OnFileDb, type SenderKind, type TenantDeps } from './m365_reply_inbox.ts';
 
 const ENV: Record<string, string> = { MS_TENANT_ID: 't', MS_CLIENT_ID: 'c', MS_CLIENT_SECRET: 'zz-demo-secret' };
@@ -275,4 +276,37 @@ Deno.test('known-bad control: Graph lists only management@, yet info@ is still a
   assertEquals(a.no_mailbox, 1); assertEquals(a.handed, 1);
   assert(alias.runs[0].note.includes('no mailbox: info@quotesdone.com'), alias.runs[0].note);
   assertEquals(alias.writes(), []);
+});
+
+// A REPLY TO A SIGN-IN CODE OR A KYC MAIL REACHES THE SEATS (16 Nov 2026, it_engineer; ledger 1446, 1453, 1543). Both mails
+// leave from and reply to info@quotesdone.com (login_otp, kyc). The person replying is usually a sign-up that is not yet a
+// customer or a lead, and the In-Reply-To names the Message-ID Resend gave the code mail, not one of ours. MEASURED 16 Nov:
+// every tenant tick read info@ and skipped 134-136 such mails, inbound_messages held 0 rows for info@ in 60 days, because
+// app_secrets.m365_tenant_strangers_from was never set. The canon now sets it at apply
+// (scripts/sql/a_stranger_writing_to_info_or_management_reaches_the_seats.sql); this pins both halves.
+Deno.test('a reply to a sign-in code in info@ reaches resend_inbound addressed to info@, and triage answers it; the canon sets the switch', async () => {
+  // 1. the decision has a home: a file in scripts/sql sets the switch (fails before that file exists)
+  const setters: string[] = [];
+  for (const e of Deno.readDirSync('scripts/sql')) {
+    if (!e.isFile || !e.name.endsWith('.sql') || e.name.endsWith('_probe.sql')) continue;
+    const t = Deno.readTextFileSync('scripts/sql/' + e.name);
+    if (/insert\s+into\s+public\.app_secrets[\s\S]{0,80}'m365_tenant_strangers_from'/i.test(t)) setters.push(e.name);
+  }
+  assertEquals(setters, ['a_stranger_writing_to_info_or_management_reaches_the_seats.sql'], 'one file in the SQL canon sets the stranger switch');
+  // 2. with the switch, the sign-in reply is handed, addressed to info@; a bank and a no-reply sender are not
+  const SIGNUP = 'new.signup@zz-demo-customer.example.invalid';
+  const reply = { subject: 'Re: Your QuotesDone sign-in code', internetMessageHeaders: [{ name: 'In-Reply-To', value: '<0100019a-zz-demo@email.amazonses.com>' }] };
+  const box = { 'info@quotesdone.com': { inbox: [['R1', SIGNUP, reply], ['B1', 'alerts@mashreqbank.com'], ['N1', 'no-reply@zz-demo-vendor.example.invalid']] as Row[] } };
+  const on = harness(box, { users: ['info@quotesdone.com'] });
+  const r = await pollTenantMailboxes(on.deps);
+  assertEquals(on.hands().map((d) => [d.email_id, d.to]), [['m365:R1', 'info@quotesdone.com']]);
+  assertEquals(r.handed, 1); assertEquals(on.writes(), [], 'nothing in info@ is marked, moved or answered from here');
+  // 3. ...and email_triage treats it as a customer's mail it answers (not internal, not a machine, not a founder address)
+  const row = { from_email: SIGNUP, to_email: 'info@quotesdone.com', subject: reply.subject, body: 'I did not get the code, can you help?', raw: {} };
+  assert(isCustomerCorrespondence(row)); assertEquals(noAutoReply(row, []), null);
+  // known-bad control: the state measured on production (no switch) hands nothing; nor does a reply older than the switch
+  const off = harness(box, { users: ['info@quotesdone.com'], strangersFrom: null });
+  assertEquals((await pollTenantMailboxes(off.deps)).handed, 0); assertEquals(off.hands(), []);
+  const late = harness(box, { users: ['info@quotesdone.com'], strangersFrom: '2026-11-02T00:00:00Z' });
+  assertEquals((await pollTenantMailboxes(late.deps)).handed, 0, 'mail received before the switch is never answered');
 });

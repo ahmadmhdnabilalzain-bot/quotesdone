@@ -13,6 +13,7 @@ import {
 import { M365_FROM_NAME } from './m365_lane.ts';
 import { resendPayload } from './payload.ts';
 import { INVITE_LANE_TYPES } from './invite_lane.ts';
+import { WHATSAPP_OFFER } from '../_shared/whatsapp_offer.ts';
 
 const SECRET = 'zz-demo-client-secret-value-1234567890';
 const ENV: Record<string, string> = { MS_TENANT_ID: '00000000-0000-0000-0000-0000000000aa', MS_CLIENT_ID: 'zz-demo-client-id', MS_CLIENT_SECRET: SECRET };
@@ -115,6 +116,8 @@ I'm Ahmad, founder of QuotesDone in Dubai. QuotesDone is a platform where compan
 
 We are putting together our list of tiling suppliers now, before buyers start sending requests. Would your company like to receive tiling requests when they come in?
 
+Want job requests on WhatsApp too? Reply "WhatsApp" and we will send you a code to confirm your number.
+
 Best regards,
 Ahmad Alzain
 Founder, QuotesDone
@@ -156,8 +159,11 @@ Deno.test('variant A: no offer phrase, no domain written out, short, and the mes
     const words = t.split(/\s+/).filter(Boolean).length;
     assert(words <= 110, `variant A grew to ${words} words`);
     const paras = t.split('\n\n');
-    const ask = paras[paras.indexOf(paras.find((p) => p.startsWith('Best regards'))!) - 1];
-    assert(ask.trimEnd().endsWith('?') && (ask.match(/\?/g) || []).length === 1, 'the paragraph before the signature is no longer one question');
+    // 16 Nov 2026 (ledger 1184/1373): the WhatsApp offer sits between the one question and the signature (whatsapp_offer.ts)
+    const sig = paras.indexOf(paras.find((p) => p.startsWith('Best regards'))!);
+    assertEquals(paras[sig - 1], WHATSAPP_OFFER, 'the WhatsApp offer is not the line before the signature');
+    const ask = paras[sig - 2];
+    assert(ask.trimEnd().endsWith('?') && (ask.match(/\?/g) || []).length === 1, 'the paragraph before the offer is no longer one question');
   }
 });
 
@@ -541,4 +547,32 @@ Deno.test('a long registered name, a three-letter word and a dotted suffix read 
 Deno.test('the display name is quoted so its comma stays one name', () => {
   const head = unb64(m365Mime({ from: M365_FROM_NAME + ' <supplier@quotesdone.com>', to: 'zz-demo@example.invalid', reply: '', subject: 's', text: 'x', unsub: '', unsubMailto: 'u@mail.quotesdone.com', messageId: '<m@q>', now: new Date() })).split('\r\n\r\n')[0];
   assert(head.includes('From: "Ahmad Alzain, QuotesDone" <supplier@quotesdone.com>'));
+});
+
+// EVERY INVITATION OFFERS JOB REQUESTS ON WHATSAPP (16 Nov 2026, marketing, ledger 1184/1373; _shared/whatsapp_offer.ts). Measured:
+// no variant and not the last note offered WhatsApp, so no supplier could say yes. Every text now carries the offer word for word,
+// in English only (suppliers are written to in English), with no link (ruling 1301); a text without it fails the copy rules.
+Deno.test('every invitation variant and the last note carry the WhatsApp offer, English, no link, and the rule bites without it', async () => {
+  const { m365FinalTouchText, INVITE_VARIANTS } = await import('./m365_lane.ts');
+  const who = { company: 'Sigma Ceramics', trade: 'tiling' };
+  const texts = [...INVITE_VARIANTS.map((v) => m365InvitationText(who, v)), ...INVITE_VARIANTS.map((v) => m365InvitationText({}, v)), m365FinalTouchText(who), m365FinalTouchText({})];
+  for (const t of texts) {
+    assert(t.includes(WHATSAPP_OFFER), 'no WhatsApp offer in: ' + t.slice(0, 80));
+    assertFalse(/[\u0600-\u06FF]/.test(t), 'Arabic in a supplier invitation');
+    for (const l of m365CopyLint({ subject: m365Subject(who), body: t })) assert(l.ok, `${l.rule}: ${l.detail}`);
+  }
+  const bad = m365CopyLint({ subject: m365Subject(who), body: m365InvitationText(who).replace(WHATSAPP_OFFER + '\n\n', '') }).filter((l) => !l.ok).map((l) => l.rule);
+  assert(bad.some((r) => r.includes('WhatsApp')), 'an invitation without the offer passed');
+});
+
+Deno.test('a supplier who said no to WhatsApp gets no offer again in a nudge or the last note, and the rule holds a text that still offers it', async () => {
+  const { campaignMail, FINAL_TOUCH_KIND } = await import('./m365_lane.ts');
+  for (const row of [{ type: 'supplier_invite_nudge', body: 'Hi X team,' }, { type: 'supplier_invite_nudge', kind: FINAL_TOUCH_KIND, body: '' }]) {
+    const no = campaignMail(row, { company: 'Sigma Ceramics', declinedWhatsapp: true });
+    assertFalse(no.text.includes(WHATSAPP_OFFER), 'the offer came back after his no');
+    assertEquals(no.bad.length, 0, no.bad.map((b) => b.rule).join('; '));
+    assert(campaignMail(row, { company: 'Sigma Ceramics' }).text.includes(WHATSAPP_OFFER));
+  }
+  const offered = m365InvitationText({ company: 'Sigma Ceramics' });
+  assert(m365CopyLint({ subject: 's', body: offered, declinedWhatsapp: true }).some((l) => !l.ok && l.rule.includes('WhatsApp')));
 });

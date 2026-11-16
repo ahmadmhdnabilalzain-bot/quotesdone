@@ -1,6 +1,7 @@
 // resilience_ping ticks owned by the ceo seat. Moved out of index.ts unchanged (9 Nov 2026);
 // the order they run in is still set in index.ts (STEP_RUN).
 import { FN, GATEWAY, admin, sec } from '../shared.ts';
+import { withLoop } from '../steps.ts';
 
 // THE CEO END-OF-DAY DIGEST HANGS HERE, AND NOT ON pg_cron.
 // cron.job holds ONE row (wa_flush, active=false). 234 jobs were deleted on the founder's 7 Sep
@@ -121,18 +122,22 @@ export async function ceoDecisionsTick(): Promise<unknown> {
 // in its weekly plan, below (ceoPlanningLoopTick). This heartbeat never imports the model client.
 // scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql.
 export async function ceoPlanTick(): Promise<unknown> {
-  const planC = await planCTick();
-  return { ...(planC as Record<string, unknown>), loop: await ceoPlanningLoopTick() };
+  return withLoop(await planCTick(), await ceoPlanningLoopTick());
 }
 
-// THE CEO'S PLANNING LOOP (15 Nov 2026, ceo, founder ledger 1696/1701/1705/1709). fn_ceo_plan_due measures the open bets and
-// learns the channel priors once a day, files the seeded first plan, and opens the weekly reasoned plan (Monday) or a daily
-// review when code found an anomaly. When it says call_model, the CEO's own function answers it (ceo_agent action 'plan',
-// detached: it answers 202 and runs under its own clock), and code files the answer. Not gated on ceo_model_slot: the loop
-// has its own switch and weekly cap (decision_policy ceo_planning_loop). scripts/sql/the_ceo_thinks_plans_and_orders_every_week.sql
+
+// THE CEO'S PLANNING LOOP (15 Nov 2026, ceo, founder ledger 1696/1701/1705/1709). The hourly duty ceo.planning_loop (pg_cron,
+// 60 s) measures the open bets, learns the channel priors, files the seeded first plan and OPENS the weekly reasoned plan
+// (Monday) or a daily review when code found an anomaly, with their packs. This heartbeat only asks fn_ceo_plan_handover which
+// open plan to answer; when it says call_model, the CEO's own function answers it (ceo_agent action 'plan', detached: it
+// answers 202 and runs under its own clock), and code files the answer. Not gated on ceo_model_slot: the loop has its own
+// switch and caps (decision_policy ceo_planning_loop: AED and calls in 7 days).
+// 16 Nov 2026 (ceo, ledger 1448): this called fn_ceo_plan_due, which built the planning pack inside the API's 8 s statement
+// timeout; every Monday tick was cancelled (resilience_step ceoPlan averaged 7.9 s) and no weekly plan was ever written by the
+// loop. The hand-over reads only. scripts/sql/the_ceo_writes_its_weekly_plan_with_a_model_and_carries_it_out.sql
 export async function ceoPlanningLoopTick(): Promise<unknown> {
   try {
-    const { data, error } = await admin.rpc('fn_ceo_plan_due', {});
+    const { data, error } = await admin.rpc('fn_ceo_plan_handover', {});
     if (error) return { ok: false, error: error.message };
     // deno-lint-ignore no-explicit-any
     const t = data as any;

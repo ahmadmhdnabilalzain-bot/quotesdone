@@ -117,7 +117,8 @@ test('the builders accept a body with no {{link}} and still refuse an empty one'
 const COPY_FILES = [FILE, 'scripts/sql/the_supplier_invitation_asks_one_question_and_makes_no_offer.sql'];
 function latestCopyFile() {
   const writes = (f) => { try { return /update public\.app_secrets set value = \$body\$[\s\S]*?\$body\$[^;]*where key = 'invite_body'/.test(read(f)); } catch { return false; } };
-  const inManifest = manifest.filter((f) => f.endsWith('.sql') && writes(f));
+  // MANIFEST, then the copy files waiting for their apply (16 Nov 2026: a pending copy change is held to the rule before it runs)
+  const inManifest = manifestWithPending().filter((f) => f.endsWith('.sql') && writes(f));
   return inManifest.length ? inManifest[inManifest.length - 1] : COPY_FILES[COPY_FILES.length - 1];
 }
 
