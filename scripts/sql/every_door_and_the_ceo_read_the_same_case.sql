@@ -329,12 +329,17 @@ begin
     -- reveal (fn_contact_timeline: WhatsApp, portal chat, e-mail, support cases, faults, the seats' hand-overs, every 140-character
     -- summary already masked there) and the promises still open on his cases (fn_person_open_promises) are recorded here as
     -- evidence. Information, like item 1: it never refuses a refund the terms allow, and never approves one they do not.
-    v_tl := public.fn_contact_timeline(v_cust, 60);
-    select coalesce(jsonb_agg(x order by (x ->> 'at')::timestamptz desc), '[]'::jsonb) into v_seen
-      from (select x from jsonb_array_elements(coalesce(v_tl -> 'events', '[]'::jsonb)) x
-             where t.revealed_at is null or (x ->> 'at')::timestamptz >= t.revealed_at - interval '1 day'
-             order by (x ->> 'at')::timestamptz desc limit 30) z;
-    v_prom := public.fn_person_open_promises('customer', t.customer_id::text, v_cust, null, 10);
+    -- Guarded (review of 16 Nov): a failed read records nothing here and never makes the checklist unavailable.
+    begin
+      v_tl := public.fn_contact_timeline(v_cust, 60);
+      select coalesce(jsonb_agg(x order by (x ->> 'at')::timestamptz desc), '[]'::jsonb) into v_seen
+        from (select x from jsonb_array_elements(coalesce(v_tl -> 'events', '[]'::jsonb)) x
+               where t.revealed_at is null or (x ->> 'at')::timestamptz >= t.revealed_at - interval '1 day'
+               order by (x ->> 'at')::timestamptz desc limit 30) z;
+      v_prom := public.fn_person_open_promises('customer', t.customer_id::text, v_cust, null, 10);
+    exception when others then
+      v_seen := '[]'::jsonb; v_prom := '[]'::jsonb;
+    end;
     v_items := v_items || jsonb_build_object('item', 'what_he_was_told_and_promised_on_every_channel',
       'passed', true,
       'evidence', jsonb_build_object('timeline_since_reveal', v_seen, 'open_promises', v_prom,
