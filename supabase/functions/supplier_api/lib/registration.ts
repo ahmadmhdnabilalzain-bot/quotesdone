@@ -1,6 +1,7 @@
 // supplier_api — registration state, the post that brought the company, and proof of the e-mail.
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,116-line index.ts split into modules, a pure move).
 import { admin } from '../context.ts';
+import { firstTouchPayload, firstTouchRefusal } from './first_touch_payload.ts';
 
 // AUDIT 4.2 (3 Aug 2026) ------------------------------------------------------------------
 // This function used to decide the registration state itself, from registered_supplier_count()
@@ -42,10 +43,16 @@ export async function setRegistration(leadId: number, touch = true) {
 // THE POST THAT BROUGHT THEM (sales_engineer with marketing, 23 Sep 2026, instruction 865). When a company
 // becomes an account's (create_company or claim), the first visit's UTM the browser kept (src/lib/firstTouch.ts)
 // is validated and stored by fn_marketing_first_touch_record. Attribution never blocks a registration.
-export async function recordFirstTouch(leadId: number, touch: unknown): Promise<void> {
-  if (!touch || typeof touch !== 'object') return;
-  const r = await admin.rpc('fn_marketing_first_touch_record', { p_lead_id: leadId, p_touch: touch }).then((x) => x, (e) => ({ error: { message: String(e) } }));
-  if (r.error) console.error('first touch not recorded for lead ' + leadId + ': ' + r.error.message);
+// 15 Nov 2026 (marketing): ALWAYS ASKED, A MISSING TOUCH INCLUDED. This function used to return before the call when the
+// browser kept no tags, so fn_marketing_first_touch_record never reached its own fallback (the opened invitation,
+// leads.invite_clicked_at) and marketing_first_touch held 0 rows while a supplier who had opened his invitation
+// registered on 11 Nov. firstTouchPayload (first_touch_payload.ts) sends the tags or {}; the routine decides.
+export async function recordFirstTouch(leadId: number, raw: unknown): Promise<void> {
+  const touch = firstTouchPayload(raw);
+  const r = await admin.rpc('fn_marketing_first_touch_record', { p_lead_id: leadId, p_touch: touch }).then((x) => x, (e) => ({ error: { message: String(e) }, data: null }));
+  if (r.error) { console.error('first touch not recorded for lead ' + leadId + ': ' + r.error.message); return; }
+  const why = firstTouchRefusal(r.data);
+  if (why) console.error('first touch not recorded for lead ' + leadId + ': ' + why);
 }
 // ONE DEFINITION (10 Nov 2026, customer_support; scripts/sql/an_email_is_proven_only_by_a_code_that_was_verified.sql): a code
 // for this address that was VERIFIED (email_verifications.verified_at, set by fn_login_otp_email_verify's 'ok' path only).

@@ -28,6 +28,7 @@ import { answerableOnceRead, composeMailReply, declinedRowFields, EXPENSE_MAILBO
 import { audienceFor, declinedFields, type MailboxDecision, readingFacts, readSupplierMailbox } from './supplier_mailbox_reading.ts';
 import { langOf } from '../_shared/chat_answers.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
+import { caseKeyOf } from '../_shared/support_fault_handover.ts';
 import { fileReviewRequest } from '../_shared/review_request.ts';
 import { aiReply, namesForbidden } from '../_shared/ai_reply.ts';
 import { preRevealIdentities } from '../_shared/pre_reveal_identities.ts';
@@ -71,8 +72,12 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
   const forbidden = await mailForbidden(m, audience);
   // A fixture (@example.invalid, the ZZ DEMO convention) is never queued for the replay (think.ts isFixtureRequest).
   const subject = { message_id: m.id, channel: 'email', ...(/@example\.invalid$/i.test(String(m.from_email || '')) ? { fixture: true } : {}) };
+  // A fault the sender reports is handed to the it_engineer (ruling 1705, support_fault_handover.ts): the sender's address is what
+  // this channel already holds, so they are told by e-mail when the fix is verified. The case key is a hash of the thread.
   const person = await needsAPerson(deps, { seat: 'customer_support', surface: 'email_triage.needs_a_person', message: q,
-    audience, dedupeKey: 'email_person:' + m.id, subject });
+    audience, dedupeKey: 'email_person:' + m.id, subject,
+    fault: { channel: 'email', caseKey: await caseKeyOf('email', String(m.from_email || '') + ':' + String(m.subject || '').replace(/^(re|fwd?):\s*/gi, '').slice(0, 120)),
+             email: String(m.from_email || '') || null, lang, audience, conversation: [] } });
   // EVERY E-MAIL REPLY IS WRITTEN BY A MODEL (rulings 1195/1196, 12 Oct 2026): the reasoned, independently checked answer
   // when it agrees; otherwise a direct model reply from the company brief (aiReply). The quoted knowledge passage, the
   // person-handoff sentence and the "we received it" receipt are gone. No model at all: nothing is sent (it throws, and

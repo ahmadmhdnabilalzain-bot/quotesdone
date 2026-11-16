@@ -1,0 +1,13 @@
+Committed, not applied. Assigned: it_engineer, 15 Nov 2026 (the inbound burst of 15 Nov 18:40-18:54 UTC: 18 receipts,
+546/504, 5 recorded).
+
+Why it waits: this branch's brief allows no apply and no deploy; the releasing session applies it after review.
+
+What moves it, in this order (the new resend_inbound answers 503 while fn_inbound_mail_accept is missing, so the file
+goes first; the old resend_inbound ignores the queue, so the file alone changes nothing):
+  1. rehearse on the local database with its probe (never on production):
+     QD_LOCAL_DB_URL=... node scripts/ci/rehearse_sql.mjs scripts/sql/an_inbound_burst_is_accepted_at_once_and_read_in_turn.sql scripts/sql/an_inbound_burst_is_accepted_at_once_and_read_in_turn_probe.sql
+  2. node scripts/apply_sql.mjs scripts/sql/an_inbound_burst_is_accepted_at_once_and_read_in_turn.sql --apply --ddl
+     (it must print PROBE OK), then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt
+     in the same commit;
+  3. node scripts/deploy_functions.mjs --ref=htdblwldjkcgjvmqkbeh --production resend_inbound

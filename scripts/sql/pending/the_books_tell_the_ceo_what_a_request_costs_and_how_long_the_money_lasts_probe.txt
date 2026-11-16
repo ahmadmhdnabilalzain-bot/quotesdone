@@ -1,0 +1,3 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run on a
+LOCAL Postgres 16 only, in one transaction after the_books_tell_the_ceo_what_a_request_costs_and_how_long_the_money_lasts.sql,
+and must print PROBE OK. This note stays for the life of the file. Seat: accountant.

@@ -1,0 +1,1 @@
+Committed, not applied (15 Nov 2026, branch sales_engineer-the-supplier-funnel-runs-itself; no apply from this session). Apply order 2 of 4 (after the bounce-brake file; deploy send_outbox first), at merge, with its probe PROBE OK on a local Postgres first, then append this file to the END of MANIFEST.txt and delete this note in the same commit. Seat: sales_engineer + marketing.

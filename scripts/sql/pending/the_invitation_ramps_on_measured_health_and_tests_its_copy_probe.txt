@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run on a LOCAL Postgres after the_invitation_ramps_on_measured_health_and_tests_its_copy.sql (or with it in the same rolled-back transaction) and must print PROBE OK. This note therefore stays for the life of the file. Seat: sales_engineer + marketing.

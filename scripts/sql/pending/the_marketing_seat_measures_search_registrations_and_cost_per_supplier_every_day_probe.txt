@@ -1,0 +1,4 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. It is run on a
+LOCAL Postgres 16 only, in one transaction after
+the_marketing_seat_measures_search_registrations_and_cost_per_supplier_every_day.sql, and must print PROBE OK. This note stays
+for the life of the file. Seat: marketing.

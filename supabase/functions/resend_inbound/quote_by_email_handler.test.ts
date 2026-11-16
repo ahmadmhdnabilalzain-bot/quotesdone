@@ -61,7 +61,12 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
   return rows([{ id: 501 }]);
 }) as typeof fetch;
 
-const { handler, useThinkDeps } = await import('./index.ts');
+const { useThinkDeps } = await import('./index.ts');
+// The webhook records a delivery and the queue's reader reads it after the answer (15 Nov 2026, lib/queue.ts); this test reads
+// it at once through the same two halves the reader is built from: the signature check, then pipeline.ts.
+const { authenticate } = await import('./steps/authenticate.ts');
+const { readDelivery } = await import('./pipeline.ts');
+const handler = async (req: Request) => { const a = await authenticate({ req }); return a instanceof Response ? a : await readDelivery(a); };
 // The accountant's question "is this our own spending?" is reasoned; here it is reasoned to be 'other'.
 useThinkDeps({
   gate: () => Promise.resolve({ allowed: true, rule: 'ok' }),
