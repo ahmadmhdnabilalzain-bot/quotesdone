@@ -41,5 +41,6 @@ Deno.test('every reply path in email_triage passes the model text through withCl
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   const calls = src.match(/composeMailReply\(\{[^}]*\}\)/g) || [];
   assert(calls.length >= 2, 'both the person path and the reasoned/direct path compose a reply');
-  for (const c of calls) assert(/answer:\s*withClaimLink\(body,\s*facts\)/.test(c), 'unwrapped reply path: ' + c);
+  for (const c of calls) assert(/answer:\s*withWhatsappTail\(withClaimLink\(body,\s*facts\),\s*waTail\)/.test(c), 'unwrapped reply path: ' + c);
+  // 16 Nov 2026 (marketing, ledger 1184/1373): every path also carries the WhatsApp line (the offer, or his confirmation code)
 });

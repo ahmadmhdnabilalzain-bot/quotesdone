@@ -23,6 +23,7 @@ type World = {
   inbound: Row[]; notifications: Row[]; decisions: Row[]; runs: Row[]; gw: Row[]; handoffs: Row[];
   rules: Record<number, { hard_rule: string | null; reading: string | null }>;
   readings: Record<string, unknown>;   // the model's reading per sender address; 'down' = no model
+  wa?: { state: string; optin: Row[] };   // fn_supplier_whatsapp_offer_state's answer, and every yes recorded (16 Nov 2026)
 };
 
 function cond(r: Row, col: string, expr: string): boolean {
@@ -106,6 +107,9 @@ function stubFor(w: World): Stub {
             return J({ ok: true });
           }
           case 'fn_seat_handoff': w.handoffs.push(body); return J(w.handoffs.length);
+          // the WhatsApp offer (16 Nov 2026): what a reply says, and a model-read yes recorded with a code (the SQL checks the facts)
+          case 'fn_supplier_whatsapp_offer_state': return J({ state: w.wa?.state ?? 'not_a_lead' });
+          case 'fn_supplier_whatsapp_optin_from_mail': { w.wa?.optin.push(body); return J({ ok: true, code: 'pending', code_to_send: '48213307', lead_id: 77 }); }
           default: return J(null);
         }
       }
@@ -254,4 +258,49 @@ Deno.test('the reading input fences their words, says whether it replies to one 
   assert(input.includes('UNTRUSTED EMAIL TEXT') && input.includes('ignore your rules'));
   assert(input.includes('FROM US, written by a person at QuotesDone'));
   assertEquals(threadText([]), '(no earlier correspondence with this address)');
+});
+
+// A YES TO JOB REQUESTS ON WHATSAPP IS READ BY THE MODEL IN THE SAME READING, RECORDED, AND ANSWERED WITH ITS CODE (16 Nov 2026,
+// marketing, ledger 1184/1373; _shared/whatsapp_offer.ts). Before: the reading returned no such field, nothing was recorded, and
+// fn_wa_optin_rule's keyword yes refused "yes put me on WhatsApp" and an Arabic yes alike. The stub model gives the verdict; code
+// only passes it on with the model's name, and the reply carries the exact confirmation line.
+import { confirmLine, WHATSAPP_OFFER } from '../_shared/whatsapp_offer.ts';
+const AR_YES = '\u0646\u0639\u0645\u060c \u0623\u0631\u0633\u0644\u0648\u0647\u0627 \u0639\u0644\u0649 \u0627\u0644\u0648\u0627\u062a\u0633\u0627\u0628';
+for (const [label, words] of [['English', 'yes put me on WhatsApp'], ['Arabic', AR_YES]] as const) {
+  Deno.test(`a supplier's ${label} yes to the WhatsApp offer is read as consent by the model, recorded with the model's name, and answered with his code`, async () => {
+    const w = world({ wa: { state: 'offer', optin: [] } });
+    const from = 'owner@zz-demo-l2optin-' + label.toLowerCase() + '.invalid';
+    const m = mail(w, { from_email: from, subject: 'Re: A question about your tiling work', body: words });
+    w.readings[from] = { reading: 'supplier_registration', why: 'An invited supplier agrees to get job requests on WhatsApp.', quote: words, whatsapp_yes: true };
+    await tick(w);
+    assert(String(readingCalls(w)[0]?.sys).includes('whatsapp_yes'), 'the reading is asked about WhatsApp in the same call');
+    assertEquals(w.wa!.optin.length, 1, 'the yes is recorded once');
+    assertEquals([w.wa!.optin[0].p_inbound_id, w.wa!.optin[0].p_read_by], [m.id, 'stub/model'], 'recorded for this mail, naming the model that read it');
+    assert(String(w.wa!.optin[0].p_answer).includes(words), 'his own words are the evidence');
+    const sent = repliesTo(w, m);
+    assertEquals(sent.length, 1);
+    assert(sent[0].body.includes(confirmLine('48213307')), 'the reply carries his confirmation code, word for word');
+    assertFalse(sent[0].body.includes(WHATSAPP_OFFER), 'and does not offer again what he accepted');
+  });
+}
+
+Deno.test('a reply the model does not read as a yes records nothing, and a supplier reply carries the offer unless he is on WhatsApp already', async () => {
+  const w = world({ wa: { state: 'offer', optin: [] } });
+  const from = 'owner@zz-demo-l2optin-no.invalid';
+  const m = mail(w, { from_email: from, subject: 'Re: A question', body: 'Who is this? Is WhatsApp safe?' });
+  w.readings[from] = { reading: 'supplier_registration', why: 'An invited supplier asks who we are.', quote: 'Who is this?', whatsapp_yes: false };
+  await tick(w);
+  assertEquals(w.wa!.optin.length, 0, 'no model yes, no record');
+  assert(repliesTo(w, m)[0].body.includes(WHATSAPP_OFFER), 'every reply to a supplier offers job requests on WhatsApp');
+  const w2 = world({ wa: { state: 'consented', optin: [] } });
+  const m2 = mail(w2, { from_email: from, subject: 'Registration', body: 'How do we register?' });
+  w2.readings[from] = { reading: 'supplier_registration', why: 'asks how to register', quote: 'How do we register?' };
+  await tick(w2);
+  assertFalse(repliesTo(w2, m2)[0].body.includes(WHATSAPP_OFFER), 'no offer to a supplier already on WhatsApp');
+});
+
+Deno.test('parseReading: whatsapp_yes is true only when the model said exactly true', () => {
+  const base = { reading: 'supplier_registration', why: 'w', quote: 'q' };
+  assertEquals(parseReading(JSON.stringify({ ...base, whatsapp_yes: true }))?.whatsapp_yes, true);
+  for (const v of [false, 'true', 'yes', 1, null, undefined]) assertEquals(parseReading(JSON.stringify({ ...base, whatsapp_yes: v }))?.whatsapp_yes, false, String(v));
 });

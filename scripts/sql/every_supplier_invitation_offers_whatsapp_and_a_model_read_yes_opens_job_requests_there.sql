@@ -61,7 +61,7 @@ set local lock_timeout = '3s';
 -- 1. the offer
 create or replace function public.fn_wa_job_request_offer()
 returns text language sql immutable set search_path to 'public', 'pg_temp' as $fn$
-  select 'Would you also like to get job requests on WhatsApp? Reply "WhatsApp" and we will send you a code to confirm your number.'::text
+  select 'Want job requests on WhatsApp too? Reply "WhatsApp" and we will send you a code to confirm your number.'::text
 $fn$;
 revoke execute on function public.fn_wa_job_request_offer() from public, anon, authenticated;
 
