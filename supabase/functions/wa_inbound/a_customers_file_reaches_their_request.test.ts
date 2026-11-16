@@ -18,7 +18,9 @@ async function sign(params: Record<string, string>): Promise<string> {
   return btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data)))));
 }
 type World = { docs: Record<string, unknown>[]; inqPatches: Record<string, unknown>[]; intakes: Record<string, unknown>[]; boq: Record<string, unknown>[]; redact: Record<string, unknown>[];
-  gateway: string[]; inquiries: Record<string, unknown>[]; jobs: Record<string, unknown>[]; media?: Uint8Array; fileHeld?: boolean };
+  gateway: string[]; inquiries: Record<string, unknown>[]; jobs: Record<string, unknown>[]; media?: Uint8Array; fileHeld?: boolean;
+  /** fn_site_photos_record calls, and the record they built (the database's one statement, stubbed) */
+  photoRpcs?: Record<string, unknown>[]; photoRecord?: { photos: Record<string, unknown>[] }; photosToday?: number };
 function stub(w: World): Stub {
   return {
     rpc: { fn_internal_auth: { ok: true, context: 'test', credential_id: 1, legacy: false }, fn_wa_lead_id: null,
@@ -43,7 +45,13 @@ function stub(w: World): Stub {
       if (u.pathname === '/rest/v1/inquiry_intake' && req.method === 'GET') return J([]);
       if (u.pathname === '/rest/v1/inquiry_intake' && req.method === 'POST') { const row = { id: 'intake-1', ...JSON.parse(body!) }; w.intakes.push(row); return J(row, 201); }
       if (u.pathname === '/rest/v1/documents' && req.method === 'POST') { w.docs.push(JSON.parse(body!)); return J([], 201); }
-      if (u.pathname === '/rest/v1/cad_read_jobs' && req.method === 'POST') { w.jobs.push(JSON.parse(body!)); return J({ id: 'job-1' }, 201); }
+      if (u.pathname === '/rest/v1/cad_read_jobs' && req.method === 'POST') { w.jobs.push(JSON.parse(body!)); return J({ id: '0b0b0b0b-0000-4000-8000-00000000000' + w.jobs.length }, 201); }
+      if (u.pathname === '/rest/v1/cad_read_jobs' && (req.method === 'HEAD' || req.method === 'GET')) return new Response(req.method === 'HEAD' ? null : '[]', { status: 200, headers: { 'content-type': 'application/json', 'content-range': '*/' + (w.photosToday ?? 0) } });
+      if (u.pathname === '/rest/v1/rpc/fn_site_photos_record') {
+        const a = JSON.parse(body!); (w.photoRpcs ??= []).push(a);
+        w.photoRecord = { photos: [...(w.photoRecord?.photos ?? []), ...a.p_photos.map((p: Record<string, unknown>) => ({ ...p, via: a.p_via }))] };
+        return J({ asked: [], ...w.photoRecord });
+      }
       return undefined;
     },
   };
@@ -104,4 +112,26 @@ Deno.test('a PDF the redaction holds attaches nothing: suppliers see no page of 
   // Review item 13 (13 Nov 2026): the reply is true - a held drawing is never described as shown to suppliers.
   const told = w.gateway.join(' ');
   assert(/NOT shown to suppliers yet/.test(told) && !/suppliers are shown it only with/.test(told), 'the reply describes a held drawing as shared: ' + told.slice(0, 300));
+});
+
+// REVIEW OF bf8b9ea45, ITEM 4 (15 Nov 2026, sales_engineer): a WhatsApp photo is recorded on the open request by the database's one
+// statement (fn_site_photos_record), never by reading the spec and writing it back whole, which lost one of two photos sent together
+// and overwrote a chat turn saved in between. A customer past the day's cap is not queued.
+const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0xff, 0xda, 0, 2, 1, 2, 3, 0xff, 0xd9]);
+const INQ = '1a1a1a1a-0000-4000-8000-000000000001';
+Deno.test('a WhatsApp photo is queued and recorded on the open request in one statement; the spec is never written whole', async () => {
+  const w = world([{ id: INQ, status: 'open', drawing_file_path: null }]); w.media = JPEG;
+  await send(w, 'ZZ DEMO the outdoor unit');
+  await send(w, 'ZZ DEMO the indoor unit');
+  assertEquals(w.jobs.map((j) => j.why), ['site_photo_check', 'site_photo_check']);
+  assertEquals((w.photoRpcs ?? []).map((a) => [a.p_table, a.p_id, a.p_via]), [['inquiries', INQ, 'whatsapp'], ['inquiries', INQ, 'whatsapp']]);
+  assertEquals(w.photoRecord?.photos.length, 2, 'one of two photos was lost');
+  assert(!w.inqPatches.some((x) => 'spec' in x || 'brief' in x), 'the spec was read and written back whole: ' + JSON.stringify(w.inqPatches));
+  assert(/checked first/.test(w.gateway.join(' ')), 'the customer is not told the photo is checked first');
+});
+Deno.test('a customer past the day\'s photo cap is not queued, and is told the photo is not sent to suppliers', async () => {
+  const w = world([{ id: INQ, status: 'open', drawing_file_path: null }]); w.media = JPEG; w.photosToday = 24;
+  await send(w, 'ZZ DEMO one more');
+  assertEquals(w.jobs.length, 0);
+  assert(/not sent to suppliers/.test(w.gateway.join(' ')));
 });

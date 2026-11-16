@@ -145,7 +145,24 @@
       ],
       "site_visit_required_when": "consumables can be priced firm by product and quantity; dental chairs and imaging need a site visit for services and shielding before a firm price.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking, when a meeting, sample or site visit is unavoidable); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 2 spec(s) added, 1 no longer quote-blocking; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "The pipes, cables and connections at the point where it will be connected",
+          "shot_ar": "الأنابيب والكابلات ونقاط التوصيل في مكان التركيب",
+          "from": "services"
+        },
+        {
+          "shot": "The room where the equipment will go, including its walls and door",
+          "shot_ar": "الغرفة المخصصة للجهاز، بما فيها الجدران والباب",
+          "from": "shielding"
+        }
+      ]
     },
     {
       "id": "dental_supplies:uae-standards-and-approvals",

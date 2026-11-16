@@ -22,7 +22,7 @@
 --      goes to the engineer session through public.it_code_defect, money and data decisions to the CEO; the founder hears only
 --      the record. The hard refusals: no deleting or overwriting data, no approving/rejecting/unbanning, no licence value, no
 --      money/credit/caps, no weakening a gate, no secret or configuration, no deploy by the seat. escalation_targets stays
---      {founder} and there is still no org_reporting_edge (the_company_gets_an_it_engineer_..._founder.sql; the check
+--      {founder}; its one reporting edge is to the CEO (founder, 14 Sep 2026) and this file adds none (the_company_gets_an_it_engineer_..._founder.sql; the check
 --      support_acceptance_group_org_and_channels asserts it): the founder rule on the reporting line stands, and the record of
 --      what the seat did goes to him; what to do about money, priorities and data is the CEO's.
 --   2. ceo_standing_grant it_engineer/job_rerun ACTIVE, bounded by public.it_rerunnable_job: the idempotency fact the 9 Sep file
@@ -131,7 +131,10 @@ select case when problems is null then 'PROBE OK' else 'PROBE FAILED: ' || probl
      where not exists (select 1 from public.org_role r, unnest(r.forbidden_decisions) d where r.role_id = 'it_engineer' and d like t || ' %')
     union all select 'a forbidden line routes a repair to the founder' from public.org_role r, unnest(r.forbidden_decisions) d
      where r.role_id = 'it_engineer' and d ilike '%the route is the founder%'
-    union all select 'the IT seat gained a reporting edge' where exists (select 1 from public.org_reporting_edge where child_role_id = 'it_engineer')
+    -- Corrected 16 Nov (applied 01:47 UTC): production has carried it_engineer -> ceo since 14 Sep 2026, established by the founder
+    -- (the daily backup line and persistent failures go to the CEO); this file never touched org_reporting_edge. The check is
+    -- that the seat reports to the CEO and to nobody else.
+    union all select 'the IT seat reports to someone other than the CEO' where exists (select 1 from public.org_reporting_edge where child_role_id = 'it_engineer' and parent_role_id <> 'ceo')
     union all select 'the job_rerun grant is active without its register' where exists (select 1 from public.ceo_standing_grant where grantee_role_id = 'it_engineer'
                 and action_class = 'job_rerun' and active) and to_regclass('public.it_rerunnable_job') is null
     union all select 'customer_support does not hand a fault over' from public.org_role where role_id = 'customer_support' and responsibilities not like '%support.root_cause%'

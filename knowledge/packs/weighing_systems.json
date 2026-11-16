@@ -157,7 +157,24 @@
           "blocking": false
         }
       ],
-      "site_visit_required_when": "a weighbridge needs a site visit for foundations, access and drainage before a firm price; standard scales can be priced from the specs."
+      "site_visit_required_when": "a weighbridge needs a site visit for foundations, access and drainage before a firm price; standard scales can be priced from the specs.",
+      "photos_to_ask": [
+        {
+          "shot": "What the equipment stands on (the base, plinth or slab), from the side",
+          "shot_ar": "ما تقف عليه المعدات (القاعدة أو الأرضية)، من الجانب",
+          "from": "foundations"
+        },
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "access"
+        },
+        {
+          "shot": "Where the water drains (the drain point or floor drain)",
+          "shot_ar": "مكان تصريف المياه (نقطة الصرف أو صرف الأرضية)",
+          "from": "drainage"
+        }
+      ]
     },
     {
       "id": "weighing_systems:product-distinctions",

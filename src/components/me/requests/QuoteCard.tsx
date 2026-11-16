@@ -143,6 +143,8 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
       ? <div className={cn(S.sub, 'mt-1')}>{exp.text}{q.validity ? (' · ' + t(lang, 'q_validity') + q.validity) : ''}</div>
       : <div className={cn('mt-1.5 rounded-md border px-3 py-2 text-[11.5px]', exp.tone === 'expired' ? 'border-danger/30 bg-danger/10 text-danger-fg' : 'border-warn/30 bg-warn/10 text-warn-fg')} role={exp.tone === 'expired' ? 'alert' : undefined}>{exp.text}</div>)}
     {!exp && q.validity && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_validity') + q.validity}</div>}
+    {/* Ledger 1697: validity is what the supplier states. Stated nothing: we say so, and never print a date of our own. */}
+    {!exp && !q.validity && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_validity_not_stated')}</div>}
     {/* match_reason is omitted by the API until reveal, because it can name the company. */}
     {q.match_reason && <div className={cn(S.sub, 'mt-1')}>{t(lang, 'q_why') + q.match_reason}</div>}
     <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1"><QuotePdfLink q={q} token={token} lang={lang} />{revealed ? <InvoicePdfLink q={q} token={token} lang={lang} /> : null}</div>

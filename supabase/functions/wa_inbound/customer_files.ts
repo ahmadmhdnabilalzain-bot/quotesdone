@@ -28,6 +28,7 @@ import { cadSupplierBoq, dxfTextOf } from '../_shared/cad_identity.ts';
 import { inDbRegion } from '../_shared/db_region.ts';
 import { admin, sec } from './shared.ts';
 import { fetchTwilioMedia } from './media.ts';
+import { PHOTOS_PER_DAY, photosToday, recordSitePhotos } from '../_shared/site_photos.ts';
 
 export type CustomerFileResult = { ok: boolean; kind?: 'drawing' | 'cad' | 'photo'; target?: string; note: string; boqLines?: number; queued?: boolean; held?: boolean };
 
@@ -59,6 +60,22 @@ export async function targetOf(cust: { id: string; email: string }, caption: str
   return made?.id ? { table: 'inquiry_intake', id: String(made.id), hasDrawing: false, ref: 'a new request started for this file' } : null;
 }
 
+/** Queue a WhatsApp photo's check and record it on the request it was added to. null when either step fails (nothing offered).
+ *  The record is written by public.fn_site_photos_record in ONE statement (review of bf8b9ea45, item 4): the old read of brief or
+ *  spec, the photo added here and the whole object written back lost one of two photos sent together, and overwrote a chat turn
+ *  saved in between. Each photo arrives as its own webhook, so that race was the normal case. A customer past the day's cap
+ *  (PHOTOS_PER_DAY) is not queued: the photo stays with the request, unoffered. */
+async function queueSitePhoto(cust: { id: string; email: string }, target: { table: 'inquiries' | 'inquiry_intake'; id: string }, path: string, name: string, mime: string, size: number): Promise<string | null> {
+  try {
+    const today = await photosToday(admin, cust.id);
+    if (today === null || today >= PHOTOS_PER_DAY) return null;
+    const { data: job, error } = await admin.from('cad_read_jobs').insert({ customer_id: cust.id, owner_email: cust.email, source_path: path, file_name: name, mime, bytes: size, why: 'site_photo_check', boq_in: { shot: null } }).select('id').maybeSingle();
+    if (error || !job?.id) return null;
+    const rec = await recordSitePhotos(admin, { table: target.table, id: target.id, customerId: cust.id, email: cust.email, photos: [{ job_id: String(job.id) }], via: 'whatsapp' });
+    return rec?.photos?.some((p) => p.job_id === String(job.id)) ? String(job.id) : null;
+  } catch (_e) { return null; }
+}
+
 /** Store, attach and (for a drawing) read one file. Never throws: every failure is a plain note for the reply. */
 export async function customerFile(cust: { id: string; email: string; name: string; phone: string }, target: NonNullable<Awaited<ReturnType<typeof targetOf>>>,
                                    m: { url: string; mime: string }, n: number, allowInline: boolean): Promise<CustomerFileResult> {
@@ -80,7 +97,16 @@ export async function customerFile(cust: { id: string; email: string; name: stri
   } catch (_e) { /* the file is stored; the vault row is best effort, as for a chat attachment (messages_api) */ }
   // A PHOTO is kept with the request for the customer and our team; it is NOT offered to suppliers (13 Nov 2026, review
   // item 13: the customer was never told). The reply says so, and how to share a drawing instead.
-  if (kind === 'photo') return { ok: true, kind, target: target.ref, held: true, note: 'a photo, added to ' + target.ref + '; photos are kept with the request and are not sent to suppliers - a drawing can be shared as a PDF or a CAD file (DWG/DXF)' };
+  // A SITE PHOTO SENT IN THE THREAD (15 Nov 2026, founder ledger 1704, ruling 1683): the same check as a portal photo. It is queued
+  // for the worker's photo check (_shared/site_photo_gate.ts) and recorded on the request by its job (_shared/site_photos.ts,
+  // via 'whatsapp', no shot), so the sales engineer's one photo ask is answered here too; a supplier sees only the checked copy.
+  // A photo whose check cannot be queued stays as before: kept with the request, never offered.
+  if (kind === 'photo') {
+    const job = await queueSitePhoto(cust, target, path, name, mime, bytes.length);
+    return { ok: true, kind, target: target.ref, held: true, queued: !!job, note: job
+      ? 'a photo, added to ' + target.ref + '; it is checked first, and suppliers see it only with anything that could identify the customer covered (a photo that cannot be cleared is not sent)'
+      : 'a photo, added to ' + target.ref + '; photos are kept with the request and are not sent to suppliers - a drawing can be shared as a PDF or a CAD file (DWG/DXF)' };
+  }
 
   // A DRAWING GOES THE PORTAL'S WAY (customer_api analyze_drawing): read for the take-off, redacted before any supplier sees it.
   const secret = await sec('cred_fn_wa_drawings');

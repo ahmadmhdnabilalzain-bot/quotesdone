@@ -17,13 +17,17 @@ const cellText = (c: Cell) => typeof c === 'string' ? c : c.text;
 // deno-lint-ignore no-explicit-any
 const joinList = (x: any, ar = false) => arrOf(x).map((s: unknown) => String(s ?? '').trim().replace(/[.。]+$/, '')).filter(Boolean).join(ar ? '؛ ' : '; ');
 
-/** The roster row (all_quotes) for a shortlisted quote, as a PriceRow: the analysis' own `price` is its fallback. */
+/** The roster row (all_quotes) for a shortlisted quote, as a PriceRow: the roster's price only, never the analysis' own. */
 // deno-lint-ignore no-explicit-any
 function statedOf(a: any): (q: any) => PriceRow {
   // deno-lint-ignore no-explicit-any
   const by = new Map<string, any>(arrOf(a?.all_quotes).filter((r: any) => r && r.label).map((r: any) => [String(r.label), r]));
   // deno-lint-ignore no-explicit-any
-  return (q: any) => { const r = by.get(String(q.label)) || {}; return { quote_amount: r.price ?? q.price, price_ex_vat: q.price_ex_vat ?? r.price, gross_amount: r.gross_amount, discount_amount: r.discount_amount, vat_treatment: r.vat_treatment, vat_amount: r.vat_amount }; };
+  // ONE FIGURE (accountant, 15 Nov 2026): the roster's price IS the fee base (quote_compare comparedPrice), so both columns
+  // of this PriceRow carry it; the model's own price_ex_vat is never read first.
+  // The roster ONLY (final review of 15 Nov 2026, item 3): the model's `price` is never a fallback, so a quote the roster
+  // holds no price for shows none rather than the model's figure.
+  return (q: any) => { const r = by.get(String(q.label)) || {}; const p = r.price ?? null; return { quote_amount: p, price_ex_vat: p, gross_amount: r.gross_amount, discount_amount: r.discount_amount, vat_treatment: r.vat_treatment, vat_amount: r.vat_amount }; };
 }
 
 // IN compare_csv EVERY LIVE QUOTE IS A COLUMN, CHEAPEST FIRST (sandbox run 5, tag 321d13ae, 19 Oct 2026).
@@ -44,7 +48,7 @@ export function comparedQuotes(a: any): any[] {
     ? roster.map((r: any) => detail.get(String(r.label)) || { label: r.label, price: r.price, lead_time: r.lead_time, warranty: r.warranty })
     : [...detail.values()];
   // deno-lint-ignore no-explicit-any
-  const price = (q: any) => { const r = roster.find((x: any) => String(x.label) === String(q.label)); const p = Number(r?.price ?? q.price_ex_vat ?? q.price); return p > 0 ? p : Infinity; };
+  const price = (q: any) => { const r = roster.find((x: any) => String(x.label) === String(q.label)); const p = Number(r?.price); return p > 0 ? p : Infinity; };
   // deno-lint-ignore no-explicit-any
   return rows.filter((q: any) => !held.has(String(q.label))).sort((x, y) => price(x) - price(y));
 }
@@ -100,7 +104,7 @@ function commercialRowsOf(a: any, k: Kit, every = false): { head: Cell[]; rows: 
   // e2e journey c). Labels are system-made ("Supplier X – Option N"), so their length is bounded.
   return { head: [T('Compare', 'المقارنة'), ...qs.map((q: any) => k.label(q.label))], rows, labels: qs.map((q: any) => String(q.label)) };
 }
-const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', optional: '○', na: '' };
+const MARK: Record<SpecFlag, string> = { match: '✓', differs: '≠', missing: '—', optional: '○', na: '', stated: '' };
 /** The commercial comparison as text rows: what compare_csv exports. Same rows as the report. */
 // deno-lint-ignore no-explicit-any
 // 13 Nov 2026 (anonymity audit, REPORT_C L7): the CSV was the comparison's rows WITHOUT the supplier names the PDF masks

@@ -44,7 +44,8 @@ assert.ok(r.overview.includes('10,000') && r.overview.includes('11,000'), 'state
 
 for (const item of r.quotes) {
   for (const k of ['price_score', 'delivery_score', 'quality_score']) {
-    assert.ok(Number.isInteger(item[k]) && item[k] >= 1 && item[k] <= 5, `${item.label}.${k} out of 1..5`);
+    // Proportional since 15 Nov 2026 (journey A): one decimal, still 1..5.
+    assert.ok(Number.isFinite(item[k]) && Math.round(item[k] * 10) === item[k] * 10 && item[k] >= 1 && item[k] <= 5, `${item.label}.${k} out of 1..5`);
   }
   // Nothing about the specification may be invented — that needs reading, which is the model's job.
   assert.deepEqual(item.missing_from_request, []);
@@ -75,9 +76,14 @@ assert.ok(new Set(ps).size > 1, 'clustered prices must still produce different p
 assert.equal(Math.max(...ps), 5, 'the cheapest of the shortlist scores 5');
 assert.equal(rc.top3[0].label, 'Supplier A');
 
-// An exact tie is a 3 for everyone, never a 5 for everyone.
+// An exact tie: was 3 for everyone under rank-relative scoring. Proportional scoring (15 Nov 2026, journey A: 5/3/1 printed
+// for AED 12,279 / 15,750 / 18,855) scores each price against the lowest, so two equal lowest prices are both 5.0, and the
+// ranking is then decided by the other half (completeness / his requirements), exactly as when ratio scoring tied.
 const rt = deterministicCompare([q('Supplier A', 500), q('Supplier B', 500)], 'en');
-assert.deepEqual(rt.quotes.map(x => x.price_score), [3, 3], 'a genuine tie scores 3, not 5');
+assert.deepEqual(rt.quotes.map(x => x.price_score), [5, 5], 'a genuine tie is the same score for both');
+// Proportional, not rank-relative: AED 12,279 / 15,750 / 18,854.85 score 5.0 / 3.9 / 3.3 (journey A), never 5 / 3 / 1.
+const rp = deterministicCompare([q('Supplier A', 12279), q('Supplier B', 15750), q('Supplier C', 18854.85)], 'en');
+assert.deepEqual(rp.quotes.map(x => [x.label, x.price_score]).sort(), [['Supplier A', 5], ['Supplier B', 3.9], ['Supplier C', 3.3]]);
 
 // --- two quotes, one expired, one with no price at all
 const r2 = deterministicCompare([

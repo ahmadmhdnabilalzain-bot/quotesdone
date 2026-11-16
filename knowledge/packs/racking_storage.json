@@ -155,7 +155,24 @@
         }
       ],
       "source_note": "spec_guide, blocking and site_visit_required_when added 10 Nov 2026 by sales_engineer from trade expertise (ledger 1587-1590); not read from a page.",
-      "site_visit_required_when": "a firm racking price needs a site visit or a warehouse layout with clear height, column grid and slab data; a mezzanine needs a structural design."
+      "site_visit_required_when": "a firm racking price needs a site visit or a warehouse layout with clear height, column grid and slab data; a mezzanine needs a structural design.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "Each opening or area, straight on, with a tape measure across it if you have one",
+          "shot_ar": "كل فتحة أو مساحة من الأمام مباشرة، مع شريط قياس عليها إن توفر",
+          "from": "clear height"
+        },
+        {
+          "shot": "The ground or floor where the work will stand",
+          "shot_ar": "الأرض أو الأرضية التي سيقوم عليها العمل",
+          "from": "slab"
+        }
+      ]
     },
     {
       "id": "racking_storage:uae-standards-and-approvals",

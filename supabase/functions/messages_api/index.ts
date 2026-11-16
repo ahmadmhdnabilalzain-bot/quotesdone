@@ -16,7 +16,7 @@ import { isCustomerCorrespondence } from '../_shared/customer_mail.ts';
 import { asLocale } from '../_shared/registered_locale.ts';
 import { requestDelivery } from '../_shared/deliver.ts';
 // The supplier's alias on this job is the same one its own quotation prints (audit 21 Sep 2026, finding 29).
-import { jobAlias } from '../_shared/quote_labels.ts';
+import { jobAlias, NO_LETTER, recordShown } from '../_shared/quote_labels.ts';
 import { HELD_NOTICE, hasArabic, holdForEnglish, mailMatched, supplierMail } from '../_shared/supplier_english.ts';
 import { buildSupplierMailbox } from './mailbox.ts';
 import { stripContact, stripSupplierQuestion } from './strip_contact.ts';
@@ -116,8 +116,9 @@ async function otherChannels(cust: { id: string; phone?: string | null; phone_ve
 //                                    questions plus every answered one (answers are addenda to the RFQ)
 //   clarify_ask    {inquiry_id, text}  supplier session, must be matched to the inquiry
 //   clarify_answer {id, text}          customer session, owner only; every matched supplier is told
-// Identities are masked both ways: suppliers appear to the customer as "Supplier A/B..." in the
-// order they were matched, the customer never appears at all, and contact details are stripped from
+// Identities are masked both ways: suppliers appear to the customer as "Supplier A/B..." by the letter his quotes carry
+// (_shared/quote_labels.ts customerSupplierLetters; until 15 Nov 2026 the match order), to a supplier by the job's
+// match-order aliases (jobAlias); the customer never appears at all, and contact details are stripped from
 // both texts here, server-side, before anything is stored or emailed.
 // The scrubber itself (STRIP, scrubName, stripContact) lives in ./strip_contact.ts since 3 Nov 2026.
 type Res = { status: number; body: Record<string, unknown> };
@@ -194,8 +195,14 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     const source = b.source === 'rfq_flag' ? 'rfq_flag' : 'portal';
     const { data: ins, error } = await admin.from('rfq_clarification').insert({ inquiry_id, supplier_id: supLead.id, kind: 'question', question: text, source }).select('id').single();
     if (error || !ins) return R(500, { error: 'save_failed' });
-    const label = jobAlias(order, Number(supLead.id));
+    const label = jobAlias(order, Number(supLead.id));   // the supplier's own alias on this job, what the supplier is shown
     try {
+      // THE CUSTOMER'S LETTER for this supplier (_shared/quote_labels.ts, 15 Nov 2026): this question is the customer's first sight
+      // of the supplier if it has not quoted yet, so its letter is recorded here, and his quote cards, quotation and comparison use
+      // the same one: "Supplier B asked..." is the Supplier B whose quote arrives later. Unrecorded or unreadable: no letter at all.
+      const rec = await recordShown(admin, { [inquiry_id]: [{ id: String(ins.id), supplier_id: Number(supLead.id), created_at: new Date().toISOString() }] }, 'question');
+      const custLetter = rec?.get(inquiry_id)?.get(String(supLead.id));
+      const custLabel = custLetter ? 'Supplier ' + custLetter : 'A supplier';
       const { data: c } = await admin.from('customers').select('email,full_name,locale').eq('id', inq.customer_id).maybeSingle();
       if (c?.email && /@/.test(c.email)) {
         // customers.locale through the one helper: 'ar-AE' is Arabic too, which the exact test missed.
@@ -203,8 +210,8 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
         await notify([{ type: 'clarification_requested', to_email: c.email, to_role: 'customer', inquiry_id, channel: 'email', status: 'queued',
           subject: ar ? 'استفسار من أحد المورّدين بشأن طلبكم' : 'A supplier has a question about your request',
           body: ar
-            ? ('حضرة ' + (c.full_name || 'العميل الكريم') + '،\n\nتحية طيبة وبعد،\n\nوردنا من ' + label.replace('Supplier', 'المورّد') + ' استفسار بشأن طلبكم (' + (inq.category || '') + '):\n\n«' + text + '»\n\nيُرجى فتح طلبكم على QuotesDone والرد على الاستفسار من هناك؛ إذ يصل ردّكم إلى جميع المورّدين المدعوّين دون اسمكم أو رقمكم، ليسعّروا جميعًا النطاق نفسه.')
-            : ('Hi ' + (c.full_name || 'there') + ',\n\n' + label + ' asked about your ' + (inq.category || '') + ' request:\n\n"' + text + '"\n\nOpen your request on QuotesDone and answer it there. Your answer reaches every invited supplier without your name or number, so they can all quote the same scope.') }]);
+            ? ('حضرة ' + (c.full_name || 'العميل الكريم') + '،\n\nتحية طيبة وبعد،\n\nوردنا من ' + (custLetter ? 'المورّد ' + custLetter : 'أحد المورّدين') + ' استفسار بشأن طلبكم (' + (inq.category || '') + '):\n\n«' + text + '»\n\nيُرجى فتح طلبكم على QuotesDone والرد على الاستفسار من هناك؛ إذ يصل ردّكم إلى جميع المورّدين المدعوّين دون اسمكم أو رقمكم، ليسعّروا جميعًا النطاق نفسه.')
+            : ('Hi ' + (c.full_name || 'there') + ',\n\n' + custLabel + ' asked about your ' + (inq.category || '') + ' request:\n\n"' + text + '"\n\nOpen your request on QuotesDone and answer it there. Your answer reaches every invited supplier without your name or number, so they can all quote the same scope.') }]);
       }
     } catch (_e) { /* the question is stored either way; the portal shows it on the next load */ }
     return R(200, { ok: true, id: ins.id, supplier_label: label });
@@ -218,10 +225,15 @@ async function clarify(action: string, b: Record<string, unknown>, supLead: any,
     const forSupplier = (r: any) => (r.english_held_at ? { ...r, answer: null, answered_at: null } : r);
     const shaped = (rows || []).map((r: any) => (isOwner ? { ...r, answer: r.answer_as_written ?? r.answer } : forSupplier(r)));
     const visible = shaped.filter((r: any) => isOwner || (r.kind === 'note' && r.answer) || Number(r.supplier_id) === Number(supLead?.id) || r.answered_at);
+    // the customer reads each supplier by HIS letter (the quotes' one); a supplier reads the job's own aliases
+    // (the questions listed here are shown to him, so a supplier he meets here first is lettered here, in the order it asked)
+    const asked = isOwner ? visible.filter((r: any) => r.kind === 'question' && r.supplier_id != null).map((r: any) => ({ id: String(r.id), supplier_id: Number(r.supplier_id), created_at: r.asked_at })) : [];
+    const custLetters = isOwner ? ((asked.length ? await recordShown(admin, { [inquiry_id]: asked }, 'question') : await recordShown(admin, {}, 'question', [inquiry_id]))?.get(inquiry_id) ?? new Map<string, string>()) : null;
+    const labelOf = (sid: number) => custLetters ? (custLetters.has(String(sid)) ? 'Supplier ' + custLetters.get(String(sid)) : NO_LETTER.en) : jobAlias(order, sid);
     const items = visible.map((r: any) => ({
       id: r.id, kind: r.kind, question: r.question ?? null, answer: r.answer ?? null, asked_at: r.asked_at, answered_at: r.answered_at ?? null,
       held_for_english: isOwner && !!r.english_held_at,
-      supplier_label: r.supplier_id == null ? null : jobAlias(order, Number(r.supplier_id)),
+      supplier_label: r.supplier_id == null ? null : labelOf(Number(r.supplier_id)),
       mine: !isOwner && Number(r.supplier_id) === Number(supLead?.id),
     }));
     return R(200, { ok: true, role: isOwner ? 'customer' : 'supplier', items });

@@ -28,6 +28,7 @@ const PROBE = 'scripts/sql/a_trades_blocking_specs_and_their_guide_reach_the_int
 const NOTE = 'scripts/sql/pending/a_trades_blocking_specs_and_their_guide_reach_the_interview.txt';
 const ADDED = ['spec_guide', 'blocking', 'site_visit_required_when', 'pack_order'];
 const OWNED = ['trade_code', 'topic_id', 'topic', 'specs', 'source_pack'];   // a_trade_without_a_line_reader_is_held_on_its_packs_required_specs.sql
+const PHOTOS = ['photos_to_ask'];   // a_site_visit_checklist_carries_the_photos_to_ask_for.sql (15 Nov 2026, ledger 1704)
 const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 
 const entry = (x) => ({ id: 'zz:spec-a', kind: 'spec_checklist', topic: 'ZZ checklist', required_specs: ['unit type (wall / ducted)', 'capacity: per unit', 'refrigerant'], ...x });
@@ -74,7 +75,7 @@ test('the repo: every checklist loads, nothing refused, a guide row for every sp
     assert.ok(r.blocking.every((c) => codes.includes(c)), `${r.topic_id}: a blocking code outside its specs`);
     assert.deepEqual(r.spec_guide.map((g) => g.code), codes, `${r.topic_id}: the guide does not cover its specs in order`);
     const { refused: _r, ...row } = r;
-    assert.deepEqual(Object.keys(row).sort(), [...OWNED, ...ADDED].sort(), `${r.topic_id}: the row is not the table's columns`);
+    assert.deepEqual(Object.keys(row).sort(), [...OWNED, ...ADDED, ...PHOTOS].sort(), `${r.topic_id}: the row is not the table's columns`);
   }
 });
 
@@ -82,7 +83,7 @@ test('the SQL adds, the loader inserts and the runtime selects the same columns'
   const sql = code(read(FILE));
   for (const c of ADDED) assert.match(sql, new RegExp(`add column if not exists ${c}\\b`), `the SQL does not add ${c}`);
   const ins = loadSql(loadDir(join(REPO, 'knowledge', 'packs')).slice(0, 1).map(({ refused: _r, ...r }) => r)).match(/insert into public\.trade_spec_checklist \(([^)]+)\)/)[1].split(',').map((x) => x.trim());
-  assert.deepEqual(ins.sort(), [...OWNED, ...ADDED].sort());
+  assert.deepEqual(ins.sort(), [...OWNED, ...ADDED, ...PHOTOS].sort());
   const ts = read('supabase/functions/_shared/inquiry_trades.ts');
   const cols = ts.match(/const CHECKLIST_COLS = '([^']+)'/)[1].split(',');
   for (const c of [...ADDED, 'trade_code', 'topic_id', 'topic', 'specs']) assert.ok(cols.includes(c), `the runtime does not select ${c}`);

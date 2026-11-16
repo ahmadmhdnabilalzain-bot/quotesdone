@@ -479,7 +479,39 @@
       ],
       "site_visit_required_when": "A site visit is needed for replacements and ducted systems to check pipe runs, outdoor unit positions, drainage and the electrical supply.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "Each indoor unit, from the front",
+          "shot_ar": "كل وحدة داخلية، من الأمام",
+          "from": "replacements"
+        },
+        {
+          "shot": "Each outdoor unit and where it sits (roof, balcony or wall)",
+          "shot_ar": "كل وحدة خارجية ومكانها (سطح، شرفة أو جدار)",
+          "from": "outdoor unit positions"
+        },
+        {
+          "shot": "The label (nameplate) on a unit, close up",
+          "shot_ar": "الملصق (اللوحة التعريفية) على إحدى الوحدات عن قرب",
+          "from": "replacements"
+        },
+        {
+          "shot": "The route the pipes take between the indoor and outdoor units",
+          "shot_ar": "مسار الأنابيب بين الوحدة الداخلية والخارجية",
+          "from": "pipe runs"
+        },
+        {
+          "shot": "Where the water from the unit drains",
+          "shot_ar": "مكان تصريف المياه من الوحدة",
+          "from": "drainage"
+        },
+        {
+          "shot": "The isolator switch near the unit, or the electrical board",
+          "shot_ar": "مفتاح الفصل بجانب الوحدة، أو لوحة الكهرباء",
+          "from": "electrical supply"
+        }
+      ]
     },
     {
       "id": "hvac:spec-vrf",
@@ -656,7 +688,24 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for retrofit in an existing building, to check outdoor unit locations and pipe routes.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "Each outdoor unit and where it sits (roof, balcony or wall)",
+          "shot_ar": "كل وحدة خارجية ومكانها (سطح، شرفة أو جدار)",
+          "from": "outdoor unit locations"
+        },
+        {
+          "shot": "The route the pipes would take, from one end to the other",
+          "shot_ar": "المسار الذي ستمر به الأنابيب، من طرف إلى آخر",
+          "from": "pipe routes"
+        }
+      ]
     },
     {
       "id": "hvac:spec-chiller",
@@ -844,7 +893,34 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for chiller replacement, to check access, plinths and the crane route.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 4 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "Each existing unit or item to be replaced, from the front",
+          "shot_ar": "كل وحدة أو قطعة سيتم استبدالها، من الأمام",
+          "from": "replacement"
+        },
+        {
+          "shot": "The label or nameplate on it, close up (make, model, size)",
+          "shot_ar": "الملصق أو اللوحة التعريفية عليها عن قرب (الماركة، الموديل، الحجم)",
+          "from": "replacement"
+        },
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "access"
+        },
+        {
+          "shot": "What the equipment stands on (the base, plinth or slab), from the side",
+          "shot_ar": "ما تقف عليه المعدات (القاعدة أو الأرضية)، من الجانب",
+          "from": "plinths"
+        },
+        {
+          "shot": "The open ground or road where a crane would stand, and anything overhead (wires, trees, roofs)",
+          "shot_ar": "الأرض أو الطريق حيث ستقف الرافعة، وأي شيء فوقها (أسلاك، أشجار، أسقف)",
+          "from": "crane route"
+        }
+      ]
     },
     {
       "id": "hvac:spec-ahu",
@@ -1015,7 +1091,34 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for AHU replacement, to check access, plant room space and connections.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "Each existing unit or item to be replaced, from the front",
+          "shot_ar": "كل وحدة أو قطعة سيتم استبدالها، من الأمام",
+          "from": "replacement"
+        },
+        {
+          "shot": "The label or nameplate on it, close up (make, model, size)",
+          "shot_ar": "الملصق أو اللوحة التعريفية عليها عن قرب (الماركة، الموديل، الحجم)",
+          "from": "replacement"
+        },
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "access"
+        },
+        {
+          "shot": "The room or space where it goes, from the doorway, showing all four sides if you can",
+          "shot_ar": "الغرفة أو المساحة المخصصة لها من الباب، مع إظهار جوانبها كلها إن أمكن",
+          "from": "plant room space"
+        },
+        {
+          "shot": "The pipes, cables and connections at the point where it will be connected",
+          "shot_ar": "الأنابيب والكابلات ونقاط التوصيل في مكان التركيب",
+          "from": "connections"
+        }
+      ]
     },
     {
       "id": "hvac:spec-ductwork",
@@ -1175,7 +1278,19 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for an existing building, to check ceiling voids and routes.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "Inside the false ceiling through an access panel, if one opens",
+          "shot_ar": "داخل السقف المستعار من فتحة الصيانة إن أمكن فتحها",
+          "from": "ceiling voids"
+        }
+      ]
     },
     {
       "id": "hvac:spec-amc",
@@ -1305,7 +1420,19 @@
       ],
       "site_visit_required_when": "A survey of the installed units is needed before a firm AMC price when no asset list exists.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page."
+      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page.",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "survey"
+        },
+        {
+          "shot": "Each installed unit, with its label or nameplate readable",
+          "shot_ar": "كل وحدة مركّبة مع وضوح ملصقها أو لوحتها التعريفية",
+          "from": "installed units"
+        }
+      ]
     },
     {
       "id": "hvac:heat-load-sizing",

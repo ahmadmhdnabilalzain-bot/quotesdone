@@ -44,7 +44,7 @@ function kit(lang: Lang, names: string[] = [], arTexts: ArTexts = {}) {
   return { ar, T, money, loc, cell, dur, pay, label, sentence, today, untranslated, mask: clean };
 }
 type Kit = ReturnType<typeof kit>;
-const FLAG_WORD: Record<SpecFlag, [string, string]> = { match: ['Matches', 'مطابق'], differs: ['Differs', 'مختلف'], missing: ['Not stated', 'غير مذكور'], optional: ['Not stated (optional)', 'غير مذكورة (اختيارية)'], na: ['N/A', 'لا ينطبق'] };
+const FLAG_WORD: Record<SpecFlag, [string, string]> = { match: ['Matches', 'مطابق'], differs: ['Differs', 'مختلف'], missing: ['Not stated', 'غير مذكور'], optional: ['Not stated (optional)', 'غير مذكورة (اختيارية)'], na: ['N/A', 'لا ينطبق'], stated: ['Stated', 'مذكور'] };
 /** A spec or term value with its marker. An empty value takes the flag's own word. */
 function flagged(k: Kit, c: SpecCell | null | undefined): Cell {
   const flag: SpecFlag = c?.flag ?? 'missing';
@@ -53,6 +53,8 @@ function flagged(k: Kit, c: SpecCell | null | undefined): Cell {
   if (!raw.trim()) return { text: k.T(FLAG_WORD[flag][0], FLAG_WORD[flag][1]), flag };
   const d = k.ar ? (arDuration(raw) ? { text: arDuration(raw)! } as { text: string; sub?: string } : k.loc(raw, 120)) : { text: clipCell(raw, 120) } as { text: string; sub?: string };
   const note = c?.note ? (k.ar ? k.loc(c.note, 120).text : clipCell(c.note, 120)) : '';
+  // Stated with nothing to compare it with: printed as written, with no mark (a mark would read as "matches your request").
+  if (flag === 'stated') return { text: d.text + (note ? ` (${note})` : ''), ...(d.sub ? { sub: d.sub } : {}) };
   return { text: d.text + (note ? ` (${note})` : ''), ...(d.sub ? { sub: d.sub } : {}), flag };
 }
 function legendBlock(k: Kit) {

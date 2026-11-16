@@ -33,6 +33,8 @@ export type InquiryDetail = {
     drawing_pages_expected: number; drawing_pages_served: number; drawing_pages_failed: number;
     /** The customer attached a file that cannot be shown without identifying them (held drawing, any CAD file). */
     drawing_withheld?: boolean;
+    /** Photos from the site: the checked copies only (supplier_api/site_photos_door.ts); null when none was asked or sent. */
+    site_photos?: { title: string; urls: string[]; provided: string[]; not_provided: string[]; text: string } | null;
     quotes: { id: string; option_no?: number; status: string; quote_amount: number | null; spec_hold?: unknown }[];
     review: { state: ReviewState; updated_at: string } | null;
   };

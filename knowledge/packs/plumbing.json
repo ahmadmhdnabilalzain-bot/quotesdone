@@ -819,7 +819,39 @@
         }
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
-      "site_visit_required_when": "A site visit is needed for tank replacement, to check access, base and connections."
+      "site_visit_required_when": "A site visit is needed for tank replacement, to check access, base and connections.",
+      "photos_to_ask": [
+        {
+          "shot": "The area around it, showing the distance to walls and doors",
+          "shot_ar": "المنطقة المحيطة، مع إظهار المسافة إلى الجدران والأبواب",
+          "from": "tank replacement"
+        },
+        {
+          "shot": "Each existing unit or item to be replaced, from the front",
+          "shot_ar": "كل وحدة أو قطعة سيتم استبدالها، من الأمام",
+          "from": "replacement"
+        },
+        {
+          "shot": "The label or nameplate on it, close up (make, model, size)",
+          "shot_ar": "الملصق أو اللوحة التعريفية عليها عن قرب (الماركة، الموديل، الحجم)",
+          "from": "replacement"
+        },
+        {
+          "shot": "The way in for workers and materials: gate, door, stairs or lift",
+          "shot_ar": "طريق دخول العمال والمواد: البوابة، الباب، الدرج أو المصعد",
+          "from": "access"
+        },
+        {
+          "shot": "What the equipment stands on (the base, plinth or slab), from the side",
+          "shot_ar": "ما تقف عليه المعدات (القاعدة أو الأرضية)، من الجانب",
+          "from": "base"
+        },
+        {
+          "shot": "The pipes, cables and connections at the point where it will be connected",
+          "shot_ar": "الأنابيب والكابلات ونقاط التوصيل في مكان التركيب",
+          "from": "connections"
+        }
+      ]
     },
     {
       "id": "plumbing:sanitaryware-materials",
@@ -1424,7 +1456,24 @@
         }
       ],
       "site_visit_required_when": "Repairs and leak-finding in existing buildings need a site visit before a firm price.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "A wide photo of the whole area where the work is",
+          "shot_ar": "صورة واسعة للمنطقة كاملة حيث سيتم العمل",
+          "from": "site visit"
+        },
+        {
+          "shot": "The fault or the part to be repaired, close up",
+          "shot_ar": "العطل أو الجزء المطلوب إصلاحه عن قرب",
+          "from": "Repairs"
+        },
+        {
+          "shot": "Close-ups of any damp, stains or leaks, with something for scale",
+          "shot_ar": "صور قريبة لأي رطوبة أو بقع أو تسريب، مع شيء يوضح الحجم",
+          "from": "leak"
+        }
+      ]
     },
     {
       "id": "plumbing:abu-dhabi-tank-design-rules",

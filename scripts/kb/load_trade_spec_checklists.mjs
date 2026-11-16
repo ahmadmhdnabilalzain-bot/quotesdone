@@ -20,7 +20,11 @@
 //   pack_order               the checklist's position among its pack's checklists (the core job first).
 // A blocking label or a guide row that names no spec of its own checklist is REFUSED (reported, exit 1, nothing written):
 // the table would refuse it too, and a blocking spec the interview cannot ask is a request that can never be ready.
-// --apply needs scripts/sql/a_trades_blocking_specs_and_their_guide_reach_the_interview.sql applied first (the columns).
+//   photos_to_ask            the photos a site-visit job asks for (15 Nov 2026, founder ledger 1704; scripts/kb/photos_to_ask.mjs
+//                            writes them into the packs from site_visit_required_when): [{shot, shot_ar, from}], [] when none.
+//                            A shot whose `from` is not words of its own site-visit sentence is REFUSED like a blocking label.
+// --apply needs scripts/sql/a_trades_blocking_specs_and_their_guide_reach_the_interview.sql applied first (the columns), and
+// scripts/sql/a_site_visit_checklist_carries_the_photos_to_ask_for.sql for photos_to_ask.
 // prevented by: scripts/checks/the_spec_checklist_loader_carries_the_expert_fields.test.mjs
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -64,7 +68,13 @@ export function expertFieldsOf(e, specs) {
   // the list decides, and a guide row is marked from it so the two can never disagree in the table.
   for (const g of spec_guide) g.blocking = blocking.includes(g.code);
   const svw = text(e.site_visit_required_when);
-  return { spec_guide, blocking, site_visit_required_when: svw || null, refused };
+  const photos_to_ask = [];
+  for (const p of Array.isArray(e.photos_to_ask) ? e.photos_to_ask : []) {
+    const shot = text(p?.shot), from = text(p?.from);
+    if (!shot || !from || !svw.toLowerCase().includes(from.toLowerCase())) { refused.push(`${e.id}: photo "${shot}" does not trace to its site-visit sentence`); continue; }
+    photos_to_ask.push({ shot, shot_ar: text(p.shot_ar), from });
+  }
+  return { spec_guide, blocking, site_visit_required_when: svw || null, photos_to_ask, refused };
 }
 
 export function checklistsOf(pack, file) {
@@ -92,8 +102,8 @@ export function loadDir(dir) {
 export function summaryOf(rows) {
   const by = new Map();
   for (const r of rows) {
-    const s = by.get(r.trade_code) ?? { trade: r.trade_code, checklists: 0, specs: 0, guide_rows: 0, blocking: 0, site_visit: 0 };
-    s.checklists++; s.specs += r.specs.length; s.guide_rows += r.spec_guide.length; s.blocking += r.blocking.length; s.site_visit += r.site_visit_required_when ? 1 : 0;
+    const s = by.get(r.trade_code) ?? { trade: r.trade_code, checklists: 0, specs: 0, guide_rows: 0, blocking: 0, site_visit: 0, photos: 0 };
+    s.checklists++; s.specs += r.specs.length; s.guide_rows += r.spec_guide.length; s.blocking += r.blocking.length; s.site_visit += r.site_visit_required_when ? 1 : 0; s.photos += (r.photos_to_ask ?? []).length;
     by.set(r.trade_code, s);
   }
   return [...by.values()];
@@ -104,9 +114,9 @@ const arr = (a) => (a.length ? `array[${a.map(lit).join(',')}]::text[]` : `'{}':
 /** The one statement --apply sends: the loaded trades' rows deleted and inserted again, in one transaction. */
 export function loadSql(rows) {
   const trades = [...new Set(rows.map((r) => r.trade_code))];
-  const values = rows.map((r) => `(${lit(r.trade_code)}, ${lit(r.topic_id)}, ${lit(r.topic)}, ${lit(JSON.stringify(r.specs))}::jsonb, ${lit(JSON.stringify(r.spec_guide))}::jsonb, ${arr(r.blocking)}, ${r.site_visit_required_when === null ? 'null' : lit(r.site_visit_required_when)}, ${r.pack_order}, ${lit(r.source_pack)})`).join(',\n');
+  const values = rows.map((r) => `(${lit(r.trade_code)}, ${lit(r.topic_id)}, ${lit(r.topic)}, ${lit(JSON.stringify(r.specs))}::jsonb, ${lit(JSON.stringify(r.spec_guide))}::jsonb, ${arr(r.blocking)}, ${r.site_visit_required_when === null ? 'null' : lit(r.site_visit_required_when)}, ${lit(JSON.stringify(r.photos_to_ask ?? []))}::jsonb, ${r.pack_order}, ${lit(r.source_pack)})`).join(',\n');
   return `delete from public.trade_spec_checklist where trade_code in (${trades.map(lit).join(', ')});
-    insert into public.trade_spec_checklist (trade_code, topic_id, topic, specs, spec_guide, blocking, site_visit_required_when, pack_order, source_pack) values ${values};`;
+    insert into public.trade_spec_checklist (trade_code, topic_id, topic, specs, spec_guide, blocking, site_visit_required_when, photos_to_ask, pack_order, source_pack) values ${values};`;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -119,6 +129,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   for (const s of trades) console.log(`${s.trade.padEnd(36)} ${String(s.checklists).padStart(10)} ${String(s.specs).padStart(6)} ${String(s.guide_rows).padStart(11)} ${String(s.blocking).padStart(9)} ${String(s.site_visit).padStart(11)}`);
   const sum = (k) => trades.reduce((n, s) => n + s[k], 0);
   console.log(`${rows.length} checklists across ${trades.length} trades: ${sum('specs')} specs, ${sum('guide_rows')} guide rows, ${sum('blocking')} blocking specs, ${sum('site_visit')} site-visit conditions; `
+    + `${sum('photos')} photos to ask in ${rows.filter((r) => (r.photos_to_ask ?? []).length).length} checklists; `
     + `${rows.filter((r) => r.blocking.length).length} checklists with a blocking list, ${rows.filter((r) => !r.blocking.length).length} without`);
   console.log(`it would DELETE every row of these ${trades.length} trades from public.trade_spec_checklist and INSERT ${rows.length} rows`);
   if (flags.includes('--rows')) for (const r of rows) { const { refused: _r, ...row } = r; console.log(JSON.stringify(row)); }

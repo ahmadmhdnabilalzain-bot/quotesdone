@@ -253,3 +253,24 @@ Deno.test('the answer "including 5% VAT" settles the ex-VAT price from the state
   const after = repo.quotes.get('qpvc')! as Record<string, unknown>;
   assertEquals([after.vat_treatment, after.price_ex_vat, after.quote_amount], ['inclusive', 51882, 51882]);
 });
+
+// 15 Nov 2026 (accountant; journey A, run 8288bec3): a VAT-inclusive total typed as the price "excluding VAT" (9,450 over
+// lines of 9,000: exactly 5% more) is not an ex-VAT figure. The release check asks the VAT question with the arithmetic, and
+// his answer "including 5% VAT" replaces the typed total with total / 1.05, so the fee base is 9,000, never 9,450.
+Deno.test('a VAT-inclusive total typed as the ex-VAT price is asked about, and "including 5% VAT" makes the fee base the price before VAT', async () => {
+  const repo = new Fake(); pvcQuote(repo, { quote_amount: 9450, price_ex_vat: 9450, vat_treatment: 'confirmed_on_portal' });
+  (repo.quotes.get('qpvc')! as Record<string, unknown>).amount_as_stated = 9450;
+  const inq = inquiry('fitout');
+  const asked = reviewQuotation(inq, workingFromStoredQuote(repo.quotes.get('qpvc')!, await repo.lines('qpvc')), NOW());
+  assert(asked.issues.some((i) => i.code === 'vat_basis' && /exactly that plus 5% VAT/.test(i.en)), JSON.stringify(asked.issues.map((i) => i.en)));
+  assert(!asked.issues.some((i) => i.code === 'total_mismatch'), 'the 5% gap is the VAT question, not a free-text one');
+  const ctx = { category: 'fitout', requirements: null, ref: 'ZZ0001', now: NOW, read: reads({ qpvc: PVC_READ }) };
+  await gate(repo, 'qpvc', SUP, ctx);
+  const vat = issueAsMissing(asked.issues.find((i) => i.code === 'vat_basis')!);
+  repo.holds[0].missing = [...repo.holds[0].missing.filter((m) => m.attr !== 'vat'), vat];
+  const out = await fillIn(repo, 'qpvc', SUP, { lines: { '2': { brand: 'ZZ Demo Panels' }, '3': { brand: 'ZZ Demo Panels' } }, terms: { vat: 'inclusive' } }, ctx, undefined, releaseOf(repo, inq));
+  assert(out.ok, JSON.stringify(out));
+  const after = repo.quotes.get('qpvc')! as Record<string, unknown>;
+  assertEquals([after.vat_treatment, after.price_ex_vat, after.quote_amount], ['inclusive', 9000, 9000]);
+  nobodyReal(repo);
+});

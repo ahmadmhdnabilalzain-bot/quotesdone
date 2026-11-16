@@ -37,6 +37,9 @@ Deno.test('a version the current text carries counts as accepted; any other olde
   assertEquals(acceptanceStands('v16', 'v17', []), false, 'a material version publishes an empty list and everyone is asked');
   assertEquals(acceptanceStands(null, 'v17', ['v16']), false, 'nothing accepted is never accepted');
   assertEquals(acceptanceStands('v16', '', ['v16']), false);
+  // 15 Nov 2026 (sales_engineer; ledger 1697, the CEO's decision under ruling 1696): v18 changes clause 12 only and carries v17
+  assertEquals(acceptanceStands('v17', 'v18', ['v17']), true, 'v17 -> v18 only widens the supplier\'s freedom');
+  assertEquals(acceptanceStands('v16', 'v18', ['v17']), false, 'v16 is no longer carried: asked once');
 });
 
 Deno.test('the carried list is read from app_secrets, trimmed, and absent means empty', async () => {

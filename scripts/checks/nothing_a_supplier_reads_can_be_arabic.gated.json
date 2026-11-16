@@ -376,6 +376,7 @@
   "fe2f85d333ab"
  ],
  "src/components/portal/supplier/core/Agreement.tsx": [
+  "046575a9088f",
   "0814a17fd4a1",
   "0c9a4a9aaf31",
   "1033ec029504",
@@ -532,7 +533,7 @@
   "cfa16bd898f9",
   "d3e5b043b2ec",
   "f46615c0e6c6",
-  "ff31e0edcd64"
+  "f84e57255e6f"
  ],
  "src/components/portal/supplier/core/copy.ts": [
   "1cf52c5d56dc",
@@ -1288,7 +1289,6 @@
   "fd221d747267"
  ],
  "supabase/functions/supplier_api/quote_review/review.ts": [
-  "077f5cb794a6",
   "11e22eaf8a17",
   "20f26468a4af",
   "30c4c8da8d16",
@@ -1298,6 +1298,7 @@
   "748e71d05992",
   "7f0bd02003d2",
   "82e1d8bffea9",
+  "8bff98124764",
   "94cd18aa396f",
   "97c2ae320939",
   "d8b1f81434f2",

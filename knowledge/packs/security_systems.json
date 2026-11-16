@@ -629,7 +629,29 @@
         }
       ],
       "site_visit_required_when": "A site survey is genuinely needed for any CCTV layout not already designed, to place cameras, measure cable runs and check the network.",
-      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)"
+      "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept; supplier ask-back review on 2026-11-10 (independent estimator read of each required spec)",
+      "photos_to_ask": [
+        {
+          "shot": "Each place you want covered by a camera, from where the camera would be",
+          "shot_ar": "كل مكان تريد تغطيته بالكاميرا، من موقع الكاميرا المقترح",
+          "from": "place cameras"
+        },
+        {
+          "shot": "Each opening or area, straight on, with a tape measure across it if you have one",
+          "shot_ar": "كل فتحة أو مساحة من الأمام مباشرة، مع شريط قياس عليها إن توفر",
+          "from": "measure"
+        },
+        {
+          "shot": "Where the cables would run (ceiling, walls, trunking or trays)",
+          "shot_ar": "أماكن مرور الكابلات (السقف، الجدران، المجاري أو الحوامل)",
+          "from": "cable runs"
+        },
+        {
+          "shot": "The internet router or network cabinet",
+          "shot_ar": "جهاز الإنترنت (الراوتر) أو خزانة الشبكة",
+          "from": "the network"
+        }
+      ]
     },
     {
       "id": "security_systems:spec-access-control",
