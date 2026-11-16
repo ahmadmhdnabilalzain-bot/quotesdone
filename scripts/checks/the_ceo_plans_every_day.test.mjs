@@ -6,7 +6,7 @@
 //   B. the plan starts writing to the founder (notifications, founder_alerts, fn_notify_founder, ...);
 //   C. the plan starts writing a supplier, customer, payment or founder-switch row;
 //   D. the directive stops travelling the existing handoff machinery, or the CEO stops being its closer;
-//   E. the model slot loses its contract limits or its validation, or plan C stops acting first;
+//   E. the daily plan builds the retired model request again (16 Nov 2026: the CEO reasons in its weekly plan);
 //   F. the founder brief stops carrying the plan in item 7;
 //   G. (live, when a management token is present) the pure decision function, replayed in pg_temp,
 //      stops naming the right lever: switches off -> founder, no directive; switches on -> a directive to
@@ -74,23 +74,22 @@ test('D. directives travel the handoff machinery and only the CEO closes them', 
   assert.doesNotMatch(fnBody('fn_ceo_plan_decide'), /v_lever := 'unowned'/, 'the demand stage is unowned again');
   assert.match(handler, /when 'demand' then/, 'the directive handler names no duty for the demand stage');
   assert.match(fnBody('fn_ceo_plan_tick'), /'marketing_report',[\s\S]*from public\.marketing_report/, 'the plan no longer reads the marketing report');
-  assert.match(fnBody('fn_ceo_judgement_request'), /'marketing', p\.funnel->'marketing_report'/, 'the model no longer sees the marketing report');
 });
 
-test('E. the model slot is bounded, validated, and second to plan C', () => {
-  const c = fnBody('fn_ceo_judgement_contract');
-  for (const w of ['may not move money', 'change a supplier or customer record', 'message a customer, a supplier or the founder',
-                   'are not yours to propose or mention', 'Choose exactly one option id'])
-    assert.ok(c.includes(w), `the contract lost: ${w}`);
-  assert.doesNotMatch(c, /propose such a change in founder_decision/, 'the contract invites the model to propose a campaign or cap change');
-  const acc = fnBody('fn_ceo_judgement_accept');
-  assert.match(acc, /option_id is not one of the options/);
-  assert.match(acc, /~\* public\.fn_ceo_founder_text_forbidden\(\)/, 'a founder_decision about the campaign would be accepted');
-  assert.match(acc, /a directive is outside the contract/);
-  assert.match(acc, /plan_c_stands/);
-  const tick = fnBody('fn_ceo_plan_tick');
-  assert.ok(tick.indexOf('fn_ceo_plan_act') < tick.indexOf('fn_ceo_judgement_request'), 'plan C must act before the model is asked');
-  assert.match(tick, /'call_model', v_funnel->'gates'->>'ceo_model_slot' = 'on'/, 'the model is called without the founder\'s slot');
+test('E. the daily plan builds no model request: the CEO reasons in its weekly plan (retired 16 Nov 2026)', () => {
+  // The daily judgement request was built every day and never sent (app_secrets.ceo_model_slot does not exist: 0 of 56
+  // plans answered). the_ceos_unsent_daily_judgement_request_is_retired.sql drops it; the CEO's model reasoning is the
+  // weekly plan (fn_ceo_plan_due -> ceo_agent action 'plan'). Fails if the dead request or its call comes back.
+  const RETIRED = 'scripts/sql/the_ceos_unsent_daily_judgement_request_is_retired.sql';
+  const r = readFileSync(path.join(REPO, RETIRED), 'utf8');
+  const tick = r.match(/create or replace function public\.fn_ceo_plan_tick\([\s\S]*?\$fn\$;/);
+  assert.ok(tick, `${RETIRED} does not define fn_ceo_plan_tick`);
+  assert.doesNotMatch(tick[0], /fn_ceo_judgement_request/, 'the daily plan builds the model request again');
+  assert.match(tick[0], /v_act := public\.fn_ceo_plan_act\(p\.id\);/, 'plan C no longer acts');
+  for (const f of ['fn_ceo_judgement_request(bigint)', 'fn_ceo_judgement_accept(bigint, jsonb, text)', 'fn_ceo_judgement_contract()', 'fn_ceo_judgement_counterparts(bigint)'])
+    assert.ok(r.includes('drop function if exists public.' + f), `${RETIRED} does not drop ${f}`);
+  assert.doesNotMatch(functionSource('resilience_ping'), /action: 'judgement'/, 'the heartbeat calls the retired judgement action');
+  assert.doesNotMatch(readFileSync(path.join(REPO, 'supabase/functions/ceo_agent/index.ts'), 'utf8'), /action === 'judgement'/, 'ceo_agent answers the retired judgement action');
 });
 
 test('F. the founder brief carries the plan in item 7', () => {
@@ -140,7 +139,6 @@ test('H. no founder-facing text raises the campaign, caps, subscriptions or a se
   // replaced it is seat-aware: only an ACTIVE seat can be directed or named in a brief line.
   assert.doesNotMatch(fbd, /marketing/, 'the founder-text filter still drops every line that says marketing (rule 641 is superseded by 721)');
   assert.match(fnBody('fn_ceo_plan_brief_lines'), /r.role_id = a.agent and r.status = 'active'/, 'brief lines may name a seat that is not active');
-  assert.match(fnBody('fn_ceo_judgement_accept'), /r.role_id = dd->>'seat' and r.status = 'active'/, 'the model may direct a seat that is not active');
   assert.match(fnBody('fn_ceo_plan_brief_lines'), /x !~\* public\.fn_ceo_founder_text_forbidden\(\)/, 'brief lines are not filtered');
 
   // static: the founder-facing literals in the brief and in the plan's decision

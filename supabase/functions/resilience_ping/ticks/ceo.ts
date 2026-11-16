@@ -116,11 +116,9 @@ export async function ceoDecisionsTick(): Promise<unknown> {
 // THE CEO'S DAILY PLAN (22 Sep 2026, ceo, founder instruction 638). fn_ceo_plan_tick measures the live
 // funnel against the twelve-month plan, names the binding constraint, directs the seat that can move it
 // through a ceo.directive handoff, and re-measures and closes every open directive on each call. That is
-// plan C, the coded path, and it has already ACTED before anything below runs.
-// Plan A/B is the model (instruction 643: the CEO will run on one, not yet chosen). It runs in the CEO's
-// own function, ceo_agent action 'judgement', and ONLY when the tick says call_model --
-// app_secrets.ceo_model_slot = 'on', which the founder sets. This heartbeat never imports the model
-// client. The slot is off today, so that branch has never reached the gateway.
+// plan C, the coded path. The daily model judgement it once prepared was never sent (app_secrets.ceo_model_slot never
+// existed) and was retired 16 Nov 2026 (the_ceos_unsent_daily_judgement_request_is_retired.sql): the CEO reasons on a model
+// in its weekly plan, below (ceoPlanningLoopTick). This heartbeat never imports the model client.
 // scripts/sql/the_ceo_plans_every_day_and_directs_the_seats.sql.
 export async function ceoPlanTick(): Promise<unknown> {
   const planC = await planCTick();
@@ -153,17 +151,7 @@ async function planCTick(): Promise<unknown> {
   try {
     const { data, error } = await admin.rpc('fn_ceo_plan_tick');
     if (error) return { ok: false, error: error.message };
-    // deno-lint-ignore no-explicit-any
-    const t = data as any;
-    if (!t?.judgement?.call_model || !t?.plan_id) return t;
-    const r = await fetch(FN + '/ceo_agent', {
-      method: 'POST', headers: { 'Content-Type': 'application/json', ...GATEWAY },
-      body: JSON.stringify({ __secret: await sec('cred_fn_ceo_agent'), action: 'judgement', plan_id: t.plan_id }),
-      signal: AbortSignal.timeout(45000),
-    });
-    const j = await r.json().catch(() => null);
-    // A rejected answer is plan C working, not a failing step; only an unreachable seat is.
-    return { ...t, judgement: { ...t.judgement, answer: j }, ...(r.ok ? {} : { ok: false, error: 'ceo_agent judgement ' + r.status }) };
+    return data;
   } catch (e) { return { ok: false, error: String((e as Error)?.message || e) }; }
 }
 
