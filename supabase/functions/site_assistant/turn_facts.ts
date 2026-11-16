@@ -32,9 +32,13 @@ export function timelineFacts(events: unknown): string {
     : '';
 }
 
+// (imported here, beside its one use, so the live-account wording above stays its own change)
+import { supplierStanding } from '../_shared/supplier_known.ts';
+
 /** This turn's facts, in the order sys used to carry them: live account, timeline, trade knowledge. */
 export function turnFacts(o: { live: Record<string, unknown> | null; uiLang: string; timeline: unknown; given: GivenRow[] }): string {
-  return [liveFacts(o.live, o.uiLang), timelineFacts(o.timeline), givenBlock(o.given)].map((b) => b.trim()).filter(Boolean).join('\n\n');
+  // a signed-in supplier's standing in the words every supplier door uses ('' for anyone else; _shared/supplier_known.ts, 16 Nov 2026)
+  return [liveFacts(o.live, o.uiLang), supplierStanding(o.live), timelineFacts(o.timeline), givenBlock(o.given)].map((b) => b.trim()).filter(Boolean).join('\n\n');
 }
 
 /** The newest user turn: this turn's facts, then the message. No facts: the message alone, byte for byte as before. */

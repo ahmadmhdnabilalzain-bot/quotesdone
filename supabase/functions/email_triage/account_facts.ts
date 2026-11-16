@@ -25,6 +25,9 @@ export function supplierFacts(company: string, jobs: SupplierJob[]): string {
     + jobs.slice(0, 15).map((j) => `- Job #${j.inquiry_id}: ${j.category || 'job'}${j.emirate ? ' in ' + j.emirate : ''}${j.sent_at ? ', sent ' + day(j.sent_at) : ''}, job status ${j.status || 'unknown'}, their quote: ${j.my_quote_status || 'not submitted'}`).join('\n');
 }
 
+// (imported here, below the customer half, so the supplier half's change stays its own: registeredSupplierFacts, below)
+import { readSupplier, recentJobs, supplierStanding, type SupplierReading } from '../_shared/supplier_known.ts';
+
 // AN INVITED SUPPLIER WHO SAYS "YES" IS NOT YET A REGISTERED SUPPLIER (sales_engineer, 28 Oct 2026, ledger 1375:
 // "tomorrow morning i need suppliers receiving invitations and registering"). Traced that night: the invitation (variant
 // A, no link) asks "Would your company like to receive ... requests?"; the reply reaches resend_inbound through the
@@ -113,16 +116,24 @@ export async function accountFacts(admin: Db, email: string, relation: unknown):
       if (!leads || leads.length !== 1) return '';
       const sup = leads[0];
       if (!sup.claimed) return unregisteredSupplierFacts(String(sup.company_name || ''), sup.claim_token ? `${SITE}/portal?t=${sup.claim_token}` : `${SITE}/portal`);
-      const { data: m } = await admin.from('inquiry_matches').select('inquiry_id,sent_at,inquiries(category,emirate,status)')
-        .eq('supplier_id', sup.id).order('sent_at', { ascending: false }).limit(15);
-      const ids = (m || []).map((r: { inquiry_id: unknown }) => r.inquiry_id);
-      const { data: q } = ids.length ? await admin.from('quotes').select('inquiry_id,status').eq('supplier_id', sup.id).in('inquiry_id', ids) : { data: [] };
-      const mine = new Map((q || []).map((r: { inquiry_id: unknown; status: string }) => [String(r.inquiry_id), r.status]));
-      return supplierFacts(String(sup.company_name || ''), (m || []).map((r: Db) => ({ inquiry_id: r.inquiry_id, sent_at: r.sent_at,
-        category: r.inquiries?.category, emirate: r.inquiries?.emirate, status: r.inquiries?.status, my_quote_status: mine.get(String(r.inquiry_id)) ?? null })));
+      return registeredSupplierFacts(String(sup.company_name || ''), await readSupplier(admin, e));
     }
   } catch (_e) { /* an unread account leaves the reply ungrounded, never the mail unanswered */ }
   return '';
+}
+
+// A REGISTERED SUPPLIER IS ANSWERED FROM THE ONE READING (customer_support, 16 Nov 2026; founder ledgers 1711-1713, audit item
+// 6). This branch read leads and inquiry_matches itself, so a supplier writing "why is my account not approved?" or "why do I
+// get no jobs?" was answered blind to his approval, licence, holds, trades and emirates while WhatsApp read them. It now reads
+// fn_wa_context('supplier', his address), the reading WhatsApp and the widget give (_shared/supplier_known.ts): his jobs by
+// job number with HIS OWN quote (recent_jobs), then his standing and why not more. A read that fails states nothing about him.
+export function registeredSupplierFacts(company: string, r: SupplierReading | null): string {
+  const head = `THE SENDER IS A REGISTERED SUPPLIER${company ? ' (' + company + ')' : ''}, matched on their exact e-mail address.`;
+  if (!r) return head + ' Their account could not be read just now: state nothing about their jobs, licence or status, and point them to their supplier portal for it. ' + SEPARATE_COMPANY_FACT;
+  const jobs = recentJobs(r);
+  const listed = jobs ? supplierFacts(company, jobs.map((j) => ({ inquiry_id: j.job, category: j.trade, emirate: j.emirate,
+    status: j.job_status, my_quote_status: j.my_quote ?? null, sent_at: j.sent_at }))) : head + ' ' + SEPARATE_COMPANY_FACT;
+  return listed + '\n' + supplierStanding(r);
 }
 
 // SPOOF-PROOF (review of #1498): a From header is free text. The account is read only when resend_inbound recorded

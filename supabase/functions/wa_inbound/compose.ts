@@ -3,6 +3,8 @@
 // customer_support); it was a closure over the turn's audience and prefetched reads, which it now takes from the turn.
 import type { WaTurn } from './turn.ts';
 
+import { supplierStanding } from '../_shared/supplier_known.ts';
+
 // THE REPLY'S FACTS, composed from a route (customer_support, 2 Nov 2026). A function so the reply can be started BEFORE the
 // classification returns, on the route the commonest class gives (see `speculative` below), and again on the real route when the
 // class turned out otherwise. Reads only the prefetched facts and the route it is given; it writes nothing.
@@ -34,6 +36,9 @@ export async function composeSituation(t: WaTurn, rt: Record<string, unknown> | 
     if (mine && (mine as any).known === true) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else\'s):\n' + JSON.stringify(mine) + '\n';
     else if (mine && (mine as any).known === false) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD: no account matches this number, so answer generally and invite them to register or sign in rather than guessing at their status.\n';
   } catch (_e) { /* fall through with no record rather than dropping the message */ }
+  // A SUPPLIER'S STANDING IN WORDS (customer_support, 16 Nov 2026, audit item 5): his trades, emirates, jobs in 30 days and why
+  // not more, worded as the e-mail reply and the quotation chat word the same reading (_shared/supplier_known.ts).
+  if (audience === 'supplier') { try { const st = supplierStanding((await prefetch.mine)?.data ?? null); if (st) ownRecord += '\n' + st + '\n'; } catch (_e) { /* the JSON above stands */ } }
   if (timeline && timelineEvents > 0) ownRecord += '\n\nTHIS SENDER\'S CASE TIMELINE (newest first; every channel and every seat; theirs only). Never contradict it, and never repeat something it shows was already sent unless they ask:\n' + JSON.stringify((timeline as any).events) + '\n';
 
   // THE MODEL GETS THE SAME PACK THE DATABASE ANSWERED FROM. fn_wa_route was reached above and

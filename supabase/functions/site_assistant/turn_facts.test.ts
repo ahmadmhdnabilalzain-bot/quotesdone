@@ -126,3 +126,15 @@ Deno.test('a 12-turn conversation: the system prompt is byte-identical every tur
   }
   console.log('per 12-turn conversation (estimated tokens; USD input side, claude-sonnet-5.5):', JSON.stringify(out));
 });
+
+// THE SIGNED-IN SUPPLIER IS KNOWN (customer_support, 16 Nov 2026; ledgers 1711-1713, who-knows-what audit item 5): his trades,
+// emirates, jobs and why not more ride with the turn in the words every supplier door uses (_shared/supplier_known.ts).
+Deno.test('a signed-in supplier\'s why-no-jobs reaches the widget turn; a customer\'s turn gets none of it', () => {
+  const live = { scope: 'supplier', known: true, company: 'ZZ DEMO Polar Duct Works', profile: { approval_status: 'approved', verified: true },
+    services: { confirmed: true, trades: [{ code: 'hvac', label: 'HVAC', open_to_customers: false }], emirates_covered: [] },
+    matching: { receives_requests_now: true, jobs_sent_30d: 0, requests_in_his_trades_30d: 0,
+      why_no_jobs: [{ code: 'trades_not_open_to_customers', says: 'None of his trades is open to customers yet.' }] } };
+  const t = turnFacts({ live, uiLang: 'en', timeline: [], given: [] });
+  for (const s of ['HVAC (not open to customers yet)', 'all of the UAE', 'None of his trades is open to customers yet', 'Receives requests now: yes']) assert(t.includes(s), `missing "${s}"`);
+  assert(!turnFacts({ live: { scope: 'customer', known: true, inquiries: [] }, uiLang: 'en', timeline: [], given: [] }).includes('Why not more'));
+});
