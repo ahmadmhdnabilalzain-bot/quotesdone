@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>>, rolling back every row it writes. Run in the same rolled-back transaction as a_supplier_can_say_not_for_me_and_is_never_stopped_without_being_told.sql (or after it is applied), on the LOCAL database only; it must print PROBE OK. This note stays for the life of the file. Seat: sales_engineer.

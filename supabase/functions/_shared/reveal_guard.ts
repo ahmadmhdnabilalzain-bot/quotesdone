@@ -145,12 +145,40 @@ const REFUSALS: Record<string, { status: number; en: string; ar: string }> = {
     en: 'This reveal is paused while we complete a routine account check. Please try again later.',
     ar: 'هذا الكشف متوقف مؤقتًا ريثما نُكمل تحققًا اعتياديًا من الحساب. يُرجى المحاولة لاحقًا.',
   },
+  // THE SUPPLIER'S LIVE STANDING (sales_engineer, 16 Nov 2026; fn_reveal_standing in
+  // a_supplier_can_say_not_for_me_and_is_never_stopped_without_being_told.sql). A customer is told before paying, never after.
+  // 'supplier_away' is written with his date by refuseAway below; these two have no variable part.
+  supplier_not_revealable: {
+    status: 409,
+    en: 'This supplier cannot take on work right now (their account or trade licence is not in order), so they cannot be revealed. You have not been charged; please choose another quote.',
+    ar: 'لا يستطيع هذا المورّد قبول أعمال في الوقت الحالي (حسابه أو رخصته التجارية ليست سارية)، لذلك لا يمكن كشفه. لم يُخصم منكم أي مبلغ، ويُرجى اختيار عرض آخر.',
+  },
+  figure_unconfirmed: {
+    status: 409,
+    en: 'This quote\'s total is far from the other quotes on your request, so we have asked the supplier to confirm it before you pay anything. You have not been charged. Please try again later, or choose another quote.',
+    ar: 'إجمالي هذا العرض بعيد جدًا عن بقية العروض على طلبك، لذلك طلبنا من المورّد تأكيده قبل أن تدفعوا أي مبلغ. لم يُخصم منكم شيء. يُرجى المحاولة لاحقًا، أو اختيار عرض آخر.',
+  },
   account_sanctioned: {
     status: 403,
     en: 'This supplier account is permanently closed and cannot be revealed.',
     ar: 'حساب هذا المورّد مغلق نهائيًا ولا يمكن كشفه.',
   },
 };
+
+const fmtDate = (d: string, lang: 'en' | 'ar') => {
+  const t = Date.parse(d + 'T00:00:00Z');
+  if (!Number.isFinite(t)) return null;
+  return new Date(t).toLocaleDateString(lang === 'ar' ? 'ar-AE-u-nu-latn' : 'en-GB', { day: 'numeric', month: lang === 'ar' ? 'long' : 'short', year: 'numeric', timeZone: 'UTC' });
+};
+/** The supplier is away: "back on <date>" when he set one, otherwise paused with no date. Never charged. */
+export function refuseAway(backOn: string | null | undefined): Refusal {
+  const en = backOn ? fmtDate(String(backOn), 'en') : null, ar = backOn ? fmtDate(String(backOn), 'ar') : null;
+  return { ok: false, status: 409, code: 'supplier_away', error: 'supplier_away',
+    message: en ? `This supplier is away and back on ${en}. You have not been charged: you can reveal them from that date, or choose another quote.`
+      : 'This supplier has paused their work for now, so they cannot be revealed. You have not been charged; please choose another quote.',
+    message_ar: ar ? `هذا المورّد غائب ويعود في ${ar}. لم يُخصم منكم أي مبلغ، ويمكنكم كشفه ابتداءً من ذلك التاريخ أو اختيار عرض آخر.`
+      : 'أوقف هذا المورّد عمله مؤقتًا، لذلك لا يمكن كشفه الآن. لم يُخصم منكم أي مبلغ، ويُرجى اختيار عرض آخر.' };
+}
 
 export function refuse(code: keyof typeof REFUSALS | string): Refusal {
   const r = REFUSALS[String(code)] || { status: 409, en: 'This supplier cannot be revealed right now.', ar: 'لا يمكن كشف هذا المورّد الآن.' };
@@ -196,6 +224,15 @@ export async function canReveal(
     const tr = await admin.rpc('fn_trade_reveal_allowed', { p_inquiry: inq.id });
     if (tr?.error) throw new Error('fn_trade_reveal_allowed failed: ' + JSON.stringify(tr.error));
     if (tr?.data && (tr.data as { allowed?: boolean }).allowed === false) return refuse('trade_below_floor');
+    // THE SUPPLIER'S LIVE STANDING (16 Nov 2026, SUPPLIER hole 3, CUSTOMER hole 8): away (with the date he is back), his account
+    // or licence not in order, or a total far from its peers that he has not confirmed (he is asked once, in SQL; after the floor, which writes nothing). FAIL CLOSED
+    // like the screens below: an unreadable standing is a 500 from the caller, never a charge.
+    const st = await admin.rpc('fn_reveal_standing', { p_quote: qid });
+    if (st?.error) throw new Error('fn_reveal_standing failed: ' + JSON.stringify(st.error));
+    const outcome = (st?.data as { outcome?: string; back_on?: string | null } | null)?.outcome;
+    if (outcome === 'away') return refuseAway((st.data as { back_on?: string | null }).back_on ?? null);
+    if (outcome === 'not_revealable') return refuse('supplier_not_revealable');
+    if (outcome === 'figure_unconfirmed') return refuse('figure_unconfirmed');
     // Last, because it writes: the accountant re-screens both parties now and records a hold or a note
     // (scripts/sql/the_accountant_screens_every_party_and_holds_money_for_review_before_it_moves.sql).
     // FAIL CLOSED, like the sanctions read: an unreadable screen is a 500 from the caller, never a charge.

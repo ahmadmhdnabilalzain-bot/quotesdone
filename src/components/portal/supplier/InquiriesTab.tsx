@@ -23,6 +23,7 @@ import { failed, openPdf, qr, saveInline, REVIEW_STATE, type InquiryDetail, type
 import { quotedAmount } from './money';
 import { AR_NOUN, arCount } from '@/lib/countedNoun';
 import { Ltr } from '@/lib/Ltr';
+import { NotForMe, UnansweredNote } from './NotForMe';
 
 // ARABIC NUMBER AGREEMENT FOR THE TWO THINGS AN INQUIRY IS COUNTED IN (audit 22 Sep 2026, SP-I-04).
 // "1 بند" and "2 بند" are both wrong; so is "15 بنود". The four forms are the ones arCount selects
@@ -163,6 +164,8 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
           {renderQuoteForm && q ? <Button variant="ghost" lang="en" aria-expanded={form === 'new'} onClick={() => setForm(form === 'new' ? false : 'new')}>{form === 'new' ? t.closeForm : COPY.en.addOption}</Button> : null}
         </div>
       ) : null}
+      {/* NOT FOR ME (16 Nov 2026): one tap and an optional reason; never counts against him (NotForMe.tsx) */}
+      {canQuote && !q ? <NotForMe token={token} lang={lang} inquiryId={d.id} declined={!!d.declined} /> : null}
       {sent ? <p role="status" className="mt-3 text-[13px] text-foreground">{sent === 'held' ? t.sentHeld : t.sentOk}</p> : null}
       {form && renderQuoteForm ? renderQuoteForm({ ...d, quote: q ?? null, quotes: d.quotes }, (r) => { setForm(false); setSent(r?.held ? 'held' : 'ok'); load(); }, { newOption: form === 'new' }) : null}
     </div>
@@ -192,6 +195,7 @@ export function InquiriesTab({ token, lang, focus = null, onFocused, onQuote, re
   if (!list.length) return <Card className="qd-panel p-5"><h2 className="text-[15.5px] font-bold text-foreground">{t.empty}</h2><p className="mt-1 max-w-[68ch] text-[13px] leading-relaxed text-muted-foreground">{t.emptySub}</p></Card>;
   return (
     <section aria-labelledby="qd-inq-h">
+      <UnansweredNote token={token} lang={lang} />
       <div className="mb-3">
         <h2 id="qd-inq-h" className="text-[15.5px] font-bold tracking-[-.018em] text-foreground">{t.title}</h2>
         <p className="mt-0.5 max-w-[68ch] text-[13px] text-muted-foreground">{t.sub}</p>

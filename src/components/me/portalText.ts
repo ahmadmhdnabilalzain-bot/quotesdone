@@ -655,6 +655,7 @@ Object.assign(T.en, {
   qq_missing_spec: 'does not state: {specs}',
   qq_price_above: 'line {line} is {pct}% above the usual UAE price (AED {lo} to {hi} per {unit})',
   qq_price_below: 'line {line} is {pct}% below the usual UAE price (AED {lo} to {hi} per {unit}); check what it leaves out',
+  qq_price_far_from_peers: 'the total (AED {total}) is far from the other quotes on your request; the supplier is asked to confirm it',
   qq_no_validity: 'no validity stated',
   qq_no_delivery_time: 'no delivery time stated',
   qq_no_vat_treatment: 'does not say whether VAT is included',
@@ -666,6 +667,7 @@ Object.assign(T.ar, {
   qq_missing_spec: 'لم يذكر: {specs}',
   qq_price_above: 'سعر البند {line} أعلى بنسبة {pct}% من السعر المعتاد في الإمارات (من {lo} إلى {hi} درهم لكل {unit})',
   qq_price_below: 'سعر البند {line} أقل بنسبة {pct}% من السعر المعتاد في الإمارات (من {lo} إلى {hi} درهم لكل {unit})، ويُستحسن التحقق مما لا يشمله',
+  qq_price_far_from_peers: 'الإجمالي ({total} درهم) بعيد جدًا عن بقية العروض على طلبكم، وقد طُلب من المورّد تأكيده',
   qq_no_validity: 'لم يذكر مدة صلاحية العرض',
   qq_no_delivery_time: 'لم يذكر مدة التسليم',
   qq_no_vat_treatment: 'لم يوضّح إن كان السعر شاملًا ضريبة القيمة المضافة',
@@ -676,5 +678,6 @@ export function qualityReason(f, lang) {
   const money = (x) => Number(x).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   if (code === 'missing_spec') return tf(lang, 'qq_missing_spec', { specs: (Array.isArray(f.specs) ? f.specs : []).map((s) => s && s.label).filter(Boolean).join(', ') });
   if (code === 'price_above' || code === 'price_below') return tf(lang, 'qq_' + code, { line: f.line_no, pct: Math.abs(Number(f.pct_vs_median) || 0), lo: money(f.p25), hi: money(f.p75), unit: f.unit });
+  if (code === 'price_far_from_peers') return tf(lang, 'qq_price_far_from_peers', { total: money(f.total) });
   return T.en['qq_' + code] ? t(lang, 'qq_' + code) : '';
 }

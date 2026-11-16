@@ -75,7 +75,11 @@ export function startSpeculation(t: WaTurn): void {
     const csys = 'Decide whether this message from a supplier is an INSTRUCTION TO CHANGE THEIR QUOTATION PRICE, and if so to what amount in AED.\n'
       + 'Return STRICT JSON ONLY. If it is: {"change":true,"amount":"<the new total price as a bare number, no currency, no commas>"}.\n'
       + 'Otherwise, including every question, every request for information, anything about their licence or profile, anything asking to CREATE a new quotation, and anything you are unsure about: {"change":false}.\n'
-      + 'A relative instruction with no stated total ("drop it a bit", "make it cheaper") is NOT a change — return false, because I cannot act on an amount you had to invent.';
+      + 'A relative instruction with no stated total ("drop it a bit", "make it cheaper") is NOT a change — return false, because I cannot act on an amount you had to invent.\n'
+      // THE SAME READING NAMES HIS OTHER INSTRUCTIONS (16 Nov 2026, sales_engineer; _shared/supplier_instruction.ts reads them in full)
+      + 'Also add "instruction": "not_for_me" if he says a job request we sent is not for him; "remove_work" if he asks us to stop sending him a kind of work; '
+      + '"available" if he says he is available or back; "answer" if the message is a bare yes or no, or answers a question about removing work from his profile; '
+      + '"confirm_figure" if he confirms that his quotation total is correct; otherwise "none". Example: {"change":false,"instruction":"not_for_me"}.';
     const cr = await fetch(GATEWAY, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ __secret: gsecret, fn: 'supplier_directive', sys: csys, input: Body.slice(0, 600), temperature: 0, task_class: 'json_extraction', cache_ttl_min: 0 }),

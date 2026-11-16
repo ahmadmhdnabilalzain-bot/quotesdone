@@ -103,7 +103,7 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
     const i = await one(body.inquiry_id); if (!i) return { status: 404, json: { error: 'not_found', code: 'not_found' } };
     return { status: 200, json: { ok: true, inquiry: {
       id: i.id, job_no: jobNo(i), category: i.category ?? null, emirate: i.emirate ?? null, created_at: i.created_at, status: i.status,
-      concluded: !!i.concluded, revealed: !!i.revealed, you_won: !!i.you_won, summary: i.summary ?? null, summary_ar: i.summary_ar ?? null, budget: i.budget ?? null,
+      concluded: !!i.concluded, revealed: !!i.revealed, you_won: !!i.you_won, declined: !!i.declined, summary: i.summary ?? null, summary_ar: i.summary_ar ?? null, budget: i.budget ?? null,
       scope_type: i.scope_type ?? null, spec: i.spec ?? null, requested: i.spec?.customer_requirements?.display ?? null,
       boq: i.boq ?? null, boq_withheld: !!i.boq_withheld, boq_confidence: i.boq_confidence ?? null, drawing_pages: i.drawing_pages || [],
       drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length),

@@ -86,7 +86,7 @@ or approved-manufacturer list; products must meet the UAE approvals for the job)
    licence that cannot be read in full is held for review, and the supplier is told what is pending. A licence issued by
    an authority outside the UAE, or by an authority that cannot be confirmed, is held too (ledger 1442), and the supplier
    is asked for a current UAE trade licence or to name the UAE authority or free zone that issued it. (SA§13; HWV)
-4. **Receive matched RFQs** anonymised; ignoring an invitation carries no penalty. (FAQ "Can I decline invitations?")
+4. **Receive matched RFQs** anonymised. A request that is not for him is answered "Not for me" (portal button, or by e-mail or WhatsApp, with a reason if he likes) and never counts against him. Three unanswered requests in a row that REACHED him (delivered; a bounced or never-sent one does not count) pause new requests; he is warned after the second and told at the pause, and "I'm available" or a quotation resumes them. (FAQ "Can I decline invitations?"; matching_strike_limit, founder 3 Aug 2026)
 5. **Quote** itemised: scope, line items with brand/model and specs, quantities, unit prices, materials,
    lead time, validity, warranty, payment terms, exclusions. A quote below the quality bar is held as a
    draft with coaching. **Before reveal** a supplier may refresh a quotation (send a revised one from the job;

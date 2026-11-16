@@ -23,7 +23,9 @@ export const REPRICE_SURFACE = 'wa_inbound.supplier_reprice';
 export const PORTAL = 'https://quotesdone.com/portal';
 
 /** The directive reading's answer: a reading, or an outage (no model read the message). */
-export type DirectiveReading = { change?: boolean; amount?: unknown; outage?: undefined } | { outage: true; why: string } | null;
+// instruction (16 Nov 2026, sales_engineer): the same reading also says whether the message is one of the supplier's instructions
+// about his requests or his work (supplier_instruction.ts reads it fully, with his facts, only when this says so: no extra call per turn)
+export type DirectiveReading = { change?: boolean; amount?: unknown; instruction?: string; outage?: undefined } | { outage: true; why: string } | null;
 
 /** What the supplier is told when the reader is down and his message states an amount (English: suppliers always). */
 export function outageNotice(amounts: string[]): string {
