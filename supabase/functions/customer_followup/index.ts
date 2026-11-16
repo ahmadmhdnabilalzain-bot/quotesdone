@@ -23,10 +23,11 @@ Deno.serve(observe('customer_followup', async (req) => {
   const lang = v.lang === 'ar' ? 'ar' : 'en';
   if (req.method === 'GET') return html(questionPage(v, token));
   if (req.method !== 'POST') return html(messagePage(lang, 'invalid'), 405);
-  const a = parseAnswer(new URLSearchParams(await req.text()));
+  const a = parseAnswer(new URLSearchParams(await req.text()), v.stage);
   if (!a) return html(questionPage(v, token), 400);
+  // 16 Nov 2026 (AFTER_REVEAL): the contact word travels with the answer; the routine records it for the refund ladder.
   const { data: r, error: e2 } = await admin.rpc('fn_customer_followup_answer',
-    { p_token: token, p_hired: a.hired, p_stars: a.stars, p_comment: a.comment });
+    { p_token: token, p_hired: a.hired, p_stars: a.stars, p_comment: a.comment, p_contacted: a.contacted });
   if (e2 || !r?.ok) return html(messagePage(lang, 'error'), 500);
-  return html(messagePage(lang, r.already ? 'already' : 'thanks'));
+  return html(messagePage(lang, r.already ? 'already' : v.stage === 'day_two_contact' ? 'contact_thanks' : 'thanks'));
 }));

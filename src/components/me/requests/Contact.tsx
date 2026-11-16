@@ -78,6 +78,17 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
     if (j && j.ok) { setNoteSaved(true); setDone(t(lang, 'c_note_done')); } else setNoteErr(errText(j, lang, 'c_rate_fail'));
   });
   const refund = async () => { if (!(await ask(tf(lang, 'c_refund_confirm', { c: g.chase_after_days, w: g.window_days, bmin: g.bank_min_days, bmax: g.bank_max_days }), { title: t(lang, 'c_refund'), confirm: t(lang, 'c_refund') }))) return; await act.run('refund', async () => { const j = await call('customer_api', { action: 'request_refund', quote_id: q.id }, token).catch(() => null); setDone(j && j.ok ? t(lang, 'c_refund_ok') + (j.refund_ref ? ' ' + tf(lang, 'c_refund_ref', { r: j.refund_ref }) : '') : (j && j.message) || errText(j, lang, 'c_refund_fail')); }); };
+  // "A PROBLEM WITH THIS JOB" (16 Nov 2026, customer_support, AFTER_REVEAL): the one door every channel shares. His own words go to
+  // customer_api job_problem -> fn_customer_after_reveal_message; the model reads them beside the revealed quotation. The refund
+  // button stays for the plain "the supplier is not responding".
+  const [probOpen, setProbOpen] = useState(false); const [probText, setProbText] = useState(''); const [probErr, setProbErr] = useState('');
+  const sendProblem = () => act.run('problem', async () => {
+    setProbErr('');
+    if (probText.trim().length < 10) { setProbErr(t(lang, 'c_problem_min')); return; }
+    const j = await call('customer_api', { action: 'job_problem', quote_id: q.id, message: probText.trim() }, token).catch(() => null);
+    if (j && j.ok) { setDone(j.message || t(lang, 'c_problem_send')); setProbOpen(false); setProbText(''); }
+    else setProbErr((j && j.message) || errText(j, lang, 'c_problem_fail'));
+  });
   // D4: the refund case and the chief executive's decision reference, from the refunds row itself.
   const gq = q.guarantee || {};
   const hire = async () => { if (!(await ask(t(lang, 'c_hire_confirm'), { title: t(lang, 'c_hire'), confirm: t(lang, 'c_hire') }))) return; await act.run('hire', async () => { const j = await call('customer_api', { action: 'complete_inquiry', quote_id: q.id }, token).catch(() => null); if (j && j.ok) { setDone(t(lang, 'c_hired')); if (onChange) onChange(); } else setDone(errText(j, lang, 'c_update_fail')); }); };
@@ -105,7 +116,18 @@ function Contact({ c, q, token, onChange, lang, won, terms, play = false }) {
         <BusyNote busy={act.busy && act.key === 'rate'}>{t(lang, 'q_wait')}</BusyNote>
         <BusyButton busy={act} act="hire" variant="link" className="h-auto px-0" busyLabel={t(lang, 'q_wait')} onClick={hire}>{t(lang, 'c_hire')}</BusyButton>
         <BusyButton busy={act} act="refund" variant="link" className="h-auto px-0" busyLabel={t(lang, 'q_wait')} onClick={refund}>{t(lang, 'c_refund')}</BusyButton>
+        <button type="button" className="h-auto cursor-pointer border-0 bg-transparent px-0 text-sm font-medium text-primary underline-offset-4 hover:underline" aria-expanded={probOpen} aria-controls={'jp-' + q.id} onClick={() => { setProbOpen(!probOpen); setProbErr(''); }}>{t(lang, 'c_problem')}</button>
       </div>
+      {probOpen ? (
+        <div id={'jp-' + q.id} className="mt-2.5 border-t border-accent/25 pt-2.5">
+          <label className="block text-[12px] font-semibold text-muted-foreground" htmlFor={'jpt-' + q.id}>{t(lang, 'c_problem_h')}</label>
+          <textarea id={'jpt-' + q.id} value={probText} maxLength={4000} rows={3} aria-invalid={probErr ? true : undefined} aria-describedby={probErr ? 'jpe-' + q.id : undefined} onChange={(e) => { setProbText(e.target.value); setProbErr(''); }} placeholder={t(lang, 'c_problem_ph')} className="mt-1.5 w-full min-w-0 rounded-md border border-border bg-background px-3 py-2 text-[14px]" />
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <BusyButton busy={act} act="problem" size="sm" variant="secondary" busyLabel={t(lang, 'q_wait')} disabled={probText.trim().length < 10} onClick={sendProblem}>{t(lang, 'c_problem_send')}</BusyButton>
+          </div>
+          {probErr && <div id={'jpe-' + q.id} className={S.err} role="alert">{probErr}</div>}
+        </div>
+      ) : null}
       {done && <div className={cn(S.sub, 'mt-1.5 text-primary')} role="status">{done}</div>}
       {/* Offered only after the rating is saved, and only for a star pressed in this session. An
           `Input` rather than a textarea on purpose: "a few words" is one line, and the kit has no

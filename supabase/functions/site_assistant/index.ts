@@ -21,6 +21,7 @@
 //     the CEO when someone asks for a person. assistant_logs now records which seat answered.
 // v12: A VISITOR GETS GENERAL ANSWERS AND THE WAY TO SIGN UP (founder ruling 18 Oct 2026, visitor_scope.ts). No inquiry
 //     is collected on the homepage; a real need is sent to sign up; a server-side cap per conversation and IP.
+import { fileAfterRevealProblem } from './after_reveal_door.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { langOf, turnLang, type FaqRow } from '../_shared/chat_answers.ts';
 import { annotate, observe } from '../_shared/observe.ts';
@@ -414,6 +415,9 @@ async function handle(req: Request, T: Timer): Promise<Response> {
         await fileReviewRequest(admin, defaultDeps(admin, 'site_assistant'), { channel: 'site_chat', requester: 'site visitor ' + ip, message,
           surface: 'site_assistant.review_of_decision', dedupeKey: ip + ':' + hour + ':' + msgKey });
       }
+      // "A problem with this job" (16 Nov 2026, AFTER_REVEAL): the same reading, for a signed-in customer, files the one door
+      // (after_reveal_door.ts -> fn_customer_after_reveal_message). Best-effort beside the reply, as the report above.
+      await fileAfterRevealProblem(rpc, who, message, person).catch(() => null);
       return person;
     };
     const fileEffects = async (o: { grounded: boolean; answered: boolean; refusal: string; rateLimited: boolean }) => {

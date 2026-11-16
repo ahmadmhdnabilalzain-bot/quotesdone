@@ -91,6 +91,12 @@ revoke all on public.reveal_contact_statement from anon, authenticated;
 comment on table public.reveal_contact_statement is
   'The customer''s own word on whether the revealed supplier contacted him (Terms v11 clause 5: any reasonable means). One row per statement; fn_reveal_contact_word reads it beside supplier_ack_at.';
 
+-- exported every day with its subject (the customer's own statements on a paid reveal are business records, like customer_followup)
+insert into public.table_export_registry (table_name, exported, category, reason, added_by) values
+  ('reveal_contact_statement', true, 'customer', 'the customer''s own word on whether the revealed supplier contacted him, read by the refund ladder beside the supplier''s acknowledgement', 'customer_support')
+on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
+  reason = excluded.reason, added_by = excluded.added_by;
+
 -- the follow-up gains its working-day-2 stage and the contact answer
 alter table public.customer_followup drop constraint if exists customer_followup_stage_check;
 alter table public.customer_followup add constraint customer_followup_stage_check
@@ -138,6 +144,8 @@ returns jsonb language sql stable security definer set search_path to 'public', 
     left join public.leads l on l.id = t.supplier_id
    where t.id = p_transaction
 $fn$;
+revoke execute on function public.fn_reveal_job_facts(uuid) from public, anon, authenticated;
+grant execute on function public.fn_reveal_job_facts(uuid) to service_role;
 
 -- ── 3. THE CUSTOMER'S WORD BESIDE THE SUPPLIER'S CLAIM ─────────────────────────────────────────────────────────────
 -- responded: the customer said yes at least once (a call is a response, Terms clause 5); or the supplier claims contact (the
@@ -187,6 +195,8 @@ returns jsonb language sql stable security definer set search_path to 'public', 
              else 'no word from the customer and no claim from the supplier' end)
     from w
 $fn$;
+revoke execute on function public.fn_reveal_contact_word(uuid) from public, anon, authenticated;
+grant execute on function public.fn_reveal_contact_word(uuid) to service_role;
 
 -- ── 4. RECORDING A STATEMENT; A DENIAL AFTER A CLAIM GOES TO THE CEO WITH BOTH ──────────────────────────────────────
 create or replace function public.fn_reveal_contact_record(p_transaction uuid, p_said text, p_channel text,
@@ -228,6 +238,8 @@ begin
   end if;
   return jsonb_build_object('recorded', true, 'statement_id', v_id, 'word', v_word, 'conflict_handoff', v_h);
 end $fn$;
+revoke execute on function public.fn_reveal_contact_record(uuid, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_reveal_contact_record(uuid, text, text, text, text) to service_role;
 
 -- ── 5. THE LADDER READS THE CUSTOMER'S WORD ────────────────────────────────────────────────────────────────────────
 -- The live body (the mirror) with ONE change: v_responded comes from fn_reveal_contact_word, which keeps the old two signals (the
@@ -312,6 +324,8 @@ begin
     'bank_settlement_working_days', coalesce(v_min,7)::text || '-' || coalesce(v_max,14)::text
   );
 end $fn$;
+revoke execute on function public.fn_refund_state(uuid) from public, anon, authenticated;
+grant execute on function public.fn_refund_state(uuid) to service_role;
 
 -- ── 6. A RATING IS A RECORD OF DEALING ONLY WHEN CONTACT HAPPENED ──────────────────────────────────────────────────
 -- For fn_refund_open_from_customer (here) and the CEO's refund checklist item 5 (another branch: the main session swaps its
@@ -322,6 +336,8 @@ returns boolean language sql stable security definer set search_path to 'public'
   select exists (select 1 from public.reviews v where v.transaction_id = p_transaction)
      and not coalesce((public.fn_reveal_contact_word(p_transaction)->>'customer_denies_contact')::boolean, false)
 $fn$;
+revoke execute on function public.fn_refund_rating_shows_dealing(uuid) from public, anon, authenticated;
+grant execute on function public.fn_refund_rating_shows_dealing(uuid) to service_role;
 
 -- ── 7. THE CUSTOMER'S REFUND DOOR: the rating exclusion reads the word, the door names its channel, and its "the supplier is not
 --      responding" is recorded as the customer's word (Refund Policy v1.9 section 5: tell us at any time). The live body otherwise.
@@ -450,6 +466,8 @@ begin
     'message_en', 'Refund case QD-RF-' || v_id || ' is open. Our chief executive decides it after ' || coalesce(v_decide, 'the fifth working day') || ', and if it is due everything you paid is refunded. We have emailed you the details.',
     'message_ar', 'فتحنا حالة الاسترداد QD-RF-' || v_id || '، وسيبتّ فيها رئيسنا التنفيذي بعد ' || coalesce(v_decide, 'يوم العمل الخامس') || '، وإن ثبت استحقاق الاسترداد فسيُردّ إليكم كامل ما دفعتموه. وقد أرسلنا إليكم التفاصيل بالبريد الإلكتروني.');
 end $fn$;
+revoke execute on function public.fn_refund_open_from_customer(uuid, text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_refund_open_from_customer(uuid, text, text, text) to service_role;
 
 -- ── 8. THE QUESTIONS: working day 2 asks about contact; day 3 asks it first ─────────────────────────────────────────
 create or replace function public.fn_customer_followup_copy(p_stage text, p_lang text, p_name text, p_company text, p_rfq_no integer, p_trade text, p_link text)
@@ -503,6 +521,8 @@ begin
       || 'Your answer helps us match you, and every customer after you, with better suppliers.' || chr(10) || chr(10)
       || 'If you would rather not hear from us like this, reply to this e-mail and we will stop.');
 end $fn$;
+revoke execute on function public.fn_customer_followup_copy(text, text, text, text, integer, text, text) from public, anon, authenticated;
+grant execute on function public.fn_customer_followup_copy(text, text, text, text, integer, text, text) to service_role;
 
 create or replace function public.fn_customer_followup_view(p_token uuid)
 returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
@@ -518,6 +538,8 @@ returns jsonb language sql stable security definer set search_path to 'public', 
       left join public.inquiries i on i.id = t.inquiry_id
      where f.token = p_token), jsonb_build_object('ok', false, 'reason', 'not_found'))
 $fn$;
+revoke execute on function public.fn_customer_followup_view(uuid) from public, anon, authenticated;
+grant execute on function public.fn_customer_followup_view(uuid) to service_role;
 
 -- ── 9. THE ANSWER: the contact word first; "never contacted" writes no review; a complaint after contact is read by the model ──
 drop function if exists public.fn_customer_followup_answer(uuid, text, integer, text);
@@ -616,6 +638,8 @@ begin
    where id = f.id;
   return jsonb_build_object('ok', true, 'hired', p_hired, 'contacted', p_contacted, 'recorded', v_out);
 end $fn$;
+revoke execute on function public.fn_customer_followup_answer(uuid, text, integer, text, text) from public, anon, authenticated;
+grant execute on function public.fn_customer_followup_answer(uuid, text, integer, text, text) to service_role;
 
 -- ── 10. WORKING DAY 2: ASK ─────────────────────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_customer_support_contact_check_tick()
@@ -663,6 +687,8 @@ begin
   end loop;
   return jsonb_build_object('due', v_seen, 'asked', v_sent, 'fixture', v_fx);
 end $fn$;
+revoke execute on function public.fn_customer_support_contact_check_tick() from public, anon, authenticated;
+grant execute on function public.fn_customer_support_contact_check_tick() to service_role;
 
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
   ('sales_engineer.contact_check', 'sales_engineer', interval '2 hours', 'fn_customer_support_contact_check_tick',
@@ -710,6 +736,8 @@ begin
   return jsonb_build_object('recorded', true, 'transaction_id', t.id, 'customer_told', coalesce((v->>'sent')::boolean, false),
                             'delivery', v, 'contact', public.fn_reveal_contact_word(t.id));
 end $fn$;
+revoke execute on function public.fn_supplier_ack_record(uuid) from public, anon, authenticated;
+grant execute on function public.fn_supplier_ack_record(uuid) to service_role;
 
 -- ── 12. THE INTAKE: the quotation on record goes with the message, and the model chooses among four readings ───────
 drop function if exists public.fn_customer_support_dispute_consider(uuid, text, text);
@@ -742,6 +770,8 @@ begin
     jsonb_build_object('transaction_id', t.id, 'party', p_party, 'statement', left(p_message, 4000), 'channel', p_channel),
     'dispute_intake:' || t.id || ':' || md5(p_party || coalesce(p_message, '')));
 end $fn$;
+revoke execute on function public.fn_customer_support_dispute_consider(uuid, text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_customer_support_dispute_consider(uuid, text, text, text) to service_role;
 
 -- ── 13. THE CASE CARRIES THE QUOTATION, AND BOTH NOTICES SAY WHAT WAS QUOTED (Complaints Policy s.4: sharing the records) ──
 create or replace function public.fn_customer_support_dispute_open(p_transaction_id uuid, p_raised_by text, p_statement text, p_intake_question_id bigint default null)
@@ -799,6 +829,8 @@ begin
          ) p(role, email, locale);
   return jsonb_build_object('dispute_id', d.id, 'ref', v_ref, 'opened', true, 'evidence_due', d.evidence_due);
 end $fn$;
+revoke execute on function public.fn_customer_support_dispute_open(uuid, text, text, bigint) from public, anon, authenticated;
+grant execute on function public.fn_customer_support_dispute_open(uuid, text, text, bigint) to service_role;
 
 -- ── 14. WHAT THE INTAKE'S READING DOES ─────────────────────────────────────────────────────────────────────────────
 create or replace function public.fn_reason_apply_customer_support__dispute_intake(p_id bigint, p_result jsonb)
@@ -837,6 +869,8 @@ begin
   end if;
   return public.fn_customer_support_dispute_open(v_tx, h.subject->>'party', v_stmt, p_id);
 end $fn$;
+revoke execute on function public.fn_reason_apply_customer_support__dispute_intake(bigint, jsonb) from public, anon, authenticated;
+grant execute on function public.fn_reason_apply_customer_support__dispute_intake(bigint, jsonb) to service_role;
 
 -- ── 15. THE ONE DOOR: "A PROBLEM WITH THIS JOB" (portal, WhatsApp, the signed-in widget) ────────────────────────────
 create or replace function public.fn_customer_after_reveal_message(p_customer uuid, p_message text, p_channel text, p_transaction uuid default null)
@@ -898,6 +932,8 @@ begin
       || coalesce('وقضيتكم ' || coalesce(v_open_d, v_open_r) || ' مفتوحة بالفعل، وأُضيفت إليها رسالتكم. ', '')
       || 'وستقرؤها خدمة العملاء، فإما أن تفتح قضية وتبلغكم برقمها، أو تردّ عليكم مباشرة، خلال يومي عمل كما تَعِد سياسة الشكاوى لدينا.');
 end $fn$;
+revoke execute on function public.fn_customer_after_reveal_message(uuid, text, text, uuid) from public, anon, authenticated;
+grant execute on function public.fn_customer_after_reveal_message(uuid, text, text, uuid) to service_role;
 
 -- ── 16. THE CEO'S DECISION ACTS ────────────────────────────────────────────────────────────────────────────────────
 -- The live body (the mirror) plus: what the CEO chose for the customer (p_remedy) and for the supplier (p_supplier_action), both only
@@ -1003,6 +1039,8 @@ begin
   return jsonb_build_object('dispute_id', d.id, 'outcome', p_outcome, 'remedy', coalesce(p_remedy, 'none'),
                             'supplier_action', coalesce(p_supplier_action, 'none'), 'effect', v_effect);
 end $fn$;
+revoke execute on function public.fn_ceo_decides_post_reveal_dispute(bigint, text, text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_ceo_decides_post_reveal_dispute(bigint, text, text, text, text) to service_role;
 
 -- ── 17. THE NEXT REVEAL REFUNDED: filed when he pays it ────────────────────────────────────────────────────────────
 create or replace function public.fn_accountant_dispute_remedy_tick()
@@ -1036,6 +1074,8 @@ begin
   end loop;
   return jsonb_build_object('due', v_seen, 'filed', v_filed, 'fixture', v_fx);
 end $fn$;
+revoke execute on function public.fn_accountant_dispute_remedy_tick() from public, anon, authenticated;
+grant execute on function public.fn_accountant_dispute_remedy_tick() to service_role;
 
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
   ('accountant.dispute_remedy', 'accountant', interval '1 hour', 'fn_accountant_dispute_remedy_tick',
@@ -1057,6 +1097,8 @@ returns jsonb language sql stable security definer set search_path to 'public', 
        or (d.remedy = 'next_reveal_free' and d.remedy_transaction_id = p_transaction))
    order by d.id desc limit 1
 $fn$;
+revoke execute on function public.fn_refund_dispute_basis(uuid) from public, anon, authenticated;
+grant execute on function public.fn_refund_dispute_basis(uuid) to service_role;
 
 -- ── 19. HIS MONEY CASES, FOR EVERY CHANNEL'S FACTS (wired by the main session beside fn_customer_inquiry_facts) ──────
 create or replace function public.fn_customer_money_cases(p_customer uuid)
@@ -1089,6 +1131,8 @@ returns jsonb language sql stable security definer set search_path to 'public', 
       cross join lateral (select public.fn_refund_state(t.id) as st) z
      where t.customer_id = p_customer and t.revealed_at > now() - interval '120 days'), '[]'::jsonb))
 $fn$;
+revoke execute on function public.fn_customer_money_cases(uuid) from public, anon, authenticated;
+grant execute on function public.fn_customer_money_cases(uuid) to service_role;
 
 -- ── 20. WHATSAPP: ONE REASONED INTENT, ACTED ON BY THE DOOR ───────────────────────────────────────────────────────
 -- The model reads which intent a message is (wa_inbound/classification.ts whatsappReadings, by the row's label); match_patterns are
@@ -1272,6 +1316,8 @@ begin
   );
 end;
 $fn$;
+revoke execute on function public.fn_wa_answer(text, text, text) from public, anon, authenticated;
+grant execute on function public.fn_wa_answer(text, text, text) to service_role;
 
 -- ── 21. THE FINDING ON A DISPUTE READS THE QUOTATION TOO (the live body plus 'job_on_record' in the case) ──────────
 create or replace function public.fn_sales_engineer_disputes_tick()
@@ -1310,53 +1356,11 @@ begin
       'Post-reveal dispute QD-D-' || lpad(d.id::text, 5, '0') || ' is past its decision date',
       'public.post_reveal_dispute / fn_ceo_decides_post_reveal_dispute', 'agent_facing', 1,
       jsonb_build_object('dispute_id', d.id, 'decision_due', d.decision_due, 'owner_seat', 'ceo'),
-      '{}'::text[], array['the CEO''s decision: select public.fn_ceo_decides_post_reveal_dispute(<id>, <outcome>, <note>, <remedy: none | refund_reveal_fee | next_reveal_free>, <supplier action: none | warning | pause_matching>)'],
+      '{}'::text[], array['the CEO''s decision: public.fn_ceo_decides_post_reveal_dispute with the dispute id, the outcome, a note, the remedy (none, refund_reveal_fee, next_reveal_free) and the supplier action (none, warning, pause_matching)'],
       'sales_engineer');
     v_overdue := v_overdue + 1;
   end loop;
   return jsonb_build_object('to_review', v_review, 'decision_overdue', v_overdue);
 end $fn$;
-
--- ── 22. WHO MAY RUN THEM ───────────────────────────────────────────────────────────────────────────────────────────
-revoke execute on function public.fn_reveal_job_facts(uuid) from public, anon, authenticated;
-revoke execute on function public.fn_reveal_contact_word(uuid) from public, anon, authenticated;
-revoke execute on function public.fn_reveal_contact_record(uuid, text, text, text, text) from public, anon, authenticated;
-revoke execute on function public.fn_refund_state(uuid) from public, anon, authenticated;
-revoke execute on function public.fn_refund_rating_shows_dealing(uuid) from public, anon, authenticated;
-revoke execute on function public.fn_refund_open_from_customer(uuid, text, text, text) from public, anon, authenticated;
-revoke execute on function public.fn_customer_followup_copy(text, text, text, text, integer, text, text) from public, anon, authenticated;
-revoke execute on function public.fn_customer_followup_view(uuid) from public, anon, authenticated;
-revoke execute on function public.fn_customer_followup_answer(uuid, text, integer, text, text) from public, anon, authenticated;
-revoke execute on function public.fn_customer_support_contact_check_tick() from public, anon, authenticated;
-revoke execute on function public.fn_supplier_ack_record(uuid) from public, anon, authenticated;
-revoke execute on function public.fn_customer_support_dispute_consider(uuid, text, text, text) from public, anon, authenticated;
-revoke execute on function public.fn_customer_support_dispute_open(uuid, text, text, bigint) from public, anon, authenticated;
-revoke execute on function public.fn_reason_apply_customer_support__dispute_intake(bigint, jsonb) from public, anon, authenticated;
-revoke execute on function public.fn_customer_after_reveal_message(uuid, text, text, uuid) from public, anon, authenticated;
-revoke execute on function public.fn_ceo_decides_post_reveal_dispute(bigint, text, text, text, text) from public, anon, authenticated;
-revoke execute on function public.fn_accountant_dispute_remedy_tick() from public, anon, authenticated;
-revoke execute on function public.fn_refund_dispute_basis(uuid) from public, anon, authenticated;
-revoke execute on function public.fn_customer_money_cases(uuid) from public, anon, authenticated;
-revoke execute on function public.fn_wa_answer(text, text, text) from public, anon, authenticated;
 revoke execute on function public.fn_sales_engineer_disputes_tick() from public, anon, authenticated;
-grant execute on function public.fn_reveal_job_facts(uuid) to service_role;
-grant execute on function public.fn_reveal_contact_word(uuid) to service_role;
-grant execute on function public.fn_reveal_contact_record(uuid, text, text, text, text) to service_role;
-grant execute on function public.fn_refund_state(uuid) to service_role;
-grant execute on function public.fn_refund_rating_shows_dealing(uuid) to service_role;
-grant execute on function public.fn_refund_open_from_customer(uuid, text, text, text) to service_role;
-grant execute on function public.fn_customer_followup_copy(text, text, text, text, integer, text, text) to service_role;
-grant execute on function public.fn_customer_followup_view(uuid) to service_role;
-grant execute on function public.fn_customer_followup_answer(uuid, text, integer, text, text) to service_role;
-grant execute on function public.fn_customer_support_contact_check_tick() to service_role;
-grant execute on function public.fn_supplier_ack_record(uuid) to service_role;
-grant execute on function public.fn_customer_support_dispute_consider(uuid, text, text, text) to service_role;
-grant execute on function public.fn_customer_support_dispute_open(uuid, text, text, bigint) to service_role;
-grant execute on function public.fn_reason_apply_customer_support__dispute_intake(bigint, jsonb) to service_role;
-grant execute on function public.fn_customer_after_reveal_message(uuid, text, text, uuid) to service_role;
-grant execute on function public.fn_ceo_decides_post_reveal_dispute(bigint, text, text, text, text) to service_role;
-grant execute on function public.fn_accountant_dispute_remedy_tick() to service_role;
-grant execute on function public.fn_refund_dispute_basis(uuid) to service_role;
-grant execute on function public.fn_customer_money_cases(uuid) to service_role;
-grant execute on function public.fn_wa_answer(text, text, text) to service_role;
 grant execute on function public.fn_sales_engineer_disputes_tick() to service_role;
