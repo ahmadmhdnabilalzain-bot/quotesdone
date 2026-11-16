@@ -10,6 +10,7 @@ import { revealCharge } from '../../_shared/reveal_fee.ts';
 import { canReveal } from '../../_shared/reveal_guard.ts';
 import { type ActionCtx, J, admin } from '../context.ts';
 import { getCfg, refundRef } from '../lib/pricing.ts';
+import { jobProblem } from '../job_problem.ts';
 
 export async function revealActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, action, cust } = c;
@@ -41,7 +42,9 @@ export async function revealActions(c: ActionCtx): Promise<Response | undefined>
       // confirmation in the customer's registered language now happen inside
       // fn_refund_open_from_customer, or none of them do. The published terms let a customer complain
       // "at any time"; the five working days govern when the CEO may decide, not when they may ask.
-      const { data: rf, error: rfErr } = await admin.rpc('fn_refund_open_from_customer', { p_transaction_id: tx.id, p_requested_by: 'customer' });
+      // 16 Nov 2026 (AFTER_REVEAL): the door names its channel; "the supplier is not responding" is also his word on contact,
+      // read by the ladder beside the supplier's click (fn_reveal_contact_record inside the routine).
+      const { data: rf, error: rfErr } = await admin.rpc('fn_refund_open_from_customer', { p_transaction_id: tx.id, p_requested_by: 'customer', p_channel: 'portal' });
       if (rfErr || !rf) {
         // NOT A POLICY REFUSAL: the one transaction rolled back (a guard, the confirmation handoff, the
         // database). The customer's claim is not lost -- they are told to try again -- but somebody must
@@ -62,5 +65,18 @@ export async function revealActions(c: ActionCtx): Promise<Response | undefined>
       if (!rf.ok) return J({ ok: false, error: rf.code, code: rf.code, message: msg, can_claim_later: rf.can_claim_later ?? null }, 400);
       return J({ ok: true, refund_status: 'requested', refund_id: rf.refund_id, refund_ref: refundRef(rf.refund_id),
         duplicate: rf.duplicate === true, decision_after: rf.decision_after ?? null, message: msg });
+    }
+
+    // "A PROBLEM WITH THIS JOB" (16 Nov 2026, AFTER_REVEAL): the one door every channel shares (../job_problem.ts). The model reads
+    // what he wrote beside the revealed quotation; the refund button above stays for the plain "the supplier is not responding".
+    if (action === 'job_problem') {
+      const r = await jobProblem({
+        saleOfQuote: async (quoteId) => {
+          const { data } = await admin.from('transactions').select('id,customer_id,revealed_at').eq('quote_id', quoteId).maybeSingle();
+          return data ? { id: String(data.id), customer_id: String(data.customer_id), revealed_at: data.revealed_at ?? null } : null;
+        },
+        door: async (args) => { const { data, error } = await admin.rpc('fn_customer_after_reveal_message', args); return { data, error }; },
+      }, String(cust.id), body);
+      return J(r.body, r.status);
     }
 }
