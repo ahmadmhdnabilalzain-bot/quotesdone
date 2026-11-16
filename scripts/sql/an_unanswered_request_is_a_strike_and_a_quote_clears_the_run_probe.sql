@@ -50,7 +50,11 @@ begin
   update public.inquiries set status = 'expired' where id = ih;   -- still waiting for the customer's details
   if (select coalesce(chat_strikes, 0) from public.leads where id = s_quiet) <> 1 then fails := fails || ' 2:twice_or_cancel_or_recent'; end if;
 
-  update public.inquiries set status = 'expired' where id in (i2, i3);
+  update public.inquiries set status = 'expired' where id = i2;
+  -- the warning at limit-1 reached him (delivered): since a_supplier_can_say_not_for_me_and_is_never_stopped_without_being_told.sql
+  -- the strike that pauses him counts only then (release wave C: without this line the probe stopped at 2 on the merged tree)
+  update public.notifications set status = 'sent', provider_status = 'delivered' where type = 'supplier_strike_warning' and lead_id = s_quiet;
+  update public.inquiries set status = 'expired' where id = i3;
   select * into l from public.leads where id = s_quiet;
   if coalesce(l.chat_strikes, 0) <> 3 or public.fn_is_matchable(true, l.banned, l.matching_blocked, 'approved', l.permanently_closed, l.chat_strikes) then
     fails := fails || ' 3:not_paused(' || coalesce(l.chat_strikes, 0) || ')'; end if;

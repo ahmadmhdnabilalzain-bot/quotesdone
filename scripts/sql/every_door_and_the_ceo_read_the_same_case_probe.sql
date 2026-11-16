@@ -18,7 +18,10 @@ begin
   select count(*) into v_real_reports from public.support_fault_report where not fixture;
 
   -- a ZZ DEMO customer with one request and one support case, known to support by the reserved address and a demo number
-  insert into public.customers (full_name, email, phone) values ('ZZ DEMO samecase probe', v_email, v_phone) returning id into v_cust;
+  -- his number is VERIFIED and his WhatsApp is that number: a phone may confirm an identity, never select one
+  -- (a_phone_tail_never_joins_two_people.sql, applied before this file; release wave C)
+  insert into public.customers (full_name, email, phone, phone_verified, whatsapp_opt)
+  values ('ZZ DEMO samecase probe', v_email, v_phone, true, 'same') returning id into v_cust;
   insert into public.customers (full_name, email) values ('ZZ DEMO samecase other', 'zz-samecase-other@example.invalid') returning id into v_other;
   insert into public.inquiries (customer_id, summary, status) values (v_cust, 'ZZ DEMO samecase probe: 6 windows', 'sent') returning id into v_inq;
   v_prof := public.fn_support_profile_resolve('customer', v_cust::text, v_email, null);
@@ -32,6 +35,12 @@ begin
   l := public.fn_support_case_links_a_fault('customer', null, null, v_phone, f ->> 'issue_key', 'whatsapp');
   if not coalesce((l ->> 'linked')::boolean, false) or l ->> 'case_ref' <> v_ref then
     raise exception 'CHK<<PROBE FAILED: the fault was not linked to his case by his number: %>>', l; end if;
+  -- the same nine digits under another country's code name nobody: nothing is linked to his case (release wave C)
+  l := public.fn_support_case_links_a_fault('customer', null, null, '+999 50 000 0111', f ->> 'issue_key', 'whatsapp');
+  if coalesce((l ->> 'linked')::boolean, true) then
+    raise exception 'CHK<<PROBE FAILED: another country''s number with his last nine digits reached his case: %>>', l; end if;
+  if jsonb_array_length(public.fn_person_open_promises('customer', null, null, '+999 50 000 0111', 10)) <> 0 then
+    raise exception 'CHK<<PROBE FAILED: another country''s number with his last nine digits reads his promises>>'; end if;
   l := public.fn_support_case_links_a_fault('customer', v_cust::text, v_email, null, f ->> 'issue_key', 'whatsapp');
   if not coalesce((l ->> 'already')::boolean, false) then raise exception 'CHK<<PROBE FAILED: a second link wrote it twice: %>>', l; end if;
   if (select jsonb_array_length(linked_refs -> 'faults') from public.support_case where case_ref = v_ref) <> 1 then
@@ -73,6 +82,10 @@ begin
     raise exception 'CHK<<PROBE FAILED: his open promise is not read by his id: %>>', pr; end if;
   if jsonb_array_length(public.fn_person_open_promises('customer', null, v_email, null, 10)) <> 1 then
     raise exception 'CHK<<PROBE FAILED: his open promise is not read by his e-mail>>'; end if;
+  if jsonb_array_length(public.fn_person_open_promises('customer', null, null, v_phone, 10)) <> 1 then
+    raise exception 'CHK<<PROBE FAILED: his open promise is not read by his verified WhatsApp number>>'; end if;
+  if jsonb_array_length(public.fn_person_open_promises('customer', null, null, '+999 50 000 0111', 10)) <> 0 then
+    raise exception 'CHK<<PROBE FAILED: another country''s number with his last nine digits reads his promise>>'; end if;
   if jsonb_array_length(public.fn_person_open_promises('customer', v_other::text, null, null, 10)) <> 0 then
     raise exception 'CHK<<PROBE FAILED: another person reads his promise>>'; end if;
   if (select count(*) from public.support_customer_profile where customer_id = v_other) <> 0 then

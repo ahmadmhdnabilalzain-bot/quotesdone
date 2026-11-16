@@ -187,6 +187,10 @@ begin
      or not (v ? 'founder_last_answered_at') or not (v ? 'channels_down_founder_credential') then
     raise exception 'CHK<<PROBE FAILED: the case facts by phone are wrong: %>>', v;
   end if;
+  -- the same nine digits under another country's code are another person (a_phone_tail_never_joins_two_people.sql; release wave C)
+  if jsonb_array_length(public.fn_escalation_case_facts(null, '+999 50 000 0097')->'open_escalations') <> 0 then
+    raise exception 'CHK<<PROBE FAILED: another country''s number with the same last nine digits reads the escalation>>';
+  end if;
   insert into public.it_engineer_finding (issue_key, title, where_it_is, blast, evidence)
   values ('duty:zz_probe:zz_meta_probe', 'ZZ DEMO a credential only the founder can renew', 'probe', 'agent_facing', '{"founder_required_credential": true}');
   if not exists (select 1 from jsonb_array_elements(public.fn_founder_availability()->'channels_down_founder_credential') x where x->>'integration' = 'zz_meta_probe') then

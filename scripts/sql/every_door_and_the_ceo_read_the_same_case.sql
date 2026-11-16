@@ -10,7 +10,8 @@
 --
 -- WHAT THIS FILE DOES:
 --   1. fn_person_open_promises(kind, party id, e-mail, phone, limit): the promises still open on every case of every support
---      profile that is this person's (matched the way fn_support_profile_resolve matches: customer, lead, e-mail, phone tail).
+--      profile that is this person's (matched the way fn_support_profile_resolve matches: customer, lead, e-mail; a number alone only
+--      through its confirmed owner or the unnamed handset profile of the same country, a_phone_tail_never_joins_two_people.sql).
 --      A read: it never creates a profile. The intake chat gives it to its prompt (inquiry_intake/customer_record.ts), and the
 --      CEO's refund checklist records it (item 1b below).
 --   2. fn_support_case_links_a_fault(kind, party id, e-mail, phone, issue key, channel): when support hands a fault to the IT
@@ -26,6 +27,8 @@
 -- Every new routine: SECURITY DEFINER, search_path pinned, EXECUTE revoked from public, anon and authenticated, granted to
 -- service_role. The two replaced routines keep their ACL (CREATE OR REPLACE) and are revoked again by signature.
 -- Probe: every_door_and_the_ceo_read_the_same_case_probe.sql (local Postgres 16 from the mirror, twice).
+-- Needs a_phone_tail_never_joins_two_people.sql applied first (fn_phone_prefix, support_customer_profile.phone_prefix and the
+-- country-aware fn_whatsapp_owner; release wave C, 16 Nov 2026).
 -- Prevented by: supabase/functions/_shared/support_fault_handover.test.ts (the link is asked with the person, never without),
 --   supabase/functions/inquiry_intake/the_intake_reads_his_whole_record.test.ts, and the probe.
 --   node scripts/apply_sql.mjs scripts/sql/every_door_and_the_ceo_read_the_same_case.sql --apply --ddl --seat sales_engineer
@@ -34,16 +37,33 @@
 create or replace function public.fn_person_open_promises(p_party_kind text, p_party_id text, p_email text, p_phone text,
   p_limit integer default 10)
 returns jsonb language sql stable security definer set search_path to 'public', 'pg_temp' as $fn$
-  with who as (
+  with given as (
     select case when p_party_kind = 'customer' and p_party_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then p_party_id::uuid end as cust,
            case when p_party_kind = 'supplier' and p_party_id ~ '^[0-9]{1,18}$' then p_party_id::bigint end as lead,
            nullif(lower(btrim(coalesce(p_email, ''))), '') as email,
            case when length(regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g')) >= 9
-                then right(regexp_replace(p_phone, '[^0-9]', '', 'g'), 9) end as tail),
+                then right(regexp_replace(p_phone, '[^0-9]', '', 'g'), 9) end as tail,
+           public.fn_phone_prefix(p_phone) as prefix),
+  -- A PHONE MAY CONFIRM, NEVER SELECT (a_phone_tail_never_joins_two_people.sql, applied before this file; release wave C,
+  -- 16 Nov 2026): a number alone is the handset that wrote, so it names its confirmed owner (fn_whatsapp_owner: one party or
+  -- nobody) and the unnamed handset profile on the same number and country; beside an account or an address it selects nothing.
+  owner as (
+    select o.customer_id, o.lead_id from given g cross join lateral public.fn_whatsapp_owner(p_phone) o
+     where g.cust is null and g.lead is null and g.email is null and g.tail is not null limit 1),
+  who as (
+    select coalesce(g.cust, (select customer_id from owner)) as cust, coalesce(g.lead, (select lead_id from owner)) as lead,
+           g.email, g.tail, g.prefix, (g.cust is null and g.lead is null and g.email is null) as handset_only
+      from given g),
   prof as (
     select p.id from public.support_customer_profile p, who
      where (who.cust is not null and p.customer_id = who.cust) or (who.lead is not null and p.lead_id = who.lead)
-        or (who.email is not null and p.email = who.email) or (who.tail is not null and p.phone_tail = who.tail))
+        -- the mailbox, unless that profile is a different account
+        or (who.email is not null and p.email = who.email
+            and not (who.cust is not null and p.customer_id is not null and p.customer_id <> who.cust)
+            and not (who.lead is not null and p.lead_id is not null and p.lead_id <> who.lead))
+        or (who.handset_only and who.tail is not null and p.phone_tail = who.tail
+            and p.customer_id is null and p.lead_id is null and p.email is null
+            and (p.phone_prefix is null or who.prefix is null or p.phone_prefix = who.prefix)))
   select coalesce(jsonb_agg(jsonb_build_object('case_ref', x.case_ref, 'what', x.what, 'due_at', x.due_at, 'due_basis', x.due_basis,
                                                'owner_seat', x.owner_seat, 'kind', x.kind, 'overdue', x.due_at < now(), 'made_at', x.created_at)
                             order by x.due_at), '[]'::jsonb)
@@ -60,6 +80,7 @@ create or replace function public.fn_support_case_links_a_fault(p_party_kind tex
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare
   v_cust uuid; v_lead bigint; v_email text := nullif(lower(btrim(coalesce(p_email, ''))), ''); v_tail text; c public.support_case;
+  v_handset boolean; v_prefix text;
   v_entry jsonb;
 begin
   if coalesce(p_issue_key, '') !~ '^support:fault:[0-9a-f]{16}$' then return jsonb_build_object('linked', false, 'reason', 'not a fault key'); end if;
@@ -73,10 +94,24 @@ begin
   if length(regexp_replace(coalesce(p_phone, ''), '[^0-9]', '', 'g')) >= 9 then v_tail := right(regexp_replace(p_phone, '[^0-9]', '', 'g'), 9); end if;
   if v_cust is null and v_lead is null and v_email is null and v_tail is null then return jsonb_build_object('linked', false, 'reason', 'no identity'); end if;
 
+  -- A PHONE MAY CONFIRM, NEVER SELECT (a_phone_tail_never_joins_two_people.sql, applied before this file; release wave C): a
+  -- number alone is the handset that wrote: it names its confirmed owner (one party or nobody), and only the unnamed handset
+  -- profile on the same number and country; beside an account or an address it selects nothing.
+  v_handset := v_cust is null and v_lead is null and v_email is null;
+  if v_handset and v_tail is not null then
+    v_prefix := public.fn_phone_prefix(p_phone);
+    select o.customer_id, o.lead_id into v_cust, v_lead from public.fn_whatsapp_owner(p_phone) o limit 1;
+  end if;
+
   -- the newest open case of any profile that is theirs; their newest case when none is open (a read: no profile is created)
   select s.* into c from public.support_case s join public.support_customer_profile p on p.id = s.customer_profile_id
    where (v_cust is not null and p.customer_id = v_cust) or (v_lead is not null and p.lead_id = v_lead)
-      or (v_email is not null and p.email = v_email) or (v_tail is not null and p.phone_tail = v_tail)
+      or (v_email is not null and p.email = v_email
+          and not (v_cust is not null and p.customer_id is not null and p.customer_id <> v_cust)
+          and not (v_lead is not null and p.lead_id is not null and p.lead_id <> v_lead))
+      or (v_handset and v_tail is not null and p.phone_tail = v_tail
+          and p.customer_id is null and p.lead_id is null and p.email is null
+          and (p.phone_prefix is null or v_prefix is null or p.phone_prefix = v_prefix))
    order by (s.state <> 'closed') desc, s.last_activity_at desc, s.case_id desc
    limit 1
    for update of s;
@@ -138,14 +173,17 @@ begin
   -- THE FAULTS THIS PERSON TOLD SUPPORT ABOUT, ON ANY CHANNEL (every_door_and_the_ceo_read_the_same_case.sql): the keys support
   -- wrote into their case's linked_refs when it handed the fault over (fn_support_case_links_a_fault; a WhatsApp report carries
   -- no identity of its own), and the reports filed with their e-mail's lead or customer. Read through every support profile that
-  -- is theirs, the way fn_support_profile_resolve matches one (customer, lead, e-mail, phone tail), and never creating one.
+  -- is theirs, the way fn_support_profile_resolve matches one (customer, lead, e-mail; a number only an unnamed handset profile), and never creating one.
   select coalesce(array_agg(distinct k), '{}') into v_faults from (
     select f ->> 'issue_key' as k
       from public.support_case s
       join public.support_customer_profile p on p.id = s.customer_profile_id
      cross join lateral jsonb_array_elements(case when jsonb_typeof(s.linked_refs -> 'faults') = 'array' then s.linked_refs -> 'faults' else '[]'::jsonb end) f
      where p.customer_id = any (v_cust) or p.lead_id = any (v_lead)
-        or (v_email is not null and p.email = v_email) or (v_tail is not null and p.phone_tail = v_tail)
+        or (v_email is not null and p.email = v_email)
+        -- a number reaches only an unnamed handset profile of the same country (a_phone_tail_never_joins_two_people.sql)
+        or (v_tail is not null and p.phone_tail = v_tail and p.customer_id is null and p.lead_id is null and p.email is null
+            and (p.phone_prefix is null or public.fn_phone_prefix(v_raw) is null or p.phone_prefix = public.fn_phone_prefix(v_raw)))
     union all
     select r.issue_key from public.support_fault_report r where r.customer_id = any (v_cust) or r.lead_id = any (v_lead)) z
    where k like 'support:fault:%';

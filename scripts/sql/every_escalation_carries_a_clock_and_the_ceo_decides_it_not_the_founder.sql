@@ -36,6 +36,7 @@
 --     honest status or switches channel without paging him.
 --   - fn_escalation_clock_adopts_stale_person_requests: the ONE-OFF for the requests left 'with_founder'. Dry run by default.
 --
+-- Needs a_phone_tail_never_joins_two_people.sql applied first (fn_phone_prefix; release wave C, 16 Nov 2026).
 -- prevented by: scripts/sql/every_escalation_carries_a_clock_and_the_ceo_decides_it_not_the_founder_probe.sql,
 --               supabase/functions/_shared/escalation_clock.test.ts
 set lock_timeout = '3s';
@@ -263,7 +264,7 @@ $fn$;
 revoke execute on function public.fn_founder_availability() from public, anon, authenticated;
 
 -- The person's own open escalations (their promises and clocks) and the founder facts, for the case context of every channel.
--- Matched on the exact e-mail (case-blind) or the last nine digits of the phone, the same identity fn_support_touch uses.
+-- Matched on the exact e-mail (case-blind) or the WhatsApp number: its last nine digits and its country prefix where both are known.
 create or replace function public.fn_escalation_case_facts(p_email text default null, p_phone text default null)
 returns jsonb
 language sql
@@ -282,7 +283,10 @@ as $fn$
        where c.state <> 'closed'
          and ((who.e is not null and lower(c.requester) = who.e)
            -- a phone is a WhatsApp clock's requester only: a site visitor is named by an address whose digits must never match a number
-           or (who.p is not null and length(who.p) = 9 and c.channel = 'whatsapp' and right(regexp_replace(c.requester, '[^0-9]', '', 'g'), 9) = who.p))), '[]'::jsonb))
+           -- and the country prefix agrees where both are known: a nine-digit tail can be another country's number
+           -- (a_phone_tail_never_joins_two_people.sql, applied before this file; release wave C)
+           or (who.p is not null and length(who.p) = 9 and c.channel = 'whatsapp' and right(regexp_replace(c.requester, '[^0-9]', '', 'g'), 9) = who.p
+               and coalesce(public.fn_phone_prefix(c.requester) = public.fn_phone_prefix(p_phone), true)))), '[]'::jsonb))
     || public.fn_founder_availability()
 $fn$;
 revoke execute on function public.fn_escalation_case_facts(text, text) from public, anon, authenticated;
