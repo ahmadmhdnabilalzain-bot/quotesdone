@@ -38,14 +38,25 @@ export function remoteWorkbookEngine(o: RemoteEngineOptions): WorkbookEngine {
     if (bytes.length > REMOTE_READ_MAX_BYTES) throw new Error(`the file is ${bytes.length} bytes, over the ${REMOTE_READ_MAX_BYTES} bytes the workbook reader takes`);
     const secret = await o.credential();
     if (!secret) throw new Error('no credential to reach the workbook reader');
-    let r: Response;
-    try {
-      r = await timedFetch(`${o.url}/functions/v1/doc_extract`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ __secret: secret, op, b64: encodeBase64(bytes) }),
-      }, o.timeoutMs ?? DEFAULT_TIMEOUT_MS);
-    } catch (e) {
-      throw new Error(`the workbook reader did not answer: ${(e as Error)?.message || e}`);
+    // document_id -1 (review, 16 Nov): a doc_extract that does not know `op` (deployed out of order, or rolled back)
+    // would otherwise take this body as a queue-drain request and extract the next pending document; with -1 it
+    // answers "no pending documents" and the read is refused instead. The current doc_extract answers the op first.
+    const body = JSON.stringify({ __secret: secret, op, b64: encodeBase64(bytes), document_id: -1 });
+    // ONE retry on a dropped connection or a 5xx (review, 16 Nov): a short doc_extract outage must not read to the
+    // supplier as a bad file. Never on a timeout (the deadline is already 60 s) and never on a 4xx (an answer).
+    let r: Response | null = null;
+    for (let attempt = 1; ; attempt++) {
+      try {
+        r = await timedFetch(`${o.url}/functions/v1/doc_extract`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body,
+        }, o.timeoutMs ?? DEFAULT_TIMEOUT_MS);
+      } catch (e) {
+        const timedOut = (e as Error)?.name === 'TimeoutError' || /timed? ?out|deadline/i.test(String((e as Error)?.message ?? e));
+        if (attempt < 2 && !timedOut) { await new Promise((ok) => setTimeout(ok, 500)); continue; }
+        throw new Error(`the workbook reader did not answer: ${(e as Error)?.message || e}`);
+      }
+      if (r.status >= 500 && attempt < 2) { await r.body?.cancel(); await new Promise((ok) => setTimeout(ok, 500)); continue; }
+      break;
     }
     const d = await r.json().catch(() => null);
     if (d?.ok === false && typeof d.message === 'string') throw new Error(d.message);

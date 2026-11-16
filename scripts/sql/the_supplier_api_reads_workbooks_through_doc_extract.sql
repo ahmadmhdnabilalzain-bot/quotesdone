@@ -29,7 +29,7 @@ select case
            then 'PROBE FAILED: fn.supplier_api has no active credential'
          when exists (select 1 from public.internal_credential
                        where context = 'fn.supplier_api' and active and retired_at is null
-                         and not (scope @> array['doc_extract', 'ai_gateway', 'license_extract', 'quote_extract', 'pdf_native']))
+                         and not (scope @> array['doc_extract', 'ai_gateway', 'capability_agent', 'license_extract', 'pdf_native', 'profile_ai', 'quote_extract', 'send_outbox', 'send_whatsapp', 'supplier_review']))
            then 'PROBE FAILED: an active fn.supplier_api credential cannot reach doc_extract, or lost a callee it had'
          else 'PROBE OK: supplier_api may ask doc_extract to read a workbook, and keeps every callee it had'
        end as verdict;

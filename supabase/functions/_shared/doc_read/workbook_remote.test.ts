@@ -104,3 +104,28 @@ Deno.test('no credential, or more bytes than the reader takes: nothing is sent',
   });
   registerWorkbookEngine(null);
 });
+
+Deno.test('one retry on a 5xx or a dropped connection, none on a timeout or a 4xx; every call names document_id -1', async () => {
+  registerWorkbookEngine(engine());
+  let n = 0;
+  const flaky = (c: Call) => (++n === 1 ? Promise.resolve(new Response('{}', { status: 503 })) : throughDocExtract(c));
+  const local = await (async () => { const { readWorkbook: rw } = await import('./office.ts'); return rw; })();
+  await withFetch(flaky, async (calls) => {
+    const r = await xlsxFixture().then((b) => local(b, ctx));
+    assertEquals(r.ok, true);
+    assertEquals(calls.length, 2);
+    assertEquals(calls.every((c) => c.body.document_id === -1), true);
+  });
+  await withFetch(() => Promise.reject(new DOMException('Signal timed out.', 'TimeoutError')), async (calls) => {
+    await xlsxFixture().then((b) => readWorkbook(b, ctx));
+    assertEquals(calls.length, 1);
+  });
+  await withFetch(() => Promise.reject(new TypeError('connection refused')), async (calls) => {
+    await xlsxFixture().then((b) => readWorkbook(b, ctx));
+    assertEquals(calls.length, 2);
+  });
+  await withFetch(() => Promise.resolve(new Response('{"error":"forbidden"}', { status: 403 })), async (calls) => {
+    await xlsxFixture().then((b) => readWorkbook(b, ctx));
+    assertEquals(calls.length, 1);
+  });
+});
