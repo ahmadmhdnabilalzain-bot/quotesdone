@@ -50,7 +50,7 @@ function mkLog(t0: number) {
   };
 }
 
-const TX_COLS = 'id,customer_id,inquiry_id,reveal_fee,processing_fee,total_charged,quote_amount,payment_ref,revealed_at,paid_at,refund_deadline,stripe_invoice_number,fee_status,refund_status,refund_amount_aed,refund_confirmed_at,refund_resolved_at';
+const TX_COLS = 'id,customer_id,inquiry_id,quote_id,reveal_fee,processing_fee,total_charged,quote_amount,payment_ref,revealed_at,paid_at,refund_deadline,stripe_invoice_number,fee_status,refund_status,refund_amount_aed,refund_confirmed_at,refund_resolved_at';
 type Tx = Record<string, any>;
 type Log = ReturnType<typeof mkLog>;
 
@@ -65,6 +65,8 @@ async function saleOf(tx: Tx): Promise<{ sale: RevealSale } | { notPaid: true } 
   const { data: cust } = await admin.from('customers').select('email,full_name,phone').eq('id', tx.customer_id).maybeSingle();
   if (!cust?.email) return { error: 'the sale names no customer with an email' };
   const { data: inq } = await admin.from('inquiries').select('summary,category,rfq_no').eq('id', tx.inquiry_id).maybeSingle();
+  // the company he asked to be billed as at the reveal (public.reveal_bill_to, 16 Nov 2026), if any
+  const { data: bt } = tx.quote_id ? await admin.from('reveal_bill_to').select('company,trn,po_ref').eq('quote_id', tx.quote_id).maybeSingle() : { data: null };
   const fee = Number(tx.reveal_fee || 0), processing = Number(tx.processing_fee || 0);
   // OUR NUMBER (13 Nov 2026, ruling 1671): allocated at the sale by public.fn_reveal_invoice_number; Stripe's is a reference.
   const { data: ours, error: numErr } = await admin.rpc('fn_reveal_invoice_number', { p_tx: tx.id });
@@ -77,6 +79,7 @@ async function saleOf(tx: Tx): Promise<{ sale: RevealSale } | { notPaid: true } 
     reveal_fee: fee, processing_fee: processing, total_charged: tx.total_charged != null ? Number(tx.total_charged) : fee + processing,
     quote_amount: tx.quote_amount != null ? Number(tx.quote_amount) : null, payment_ref: String(tx.payment_ref || ''),
     customer: { name: cust.full_name || null, email: cust.email, phone: cust.phone || null },
+    bill_to: bt?.company ? { company: String(bt.company), trn: bt.trn ?? null, po_ref: bt.po_ref ?? null } : null,
     request: { summary: inq?.summary || null, category: inq?.category || null, ref: 'QD-' + jobNoOf({ id: String(tx.inquiry_id || ''), rfq_no: inq?.rfq_no }) },
     card: null, refund: pay.refund, overcharge_returned: pay.overcharge_returned ?? null,
   } };

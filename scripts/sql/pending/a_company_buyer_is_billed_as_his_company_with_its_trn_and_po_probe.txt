@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run after a_company_buyer_is_billed_as_his_company_with_its_trn_and_po.sql on a local Postgres 16; it must print PROBE OK. This note stays for the life of the file. Seat: sales_engineer.

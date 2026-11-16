@@ -24,6 +24,7 @@ import { aed, supLabel } from '../format';
 import { S } from '../styles';
 import { Contact } from './Contact';
 import { AskSupplier } from '../Clarifications';
+import { BillToFields } from './BillToFields';
 import { QuotePdfLink, InvoicePdfLink } from './QuoteDocs';
 
 // The three lines the invoice prints, shown before the customer pays.
@@ -83,8 +84,18 @@ function QuoteCard({ q, token, concluded, onChange, vscore, best, lang, hired, t
     // 3% plus card processing (founder, 14 Sep 2026): the breakdown is customer_api's, computed by
     // the same _shared/reveal_fee.ts stripe_checkout charges, so the dialog and Stripe cannot differ.
     const total = aed(r.total_charged ?? r.reveal_fee ?? q.reveal_fee);
-    const go = await ask(tf(lang, 'q_confirm_body', { fee, total, price: aed(q.price) }), { title: t(lang, 'q_confirm_title'), confirm: t(lang, 'q_confirm_pay'), reveal: true, children: <><FeeBreakdown r={r} price={aed(q.price)} lang={lang} /><RevealGuarantee lang={lang} fee={total} terms={terms} compact /></> });
+    // bill to a company (optional, 16 Nov 2026): what he gave before on this quote is shown to keep or change
+    const prevBill = r.bill_to || null; let bill = { company: (prevBill && prevBill.company) || '', trn: (prevBill && prevBill.trn) || '', po_ref: (prevBill && prevBill.po_ref) || '' };
+    const go = await ask(tf(lang, 'q_confirm_body', { fee, total, price: aed(q.price) }), { title: t(lang, 'q_confirm_title'), confirm: t(lang, 'q_confirm_pay'), reveal: true, children: <><FeeBreakdown r={r} price={aed(q.price)} lang={lang} /><BillToFields lang={lang} initial={prevBill} onChange={(v) => { bill = v; }} /><RevealGuarantee lang={lang} fee={total} terms={terms} compact /></> });
     if (!go) return;
+    // the company is saved before the payment, so the invoice made at the sale is made out to it; a refusal (a TRN that is not
+    // 15 digits) stops here with the reason, before any card is touched
+    if (String(bill.company || '').trim() || prevBill) {
+      setBusy(true);
+      const bt = await call('customer_api', { action: 'reveal_bill_to', quote_id: q.id, company: bill.company, trn: bill.trn || null, po_ref: bill.po_ref || null }, token).catch(() => null);
+      setBusy(false);
+      if (!bt || !bt.ok) { setMsg(errText(bt, lang)); return; }
+    }
     // The Payment Element prices the card actually used (RevealPayment). The Checkout Session below
     // is its fallback when the element cannot load, charged at the safest rate.
     setPaying(true);

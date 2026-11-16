@@ -252,10 +252,15 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
       // say "done". The contact is served HERE and only here, keyed on the supplier's own transactions
       // rows, so it cannot reach a supplier before a reveal. Deadlines come from fn_reveal_window (13 Nov 2026), the one
       // source of the window: from the payment, on the working-day calendar refund_flow and the nudges use.
-      const { data: projs } = await admin.from('transactions').select('id,inquiry_id,customer_id,revealed_at,quote_amount,refund_deadline,supplier_ack_at,refund_status,inquiries(category,emirate,summary,spec)').eq('supplier_id', sup.id).not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(50);
+      const { data: projs } = await admin.from('transactions').select('id,quote_id,inquiry_id,customer_id,revealed_at,quote_amount,refund_deadline,supplier_ack_at,refund_status,inquiries(category,emirate,summary,spec)').eq('supplier_id', sup.id).not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(50);
       const custIds = Array.from(new Set((projs || []).map((p: any) => p.customer_id).filter(Boolean)));
       const cust: Record<string, any> = {};
       if (custIds.length) { const { data: cs } = await admin.from('customers').select('id,full_name,email,phone').in('id', custIds); for (const c of (cs || [])) cust[String(c.id)] = c; }
+      // THE COMPANY THE BUYER IS BILLED AS (16 Nov 2026, public.reveal_bill_to): on his revealed jobs only, so the supplier addresses
+      // the formal quotation and invoices to it (company, TRN, PO reference). Never on a job that is not revealed (these rows are sales).
+      const billTo: Record<string, any> = {};
+      const qids = (projs || []).map((p: any) => p.quote_id).filter(Boolean);
+      if (qids.length) { const { data: bts } = await admin.from('reveal_bill_to').select('quote_id,company,trn,po_ref').in('quote_id', qids); for (const b of (bts || [])) billTo[String(b.quote_id)] = { company: b.company, trn: b.trn ?? null, po_ref: b.po_ref ?? null }; }
       // The window of one sale, from the one source (public.fn_reveal_window, 13 Nov 2026): counted from the payment.
       const winCache: Record<string, any> = {};
       const win = async (tx: string) => { if (tx in winCache) return winCache[tx]; try { const { data } = await admin.rpc('fn_reveal_window', { p_tx: tx }); return (winCache[tx] = data || null); } catch (_e) { return (winCache[tx] = null); } };
@@ -274,6 +279,7 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
           // The exact site is released by the reveal (13 Nov 2026, founder ruling 1683): the customer-only key the request
           // stored it under (_shared/site_location.ts), else the address answer of an older row. Shown with the contact card.
           customer: { name: c.full_name || null, email: c.email || null, phone: c.phone || null, site: String(p.inquiries?.spec?.site_location || p.inquiries?.spec?.location || '').trim() || null },
+          bill_to: billTo[String(p.quote_id)] || null,
           review: rvBy[String(p.id)] ? { rating: rvBy[String(p.id)].rating, comment: rvBy[String(p.id)].comment || null, created_at: rvBy[String(p.id)].created_at,
             photo_urls: (await Promise.all(((rvBy[String(p.id)].photo_paths || []) as string[]).map(photoUrl))).filter(Boolean) } : null });
       }
