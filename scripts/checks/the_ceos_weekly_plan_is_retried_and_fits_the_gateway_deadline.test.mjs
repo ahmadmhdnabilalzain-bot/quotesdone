@@ -46,7 +46,7 @@ test('2. a cut by our own clock is retried at the next tick, three calls at most
   assert.match(fnBody('fn_ceo_planning_loop_tick'), /fn_ceo_plan_reopen_cut\(now\(\)\)/);
   const re = fnBody('fn_ceo_plan_reopen_cut');
   assert.match(re, /w\.attempts < 3/); assert.match(re, /w\.error not like 'asked again%'/); assert.match(re, /w\.output is null/);
-  assert.match(fnBody('fn_ceo_plan_contract'), /at most 2,500 words/);
+  assert.match(fnBody('fn_ceo_plan_contract'), /at most 1,500 words/);
 });
 
 test('3. a file not yet applied has its pending notes and no MANIFEST line', () => {

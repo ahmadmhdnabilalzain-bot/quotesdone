@@ -25,9 +25,10 @@
 --     for that reason inside its window is reopened by the hourly duty (fn_ceo_plan_reopen_cut). The caps still bind every
 --     call (AED 8 and 14 calls in 7 days, fn_ceo_plan_request).
 --
--- fn_ceo_plan_contract asks the answer to stay inside its 4,000 tokens (at most 2,500 words).
+-- fn_ceo_plan_contract asks the answer to stay inside its 4,000 tokens (at most 1,500 words: the seed plan is 863 words for about 2,000 tokens).
 --
--- APPLY ORDER: this file, then deploy ceo_agent (plan.ts: 4,000 answer tokens, 138 s). resilience_ping is unchanged.
+-- DEPLOY ORDER: deploy ceo_agent FIRST (plan.ts: 4,000 answer tokens, 138 s; it works with the old bodies), then apply this file:
+-- applied first, the reopen and the third call would be spent on the old 16,000-token request. resilience_ping is unchanged.
 -- Locks: routines replaced in place (ACL kept); no table changes.
 -- prevented by: scripts/checks/the_ceos_weekly_plan_is_retried_and_fits_the_gateway_deadline.test.mjs, supabase/functions/ceo_agent/plan.test.ts and scripts/sql/the_ceos_weekly_plan_is_retried_and_fits_the_gateway_deadline_probe.sql
 
@@ -235,7 +236,7 @@ returns jsonb language sql stable security definer set search_path to 'public', 
       || 'Code reads what a bet DOES: the seat must be the channel''s owner in the register (a missing capability is a build order to '
       || 'it_engineer), the words of what and how are read against every refused channel (never name a refused act there, even to '
       || 'say you will not do it: rules go in legal), every amount the words name is a cost, recipients are only lead_ids (a JSON '
-      || 'array of whole numbers), and an e-mail batch names its providers (e.g. ["google"]). Answer ONLY the JSON object of output_schema, in at most 2,500 words: every text field one or two sentences (the answer has 4,000 tokens; a cut answer is no plan).',
+      || 'array of whole numbers), and an e-mail batch names its providers (e.g. ["google"]). Answer ONLY the JSON object of output_schema, in at most 1,500 words (about 3,500 tokens at the seed plan''s 2.3 tokens a word): every text field one or two sentences (the answer has 4,000 tokens; a cut answer is no plan).',
     'output_schema', jsonb_build_object(
       'situation', 'three lines, the first saying registered against the target and whether on pace',
       'binding_constraint', jsonb_build_object('stage', 'the funnel stage that binds', 'evidence', 'numbers from the pack'),

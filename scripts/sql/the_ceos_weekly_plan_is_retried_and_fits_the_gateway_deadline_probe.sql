@@ -66,7 +66,7 @@ begin
   v_r := public.fn_ceo_plan_handover(v_at);
   if coalesce((v_r->>'call_model')::boolean, true) or (select status from public.ceo_plan_week where id = v_id) <> 'held' then v_fail := v_fail || '5: a retry ran past the call cap: ' || v_r::text || '; '; end if;
 
-  if (public.fn_ceo_plan_contract('weekly')->>'system') not like '%at most 2,500 words%' or (public.fn_ceo_plan_contract('weekly')->>'system') not like '%THE TARGET is 300 to 400%'
+  if (public.fn_ceo_plan_contract('weekly')->>'system') not like '%at most 1,500 words%' or (public.fn_ceo_plan_contract('weekly')->>'system') not like '%THE TARGET is 300 to 400%'
     then v_fail := v_fail || '5: the contract does not bound the answer or lost the target; '; end if;
 
   -- 6. CLOSED: nobody outside the service reaches the new routines
