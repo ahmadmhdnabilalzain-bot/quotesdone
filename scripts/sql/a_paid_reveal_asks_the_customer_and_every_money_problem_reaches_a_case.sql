@@ -1537,7 +1537,9 @@ returns jsonb language sql stable security definer set search_path to 'public', 
     'refunds', coalesce((select jsonb_agg(jsonb_build_object(
         'ref', 'QD-RF-' || r.id, 'rfq_no', i.rfq_no, 'status', r.status, 'reason', r.reason_code, 'requested_at', r.requested_at,
         'decide_after', t.refund_deadline, 'decided_at', r.decided_at, 'settled_at', r.settled_at,
-        'amount_aed', round(coalesce(r.amount_fils, 0) / 100.0, 2), 'open', r.decided_at is null or r.settled_at is null) order by r.id desc)
+        'amount_aed', round(coalesce(r.amount_fils, 0) / 100.0, 2),
+        -- open = money still owed or undecided: a rejected one is decided and never settles (wave C review)
+        'open', r.status not in ('succeeded', 'rejected', 'cancelled')) order by r.id desc)
       from public.refunds r left join public.transactions t on t.id = r.transaction_id left join public.inquiries i on i.id = coalesce(r.inquiry_id, t.inquiry_id)
      where r.customer_id = p_customer and lower(coalesce(r.requested_by, '')) not in ('stripe_webhook', 'stripe_dashboard', 'stripe')
        and (r.settled_at is null or r.settled_at > now() - interval '90 days')
