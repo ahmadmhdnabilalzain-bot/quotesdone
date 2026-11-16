@@ -123,5 +123,7 @@ Related: [[a-journey-step-is-proved-by-its-outcome]], [[the-registration-walk-re
   civil_works; run 1 read the same lines as plumbing.heaters_pumps and painting). The quote rule proves the words, never the trade: step A
   names an item's trade itself (a trade NAME sharing a word: "pumps", "plastering") and the mapping follows it. Fixed at the reading: the
   prompt's "trade" field says the trade is the line's work; `checkLineTrades` drops a key whose trade is one item of a whole list line, named
-  by no other line, unrelated (adjacent/umbrella) to the line's other trades and outweighed there. Measured on recorded.json: drops only
-  H07's known-wrong packaging.labels; any looser rule dropped 5 must-find services in prose lines (H13, H15). H06's 2-of-3 pumps line stays.
+  by no other line, unrelated (adjacent/umbrella) to the line's other trades, outweighed there by a trade whose service names or aliases share a
+  word with the item ("booster pump", "stucco"). Without that last condition (review of 16 Nov) a genuine second trade named once on a mixed line
+  was dropped: an electrician's generator supply, a fit-out line's flooring. On recorded.json it drops nothing (H07 stays known-wrong: the 12 Nov
+  catalogue had no "sticker" alias; today's drops it); any looser rule dropped 5 must-find services in prose lines (H13, H15).

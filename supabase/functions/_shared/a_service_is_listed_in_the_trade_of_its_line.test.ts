@@ -134,3 +134,19 @@ Deno.test('what the check leaves alone: a line of one trade, a related trade, a 
     { words: 'Booster pumps', quote: 'booster pumps for towers', trade: 'industrial_pumps', keys: ['industrial_pumps.booster_sets'] }]);
   assertEquals(e.reading.rejected, []);
 });
+
+Deno.test('a genuine second trade named once on a mixed line is kept: the line\'s trade has no word for it (review of 16 Nov 2026)', async () => {
+  const T2: Taxonomy = { trades: [
+    { code: 'electrical', label: 'Electrical', umbrella_code: null, services: [['db_panels', 'Distribution boards & switchgear'], ['wiring_install', 'Wiring installation'], ['lighting', 'Lighting installation']].map(([k, label]) => ({ key: `electrical.${k}`, label })) },
+    { code: 'power_generators', label: 'Power generators', umbrella_code: null, services: [{ key: 'power_generators.generator_supply', label: 'Generator supply' }] },
+  ], adjacent: [] };
+  const line = 'Electrical works: LV panels, cabling, lighting, generator supply and installation';
+  const items = [['LV panels', 'electrical.db_panels'], ['Cabling', 'electrical.wiring_install'], ['Lighting', 'electrical.lighting'], ['Generator supply', 'power_generators.generator_supply']];
+  const evidence = items.map(([words, k]) => ({ words, quote: line, basis: 'stated', trade: k.split('.')[0], licence: 'unclear' }));
+  const r = await readInTwoSteps([{ path: 'p/E', name: 'e.pdf', kind: 'profile', text: line }], 'ZZ DEMO', T2, (step, _s, text) => Promise.resolve({ ok: true as const, content: step === 'read'
+    ? JSON.stringify({ summary: 's', evidence, vague: [], also_ask: [], licence: { covers_profile: 'no_licence', note: '' } })
+    : JSON.stringify({ map: [...text.matchAll(/^(\d+)\. (.+?) {2}\[trade/gm)].map((m) => ({ i: Number(m[1]), keys: [items.find((x) => x[0] === m[2])![1]] })) }) }));
+  assert(r.ok);
+  assertEquals(r.reading.rejected, []);
+  assert(proposalOf(r.reading, T2, []).tick.some((x) => x.key === 'power_generators.generator_supply'));
+});

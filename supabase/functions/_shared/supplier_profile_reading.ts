@@ -312,14 +312,16 @@ export function applyMapping(content: string, phrases: Phrase[], shown: Readonly
 //       ("Masonry, blockwork & plastering", umbrella civil_works); run 1 read stucco as painting.
 // The prompt now says the item's trade is its line's (profileReadSystem, "trade"); this is code's CHECK of it, which never repairs. A key is
 // dropped from an item quoting a LIST LINE (a line of the document the quote is, whole) when its trade (a) is named by no other line of the
-// documents, (b) is related (sliceTrades: curated adjacent, umbrella parent or child) to no other trade on that line, and (c) is outweighed
-// there: another trade has more of the line's items. The item keeps its other keys; with none left it is kept in his own words, under the
+// documents, (b) is related (sliceTrades: curated adjacent, umbrella parent or child) to no other trade on that line, (c) is outweighed
+// there by another trade of more of the line's items, and (d) that trade names the item (see below). The item keeps its other keys; with none left it is kept in his own words, under the
 // trade step A gave it only when that trade is still on the line (else none). Every dropped key is recorded in `rejected`.
 // MEASURED on the recording of 12 Nov (recorded.json, 16 readings, the real catalogue): it drops one key, H07's "Stickers" from "Large-format
 // digital printing, banners and stickers" (packaging.labels, a KNOWN wrong listing). A line of prose (H13's crews "carry out the concrete
 // works and blockwork, plastering, floor and wall tiling, ..."; H15's worker buses) quotes part of a line and is not checked: a looser rule
 // (any line, or a line's trade evidenced elsewhere) dropped 12 keys there, 5 of them services the answer keys say must be found. H06's
 // "Water heaters, booster and transfer pumps" (2 of 3 items read as industrial pumps) is not outweighed and stays the known wrong listing.
+/** Words too common in service names to tell one trade's work from another's (proposalOf's "please check", checkLineTrades). */
+const SIG_SKIP = /^(supply|installation|install|services?|works?|and|with|systems?|maintenance|repairs?|contracting|contracts?|equipment|general|design|annual|complete|full)$/;
 export function checkLineTrades(r: ProfileReading, docs: ReadDoc[], tax: Taxonomy): void {
   const lines = new Map(docs.filter((d) => d.kind !== 'licence').map((d) => [d.path, new Set(d.text.split(/\r?\n/).map(quoteKey).filter((x) => x.length >= 3))]));
   const lineOf = (e: Claim) => { const q = quoteKey(e.quote); return lines.get(e.doc)?.has(q) ? `${e.doc}|${q}` : null; };
@@ -329,6 +331,16 @@ export function checkLineTrades(r: ProfileReading, docs: ReadDoc[], tax: Taxonom
     if (!family.has(x)) family.set(x, new Set(sliceTrades([x], tax)));
     return family.get(x)!.has(y);
   });
+  // (d) the line's own trade NAMES the item: a service of the outweighing trade shares a distinctive word with it, by label or approved
+  // alias (plumbing's "booster pump", painting's "stucco", signage's "vehicle stickers"). A second trade the line's trade has no word for
+  // (an electrician's "generator supply", a fit-out line's "flooring") is his genuine second trade, kept (review of 16 Nov 2026).
+  const stem = (w: string) => w.replace(/(es|s)$/, '');
+  const sigWords = (x: string) => quoteKey(x).split(' ').filter((w) => w.length >= 4 && !SIG_SKIP.test(w)).map(stem);
+  const vocab = new Map<string, Set<string>>();
+  const names = (t: string, words: string) => {
+    if (!vocab.has(t)) vocab.set(t, new Set(sigWords((tax.trades.find((x) => x.code === t)?.services ?? []).flatMap((s) => [s.label, ...(s.aliases ?? [])]).join(' '))));
+    return sigWords(words).some((w) => vocab.get(t)!.has(w));
+  };
   const at = r.evidence.map((e) => ({ e, line: lineOf(e), trades: tradesOf(e) }));
   const onLine = (line: string) => at.filter((x) => x.line === line);
   const drop: { e: Claim; u: string; line: string }[] = [];
@@ -338,7 +350,7 @@ export function checkLineTrades(r: ProfileReading, docs: ReadDoc[], tax: Taxonom
     const lineTrades = [...new Set(here.flatMap((x) => x.trades))];
     for (const u of e.keys.length ? trades : []) {
       const others = lineTrades.filter((t) => t !== u);
-      if (others.length && !at.some((x) => x.line !== line && x.trades.includes(u)) && others.every((t) => !related(u, t)) && others.some((t) => n(t) > n(u))) drop.push({ e, u, line });
+      if (others.length && !at.some((x) => x.line !== line && x.trades.includes(u)) && others.every((t) => !related(u, t)) && others.some((t) => n(t) > n(u) && names(t, e.words))) drop.push({ e, u, line });
     }
   }
   for (const { e, u, line } of drop) {
@@ -366,7 +378,7 @@ export function proposalOf(r: ProfileReading, tax: Taxonomy, implications: Impli
   const labelOf = new Map(tax.trades.flatMap((t) => t.services.map((s) => [s.key, s.label] as const)));
   const tick: TickItem[] = [], partner: PartnerItem[] = [], own_words: OwnWordsItem[] = [];
   // a key the model alone mapped, with no word of its name in his sentence, is listed "please check" and left out of "Tick all"
-  const sig = (x: string) => quoteKey(x).split(' ').filter((w) => w.length >= 4 && !/^(supply|installation|install|services?|works?|and|with|systems?|maintenance|repairs?|contracting|contracts?|equipment|general|design|annual|complete|full)$/.test(w));
+  const sig = (x: string) => quoteKey(x).split(' ').filter((w) => w.length >= 4 && !SIG_SKIP.test(w));
   // (a name with no distinctive word, "Maintenance & annual contracts", cannot be checked this way and is not marked)
   const checkOf = (e: Claim, k: string) => { if ((e.code_keys ?? []).includes(k)) return false; const w = sig(labelOf.get(k) ?? '');
     return w.length > 0 && !w.some((x) => quoteKey(e.words + ' ' + e.quote).includes(x.slice(0, 5))); };
