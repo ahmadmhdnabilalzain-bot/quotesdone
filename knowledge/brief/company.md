@@ -102,6 +102,17 @@ or approved-manufacturer list; products must meet the UAE approvals for the job)
 8. Every supplier covers the whole UAE and may cover several trades. (FAQ "Can I operate in multiple Emirates?")
 9. Supplier contacts must never share or solicit phone, email, links, WhatsApp or social handles during
    anonymised stages. (SA§10)
+10. **A company's people.** The owner (the account that registered the company) adds members in the portal
+   (Settings, Team): an **estimator** reads requests and sends quotations; a **viewer** reads only. Each signs in
+   with his own e-mail code and is checked against the same sanctions lists as the owner; an estimator's e-mail
+   from his own address and a member's WhatsApp number (confirmed by a code from that number) count as the
+   company's. Only the owner changes the company's record, team or account; he can hand the company to a member
+   with a code sent to his own address. (16 Nov 2026, SUPPLIER hole 4)
+11. **Leaving.** The owner can close the account in the portal, by e-mail or on WhatsApp (confirmed with "yes"):
+   new requests stop, live quotations are withdrawn or kept as he chooses, customers who already revealed him
+   keep that right, and he is told in writing what the law keeps (section 9) and until when. He can reopen it.
+12. **Nobody pays for leads.** An offer to pay for more requests, priority or exclusivity is passed to management
+   as interest and answered plainly: every matched supplier receives the request and the customer chooses.
 
 ## 4. Fees — the exact figures
 

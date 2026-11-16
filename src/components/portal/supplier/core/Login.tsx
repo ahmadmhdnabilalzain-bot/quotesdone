@@ -46,8 +46,8 @@ function InviteBanner({ invite, lang, onStart }) {
         {invite.emirate ? <div className={cn(S.sub, 'mt-0.5')}>{invite.emirate}</div> : null}
         <div className={cn(S.sub, 'mt-3 max-w-[62ch]')}>
           {taken
-            ? (ar ? 'هذه الشركة مسجّلة مسبقًا في QuotesDone. إن كان أحد زملائكم قد سجّلها فيُرجى أن تطلبوا منه إضافتكم، أو سجّلوا الدخول بالبريد الذي استُخدم في التسجيل.'
-                  : 'This company is already registered on QuotesDone. If a colleague claimed it, ask them to add you — or sign in with the email they used.')
+            ? (ar ? 'هذه الشركة مسجّلة مسبقًا في QuotesDone. إن كان أحد زملائكم قد سجّلها فاطلبوا من مالك الحساب إضافتكم من «الإعدادات، الفريق»: تصلكم رسالة بالبريد، ثم تسجّلون الدخول ببريدكم أنتم وتقبلون الدعوة.'
+                  : 'This company is already registered on QuotesDone. If a colleague registered it, ask the owner to add you in Settings, Team: you will get an e-mail, then sign in with your own address and accept.')
             : (ar ? 'هذا السجل محجوز لشركتكم، فبياناتكم متوفرة لدينا من السجل التجاري العام. لن تملؤوا نموذجًا فارغًا، بل تصحّحون ما لدينا وتؤكّدونه. أنشئوا حسابكم للمطالبة به.'
                   : 'This listing is reserved for your company. We already hold your details from the public trade directory — you are not filling in a blank form, you are correcting what we have and confirming it. Create your account to claim it.')}
         </div>

@@ -352,6 +352,7 @@ Object.assign(T.en, {
   pay_failed: 'The payment did not go through, and nothing was charged. Please try again or use another card.',
   q_unlocked: 'Unlocked', c_supplier: 'Supplier', c_revealed_on: 'Revealed on {d}', c_hired_badge: 'Hired supplier for this project', c_paid: 'You paid {fee} to reveal this supplier',
   c_website: 'Website', c_download: 'Download their quotation', c_rate_group: 'Rate this supplier', c_rate_n: 'Rate {n} of 5', c_rated: '★ Rated — press a star to change it', c_rate_change: 'You have rated this supplier — press a star to change your rating', c_thanks: 'Thanks for rating.', c_rate_fail: 'Could not save rating.',
+  c_decide_q: 'What decided it? (optional)', c_decide_hint: 'A word or a sentence is enough. It helps us tell the other suppliers why their quotations were not chosen, without your name or any supplier\'s.', c_decide_send: 'Send', c_decide_thanks: 'Thank you, we have your answer.', c_decide_fail: 'We could not save your answer. Please try again.',
   // The stars are the rating; the words are optional and are offered only AFTER the rating is saved,
   // so nothing a customer chooses not to write can ever stand between them and rating a supplier.
   c_note_h: 'Add a few words for the next customer (optional)', c_note_ph: 'What were they like to work with?', c_note_save: 'Add comment', c_note_min: 'At least 10 characters, up to 500. Your stars are already saved.', c_note_done: 'Thanks — your comment is saved.',
@@ -535,6 +536,7 @@ Object.assign(T.ar, {
   pay_failed: 'لم يكتمل الدفع ولم يُخصم أي مبلغ. يُرجى المحاولة مرة أخرى أو استخدام بطاقة أخرى.',
   q_unlocked: 'تم الكشف', c_supplier: 'المورّد', c_revealed_on: 'كُشف بتاريخ {d}', c_hired_badge: 'المورّد المتعاقد معه لهذا المشروع', c_paid: 'دفعت {fee} لكشف هذا المورّد',
   c_website: 'الموقع الإلكتروني', c_download: 'تنزيل عرض سعره', c_rate_group: 'قيّم هذا المورّد', c_rate_n: 'تقييم {n} من 5', c_rated: '★ تم التقييم — اضغط نجمة لتغييره', c_rate_change: 'قيّمت هذا المورّد من قبل — اضغط نجمة لتغيير تقييمك', c_thanks: 'شكرًا على تقييمك.', c_rate_fail: 'تعذّر حفظ التقييم.',
+  c_decide_q: 'ما الذي حسم اختياركم؟ (اختياري)', c_decide_hint: 'تكفي كلمة أو جملة. نستعين بها لنوضح للمورّدين الآخرين سبب عدم اختيار عروضهم، دون ذكر اسمكم أو اسم أي مورّد.', c_decide_send: 'إرسال', c_decide_thanks: 'شكرًا لكم، وصلنا ردّكم.', c_decide_fail: 'تعذّر حفظ ردّكم. يُرجى المحاولة مرة أخرى.',
   // Western digits inside Arabic, matching every other string in this file ('تقييم {n} من 5',
   // '3%', '20 ميغابايت'). Arabic-Indic digits here would put 'تقييم 3 من 5' and 'من ١ إلى ٥' on
   // the same screen.

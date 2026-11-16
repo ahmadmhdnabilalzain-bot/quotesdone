@@ -10,6 +10,9 @@ import { specOfferSweep } from '../lib/spec_offer.ts';
 import { run } from '../lib/run.ts';
 import { measureNdrHeaders } from '../../_shared/m365_sent_status.ts';
 import { timedFetch } from '../../_shared/timed_fetch.ts';
+import { defaultDeps } from '../../_shared/think.ts';
+import { jobQuestionsSweep } from '../../_shared/job_question.ts';
+import { lossReasonsSweep } from '../../supplier_api/loss_feedback.ts';
 
 export async function dutiesActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, caller, action } = c;
@@ -63,5 +66,27 @@ export async function dutiesActions(c: ActionCtx): Promise<Response | undefined>
       await run('spec_offer_sweep', res.errors.length ? 'error' : 'ok', { checked: res.checked, offers_opened: res.offers_opened, offers_sent: res.offers_sent, reminders: res.reminders, lapsed: res.lapsed, errors: res.errors.length },
         res.errors.length ? res.errors.slice(0, 5).join(' | ') : undefined);
       return J({ ok: true, ...res });
+    }
+
+    // THE SUPPLIER'S OPEN LOOPS (16 Nov 2026, SUPPLIER holes 5 and 9; agent SUPPLIER_W2). On the 15-minute beat: every job question
+    // owed a first reading is read against the request (_shared/job_question.ts) and every reminder owed goes to the customer once;
+    // every losing supplier owed a reason gets one, written by the model from the customer's word and ex-VAT facts
+    // (supplier_api/loss_feedback.ts). Both lists are routines (fn_job_questions_due, fn_supplier_loss_reasons_due), so a beat that
+    // finds nothing costs no model call.
+    if (action === 'supplier_loops_sweep') {
+      if (caller.kind !== 'service' && caller.kind !== 'sales_engineer' && caller.kind !== 'founder') return J({ error: 'forbidden' }, 403);
+      const deps = defaultDeps(admin, 'sales_engineer');
+      const ask = (max: number) => async (sys: string, input: string) => (await deps.llm('synthesise', sys, input, { taskClass: 'json_extraction', seat: 'sales_engineer', max, timeoutMs: 25_000, internal: true })).content ?? null;
+      const limit = Math.max(1, Math.min(20, Number(body.limit) || 8));
+      const [questions, losses] = await Promise.all([
+        jobQuestionsSweep(admin, ask(500), limit).catch((e) => ({ error: String((e as Error)?.message || e) })),
+        lossReasonsSweep(admin, ask(400), limit).catch((e) => ({ error: String((e as Error)?.message || e) })),
+      ]);
+      const failed = 'error' in questions || 'error' in losses;
+      await run('supplier_loops_sweep', failed ? 'error' : 'ok', {
+        questions_read: 'read' in questions ? questions.read.length : 0, reminders: 'chased' in questions ? questions.chased : 0,
+        reasons_written: 'written' in losses ? losses.written : 0, reasons_refused: 'refused' in losses ? losses.refused : 0 },
+        failed ? [('error' in questions ? questions.error : ''), ('error' in losses ? losses.error : '')].filter(Boolean).join(' | ').slice(0, 400) : undefined);
+      return J({ ok: !failed, questions, losses });
     }
 }

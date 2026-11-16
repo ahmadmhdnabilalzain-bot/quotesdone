@@ -31,6 +31,7 @@ import type { WaState } from '../whatsappChoiceText';
 import { mobileStatus, type KycState } from './mobileState';
 import { Ltr } from '@/lib/Ltr';
 import SupplierAvailability, { type Availability } from './SupplierAvailability';
+import SupplierTeam from './SupplierTeam';
 
 type Lang = 'en' | 'ar';
 type Settings = {
@@ -175,6 +176,8 @@ export default function SupplierSettings({ token, lang = 'en' }: { token?: strin
           ? <><Ltr>{date(lang, s.accepted_terms_at)}</Ltr>{s.accepted_terms_version ? <> · <bdi dir="ltr">v{String(s.accepted_terms_version).replace(/^v/i, '')}</bdi></> : null}</>
           : t(lang, 'never')}</Fact>
       </section>
+      {/* the company's people and its account (16 Nov 2026, SUPPLIER holes 4 and 6) */}
+      <SupplierTeam token={token} />
       {/* Suppliers are English only on every channel (standing rule), whatever the interface language. */}
       <PrivacyControls token={token} lang="en" party="supplier" />
     </div>

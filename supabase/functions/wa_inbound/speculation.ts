@@ -79,7 +79,11 @@ export function startSpeculation(t: WaTurn): void {
       // THE SAME READING NAMES HIS OTHER INSTRUCTIONS (16 Nov 2026, sales_engineer; _shared/supplier_instruction.ts reads them in full)
       + 'Also add "instruction": "not_for_me" if he says a job request we sent is not for him; "remove_work" if he asks us to stop sending him a kind of work; '
       + '"available" if he says he is available or back; "answer" if the message is a bare yes or no, or answers a question about removing work from his profile; '
-      + '"confirm_figure" if he confirms that his quotation total is correct; otherwise "none". Example: {"change":false,"instruction":"not_for_me"}.';
+      + '"confirm_figure" if he confirms that his quotation total is correct; '
+      // AND THE COMPANY'S OWN ASKS (16 Nov 2026, customer_support; SUPPLIER holes 5, 6, 10, 12)
+      + '"job_question" if he asks a question about the details or scope of a job request we sent him; "close_account" if he asks to close, '
+      + 'delete or leave his QuotesDone account or answers about closing it; "customer_silent" if a customer who revealed him is not answering him; '
+      + '"paid_leads" if he offers or asks to pay for more requests, priority, ranking or exclusivity; otherwise "none". Example: {"change":false,"instruction":"not_for_me"}.';
     const cr = await fetch(GATEWAY, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ __secret: gsecret, fn: 'supplier_directive', sys: csys, input: Body.slice(0, 600), temperature: 0, task_class: 'json_extraction', cache_ttl_min: 0 }),
