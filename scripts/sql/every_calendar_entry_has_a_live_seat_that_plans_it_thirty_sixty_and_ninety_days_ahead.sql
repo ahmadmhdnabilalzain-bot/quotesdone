@@ -23,7 +23,7 @@
 --      gives each seat its entries falling in the next 90, 60 and 30 days (only the nearest horizon crossed, never three at
 --      once): an ORDER (ceo_directive, kind register_review, met when the seat's plan is recorded) and ONE held question
 --      to the seat's model (<seat>.calendar_plan) with the entry, the days left, the facts the seat needs, and the rules it
---      may not break. The model decides plan or no_action and writes the plan; fn_calendar_plan_apply records it, which
+--      may not break. The model decides plan or no_action and writes the plan; fn_seat_calendar_plan_apply records it, which
 --      meets the order. An entry with no owner yet is the CEO's.
 --   3. company_calendar_brief: a standing brief for a seat on an entry, read into that seat's question. Seeded for Big 5
 --      Global with what a real supplier recruiter does in the week before such a show (target exhibitors in our open
@@ -305,7 +305,7 @@ begin
 end $fn$;
 revoke execute on function public.fn_ceo_calendar_horizon() from public, anon, authenticated;
 
-create or replace function public.fn_calendar_plan_apply(p_id bigint, p_result jsonb)
+create or replace function public.fn_seat_calendar_plan_apply(p_id bigint, p_result jsonb)
 returns jsonb
 language plpgsql
 security definer
@@ -325,32 +325,32 @@ begin
    where id = v_plan and seat = r.seat and status = 'asked';
   return jsonb_build_object('calendar_plan_id', v_plan, 'status', v_choice, 'recorded', found);
 end $fn$;
-revoke execute on function public.fn_calendar_plan_apply(bigint, jsonb) from public, anon, authenticated;
+revoke execute on function public.fn_seat_calendar_plan_apply(bigint, jsonb) from public, anon, authenticated;
 
 -- the surface each seat's answer comes back on (fn_reason_held_resolve calls fn_reason_apply_<seat>__<surface>)
 create or replace function public.fn_reason_apply_ceo__calendar_plan(p_id bigint, p_result jsonb)
 returns jsonb language sql security definer set search_path to 'public', 'pg_temp'
-as $fn$ select public.fn_calendar_plan_apply(p_id, p_result) $fn$;
+as $fn$ select public.fn_seat_calendar_plan_apply(p_id, p_result) $fn$;
 revoke execute on function public.fn_reason_apply_ceo__calendar_plan(bigint, jsonb) from public, anon, authenticated;
 create or replace function public.fn_reason_apply_marketing__calendar_plan(p_id bigint, p_result jsonb)
 returns jsonb language sql security definer set search_path to 'public', 'pg_temp'
-as $fn$ select public.fn_calendar_plan_apply(p_id, p_result) $fn$;
+as $fn$ select public.fn_seat_calendar_plan_apply(p_id, p_result) $fn$;
 revoke execute on function public.fn_reason_apply_marketing__calendar_plan(bigint, jsonb) from public, anon, authenticated;
 create or replace function public.fn_reason_apply_sales_engineer__calendar_plan(p_id bigint, p_result jsonb)
 returns jsonb language sql security definer set search_path to 'public', 'pg_temp'
-as $fn$ select public.fn_calendar_plan_apply(p_id, p_result) $fn$;
+as $fn$ select public.fn_seat_calendar_plan_apply(p_id, p_result) $fn$;
 revoke execute on function public.fn_reason_apply_sales_engineer__calendar_plan(bigint, jsonb) from public, anon, authenticated;
 create or replace function public.fn_reason_apply_accountant__calendar_plan(p_id bigint, p_result jsonb)
 returns jsonb language sql security definer set search_path to 'public', 'pg_temp'
-as $fn$ select public.fn_calendar_plan_apply(p_id, p_result) $fn$;
+as $fn$ select public.fn_seat_calendar_plan_apply(p_id, p_result) $fn$;
 revoke execute on function public.fn_reason_apply_accountant__calendar_plan(bigint, jsonb) from public, anon, authenticated;
 create or replace function public.fn_reason_apply_customer_support__calendar_plan(p_id bigint, p_result jsonb)
 returns jsonb language sql security definer set search_path to 'public', 'pg_temp'
-as $fn$ select public.fn_calendar_plan_apply(p_id, p_result) $fn$;
+as $fn$ select public.fn_seat_calendar_plan_apply(p_id, p_result) $fn$;
 revoke execute on function public.fn_reason_apply_customer_support__calendar_plan(bigint, jsonb) from public, anon, authenticated;
 create or replace function public.fn_reason_apply_it_engineer__calendar_plan(p_id bigint, p_result jsonb)
 returns jsonb language sql security definer set search_path to 'public', 'pg_temp'
-as $fn$ select public.fn_calendar_plan_apply(p_id, p_result) $fn$;
+as $fn$ select public.fn_seat_calendar_plan_apply(p_id, p_result) $fn$;
 revoke execute on function public.fn_reason_apply_it_engineer__calendar_plan(bigint, jsonb) from public, anon, authenticated;
 
 insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file)
@@ -366,7 +366,7 @@ select case
   when not exists (select 1 from public.table_export_registry where table_name = 'company_calendar_plan' and exported)
     then 'PROBE FAILED: company_calendar_plan is not exported'
   when has_function_privilege('anon', 'public.fn_ceo_calendar_horizon()', 'execute')
-    or has_function_privilege('anon', 'public.fn_calendar_plan_apply(bigint, jsonb)', 'execute')
+    or has_function_privilege('anon', 'public.fn_seat_calendar_plan_apply(bigint, jsonb)', 'execute')
     or has_function_privilege('anon', 'public.fn_reason_apply_ceo__calendar_owner(bigint, jsonb)', 'execute')
     or has_function_privilege('anon', 'public.fn_reason_apply_marketing__calendar_plan(bigint, jsonb)', 'execute')
     then 'PROBE FAILED: anon can execute a calendar routine'

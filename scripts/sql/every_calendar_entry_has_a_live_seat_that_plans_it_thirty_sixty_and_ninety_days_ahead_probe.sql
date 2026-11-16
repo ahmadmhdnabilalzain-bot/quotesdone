@@ -73,7 +73,7 @@ begin
 
   -- 5. an answer that is not plan / no_action is not recorded
   select held_id into v_q from public.company_calendar_plan where calendar_id = v_ev and seat = 'marketing';
-  v_res := public.fn_calendar_plan_apply(v_q, jsonb_build_object('answer', 'x', 'decision', jsonb_build_object('choice', 'maybe')));
+  v_res := public.fn_seat_calendar_plan_apply(v_q, jsonb_build_object('answer', 'x', 'decision', jsonb_build_object('choice', 'maybe')));
   if v_res is not null then raise exception 'CHK<<PROBE FAILED: an invented choice was recorded>>'; end if;
 
   raise exception 'CHK<<PROBE OK>>';

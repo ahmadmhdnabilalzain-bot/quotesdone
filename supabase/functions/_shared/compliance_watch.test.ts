@@ -73,12 +73,12 @@ Deno.test('the step records every due source, then settles once', async () => {
     if (fn === 'fn_compliance_sources_due') return Promise.resolve({ allowed_hosts: ['www.dcd.gov.ae'], sources: [
       { id: 1, authority: 'DCD', topic: 'fire', url: 'https://www.dcd.gov.ae/a' },
       { id: 2, authority: 'X', topic: 'y', url: 'https://other.example/b' }] });
-    if (fn === 'fn_compliance_source_record') return Promise.resolve({ outcome: (args?.p as { ok: boolean }).ok ? 'asked' : 'failed' });
+    if (fn === 'fn_compliance_sources_record') return Promise.resolve({ outcome: (args?.p as { ok: boolean }).ok ? 'asked' : 'failed' });
     return Promise.resolve({ ok: true });
   };
   const f = (() => Promise.resolve(page('<p>' + 'Building and fire safety rules for Dubai. '.repeat(3) + '</p>'))) as unknown as typeof fetch;
   const out = await runComplianceWatch(rpc, { fetchImpl: f });
-  assertEquals(calls.filter((c) => c.fn === 'fn_compliance_source_record').length, 2);
+  assertEquals(calls.filter((c) => c.fn === 'fn_compliance_sources_record').length, 2);
   assertEquals(calls.at(-1)?.fn, 'fn_compliance_watch_settle');
   assertEquals([out.fetched, out.failed, out.changed_or_new], [1, 1, 1]);
 });

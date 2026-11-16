@@ -10,7 +10,7 @@
 //   registered source lives on (THE ALLOWLIST: only those hosts, never a host a page redirects to). Each is fetched through
 //   safeFetch (_shared/safe_url.ts: the SSRF guard, every redirect hop judged, a timeout and a byte ceiling), its readable
 //   text taken (scripts and styles removed, tags dropped, whitespace collapsed; a PDF is signed on its bytes), and the result
-//   recorded by fn_compliance_source_record. Postgres decides the rest: the same signature stamps the source checked; a new
+//   recorded by fn_compliance_sources_record. Postgres decides the rest: the same signature stamps the source checked; a new
 //   one is checked AND asked of the CEO seat's model, which states what changed and which seat it affects
 //   (ceo.compliance_change), and the change is routed there. A fetch that fails is not a check: it is recorded, and a
 //   source failing three days running is an it_engineer finding (fn_compliance_watch_settle).
@@ -83,7 +83,7 @@ export async function runComplianceWatch(rpc: Rpc, opts: { fetchImpl?: typeof fe
   const counts = { fetched: 0, failed: 0, changed_or_new: 0, unchanged: 0 };
   for (const s of due.sources ?? []) {
     const reading = await readSource(s, due.allowed_hosts ?? [], opts.fetchImpl);
-    const out = (await rpc('fn_compliance_source_record', { p: reading })) as { outcome?: string } | null;
+    const out = (await rpc('fn_compliance_sources_record', { p: reading })) as { outcome?: string } | null;
     if (!reading.ok) counts.failed++;
     else { counts.fetched++; if (out?.outcome === 'unchanged') counts.unchanged++; else counts.changed_or_new++; }
   }

@@ -14,7 +14,7 @@
 --      fn_compliance_sources_due for up to 6 active sources not checked in 30 days (oldest first; one that failed today waits
 --      for tomorrow) and the ALLOWLIST: the hosts the registered sources live on. _shared/compliance_watch.ts fetches each
 --      through safeFetch, every request and redirect hop held to that allowlist, and records it here.
---   2. fn_compliance_source_record: a failed fetch is NOT a check (last_fetch_error, fetch_failures + 1; last_checked_at kept).
+--   2. fn_compliance_sources_record: a failed fetch is NOT a check (last_fetch_error, fetch_failures + 1; last_checked_at kept).
 --      A page whose readable-text signature is unchanged is stamped checked. A changed page (or the first read since August,
 --      whose signature was taken by the old watcher) is stamped checked AND asked of the CEO seat's MODEL
 --      (ceo.compliance_change): the old summary, the new text, the authority and topic, the live seats. The model states what
@@ -73,7 +73,7 @@ as $fn$
 $fn$;
 revoke execute on function public.fn_compliance_sources_due(integer) from public, anon, authenticated;
 
-create or replace function public.fn_compliance_source_record(p jsonb)
+create or replace function public.fn_compliance_sources_record(p jsonb)
 returns jsonb
 language plpgsql
 security definer
@@ -120,7 +120,7 @@ begin
    where id = c.id;
   return jsonb_build_object('outcome', 'asked', 'held_id', v_hid);
 end $fn$;
-revoke execute on function public.fn_compliance_source_record(jsonb) from public, anon, authenticated;
+revoke execute on function public.fn_compliance_sources_record(jsonb) from public, anon, authenticated;
 
 create or replace function public.fn_reason_apply_ceo__compliance_change(p_id bigint, p_result jsonb)
 returns jsonb
@@ -189,7 +189,7 @@ revoke execute on function public.fn_compliance_watch_settle(jsonb) from public,
 select case
   when not exists (select 1 from public.it_duty_schedule where duty = 'compliance_watch') then 'PROBE FAILED: compliance_watch is not scheduled'
   when has_function_privilege('anon', 'public.fn_compliance_sources_due(integer)', 'execute')
-    or has_function_privilege('anon', 'public.fn_compliance_source_record(jsonb)', 'execute')
+    or has_function_privilege('anon', 'public.fn_compliance_sources_record(jsonb)', 'execute')
     or has_function_privilege('anon', 'public.fn_reason_apply_ceo__compliance_change(bigint, jsonb)', 'execute')
     or has_function_privilege('anon', 'public.fn_compliance_watch_settle(jsonb)', 'execute')
     then 'PROBE FAILED: anon can execute a compliance routine'

@@ -24,6 +24,7 @@ import { defaultDeps, think, type ThinkDeps } from '../_shared/think.ts';
 import { knownSenderCategory } from '../_shared/triage_known_sender.ts';
 import { mailFacts, SEPARATE_COMPANY_FACT, withClaimLink } from './account_facts.ts';
 import { mailLoopHeld } from '../_shared/auto_reply_loop.ts';
+import { handPartnershipToCeo } from './partnership.ts';
 import { answerableOnceRead, composeMailReply, declinedRowFields, EXPENSE_MAILBOX, invitationReplyAnswerable, noAutoReply, overDailyAnswerCap, tenantMailAnswerable } from '../_shared/customer_mail.ts';
 import { audienceFor, declinedFields, type MailboxDecision, readingFacts, readSupplierMailbox } from './supplier_mailbox_reading.ts';
 import { langOf } from '../_shared/chat_answers.ts';
@@ -306,6 +307,8 @@ Deno.serve(observe('email_triage', async (req) => {
       await beat(admin, run?.id, 'message ' + m.id + ' (answer)');
       const facts = await mailFacts(admin, String(m.from_email || ''), relation, (m as { raw?: unknown }).raw);
       await reply1(m, audienceOf(relation), reading ? [facts, readingFacts(reading)].filter(Boolean).join('\n\n') : facts);
+      // A PARTNERSHIP HAS AN OWNER (OPS_LOOPS, 16 Nov 2026, hole H10): the CEO seat, with the sender's facts (partnership.ts).
+      if (category === 'partnership') { const k = 'partnership_' + await handPartnershipToCeo(admin, m, summary, facts); counts[k] = (counts[k] || 0) + 1; }
     }
     // THE REPLY LEAVES NOW, not on the outbox's 2-minute poll (the founder's "under a minute").
     if (counts.answered) {

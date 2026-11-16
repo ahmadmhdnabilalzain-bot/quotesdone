@@ -16,7 +16,7 @@ begin
   if d->'allowed_hosts' <> '["www.example.invalid"]'::jsonb then raise exception 'CHK<<PROBE FAILED: the allowlist is not the registered hosts: %>>', d->'allowed_hosts'; end if;
 
   -- 2. a failed fetch is not a check, and it is not retried the same day
-  r := public.fn_compliance_source_record(jsonb_build_object('id', v_src, 'ok', false, 'error', 'http_404: the target answered 404'));
+  r := public.fn_compliance_sources_record(jsonb_build_object('id', v_src, 'ok', false, 'error', 'http_404: the target answered 404'));
   if (select last_checked_at from public.compliance_sources where id = v_src) > now() - interval '90 days' then
     raise exception 'CHK<<PROBE FAILED: a failed fetch stamped the source checked>>'; end if;
   if (public.fn_compliance_sources_due(6)->'sources') @> jsonb_build_array(jsonb_build_object('id', v_src)) then
@@ -29,7 +29,7 @@ begin
     raise exception 'CHK<<PROBE FAILED: the run was not recorded, so the step would be due for ever>>'; end if;
 
   -- 3. the first read since the old watcher: checked AND asked of the CEO seat's model, with the old summary and the new text
-  r := public.fn_compliance_source_record(jsonb_build_object('id', v_src, 'ok', true, 'signature', 'v2:aaaaaaaaaaaaaaaa1111',
+  r := public.fn_compliance_sources_record(jsonb_build_object('id', v_src, 'ok', true, 'signature', 'v2:aaaaaaaaaaaaaaaa1111',
          'excerpt', 'ZZ DEMO: the 2026 fire code applies from 1 January; sprinkler rules changed.', 'final_url', 'https://www.example.invalid/code'));
   select last_checked_at, change_held_id into v_checked, v_q from public.compliance_sources where id = v_src;
   if v_checked < now() - interval '1 minute' or (r->>'outcome') is distinct from 'asked' or v_q is null then
@@ -42,7 +42,7 @@ begin
 
   -- 4. the same page again: checked, not asked again
   update public.compliance_sources set last_checked_at = now() - interval '40 days', last_fetch_at = null where id = v_src;
-  r := public.fn_compliance_source_record(jsonb_build_object('id', v_src, 'ok', true, 'signature', 'v2:aaaaaaaaaaaaaaaa1111', 'excerpt', 'same'));
+  r := public.fn_compliance_sources_record(jsonb_build_object('id', v_src, 'ok', true, 'signature', 'v2:aaaaaaaaaaaaaaaa1111', 'excerpt', 'same'));
   if (r->>'outcome') is distinct from 'unchanged' or (select last_checked_at from public.compliance_sources where id = v_src) < now() - interval '1 minute' then
     raise exception 'CHK<<PROBE FAILED: an unchanged page was not stamped checked: %>>', r; end if;
 
@@ -60,7 +60,7 @@ begin
     raise exception 'CHK<<PROBE FAILED: the change was not recorded on the source>>'; end if;
 
   -- 6. a later change the model reads as immaterial records its reading and routes nothing
-  r := public.fn_compliance_source_record(jsonb_build_object('id', v_src, 'ok', true, 'signature', 'v2:bbbbbbbbbbbbbbbb2222', 'excerpt', 'ZZ DEMO: a new footer.'));
+  r := public.fn_compliance_sources_record(jsonb_build_object('id', v_src, 'ok', true, 'signature', 'v2:bbbbbbbbbbbbbbbb2222', 'excerpt', 'ZZ DEMO: a new footer.'));
   v_q2 := (r->>'held_id')::bigint;
   v_res := public.fn_reason_held_resolve(v_q2, jsonb_build_object('status', 'answered', 'model', 'stub',
              'answer', 'Only the page footer changed.', 'decision', jsonb_build_object('choice', 'none')));
