@@ -60,17 +60,17 @@ begin
       'type', 'intake_nudge', 'requested_by', 'sales_engineer', 'channel', 'email', 'to_email', x.email, 'to_role', 'customer',
       'lang', case when v_ar then 'ar' else 'en' end,
       'subject', case
-        when v_ar and x.status = 'ready' then 'طلبك مكتمل وجاهز للإرسال'
-        when v_ar then 'طلبك بانتظار ' || case when v_left between 1 and 10 then v_left || ' من الإجابات' else 'بضع إجابات' end
+        when v_ar and x.status = 'ready' then 'طلبكم مكتمل وجاهز للإرسال'
+        when v_ar then 'طلبكم بانتظار ' || case when v_left between 1 and 10 then v_left || ' من الإجابات' else 'بضع إجابات' end
         when x.status = 'ready' then 'Your request is complete: one tap sends it'
         else 'Your request is ' || case when v_left between 1 and 10 then v_left || ' answer' || case when v_left = 1 then '' else 's' end else 'a few answers' end || ' from going to suppliers' end,
       'body', case
-        when v_ar and x.status = 'ready' then 'أهلًا،' || chr(10) || chr(10) || 'طلبك ' || case when v_what_ar <> '' then '(' || v_what_ar || ') ' else '' end
-             || 'مكتمل وجاهز للإرسال إلى المورّدين، ولم يبقَ إلا أن تضغط «إرسال». افتح طلباتك على https://quotesdone.com/ar/me لتراجعه وترسله، وستجده حيث تركته.'
+        when v_ar and x.status = 'ready' then 'تحية طيبة،' || chr(10) || chr(10) || 'طلبكم ' || case when v_what_ar <> '' then '(' || v_what_ar || ') ' else '' end
+             || 'مكتمل وجاهز للإرسال إلى المورّدين، ولم يبقَ إلا الضغط على «إرسال». تجدونه حيث تركتموه في طلباتكم على https://quotesdone.com/ar/me لمراجعته وإرساله.'
              || chr(10) || chr(10) || 'QuotesDone'
-        when v_ar then 'أهلًا،' || chr(10) || chr(10) || 'طلبك ' || case when v_what_ar <> '' then '(' || v_what_ar || ') ' else '' end || 'محفوظ حيث تركته، '
+        when v_ar then 'تحية طيبة،' || chr(10) || chr(10) || 'طلبكم ' || case when v_what_ar <> '' then '(' || v_what_ar || ') ' else '' end || 'محفوظ حيث تركتموه، '
              || case when v_left between 1 and 10 then 'وبقي ' || v_left || ' من الأسئلة' else 'وبقيت أسئلة قليلة' end
-             || ' قبل أن نرسله إلى المورّدين المناسبين. افتح طلباتك على https://quotesdone.com/ar/me لتكمل من حيث توقفت.'
+             || ' قبل أن نرسله إلى المورّدين المناسبين. تجدونه في طلباتكم على https://quotesdone.com/ar/me لتكملوا من حيث توقفتم.'
              || chr(10) || chr(10) || 'QuotesDone'
         when x.status = 'ready' then 'Hello,' || chr(10) || chr(10) || 'Your ' || v_what || ' request is complete and ready to go to suppliers: one tap on Send does it. '
              || 'Open your requests at https://quotesdone.com/me to check it and send it; it is exactly where you left it.' || chr(10) || chr(10) || 'QuotesDone'

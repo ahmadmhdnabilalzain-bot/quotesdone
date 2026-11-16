@@ -48,6 +48,6 @@ Deno.test('fn_edit_inquiry has no one-hour refusal, edits the date and records e
   assert(body.length > 1000);
   assert(!/interval '1 hour'/.test(body), 'the one-hour clock is back');
   assertMatch(body, /required_by = coalesce\(v_req, required_by\)/);
-  assertMatch(body, /revision  = v_rev/);
+  assertMatch(body, /revision {2}= v_rev/);
   assertMatch(body, /insert into inquiry_revision/);
 });
