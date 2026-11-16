@@ -265,7 +265,7 @@ export function WithheldCustomer({ lang }: { lang: Lang }) {
 }
 
 // ── Pre-reveal clarification thread ──────────────────────────────────────────────────────────────
-type Clar = { id: string; question: string; answer?: string | null; asked_at?: string; answered_at?: string | null; supplier_label?: string | null };
+type Clar = { id: string; question: string; answer?: string | null; asked_at?: string; answered_at?: string | null; supplier_label?: string | null; asked_by?: string; reply_by?: string | null; awaiting_your_reply?: boolean };
 // WHAT THE CUSTOMER ASKED FOR (founder, 14 Sep 2026). The sales engineer asks every customer about
 // materials, installation, warranty and the date before a request can be posted, and a quote is
 // judged against those answers, so the supplier reads them with the brief. The rows are
@@ -294,6 +294,17 @@ export function ClarifyThread({ inquiryId, token, lang, canAsk }: { inquiryId: s
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
   const [openAsk, setOpenAsk] = useState(false);
+  // A CUSTOMER'S QUESTION ABOUT YOUR QUOTE (16 Nov 2026): relayed by the sales engineer with a date; the answer goes to that
+  // customer only, without the company's name (messages_api clarify_reply).
+  const [replies, setReplies] = useState<Record<string, string>>({});
+  const reply = async (id: string) => {
+    const t0 = String(replies[id] || '').trim(); if (!t0) return;
+    setBusy(true); setMsg('');
+    const j = await call('messages_api', { action: 'clarify_reply', id, text: t0.slice(0, 1500) }, token).catch(() => null);
+    setBusy(false);
+    if (j && j.ok) { setReplies((r) => ({ ...r, [id]: '' })); setMsg(ar ? 'وصل جوابكم إلى العميل دون ذكر اسم شركتكم.' : 'Your answer reached the customer, without your company name.'); load(); }
+    else setMsg(ar ? 'تعذّر إرسال الجواب. يُرجى المحاولة مرة أخرى.' : 'Could not send your answer. Please try again.');
+  };
   // SP-C-08, 22 Sep 2026: a failed read — an expired token above all — fell into the same `[]` as
   // "nobody has asked anything", so the thread rendered as an empty tab and the supplier had no way
   // to know their session had ended. A failure now says which failure it was, in their language.
@@ -323,11 +334,18 @@ export function ClarifyThread({ inquiryId, token, lang, canAsk }: { inquiryId: s
           <ol className="flex flex-col gap-2.5">
             {list.map((c) => (
               <li key={c.id} className="text-[13px]">
+                {c.asked_by === 'customer' ? <div className="text-[11px] font-semibold uppercase tracking-[.06em] text-primary">{ar ? 'سؤال من العميل عن عرضكم' : 'The customer asks about your quote'}{c.reply_by && !c.answered_at ? (ar ? ' · الجواب مطلوب قبل ' : ' · answer by ') + new Date(c.reply_by).toLocaleString(ar ? 'ar-AE' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dubai' }) : ''}</div> : null}
                 <div className="text-foreground"><span className="font-semibold text-primary">{ar ? 'س: ' : 'Q: '}</span>{c.question}
                   <span className="ms-2 text-[11px] text-muted-foreground">{c.supplier_label ? c.supplier_label + ' · ' : ''}{fmt(c.asked_at)}</span></div>
                 <div className="mt-0.5 text-muted-foreground">{c.answer
                   ? <><span className="font-semibold text-foreground/85">{ar ? 'ج: ' : 'A: '}</span>{c.answer}<span className="ms-2 text-[11px]">{fmt(c.answered_at)}</span></>
-                  : <em>{ar ? 'بانتظار رد العميل' : 'Waiting for the customer'}</em>}</div>
+                  : c.awaiting_your_reply
+                    ? <span className="mt-1 flex flex-col gap-1.5">
+                        <textarea aria-label={ar ? 'جوابكم للعميل' : 'Your answer to the customer'} value={replies[c.id] || ''} maxLength={1500} rows={2} onChange={(e) => setReplies((r) => ({ ...r, [c.id]: e.target.value }))}
+                          className="flex w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm text-foreground focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring pointer-coarse:text-[16px]" />
+                        <Button size="sm" className="self-start" disabled={busy || !String(replies[c.id] || '').trim()} onClick={() => reply(c.id)}>{ar ? 'إرسال الجواب' : 'Send answer'}</Button>
+                      </span>
+                    : <em>{c.asked_by === 'customer' ? (ar ? 'بانتظار جوابكم' : 'Waiting for your answer') : (ar ? 'بانتظار رد العميل' : 'Waiting for the customer')}</em>}</div>
               </li>
             ))}
           </ol>
