@@ -50,7 +50,10 @@ for (const p of REC.profiles) {
     // 12 Nov 2026, after the review of branch 2): H06 "booster pumps" (read by the model as the industrial-pumps trade) to
     // industrial_pumps.booster_sets; H07 "labels" to packaging.labels; H04 a staff line to labour_supply.general, listed "please check" and
     // left out of "Tick all". The bar's "0 wrong" row is NOT met by that run; any OTHER wrong listing fails here.
-    const KNOWN_WRONG: Record<string, string[]> = { H06: ['industrial_pumps.booster_sets'], H07: ['packaging.labels'], H04: ['labour_supply.general'] };
+    // H07's "labels" is no longer listed (16 Nov 2026, supplier_profile_reading.checkLineTrades: "Stickers", one item of the line "Large-format
+    // digital printing, banners and stickers", the other two signage); H06's line has 2 of its 3 items read as pumps and stays known.
+    const KNOWN_WRONG: Record<string, string[]> = { H06: ['industrial_pumps.booster_sets'], H04: ['labour_supply.general'] };
+    if (p.id === 'H07') assert(!listed.includes('packaging.labels') && reading.rejected.some((x) => x.what === 'packaging.labels'), 'H07: "Stickers" of a signage line is not packaging');
     assertEquals(listed.filter((k) => !fair.has(k) && !partner.has(k) && !(KNOWN_WRONG[p.id] ?? []).includes(k)), [], 'listed outside the key');
     assertEquals(listed.filter((k) => partner.has(k) && !fair.has(k)), [], 'a partner service listed as his own');
     assertEquals(viaPartner.filter((k) => !partner.has(k) && !fair.has(k)), [], 'marked partner outside the key');

@@ -115,3 +115,13 @@ It registers eight ZZ DEMO companies, one at a time, from the fixtures in `scrip
 
 Related: [[a-journey-step-is-proved-by-its-outcome]], [[the-registration-walk-reads-the-real-code-through-a-resend-sink]],
 [[supplier-verification-mandatory-six]], [[chromium-in-the-cloud-container-cuts-requests-at-30-seconds]].
+
+- **Paid round 16 Nov 20:56-21:56 (tags 19a7b8b3 / 650d636f): 700 PASS, 2 FAILED, both "the proposals are his trades"** (branch
+  `sales_engineer-a-suppliers-trades-are-proposed-from-what-his-documents-say`). Run 2 J1 listed industrial_pumps.booster_sets from P1's
+  "Plumbing and drainage: water supply, sanitary installation, booster pumps"; run 2 J9 listed masonry_blockwork.plastering from P7's "Wall
+  painting, stucco and decorative paint finishes". The fixtures are RIGHT (industrial_pumps sits under the oilfield umbrella; masonry under
+  civil_works; run 1 read the same lines as plumbing.heaters_pumps and painting). The quote rule proves the words, never the trade: step A
+  names an item's trade itself (a trade NAME sharing a word: "pumps", "plastering") and the mapping follows it. Fixed at the reading: the
+  prompt's "trade" field says the trade is the line's work; `checkLineTrades` drops a key whose trade is one item of a whole list line, named
+  by no other line, unrelated (adjacent/umbrella) to the line's other trades and outweighed there. Measured on recorded.json: drops only
+  H07's known-wrong packaging.labels; any looser rule dropped 5 must-find services in prose lines (H13, H15). H06's 2-of-3 pumps line stays.

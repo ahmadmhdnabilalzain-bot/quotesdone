@@ -127,7 +127,7 @@ ${trades.map((t) => `${t.code} = ${t.label}`).join('\n')}
 
 Return STRICT JSON only, in this shape:
 {"summary":"two plain English sentences saying what this company is and does",
- "evidence":[{"words":"a short English name for this ONE service or product line as a customer would ask for it, at most 8 words (translate Arabic)","quote":"ONE line copied EXACTLY, word for word, from the documents, in its original language, that shows it","basis":"stated|shown|partner|brand","partner_name":null,"trade":"the trade code it belongs to, or null when none of our trades covers it","licence":"covered when the trade licence's activities cover it, not_covered when a licence is given and does not, unclear when no licence is given"}],
+ "evidence":[{"words":"a short English name for this ONE service or product line as a customer would ask for it, at most 8 words (translate Arabic)","quote":"ONE line copied EXACTLY, word for word, from the documents, in its original language, that shows it","basis":"stated|shown|partner|brand","partner_name":null,"trade":"the trade code of the WORK this item is: the trade of the line it is quoted from whenever that trade does this work, never a trade picked because its name shares a word with the item (booster pumps in a plumbing line are plumbing, stucco in a painting line is painting); null when none of our trades covers it","licence":"covered when the trade licence's activities cover it, not_covered when a licence is given and does not, unclear when no licence is given"}],
  "vague":[{"quote":"the vague line, copied exactly","why":"what a customer request could not be matched on","ask":"the one short question a sharp sales engineer would ask the supplier, in plain English","options":[{"label":"a specific option, 1 to 5 words","trade":"trade code or null"}]}],
  "also_ask":[{"because":"the evidence that makes these likely, in a few words","options":[{"label":"1 to 5 words","trade":"trade code or null"}]}],
  "licence":{"covers_profile":"yes|partly|no|no_licence","note":"one sentence when the licence and the other documents disagree, else empty","activities":["ONE business activity the trade licence lists, copied exactly as printed in its own language, wherever the licence prints it (a line, a table, the foot of the page): one element per activity, so a list printed in one line or cell and separated by commas or semicolons is one element per activity, while an activity whose own printed name holds a comma stays one element; [] when no licence is given"]},
@@ -300,6 +300,53 @@ export function applyMapping(content: string, phrases: Phrase[], shown: Readonly
     const t = str(e?.trade); if (shown.has(t)) ph.ref.trade = t;
   }
   return true;
+}
+
+// A SERVICE IS LISTED IN THE TRADE OF ITS LINE (16 Nov 2026, sales_engineer; paid certification of 16 Nov, run 2: J1 "industrial_pumps"
+// and J9 "masonry_blockwork" judged absurd, where run 1 and the 15:00 run passed). The quote proves the WORDS are in his document; nothing
+// proved the TRADE. Step A names each item's trade itself and the mapping follows it ("the phrase's own trade first"), so a word a trade's
+// name shares with one item of a list carried that item off its line, in one reading and not the next:
+//   P1  "Plumbing and drainage: water supply, sanitary installation, booster pumps" -> plumbing.water_supply, plumbing.sanitary_fixtures and
+//       industrial_pumps.booster_sets ("Industrial pumps", umbrella oilfield); run 1 read the pumps as plumbing.heaters_pumps.
+//   P7  "Wall painting, stucco and decorative paint finishes" -> painting.interior, painting.decorative and masonry_blockwork.plastering
+//       ("Masonry, blockwork & plastering", umbrella civil_works); run 1 read stucco as painting.
+// The prompt now says the item's trade is its line's (profileReadSystem, "trade"); this is code's CHECK of it, which never repairs. A key is
+// dropped from an item quoting a LIST LINE (a line of the document the quote is, whole) when its trade (a) is named by no other line of the
+// documents, (b) is related (sliceTrades: curated adjacent, umbrella parent or child) to no other trade on that line, and (c) is outweighed
+// there: another trade has more of the line's items. The item keeps its other keys; with none left it is kept in his own words, under the
+// trade step A gave it only when that trade is still on the line (else none). Every dropped key is recorded in `rejected`.
+// MEASURED on the recording of 12 Nov (recorded.json, 16 readings, the real catalogue): it drops one key, H07's "Stickers" from "Large-format
+// digital printing, banners and stickers" (packaging.labels, a KNOWN wrong listing). A line of prose (H13's crews "carry out the concrete
+// works and blockwork, plastering, floor and wall tiling, ..."; H15's worker buses) quotes part of a line and is not checked: a looser rule
+// (any line, or a line's trade evidenced elsewhere) dropped 12 keys there, 5 of them services the answer keys say must be found. H06's
+// "Water heaters, booster and transfer pumps" (2 of 3 items read as industrial pumps) is not outweighed and stays the known wrong listing.
+export function checkLineTrades(r: ProfileReading, docs: ReadDoc[], tax: Taxonomy): void {
+  const lines = new Map(docs.filter((d) => d.kind !== 'licence').map((d) => [d.path, new Set(d.text.split(/\r?\n/).map(quoteKey).filter((x) => x.length >= 3))]));
+  const lineOf = (e: Claim) => { const q = quoteKey(e.quote); return lines.get(e.doc)?.has(q) ? `${e.doc}|${q}` : null; };
+  const tradesOf = (e: Claim) => (e.keys.length ? [...new Set(e.keys.map((k) => k.split('.')[0]))] : e.trade ? [e.trade] : []);
+  const family = new Map<string, Set<string>>();
+  const related = (a: string, b: string) => [[a, b], [b, a]].some(([x, y]) => {
+    if (!family.has(x)) family.set(x, new Set(sliceTrades([x], tax)));
+    return family.get(x)!.has(y);
+  });
+  const at = r.evidence.map((e) => ({ e, line: lineOf(e), trades: tradesOf(e) }));
+  const onLine = (line: string) => at.filter((x) => x.line === line);
+  const drop: { e: Claim; u: string; line: string }[] = [];
+  for (const { e, line, trades } of at) {
+    if (!line) continue;
+    const here = onLine(line), n = (t: string) => here.filter((x) => x.trades.includes(t)).length;
+    const lineTrades = [...new Set(here.flatMap((x) => x.trades))];
+    for (const u of e.keys.length ? trades : []) {
+      const others = lineTrades.filter((t) => t !== u);
+      if (others.length && !at.some((x) => x.line !== line && x.trades.includes(u)) && others.every((t) => !related(u, t)) && others.some((t) => n(t) > n(u))) drop.push({ e, u, line });
+    }
+  }
+  for (const { e, u, line } of drop) {
+    const stays = [...new Set(onLine(line).flatMap((x) => x.trades))].filter((t) => !drop.some((d) => d.line === line && d.u === t));
+    for (const k of e.keys.filter((k) => k.startsWith(u + '.'))) r.rejected.push({ what: k, why: `"${e.words}" is one item of the line "${e.quote.slice(0, 100)}", which is about ${stays.join(', ')}; ${u} is named by no other line and is not related to it` });
+    e.keys = e.keys.filter((k) => !k.startsWith(u + '.')); e.code_keys = (e.code_keys ?? []).filter((k) => !k.startsWith(u + '.'));
+    if (!e.keys.length && e.trade && !stays.includes(e.trade)) e.trade = null;
+  }
 }
 
 // ── THE PROPOSAL (pure): what is listed, what is asked, what is kept in his words ────────────────────────────────────────
@@ -523,6 +570,7 @@ export async function readInTwoSteps(docs: ReadDoc[], company: string | null, ta
   const told = opts.onRead ? opts.onRead(reading).catch(() => {}) : Promise.resolve();
   await Promise.all(mapping); await told;
   reading.rejected.push(...refused);
+  checkLineTrades(reading, own, tax);
   if (owed.length) return { ok: false, error: `the mapping is owed for ${owed.length} phrase(s) (${owed.slice(0, 4).map((x) => x.words).join('; ')}): read again by the sweep` };
   return { ok: true, reading, times: { read_ms, map_ms: Date.now() - t0 - read_ms, read_calls: readCalls, map_calls: mapCalls } };
 }
