@@ -136,6 +136,7 @@ begin
      where id = c.id;
     return jsonb_build_object('ok', true, 'already', true, 'claim_id', c.id, 'state', 'open');
   end if;
+  if exists (select 1 from public.supplier_ownership_claim where lead_id = p_lead and state = 'objected' and objected_at > now() - interval '30 days') then return jsonb_build_object('ok', false, 'code', 'owner_kept_recently', 'error', 'The owner told us this month that he is still the owner, so nothing was opened. Please speak to him; he can hand the company to you himself in Settings, Team.'); end if;
   if v_why is null then
     return jsonb_build_object('ok', false, 'code', 'reason_required', 'error', 'Tell us what happened to the owner, in a sentence or two.');
   end if;
@@ -206,21 +207,21 @@ begin
     perform public.fn_sales_engineer_writes('supplier_ownership_claim_approved', 'supplier', c.claimant_email, c.lead_id, null, null, null,
       'Your request to take over ' || coalesce(l.company_name, 'the company') || ' is approved',
       v_msg || E'\n\nThe company passes to you on ' || to_char(v_at at time zone 'Asia/Dubai', 'DD Mon YYYY') || ' unless the owner keeps it before then.',
-      null, null, '{}'::text[], 'supplier_ownership_claim_approved:' || c.id);
+      null, null, '{}'::text[], 'supplier_ownership_claim_approved:' || c.id || ':' || to_char(clock_timestamp(), 'YYYYMMDDHH24MISSUS'));
     v_cc := case when l.email is not null and lower(l.email) <> lower(l.claimed_by) then array[l.email] else '{}'::text[] end;
     perform public.fn_sales_engineer_writes('supplier_ownership_claim_owner_notice', 'supplier', l.claimed_by, c.lead_id, null, null, null,
       coalesce(l.company_name, 'Your company') || ' passes to ' || c.claimant_email || ' in three days',
       'Our sales engineer has approved the request of ' || c.claimant_email || ', a member of ' || coalesce(l.company_name, 'your company')
       || ', to become its owner, because you have left the company. It takes effect on ' || to_char(v_at at time zone 'Asia/Dubai', 'DD Mon YYYY')
       || ' (in three days).' || E'\n\nIf you are still the owner, sign in and press "Keep ownership" (Settings, Team), or reply to this e-mail, before then.',
-      null, null, v_cc, 'supplier_ownership_claim_owner_final:' || c.id);
+      null, null, v_cc, 'supplier_ownership_claim_owner_final:' || c.id || ':' || to_char(clock_timestamp(), 'YYYYMMDDHH24MISSUS'));
   elsif p_decision = 'ask' then
     update public.supplier_ownership_claim set state = 'waiting_claimant', decision = 'ask', reasoning = v_why, message = v_msg,
            decided_by = coalesce(p_decided_by, 'sales_engineer'), decided_at = now(), updated_at = now() where id = c.id;
     perform public.fn_sales_engineer_writes('supplier_ownership_claim_question', 'supplier', c.claimant_email, c.lead_id, null, null, null,
       'One question about taking over ' || coalesce(l.company_name, 'the company'),
       v_msg || E'\n\nReply to this e-mail, or answer in your portal (Settings, Team). Nothing changes until we have it.',
-      null, null, '{}'::text[], 'supplier_ownership_claim_question:' || c.id || ':' || to_char(now(), 'YYYYMMDDHH24MISS'));
+      null, null, '{}'::text[], 'supplier_ownership_claim_question:' || c.id || ':' || to_char(clock_timestamp(), 'YYYYMMDDHH24MISSUS'));
   else
     update public.supplier_ownership_claim set state = 'refused', decision = 'refuse', reasoning = v_why, message = v_msg,
            decided_by = coalesce(p_decided_by, 'sales_engineer'), decided_at = now(), updated_at = now() where id = c.id;
@@ -285,6 +286,7 @@ begin
     if lower(coalesce(c.owner_email, '')) <> lower(coalesce(c.evidence -> 'owner' ->> 'email', c.owner_email))
        or exists (select 1 from auth.users u where lower(u.email) = lower(c.owner_email) and u.last_sign_in_at > c.decided_at) then
       update public.supplier_ownership_claim set state = 'open', decision = null, effective_at = null, updated_at = now(),
+             evidence = public.fn_supplier_ownership_claim_evidence(c.lead_id, c.member_id),
              reason = left(reason || E'\n[system] on the day: the owner changed, or signed in after the decision; nothing moved', 6000)
        where id = c.id;
       v_skipped := v_skipped + 1;
