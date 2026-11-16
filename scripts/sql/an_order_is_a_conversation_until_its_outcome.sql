@@ -221,17 +221,31 @@ create table if not exists public.seat_order_turn (
 comment on table public.seat_order_turn is 'Every turn of an order conversation in order: the seat''s plan, the CEO''s answer, code''s check-in at a milestone, the seat''s status, the CEO''s response, the seat''s retro and the CEO''s decision, each with what code refused and why. an_order_is_a_conversation_until_its_outcome.sql';
 
 do $guard$
-declare t text;
 begin
-  foreach t in array array['seat_capability', 'engineer_session_request', 'seat_order_thread', 'seat_order_turn'] loop
-    if not (select relrowsecurity from pg_class where oid = ('public.' || t)::regclass) then
-      execute format('alter table public.%I enable row level security', t);
-    end if;
-    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = t || '_service_role_only') then
-      execute format('create policy %I on public.%I as permissive for all to public using (false) with check (false)', t || '_service_role_only', t);
-    end if;
-    execute format('revoke all on public.%I from anon, authenticated', t);
-  end loop;
+  if not (select relrowsecurity from pg_class where oid = 'public.seat_capability'::regclass) then
+    alter table public.seat_capability enable row level security;
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'seat_capability' and policyname = 'seat_capability_service_role_only') then
+    create policy seat_capability_service_role_only on public.seat_capability as permissive for all to public using (false) with check (false);
+  end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.engineer_session_request'::regclass) then
+    alter table public.engineer_session_request enable row level security;
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'engineer_session_request' and policyname = 'engineer_session_request_service_role_only') then
+    create policy engineer_session_request_service_role_only on public.engineer_session_request as permissive for all to public using (false) with check (false);
+  end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.seat_order_thread'::regclass) then
+    alter table public.seat_order_thread enable row level security;
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'seat_order_thread' and policyname = 'seat_order_thread_service_role_only') then
+    create policy seat_order_thread_service_role_only on public.seat_order_thread as permissive for all to public using (false) with check (false);
+  end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.seat_order_turn'::regclass) then
+    alter table public.seat_order_turn enable row level security;
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'seat_order_turn' and policyname = 'seat_order_turn_service_role_only') then
+    create policy seat_order_turn_service_role_only on public.seat_order_turn as permissive for all to public using (false) with check (false);
+  end if;
   if to_regclass('public.seat_order_thread_open') is null then
     create index seat_order_thread_open on public.seat_order_thread (state, next_check_at) where state <> 'closed';
   end if;
@@ -248,6 +262,10 @@ begin
     create index engineer_session_request_queue on public.engineer_session_request (status, created_at) where status in ('queued', 'claimed');
   end if;
 end $guard$;
+revoke all on public.seat_capability from anon, authenticated;
+revoke all on public.engineer_session_request from anon, authenticated;
+revoke all on public.seat_order_thread from anon, authenticated;
+revoke all on public.seat_order_turn from anon, authenticated;
 revoke all on sequence public.engineer_session_request_id_seq, public.seat_order_turn_id_seq from anon, authenticated;
 
 -- ── 4. SMALL READINGS ───────────────────────────────────────────────────────────────────────────────────────────────────
@@ -292,7 +310,7 @@ begin
                          || r.refused_because || ' The alternative: ' || r.alternative);
     end if;
   end loop;
-  if v_act ~ '[a-z0-9._%+-]+@(?!quotesdone\.com\M)[a-z0-9.-]+\.[a-z]{2,}' or v_act ~ '(\+|\m00)[1-9][0-9 ().-]{7,}[0-9]|\m0?5[0-9][ -]?[0-9]{3}[ -]?[0-9]{4}\M' then
+  if v_act ~ '[a-z0-9._%+-]+@(?!quotesdone\.com\M)[a-z0-9.-]+\.[a-z]{2,}' or v_act ~ '(\+|\m00)[1-9][0-9 ().-]{7,}[0-9]|\m(971[ -]?)?0?5[0-9][ -]?[0-9]{3}[ -]?[0-9]{4}\M|[0-9]{9,}' then
     v_out := v_out || 'people are named only by lead_ids (each is read against the gates), never by an address or a number in the words'::text;
   end if;
   -- every amount the words name is money, in every turn kind (review orderconv item 4: seat turns and the CEO's decision after

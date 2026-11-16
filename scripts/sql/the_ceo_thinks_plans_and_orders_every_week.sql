@@ -129,7 +129,7 @@ returns text language sql immutable set search_path to 'public', 'pg_temp' as $f
                      '(https?://|ftp://|www\.)\S*', '[link]', 'gi'),                                          -- links
                      '\S+@\S+', '[address]', 'g'),                                                           -- e-mail addresses
                      '\m[a-z0-9-]+(\.[a-z0-9-]+)*\.(com|net|org|ae|io|co|info|biz|me|app|xyz|online|site|link|ly|gl)\M\S*', '[link]', 'gi'),  -- bare domains
-                     '(\+|\m00)[1-9][0-9 ().-]{7,}[0-9]|\m0?5[0-9][ -]?[0-9]{3}[ -]?[0-9]{4}\M', '[number]', 'g'),  -- phone numbers
+                     '(\+|\m00)[1-9][0-9 ().-]{7,}[0-9]|\m(971[ -]?)?0?5[0-9][ -]?[0-9]{3}[ -]?[0-9]{4}\M|[0-9]{9,}', '[number]', 'g'),  -- phone numbers (also 971 without + and any 9+ digit run, inside a key too)
                    '[`*_#<>|~{}\\]+|\s+', ' ', 'g')) as t) x
 $fn$;
 revoke execute on function public.fn_ceo_plan_clean_text(text, integer) from public, anon, authenticated;
@@ -254,21 +254,39 @@ create table if not exists public.ceo_own_decision (
 comment on table public.ceo_own_decision is 'A decision the CEO takes himself where the estate used to ask the founder (ledger 1696), and his own actions from a plan (trade priorities, coverage targets), each with its reason; in the founder''s daily summary as information. the_ceo_thinks_plans_and_orders_every_week.sql';
 
 do $guard$
-declare t text;
 begin
-  foreach t in array array['ceo_growth_channel', 'ceo_plan_week', 'ceo_plan_bet', 'ceo_own_decision'] loop
-    if not (select relrowsecurity from pg_class where oid = ('public.' || t)::regclass) then
-      execute format('alter table public.%I enable row level security', t);
-    end if;
-    if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = t and policyname = t || '_service_role_only') then
-      execute format('create policy %I on public.%I as permissive for all to public using (false) with check (false)', t || '_service_role_only', t);
-    end if;
-    execute format('revoke all on public.%I from anon, authenticated', t);
-  end loop;
+  if not (select relrowsecurity from pg_class where oid = 'public.ceo_growth_channel'::regclass) then
+    alter table public.ceo_growth_channel enable row level security;
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'ceo_growth_channel' and policyname = 'ceo_growth_channel_service_role_only') then
+    create policy ceo_growth_channel_service_role_only on public.ceo_growth_channel as permissive for all to public using (false) with check (false);
+  end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.ceo_plan_week'::regclass) then
+    alter table public.ceo_plan_week enable row level security;
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'ceo_plan_week' and policyname = 'ceo_plan_week_service_role_only') then
+    create policy ceo_plan_week_service_role_only on public.ceo_plan_week as permissive for all to public using (false) with check (false);
+  end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.ceo_plan_bet'::regclass) then
+    alter table public.ceo_plan_bet enable row level security;
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'ceo_plan_bet' and policyname = 'ceo_plan_bet_service_role_only') then
+    create policy ceo_plan_bet_service_role_only on public.ceo_plan_bet as permissive for all to public using (false) with check (false);
+  end if;
+  if not (select relrowsecurity from pg_class where oid = 'public.ceo_own_decision'::regclass) then
+    alter table public.ceo_own_decision enable row level security;
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'ceo_own_decision' and policyname = 'ceo_own_decision_service_role_only') then
+    create policy ceo_own_decision_service_role_only on public.ceo_own_decision as permissive for all to public using (false) with check (false);
+  end if;
   if to_regclass('public.ceo_plan_bet_open') is null then
     create index ceo_plan_bet_open on public.ceo_plan_bet (status) where status = 'filed';
   end if;
 end $guard$;
+revoke all on public.ceo_growth_channel from anon, authenticated;
+revoke all on public.ceo_plan_week from anon, authenticated;
+revoke all on public.ceo_plan_bet from anon, authenticated;
+revoke all on public.ceo_own_decision from anon, authenticated;
 revoke all on sequence public.ceo_plan_week_id_seq, public.ceo_plan_bet_id_seq, public.ceo_own_decision_id_seq from anon, authenticated;
 
 insert into public.decision_policy (key, value, description) values
@@ -558,7 +576,7 @@ begin
   exception when others then v := v || jsonb_build_object('last_plan', jsonb_build_object('unavailable', left(sqlerrm, 200))); end;
   -- every order as a conversation: the open ones with their last turns, the retros and lessons of 30 days
   -- (an_order_is_a_conversation_until_its_outcome.sql, applied after this file; until then the section says why it is missing)
-  begin v := v || jsonb_build_object('order_threads', public.fn_order_threads_pack());
+  begin v := v || jsonb_build_object('order_threads', fn_order_threads_pack());
   exception when others then v := v || jsonb_build_object('order_threads', jsonb_build_object('unavailable', left(sqlerrm, 200))); end;
   begin
     v := v || jsonb_build_object('own_decisions', coalesce((select jsonb_agg(jsonb_build_object('source', d.source, 'subject', d.subject, 'choice', d.choice, 'reason', public.fn_ceo_plan_clean_text(d.reason, 300), 'at', d.created_at) order by d.id desc)
@@ -719,7 +737,7 @@ begin
     exit when t = v_prev or i > 6;
   end loop;
   v_fx := coalesce((select max(num_value) from public.gl_settings where key = 'usd_to_aed'), 3.6725);
-  for m in select regexp_matches(t, '(?:aed|dhs?|dirhams?)\s*' || v_amt || '\M', 'g')
+  for m in select regexp_matches(t, '(?:aed|dhs?|dirhams?)[\s:~(]*(?:(?:up to|about|around|approx\.?|approximately|roughly|at most|max\.?)\s*)?(?:[0-9][0-9,]*(?:\.[0-9]+)?\s*(?:k|thousand|mn|m|million)?\s*(?:-|–|to|or)\s*)?' || v_amt || '\M', 'g')
            union all select regexp_matches(t, '\m' || v_amt || '\s*(?:aed|dhs?|dirhams?)\M', 'g') loop
     if replace(m[1], ',', '') ~ '^[0-9]+(\.[0-9]+)?$' then
       v := replace(m[1], ',', '')::numeric * case when m[3] ~ '^(k|thousand)$' then 1000 when m[3] ~ '^(m|mn|million)$' then 1000000 else 1 end;
@@ -749,6 +767,8 @@ begin
   if t !~ ('\m' || v_word || '\M') then return t; end if;
   t := regexp_replace(t, '\ma (hundred|thousand|million)\M', 'one \1', 'g');
   for v_phrase in select p from (select distinct x[1] as p from regexp_matches(t, '\m(' || v_word || '(?:(?:\s+and\s+|\s+|-)' || v_word || ')*)\M', 'g') x) d order by length(p) desc loop
+    -- a multiplier after digits ("AED 20 thousand", "1.5 million") is left to the amount reader's own suffix
+    continue when v_phrase ~ '^(hundred|thousand|million)\M';
     v_total := 0; v_cur := 0;
     foreach w in array regexp_split_to_array(v_phrase, '(\s+and\s+|\s+|-)') loop
       if w = any (v_units) then v_cur := v_cur + array_position(v_units, w) - 1;
@@ -1331,7 +1351,7 @@ begin
        || coalesce((select E'\nTHE CEO DECIDED HIMSELF: ' || string_agg(d.subject || ' - ' || d.choice || ': ' || public.fn_ceo_plan_clean_text(d.reason, 200), '; ' order by d.id)
                      from public.ceo_own_decision d where d.world = public.fn_ceo_plan_world() and d.created_at >= p_since), '');
   -- each open order as a conversation, one line each (an_order_is_a_conversation_until_its_outcome.sql, applied after this file)
-  begin v := v || coalesce(public.fn_order_threads_summary_text(), '');
+  begin v := v || coalesce(fn_order_threads_summary_text(), '');
   exception when others then null; end;
   return v;
 end $fn$;

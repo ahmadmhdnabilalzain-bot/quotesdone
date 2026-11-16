@@ -135,7 +135,7 @@ test('7. routines revoked and pinned, tables with a policy, the file pending unt
     assert.match(body, /set search_path to 'public', 'pg_temp'/, `${n} pins its search_path`);
     assert.match(C, new RegExp(`revoke execute on function public\\.${n}\\([^)]*\\) from public, anon, authenticated`), `${n} is revoked`);
   }
-  assert.match(C, /create policy %I on public\.%I as permissive for all to public using \(false\) with check \(false\)/);
+  for (const t of ['ceo_growth_channel', 'ceo_plan_week', 'ceo_plan_bet', 'ceo_own_decision']) assert.match(C, new RegExp(`create policy ${t}_service_role_only on public\\.${t} as permissive for all to public using \\(false\\) with check \\(false\\)`), `${t}: a static policy (apply_sql refuses dynamic SQL in a DO block)`);
   for (const t of ['ceo_growth_channel', 'ceo_plan_week', 'ceo_plan_bet', 'ceo_own_decision']) assert.ok(C.includes(`'${t}'`), `${t} gets its policy`);
   const manifest = read('scripts/sql/MANIFEST.txt');
   for (const f of [FILE, PROBE]) {

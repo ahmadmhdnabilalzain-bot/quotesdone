@@ -110,7 +110,7 @@ test('4. the lesson reaches the seat, the shared pool and the next order', () =>
 test('5. the founder\'s summary and the CEO\'s pack read the conversations', () => {
   const plan = code(read(PLAN_FILE));
   assert.match(fnBody('fn_ceo_plan_summary_text', plan), /fn_order_threads_summary_text\(\)/, 'one line per open order in the daily summary');
-  assert.match(fnBody('fn_ceo_planning_pack', plan), /'order_threads', public\.fn_order_threads_pack\(\)/, 'the weekly pack reads open threads and retros');
+  assert.match(fnBody('fn_ceo_planning_pack', plan), /'order_threads', fn_order_threads_pack\(\)/, 'the weekly pack reads open threads and retros');
   assert.match(fnBody('fn_ceo_plan_bet_reading', plan), /to_regclass\('public\.engineer_session_request'\) is null/, 'the plan file stands alone before this one');
   const line = fnBody('fn_order_threads_summary_text');
   assert.match(line, /fn_order_thread_status\(t\.handoff_id\)/); assert.match(line, /' - next: '/);
@@ -141,7 +141,7 @@ test('7. routines revoked and pinned, tables with a policy, the file pending unt
     assert.match(body, /set search_path to 'public', 'pg_temp'/, `${f} pins its search_path`);
   }
   for (const t of ['seat_capability', 'engineer_session_request', 'seat_order_thread', 'seat_order_turn']) assert.match(C, new RegExp(`'${t}'`), `${t} gets its policy`);
-  assert.match(C, /create policy %I on public\.%I as permissive for all to public using \(false\) with check \(false\)/);
+  for (const t of ['seat_capability', 'engineer_session_request', 'seat_order_thread', 'seat_order_turn']) assert.match(C, new RegExp(`create policy ${t}_service_role_only on public\\.${t} as permissive for all to public using \\(false\\) with check \\(false\\)`), `${t}: a static policy (apply_sql refuses dynamic SQL in a DO block)`);
   const manifest = read('scripts/sql/MANIFEST.txt');
   assert.ok(!manifest.split('\n').some((l) => l.trim() === 'an_order_is_a_conversation_until_its_outcome.sql'), 'not in MANIFEST until applied');
   assert.ok(existsSync(join(REPO, 'scripts/sql/pending/an_order_is_a_conversation_until_its_outcome.txt')), 'its pending note says why');
