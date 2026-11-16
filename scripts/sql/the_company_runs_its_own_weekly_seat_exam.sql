@@ -130,7 +130,8 @@ create or replace function public.fn_seat_exam_record(p_run_id bigint, p_item_id
   p_model text, p_status text, p_pass boolean, p_graded_by text, p_missing text[])
 returns jsonb language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
 declare r public.seat_exam_run; f public.seat_exam_fix; v_asked bigint; v_fix bigint; v_lesson boolean := false;
-        v_miss boolean := not coalesce(p_pass, false) and p_status <> 'no_wording';
+        -- only an ANSWER that misses is a knowledge miss: a held or failed think() (model hold, deadline) opens no fix
+        v_miss boolean := not coalesce(p_pass, false) and p_status = 'answered';
 begin
   select * into r from public.seat_exam_run where id = p_run_id for update;
   if not found then raise exception 'fn_seat_exam_record: no seat_exam_run %', p_run_id; end if;
@@ -149,8 +150,10 @@ begin
   if v_miss and f.id is null then
     insert into public.seat_exam_fix (seat, item_id, opened_run) values (p_seat, p_item_id, r.run_tag) returning id into v_fix;
     v_lesson := true;
-  elsif v_miss and f.fix_ref is null then
-    v_lesson := true;                                   -- the fix was never made: make it now
+  elsif f.id is not null and f.fix_ref is null and p_status = 'answered' then
+    -- the fix was never made: make it now, at a pass too (seat_exam_fix may close only with a fix_ref, so an unmade
+    -- fix that is then passed would otherwise stay open and be re-asked first every week for ever)
+    v_lesson := true;
   elsif coalesce(p_pass, false) and f.fix_ref is not null then
     update public.seat_exam_fix set status = 'closed', closed_at = now(), closed_by_asked_id = v_asked where id = f.id;
   end if;
@@ -279,9 +282,9 @@ begin
         'title', 'The weekly seat exam of ' || to_char(x.week, 'DD Mon') || ' is not finished ' || extract(hour from v_deadline) || ' hours after it opened ('
                  || x.asked || ' of ' || jsonb_array_length(x.planned) || ' asked)',
         'evidence', jsonb_build_object('run_id', x.id, 'posts', x.posts, 'failed_posts', x.failed_posts, 'http_error', x.http_error));
-    elsif x.status = 'done' and x.no_wording * 2 > greatest(x.asked, 1) then
+    elsif x.status = 'done' and (x.asked - x.passed - x.missed) * 2 > greatest(x.asked, 1) then
       v_items := v_items || jsonb_build_object('item', 'wording:' || x.week, 'owner_seat', 'it_engineer', 'subject', 'seat_exam',
-        'title', 'The weekly seat exam of ' || to_char(x.week, 'DD Mon') || ' could not word ' || x.no_wording || ' of ' || x.asked || ' questions',
+        'title', 'The weekly seat exam of ' || to_char(x.week, 'DD Mon') || ' could not word or get an answer to ' || (x.asked - x.passed - x.missed) || ' of ' || x.asked || ' questions',
         'evidence', jsonb_build_object('run_id', x.id, 'look_at', 'ai_cost_log fn knowledge_exam task routine_employee_reasoning'));
     end if;
   end loop;

@@ -56,6 +56,10 @@ begin
   -- a wording outage opens no fix
   v_rec := public.fn_seat_exam_record(r.id, 'zz-demo-a2', 'accountant', '', '', null, 'no_wording', false, 'code', array['3%']);
   if (v_rec->>'fix_id') is not null or (v_rec->>'lesson_needed')::boolean then v_fail := v_fail || '3: a wording outage opened a fix; '; end if;
+  -- a held answer (model hold, deadline) is not a knowledge miss: no fix, no lesson
+  v_rec := public.fn_seat_exam_record(r.id, 'zz-demo-c1', 'ceo', 'ZZ DEMO may a seat guarantee?', '', null, 'held', false, 'code', array['written authority']);
+  if (v_rec->>'fix_id') is not null or (v_rec->>'lesson_needed')::boolean then v_fail := v_fail || '3: a held answer opened a fix; '; end if;
+  delete from public.seat_exam_asked where run_tag = r.run_tag and item_id = 'zz-demo-c1';   -- c1 stays unasked for the cases below
   -- an item asked twice in one run, or not planned, is refused
   begin perform public.fn_seat_exam_record(r.id, 'zz-demo-a1', 'accountant', 'x x x x x x x', '', null, 'answered', true, 'code', '{}');
         v_fail := v_fail || '3: an item was recorded twice in one run; '; exception when others then null; end;
