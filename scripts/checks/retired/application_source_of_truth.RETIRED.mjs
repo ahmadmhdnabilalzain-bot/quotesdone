@@ -63,7 +63,7 @@
 import { SUPABASE_TOKEN_FILE } from '../../lib/supabase_token.mjs';
 import { readFileSync, existsSync } from 'node:fs';
 import { execSync, spawnSync } from 'node:child_process';
-import { newDdlRecord, eatDdl, uncommittedDdl, LIVE_DDL_SQL } from '../_ddl_from_sql.mjs';
+import { newDdlRecord, eatDdl, uncommittedDdl, LIVE_DDL_SQL } from './_ddl_from_sql.RETIRED.mjs';
 
 const DIR = 'scripts/sql';
 const MANIFEST = `${DIR}/MANIFEST.txt`;

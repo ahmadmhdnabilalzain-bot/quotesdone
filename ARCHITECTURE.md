@@ -255,6 +255,7 @@ Internal calls between functions are authenticated by `requireInternal()`
 The customer and supplier portals' screen-by-screen behaviour (`docs/CUSTOMER_PORTAL.md`,
 `docs/SUPPLIER_PORTAL.md`), the knowledge corpus and how it is certified (`docs/knowledge/`,
 `docs/expertise/`), and the seats' own operating rules (`.claude/skills/`). There is no staging project: the
-second Supabase project was deleted on 15 Aug 2026. `scripts/staging/` holds the sandbox fixture tools, which target
-the one project with `ZZ DEMO` data and refuse to write unless `QD_FIXTURES=1` is set for the run
-(`mgmtFixture` in `scripts/lib/qd_guard.mjs`).
+second Supabase project was deleted on 15 Aug 2026. The sandbox fixture tools that targeted it (`scripts/staging/`) were
+moved to `scripts/archive/staging/` on 16 Nov 2026: nothing outside the folder ran them, and with no staging project
+they defaulted to production. Fixtures for a test are built by `scripts/lib/demo_factory.mjs` and `scripts/e2e/`; a
+write probe runs on a local Postgres 16 (`scripts/db/local_pg16.mjs`), never on the one project.
