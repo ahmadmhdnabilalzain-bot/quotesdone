@@ -91,7 +91,8 @@ test('4. the model is asked on the right route, at most twice, and daily only on
   assert.match(due, /jsonb_array_length\(v_anom\) = 0/, 'no anomaly, no model');
   assert.match(due, /v_spent >= v_cap/, 'the loop has its own weekly cap');
   const tick = read('supabase/functions/resilience_ping/ticks/ceo.ts');
-  assert.match(tick, /admin\.rpc\('fn_ceo_plan_due'/);
+  // 16 Nov 2026 (the_ceo_writes_its_weekly_plan_with_a_model_and_carries_it_out.sql): the duty opens the plan, the heartbeat hands it over
+  assert.match(tick, /admin\.rpc\('fn_ceo_plan_handover'/);
   assert.match(tick, /action: 'plan', plan_id: t\.plan_id, detach: true/, 'the heartbeat hands the plan to the CEO\'s function, detached');
 });
 
