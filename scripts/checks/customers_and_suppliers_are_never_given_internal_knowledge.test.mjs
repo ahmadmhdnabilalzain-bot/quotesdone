@@ -90,7 +90,7 @@ const READERS = {
   fn_it_engineer_assist: 'it_engineer edge, seat credential or founder only',
   fn_marketing_assist: 'marketing edge, seat credential or founder only (the social inbox replies through aiReply)',
   fn_agent_context: 'internal agent context (fn_decide); no edge caller', fn_agent_context_v3: 'internal agent context; no edge caller',
-  fn_apply_playbook: 'internal task machinery', fn_ops_knowledge_search: 'internal (tools.ts, which nothing imports)',
+  fn_apply_playbook: 'internal task machinery', fn_ops_knowledge_search: 'internal; no edge caller (its one caller, _shared/tools.ts, had no importer and was removed 16 Nov 2026)',
   fn_ops_knowledge_match: 'internal; no edge caller', fn_org_task_consume_tick: 'internal task machinery',
   fn_org_task_deterministic_done: 'internal task machinery', fn_org_task_lane_knowledge: 'internal task machinery',
   fn_workflow_step_deterministic_done: 'internal task machinery',
