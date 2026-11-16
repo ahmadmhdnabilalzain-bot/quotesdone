@@ -271,12 +271,22 @@ as $fn$
 declare c record; v_n int := 0; v_skipped int := 0; v_from text;
 begin
   for c in select x.*, l.claimed_by as owner_email, l.company_name from public.supplier_ownership_claim x join public.leads l on l.id = x.lead_id
-            where x.state = 'approved_waiting' and x.effective_at <= now() order by x.id for update of x loop
+            where x.state = 'approved_waiting' and x.effective_at <= now() order by x.id for update of x, l loop
     -- the member must still count (not removed, not held by the screen) when the day comes
     if not exists (select 1 from public.supplier_member m where m.id = c.member_id and m.status in ('active', 'screening'))
        or not public.fn_supplier_member_counts(c.member_id) then
       update public.supplier_ownership_claim set state = 'refused', reasoning = coalesce(reasoning, '') || E'\n[system] the member no longer counts on the day',
              updated_at = now() where id = c.id;
+      v_skipped := v_skipped + 1;
+      continue;
+    end if;
+    -- REVIEW W3PEOPLE: exact facts the owner has not left, read on the day: the owner changed since the case opened (a hand-over in
+    -- the three days), or the owner signed in after the decision. The case goes back to the sales engineer with the fact; nothing moves.
+    if lower(coalesce(c.owner_email, '')) <> lower(coalesce(c.evidence -> 'owner' ->> 'email', c.owner_email))
+       or exists (select 1 from auth.users u where lower(u.email) = lower(c.owner_email) and u.last_sign_in_at > c.decided_at) then
+      update public.supplier_ownership_claim set state = 'open', decision = null, effective_at = null, updated_at = now(),
+             reason = left(reason || E'\n[system] on the day: the owner changed, or signed in after the decision; nothing moved', 6000)
+       where id = c.id;
       v_skipped := v_skipped + 1;
       continue;
     end if;

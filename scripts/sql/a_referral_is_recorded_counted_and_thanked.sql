@@ -183,11 +183,10 @@ begin
     v_h := public.fn_sales_engineer_writes('customer_referral_thanks', 'customer', (select email from public.customers where id = v_ref),
       null, v_ref, null, null,
       'Thank you for recommending QuotesDone',
-      'Someone you recommended has just made their first request on QuotesDone. Thank you for passing our name on: it is the best '
-      || 'thing a customer can do for us.' || E'\n\nWhenever you need quotes again, you can start a request on quotesdone.com or reply here.',
+      'Someone you recommended has just come to QuotesDone and named you. Thank you for passing our name on: it is the best '
+      || 'thing a customer can do for us.',
       'شكرًا لتوصيتك بـ QuotesDone',
-      'أحد من نصحتهم بنا قدّم للتو أول طلب له على QuotesDone. شكرًا لأنك ذكرت اسمنا، فهذا أفضل ما يمكن أن يقدّمه لنا عميل.'
-      || E'\n\nمتى احتجت إلى عروض أسعار مجددًا، يمكنك بدء طلب على quotesdone.com أو الرد على هذه الرسالة.',
+      'أحد من نصحتهم بنا جاء للتو إلى QuotesDone وذكر اسمك. شكرًا لأنك ذكرت اسمنا، فهذا أفضل ما يمكن أن يقدّمه لنا عميل.',
       '{}'::text[], 'customer_referral_thanks:' || p_customer);
     update public.customer_referral set thanked_at = now(), thanks_handoff = v_h where customer_id = p_customer;
   end if;

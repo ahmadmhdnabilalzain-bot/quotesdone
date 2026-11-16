@@ -19,7 +19,7 @@ import { fileJobQuestion } from './job_question.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 export const COMPANY_KINDS = new Set(['job_question', 'close_account', 'close_confirm', 'close_cancel', 'customer_silent', 'paid_leads',
-  'refer_company', 'owner_left']);
+  'refer_company', 'owner_left', 'owner_keeps']);
 const plain = (s: string) => s.replace(/\s+/g, ' ').trim();
 const ref = (rfq: unknown, id: string) => (rfq != null && String(rfq) !== '' ? 'RFQ-' + String(rfq).replace(/^RFQ-/i, '') : 'request ' + id.slice(0, 8));
 
@@ -100,6 +100,12 @@ export async function applyCompanyInstruction(admin: Admin, f: Facts, r: Reading
     if (!d.ok) return { kind: r.kind, done: false, facts: d.code === 'not_approved' ? 'A referral link is given once the company is approved on QuotesDone. Tell him so, and that he can ask again then. Nothing else is promised.' : 'His referral link could not be read just now; tell him a colleague will send it.', detail: d };
     const n = Number(d.registered ?? 0);
     return { kind: r.kind, done: true, detail: d, facts: plain(`His company's own referral link is ${d.url} . Give it to him exactly. He sends it to companies he knows in his trade; we do not write to them ourselves. When one registers through it, it is recorded that his company referred it (${n} compan${n === 1 ? 'y has' : 'ies have'} so far). Registration is free, and nobody can pay to rank higher or for more requests.`) };
+  }
+  // REVIEW W3PEOPLE: the owner's notices say "or reply to this e-mail"; his reply keeps the company (the owner only: the routine checks)
+  if (r.kind === 'owner_keeps') {
+    const d = await rpc('fn_supplier_ownership_claim_object', { p_lead: sid, p_actor: actorOf(f) });
+    if (!d.ok) return { kind: r.kind, done: false, facts: 'Only the owner of the company can keep it. Nothing was changed.', detail: d };
+    return { kind: r.kind, done: true, detail: d, facts: d.nothing_waiting ? 'No member has asked to take over his company; nothing was changed. He remains the owner.' : 'He keeps the company: the member\'s request to take it over is closed, nothing changed, and the member was told. Confirm this to him.' };
   }
   if (r.kind === 'owner_left') {
     if ((f.sender?.role ?? 'owner') === 'owner') return { kind: r.kind, done: false, facts: 'He is already the owner of this company on QuotesDone, so there is nothing to take over. If a colleague has left, he can remove him in Settings, Team; to hand the company to someone else he uses Settings, Team, Hand over. Nothing was changed.' };

@@ -70,7 +70,7 @@ export function memberMay(role: Role, action: string): May {
 }
 
 // What a member may ask for by e-mail or WhatsApp (the kinds _shared/supplier_instruction.ts reads).
-const OWNER_KINDS = new Set(['remove_work', 'answer_yes', 'answer_no', 'close_account', 'close_confirm', 'close_cancel']);
+const OWNER_KINDS = new Set(['remove_work', 'answer_yes', 'answer_no', 'close_account', 'close_confirm', 'close_cancel', 'owner_keeps']);
 const ESTIMATOR_KINDS = new Set(['not_for_me', 'available', 'confirm_figure', 'job_question', 'customer_silent', 'paid_leads']);
 /** May this role give this instruction? A viewer gives none; a paid-leads offer is only recorded, so anyone's is kept. */
 export function memberMayInstruct(role: Role, kind: string): boolean {
