@@ -17,7 +17,7 @@
 --     own result row, with the items chosen here (fn_seat_exam_plan: an item with an open fix first, then the least
 --     recently asked; per_seat a seat);
 --   * it posts the run to the it_engineer function (action seat_exam, supabase/functions/it_engineer/seat_exam.ts) until every
---     planned item is asked, one post in flight at a time; each post asks a few items: a fresh wording by the model, the
+--     planned item is asked, one post in flight at a time; each post asks one item (two when the first is quick): a fresh wording by the model, the
 --     seat's real answer through think(), graded by code then by the model judge, recorded by fn_seat_exam_record;
 --   * A MISS IS FIXED: fn_seat_exam_fix_lesson writes the item's canon into the seat's own knowledge (agent_knowledge,
 --     agent_key = the seat; fn_reason_retrieve gives a seat its own rows for an internal audience only) and sets the fix's

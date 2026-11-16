@@ -102,13 +102,15 @@ export type BatchResult = {
 };
 
 /** One post of the duty: asks the run's next items until none is left, the run must stop, or the clock is spent. */
-export async function runExamBatch(deps: ExamDeps, runId: number, o: { budgetMs?: number; max?: number } = {}): Promise<BatchResult> {
+export async function runExamBatch(deps: ExamDeps, runId: number, o: { budgetMs?: number; itemMs?: number; max?: number } = {}): Promise<BatchResult> {
   const t0 = deps.now();
   const budget = o.budgetMs ?? 100_000;
+  const itemMs = o.itemMs ?? 45_000;
   const out: BatchResult = { asked: 0, passed: 0, missed: 0, no_wording: 0, lessons: 0, lesson_errors: [], stop: null, items: [] };
   while (out.asked < (o.max ?? 4)) {
-    // An item takes up to about 45 s (the wording, think()'s phases, the judge): none is started in the last 45 s.
-    if (deps.now() - t0 > budget - 45_000) { out.stop = 'clock'; break; }
+    // An item takes up to itemMs (the wording, think()'s whole run, the judge): none is started that could not finish
+    // inside the post's budget (the edge's 150 s wall kills a worker with nothing recorded). The first always starts.
+    if (out.asked > 0 && deps.now() - t0 > budget - itemMs) { out.stop = 'clock'; break; }
     const { items, stop } = await deps.next(runId, 1);
     if (stop) { out.stop = stop; break; }
     const item = items[0];

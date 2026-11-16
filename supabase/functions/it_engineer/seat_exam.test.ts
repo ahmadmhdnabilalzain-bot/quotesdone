@@ -75,8 +75,9 @@ Deno.test('the batch stops on the run\'s stop (the week\'s AED cap) and on its o
   assertEquals((await runExamBatch(capped.d, 7)).stop, 'week_cap'); assertEquals(capped.rows.length, 0);
   let t = 0;
   const slow = deps({ queue: [ITEM, { ...ITEM, item_id: 'b' }, { ...ITEM, item_id: 'c' }], now: () => (t += 30_000) });
-  const r = await runExamBatch(slow.d, 7, { budgetMs: 100_000, max: 9 });
-  assertEquals(r.stop, 'clock'); assert(r.asked < 3);
+  const r = await runExamBatch(slow.d, 7, { budgetMs: 140_000, itemMs: 125_000, max: 9 });
+  // the first item always starts; a second never starts when it could not finish inside the edge's wall
+  assertEquals(r.stop, 'clock'); assertEquals(r.asked, 1);
 });
 
 Deno.test('a record that fails stops the batch rather than asking on unrecorded', async () => {

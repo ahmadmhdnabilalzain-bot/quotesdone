@@ -433,7 +433,7 @@ Deno.serve(async (req) => {
       const { embedLine } = await import('../_shared/gte_embed.ts');
       const live = defaultDeps(admin as never, 'knowledge_exam');
       const call = (taskClass: string, temperature: number) => makeLlmRich([], { fn: 'knowledge_exam', agent: 'it_engineer', taskClass,
-        max: 400, timeoutMs: 30_000, json: true, temperature, internalDuty: true });
+        max: 400, timeoutMs: 15_000, json: true, temperature, internalDuty: true });
       const ask = async (c: ReturnType<typeof call>, system: string, input: string) => {
         const r = await c(system, input, 400); return { content: r.content, error: r.error };
       };
@@ -448,9 +448,10 @@ Deno.serve(async (req) => {
         judge: (system, input) => ask(call('knowledge_validation', 0), system, input),
         answer: async (seat, wording, itemId) => {
           try {
+            // think()'s own run deadline (95 s) leaves the wording and the judge (20 s each at most) inside the edge's 150 s wall
             const r = await think(live as never, { seat: seat as never, surface: 'think.answer', question: wording,
               context: { audience: 'internal' } as never, subject: { seat_exam_item: itemId } as never,
-              internalDuty: true, queueWhenHeld: false } as never) as { status: string; answer?: string; model?: string | null; reason?: string | null };
+              internalDuty: true, queueWhenHeld: false, deadlineAt: Date.now() + 95_000 } as never) as { status: string; answer?: string; model?: string | null; reason?: string | null };
             return { status: r.status, answer: r.answer ?? '', model: r.model ?? null, reason: r.reason ?? null };
           } catch (e) { return { status: 'error', answer: '', model: null, reason: (e as Error).message }; }
         },
@@ -473,7 +474,7 @@ Deno.serve(async (req) => {
           return { knowledge_id: d.knowledge_id ?? null, error: d.knowledge_id ? (v ? null : 'written without a vector') : 'no row' };
         },
         now: () => Date.now(),
-      }, runId, { budgetMs: 110_000, max: 4 });
+      }, runId, { budgetMs: 140_000, itemMs: 125_000, max: 3 });
       // a batch that could not read or record is a failed post (502): the duty counts it and closes the run after three
       const broken = !!(result.stop?.startsWith('record_failed') || result.stop?.startsWith('next_failed'));
       await run('seat_exam', broken ? 'error' : 'ok',
