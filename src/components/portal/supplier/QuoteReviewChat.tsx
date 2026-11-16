@@ -242,7 +242,9 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
   const st = REVIEW_STATE[th.state];
   const reviewing = busy === 'upload' || th.reviewing;
   const openPts = th.open_requests.filter((q) => q.kind !== 'choice');
-  const closed = th.state === 'submitted' || th.state === 'closed';
+  // A submitted thread stays open for ONE thing: his answer to the comparison's open points (can_write, thread_view.ts). Nothing else reopens it.
+  const closed = th.state === 'closed' || (th.state === 'submitted' && !th.can_write);
+  const asked = th.state === 'submitted' && th.can_write ? th.open_requests.filter((q) => q.code === 'comparison_point') : [];
 
   return (
     <section aria-label={t.log} className="mt-4 overflow-hidden rounded-panel border border-(--line) bg-background/40">
@@ -269,6 +271,11 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
         <div className="border-t border-(--line) bg-warn/6 px-4 py-2.5 text-[12.5px]">
           <span className="font-semibold text-foreground">{t.open(openPts.length)}</span>
           <span className="text-muted-foreground"> — {t.tracked}</span>
+          {asked.length > 0 ? (
+            <ul className="mt-1.5 list-disc ps-5 text-foreground">
+              {asked.map((q) => <li key={q.id}>{lang === 'ar' && q.label_ar ? q.label_ar : q.label_en}</li>)}
+            </ul>
+          ) : null}
         </div>
       ) : null}
 
@@ -300,8 +307,8 @@ export function QuoteReviewChat({ token, lang, inquiryId, onChanged }: { token: 
                 <span className="text-[11.5px] text-muted-foreground">{t.fileTip}</span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <input ref={chatFileRef} type="file" accept={ACCEPT_CHAT} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => onChatFile(e.target.files?.[0])} disabled={!th.can_write || !!busy} />
-                <Button variant={chatFile ? 'secondary' : 'ghost'} title={t.chatFileTip} disabled={!th.can_write || !!busy || th.reviewing}
+                <input ref={chatFileRef} type="file" accept={ACCEPT_CHAT} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => onChatFile(e.target.files?.[0])} disabled={!th.can_upload || !!busy} />
+                <Button variant={chatFile ? 'secondary' : 'ghost'} title={t.chatFileTip} disabled={!th.can_upload || !!busy || th.reviewing}
                   onClick={() => (chatFile ? setChatFile(null) : chatFileRef.current?.click())}>{chatFile ? t.chatFileOn(chatFile.filename) : t.chatFile}</Button>
                 <Button variant="outline" disabled={(!text.trim() && !chatFile) || !th.can_write || !!busy || th.reviewing} onClick={send}>{busy === 'send' ? t.sending : t.send}</Button>
               </div>
