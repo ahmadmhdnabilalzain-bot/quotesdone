@@ -15,7 +15,7 @@ import { requestDelivery } from '../../_shared/deliver.ts';
 import { statementRowText, takeInStatement } from '../../_shared/bank_statement_intake.ts';
 import { defaultDeps } from '../../_shared/think.ts';
 import { documentKind, readingOf, receiptVendor, type ExpenseMail } from '../../_shared/reasoned_books.ts';
-import { registerRowsFor } from '../../_shared/expense_mailbox.ts';
+import { registerRowsFor, survivingEntryId } from '../../_shared/expense_mailbox.ts';
 import { admin, SUPA_URL, J, logRun } from '../lib/runtime.ts';
 import { attachmentBytes } from '../lib/inbound_fetch.ts';
 import { sha256hex, dbxSafe } from '../lib/receipt_consts.ts';
@@ -283,20 +283,25 @@ export async function receipts(ctx: BounceUnsubscribeOut) {
           //    and dropbox_backup reads it by status, not by entity, so an 'expense' row needs no
           //    change there. dedupe_key makes a redelivery a no-op.
           const fileAndPost = async (entryId: number | null | undefined, dPath: string | null, dName: string, dType: string) => {
-            if (!entryId) return { journal: null as number | null, filed: false };
+            if (!entryId) return { journal: null as number | null, filed: false, entry: null as number | null };
             const { data: jid, error: glErr } = await admin.rpc('fn_expense_post_to_gl', { p_entry_id: entryId });
             if (glErr) await logRun('error', { entry_id: entryId }, 'expense #' + entryId + ' was booked but did NOT reach the ledger: fn_expense_post_to_gl failed with ' + String(glErr.message || '').slice(0, 200) + '. gl_journal understates costs until it is posted.');
+            // 15 Nov 2026 (review item 6): a receipt for a cost held on the founder's word is FOLDED into that entry by
+            // fn_expense_post_to_gl, which deletes this row and moves the message key onto the held entry (whose
+            // invoice.received the merge emits). Everything filed from here names the row that survives, read back by
+            // the key; a deleted row gets nothing.
+            const survivor = await survivingEntryId(admin, entryId, msgKey);
             let filed = false;
-            if (dPath) {
+            if (dPath && survivor) {
               const { error: bkErr } = await admin.from('doc_backups').insert({
-                entity: 'expense', entity_id: String(entryId), doc_type: 'Receipt',
+                entity: 'expense', entity_id: String(survivor), doc_type: 'Receipt',
                 bucket: 'receipt-files', path: dPath, file_name: dName.slice(0, 180),
                 dropbox_path: `/QuotesDone Backup/Finance/Receipts/${charged.slice(0, 7)}/${dbxSafe(vendor)} ${charged} - ${dbxSafe(dName)}`,
-                source: 'storage', dedupe_key: 'E:' + entryId + ':receipt:' + dPath,
+                source: 'storage', dedupe_key: 'E:' + survivor + ':receipt:' + dPath,
               });
               filed = !bkErr;   // a unique-key conflict on a redelivery is the guard working
             }
-            return { journal: (jid as number | null) ?? null, filed };
+            return { journal: (jid as number | null) ?? null, filed, entry: survivor };
           };
 
           if (gapRow) {
@@ -348,8 +353,8 @@ export async function receipts(ctx: BounceUnsubscribeOut) {
           // v15: keyed on docPath, not upErr. upErr now holds the LAST error of up to three
           // attempts, so a retry that eventually succeeded would otherwise be reported as failed -
           // and fn_watch_failed_runs pages on any error row.
-          await logRun(docPath ? 'ok' : 'error', { receipt: true, booked: true, entry_id: entryId, vendor, amount, currency, vat: vatAmt, trn: !!trn, recurring, cadence: cad, doc_archived: !!docPath, dropbox_queued: posted.filed, gl_journal: posted.journal, upload_attempts: upAttempts, msg_key: msgKey }, docPath ? '' : ('expense booked but the receipt document failed to archive after ' + upAttempts + ' attempt(s): ' + upErr + '. Re-forward the vendor email to the inbound address - v15 will archive it onto the existing entry without booking a second expense.'));
-          return J({ ok: true, receipt: true, entry_id: entryId, vendor, amount, currency, vat: vatAmt, trn, charged_on: charged, recurring, cadence: cad, booked_subscription: bookedSub, doc: docPath, gl_journal: posted.journal });
+          await logRun(docPath ? 'ok' : 'error', { receipt: true, booked: true, entry_id: posted.entry ?? entryId, folded_from: posted.entry && posted.entry !== entryId ? entryId : undefined, vendor, amount, currency, vat: vatAmt, trn: !!trn, recurring, cadence: cad, doc_archived: !!docPath, dropbox_queued: posted.filed, gl_journal: posted.journal, upload_attempts: upAttempts, msg_key: msgKey }, docPath ? '' : ('expense booked but the receipt document failed to archive after ' + upAttempts + ' attempt(s): ' + upErr + '. Re-forward the vendor email to the inbound address - v15 will archive it onto the existing entry without booking a second expense.'));
+          return J({ ok: true, receipt: true, entry_id: posted.entry ?? entryId, vendor, amount, currency, vat: vatAmt, trn, charged_on: charged, recurring, cadence: cad, booked_subscription: bookedSub, doc: docPath, gl_journal: posted.journal });
         }
       } catch (e) { await logRun('error', { from, subject }, 'receipt handling threw, fell through to document handling: ' + String((e as Error)?.message||e).slice(0,200)); }
     }
