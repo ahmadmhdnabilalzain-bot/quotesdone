@@ -307,7 +307,16 @@ Deno.test('item 5: no question asks for a file the request chat cannot take (a v
   assert(accepts.length > 10, 'the file inputs were not found');
   const takesVideo = /video\/|\.mp4|\.mov|\.webm|\.3gp/i.test(accepts);
   assertEquals(takesVideo, false, 'the request chat now takes video: give it the identity checks a customer file needs, then this test may change');
-  const asks = Object.entries(CUSTOMER_QUESTION).flatMap(([k, q]) => [q.en, q.ar, q.eg_en, q.eg_ar, q.alt_en, q.alt_ar].filter(Boolean).map((t) => [k, String(t)] as const));
-  const video = asks.filter(([, t]) => /\bvideo|فيديو|مقطع مصوّر/i.test(t));
+  // A question may be ABOUT video (a video wall, a video-call service, videos as a deliverable); what it may not do is ask the
+  // customer to SEND one: the alternative line never mentions a video, and no line asks to send, attach, record or film one.
+  const VIDEO = /\bvideo|فيديو|مقطع مصوّر/i;
+  const SEND_VIDEO = /\b(send|attach|upload|share|record|film)\b[^.?]*\bvideo|(أرسلوا|إرسال|أرفقوا|صوّروا|سجّلوا)[^.؟]*(فيديو|مقطع مصوّر)/i;
+  const video = Object.entries(CUSTOMER_QUESTION).flatMap(([k, q]) => [
+    ...[q.alt_en, q.alt_ar].filter((t) => t && VIDEO.test(String(t))),
+    ...[q.en, q.ar, q.eg_en, q.eg_ar].filter((t) => t && SEND_VIDEO.test(String(t))),
+  ].map((t) => [k, String(t)] as const));
   assertEquals(video, [], 'a question asks for a video the chat cannot take: ' + JSON.stringify(video));
+  // the check bites on the line it replaced, and lets a question about a video wall through
+  assert(VIDEO.test('A photo or a short video also helps.') && SEND_VIDEO.test('Please send a short video of the noise.'));
+  assert(SEND_VIDEO.test('أرسلوا فيديو قصيرًا للصوت.') && !SEND_VIDEO.test('For example: a video wall 3 m wide and 1.7 m high'));
 });
