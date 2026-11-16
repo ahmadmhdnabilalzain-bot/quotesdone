@@ -29,6 +29,33 @@ export const INVITE_LANE_TYPES: readonly string[] = ['supplier_invite', 'supplie
 export const LANE_CAPPED_TYPES: readonly string[] = ['supplier_invite', 'supplier_invite_nudge'];
 export const LANE_UNVERIFIED_ISSUE = 'invite_lane_domain_unverified';
 
+// WHAT IS ALREADY QUEUED OBEYS THE LIVE SWITCHES (15 Nov 2026, sales_engineer; review of the funnel branch, item 4). Measured on
+// the branch: a provider class the bounce judgement held was only left out of the NEXT batch, so invitations queued for 09:00-17:00
+// still went to it; fn_invite_campaign_pause cancelled queued invitations but not the nudges queued at 04:01 for 09:00; and this
+// function never read invite_enabled. So every campaign row (the invitation and its nudges, the last note included: the
+// LANE_CAPPED_TYPES) is asked of the database at send time, in one call per run (fn_invite_campaign_send_check,
+// scripts/sql/the_bounce_brake_judges_each_bounce_by_kind_provider_and_sample_and_the_ceo_restarts_within_a_limit.sql):
+//   cancel   the company is stopped (invite_enabled or supplier_outreach_golive false, an open brake, the judgement brakes): the
+//            row is cancelled with the reason, as fn_invite_campaign_pause cancels what it finds queued;
+//   requeue  the recipient's provider class is held by the judgement or not open on the placement gate: the row waits until
+//            10:00 Dubai tomorrow (heldUntil 'cap') and is asked again;
+//   send     nothing stops it.
+// A call that fails, or a row the answer does not name, is held 30 minutes (fail closed): a campaign mail is never worth sending
+// on a guess. The seed is the placement test itself, not campaign mail, and is not asked.
+export type CampaignVerdict = { id: number | string; verdict: 'send' | 'cancel' | 'requeue'; why: string };
+export function isCampaignRow(row: { type?: unknown; to_role?: unknown }): boolean {
+  return row.to_role === 'supplier' && typeof row.type === 'string' && LANE_CAPPED_TYPES.includes(row.type);
+}
+export type CampaignStep = { step: 'send' } | { step: 'cancel'; why: string } | { step: 'requeue'; why: string; until: Date };
+export function campaignStep(verdicts: CampaignVerdict[] | null, id: number | string, now: Date): CampaignStep {
+  if (!verdicts) return { step: 'requeue', why: 'held: the live campaign switches could not be read (fn_invite_campaign_send_check); asked again in 30 minutes', until: heldUntil('unverified', now) };
+  const v = verdicts.find((x) => String(x.id) === String(id));
+  if (!v) return { step: 'requeue', why: 'held: the live campaign check did not answer for this row; asked again in 30 minutes', until: heldUntil('unverified', now) };
+  if (v.verdict === 'send') return { step: 'send' };
+  if (v.verdict === 'cancel') return { step: 'cancel', why: ('cancelled at send time: ' + v.why).slice(0, 500) };
+  return { step: 'requeue', why: ('held at send time: ' + v.why).slice(0, 500), until: heldUntil('cap', now) };
+}
+
 export function isLaneType(type: unknown): boolean {
   return typeof type === 'string' && INVITE_LANE_TYPES.includes(type);
 }

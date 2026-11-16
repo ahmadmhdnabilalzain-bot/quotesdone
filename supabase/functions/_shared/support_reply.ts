@@ -30,6 +30,7 @@ import { guardSupportReply, replyViolations, type GuardLang } from './support_re
 import { policyProblems, revealFeeIncomplete } from './company_brief.ts';
 import { aiReply } from './ai_reply.ts';
 import { e2eRunTag } from './e2e_run.ts';
+import { handFaultToIt, type FaultReport } from './support_fault_handover.ts';
 
 export type Channel = 'widget' | 'whatsapp' | 'email' | 'portal';
 export type Passage = { content: string; citation?: string | null };
@@ -65,6 +66,9 @@ export interface SupportReplyRequest {
   subject?: Record<string, unknown>;
   images?: string[];             // photos or drawings with the message (chat_images.acceptImages): answered by a vision model (ruling 1200)
   priceTrades?: string[];         // widget: the published trades; the answering call says which one (if any) is asked the price of
+  /** When the reasoning names it_engineer as the owner, the fault is HANDED OVER, not only named (ruling 1705, 15 Nov 2026;
+   *  support_fault_handover.ts): what the caller knows of the conversation. Absent, the route is only returned, as before. */
+  handover?: Omit<FaultReport, 'message' | 'channel'>;
 }
 export interface SupportReply {
   reply: string;
@@ -105,7 +109,7 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
   const fall = async (reason: string): Promise<SupportReply> => {
     const a = await aiReply(deps, { seat: req.seat ?? 'customer_support', channel: req.channel, audience: req.audience, lang: req.lang,
       message: req.message, conversation: req.conversation, facts: [req.profile ? 'THEIR OWN RECORD: ' + JSON.stringify(req.profile) : '', req.facts ?? ''].filter(Boolean).join('\n\n'),
-      rules: FORMAT[req.channel], images: req.images }).catch(() => ({ reply: '', model: null, attempts: ['threw'], outage: false }));
+      rules: FORMAT[req.channel], images: req.images, poolSubject: req.subject ?? null }).catch(() => ({ reply: '', model: null, attempts: ['threw'], outage: false }));
     if (a.reply) return await logged({ reply: a.reply, path: 'reasoned', seat: null, reason: 'direct: ' + reason, model: a.model, grounded: true, readability: checkReadability(a.reply, req.lang) });
     return await logged({ reply: '', path: 'fallback', seat: null, reason: reason + ' | no model answered: ' + a.attempts.join(', '), grounded: false, outage: a.outage === true });
   };
@@ -176,6 +180,13 @@ export async function supportReply(deps: ThinkDeps, req: SupportReplyRequest, fa
         if (rd2.ok) { g = g2; rd = rd2; rewritten = true; }
       }
       if (!rewritten) return await fall('readability: ' + rd.issues.join(' '));
+    }
+    // THE IT ENGINEER'S MATTER IS HANDED OVER, NOT ONLY NAMED (ruling 1705): the route was logged and nothing reached IT (0
+    // support.root_cause hand-overs in 30 days, 15 Nov 2026). Never in the reply's way: handFaultToIt never throws.
+    if (r.route === 'it_engineer' && req.handover) {
+      await handFaultToIt((fn, args) => deps.rpc(fn, args), { ...req.handover, channel: req.channel, message: req.message,
+        conversation: req.handover.conversation ?? req.conversation, lang: req.handover.lang ?? (req.lang === 'ar' ? 'ar' : 'en'),
+        audience: req.handover.audience ?? req.audience });
     }
     return await logged({ reply: g.text, path: 'reasoned', seat: (r.route as Seat | null) ?? null, model: r.model ?? null, violations: g.violations, readability: rd, rewritten,
       verified: r.verified?.status ?? null, priceTrade: r.extra && r.extra !== 'none' ? r.extra : null,

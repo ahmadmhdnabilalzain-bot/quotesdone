@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run after (or with, rolled back) every_seat_reads_one_pool_and_every_hand_over_comes_back.sql; it must print PROBE OK. It writes rows only (no handler runs, nothing queued for a channel). This note stays for the life of the file. Seat: ceo.

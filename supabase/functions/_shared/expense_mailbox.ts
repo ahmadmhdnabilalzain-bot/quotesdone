@@ -43,3 +43,19 @@ export async function registerRowsFor(admin: Admin, vendor: string): Promise<{ i
     .filter((r) => sameVendor(String(r.vendor || ''), vendor))
     .map((r) => ({ id: r.id, expense_date: r.expense_date }));
 }
+
+/** The expense row that survives fn_expense_post_to_gl, read back by the message key (review of 15 Nov 2026, item 6).
+ *  A receipt for a cost booked on the founder's word is folded into that held entry: its own row is deleted and its
+ *  message key moves onto the held entry. Filing doc_backups (or anything else) against the inserted id would point at
+ *  a row that no longer exists, so the caller re-reads: the row holding the key, else the inserted row if it still
+ *  exists, else null (nothing to file against). */
+export async function survivingEntryId(admin: Admin, entryId: number | null | undefined, msgKey: string | null | undefined): Promise<number | null> {
+  if (msgKey) {
+    const { data } = await admin.from('expense_entries').select('id').eq('source_msg_id', msgKey).limit(1);
+    const id = Number((data as { id?: unknown }[] | null)?.[0]?.id);
+    if (Number.isFinite(id) && id > 0) return id;
+  }
+  if (!entryId) return null;
+  const { data } = await admin.from('expense_entries').select('id').eq('id', entryId).limit(1);
+  return (data as unknown[] | null)?.length ? entryId : null;
+}

@@ -1,0 +1,14 @@
+Committed, not applied (15 Nov 2026, ceo seat builder). It applies after the three files of the branch
+ceo-the-ceo-acts-and-orders-the-seats-to-grow-supply (limits, pool, coverage), whose routines it reads (fn_company_message_gates,
+fn_company_spend_fits, ceo.order, fn_supplier_coverage, fn_ceo_daily_summary_text). Moves when that branch and this one are released:
+the releasing session applies it with its probe on a local Postgres first, then on production in a quiet minute, deploys ceo_agent
+and resilience_ping, and appends the file to the end of MANIFEST.txt, deleting this note.
+APPLY ORDER (REVIEW2_ceoplan, 16 Nov 2026, ruling 1710): 1) the growth branch's files first
+(sales_engineer-the-supplier-funnel-runs-itself; its bounce-brake file's fn_ceo_restarts_invites is the CEO's first decision and
+may set invite_enabled true); 2) the CEO files: limits, pool, coverage; 3) this planning file LAST of them; 4) then
+an_order_is_a_conversation_until_its_outcome.sql, which reads this file's tables. Why: the seed is inserted where not exists and
+has no revision round; if the loop's first run files it while invite_enabled is false, its invitation bet stays refused for good.
+The seed carries no bet on the founder or his network (ruling 1710): his tagged registrations are a bonus the pack counts.
+Order conversations fix round 1 (16 Nov 2026, REVIEW_orderconv item 8): fn_ceo_plan_text_aed now reads number words
+("five thousand dirhams"), USD at gl_settings.usd_to_aed (3.6725 when unset) and "AED 5 000"; any other currency is refused by
+fn_ceo_plan_text_unknown_money in the bet check. The reader is STABLE now (it reads gl_settings), no longer IMMUTABLE.

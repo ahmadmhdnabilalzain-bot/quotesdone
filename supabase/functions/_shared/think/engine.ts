@@ -1,6 +1,7 @@
 // think/engine.ts — think(): decompose, resolve, retrieve, research, synthesise, verify (moved whole from _shared/think.ts).
 import { heldFromGate, type GateAnswer } from '../llm_hold.ts';
 import { openJudgementWithoutRecall, recallCases } from '../case_recall.ts';
+import { poolSubject, seatPool } from '../seat_pool.ts';
 import { e2eRunTag } from '../e2e_run.ts';
 import { gteReads } from '../ml_embed_recipe.ts';
 import type { EmbedSpace, Fact, Source, Step, ThinkContext, ThinkDeps, ThinkRequest, ThinkResult } from './types.ts';
@@ -177,6 +178,11 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // A caller's plan is known now: its step queries are embedded (remotely, in embed_ml — no work in this worker) while
   // the question is, not after the recall (12 Oct 2026: 1.7-8 s of embedding in a row on the widget, measured per stage).
   if (req.plan && space === 'ml') for (const s of req.plan.steps) emb(s.query, 'ml').catch(() => null);
+  // THE SHARED POOL (ceo, 13 Nov 2026, founder ledger 1688): what every other seat did on this subject and in the company
+  // today, from ONE routine (_shared/seat_pool.ts). Read beside the recall, so it adds no wait; a lean choice among fixed
+  // options reads no case text and no pool. Empty on any failure: the answer never waits on it.
+  const poolP = req.lean === true ? Promise.resolve({ block: '', chars: 0 })
+    : seatPool(deps, req.seat, poolSubject(req.subject, ctx.case, ctx.profile), audience);
   const q0 = noRecall ? { v: null, r: ROUTINES.gte } : await embedIn(req.question);
   const qVec = q0.v;
   // Recall goes through the ONE shared recall (case_recall.ts), which also opens this judgement's row in
@@ -260,7 +266,9 @@ Also set "${a.key}" in the same JSON object to exactly one of: ${a.options.map((
   const synthMax = req.lean === true && deciding ? LEAN_DECIDE_MAX : req.maxTokens?.synthesise ?? SYNTH_MAX;
   // a re-asked question is written by another family than the one that failed it (types.ts otherFamilyThan)
   const synthRoute = req.otherFamilyThan ? { counterpartModel: req.otherFamilyThan } : {};
-  const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources };
+  const pool = await poolP;
+  if (pool.chars) steps.push({ id: 'pool', kind: 'resolve', goal: 'read what the other seats did on this subject and in the company today', status: 'done', detail: { chars: pool.chars } });
+  const payload = { question: req.question, context: ctx, plan: planSteps, facts_known: facts.filter((f) => f.value), facts_missing: missing, sources, ...(pool.block ? { shared_pool: pool.block } : {}) };
   let draft: Draft | null = null; let model: string | null = null; let refusal: string | null = null;
   for (let pass = 1; pass <= (deciding ? 2 : MAX_SYNTH_PASSES); pass++) {
     // prompt diet (structural, ON): the re-pass note ends the input, so the system prompt and the payload stay a cached prefix

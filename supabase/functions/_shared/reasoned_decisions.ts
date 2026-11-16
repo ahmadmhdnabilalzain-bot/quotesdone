@@ -11,19 +11,28 @@
 // fails when a migrated one goes back to a word list.
 import { readerOfTheirOwnText, think, withDeadline, type ThinkDeps, type ThinkResult, type Turn } from './think.ts';
 import { surfaceEffort } from './effort_policy.ts';
+import { handFaultToIt, type FaultReport } from './support_fault_handover.ts';
 
 export type Reasoned<T> = { value: T | null; result: ThinkResult };
 
 export const NEEDS_PERSON_OPTIONS = [
   { id: 'needs_a_person', meaning: 'they ask to speak to a human, OR they complain, dispute, demand a refund, accuse us or a supplier of wrongdoing, threaten legal action, or report a safety danger (an injury, fire, gas, electrical danger or a structural risk) — however it is worded, in any language' },
+  // A FAULT IS THE IT ENGINEER'S, AND IT IS HANDED OVER (founder ruling 1705, 15 Nov 2026: "The IT engineer should solve it, not
+  // report it"). Chosen by the model, never by a word list (ruling 1663); a surface that sees it hands the fault to the it_engineer
+  // through support_fault_handover.ts. A fault reported WITH a complaint, a dispute or a demand for a person stays needs_a_person.
+  { id: 'site_fault', meaning: 'they report that something on QuotesDone does not work for them -- the site or app, signing in, a code that never arrived, an upload, the licence step, the agreement or certificate, a page or an error message -- however it is worded, in any language, and they do NOT ask for a human, complain about us, dispute a charge or demand a refund' },
   { id: 'no_person', meaning: 'anything else, including a question that merely mentions law, legality, refunds or complaints as a topic' },
 ];
+/** The reasoned reading chose site_fault: something on QuotesDone does not work for them (it is the it_engineer's to repair). */
+export const isSiteFault = (choice: unknown): boolean => choice === 'site_fault';
 
 /** WhatsApp and social: does this message need a person? (surfaces wa_inbound.needs_a_person, marketing_social.needs_a_person) */
 export async function needsAPerson(deps: ThinkDeps, o: {
   seat: 'customer_support' | 'marketing'; surface: string; message: string; conversation?: Turn[];
   audience?: 'customer' | 'supplier' | 'visitor'; dedupeKey?: string; subject?: Record<string, unknown>;
-}): Promise<Reasoned<boolean>> {
+  /** What the surface knows to hand a reported fault to the it_engineer (support_fault_handover.ts); absent, nothing is filed. */
+  fault?: Omit<FaultReport, 'message'>;
+}): Promise<Reasoned<boolean> & { fault?: boolean }> {
   const result = await think(deps, {
     seat: o.seat, surface: o.surface, question: o.message, dedupeKey: o.dedupeKey, subject: o.subject,
     context: { audience: o.audience ?? 'customer', conversation: o.conversation },
@@ -35,7 +44,10 @@ export async function needsAPerson(deps: ThinkDeps, o: {
       options: NEEDS_PERSON_OPTIONS,
     },
   });
-  return { value: result.status === 'answered' ? result.decision?.choice === 'needs_a_person' : null, result };
+  const fault = result.status === 'answered' && isSiteFault(result.decision?.choice);
+  // the hand-over never stands in the reply's way and never throws (handFaultToIt answers filed:false with the reason)
+  if (fault && o.fault) await handFaultToIt((fn, args) => deps.rpc(fn, args), { ...o.fault, message: o.message, conversation: o.fault.conversation ?? o.conversation });
+  return { value: result.status === 'answered' ? result.decision?.choice === 'needs_a_person' : null, result, fault };
 }
 
 /** The founder's command: which intent in ceo_command_intent does it carry? (surface ceo.command_intent) */
