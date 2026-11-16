@@ -12,6 +12,8 @@ import { admin, J, type ActionCtx } from '../context.ts';
 import { embed } from '../lib/embed.ts';
 import { run } from '../lib/run.ts';
 import { matchTurnkeyOrAsk } from '../lib/turnkey_miss.ts';
+import { matchAuthority } from '../lib/match_authority.ts';
+import { isCeoOrder, reportOrClose } from '../../_shared/order_report.ts';
 
 export async function operatorActions(c: ActionCtx): Promise<Response | undefined> {
   const { body, caller, action } = c;
@@ -29,12 +31,14 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
       return J({ ok: true, seat: 'sales_engineer', open: data || [] });
     }
     if (action === 'complete_handoff') {
-      const { data: h } = await admin.from('agent_actions').select('id,agent').eq('id', Number(body.id)).eq('kind', 'handoff').maybeSingle();
+      const { data: h } = await admin.from('agent_actions').select('id,agent,detail').eq('id', Number(body.id)).eq('kind', 'handoff').maybeSingle();
       if (!h || h.agent !== 'sales_engineer') return J({ error: 'not_this_seats_handoff' }, 404);
-      const { data, error } = await admin.rpc('fn_seat_handoff_complete', { p_id: Number(body.id), p_evidence: body.evidence ?? {} });
-      if (error) return J({ ok: false, error: error.message }, 400);
-      await run('complete_handoff', 'ok', { handoff_id: Number(body.id) });
-      return J(data);
+      // a CEO order is REPORTED with what was done (fn_seat_reports_done), any other hand-over closes as before
+      // (ceo, 15 Nov 2026, third review item 3; _shared/order_report.ts)
+      const r = await reportOrClose((fn, args) => admin.rpc(fn, args), 'sales_engineer', h, body);
+      if (r.status !== 200) return J(r.body, r.status);
+      await run('complete_handoff', 'ok', { handoff_id: Number(body.id), reported: isCeoOrder(h) });
+      return J(r.body);
     }
 
     // ── THE ALIAS QUEUE (10 Nov 2026, founder ledger 1573/1579) ───────────────────────────────────────────────────
@@ -81,14 +85,15 @@ export async function operatorActions(c: ActionCtx): Promise<Response | undefine
     // find somebody, and ever returns a supplier the SQL gates refused. A short list is the answer
     // when the market is short.
     if (action === 'match') {
-      const { data: mayRaw, error: mayErr } = await admin.rpc('fn_agent_may_act', {
-        p_grantee_role_id: 'sales_engineer', p_action_class: 'matching', p_amount_aed: null,
-      });
-      const may = (mayRaw || {}) as Record<string, unknown>;
-      if (mayErr || may.may_act !== true) {
-        await run('match', 'refused', {}, String(may.reason || mayErr?.message || 'no grant'));
-        return J({ ok: false, error: 'not_permitted', ...may }, 403);
+      // THE SUBJECT-AWARE RULE (ceo, 15 Nov 2026; third review item 6, lib/match_authority.ts): the request is the subject;
+      // a refusal the rule asked the CEO about answers 202 with the hand-over to watch, a refusal that asked nobody 403.
+      const auth = await matchAuthority((fn, args) => admin.rpc(fn, args), String(body.inquiry_id || ''));
+      if (!auth.ok) {
+        await run('match', auth.status === 202 ? 'asked_the_ceo' : 'refused', { handoff_id: auth.body.handoff_id ?? null },
+          String(auth.body.message || auth.body.reason || auth.body.detail || 'no grant'));
+        return J(auth.body, auth.status);
       }
+      const may = auth.may;
 
       // ── WHOSE INQUIRY IT IS, AND WHO DECIDES ITS CRITERIA (23 Sep 2026) ────────────────────
       //
