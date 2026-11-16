@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run after the incident, calendar and each_seat_works_its_oldest_parked_questions_daily_and_each_duty_names_the_result_it_moves.sql files in the same transaction on a local Postgres 16; it must print PROBE OK. This note stays for the life of the file. Seat: ceo.
