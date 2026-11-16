@@ -9,7 +9,7 @@ import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
 import { channelOfRow, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, sidOfRow, sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
-import { checkOwnCode, ownMarker, ownMessageStatus, ownSent, sendOwnWhatsAppCode, type WaCodeDeps } from '../_shared/wa_code.ts';
+import { checkOwnCode, newCode, ownMarker, ownMessageStatus, ownSent, sendOwnWhatsAppCode, type WaCodeDeps } from '../_shared/wa_code.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // `admin` is the system's service-role client and must NEVER sign anybody in. See mintSession.
@@ -22,12 +22,9 @@ const reply = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status:
 async function sec(k: string): Promise<string | null> { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return (data?.value as string) || null; }
 function emailOk(e: string) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || '')); }
 function toE164(p: string): string { let d = String(p || '').replace(/[^\d+]/g, ''); if (d.startsWith('+')) { const n = d.slice(1).replace(/\D/g, ''); return n.length >= 8 ? '+' + n : ''; } d = d.replace(/\D/g, ''); if (d.startsWith('00')) d = d.slice(2); if (d.startsWith('971')) return '+' + d; if (d.startsWith('0')) return '+971' + d.slice(1); if (d.length === 9 && d.startsWith('5')) return '+971' + d; if (d.length >= 8) return '+' + d; return ''; }
-// 18 SEP 2026: Math.random() is not a credential generator. V8's PRNG is seeded per isolate and its
-// state is recoverable from a handful of outputs, so a caller who can make this function issue codes
-// to an address they control could predict the next one issued to somebody else. A sign-in code is a
-// credential; it comes from the CSPRNG. The modulo is on a 32-bit draw over 900000, whose bias is
-// ~2e-4 of one code — far below the 1e-6 guess probability the attempt caps already bound.
-function code6() { const b = new Uint32Array(1); crypto.getRandomValues(b); return String(100000 + (b[0] % 900000)); }
+// 18 SEP 2026: a sign-in code is a credential and comes from the CSPRNG, never V8's per-isolate PRNG, whose state is
+// recoverable from a handful of outputs. Since 16 Nov 2026 the ONE generator is _shared/wa_code.ts newCode (uniform,
+// no modulo bias), shared with kyc and the WhatsApp code, so no local copy can drift back (kyc's had).
 // Sign-in codes are stored hashed. A 6-digit code is only safe if guesses are
 // capped, so verify is limited per issued code AND per caller.
 const EMAIL_VERIFY_MAX_ATTEMPTS = 5;
@@ -343,7 +340,7 @@ const signIn = observe('login_otp', async (req) => {
         const since = new Date(Date.now() - 3600e3).toISOString();
         const { count } = await admin.from('email_verifications').select('id', { count: 'exact', head: true }).eq('email', email).gte('created_at', since);
         if ((count || 0) >= 8) return J({ error: 'Too many code requests. Please try again later.', code: 'rate_limited' }, 429);
-        const c = code6();
+        const c = newCode();
         // A RESEND RETIRES EVERY EARLIER CODE, in the same transaction as the new one is written
         // (public.fn_login_otp_email_issue, review of #1245), so only the newest code can ever verify.
         const { error: issueErr } = await admin.rpc('fn_login_otp_email_issue', { p_email: email, p_hash: await otpHash(c), p_kind: kind, p_ttl_seconds: 600 });

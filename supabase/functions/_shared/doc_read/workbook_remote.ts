@@ -1,6 +1,7 @@
 // workbook_remote — the workbook engine that reads in doc_extract, not here (16 Nov 2026, it_engineer).
 //
-// WHO USES IT. supplier_api only, registered at its entry (supplier_api/index.ts). Its upload failed 413 at 4,695,339
+// WHO USES IT. supplier_api and, since 16 Nov 2026, wa_inbound (cred_fn_wa_inbound,
+// scripts/sql/whatsapp_reads_workbooks_through_doc_extract.sql), each registered at its entry. supplier_api's upload failed 413 at 4,695,339
 // bytes of local graph and SheetJS was 503,237 of them (workbook_engine.ts); with this engine SheetJS is not in its
 // graph at all, and scripts/checks/every_office_reader_has_an_engine.test.mjs keeps it out.
 //

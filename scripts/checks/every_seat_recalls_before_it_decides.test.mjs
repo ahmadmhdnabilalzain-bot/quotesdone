@@ -45,7 +45,7 @@ export const DECISION_PATHS = [
   ['supabase/functions/sales_engineer/lib/spec_offer.ts', 'sales_engineer', 'spec_offer', "admin.rpc('fn_spec_offer_open'"],
   ['supabase/functions/site_assistant/index.ts', 'customer_support', 'reply', 'const sys = `You are QuotesDone'],
   ['supabase/functions/ceo_agent/index.ts', 'ceo', 'decide', "admin.from('ceo_approval').insert("],
-  ['supabase/functions/ceo_agent/index.ts', 'ceo', 'judgement', 'await llm('],
+  // ('ceo', 'judgement' was here: the unsent daily judgement was retired 16 Nov 2026, the_ceos_unsent_daily_judgement_request_is_retired.sql)
   ['supabase/functions/accountant/index.ts', 'accountant', 'assist', "admin.rpc('fn_accountant_assist'"],
   ['supabase/functions/accountant/index.ts', 'accountant', 'expense_classification', "admin.from('expense_entries')\n          .upsert("],
   ['supabase/functions/it_engineer/index.ts', 'it_engineer', 'assist', "return J({ ok: true, seat: 'it_engineer', ...r"],

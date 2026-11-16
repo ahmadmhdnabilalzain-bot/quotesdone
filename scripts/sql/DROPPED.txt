@@ -717,3 +717,106 @@ fn_enterprise_account_report :: dropped by there_are_no_enterprise_accounts_only
 # fn_dr_restore_clear was already dropped 8 Sep 2026 (above) :: nothing; the proof is in that file
 fn_supplier_invite_candidates(integer) :: dropped by fn_supplier_invite_candidates_is_one_routine.sql (applied at merge); a one-line wrapper over (integer, text[]), which is the canonical body; its one routine caller moved to the two-argument call :: nothing; the proof is in that file
 trg_company_event_dispatch() :: dropped by every_seat_reads_one_pool_and_every_hand_over_comes_back.sql (pending apply); the per-statement trigger that ran the department-era dispatcher on every company_event insert; the dispatcher now runs from the ceo.company_pool duty :: nothing; the proof is in that file
+# 16 Nov 2026 - simplification wave C, phase 1 (founder ledgers 1714/1715, it_engineer). These routines are NOT dropped: each
+# file below moves them to schema retired (no API role can reach it), so they are absent from public. Measured: no caller in
+# any live body, cron, trigger, view, policy, default, dispatch table, edge or app code, and no top-level call since 2 Nov.
+# Phase 2 drops them after 7 clean days (scripts/sql/pending/the_retired_schema_is_dropped_only_after_seven_clean_days_probe.txt);
+# until then each file's one-line reversal brings one back. Tables moved the same way are listed in
+# tables_nothing_reads_or_writes_move_to_the_retired_schema.sql and leave the export registry there.
+fn_os_ai_quality :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_automation_list :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_automation_reschedule :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_automation_run :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_automation_set_active :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_catalog_get :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_catalog_list :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_catalog_save_fields :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_catalog_spec_delete :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_catalog_spec_upsert :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_incident_list :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_incident_open :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_incident_resolve :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_open_access :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_reconcile :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_runbooks :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_settings_history :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_settings_list :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_settings_revert :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_settings_set :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_dashboard_viz :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_detail :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_list :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_nav :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_record :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_search :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_health :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_health_brief :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_review :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_os_memory :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_self_review :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_ws_exec_home :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_ws_company_os :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_ws_live_company :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_ws_notifications :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_ws_customer_behavior :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_customers_board :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_suppliers_board :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_rfq_board :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_report_drilldown :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_entity_files :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_entity_comment_add :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_goal_attainment :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_inbox_list :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_agent_context :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_agent_context_v3 :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_agent_institutional_memory :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_action_invoke_dispatch :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_action_resolve_approver :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_action_authority_rank :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_agent_handoff_inbox :: moved to schema retired by the_july_os_console_backend_and_the_old_agent_context_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_watch_failed_runs :: moved to schema retired by the_four_watchers_nothing_runs_are_retired_and_fn_it_detect_is_named_as_the_reader.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_runner_silence_watch :: moved to schema retired by the_four_watchers_nothing_runs_are_retired_and_fn_it_detect_is_named_as_the_reader.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_agent_silence_watch :: moved to schema retired by the_four_watchers_nothing_runs_are_retired_and_fn_it_detect_is_named_as_the_reader.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_agents_board :: moved to schema retired by the_four_watchers_nothing_runs_are_retired_and_fn_it_detect_is_named_as_the_reader.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+trg_legal_documents_hash :: moved to schema retired by trigger_functions_no_trigger_runs_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+trg_terms_pins_sync :: moved to schema retired by trigger_functions_no_trigger_runs_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_customer_terms_accepted_trg :: moved to schema retired by trigger_functions_no_trigger_runs_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_customer_terms_accept :: moved to schema retired by trigger_functions_no_trigger_runs_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_customer_welcome_trg :: moved to schema retired by trigger_functions_no_trigger_runs_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_emit_campaign_published :: moved to schema retired by trigger_functions_no_trigger_runs_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_org_authority_guard :: moved to schema retired by trigger_functions_no_trigger_runs_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+trg_agent_knowledge_metadata :: moved to schema retired by trigger_functions_no_trigger_runs_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_page_high_agent_action :: moved to schema retired by trigger_functions_no_trigger_runs_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_action_release_held :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_ceo_standing :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_dispatch_agent_knowledge_gaps :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+kn_task :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_it_refusal_is_policy :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_it_run_is_held :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_kb_embed_backlog :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_kb_embed_claim :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_knowledge_exam_summary :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_licence_ask_close_on_intake :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_org_task_assign :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_recommend_deterministic :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_security_watch :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_target_baseline :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_resilience_step_board :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_ai_quality_watch :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_expiring_docs :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+registered_supplier_count :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_supplier_exception_open :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_supplier_exception_close :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_event_consolidate :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_workflow_start_due :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_workflow_step_sweep :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_execution_sweep :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_workflow_step_claim :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_knowledge_gaps :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+fn_employee_knowledge_freshness :: moved to schema retired by routines_with_no_caller_anywhere_are_retired.sql (applied after merge) :: phase 2 drops it; the reversal line is in that file
+# 16 Nov 2026 (ceo, wave D) — the_ceos_unsent_daily_judgement_request_is_retired.sql (pending apply): the daily CEO model
+# request was built 56 times and sent 0 times (app_secrets.ceo_model_slot never existed); the CEO reasons in its weekly plan.
+fn_ceo_judgement_request :: dropped by the_ceos_unsent_daily_judgement_request_is_retired.sql (pending apply); built the never-sent daily request, read only by fn_ceo_plan_tick :: nothing; the proof is in that file
+fn_ceo_judgement_accept :: dropped by the_ceos_unsent_daily_judgement_request_is_retired.sql (pending apply); validated an answer that never came, called only by ceo_agent's removed judgement action :: nothing; the proof is in that file
+fn_ceo_judgement_contract :: dropped by the_ceos_unsent_daily_judgement_request_is_retired.sql (pending apply); the construction-only contract asking for a founder_decision, read only by the two routines above :: nothing; the proof is in that file
+fn_ceo_judgement_counterparts :: dropped by the_ceos_unsent_daily_judgement_request_is_retired.sql (pending apply); named the authors' model families for the removed judgement action :: nothing; the proof is in that file

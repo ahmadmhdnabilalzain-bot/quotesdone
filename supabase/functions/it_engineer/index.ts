@@ -68,8 +68,8 @@ async function whoami(req: Request, body: Record<string, unknown>): Promise<Call
   return a.kind === 'admin' ? { kind: 'founder', context: null } : null;
 }
 
-// EVERY CALL LEAVES A ROW. fn_agents_board LEFT JOINs agent_runs on agent = agent_key, so a seat
-// that never writes one renders with runs24 = 0 — indistinguishable from a seat that is down. For
+// EVERY CALL LEAVES A ROW. fn_it_detect (D2) reads each subject's own rhythm in agent_runs, so a seat
+// that never writes one has no rhythm to watch: its silence is indistinguishable from a seat that is down. For
 // the seat whose entire job is telling the difference between "quiet" and "dead", writing its own
 // liveness signal is not optional. Best-effort: attribution must never fail the call it attributes.
 async function run(action: string, status: string, counts: Record<string, unknown>, note?: string) {

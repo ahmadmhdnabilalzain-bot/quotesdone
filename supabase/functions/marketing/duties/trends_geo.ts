@@ -22,7 +22,7 @@ export async function judgeTrend(deps: Parameters<typeof think>[0], t: { id: num
     seat: 'marketing', surface: 'marketing.trend_relevance', queueWhenHeld: false, research: false,
     ...(o.deadlineAt ? { deadlineAt: o.deadlineAt } : {}),   // the beat's budget (index.ts runDuties)
     ...(o.plansNothing ? { plan: { steps: [] } } : {}),
-    question: `A news item from "${t.source}": ${t.title} (${t.url}). Does it matter to QuotesDone, a UAE construction and fit-out procurement marketplace that is registering suppliers now and launches to customers in January 2027? If it does, say in one line what the marketing seat should do with it.`,
+    question: `A news item from "${t.source}": ${t.title} (${t.url}). Does it matter to QuotesDone, a UAE procurement marketplace for every trade but food and beverage that is registering suppliers now and launches to customers in January 2027? If it does, say in one line what the marketing seat should do with it.`,
     context: { audience: 'internal' },
     decision: { name: 'trend_relevance', options: [
       { id: 'relevant', meaning: 'it changes what UAE buyers or suppliers of construction, fit-out, MEP or building materials need, fear or search for, or what a competitor offers; usable in content or positioning' },

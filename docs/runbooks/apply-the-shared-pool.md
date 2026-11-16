@@ -186,7 +186,7 @@ company-run supply is replies, the registration unblock, the referral/click-to-c
 2. Release rehearsal, once, by the release session:
    `QD_POOL_RELEASE_REHEARSAL=1 node --test scripts/checks/every_seat_reads_one_pool.test.mjs` must print `PROBE OK`.
    The probe writes ZZ DEMO rows (and two `storage.objects` rows under `zz-demo-pool-probe/`) only and always rolls back.
-3. Deploy every function that imports `_shared/think.ts`, `_shared/ai_reply.ts` or `_shared/support_reply.ts` (routing.ts
+3. Deploy every function that imports `_shared/think.ts` or `_shared/ai_reply.ts` (routing.ts
    FIRST among them: without `authority` in its lists the CEO's questions of authority run on his Opus route), plus
    `ceo_agent` (coverage, limit, target), `resilience_ping` (the replay runs `ceo.it_finding`, `ceo.overdue_handoff` and
    `ceo.authority`), `sales_engineer` ('match' on the subject-aware rule, 202 when it asked the CEO), `accountant` and

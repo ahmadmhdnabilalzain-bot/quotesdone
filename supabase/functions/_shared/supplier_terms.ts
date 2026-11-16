@@ -9,7 +9,9 @@
 // Every writer now builds the row here. The version is read server-side (supplier_terms_version, then
 // terms_version), never from the browser; the hash is of the text this module was exported for, and is
 // null — never the hash of the wrong agreement — when the live version is a different one.
-import { SUPPLIER_AGREEMENT_AR, SUPPLIER_AGREEMENT_EN, SUPPLIER_AGREEMENT_VERSION } from './supplier_agreement.ts';
+// The hash is the generator's constant (16 Nov 2026): it was recomputed here from the 87,725-byte text on every
+// acceptance, which put that text in supplier_api, customer_api and kyc; supplier_terms.test.ts holds them equal.
+import { SUPPLIER_AGREEMENT_SHA256, SUPPLIER_AGREEMENT_VERSION } from './supplier_agreement_hash.ts';
 
 export type TermsRecord = {
   accepted_terms_at: string;
@@ -18,11 +20,6 @@ export type TermsRecord = {
   accepted_terms_sha256: string | null;
   accepted_terms_user_agent: string | null;
 };
-
-export async function agreementSha256(): Promise<string> {
-  const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(SUPPLIER_AGREEMENT_EN + '\n' + SUPPLIER_AGREEMENT_AR));
-  return Array.from(new Uint8Array(bytes)).map((b) => b.toString(16).padStart(2, '0')).join('');
-}
 
 export async function currentSupplierTermsVersion(sec: (k: string) => Promise<string | null>): Promise<string> {
   return String((await sec('supplier_terms_version')) || (await sec('terms_version')) || '').trim().slice(0, 20);
@@ -73,7 +70,7 @@ export async function supplierTermsRecord(sec: (k: string) => Promise<string | n
     accepted_terms_at: new Date().toISOString(),
     accepted_terms_version: v,
     accepted_terms_ip: ip || null,
-    accepted_terms_sha256: v === SUPPLIER_AGREEMENT_VERSION ? await agreementSha256() : null,
+    accepted_terms_sha256: v === SUPPLIER_AGREEMENT_VERSION ? SUPPLIER_AGREEMENT_SHA256 : null,
     accepted_terms_user_agent: String(userAgent || '').trim().slice(0, 500) || null,
   };
 }

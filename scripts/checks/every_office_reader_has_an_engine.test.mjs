@@ -14,8 +14,8 @@
 //      either refuses every workbook, .doc and .msg as 'this function has no workbook reader'.
 //   2. workbook_local.ts is imported by no _shared module (only by function folders and tests), or SheetJS would
 //      ride back into every function that imports that module.
-//   3. supplier_api's graph does not reach SheetJS, xlsx_lazy.ts or workbook_local.ts, and its local files stay
-//      under SUPPLIER_API_BUDGET bytes.
+//   3. no function in REMOTE_READERS (supplier_api, and wa_inbound since 16 Nov 2026) has SheetJS, xlsx_lazy.ts or
+//      workbook_local.ts in its graph; each registers the remote engine and stays under its upload budget.
 //
 // THE GRAPH WALK is a text scan of relative import specifiers (static import / export-from, side-effect import, literal
 // dynamic import(), @deno-types), the same edges deno follows for files under supabase/functions/. Remote (https:, jsr:, npm:)
@@ -35,6 +35,11 @@ const FN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'supabase',
 // with 227,342 bytes of room above the 4,172,658 measured after this change (248 files). Raising it needs a deploy that proves the new
 // size is accepted, not a guess.
 export const SUPPLIER_API_BUDGET = 4_400_000;
+// The functions that read workbooks through doc_extract, and the upload budget of each. wa_inbound joined on 16 Nov 2026
+// (simplification wave A, DUP item 1): its graph was 4,345,532 bytes in 214 files by `deno info --json`, 503,237 of them
+// SheetJS, the second-largest upload after supplier_api; the same 4.4 MB ceiling holds for the same reason.
+// Its credential is cred_fn_wa_inbound, whose scope names doc_extract (scripts/sql/whatsapp_reads_workbooks_through_doc_extract.sql).
+export const REMOTE_READERS = { supplier_api: SUPPLIER_API_BUDGET, wa_inbound: 4_400_000 };
 
 const OFFICE = ['_shared/doc_read/office.ts', '_shared/doc_read/ole.ts'];
 const LOCAL = '_shared/doc_read/workbook_local.ts';
@@ -103,14 +108,16 @@ test('workbook_local.ts is imported by no _shared module (it would carry SheetJS
   assert.deepEqual(importers, []);
 });
 
-test('supplier_api reads workbooks through doc_extract: SheetJS is not in its graph, and its upload stays under budget', () => {
-  const graph = localGraph('supplier_api');
-  const back = SHEETJS.filter((f) => graph.includes(f));
-  assert.deepEqual(back, [], 'SheetJS is back in supplier_api\'s module graph (its deploy failed 413 at 4,695,339 bytes with it). '
-    + 'Something supplier_api imports now reaches: ' + back.join(', '));
-  assert.ok(REMOTE_REGISTRATION.test(ownSource('supplier_api')), 'supplier_api no longer registers the remote workbook engine');
-  const bytes = graphBytes(graph);
-  assert.ok(bytes < SUPPLIER_API_BUDGET, `supplier_api's local module graph is ${bytes.toLocaleString('en')} bytes in ${graph.length} files, over the `
-    + `${SUPPLIER_API_BUDGET.toLocaleString('en')} budget. Supabase refused the 4,695,339-byte upload with 413 on 16 Nov 2026 (4.54 MB was `
-    + 'accepted on 15 Nov). Find what grew: deno info --json supabase/functions/supplier_api/index.ts.');
-});
+for (const [fn, budget] of Object.entries(REMOTE_READERS)) {
+  test(`${fn} reads workbooks through doc_extract: SheetJS is not in its graph, and its upload stays under budget`, () => {
+    const graph = localGraph(fn);
+    const back = SHEETJS.filter((f) => graph.includes(f));
+    assert.deepEqual(back, [], `SheetJS is back in ${fn}'s module graph (supplier_api's deploy failed 413 at 4,695,339 bytes with it). `
+      + `Something ${fn} imports now reaches: ` + back.join(', '));
+    assert.ok(REMOTE_REGISTRATION.test(ownSource(fn)), `${fn} no longer registers the remote workbook engine`);
+    const bytes = graphBytes(graph);
+    assert.ok(bytes < budget, `${fn}'s local module graph is ${bytes.toLocaleString('en')} bytes in ${graph.length} files, over the `
+      + `${budget.toLocaleString('en')} budget. Supabase refused supplier_api's 4,695,339-byte upload with 413 on 16 Nov 2026 (4.54 MB was `
+      + `accepted on 15 Nov). Find what grew: deno info --json supabase/functions/${fn}/index.ts.`);
+  });
+}

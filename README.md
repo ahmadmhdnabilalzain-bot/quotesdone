@@ -21,8 +21,8 @@ Versions read from `package.json` and `.nvmrc`, 11 Nov 2026.
 | piece | what it is |
 |---|---|
 | web | **Next.js 16** (`next` 16.4.3, React 19.3, App Router, `next-intl` for English at `/` and Arabic at `/ar`, Tailwind 4) in `src/`, on **Vercel**, serving quotesdone.com and quotesdone.ae. Node 24 |
-| backend | **78 Supabase edge functions** (Deno, TypeScript) in `supabase/functions/<name>/`, plus shared code in `supabase/functions/_shared/`. The browser calls them directly; the Next app has two API routes of its own (`/api/health`, `/api/resilience-ping`) |
-| database | **one** Supabase Postgres project, `htdblwldjkcgjvmqkbeh`: 805 tables, 2,125 routines, 88 views and 105 cron jobs in the `public` schema (from the schema mirror, mapped by area in `docs/architecture/database/`). Business rules are SQL routines and constraints; there is no staging project |
+| backend | **79 Supabase edge functions** (Deno, TypeScript; 79 folders with an `index.ts`, counted 16 Nov 2026) in `supabase/functions/<name>/`, plus shared code in `supabase/functions/_shared/`. The browser calls them directly; the Next app has two API routes of its own (`/api/health`, `/api/resilience-ping`) |
+| database | **one** Supabase Postgres project, `htdblwldjkcgjvmqkbeh`: 872 tables, 2,667 routines and 89 views in the `public` schema (extension objects excluded), and 154 `pg_cron` jobs, all active (SELECT on production, 16 Nov 2026; mapped by area in `docs/architecture/database/`). Business rules are SQL routines and constraints; there is no staging project |
 | scheduling | `pg_cron` inside the database for most recurring work, and one Vercel cron (every 15 minutes) into the `resilience_ping` function, which runs the seats' duties by staleness within a time budget |
 | messages | email through Resend, SMS and WhatsApp through Twilio; one outbox table (`public.notifications`) for all of them |
 | money | Stripe (checkout, refunds, invoices) |

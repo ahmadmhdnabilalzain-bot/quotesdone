@@ -1,7 +1,7 @@
 // _shared/customer_question_words.ts -- the few words every customer question shares ("Not sure", the Arabic frame, the
 // Arabic of a tapped option), without the question tables (16 Nov 2026, sales_engineer). Moved out of customer_questions.ts
-// so the interview's readers (inquiry_intake/interview.ts, which supplier_api bundles through intake_requirements.ts) do not
-// pull ~430 KB of tables into supplier_api: its deploy of 16 Nov 02:30 UTC was refused at the 5 MB limit.
+// so the interview's readers (inquiry_intake/interview.ts, which supplier_api bundled through intake_requirements.ts until its
+// answer parsers moved to answer_parse.ts on 16 Nov 2026) do not pull ~430 KB of tables into supplier_api: its deploy of 16 Nov 02:30 UTC was refused at the 5 MB limit.
 // customer_questions.ts re-exports everything here, so every other importer is unchanged.
 import { SPEC_OPTION_AR } from './spec_options_ar.ts';
 

@@ -18,7 +18,7 @@ Deno.test('a function URL is pinned to the database region, once, whatever query
 });
 
 Deno.test("every ai_gateway and embed_ml call on the WhatsApp reply's path names the database region", () => {
-  for (const [file, slug] of [['./llm.ts', 'ai_gateway'], ['../wa_inbound/shared.ts', 'ai_gateway'], ['./ml_embed_client.ts', 'embed_ml'], ['./meaning_embed.ts', 'embed_ml']] as const) {
+  for (const [file, slug] of [['./llm.ts', 'ai_gateway'], ['../wa_inbound/shared.ts', 'ai_gateway'], ['./ml_embed_client.ts', 'embed_ml']] as const) {   // meaning_embed.ts removed 16 Nov 2026 (no caller; ruling 1627)
     const code = src(file).split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
     const sites = code.match(new RegExp("[^\\n]*'/functions/v1/" + slug + "'[^\\n]*", 'g')) ?? [];
     assert(sites.length > 0, file + ' no longer calls ' + slug + ' by its literal path (no_function_calls_an_undeployed_function reads it)');

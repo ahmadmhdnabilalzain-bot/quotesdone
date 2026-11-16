@@ -23,8 +23,8 @@ export const SUPA_URL = Deno.env.get('SUPABASE_URL')!;
 // email expenses@mail.quotesdone.com". The same literal resend_inbound uses.
 export const EXPENSE_MAILBOX = 'expenses@mail.quotesdone.com';
 
-// EVERY CALL LEAVES A ROW. fn_agents_board LEFT JOINs agent_runs on agent = agent_key, so a seat
-// that never writes one renders with runs24 = 0 — indistinguishable from a seat that is down. This
+// EVERY CALL LEAVES A ROW. fn_it_detect (D2) reads each subject's own rhythm in agent_runs, so a seat
+// that never writes one has no rhythm to watch: its silence is indistinguishable from a seat that is down. This
 // is the only measurable liveness signal the estate has. Best-effort: attribution must never fail
 // the call it is attributing.
 export async function run(action: string, status: string, counts: Record<string, unknown>, note?: string) {

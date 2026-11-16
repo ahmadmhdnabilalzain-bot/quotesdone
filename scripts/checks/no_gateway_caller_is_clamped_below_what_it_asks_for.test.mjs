@@ -237,10 +237,10 @@ test('the two ceilings this change raised are still raised on both sides', () =>
     'identity_redaction_verify is no longer 2000; 724 output tokens were measured on a real verify '
     + 'answer with no ceiling, and a ceiling inside that range reads as an unparseable model');
 
+  // 16 Nov 2026 (ceo, wave D): ceo_agent's daily judgement call, the caller this asserted on, was never sent
+  // (app_secrets.ceo_model_slot does not exist) and is retired; the class stays for review_decide and the escalation clock.
   const ceo = read('supabase/functions/ceo_agent/index.ts');
-  assert.ok(/taskClass: 'ceo_judgement', max: 2000/.test(ceo),
-    'ceo_agent no longer asks for 2000; ai_gateway takes the LOWER of the caller and the route, so '
-    + 'raising only the policy leaves the old ceiling in place');
+  assert.ok(!/action === 'judgement'/.test(ceo), 'the retired daily judgement action is back in ceo_agent');
 
   assert.ok((ceilings.document_extraction ?? CEILINGS_MEASURED.document_extraction) >= 3000,
     'document_extraction allows less than the 3000 supplier_catalog_ingest asks for with '

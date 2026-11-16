@@ -129,7 +129,7 @@ Tell suppliers:
     a sharp photo of the whole page). It is read again as soon as it arrives.
   - The name on the licence does not match the registered company name: upload the company's own
     licence, or contact us if the registered name should change.
-- Verification takes up to 3 working days once all documents are complete (company brief).
+- Verification is automatic: each document is checked the moment it is saved.
 
 ## 6. Upload rules
 

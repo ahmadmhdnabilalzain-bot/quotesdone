@@ -2651,11 +2651,35 @@
   {
    "id": "services.meaning_candidates",
    "order": 92,
-   "status": "pending",
+   "status": "migrated",
    "seat": "sales_engineer",
    "severity": "med",
    "where": "supabase/functions/_shared/service_meaning.ts",
-   "decides": "meaningCandidates / proposeByMeaning: shared head words and alias patterns decide which catalogue lines are read and whether an embedding proposal is \"worded\" — found by B9 sweep"
+   "decides": "meaningCandidates / proposeByMeaning: shared head words and alias patterns decided which catalogue lines were read and whether an embedding proposal was \"worded\" — found by B9 sweep. Since 16 Nov 2026 (it_engineer, simplification wave A; founder ruling 1627): DELETED, not migrated to a second path. Nothing at runtime called it (trade_resolve.ts had removed every code proposal path on 11 Nov); proposeByMeaning, its candidate / clause / head-word helpers, servicePattern (its corroborating alias pattern), meaning_embed.ts and the three trade vocabulary readers were removed. A service is named by the model reading the supplier's documents or by its exact name (services.from_text).",
+   "held": "Nothing waits on the model hold here: there is no code reading left to hold. While the model is held a supplier's words stay his own words (services.from_text), and nothing is proposed from a vector.",
+   "proof": [
+    {
+     "file": "supabase/functions/_shared/service_meaning.ts",
+     "must_contain": [
+      "export function parseVec("
+     ],
+     "must_not_contain": [
+      "proposeByMeaning(",
+      "meaningCandidates(",
+      "headWords(",
+      "corroborate("
+     ]
+    },
+    {
+     "file": "supabase/functions/_shared/service_rewrite.ts",
+     "must_contain": [
+      "export function exactService("
+     ],
+     "must_not_contain": [
+      "export function servicePattern("
+     ]
+    }
+   ]
   },
   {
    "id": "services.from_text",

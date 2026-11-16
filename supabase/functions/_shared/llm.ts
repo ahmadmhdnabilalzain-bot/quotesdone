@@ -58,7 +58,6 @@ export interface LlmDefaults {
   taskClass?: string;   // explicit class still wins over the fn -> class map
   confidence?: number;
   cacheTtlMin?: number; // > 0 enables exact + semantic caching for this binding
-  tryFaq?: boolean;     // customer-facing callers: try to answer with no model first
   rateKey?: string;     // public surfaces: bucket to rate-limit on
   rateLimit?: number;
   rateWindowS?: number;
@@ -156,7 +155,7 @@ function guessFn(): string {
 // have produced no error anywhere. A withdrawn credential returns 403; the code below reads the
 // body, finds no `content`, and returns `null` - which is this module's documented contract for
 // "the model legitimately declined". Every one of the 32 callers handles null by moving on. No
-// exception, no agent_runs row, no page from fn_watch_failed_runs. The whole AI layer would have
+// exception, no agent_runs row, no finding from fn_it_detect. The whole AI layer would have
 // gone quiet and every monitor would have reported normal.
 //
 // Two changes, and the second matters more than the first:
@@ -293,7 +292,6 @@ export function makeLlmRich(models: string[] = SONNET_FIRST, def: LlmDefaults = 
           // sets cacheTtlMin: 0 and still wins, because undefined is now the only thing that
           // defers to policy.
           ...(def.cacheTtlMin === undefined ? {} : { cache_ttl_min: def.cacheTtlMin }),
-          try_faq: def.tryFaq === true,
           rate_key: def.rateKey ?? null,
           rate_limit: def.rateLimit ?? null,
           rate_window_s: def.rateWindowS ?? null,

@@ -46,6 +46,5 @@ affected_count; a verified defect reopens only on a condition seen after verifie
 defect, one step at a time; the hourly tick and the watch share one advisory lock; it.escalation goes to the CEO (ruling
 1696), the founder informed, destructive deploys excluded.
 
-**Gotcha.** `_shared/support_reply.ts` supportReply() is imported by no live surface (READ, 15 Nov); the widget, WhatsApp and
-e-mail decide "it is broken" in the reasoned needs_a_person reading (site_fault), so a hand-over wired only into supportReply
-would never fire.
+**Gotcha.** `_shared/support_reply.ts` supportReply() had no live importer and was removed on 16 Nov 2026; the widget, WhatsApp and
+e-mail decide "it is broken" in the reasoned needs_a_person reading (site_fault), so a hand-over must be wired into that reading.

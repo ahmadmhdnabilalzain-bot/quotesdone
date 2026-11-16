@@ -18,6 +18,5 @@ Deno.test('its one embed() asks embed_ml for the same gte-small space', () => {
   assertMatch(body, /embedGteRemote\(admin,/);
 });
 
-Deno.test('a FAQ match that lost its vector says so (review of #1797)', () => {
-  assertMatch(src, /if \(q\.length > 2 && !qEmb\) console\.warn\('ai_gateway faq: no vector/);
-});
+// 'a FAQ match that lost its vector says so (review of #1797)' was removed with the FAQ branch it guarded (16 Nov 2026):
+// the gateway answers nothing from the FAQ (scripts/checks/replies_are_written_by_the_model_unless_openrouter_is_down.test.mjs).

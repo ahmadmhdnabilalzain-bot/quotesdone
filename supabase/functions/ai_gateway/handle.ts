@@ -69,33 +69,9 @@ export async function handle(req: Request): Promise<Response> {
       }
     }
 
-    // ---- 2. LEVEL 0 — answer with no model at all ---------------------------------------
-    // The plan's "70% should never reach AI". Templates and the 151 approved public FAQs.
-    // Semantic matching included, because keyword search missed 2 of 5 realistic questions.
-    if (body.try_faq) {
-      const q = String(body.faq_text ?? (typeof body.input === 'string' ? body.input : '') ?? '');
-      promptHash = await sha256('faq ' + fnName + ' ' + q);
-      const qEmb = q.length > 2 ? await embed(q) : null;
-      // Said, not silent (review of #1797): without a vector fn_faq_answer matches on keywords alone.
-      if (q.length > 2 && !qEmb) console.warn('ai_gateway faq: no vector from embed_ml for ' + fnName + '; the FAQ match falls back to keywords');
-      const { data: faq } = await admin.rpc('fn_faq_answer', {
-        p_text: q, p_min_rank: 0.15, p_embedding: qEmb, p_min_similarity: 0.86,
-      });
-      if (faq && faq.answered === true) {
-        await llmLog({
-          p_fn: fnName, p_dept: body.dept ?? null, p_agent: body.agent ?? null,
-          p_task_class: 'level0_' + String(faq.source), p_model: 'none',
-          p_because: 'Answered with no model: ' + faq.source + ' (confidence ' + faq.confidence + ')',
-          p_tier: 'none', p_prompt_tokens: 0, p_output_tokens: 0, p_cached: true,
-          p_cache_key: null, p_latency_ms: Date.now() - t0, p_ok: true,
-          // The retrieval confidence was already measured on this path and was being formatted into
-          // p_because as prose. It goes in the numeric column it belongs in as well.
-          p_confidence: typeof faq.confidence === 'number' ? faq.confidence : null,
-        });
-        return J({ ok: true, used_llm: false, outcome: 'level0', source: faq.source,
-                   content: faq.answer, confidence: faq.confidence, cost_usd: 0 });
-      }
-    }
+    // ---- 2. (LEVEL 0 removed 16 Nov 2026) ------------------------------------------------
+    // The canned-FAQ answer with no model (try_faq) had no caller since 12 Oct 2026 and contradicted rulings 781 and
+    // 1339 (the model writes every reply). scripts/checks/replies_are_written_by_the_model_unless_openrouter_is_down.test.mjs.
 
     // ---- MESSAGES ------------------------------------------------------------------------
     // Two shapes, one path. `messages` is the full OpenAI array and wins when present - that is

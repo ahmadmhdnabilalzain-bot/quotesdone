@@ -33,7 +33,7 @@ Links of the form `[[name]]` inside the files point at `name.md` in this folder.
 - [Release standard is Apple's day one (3 Nov)](release-standard-is-apples-day-one.md) — every scenario proven on demo data; "ready" only when docs/release/qualification_matrix.md §7 is measured green the same day, 0 P0/P1
 - [The agent delivers its own work](the-agent-delivers-its-own-work.md) — never hand-deliver a seat's output; the delivery IS the test
 - [A status column is not a delivery record](a-status-column-is-not-a-delivery-record.md) — verify sends through the outbox; 171 leads read "invited" with 0 emails ever sent
-- [MAX 5 agents at once; Sonnet for simple tasks (1 Nov)](max-five-agents.md) — ledger 1417; replaces the limit of 10 (ledger 1280)
+- [Up to 10 agents at once; model by task: Opus / Sonnet / Haiku 5.5 (15 Nov)](max-ten-agents.md) — ledgers 1707, 1708; replaces the 5 of ledger 1417
 - [Always use max parallel agents](always-max-parallel-agents.md) + [no git in a shared tree](parallel-agents-must-not-do-git-in-a-shared-tree.md) — reads/applies parallelise; checkout/add/commit do not
 - [Founder sets boundaries, not methods](founder-sets-boundaries-not-methods.md)
 - [Next phases: marketing seat, then LLM per seat](next-phases-marketing-then-llm-per-seat.md) — 22 Sep: REMIND him of LLM A/B/C after marketing; Meta/social only for marketing

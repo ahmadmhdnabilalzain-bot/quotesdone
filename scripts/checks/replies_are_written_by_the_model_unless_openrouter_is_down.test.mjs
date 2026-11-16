@@ -49,7 +49,7 @@ export const WA_HANDLER = functionFiles('wa_inbound').map((f) => f.replace('supa
 
 /** The reply paths of the two seats (customer- and supplier-facing words). Test files are not reply paths. */
 export const REPLY_PATHS = [
-  '_shared/ai_reply.ts', '_shared/support_reply.ts', '_shared/brief_answer.ts', '_shared/reasoned_delivery.ts', '_shared/clearer_copy.ts',
+  '_shared/ai_reply.ts', '_shared/brief_answer.ts', '_shared/reasoned_delivery.ts', '_shared/clearer_copy.ts',
   ...WA_HANDLER, 'wa_inbound/model_says.ts', 'wa_inbound/menu_flow.ts',
   'site_assistant/index.ts', 'site_assistant/visitor_scope.ts', 'email_triage/index.ts',
   'supplier_api/quote_review_flow.ts',
@@ -243,3 +243,16 @@ function functionFilesAll() {
   walk('');
   return out;
 }
+
+// THE GATEWAY HAS NO CANNED ANSWER (16 Nov 2026, it_engineer; simplification wave A, DUP item 6). ai_gateway answered from
+// fn_faq_answer with no model when a caller set try_faq ("Level 0"). No caller had set it since 12 Oct 2026 (ai_cost_log: 26
+// level0_ rows, the last 2026-10-12 16:18 UTC), and rulings 781 and 1339 say the model writes every reply. The branch, the
+// two body fields and llm.ts's tryFaq are removed; this fails if any comes back.
+test('ai_gateway answers no request from a canned FAQ, and no caller can ask it to', () => {
+  const code = (p) => stripComments(fs.readFileSync(FN(p), 'utf8')).join('\n');
+  const gw = code('ai_gateway/handle.ts');
+  assert.ok(!gw.includes("rpc('fn_faq_answer'"), 'ai_gateway answers from the FAQ with no model again');
+  assert.ok(!/body\.try_faq|body\.faq_text/.test(gw), 'ai_gateway reads try_faq / faq_text again');
+  assert.ok(!/\btry_faq\b|\bfaq_text\b/.test(code('ai_gateway/body.ts')), 'the gateway body declares try_faq / faq_text again');
+  assert.ok(!/\btryFaq\b|\btry_faq\b/.test(code('_shared/llm.ts')), 'llm.ts offers tryFaq again');
+});

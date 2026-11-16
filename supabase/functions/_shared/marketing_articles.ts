@@ -81,7 +81,7 @@ const refusals = (r: string[]) => r.length ? 'Your earlier attempt(s) were refus
 
 export function draftPrompt(t: DraftTopic, refused: string[] = []): string {
   return [
-    'You are the marketing seat writing this week\'s blog article for a UAE construction and fit-out procurement audience.',
+    'You are the marketing seat writing this week\'s blog article for UAE buyers and suppliers of every trade but food and beverage.',
     `The topic (chosen from ${t.kind === 'demand' ? 'the trades UAE buyers asked for' : t.kind === 'search' ? 'what people in the UAE search for' : 'UAE market news'}): ${t.title}${t.trade ? ' (trade: ' + t.trade + ')' : ''}`,
     ...WRITING,
     t.lessons.length ? 'Lessons from topics the CEO seat replaced before (do not repeat them): ' + t.lessons.slice(0, 20).map((l) => `${l.criterion ?? ''}: ${l.reason ?? ''}`).join(' | ') : '',
@@ -111,7 +111,7 @@ export function revisePrompt(d: ReviseRound, refused: string[] = []): string {
 export function reviewPrompt(r: ReviewRound, refused: string[] = []): string {
   const reviseAllowed = r.revise_rounds < MAX_REVISE_ROUNDS;
   return [
-    'You are the CEO seat of a UAE construction and fit-out procurement marketplace. Review this week\'s blog article before it is published.',
+    'You are the CEO seat of a UAE procurement marketplace for every trade but food and beverage. Review this week\'s blog article before it is published.',
     'The rule: when it is good for the company, approve it. Judge each criterion "pass" or "fail" with a reason of at least one full sentence that names what in the article earns the verdict:',
     ...Object.entries(CRITERIA).map(([k, v]) => `- ${k}: ${v}`),
     'Decisions: "approve" (all six pass)' + (reviseAllowed ? ', "revise" (at least one fails; the marketing seat answers each failed reason)' : '')

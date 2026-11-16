@@ -1,12 +1,12 @@
 # Retired checks
 
-Sixty-nine checks whose **subject was deleted**, kept for reading. Nothing runs them: the runner
+Seventy-four checks whose **subject was deleted**, kept for reading. Nothing runs them: the runner
 (`scripts/checks/run.mjs`) only executes `*.test.mjs` / `*.test.ts`, no workflow names them, and no
 live file imports them. Moved here from `scripts/checks/` on 22 Sep 2026 (founder instruction 642) so
 that the folder of live gates holds only live gates; 3 more that had been retired in place since
 (`a_handoff_waiting_more_than_a_day_is_a_finding`, `the_founder_gets_one_it_digest_per_tick`,
 `the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes`) were moved in on 9 Nov 2026.
-Measured 10 Nov 2026: `ls scripts/checks/retired/*.RETIRED.mjs | wc -l` = 67, and the table has 67 rows; 11 Nov 2026: 69 and 69, with the two of ruling 1627
+Measured 10 Nov 2026: `ls scripts/checks/retired/*.RETIRED.mjs | wc -l` = 67, and the table has 67 rows; 11 Nov 2026: 69 and 69; 16 Nov 2026: 74 and 74, with the four V3 / runtime-blueprint harnesses and their shared DDL reader `_ddl_from_sql` (simplification wave B: each calls a routine production no longer has, or is imported only by a retired check), with the two of ruling 1627
 (`supplier_eligibility_covers_match_gates` came back out on 10 Nov 2026 as `scripts/checks/supplier_eligibility_covers_match_gates.test.mjs`,
 against the rebuilt panel, supplier_portal/overview.ts buildEligibility). Older documents and SQL comments that cite
 `scripts/checks/<name>.RETIRED.mjs` mean the same file in this folder.
@@ -22,6 +22,7 @@ The reason column is the file's own header, shortened.
 
 | check | why it was retired (from its header) |
 |---|---|
+| `_ddl_from_sql.RETIRED.mjs` | RETIRED 16 Nov 2026 (it_engineer) WITH ITS SUBJECT: its only importer, application_source_of_truth, was retired on 7 Sep 2026 and imports it from here. |
 | `a_catalogue_line_is_understood_by_meaning.RETIRED.mjs` | RETIRED 11 Nov 2026 (customer_support) with its subject: catalogue_read.readCatalogue, the Services tab's catalogue read by words and meaning, deleted under founder ruling 1627; the model reads the catalogue with the supplier's other documents. |
 | `a_deciding_supply_gap_resumes_when_the_model_hold_lifts.RETIRED.mjs` | RETIRED 5 Oct 2026 (it_engineer) WITH ITS SUBJECT. A supply gap no longer waits in 'deciding' for the model; the LLM burn audit of 5 Oct 2026 (R8) measured 77 gaps holding one identical question with demand 0. |
 | `a_failed_scheduled_run_has_a_reader.RETIRED.mjs` | RETIRED 7 SEPTEMBER 2026 — ITS SUBJECT WAS REMOVED, NOT BROKEN. This asserted that the set of scheduled jobs failing since the stand-down has not changed. |
@@ -33,6 +34,7 @@ The reason column is the file's own header, shortened.
 | `application_source_of_truth.RETIRED.mjs` | RETIRED 7 SEPTEMBER 2026 — ITS SUBJECT WAS REMOVED, NOT BROKEN. This asserted that the application estate matches the live catalogue, workflow by workflow. |
 | `artifact_review_alias_cannot_self_approve.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: artifact_review + the visual_design/marketing_design role aliases |
 | `authority_is_rechecked_not_inherited.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: cos_execute The chief-of-staff executor. Deleted 8 Sep 2026: no agent owned it. |
+| `build_v3_requirement_matrix.RETIRED.mjs` | RETIRED 16 Nov 2026 (it_engineer) WITH ITS SUBJECT: the V3 certification remediation matrix. 4 of the 9 components it maps are gone from production (SELECT pg_proc, 16 Nov 2026: fn_context_slice, fn_knowledge_gap, fn_retrieval_leak_check, fn_task_tsquery); nothing calls it. |
 | `cancellation_reaches_the_kernel.RETIRED.mjs` | RETIRED 9 September 2026 — its subject was deleted. Subject: a cancelled founder command reaching the kernel. |
 | `capability_chase_guard_is_satisfiable.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was removed from the company, not from the check. Subject: fn_supplier_capability_chase, the guard whose loop no row could satisfy. |
 | `company_is_fully_wired.RETIRED.mjs` | RETIRED 7 SEPTEMBER 2026 — ITS SUBJECT WAS REMOVED, NOT BROKEN. This asserted that every workflow step, event, subscription and executor connects to an active agent or executor. |
@@ -79,6 +81,8 @@ The reason column is the file's own header, shortened.
 | `protected_table_guards_actually_fire.RETIRED.mjs` | RETIRED 9 September 2026 -- with its subject, not softened to green. it drove the a00_/a02_ guards on phase_c_refund_decision and phase_c_workflow_step_run. Those tables and their triggers were dropped. |
 | `quote_compare_bad_id_is_not_a_stalled_customer.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: supabase/functions/quote_compare — Quote comparison. Part of the RFQ pipeline, which the founder is rebuilding per agent. |
 | `reports_have_a_pdf.RETIRED.mjs` | RETIRED 22 Sep 2026 (documents-language audit, DL-13) WITH ITS SUBJECT: the report_pdf edge function is not deployed and the enqueue triggers were dropped. |
+| `runtime_connection_gate_a.RETIRED.mjs` | RETIRED 16 Nov 2026 (it_engineer) WITH ITS SUBJECT: Gate A of the Agent Runtime Connection Blueprint. It calls fn_org_role_violations() and fn_onboarding_gate(), both gone from production (SELECT pg_proc, 16 Nov 2026), so it cannot run; nothing calls it. |
+| `runtime_connection_gate_b.RETIRED.mjs` | RETIRED 16 Nov 2026 (it_engineer) WITH ITS SUBJECT: Gate B, the USD 3 paid smoke of the same blueprint. It calls fn_agent_tool_allowed, gone from production (SELECT pg_proc, 16 Nov 2026); nothing calls it. |
 | `scenario_expectation_drift.RETIRED.mjs` | RETIRED 9 SEP 2026 — THE BASELINE, BOTH VIEWS AND THE LEDGER ARE GONE; THERE IS NOTHING TO COMPARE. This file was, by its own account below, only a backstop that noticed if a write-time guard had quietly gone. The guard, the thing it guarded and the baseline it compared against were all dropped with the Phase A–D estate on 9 … |
 | `sql_files_match_live.RETIRED.mjs` | RETIRED 17 Aug 2026 — THIS CHECK CHOSE THE WRONG FILE AND SAID 0. It ranks the files that define a routine by GIT COMMIT TIME and, for a tie inside one commit, accepts live if it matches ANY candidate. The final Phase C acceptance found that certifying operations_assistance_company_reports.sql and … |
 | `supplier_inbox_identity.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: supplier_api The supplier API surface. Deleted 8 Sep 2026. |
@@ -88,6 +92,7 @@ The reason column is the file's own header, shortened.
 | `the_invitation_batch_waits_for_the_mornings_seed_to_land_in_both_inboxes.RETIRED.mjs` | RETIRED 27 Oct 2026 (it_engineer): its subject is gone. The founder stopped test mail to his own inboxes; the morning seed was retired. |
 | `the_reporting_map_is_what_the_founder_approved.RETIRED.mjs` | RETIRED 9 September 2026 -- with its subject, not softened to green. it called fn_phase_c_* to read the reporting map. The founder approves nothing now and the routine is dropped. |
 | `upload_kind_is_classified.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: supabase/functions/customer_api — Upload classification on the customer surface. |
+| `v3_remediation_regression.RETIRED.mjs` | RETIRED 16 Nov 2026 (it_engineer) WITH ITS SUBJECT: the V3 remediation programme. 8 of the 10 routines it drives are gone from production (SELECT pg_proc, 16 Nov 2026: fn_agent_tool_allowed, fn_seal_decision_trace, fn_retrieval_probe, fn_role_isolation_status, fn_reliability_report, fn_retrieval_leak_check, fn_trace_edit_is_blocked, fn_unsafe_guard_status); no runner, workflow, package script or check calls it. |
 | `v3_runtime_behaviour.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was removed from the company, not from the check. Subject: the v3 knowledge runtime for department agents and category specialists. |
 | `workflow_ownership_alignment.RETIRED.mjs` | RETIRED 8 September 2026 — its subject was deleted. Subject: the workflow system |
 | `zero_cost_evidence_window_covers_the_work.RETIRED.mjs` | RETIRED 9 September 2026 -- with its subject, not softened to green. its window covered phase_d_* and three phase_c freeze tables. All dropped 9 Sep 2026. |
