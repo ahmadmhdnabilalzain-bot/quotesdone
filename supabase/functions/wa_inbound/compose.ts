@@ -2,6 +2,7 @@
 // and the live company block, as the situation the model answers from. Moved out of index.ts's handleInbound unchanged (9 Nov 2026,
 // customer_support); it was a closure over the turn's audience and prefetched reads, which it now takes from the turn.
 import type { WaTurn } from './turn.ts';
+import { generaliseOwnRequestFacts, OWN_REQUEST_RULE, withoutDuplicateRequests } from '../_shared/own_request_facts.ts';
 
 // THE REPLY'S FACTS, composed from a route (customer_support, 2 Nov 2026). A function so the reply can be started BEFORE the
 // classification returns, on the route the commonest class gives (see `speculative` below), and again on the real route when the
@@ -16,7 +17,8 @@ export async function composeSituation(t: WaTurn, rt: Record<string, unknown> | 
   if (audience === 'supplier') {
     audienceBlock = `AUDIENCE: this number belongs to a REGISTERED SUPPLIER${known?.name ? ' (' + known.name + ')' : ''}${known?.approved ? ', already verified' : ', registration not yet verified'}. Treat them as a supplier. You may naturally acknowledge that they are registered with us, but never recite ANOTHER person's private details. Their OWN record is supplied below and you may state it back to them plainly - that is the point of this channel.`;
   } else if (audience === 'customer') {
-    audienceBlock = `AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer. Do NOT bring up supplier subscriptions, founding-supplier exemptions, supplier fines or supplier recruitment.`;
+    // ledger 1711 (16 Nov 2026): his own record carries what he asked and what his portal shows him; the model answers from it
+    audienceBlock = `AUDIENCE: this number belongs to a REGISTERED CUSTOMER. Treat them as a customer. Do NOT bring up supplier subscriptions, founding-supplier exemptions, supplier fines or supplier recruitment.\n` + OWN_REQUEST_RULE;
   } else {
     audienceBlock = `AUDIENCE: UNKNOWN - this number is not in our records. Most people messaging this number are UAE SUPPLIERS who received our invitation, but customers write too. Work out which they are from their wording (a supplier talks about registering, their trade licence, receiving jobs, their company; a customer talks about needing a price, getting quotes, a job they want done). If it is genuinely unclear and the answer would differ, ask ONE short friendly question to find out before giving fee details.`;
   }
@@ -26,12 +28,14 @@ export async function composeSituation(t: WaTurn, rt: Record<string, unknown> | 
   // inquiry", "what were I quoted on average" are all data questions about the SENDER. The
   // scoping is done by fn_wa_context in SQL off their phone number, so this prompt can never be
   // talked into another person's rows — the model is handed facts, it does not request them.
-  // Pre-reveal a customer gets a rounded band and a count, never the individual quotes and never
-  // a supplier name, which is the same rule the portal enforces.
+  // Pre-reveal a customer gets each quote's letter and price, as his portal shows it, and never a supplier's name, contact or
+  // brand (16 Nov 2026, ledger 1711; the anonymity decision is in a_customer_is_answered_from_his_whole_request_on_every_channel.sql).
+  // The fact pack below carries the same request list, so the own record points at it rather than sending it twice.
   let ownRecord = '';
   try {
     const { data: mine } = await prefetch.mine;
-    if (mine && (mine as any).known === true) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else\'s):\n' + JSON.stringify(mine) + '\n';
+    if (mine && (mine as any).known === true) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD (read live; it is theirs, so you may state it back to them, and you must never state anyone else\'s):\n'
+      + JSON.stringify(generaliseOwnRequestFacts(withoutDuplicateRequests(mine as Record<string, unknown>, rt?.fact_pack))) + '\n';
     else if (mine && (mine as any).known === false) ownRecord = '\n\nTHIS SENDER\'S OWN RECORD: no account matches this number, so answer generally and invite them to register or sign in rather than guessing at their status.\n';
   } catch (_e) { /* fall through with no record rather than dropping the message */ }
   if (timeline && timelineEvents > 0) ownRecord += '\n\nTHIS SENDER\'S CASE TIMELINE (newest first; every channel and every seat; theirs only). Never contradict it, and never repeat something it shows was already sent unless they ask:\n' + JSON.stringify((timeline as any).events) + '\n';
@@ -48,7 +52,7 @@ export async function composeSituation(t: WaTurn, rt: Record<string, unknown> | 
     // sentence (runs 0f48ea10 and c95eb7da, EN and AR), and it said "say you will check", which the answer standard forbids.
     brainPack = '\n\nFACT PACK (the ONLY source for any fact about this person, their own jobs and quotes, and any '
       + 'QuotesDone fee; a trade, material, timing or specification question is answered from your own expertise):\n'
-      + JSON.stringify(rt.fact_pack) + '\n';
+      + JSON.stringify(generaliseOwnRequestFacts(rt.fact_pack)) + '\n';
   }
 
   // THE COMPANY BLOCK — customer_support's half of the founder's 9 Sep 2026 ruling: "the company

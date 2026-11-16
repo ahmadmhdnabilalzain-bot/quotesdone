@@ -13,8 +13,25 @@ import { itemsByQuote } from '../../_shared/reveal_guard.ts';
 // compare table's letter (live quotes by ascending price) unless a transactions row proves the
 // reveal was paid — the same rule customer_api.letterOf applies, so the chat cannot name a
 // supplier the quote PDF would not.
+// WHAT HE ASKED RIDES WITH EACH REQUEST (16 Nov 2026, ledger 1711). The budget, the date, the place, the materials and brands
+// asked and the notes he sent later are read from the ONE reading every channel gives (fn_customer_inquiry_facts, `asked` and
+// `changes_he_sent_after`), so the portal chat answers "anyone below 5,000?" from the same facts WhatsApp does. A read failure
+// leaves the requests as they were.
+export async function askedByRef(customerId: string): Promise<Map<string, Record<string, unknown>>> {
+  const out = new Map<string, Record<string, unknown>>();
+  try {
+    const { data } = await admin.rpc('fn_customer_inquiry_facts', { p_customer: customerId, p_limit: 15 });
+    for (const r of (Array.isArray(data) ? data : []) as Record<string, unknown>[]) {
+      if (r?.ref == null || !r.asked) continue;
+      out.set(String(r.ref), { asked: r.asked, ...(Array.isArray(r.changes_he_sent_after) && r.changes_he_sent_after.length ? { changes_he_sent_after: r.changes_he_sent_after } : {}) });
+    }
+  } catch { /* the requests go without it */ }
+  return out;
+}
+
 export async function answerFromOwnQuotes(customerId: string, message: string, lang: 'en' | 'ar') {
   try {
+    const pAsked = askedByRef(customerId);
     const { data: inqs } = await admin.from('inquiries').select('id,rfq_no,category,summary,status,spec,boq').eq('customer_id', customerId).order('created_at', { ascending: false }).limit(50);
     const ids = (inqs || []).map((i: { id: string }) => i.id);
     // THE ACCOUNT ITSELF IS A FACT (browser proof, 2 Nov 2026): "what can you see in my account?" was answered "I can't see your
@@ -25,7 +42,8 @@ export async function answerFromOwnQuotes(customerId: string, message: string, l
         .in('inquiry_id', ids).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true }).limit(60),
       admin.from('transactions').select('inquiry_id,supplier_id').eq('customer_id', customerId).not('revealed_at', 'is', null),
     ]);
-    if (!qs || !qs.length) return { facts: JSON.stringify({ requests: (inqs || []).slice(0, 15).map((i: { rfq_no: string | null; category: string | null; summary: string | null; status: string | null }) => ({ rfq_no: i.rfq_no, category: i.category, summary: i.summary, status: i.status, quotes_received: 0 })), quotes: [], note: 'No quote has arrived yet on any request.' }).slice(0, 6000) };
+    const asked = await pAsked;
+    if (!qs || !qs.length) return { facts: JSON.stringify({ requests: (inqs || []).slice(0, 15).map((i: { rfq_no: string | null; category: string | null; summary: string | null; status: string | null }) => ({ rfq_no: i.rfq_no, category: i.category, summary: i.summary, status: i.status, quotes_received: 0, ...(asked.get(String(i.rfq_no)) ?? {}) })), quotes: [], note: 'No quote has arrived yet on any request.' }).slice(0, 9000) };
     const revealed = new Set((tx || []).map((t: { inquiry_id: string; supplier_id: number }) => t.inquiry_id + ':' + t.supplier_id));
     const revealedIds = [...new Set((qs as Array<{ inquiry_id: string; supplier_id: number }>).filter((q) => revealed.has(q.inquiry_id + ':' + q.supplier_id)).map((q) => q.supplier_id))];
     const names = new Map<number, string>();
@@ -75,7 +93,8 @@ export async function answerFromOwnQuotes(customerId: string, message: string, l
     void lang; void message;
     const shown = quotes.slice(0, 15).map((q) => Object.fromEntries(Object.entries(q).filter(([k, v]) => k !== 'id' && v != null && v !== '')));
     const perInq = new Map<string, number>(); for (const q of qs as Array<{ inquiry_id: string }>) perInq.set(q.inquiry_id, (perInq.get(q.inquiry_id) ?? 0) + 1);
-    const requests = (inqs || []).slice(0, 15).map((i: { id: string; rfq_no: string | null; category: string | null; summary: string | null; status: string | null }) => ({ rfq_no: i.rfq_no, category: i.category, summary: i.summary, status: i.status, quotes_received: perInq.get(i.id) ?? 0 }));
-    return { facts: JSON.stringify({ requests, quotes: shown }).slice(0, 6000) };
+    const requests = (inqs || []).slice(0, 15).map((i: { id: string; rfq_no: string | null; category: string | null; summary: string | null; status: string | null }) => ({ rfq_no: i.rfq_no, category: i.category, summary: i.summary, status: i.status, quotes_received: perInq.get(i.id) ?? 0, ...(asked.get(String(i.rfq_no)) ?? {}) }));
+    // the quotes first: what he asked is read beside them, and a cut must never drop a quote for a request's details
+    return { facts: JSON.stringify({ quotes: shown, requests }).slice(0, 9000) };
   } catch { return null; }   // a read failure falls through to the corpora rather than failing the turn
 }

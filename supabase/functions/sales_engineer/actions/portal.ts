@@ -26,6 +26,7 @@ import { REASK_CLAIM, reaskDue } from '../../_shared/reask.ts';
 import { admin, J, sec, EMITTERS, type ActionCtx } from '../context.ts';
 import { embed } from '../lib/embed.ts';
 import { answerFromOwnQuotes } from '../lib/own_quotes.ts';
+import { OWN_REQUEST_RULE } from '../../_shared/own_request_facts.ts';
 import { run } from '../lib/run.ts';
 import { conversationEffort } from '../../_shared/effort_policy.ts';
 import { lastTurn, replayOf } from '../../_shared/turn_replay.ts';
@@ -215,7 +216,8 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
         return J({ ok: false, seat: 'sales_engineer', answered: false, error: 'no_answer', outage: false, pending: true, capped: true, held_id: h?.handoffId ?? null }, 503);
       }
       // the facts change per turn, so they ride with the message, after the cached brief, rules and earlier turns
-      const facts = portalFacts({ facts: ownQuote ? 'THEIR OWN REQUESTS AND QUOTES (scoped in SQL to this customer; this IS what you can see of their account):\n' + ownQuote : '', passages: all });
+      // ledger 1711: the one rule every channel gives the model about his own request (_shared/own_request_facts.ts)
+      const facts = portalFacts({ facts: ownQuote ? 'THEIR OWN REQUESTS AND QUOTES (scoped in SQL to this customer; this IS what you can see of their account):\n' + ownQuote + '\n' + OWN_REQUEST_RULE : '', passages: all });
       const sys = '\n\n' + aiSystem({ seat: 'sales_engineer', channel: 'the signed-in customer portal', audience: 'customer', lang, message, rules: portalRules(), plainText: true, dialect }, lang);
       const allowed = figureSource(brief) + '\n' + facts + '\n' + sys;
       const known = allowedNumbers(brief, facts, sys);   // the brief's figures read once per brief (company_brief.ts, 11 Nov 2026 load test)

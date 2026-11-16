@@ -18,11 +18,15 @@
 // portal.ts) already send their facts. Their words are unchanged; with none of them the message is sent as it always was.
 // prevented by: site_assistant/turn_facts.test.ts
 import { givenBlock, type GivenRow } from '../_shared/given_trade_knowledge.ts';
+import { generaliseOwnRequestFacts, OWN_REQUEST_RULE } from '../_shared/own_request_facts.ts';
 
 /** The signed-in person's own live account data, as the widget has always worded it ('' for a visitor). */
 export function liveFacts(live: Record<string, unknown> | null, uiLang: string): string {
   if (!live) return '';
-  return `THIS PERSON IS SIGNED IN. Their OWN live account data, scoped in SQL to them alone:\n${JSON.stringify(live)}\nAnswer about their account from it directly; never tell them to log in. Before a reveal, price_band is a rounded band and a count on purpose: never present it as exact and never name or describe a supplier. Their portal is in ${uiLang === 'ar' ? 'ARABIC; name its buttons in Arabic as printed ("طلب جديد", "طلباتي", "المستندات", "الرسائل", "الحساب")' : 'ENGLISH; name its buttons as printed ("New request", "My requests", "Documents", "Messages", "Account")'}.`;
+  // 16 Nov 2026 (ledger 1711): each quote's letter and price, as their portal shows it, and what they asked; a customer's
+  // record carries OWN_REQUEST_RULE, the same rule WhatsApp, the portal chat and e-mail give the model
+  const own = (live as { scope?: unknown }).scope === 'customer' ? ' ' + OWN_REQUEST_RULE : '';
+  return `THIS PERSON IS SIGNED IN. Their OWN live account data, scoped in SQL to them alone:\n${JSON.stringify(generaliseOwnRequestFacts(live))}\nAnswer about their account from it directly; never tell them to log in. Before a reveal, price_band is only a rounded average: never present it as a quote, and never name or describe a supplier.${own} Their portal is in ${uiLang === 'ar' ? 'ARABIC; name its buttons in Arabic as printed ("طلب جديد", "طلباتي", "المستندات", "الرسائل", "الحساب")' : 'ENGLISH; name its buttons as printed ("New request", "My requests", "Documents", "Messages", "Account")'}.`;
 }
 
 /** Their case timeline (fn_contact_timeline events, newest first; '' when there are none). */

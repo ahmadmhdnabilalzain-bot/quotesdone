@@ -1,9 +1,13 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { accountFacts, customerFacts, mailFacts, SIGN_IN_FACT, SUPPLIER_SIGN_IN_FACT, supplierFacts } from './account_facts.ts';
 
-Deno.test('customer facts carry each request, its status and quotes count', () => {
-  const t = customerFacts([{ id: 7, category: 'Painting', emirate: 'Dubai', status: 'sent', quotes_count: 2, created_at: '2026-10-18T00:00:00Z' }]);
-  assert(t.includes('Request #7') && t.includes('status sent') && t.includes('2 quote(s)'));
+Deno.test('customer facts carry each request by its number, what he asked, each quote as his portal shows it, and the rule', async () => {
+  const { OWN_REQUEST_RULE } = await import('../_shared/own_request_facts.ts');
+  const t = customerFacts([{ ref: 1043, category: 'Painting', emirate: 'Dubai', status: 'quoted', quotes_received: 2,
+    asked: { budget_as_he_stated_it: 'around 3k' }, quotes: [{ letter: 'A', price_ex_vat_aed: 3400, revealed: false, warranty_as_stated: '1 year Grohe' }] }]);
+  assert(t.includes('"ref":1043') && t.includes('"status":"quoted"') && t.includes('around 3k') && t.includes('3400') && t.includes(OWN_REQUEST_RULE));
+  assert(!t.includes('Grohe'), 'a sealed quote named its brand');
+  assert(customerFacts([]).includes('no requests yet'));
 });
 Deno.test('supplier facts carry only their own quote', () => {
   const t = supplierFacts('ZZ DEMO Co', [{ inquiry_id: 9, status: 'open', my_quote_status: 'submitted' }]);
@@ -19,11 +23,11 @@ Deno.test('an unknown sender, or an address on two accounts, gets no account dat
 
 const custDb = () => { let reads = 0; const db: any = { reads: () => reads,
   from: () => { reads++; const q: any = { select: () => q, ilike: () => q, limit: async () => ({ data: [{ id: 'c1' }] }) }; return q; },
-  rpc: async () => ({ data: { inquiries: [{ id: 'i1', category: 'gypsum', status: 'quoted', quotes_count: 1 }] }, error: null }) }; return db; };
+  rpc: async (fn: string) => ({ data: fn === 'fn_customer_inquiry_facts' ? [{ ref: 'i1', category: 'gypsum', status: 'quoted', quotes_received: 1 }] : null, error: null }) }; return db; };
 
 Deno.test('DMARC/aligned pass: the account is given', async () => {
   const db = custDb(); const t = await mailFacts(db, 'a@example.invalid', 'customer', { sender_authenticated: true });
-  assert(t.includes('Request #i1') && t.includes('status quoted'));
+  assert(t.includes('"ref":"i1"') && t.includes('"status":"quoted"'));
 });
 Deno.test('authentication failed: no account data, no read, sign-in invited', async () => {
   const db = custDb(); const t = await mailFacts(db, 'a@example.invalid', 'customer', { sender_authenticated: false });

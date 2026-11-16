@@ -1,21 +1,24 @@
 // THE SENDER'S OWN ACCOUNT, ON E-MAIL TOO (customer_support, 19 Oct 2026). A registered customer e-mailed about their
 // request and was told we cannot see its status, while the portal and WhatsApp read it. The sender is matched on the
-// EXACT address (fn_mail_sender_known's rule), and only that account's rows are read: its own inquiries, each one's
-// status and quotes count (fn_customer_stats, the portal's own overview read), or for a supplier the jobs sent to it and
-// its OWN quote on each. Never another party's name, contact, price or case text (#1441). Unknown sender: nothing.
+// EXACT address (fn_mail_sender_known's rule), and only that account's rows are read, or for a supplier the jobs sent to it
+// and its OWN quote on each. Never another party's name, contact or case text (#1441). Unknown sender: nothing.
+// 16 Nov 2026 (ledger 1711): a customer's requests are the ONE reading every channel gives (fn_customer_inquiry_facts: what
+// he asked, each quote's letter and price as his portal shows it), with the same rule (_shared/own_request_facts.ts). It read
+// fn_customer_stats before: a status and a count per request, under the request's uuid instead of the number he quotes.
+import { generaliseOwnRequestFacts, OWN_REQUEST_RULE } from '../_shared/own_request_facts.ts';
 // deno-lint-ignore no-explicit-any
 type Db = any;
 
-export interface CustomerInq { id: unknown; category?: string | null; emirate?: string | null; status?: string | null; quotes_count?: number | null; created_at?: string | null }
 export interface SupplierJob { inquiry_id: unknown; category?: string | null; emirate?: string | null; status?: string | null; my_quote_status?: string | null; sent_at?: string | null }
 
 const day = (s?: string | null) => (s ? String(s).slice(0, 10) : '');
 
-export function customerFacts(inqs: CustomerInq[]): string {
-  if (!inqs.length) return 'THE SENDER IS A REGISTERED CUSTOMER (matched on their exact e-mail address). They have no requests yet.';
-  return 'THE SENDER IS A REGISTERED CUSTOMER (matched on their exact e-mail address). Their own requests, newest first '
-    + '(answer about their requests from this; never say you cannot see their status):\n'
-    + inqs.slice(0, 15).map((i) => `- Request #${i.id}: ${i.category || 'request'}${i.emirate ? ' in ' + i.emirate : ''}${i.created_at ? ', posted ' + day(i.created_at) : ''}, status ${i.status || 'unknown'}, ${Number(i.quotes_count || 0)} quote(s) received`).join('\n');
+/** A customer's own requests as fn_customer_inquiry_facts reads them (newest first), with the one rule for answering them. */
+export function customerFacts(requests: unknown[]): string {
+  if (!requests.length) return 'THE SENDER IS A REGISTERED CUSTOMER (matched on their exact e-mail address). They have no requests yet.';
+  return 'THE SENDER IS A REGISTERED CUSTOMER (matched on their exact e-mail address). Their own requests, newest first, each by its '
+    + 'request number (`ref`); answer about their requests from this and never say you cannot see their status:\n'
+    + JSON.stringify(generaliseOwnRequestFacts(requests.slice(0, 10))) + '\n' + OWN_REQUEST_RULE;
 }
 
 export function supplierFacts(company: string, jobs: SupplierJob[]): string {
@@ -101,9 +104,9 @@ export async function accountFacts(admin: Db, email: string, relation: unknown):
     if (relation === 'customer') {
       const { data: custs } = await admin.from('customers').select('id').ilike('email', e.replace(/[\\%_]/g, (c) => '\\' + c)).limit(2);
       if (!custs || custs.length !== 1) return '';   // exactly one account, or nothing
-      const { data: stats, error } = await admin.rpc('fn_customer_stats', { p_customer: custs[0].id });
+      const { data: facts, error } = await admin.rpc('fn_customer_inquiry_facts', { p_customer: custs[0].id, p_limit: 10 });
       if (error) return '';
-      return customerFacts(((stats as { inquiries?: CustomerInq[] } | null)?.inquiries) || []);
+      return customerFacts(Array.isArray(facts) ? facts : []);
     }
     if (relation === 'supplier') {
       const exact = e.replace(/[\\%_]/g, (c) => '\\' + c);

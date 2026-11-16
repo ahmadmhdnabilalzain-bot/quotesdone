@@ -126,3 +126,15 @@ Deno.test('a 12-turn conversation: the system prompt is byte-identical every tur
   }
   console.log('per 12-turn conversation (estimated tokens; USD input side, claude-sonnet-5.5):', JSON.stringify(out));
 });
+
+// 16 Nov 2026 (ledger 1711): a signed-in customer's record carries the one rule every channel gives the model about his own
+// request, and a sealed quote's own words pass the code generaliser; a supplier's record gets neither.
+Deno.test('a customer is answered from his whole request; a supplier record is unchanged', async () => {
+  const { OWN_REQUEST_RULE } = await import('../_shared/own_request_facts.ts');
+  const cust = { scope: 'customer', known: true, inquiries: [{ ref: 14, asked: { budget_as_he_stated_it: 'AED 5,000 excluding VAT' },
+    quotes: [{ letter: 'A', price_ex_vat_aed: 4600, revealed: false, warranty_as_stated: '2 years Grohe mixer' }] }] };
+  const f = liveFacts(cust, 'en');
+  assert(f.includes(OWN_REQUEST_RULE) && f.includes('AED 5,000 excluding VAT') && f.includes('4600'));
+  assert(!f.includes('Grohe'), 'a sealed quote named its brand');
+  assert(!liveFacts({ scope: 'supplier', known: true, company: 'ZZ DEMO' }, 'en').includes(OWN_REQUEST_RULE));
+});

@@ -237,3 +237,11 @@ Deno.test('a promise with a date is kept even when it also says right away, if o
     { what: 'سنرسل لكم التقرير غدًا', by: null }, { what: 'answer it straight away', by: null }, { what: 'ننبهكم فور وصول كل عرض', by: null }] }, { ourReply: reply });
   assertEquals(s?.promised.map((p) => p.what), ['call the supplier right away and update you by 6 pm', 'come back to you by Sunday if they agree', 'سنرسل لكم التقرير غدًا']);
 });
+
+// 16 Nov 2026 (ledger 1711): the case block points at the request facts, the record of what he told the sales engineer.
+Deno.test('the case block names the request facts as the record of what he asked', async () => {
+  const { REQUEST_IS_THE_RECORD } = await import('./support_case_memory.ts');
+  const b = caseBlock({ ref: 'QD-C1001', summaryText: 'ASKED: status' });
+  assert(b.includes(REQUEST_IS_THE_RECORD) && b.includes('`asked`') && b.includes('`changes_he_sent_after`'));
+  assert(b.indexOf(REQUEST_IS_THE_RECORD) < b.indexOf('ASKED: status'), 'the pointer comes before the summary');
+});
