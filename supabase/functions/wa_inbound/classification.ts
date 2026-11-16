@@ -4,6 +4,7 @@
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { caseKeyOf, handFaultToIt } from '../_shared/support_fault_handover.ts';
 import { registerComplaint } from '../_shared/complaint_register.ts';
+import { recordInjectionAttempt } from '../_shared/injection_attempt.ts';
 import { waComplaintReport } from './complaint.ts';
 import { queueWhatsAppMeaning, whatsappReadings, type WaMeaningInput } from '../_shared/reasoned_channels.ts';
 import { menuMeaning } from '../_shared/reasoned_menus.ts';
@@ -89,6 +90,13 @@ export async function startClassification(t: WaTurn): Promise<void> {
         receivedAt, reading: String(r.result.answer ?? ''), name: (known?.name as string) || null,
         arabic: audience !== 'supplier' && langOf(Body.trim(), 'en') === 'ar' }));
       t.complaint = opened.ticket ?? null;
+    }
+    // AN ATTEMPT TO INSTRUCT THE ASSISTANT IS KEPT ON THE SENDER (it_engineer, 16 Nov 2026; injection_attempt.ts): the same call read
+    // it; the number's confirmed owner carries it (fn_injection_attempt_record), else the number. Nothing is blocked. Never throws.
+    if (r.injection && audience !== 'founder') {
+      await recordInjectionAttempt((fn, args) => admin.rpc(fn, args), { channel: 'whatsapp', surface: 'wa_inbound.intent_table',
+        messageRef: 'whatsapp:' + (MessageSid || await caseKeyOf('whatsapp', From + ':' + receivedAt + ':' + Body.slice(0, 200))),
+        sender: { phone: From }, reading: String(r.result.answer ?? ''), model: r.result.model ?? null });
     }
     return { intent: r.intent, needsPerson: r.needsPerson, menu: r.menu, why: r.result.reason ?? r.result.status };
   })().catch((e) => ({ intent: null, needsPerson: null, menu: null, why: 'threw: ' + String((e as Error)?.message || e).slice(0, 200) })));

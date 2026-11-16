@@ -415,6 +415,11 @@ async function handle(req: Request, T: Timer): Promise<Response> {
         // A COMPLAINT ENTERS THE REGISTER (16 Nov 2026, COO hole H2): read in the same call; the ticket is opened once for this
         // message, keyed on a hash (no address in the key), linked to the signed-in person when there is one (complaint_register.ts)
         complaint: await widgetComplaintReport({ caller: who ? accountKey(who.audience, who.id) : ip, hour, msgKey, who, lang: uiLang === 'ar' ? 'ar' : 'en', message }),
+        // AN ATTEMPT TO INSTRUCT THE ASSISTANT IS KEPT ON THE SENDER (injection_attempt.ts, 16 Nov 2026): the signed-in person the
+        // session proved, else a hash of the caller (no address is known); one row per message, keyed on a hash, never the text
+        attempt: { channel: 'widget', messageRef: await caseKeyOf('widget', (who ? accountKey(who.audience, who.id) : ip) + ':' + hour + ':' + msgKey),
+                   sender: who ? (who.audience === 'supplier' ? { leadId: String(who.id) } : { customerId: String(who.id) })
+                               : { visitor: await caseKeyOf('widget', ip) } },
       })).value;
       // Ledger 1152 / ruling 1264: a contested decision goes to its owning seat; an explicit ask for a person to the founder.
       if (person === true) {

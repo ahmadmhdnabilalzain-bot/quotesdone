@@ -14,6 +14,7 @@ import { surfaceEffort } from './effort_policy.ts';
 import { handFaultToIt, type FaultReport } from './support_fault_handover.ts';
 import { COMPLAINT_OPTIONS, isComplaint, registerComplaint, type ComplaintReport, type Ticket } from './complaint_register.ts';
 import { isStanding, type Standing, STANDING_OPTIONS } from './escalation_clock.ts';
+import { INJECTION_OPTIONS, isInjectionAttempt, type InjectionReport, recordInjectionAttempt } from './injection_attempt.ts';
 
 export type Reasoned<T> = { value: T | null; result: ThinkResult };
 
@@ -37,7 +38,10 @@ export async function needsAPerson(deps: ThinkDeps, o: {
   /** What the surface knows to register a complaint (complaint_register.ts): when given, the SAME call also reads whether the
    *  message is a complaint (COMPLAINT_OPTIONS) and, when the model says so, the ticket is opened once for the message. */
   complaint?: Omit<ComplaintReport, 'message' | 'reading'> & { message?: string };
-}): Promise<Reasoned<boolean> & { fault?: boolean; standing?: Standing | null; complaint?: boolean; ticket?: Ticket | null }> {
+  /** Who wrote it and which message (injection_attempt.ts): when given, the SAME call also reads whether the message tries to
+   *  instruct the assistant, and when the model says so the attempt is kept on that sender's record. Nothing is blocked. */
+  attempt?: Omit<InjectionReport, 'surface' | 'reading' | 'model'>;
+}): Promise<Reasoned<boolean> & { fault?: boolean; standing?: Standing | null; complaint?: boolean; ticket?: Ticket | null; injection?: boolean }> {
   const result = await think(deps, {
     seat: o.seat, surface: o.surface, question: o.message, dedupeKey: o.dedupeKey, subject: o.subject,
     context: { audience: o.audience ?? 'customer', conversation: o.conversation },
@@ -52,7 +56,9 @@ export async function needsAPerson(deps: ThinkDeps, o: {
     // answered at once as a new customer. The model reads it beside the person question (no second call, ruling 1663: never a word
     // list); a surface that sees press, legal or regulator gives the holding line and hands the case to the CEO (escalation_clock.ts).
     // A COMPLAINT IS READ IN THE SAME CALL too (customer_support, 16 Nov 2026, COO hole H2): no second model call per message
-    also: [{ key: 'standing', options: STANDING_OPTIONS }, ...(o.complaint ? [{ key: 'complaint', options: COMPLAINT_OPTIONS }] : [])],
+    also: [{ key: 'standing', options: STANDING_OPTIONS }, ...(o.complaint ? [{ key: 'complaint', options: COMPLAINT_OPTIONS }] : []),
+           // AN ATTEMPT TO INSTRUCT THE ASSISTANT, in the same call (it_engineer, 16 Nov 2026; FAILURES hunt item 12)
+           ...(o.attempt ? [{ key: 'instructs_the_assistant', options: INJECTION_OPTIONS }] : [])],
   });
   const fault = result.status === 'answered' && isSiteFault(result.decision?.choice);
   // the hand-over never stands in the reply's way and never throws (handFaultToIt answers filed:false with the reason)
@@ -63,8 +69,11 @@ export async function needsAPerson(deps: ThinkDeps, o: {
   const opened = complaint && o.complaint
     ? await registerComplaint((fn, args) => deps.rpc(fn, args), { ...o.complaint, message: o.complaint.message ?? o.message, reading: (result.answer || '').slice(0, 600) || 'read as a complaint (' + o.surface + ')' })
     : null;
+  // an attempt to instruct the assistant goes onto the sender's record (injection_attempt.ts; never throws, never blocks)
+  const injection = !!o.attempt && result.status === 'answered' && isInjectionAttempt(result.also?.instructs_the_assistant);
+  if (injection && o.attempt) await recordInjectionAttempt((fn, args) => deps.rpc(fn, args), { ...o.attempt, surface: o.surface, reading: result.answer, model: result.model ?? null });
   return { value: result.status === 'answered' ? result.decision?.choice === 'needs_a_person' : null, result, fault, standing,
-           ...(o.complaint ? { complaint, ticket: opened?.ticket ?? null } : {}) };
+           ...(o.complaint ? { complaint, ticket: opened?.ticket ?? null } : {}), ...(o.attempt ? { injection } : {}) };
 }
 
 /** The founder's command: which intent in ceo_command_intent does it carry? (surface ceo.command_intent) */
