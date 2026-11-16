@@ -178,7 +178,8 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
     // a turn filed for the re-ask (model up, every draft refused): the pending state, then the model's answer (never silence)
     setMsgs((m) => reply
       ? [...m, { role: 'assistant', content: reply, scope: j.done && j.done.scope }]
-      : pendingDue(j) ? [...m, { role: 'pending', q, content: t('asst_working') }]
+      // an outage turn is filed too (16 Nov 2026): it says the answer will come here, never "send it again"
+      : pendingDue(j) ? [...m, { role: 'pending', q, content: t(j.done && j.done.outage ? 'asst_queued' : 'asst_working') }]
       : savedLineDue(j, reply) ? [...m, { role: 'notice', content: t(stored ? 'asst_saved' : 'asst_not_sent') }] : m);
     setBusy(false);
     if (!reply && pendingDue(j)) watch(q);

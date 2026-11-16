@@ -63,6 +63,8 @@ function Projects({ token, lang, openChat, onExpired }) {
           <div className="mt-1 text-[14px] font-semibold text-foreground"><bdi>{c.name || (ar ? 'العميل' : 'Customer')}</bdi></div>
           {/* The exact site is released by the reveal (13 Nov 2026, founder ruling 1683): before it a supplier saw the emirate only. */}
           {c.site ? <div className={cn(S.sub, 'mt-0.5')}>{'Site: '}<bdi>{c.site}</bdi></div> : null}
+          {/* The company the buyer is billed as (16 Nov 2026, public.reveal_bill_to): address the formal quotation and invoices to it. */}
+          {p.bill_to && p.bill_to.company ? <div className={cn(S.sub, 'mt-0.5')}>{'Bill to: '}<bdi>{[p.bill_to.company, p.bill_to.trn ? 'TRN ' + p.bill_to.trn : '', p.bill_to.po_ref ? 'PO ' + p.bill_to.po_ref : ''].filter(Boolean).join(' · ')}</bdi></div> : null}
           {/* 44 PX TO A FINGER (walk of 12 Nov 2026, S8): the customer's phone and e-mail, what he paid the reveal for, were 21 px tall. */}
           <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[14px]">
             {c.phone ? <a className="inline-flex min-h-11 items-center text-primary font-semibold underline-offset-2 hover:underline" href={'tel:' + String(c.phone).replace(/[^\d+]/g, '')}><Ltr>{c.phone}</Ltr></a> : null}

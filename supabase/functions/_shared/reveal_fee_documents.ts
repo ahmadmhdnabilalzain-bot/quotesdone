@@ -41,6 +41,9 @@ export type RevealSale = {
   quote_amount: number | null;
   payment_ref: string;
   customer: { name: string | null; email: string; phone: string | null };
+  /** The company he asked to be billed as at the reveal (public.reveal_bill_to, 16 Nov 2026): printed as the party billed, with
+   *  its TRN and his PO reference, the person as its contact. null/absent: billed to the person, as before. */
+  bill_to?: { company: string; trn: string | null; po_ref: string | null } | null;
   request: { summary: string | null; category: string | null; ref: string };
   /** From the Stripe charge; null when Stripe could not be asked. */
   card: { brand: string; last4: string } | null;
@@ -177,8 +180,24 @@ function charges(s: RevealSale, lang: Lang): Block {
 }
 function parties(s: RevealSale, lang: Lang, toLabel: string): Block {
   const ar = lang === 'ar', co = ISSUER[lang], c = s.customer;
-  const to = [c.name, c.email, c.phone].filter(Boolean).join(' · ');
-  return { t: 'kv', pairs: [[ar ? 'من' : 'From', `${co.name} · ${co.licence}`], [toLabel, to]] };
+  const person = [c.name, c.email, c.phone].filter(Boolean).join(' · ');
+  const b = s.bill_to;
+  // A COMPANY BUYER IS BILLED AS HIS COMPANY (16 Nov 2026, holes/CUSTOMER.md item 9): the company, its TRN and his PO are the
+  // party billed; the person who paid stays on the document as its contact.
+  if (!b || !String(b.company || '').trim()) return { t: 'kv', pairs: [[ar ? 'من' : 'From', `${co.name} · ${co.licence}`], [toLabel, person]] };
+  const pairs: string[][] = [[ar ? 'من' : 'From', `${co.name} · ${co.licence}`], [toLabel, String(b.company).trim()]];
+  if (b.trn) pairs.push([ar ? 'الرقم الضريبي للعميل' : 'Customer TRN', b.trn]);
+  if (b.po_ref) pairs.push([ar ? 'مرجع أمر الشراء' : 'PO reference', b.po_ref]);
+  pairs.push([ar ? 'جهة الاتصال' : 'Attention', person]);
+  return { t: 'kv', pairs };
+}
+/** The document's name carries the company it was billed to, so a company added or changed after the reveal is a new document
+ *  (reveal_invoice serves a stored document only while its name matches). */
+export function billToTag(b: RevealSale['bill_to']): string {
+  if (!b || !String(b.company || '').trim()) return '';
+  const k = [b.company, b.trn ?? '', b.po_ref ?? ''].join('|');
+  let h = 5381; for (let i = 0; i < k.length; i++) h = ((h * 33) ^ k.charCodeAt(i)) >>> 0;
+  return '-bt' + h.toString(36);
 }
 function body(lang: Lang, ref: string, name: string, title: string, kicker: string, subtitle: string, s: RevealSale, meta: string[][], figures: string[][], blocks: Block[]) {
   const ar = lang === 'ar';
@@ -194,7 +213,7 @@ function body(lang: Lang, ref: string, name: string, title: string, kicker: stri
 export function revealInvoiceDocument(s: RevealSale, lang: Lang) {
   const ar = lang === 'ar', ref = docRef(s), paid = fmtDate(s.paid_at, lang), rf = refundFacts(s, lang);
   const T = (en: string, a: string) => ar ? a : en;
-  return body(lang, ref, `invoice-${ref}-${lang}-${REVEAL_DOC_VERSION}${s.refund ? '-rf' + Math.round(s.refund.amount * 100) : ''}`, T('Invoice', 'فاتورة'),
+  return body(lang, ref, `invoice-${ref}-${lang}-${REVEAL_DOC_VERSION}${s.refund ? '-rf' + Math.round(s.refund.amount * 100) : ''}${billToTag(s.bill_to)}`, T('Invoice', 'فاتورة'),
     rf ? T('Invoice — paid, then refunded — not subject to VAT', 'فاتورة — مدفوعة ثم مستردّة — غير خاضعة لضريبة القيمة المضافة') : T('Invoice — paid — not subject to VAT', 'فاتورة — مدفوعة — غير خاضعة لضريبة القيمة المضافة'),
     T(`Reveal fee for request ${s.request.ref}`, `رسوم الكشف عن الطلب ${s.request.ref}`), s,
     [[T('Invoice no.', 'رقم الفاتورة'), s.invoice_no || T('— (see payment ref.)', '— (انظر مرجع الدفع)')], [T('Invoice date', 'تاريخ الفاتورة'), paid], [T('Status', 'الحالة'), rf ? rf.status : T('PAID', 'مدفوعة')], [T('Request ref.', 'مرجع الطلب'), s.request.ref],
@@ -216,7 +235,7 @@ export function revealInvoiceDocument(s: RevealSale, lang: Lang) {
 export function revealReceiptDocument(s: RevealSale, lang: Lang) {
   const ar = lang === 'ar', ref = docRef(s), paid = fmtDate(s.paid_at, lang), rf = refundFacts(s, lang);
   const T = (en: string, a: string) => ar ? a : en;
-  return body(lang, ref, `receipt-${ref}-${lang}-${REVEAL_DOC_VERSION}${s.refund ? '-rf' + Math.round(s.refund.amount * 100) : ''}`, T('Payment Receipt', 'إيصال دفع'), T('Receipt — payment received', 'إيصال — تم استلام الدفعة'),
+  return body(lang, ref, `receipt-${ref}-${lang}-${REVEAL_DOC_VERSION}${s.refund ? '-rf' + Math.round(s.refund.amount * 100) : ''}${billToTag(s.bill_to)}`, T('Payment Receipt', 'إيصال دفع'), T('Receipt — payment received', 'إيصال — تم استلام الدفعة'),
     s.invoice_no ? T(`Payment of invoice ${s.invoice_no} — request ${s.request.ref}`, `سداد الفاتورة ${s.invoice_no} — الطلب ${s.request.ref}`) : T(`Reveal fee for request ${s.request.ref}`, `رسوم الكشف عن الطلب ${s.request.ref}`), s,
     [[T('For invoice no.', 'عن الفاتورة رقم'), s.invoice_no || '—'], [T('Date received', 'تاريخ الاستلام'), paid], [T('Amount received', 'المبلغ المستلَم'), money(s.total_charged, lang)], [T('Status', 'الحالة'), rf ? rf.status : T('PAID', 'مدفوعة')],
       ...(windowEnds(s, lang) ? [[T('Refund window ends', 'تنتهي مهلة الاسترداد'), windowEnds(s, lang) as string]] : [])],

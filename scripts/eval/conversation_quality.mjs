@@ -63,10 +63,10 @@ export const CANON = {
   // 2000/1700/51: the brief's own worked example (§4 "AED 2,000, after discount AED 1,700" -> AED 51)
   aed: new Set([500, 1000, 1001, 2000, 1700, 51, 250 /* CT§15 chargeback handling fee only, see FORBID */, 5000, 10000, 20000]),
   pct: new Set([3, 12]),
-  // durations the brief states, as "<n> <unit>"; units normalised (working/business days -> wd). The inquiry edit window is
-  // 1 hour: fn_edit_inquiry and customer_api EDIT_WINDOW_MS enforce it and the FAQ says it (company.md said 24 hours until
-  // 3 Nov 2026, the knowledge conflict this harness found), so "24 hours" is not canon.
-  durations: new Set(['3 wd', '5 wd', '3-5 wd', '2 wd', '10 wd', '7-14 wd', '1 hours', '30 days', '30 minutes', '7 days', '5 years', '12 months', '24 months']),
+  // durations the brief states, as "<n> <unit>"; units normalised (working/business days -> wd). Since 16 Nov 2026 a request has
+  // NO edit window: it is revised until a supplier is revealed (fn_edit_inquiry, a_change_to_a_sent_request_is_a_revision_...sql),
+  // so neither "24 hours" nor "1 hour" is canon for editing (factProblems FORBID below).
+  durations: new Set(['3 wd', '5 wd', '3-5 wd', '2 wd', '10 wd', '7-14 wd', '30 days', '30 minutes', '7 days', '5 years', '12 months', '24 months']),
   contacts: [/\+?1[\s-]?218[\s-]?316[\s-]?6814/, /800\s?1222/, /\+?971[\s-]?56[\s-]?791[\s-]?8605/],   // + the calls line, company.md section 12
   emails: /@quotesdone\.com|@example\.invalid/i,
 };
@@ -627,7 +627,7 @@ export function selfTest() {
   expect(factProblems('Verification takes 10 days.', []).length === 1, 'facts: an invented timeline');
   expect(factProblems('Your 14 windows at 8mm.', ['14 windows 8mm']).length === 0, 'facts: the customer\'s own numbers');
   expect(factProblems('You can edit an inquiry within 24 hours of submitting it.', []).length === 1, 'facts: the stale 24-hour edit window');
-  expect(factProblems('You can edit an inquiry within 1 hour of submitting it.', []).length === 0, 'facts: the 1-hour edit window');
+  expect(factProblems('You can edit an inquiry within 1 hour of submitting it.', []).length === 1, 'facts: the retired 1-hour edit window (16 Nov 2026)');
   expect(restatement('ذكرتَ أن الفيلا في الشارقة، ولم تُذكر دبي. الزجاج 8 مم بدلاً من 6 مم.', st).wrong.length === 0, 'restatement: Arabic set-asides are not restatements');
   expect(restatement("You told me Sharjah earlier, not Dubai, and I haven't assumed Dubai.", st).wrong.length === 0, 'restatement: "haven\'t assumed Dubai" sets it aside (CI run 41621633737)');
   expect(restatement('14 openings: 12 windows and 2 sliding doors, 8mm glass, Sharjah.', st).wrong.length === 0, 'restatement: the same count split into windows and doors (CI run 41621633737)');

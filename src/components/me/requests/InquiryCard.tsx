@@ -49,6 +49,8 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   const [eSummary, setESummary] = useState(inq.summary || '');
   const [eBudget, setEBudget] = useState(inq.budget || '');
   const [eEmirate, setEEmirate] = useState(inq.emirate || '');
+  // the date the work is needed by is editable too (16 Nov 2026): no edit window, every change is a revision
+  const [eDate, setEDate] = useState(String(inq.required_by || '').slice(0, 10));
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [dialog, ask] = useConfirm(lang);
@@ -78,7 +80,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   const openRepeat = async (e) => { e.stopPropagation(); if (repeating) return; setRepeating(true); setErr(''); setRepeated(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id, preview: true }, token); if (j && j.ok && j.draft) { setRDraft({ summary: j.draft.summary || '', budget: j.draft.budget || '', emirate: j.draft.emirate || '', required_by: j.draft.required_by || '' }); } else { setErr(j && j.error === 'nothing_to_repeat' ? t(lang, 'rc_repeat_nothing') : errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
   // busy-exempt: setRepeating is the busy state; it disables the Post button and shows rc_repeating while it waits.
   const postRepeat = async () => { if (repeating || !rDraft) return; setRepeating(true); setErr(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id, edits: rDraft }, token); if (j && j.ok) { setRDraft(null); setRepeated(t(lang, 'rc_repeat_done')); onChange(); } else { setErr(j && j.error === 'nothing_to_repeat' ? t(lang, 'rc_repeat_nothing') : errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
-  const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr(errText(j, lang, 'rc_save_fail')); } } catch (_e) { setErr(t(lang, 'rc_save_fail')); } setSaving(false); };
+  const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null, required_by: eDate && eDate !== String(inq.required_by || '').slice(0, 10) ? eDate : null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr(errText(j, lang, 'rc_save_fail')); } } catch (_e) { setErr(t(lang, 'rc_save_fail')); } setSaving(false); };
   return (<Card ref={cardRef} id={'inq-' + inq.id} className={cn('scroll-mt-20 p-4 shadow-e1 transition-[border-color,box-shadow] duration-300 hover:border-primary/30 hover:shadow-e2 sm:p-5', open && 'border-primary/25 shadow-e2')}>{dialog}
     {/* A11Y (5 Aug 2026): role+tabIndex+onKeyDown rather than a <button>, because this wraps <div>
         children and <div> inside <button> is an invalid content model. */}
@@ -97,7 +99,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
           {inq.emirate ? <span aria-hidden className="text-muted-foreground/40">·</span> : null}
           <span>{quotes.length} {t(lang, quotes.length === 1 ? 'rc_quote_one' : 'rc_quote_many')}</span>
           {(inq.boq && inq.boq.boq) ? <><span aria-hidden className="text-muted-foreground/40">·</span><span>{countPhrase(lang, inq.boq.boq.length, 'line')}</span></> : null}
-          {inq.editable ? <><span aria-hidden className="text-muted-foreground/40">·</span><span>{tf(lang, 'rc_editable', { m: inq.edit_minutes_left })}</span></> : null}
+          {Number(inq.revision) > 1 ? <><span aria-hidden className="text-muted-foreground/40">·</span><span>{tf(lang, 'rc_revision', { n: inq.revision })}</span></> : null}
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1 text-primary font-semibold text-[13px]">
@@ -113,6 +115,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
         {/* Theme tokens, not the hard-coded navy this select carried into the light theme. */}
         <select className={cn(S.field, 'bg-background')} aria-label={t(lang, 'rc_emirate_opt')} value={eEmirate} onChange={(e) => setEEmirate(e.target.value)}><option value="">{t(lang, 'rc_emirate_opt')}</option>{EMIRATES.map((em) => <option key={em} value={em}>{emirateName(em, lang)}</option>)}</select>
         <Input aria-label={t(lang, 'rc_budget_opt')} placeholder={t(lang, 'rc_budget_opt')} value={eBudget} onChange={(e) => setEBudget(e.target.value)} />
+        <Input type="date" aria-label={t(lang, 'rc_date_opt')} title={t(lang, 'rc_date_opt')} value={eDate} onChange={(e) => setEDate(e.target.value)} />
       </div>
       <div className="flex gap-2.5 flex-wrap items-center mt-2.5">
         <Button disabled={saving} onClick={(e) => { e.stopPropagation(); saveEdit(); }}>{saving ? t(lang, 'rc_saving') : t(lang, 'rc_save')}</Button>
@@ -120,7 +123,7 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
       </div>
     </div>}
     {!concluded && !anyRevealed && !editing && <div className="flex gap-2.5 flex-wrap items-center mt-2">
-      {inq.editable && <Button variant="link" className="px-0 h-auto" onClick={(e) => { e.stopPropagation(); setESummary(inq.summary || ''); setEBudget(inq.budget || ''); setEEmirate(inq.emirate || ''); setEditing(true); }}>{t(lang, 'rc_edit')}</Button>}
+      {inq.editable && <Button variant="link" className="px-0 h-auto" onClick={(e) => { e.stopPropagation(); setESummary(inq.summary || ''); setEBudget(inq.budget || ''); setEEmirate(inq.emirate || ''); setEDate(String(inq.required_by || '').slice(0, 10)); setEditing(true); }}>{t(lang, 'rc_edit')}</Button>}
       <Button variant="link" className="px-0 h-auto text-danger" disabled={canceling} onClick={doCancel}>{canceling ? t(lang, 'rc_cancelling') : t(lang, 'rc_cancel')}</Button>
     </div>}
     {/* REPEAT IN ONE CLICK (founder_instruction 1028): the same specs posted again as a new request, through the

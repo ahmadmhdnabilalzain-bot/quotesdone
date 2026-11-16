@@ -9,6 +9,8 @@
 //   add detail          -> customer_api rfq_note      (reaches every matched supplier)
 //   supplier questions  -> messages_api clarify_list  (suppliers shown as Supplier A, B...)
 //   answer one          -> messages_api clarify_answer (visible to every matched supplier)
+//   ask ONE supplier    -> messages_api clarify_ask_supplier, from the quote card (AskSupplier below; 16 Nov 2026): the sales
+//                          engineer answers from the quote or asks that supplier by a date; only he hears the answer
 // Contact details are stripped server-side; the panel only reports that it happened.
 import { useEffect, useState } from 'react';
 import * as M from 'motion/react-m';
@@ -34,7 +36,7 @@ export function Clarifications({ inq, token, lang, call }) {
   // Loaded once on mount so an unanswered supplier question can pull the panel open by itself: a
   // question the customer has to go looking for is a question that goes unanswered.
   useEffect(() => { load(); }, [inq.id]);
-  const pending = (items || []).filter((i) => i.kind === 'question' && !i.answered_at).length;
+  const pending = (items || []).filter((i) => i.kind === 'question' && !i.answered_at && i.asked_by !== 'customer').length;
   useEffect(() => { if (pending > 0) setOpen(true); }, [pending]);
 
   const addNote = async () => {
@@ -78,7 +80,17 @@ export function Clarifications({ inq, token, lang, call }) {
             {items.map((it) => (
               <M.div key={it.id} layout={!reduce} initial={reduce ? false : { opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                 className={cn('rounded-card border bg-secondary/20 p-3', it.kind === 'question' && !it.answered_at ? 'border-warn/40' : 'border-border')}>
-                {it.kind === 'question' ? (
+                {it.kind === 'question' && it.asked_by === 'customer' ? (
+                  <>
+                    <div className="font-mono text-label uppercase tracking-caps text-primary">{tf(lang, 'cl_you_asked', { label: lang === 'ar' ? String(it.supplier_label || '').replace('Supplier', 'المورّد') : it.supplier_label })}</div>
+                    <p className="mt-0.5 text-[13px] text-foreground">{it.question}</p>
+                    {it.answered_at ? (
+                      <p className="mt-2 flex gap-1.5 text-[13px] text-muted-foreground"><CornerDownRight className="mt-0.5 h-3.5 w-3.5 shrink-0 rtl:-scale-x-100" aria-hidden /><span><b className="text-foreground">{t(lang, it.answered_by === 'sales_engineer' ? 'cl_by_engineer' : 'cl_by_supplier')}: </b>{it.answer}</span></p>
+                    ) : (
+                      <p className="mt-1.5 text-[12px] text-muted-foreground">{it.reply_by ? tf(lang, 'cl_due', { d: new Date(it.reply_by).toLocaleString(lang === 'ar' ? 'ar-AE' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Dubai' }) }) : t(lang, 'cl_with_engineer')}</p>
+                    )}
+                  </>
+                ) : it.kind === 'question' ? (
                   <>
                     <div className="font-mono text-label uppercase tracking-caps text-primary">{tf(lang, 'cl_asked', { label: lang === 'ar' ? String(it.supplier_label || '').replace('Supplier', 'المورّد') : it.supplier_label })}</div>
                     <p className="mt-0.5 text-[13px] text-foreground">{it.question}</p>
@@ -122,5 +134,40 @@ export function Clarifications({ inq, token, lang, call }) {
       )}
       {err ? <div className={cn('mt-2 text-[12.5px] text-danger')} role="alert">{err}</div> : null}
     </section>
+  );
+}
+
+// ASK ONE SUPPLIER ABOUT ITS QUOTE, BEFORE PAYING (16 Nov 2026, holes/CUSTOMER.md item 6). "Does B's price include scaffolding?"
+// goes to the sales engineer, who answers from the quote itself or asks that supplier by a date; the answer appears on the
+// request's questions (Clarifications above) and by e-mail. Neither side sees the other's name.
+export function AskSupplier({ quote, token, lang, call }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState(''); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState(''); const [err, setErr] = useState('');
+  const send = async () => {
+    const q = text.trim(); if (!q || busy) return;
+    setBusy(true); setErr(''); setMsg('');
+    const j = await call('messages_api', { action: 'clarify_ask_supplier', quote_id: quote.id, text: q.slice(0, 1500) }, token).catch(() => null);
+    setBusy(false);
+    if (j && j.ok) { setText(''); setOpen(false); setMsg(t(lang, 'cl_ask_sent')); } else setErr(errText(j, lang));
+  };
+  if (!open) return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <Button variant="link" className="h-auto px-0 text-[12.5px]" onClick={() => { setOpen(true); setMsg(''); }}>
+        <MessageCircleQuestion className="me-1.5 h-3.5 w-3.5" aria-hidden />{t(lang, 'cl_ask_open')}
+      </Button>
+      {msg ? <div role="status" className="text-[12px] text-primary">{msg}</div> : null}
+    </div>
+  );
+  return (
+    <div className="mt-2 flex flex-col gap-2" onClick={(e) => e.stopPropagation()}>
+      <label className="text-[12px] text-muted-foreground" htmlFor={'qd-askq-' + quote.id}>{t(lang, 'cl_ask_label')}</label>
+      <textarea id={'qd-askq-' + quote.id} rows={2} maxLength={1500} value={text} onChange={(e) => setText(e.target.value)}
+        className="w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-[13px] text-foreground outline-hidden focus-visible:ring-1 focus-visible:ring-ring" />
+      <div className="flex gap-2">
+        <Button size="sm" disabled={busy || text.trim().length < 3} onClick={send}>{busy ? t(lang, 'sending') : t(lang, 'cl_ask_send')}</Button>
+        <Button size="sm" variant="outline" onClick={() => { setOpen(false); setText(''); setErr(''); }}>{t(lang, 'rc_cancel_edit')}</Button>
+      </div>
+      {err ? <div role="alert" className="text-[12px] text-danger">{err}</div> : null}
+    </div>
   );
 }

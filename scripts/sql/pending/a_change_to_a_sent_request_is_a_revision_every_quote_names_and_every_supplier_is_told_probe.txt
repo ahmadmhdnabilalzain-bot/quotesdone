@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run after a_change_to_a_sent_request_is_a_revision_every_quote_names_and_every_supplier_is_told.sql on a local Postgres 16; it must print PROBE OK. This note stays for the life of the file. Seat: sales_engineer.

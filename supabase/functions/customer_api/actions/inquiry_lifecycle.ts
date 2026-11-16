@@ -25,7 +25,6 @@ import { requestOf, reviewNotes, type ReviewNote } from '../../_shared/quote_rev
 import { verifiedBadges } from '../../_shared/verified_badges.ts';
 import { type ActionCtx, J, admin } from '../context.ts';
 import { isClosedRequest } from '../../_shared/request_closed.ts';
-import { EDIT_WINDOW_MS } from '../lib/inquiry_rules.ts';
 import { signedDrawing } from '../lib/storage.ts';
 import { matchAndNotify, notifyLosers } from '../lib/matching.ts';
 import { SITE_NOTE_KEPT_FOR_SUPPLIERS, forSuppliers, keptNotice, keptPartsOf, readOwner } from '../../supplier_api/what_a_supplier_receives.ts';
@@ -169,7 +168,7 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       //   routing — the filters the matcher actually applied (job_type, primary_trade, reasoning).
       //     Spec §9 shows them back to the customer; they never left the database.
       //   floor / required_by / delivery_window — added 7 Aug for §6 and §7.
-      const cols = 'id,category,emirate,summary,spec,status,created_at,budget,scope_type,brief_source,drawing_file_path,drawing_file_name,boq,boq_confidence,hired_supplier_id,outcome,parent_inquiry_id,trades,rfq_no,pipeline_stage,stage_changed_at,routing,floor,required_by,delivery_window,project_id,rfq_ready,repeat_of';
+      const cols = 'id,category,emirate,summary,spec,status,created_at,budget,scope_type,brief_source,drawing_file_path,drawing_file_name,boq,boq_confidence,hired_supplier_id,outcome,parent_inquiry_id,trades,rfq_no,pipeline_stage,stage_changed_at,routing,floor,required_by,delivery_window,project_id,rfq_ready,repeat_of,revision';
       // ONE READ AT A TIME WAS THE OVERVIEW'S CRITICAL PATH (15 Sep 2026). Measured with the e2e
       // harness's per-call timing on production (smoke run 34888342875 and a probe of 8 page loads):
       // the six dashboard calls already start together, and my_inquiries answers last (1.40-1.61 s
@@ -180,7 +179,7 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       const [cfg, { data: tops }, txRes, { data: revs }] = await Promise.all([
         getCfg(),
         admin.from('inquiries').select(cols).eq('customer_id', cust.id).is('parent_inquiry_id', null).order('created_at', { ascending: false }).limit(25),
-        admin.from('transactions').select('id,quote_id,revealed_at,supplier_ack_at,refund_status,refund_deadline,total_charged').eq('customer_id', cust.id),
+        admin.from('transactions').select('id,inquiry_id,quote_id,revealed_at,supplier_ack_at,refund_status,refund_deadline,total_charged').eq('customer_id', cust.id),
         admin.from('reviews').select('transaction_id').eq('customer_id', cust.id),
       ]);
       const topIds = (tops || []).map((i) => i.id);
@@ -192,8 +191,9 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       const txs: any[] = ids.length ? (txRes.data || []) : [];
       if (ids.length && txRes.error) console.error('my_inquiries: transactions read failed —', txRes.error.message);
       const txIds = txs.map((t) => t.id);
+      const paidInq = new Set(txs.map((t) => String(t.inquiry_id)));
       const [qsRes, msRes, sosRes, rfsRes] = await Promise.all([
-        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,quote_amount,price_ex_vat,gross_amount,discount_amount,discount_label,vat_treatment,vat_amount,amount_as_stated,terms_spec,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,created_at,expires_at').in('inquiry_id', ids).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true }) : null,
+        ids.length ? admin.from('quotes').select('id,inquiry_id,supplier_id,option_no,priced_revision,quote_amount,price_ex_vat,gross_amount,discount_amount,discount_label,vat_treatment,vat_amount,amount_as_stated,terms_spec,status,notes,lead_time,validity,payment_terms,warranty,scope,conditions,exclusions,source,created_at,expires_at').in('inquiry_id', ids).not('status', 'in', NOT_LIVE_QUOTE_IN).order('quote_amount', { ascending: true }) : null,
         ids.length ? admin.from('inquiry_matches').select('inquiry_id,supplier_id,similarity,match_reason').in('inquiry_id', ids) : null,
         ids.length ? admin.from('spec_alternative_offer').select('id,inquiry_id,line_no,item,attr,label_en,label_ar,requested,alternatives,state,reply_by').in('inquiry_id', ids).eq('customer_id', cust.id).eq('state', 'open').order('opened_at', { ascending: true }) : null,
         txIds.length ? admin.from('refunds').select('id,transaction_id,refund_decision_id').in('transaction_id', txIds) : null,
@@ -353,12 +353,12 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
         // §6/§7: the floor this RFQ is scoped to, and the delivery window the assistant extracted.
         floor: i.floor ?? null, required_by: i.required_by ?? null, delivery_window: i.delivery_window ?? null,
         project_id: i.project_id ?? null, budget: i.budget || null, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: i.boq || null, boq_confidence: i.boq_confidence || null, drawing_file_name: i.drawing_file_name || null, hired_supplier_id: i.hired_supplier_id ?? null, outcome: i.outcome ?? null, trades: i.trades || null, matched_suppliers: matchedBy[String(i.id)] || 0, best_match_pct: bestPct[String(i.id)] ?? null,
-        // ONE EDIT WINDOW, ONE NUMBER (customer-portal audit CP-06, 22 Sep 2026). This said 24 hours
-        // while fn_edit_inquiry refuses after 1 hour and the minutes counter beside it counted down
-        // from 60, so the portal offered an Edit button for 23 hours that the server always refused.
-        editable: (i.status === 'sent') && ((Date.now() - new Date(i.created_at).getTime()) < EDIT_WINDOW_MS), edit_minutes_left: (i.status === 'sent') ? Math.max(0, Math.round((EDIT_WINDOW_MS - (Date.now() - new Date(i.created_at).getTime()))/60000)) : 0,
+        // NO EDIT WINDOW (16 Nov 2026, scratchpad holes/CUSTOMER.md item 5): fn_edit_inquiry revises a request until it is revealed,
+        // paid or closed, and every change is a numbered revision the suppliers are told about. The button follows the same rule:
+        // a request still collecting quotes with no sale on it. `revision` is the request's; each quote carries the one it priced.
+        editable: ['open', 'sent', 'quoted'].includes(String(i.status)) && !paidInq.has(String(i.id)), edit_minutes_left: null, revision: i.revision ?? 1,
         // How many quotes are on hold for missing details and are therefore not in the list below.
-        on_hold: onHoldByInq[String(i.id)] || 0, being_checked: checkingByInq[String(i.id)] || 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q) => { const lab = labelFor(q); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : NO_LETTER.en, label_ar: lab ? lab.ar : NO_LETTER.ar, option_no: q.option_no ?? 1, price: q.quote_amount, reveal_fee: revealFee(Number(feeBaseOf(q) ?? 0), cfg), price_stated: priceStated(q, 'en'), price_stated_ar: priceStated(q, 'ar'), gross_amount: q.gross_amount ?? null, discount_amount: q.discount_amount ?? null, discount_label: q.discount_label ?? null, vat_treatment: q.vat_treatment ?? null, vat_stated: vatStated(q, 'en'), vat_stated_ar: vatStated(q, 'ar'), fee_basis: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'en'), fee_basis_ar: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'ar'), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, review_notes: (reviewByQuote[String(q.id)] || []).map((n) => ({ code: n.code, severity: n.severity, line_no: n.line_no, en: n.en, ar: n.ar })), source: q.source || 'form', status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
+        on_hold: onHoldByInq[String(i.id)] || 0, being_checked: checkingByInq[String(i.id)] || 0, drawing_file_url: await signedDrawing(i.drawing_file_path), spec_offers: offersBy[String(i.id)] || [], quotes: quotes.filter((q) => q.inquiry_id === i.id).map((q) => { const lab = labelFor(q); const m = supMeta[String(q.supplier_id)] || {}; const r = m.r || {}; const revealed = revealedQ.has(String(q.id)); return { id: q.id, supplier_ref: revealed ? q.supplier_id : null, label: lab ? lab.en : NO_LETTER.en, label_ar: lab ? lab.ar : NO_LETTER.ar, option_no: q.option_no ?? 1, priced_revision: q.priced_revision ?? 1, priced_older: (q.priced_revision ?? 1) < (i.revision ?? 1), price: q.quote_amount, reveal_fee: revealFee(Number(feeBaseOf(q) ?? 0), cfg), price_stated: priceStated(q, 'en'), price_stated_ar: priceStated(q, 'ar'), gross_amount: q.gross_amount ?? null, discount_amount: q.discount_amount ?? null, discount_label: q.discount_label ?? null, vat_treatment: q.vat_treatment ?? null, vat_stated: vatStated(q, 'en'), vat_stated_ar: vatStated(q, 'ar'), fee_basis: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'en'), fee_basis_ar: feeBasisLine(feeBaseOf(q), cfg ? cfg.standard_reveal_rate : null, 'ar'), notes: q.notes, lead_time: q.lead_time, validity: q.validity, expires_at: q.expires_at ?? null, expired: q.expires_at ? (new Date(q.expires_at) < now) : false, payment_terms: q.payment_terms, warranty: q.warranty, scope: q.scope, conditions: q.conditions, exclusions: q.exclusions, review_notes: (reviewByQuote[String(q.id)] || []).map((n) => ({ code: n.code, severity: n.severity, line_no: n.line_no, en: n.en, ar: n.ar })), source: q.source || 'form', status: q.status, revealed, revealed_at: revealAtByQuote[String(q.id)] || null, supplier_name: revealed ? (m.name ?? null) : undefined, total_charged: revealed ? (chargedByQuote[String(q.id)] ?? null) : undefined, guarantee: revealed ? (guaranteeByQuote[String(q.id)] || null) : undefined, rated: ratedTx.has(String(txByQuote[String(q.id)] || '')), rating: revealed ? (r.value ?? null) : ratingBand(r.value), rating_count: revealed ? (r.count ?? 0) : reviewCountBand(r.count), rating_source: revealed ? (r.source || null) : undefined, match_reason: revealed ? (reasonBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null) : undefined, match_pct: pctBySup[String(i.id) + ':' + String(q.supplier_id)] ?? null, emirate: revealed ? (m.emirate ?? null) : undefined, verified: m.verified ?? false, years_active: revealed ? (m.years_active ?? null) : yearsBand(m.years_active), jobs_won: m.jobs_won ?? 0, win_rate: revealed ? (m.win_rate ?? null) : undefined,
           // W9 badges: only measured facts, null when absent. Pre-reveal the response rate is floored
           // to a 10% band and the rating stays out (the banded rating above already shows it), so a
           // badge can never be an exact fingerprint of one company.
@@ -483,8 +483,8 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       // the hold rule measures quotes against.
       //   Only the three fields that carry no structure are editable here: the summary (scrubbed
       //   with the same scrubber every supplier-facing text goes through), the budget and the
-      //   emirate. A change to the scope, the BOQ or the trades is a new request — the portal's own
-      //   Edit form offers nothing else.
+      //   emirate, and since 16 Nov 2026 the date the work is needed by. A change to the scope told to the sales engineer on the
+      //   request (rfq_note, WhatsApp) is read by his model and becomes a revision (fn_sales_engineer_reads_a_change).
       // What may be written is decided in ./lib/edit_summary.ts (13 Nov 2026, review of F2 item 7): only what changed is
       // checked, the customer's own words are stored, and a refusal names the part that cannot be sent to suppliers.
       const { data: curRow } = await admin.from('inquiries').select('summary').eq('id', iid).maybeSingle();
@@ -493,7 +493,8 @@ export async function inquiryLifecycleActions(c: ActionCtx): Promise<Response | 
       if (!d.ok) return J(d.body, d.status);
       const clean = d.patch;
       const { data: r } = await admin.rpc('fn_edit_inquiry', { p_inquiry: iid, p_customer: cust.id, p_patch: clean });
-      if (r?.error) return J({ error: r.message || r.error, editable_until: r.editable_until }, r.error === 'not_your_inquiry' ? 403 : 400);
+      // the refusal's code too (date_invalid, date_in_past, not_editable), so the portal can say it in his language
+      if (r?.error) return J({ error: r.message || r.error, code: r.error, editable_until: r.editable_until ?? null }, r.error === 'not_your_inquiry' ? 403 : 400);
       return J(r || { ok: true });
     }
 

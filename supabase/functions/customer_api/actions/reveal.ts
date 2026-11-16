@@ -1,4 +1,4 @@
-// customer_api — the paid reveal and its refund: reveal, request_refund.
+// customer_api — the paid reveal and its refund: reveal, reveal_bill_to, request_refund.
 //
 // The if-chain below is index.ts's own, moved line for line with its original indentation, so each
 // `if (action === …)` reads exactly as it did and the checks that locate a handler by that line still find it.
@@ -28,7 +28,31 @@ export async function revealActions(c: ActionCtx): Promise<Response | undefined>
       // No readable rate, no price and no payment: never a guessed 3% (./reveal_rate.ts; getCfg filed the finding).
       if (!cfg) return J({ ok: false, error: 'reveal_rate_unavailable', code: 'reveal_rate_unavailable', message: 'Card payments are briefly unavailable. Your quotes are safe — please try again shortly.', message_ar: 'الدفع بالبطاقة غير متاح مؤقتًا. عروضك محفوظة — يُرجى المحاولة بعد قليل.' }, 503);
       const ch = revealCharge(Number(q.quote_amount), Number(cfg.standard_reveal_rate));
-      return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: ch.base_fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, currency: 'AED' });
+      // the company he asked to be billed as on this quote, if he already gave one (the confirm dialog shows it to change or keep)
+      const { data: bt } = await admin.from('reveal_bill_to').select('company,trn,po_ref').eq('quote_id', qid).maybeSingle();
+      return J({ ok: true, payment_required: true, quote_id: qid, quote_amount: q.quote_amount, reveal_fee: ch.base_fee, processing_fee: ch.processing_fee, total_charged: ch.total_charged, currency: 'AED', bill_to: bt || null });
+    }
+
+    // BILL TO A COMPANY (16 Nov 2026, holes/CUSTOMER.md item 9): optional, at the reveal. The company, its UAE TRN and his PO
+    // reference are printed on the reveal invoice and receipt and passed to the supplier only after the reveal
+    // (public.fn_reveal_bill_to_record checks ownership and the formats; an empty company removes it). Nothing at sign-up.
+    if (action === 'reveal_bill_to') {
+      const qid = String(body.quote_id || '');
+      if (!/^[0-9a-f-]{36}$/i.test(qid)) return J({ ok: false, error: 'quote_id_required' }, 400);
+      const { data: r, error } = await admin.rpc('fn_reveal_bill_to_record', { p_customer: cust.id, p_quote: qid,
+        p_company: String(body.company ?? '').slice(0, 200), p_trn: body.trn == null ? null : String(body.trn).slice(0, 40), p_po: body.po_ref == null ? null : String(body.po_ref).slice(0, 80) });
+      if (error) return J({ ok: false, error: 'save_failed' }, 500);
+      const res = (r || {}) as Record<string, unknown>;
+      if (!res.ok) {
+        const code = String(res.error || 'save_failed');
+        const say: Record<string, [string, string]> = {
+          trn_invalid: ['A UAE TRN has 15 digits.', 'الرقم الضريبي في الإمارات مكوّن من 15 رقمًا.'],
+          company_invalid: ['Write the company name as it should appear on the invoice.', 'اكتب اسم الشركة كما يجب أن يظهر في الفاتورة.'],
+          po_invalid: ['The PO reference can be up to 60 characters.', 'يمكن أن يصل مرجع أمر الشراء إلى 60 حرفًا.'],
+        };
+        return J({ ok: false, error: code, code, message: say[code]?.[0], message_ar: say[code]?.[1] }, code === 'not_your_quote' ? 403 : 400);
+      }
+      return J({ ok: true, bill_to: res.bill_to ?? null });
     }
 
     if (action === 'request_refund') {
