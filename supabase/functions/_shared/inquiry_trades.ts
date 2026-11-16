@@ -38,22 +38,10 @@ import { plainOf } from './customer_questions.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
-export interface TaxTrade { code: string; label: string; label_ar?: string | null; group_code: string | null; authority_required?: string[] | null }
-export interface TradeService { trade_code: string; code: string; label_en: string; label_ar?: string | null }
-export interface SpecItem { code: string; label_en: string }
-/** One row of a checklist's spec_guide (the loader's shape: scripts/kb/load_trade_spec_checklists.mjs expertFieldsOf). */
-export interface GuideRow { code: string; spec: string; why_needed_to_price: string; uae_options: string; follow_up_if: string; blocking: boolean;
-  /** When this job does not need the spec (15 Nov 2026, journey A; inquiry_intake/interview.ts SpecField.not_needed_when): `answered`
-   *  holds spec CODES of the same checklist (the loader writes them from the pack's labels), `text` the condition in plain words. */
-  not_needed_when?: { answered?: string[]; text: string } | null }
-/** One photo a site-visit job asks for (15 Nov 2026, founder ledger 1704; scripts/kb/photos_to_ask.mjs): the shot in plain words,
- *  in English and Arabic, and `from`, the words of the checklist's own site-visit sentence it shows. */
-export interface PhotoShot { shot: string; shot_ar: string; from: string }
-/** One checklist of one trade, as public.trade_spec_checklist holds it. */
-export interface TradeChecklist { trade_code: string; topic_id: string; topic: string; specs: SpecItem[]; guide: GuideRow[]; blocking: string[]; site_visit_required_when: string | null; pack_order: number;
-  /** The photos a site-visit job asks for ([] when none, or before a_site_visit_checklist_carries_the_photos_to_ask_for.sql). */
-  photos?: PhotoShot[] }
-export interface TradeContext { codes: string[]; trades: TaxTrade[]; services: TradeService[]; specs: Record<string, SpecItem[]>; approvals: Record<string, string>; checklists?: Record<string, TradeChecklist[]> }
+import type { TaxTrade, TradeService, SpecItem, GuideRow, PhotoShot, TradeChecklist, TradeContext } from './trade_context.ts';
+export type { TaxTrade, TradeService, SpecItem, GuideRow, PhotoShot, TradeChecklist, TradeContext } from './trade_context.ts';
+export { activeChecklists } from './trade_context.ts';
+import { activeChecklists } from './trade_context.ts';
 
 export const GROUP_LABEL: Record<string, string> = {
   construction_building: 'Construction & building', mep_building_systems: 'MEP & building systems', facilities_property: 'Facilities & property services',
@@ -321,17 +309,6 @@ export function validTopics(x: unknown, ctx: TradeContext | null): string[] {
   if (!Array.isArray(x) || !ctx?.checklists) return [];
   const known = new Set(Object.values(ctx.checklists).flat().map((c) => c.topic_id));
   return [...new Set(x.map((t) => String(t ?? '').trim()).filter((t) => known.has(t)))].slice(0, 8);
-}
-/** Per placed trade, the checklist(s) this job is: the ones named in `topics`, else the pack's first (the core job). */
-export function activeChecklists(ctx: TradeContext | null, topics: string[] = []): Record<string, TradeChecklist[]> {
-  const out: Record<string, TradeChecklist[]> = {};
-  for (const code of ctx?.codes ?? []) {
-    const all = ctx?.checklists?.[code] ?? [];
-    if (!all.length) continue;
-    const named = all.filter((c) => topics.includes(c.topic_id));
-    out[code] = named.length ? named : [all[0]];
-  }
-  return out;
 }
 /** Whether a trade's rows carry the blocking rule (the loader has written them since the SQL was applied). */
 export const hasBlocking = (ctx: TradeContext | null, code: string) => (ctx?.checklists?.[code] ?? []).some((c) => c.blocking.length > 0);
