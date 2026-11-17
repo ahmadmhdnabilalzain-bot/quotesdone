@@ -30,6 +30,7 @@
 // seat's, made on that measurement; the #1816 rule still holds where nothing else reads the flag (no escalateReading) and
 // for every `actions` caller (an action is the draft's own choice, prose carries none).
 // prevented by: _shared/ai_reply.test.ts, _shared/ai_reply_prose_with_a_known_reading.test.ts
+import { parseJson } from './model_json.ts';
 import { allowedNumbers, briefNumbers, companyBrief, conversationTrade, splitBrief, figureSource, moneyFiguresNotInBrief, policyProblems, revealFeeIncomplete, takeSentences } from './company_brief.ts';
 import { replyViolations } from './support_reply_guard.ts';
 import { fitHistory } from './chat_history.ts';
@@ -173,25 +174,9 @@ ${r.plainText ? 'Write only the reply itself, as plain text: no JSON, no code fe
 // A LINE BREAK TYPED INSIDE THE ANSWER STRING (customer_support, 3 Nov 2026). The reply rules ask for each phone number, e-mail and
 // link on its own line; a model that writes that break as a real newline inside the JSON string (not \n) makes JSON.parse throw,
 // the answer read '' and the turn went to the other-family rung or to nobody. Control characters INSIDE a string are escaped
-// as a last try; outside strings they are whitespace and left alone. Prevented by: ai_reply.test.ts.
-export function controlsEscaped(t: string): string {
-  let out = '', inStr = false, esc = false;
-  for (const ch of t) {
-    if (inStr && !esc && ch < ' ') { out += JSON.stringify(ch).slice(1, -1); continue; }   // "\n" -> the two characters \ and n
-    if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; }
-    else if (ch === '"') inStr = true;
-    out += ch;
-  }
-  return out;
-}
-const json = (s: string | null | undefined): Record<string, unknown> => {
-  const t = String(s ?? '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-  const obj = t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1);
-  for (const c of [t, obj, controlsEscaped(obj)]) {
-    try { const v = JSON.parse(c); if (v && typeof v === 'object') return v as Record<string, unknown>; } catch (_e) { /* next */ }
-  }
-  return {};
-};
+// as a last try; outside strings they are whitespace and left alone. Prevented by: ai_reply.test.ts. Both rules live in
+// _shared/model_json.ts since 17 Nov 2026 (escapeControls); wholeDecides keeps a bare JSON array an empty answer, as before.
+const json = (s: string | null | undefined): Record<string, unknown> => parseJson(s, { wholeDecides: true, escapeControls: true }) ?? {};
 // THE REPLY WRITTEN AS PLAIN PROSE IS THE REPLY (customer_support, 3 Nov 2026). Measured on the real exchange (run 41540859092,
 // reply_attempts): 3 of 27 Sonnet answers were the reply itself as plain text, no JSON object at all ("route:failed unparseable
 // (411 chars): Sorry to hear that. AC repair is covered..."), so each went to the other-family rung: a 278k-token Luna call,

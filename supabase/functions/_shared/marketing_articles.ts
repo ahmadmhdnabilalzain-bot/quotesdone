@@ -12,6 +12,7 @@
 // requires once the article is baked into src/content/blog.json. articlePost is the LinkedIn post that
 // announces it, drafted into #834's marketing_post at ingest.
 //   Tested by supabase/functions/_shared/marketing_articles.test.ts.
+import { parseJson } from './model_json.ts';
 import { lintDraft, ungroundedNumbers, type Finding } from './marketing_style.ts';
 import { SITE } from './marketing_outreach.ts';
 export const FIELDS = ['title', 'excerpt', 'meta_desc', 'category', 'body_html'] as const;
@@ -127,7 +128,6 @@ export function reviewPrompt(r: ReviewRound, refused: string[] = []): string {
   ].filter(Boolean).join('\n');
 }
 
-const jsonOf = (answer: string) => JSON.parse(answer.slice(answer.indexOf('{'), answer.lastIndexOf('}') + 1));
 export type Refusal = { ok: false; reason: string };
 const lintText = (c: ReturnType<typeof checkArticle>) => c.lint.slice(0, 5).map((x) => `${x.field} ${x.rule} ${x.match}`).join('; ');
 export const slugOf = (title: string) => {
@@ -142,7 +142,7 @@ export function acceptArticle(o: { sources: MarketSource[]; prior: ArticleBody |
   if (!answer) return { ok: false, reason: 'no answer' };
   if (truncated) return { ok: false, reason: 'the answer was cut off' };
   let j: ArticleBody & { changes?: { criterion: string; change: string }[] };
-  try { j = jsonOf(answer); } catch { return { ok: false, reason: 'the answer is not the article JSON' }; }
+  { const p = parseJson<typeof j>(answer); if (!p) return { ok: false, reason: 'the answer is not the article JSON' }; j = p; }
   for (const lang of ['en', 'ar'] as const) for (const f of FIELDS) {
     if (typeof j?.[lang]?.[f] !== 'string' || !j[lang][f].trim()) return { ok: false, reason: `${lang}.${f} is missing` };
   }
@@ -169,7 +169,7 @@ export function acceptReview(answer: string | null, truncated: boolean, reviseAl
   if (!answer) return { ok: false, reason: 'no answer' };
   if (truncated) return { ok: false, reason: 'the answer was cut off' };
   let j: { decision?: string; reasons?: Record<string, ReviewReason> };
-  try { j = jsonOf(answer); } catch { return { ok: false, reason: 'the answer is not the review JSON' }; }
+  { const p = parseJson<typeof j>(answer); if (!p) return { ok: false, reason: 'the answer is not the review JSON' }; j = p; }
   const d = j?.decision;
   if (d !== 'approve' && d !== 'revise' && d !== 'replace_topic') return { ok: false, reason: 'no decision among approve, revise, replace_topic' };
   if (d === 'revise' && !reviseAllowed) return { ok: false, reason: `after ${MAX_REVISE_ROUNDS} revise rounds the decision is approve or replace_topic` };

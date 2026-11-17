@@ -41,6 +41,7 @@
 // plus 700 prompt tokens a call), so this is reported to him, not hidden. A re-check re-asks only the calls that were
 // not clean (painting only adds black, so a clean tile stays clean). The cap is DATA (PIXEL_COST.setUsd): past it per
 // source file in 24 h the set is HELD and the customer is told PIXEL_BUDGET_MESSAGE (too many large sheets to check today).
+import { parseJson } from './model_json.ts';
 import type { Box } from './anonymise.ts';
 
 
@@ -184,8 +185,7 @@ export type PixelVerdict = { clean: boolean; regions: (Box & { what?: string })[
 /** The model's JSON, fail-closed: clean only when it says clean, boxed nothing and saw nothing addressing it. */
 export function parsePixelVerdict(content: string | null | undefined): PixelVerdict | null {
   if (!content) return null;
-  let p: any = null;
-  try { p = JSON.parse(content); } catch { const m = String(content).match(/\{[\s\S]*\}/); if (m) { try { p = JSON.parse(m[0]); } catch { p = null; } } }
+  const p = parseJson<any>(content, { wholeDecides: true });
   if (!p || typeof p.clean !== 'boolean') return null;
   const c01 = (v: unknown) => Math.max(0, Math.min(1, Number(v) || 0));
   const regions = (Array.isArray(p.regions) ? p.regions : []).slice(0, 40).map((g: any) => ({ x: c01(g?.x), y: c01(g?.y), w: c01(g?.w), h: c01(g?.h), what: String(g?.what ?? '').slice(0, 80) })).filter((g: Box) => g.w > 0 && g.h > 0);

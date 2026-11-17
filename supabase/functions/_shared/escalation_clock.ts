@@ -22,6 +22,7 @@
 // WhatsApp only in their window, e-mail through the duty send, a fixture never). No import here: the live IO (ceo_agent) and the
 // test pass their own, so the one path is the one that is proved.
 // prevented by: _shared/escalation_clock.test.ts, scripts/sql/every_escalation_carries_a_clock_and_the_ceo_decides_it_not_the_founder_probe.sql
+import { parseJson } from './model_json.ts';
 import { BRIEF_PRESS_LEGAL } from './brief.generated.ts';
 
 export type DueFor = 'decide' | 'tell' | 'status';
@@ -111,10 +112,9 @@ export const namesNoLaw = (law: string | null | undefined): boolean => /^\s*(n\s
 const STANDINGS = ['customer', 'supplier', 'press', 'legal', 'regulator'] as const;
 /** The CEO model's answer as a decision, or null. Tolerates a ```json fence; nothing else. */
 export function parseCeoDecision(text: string | null): CeoDecision | null {
-  if (!text) return null;
-  const m = text.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
   try {
-    const o = JSON.parse(m ? m[1] : text.trim());
+    // deno-lint-ignore no-explicit-any
+    const o = parseJson<any>(text, { exact: true });
     if (!o || !['decided', 'not_yet', 'founder_by_law'].includes(o.decision)) return null;
     const reasons = String(o.reasons ?? '').trim(); const outcome = String(o.outcome ?? '').trim();
     if (!reasons || (o.decision === 'decided' && !outcome)) return null;
@@ -165,10 +165,8 @@ export function messagePrompt(c: DueClock, p: Purpose, now = Date.now()): { syst
 }
 
 export function parseMessage(text: string | null): { subject: string; message: string } | null {
-  if (!text) return null;
-  const m = text.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
   try {
-    const o = JSON.parse(m ? m[1] : text.trim());
+    const o = parseJson(text, { exact: true });
     const message = String(o?.message ?? '').trim();
     return message ? { subject: String(o?.subject ?? '').trim().slice(0, 140), message: message.slice(0, 3000) } : null;
   } catch (_e) { return null; }

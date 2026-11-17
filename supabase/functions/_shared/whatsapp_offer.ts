@@ -20,6 +20,7 @@
 // copy; he may answer in Arabic and the model reads it.
 // prevented by: _shared/whatsapp_offer.test.ts
 
+import { parseJson } from './model_json.ts';
 /** The offer, word for word. scripts/sql/every_supplier_invitation_offers_whatsapp_and_a_model_read_yes_opens_job_requests_there.sql
  *  fn_wa_job_request_offer() returns the same text (whatsapp_offer.test.ts compares them). */
 export const WHATSAPP_OFFER = 'Want job requests on WhatsApp too? Reply "WhatsApp" and we will send you a code to confirm your number.';
@@ -93,14 +94,9 @@ export const CONSENT_SYS = [
 /** The model's reading of his reply. null: no reading (the reader is down or answered nothing usable): nothing is recorded. */
 export async function readConsentReply(ask: Ask, question: string, reply: string): Promise<{ agrees: boolean; quote: string } | null> {
   const out = await ask(CONSENT_SYS, 'OUR QUESTION:\n' + String(question || '').slice(0, 600) + '\n\nHIS REPLY:\n<<<\n' + String(reply || '').slice(0, 1200) + '\n>>>');
-  const s = String(out ?? '');
-  const at = s.indexOf('{'), end = s.lastIndexOf('}');
-  if (at < 0 || end <= at) return null;
-  try {
-    const j = JSON.parse(s.slice(at, end + 1)) as Record<string, unknown>;
-    if (typeof j.agrees !== 'boolean') return null;
-    return { agrees: j.agrees, quote: String(j.quote ?? '').slice(0, 200) };
-  } catch { return null; }
+  const j = parseJson(out);
+  if (!j || typeof j.agrees !== 'boolean') return null;
+  return { agrees: j.agrees, quote: String(j.quote ?? '').slice(0, 200) };
 }
 
 /** The 8-digit confirmation code in a short WhatsApp message, or null. Arabic-Indic digits are read as digits. A six-digit code

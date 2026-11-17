@@ -23,6 +23,7 @@
 //   6. RECORD  every field carries its source URL and collected_at (UAE PDPL); fn_lead_sourcing_record dedupes
 //              against leads (domain, phone, name), refuses a suppressed/bounced/erased contact, and promotes only
 //              the complete ones.
+import { parseJson } from '../_shared/model_json.ts';
 import { parsePhoneNumberFromString } from 'npm:libphonenumber-js@1.13.14/max';
 import robotsParserCjs from 'npm:robots-parser@3.0.1';
 import { safeFetch } from '../_shared/safe_url.ts';
@@ -148,8 +149,8 @@ export function contactPrompt(company: string, pages: { url: string; text: strin
 /** Parse and hold the model to the page: a name that is not in the text it was shown is refused. */
 export function acceptContact(answer: string | null, pages: { url: string; text: string }[]): { name: string; title: string; url: string } | null {
   if (!answer) return null;
-  let j: { name?: string | null; title?: string | null; real?: boolean; url?: string | null };
-  try { j = JSON.parse(answer.slice(answer.indexOf('{'), answer.lastIndexOf('}') + 1)); } catch { return null; }
+  const j = parseJson<{ name?: string | null; title?: string | null; real?: boolean; url?: string | null }>(answer);
+  if (!j) return null;
   const name = String(j.name || '').trim(); const title = String(j.title || '').trim();
   if (!j.real || name.split(/\s+/).length < 2 || !title || name.length > 60 || title.length > 80) return null;
   const has = (p: { text: string }) => p.text.toLowerCase().includes(name.toLowerCase());

@@ -35,7 +35,7 @@ These functions differ from what is deployed until they are redeployed; their be
 | `sec` | 43 | 42 | 15 | 8 | reads `app_secrets` through the module's own `admin` client, in 15 different bodies |
 | `logRun` | 23 | 23 | 23 | 1 | 23 different bodies: each writes its own function's run log |
 | `esc` | 16 | 11 | 10 | 4 | 10 different bodies under one name; the identical pairs escape for different targets (`_shared/alias_pattern.ts` builds a regular expression, `conversation_archive/document.ts` writes HTML) |
-| `parseJson` | 9 | 8 | 7 | 3 | 7 different bodies; the 3 identical ones are in drawing_boq, quote_extract and resend_inbound |
+| `parseJson` | 9 | 8 | 7 | 3 | MERGED 17 Nov 2026 with the 31 inline copies: see "The JSON object in a model's reply" below |
 | `rl` | 8 | 8 | 5 | 4 | calls `rl_check` through the module's own `admin`; 5 different bodies |
 | `b64ToBytes` | 7 | 5 | 6 | 2 | 6 different bodies; the identical pair is supplier_api and supplier_portal |
 | `b64` | 6 | 2 | 4 | 3 | 4 different bodies |
@@ -65,3 +65,29 @@ Not functions, so outside the scan, and counted by line match on the same day:
 Re-measure: the scan is ~60 lines of Node (top-level definitions, comments stripped, whitespace collapsed, grouped by
 name and SHA-1); it is not committed because it is a measurement, not a gate. TD-04 can become a gate the way
 `every_outbound_fetch_has_a_timeout.mjs` is one: a baseline that may only go down.
+
+## The JSON object in a model's reply (merged 17 Nov 2026, it_engineer; ledgers 1714 and 1715)
+
+Measured on origin/main 09e43394c by grep for `/\{[\s\S]*\}/`, `indexOf('{')`/`lastIndexOf('}')` and ```` ``` ```` handling in
+`supabase/functions/**` (tests excluded): **43 readers** took "the JSON object" out of a model's reply by hand; 39 now use one
+reader and 4 are left on purpose (below). The reader is `_shared/model_json.ts` `parseJson(text, { exact?, wholeDecides?, escapeControls? })`, which returns a plain object or
+null. `_shared/model_json.test.ts` holds each old shape verbatim and runs it against the new reader on one corpus, so every
+row below is proved by execution, not by reading.
+
+| shape (old) | where | now | difference, on what input |
+|---|---|---|---|
+| first `{` to last `}` (regex, or indexOf/lastIndexOf) | wa_inbound/founder_directive, wa_inbound/speculation, it_engineer/seat_exam (2), email_triage/opt_out_backstop, supplier_mailbox_reading, stranger_repeat_guard, marketing/lead_sourcing, sales_engineer/conversation_plan, sales_engineer/lib/ownership_claim, doc_extract (after its fence strip), _shared/job_question, supplier_instruction, inquiry_reading, catalogue_model, whatsapp_offer, marketing_articles (`jsonOf`, 2 callers) | default | none. speculation: a broken object's `why` reads "no reading in the answer" instead of the SyntaxError text (still an outage). seat_exam parseJudge: a reply with no `{` when zero facts were asked is unreadable (was "nothing missing") |
+| whole reply (in a fence), else outermost; object only | _shared/think/validator (the owner), _shared/licence_extract, _shared/support_case_memory `summaryJson` | default (re-exported where imported) | none |
+| whole reply first, its value handed on whatever it is, else outermost | drawing_redact, _shared/drawing_pixel_gate, _shared/drawing_string_reading, drawing_boq/confirm, drawing_boq/vision_count, drawing_boq/index, quote_extract, resend_inbound/lib/mail_parse, inquiry_intake/shared, supplier_onboard, quote_compare (inside its first fence) | `wholeDecides` (`?? {}` or a throw kept at the call site) | a reply that is a bare JSON array, number, string or boolean was handed on and read as an object with no fields; it is now null. The redaction gates read both as no verdict |
+| ends' fences stripped, whole object or nothing, else outermost | ceo_agent/plan | `wholeDecides` | an array fenced as a whole is read for the object inside (was no plan) |
+| the whole reply or a fence around all of it, nothing else | _shared/escalation_clock (2), review_decide, seat_deliberation, provider_signals | `exact` | none |
+| ends' fences stripped, whole object only | _shared/marketing_judgement | default | a sentence around the object is now read (was "rejected") |
+| outermost + raw line breaks in strings escaped | _shared/ai_reply | `wholeDecides` + `escapeControls` (controlsEscaped moved) | an array fenced as a whole is read for its object (was no answer) |
+
+No copy tolerated a trailing comma; neither does the reader. **Left on purpose:** `_shared/supplier_trade_choice.ts`
+`answerJson` (tries every `{`..`}` candidate for the one holding a key: more tolerant, replacing it would refuse readings),
+`ai_gateway/confidence.ts` (the nearest `{` before the last `}`: a JSON tail after prose that may quote a schema),
+`supplier_catalog_ingest/index.ts:311,321` (its retry loop keys on a brace being present, and it tells "no object" (an empty
+catalogue) from "a broken object" (extraction_failed); one null would merge the two), `wa_inbound/founder.ts:79` (re-reads the
+directive and throws on a broken object so the row records `classifier_error`).
+

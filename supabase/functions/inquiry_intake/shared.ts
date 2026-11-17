@@ -1,4 +1,5 @@
 // inquiry_intake/shared.ts — the service client, response helpers and per-worker state every part of the intake uses. Moved verbatim from index.ts (9 Nov 2026).
+import { parseJson as readModelJson } from '../_shared/model_json.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { serviceVocab } from '../_shared/service_vocabulary.ts';
 import { keptFor } from './turn_clock.ts';
@@ -24,4 +25,5 @@ export function sanitizeInput(text: string): string { return String(text || '').
 // changes when a service is added, which is rare: a worker keeps it 5 minutes, it is fetched while the interview call
 // runs, and dispatch itself always reads it fresh, so the inquiry still reaches exactly the suppliers it matches.
 export const serviceVocabKept = keptFor(5 * 60_000, () => serviceVocab(admin));
-export function parseJson(s: string): any { try { return JSON.parse(s); } catch (_e) {} const m = String(s || '').match(/\{[\s\S]*\}/); if (m) { try { return JSON.parse(m[0]); } catch (_e2) {} } return null; }
+// deno-lint-ignore no-explicit-any
+export function parseJson(s: string): any { return readModelJson<any>(s, { wholeDecides: true }); }   // _shared/model_json.ts

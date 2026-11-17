@@ -13,6 +13,7 @@
 //     p_reviewer_seat, p_question, p_evidence, p_proposal, p_author_model });
 //   await advanceDeliberation(admin, id);          // or leave it to the resilience_ping heartbeat
 //   ... later, the AUTHOR seat: rpc('fn_seat_deliberation_close', { p_id: id, p_closed_by, p_outcome })
+import { parseJson } from './model_json.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
@@ -20,12 +21,7 @@ export type ReviewOutput = Record<string, unknown> & { verdict?: string };
 
 /** The model's reply as one JSON object, or null. Tolerates a ```json fence; nothing else. */
 export function parseReviewOutput(text: string | null): ReviewOutput | null {
-  if (!text) return null;
-  const m = text.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
-  try {
-    const o = JSON.parse(m ? m[1] : text.trim());
-    return o && typeof o === 'object' && !Array.isArray(o) ? o as ReviewOutput : null;
-  } catch (_e) { return null; }
+  return parseJson<ReviewOutput>(text, { exact: true });
 }
 
 /**

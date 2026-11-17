@@ -10,6 +10,7 @@
 // No import here: the live wiring (ceo_agent) and the sandbox proof (scripts/e2e/...) pass their own IO, so the one
 // decision path is the one that is proved.
 
+import { parseJson } from './model_json.ts';
 export type DueReview = {
   id: number; owner_seat: string; decision_type: string; meaning: string; channel: string; requester: string;
   request_text: string; original_seat: string | null; original_family: string; counterpart_model: string;
@@ -43,10 +44,9 @@ export function reviewPrompt(r: DueReview): { system: string; input: string } {
 
 /** The model's reply as a verdict, or null. Tolerates a ```json fence; nothing else. */
 export function parseVerdict(text: string | null): Verdict | null {
-  if (!text) return null;
-  const m = text.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
   try {
-    const o = JSON.parse(m ? m[1] : text.trim());
+    // deno-lint-ignore no-explicit-any
+    const o = parseJson<any>(text, { exact: true });
     if (!o || !['upheld', 'overturned', 'amended'].includes(o.verdict)) return null;
     const reasons = String(o.reasons ?? '').trim(); const reply = String(o.reply ?? '').trim();
     return reasons ? { verdict: o.verdict, reasons, reply } : null;

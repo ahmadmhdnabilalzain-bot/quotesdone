@@ -17,6 +17,7 @@
 //     structured answer. A reply that is not that object is unreadable, and the caller asks the user to try again —
 //     never a placeholder guessed off the words.
 
+import { parseJson } from './model_json.ts';
 /** 63042: the template is not approved / usable YET — the row stays queued until it is. */
 export const TWILIO_NOT_YET_CODES = new Set([63042]);
 /** 63016: a freeform body outside the 24-hour customer window. Retrying never helps; it needs a template or email. */
@@ -38,9 +39,7 @@ export function twilioVerdict(code: unknown): TwilioVerdict {
 export function readTranscript(content: unknown): { speech: boolean; text: string } | null {
   if (content && typeof content === 'object' && !Array.isArray(content)) content = JSON.stringify(content);   // a json response_format may arrive parsed
   const raw = typeof content === 'string' ? content : Array.isArray(content) ? content.map((p: { text?: string }) => p?.text || '').join('') : '';
-  const m = raw.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
-  let o: unknown;
-  try { o = JSON.parse(m ? m[1] : raw.trim()); } catch (_e) { return null; }
+  const o: unknown = parseJson(raw, { exact: true });
   if (!o || typeof o !== 'object' || typeof (o as { speech?: unknown }).speech !== 'boolean') return null;
   const t = (o as { text?: unknown }).text;
   if (t !== undefined && typeof t !== 'string') return null;
