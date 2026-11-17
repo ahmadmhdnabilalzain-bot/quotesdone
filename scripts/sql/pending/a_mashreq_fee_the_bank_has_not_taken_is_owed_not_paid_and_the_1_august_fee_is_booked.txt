@@ -1,5 +1,0 @@
-Not applied yet: written 16 Nov 2026 during the paid certification, when production took SELECTs only. It redefines
-fn_accountant_expense_on_founder_word and fn_accountant_attach_statement_line (from production's bodies), moves the 1 Nov
-fee's credit from 1000 to 2200 and books the 1 Aug fee. Apply it with scripts/apply_sql.mjs after the dry run answers
-would_book for both lines; then delete this note, append the file to the END of MANIFEST.txt, and run
-the_mashreq_fees_of_july_to_november_2026_are_each_in_the_books_once_probe.sql (PROBE OK). Seat: accountant.
