@@ -77,6 +77,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   const [photoAsk, setPhotoAsk] = useState(null); // { optional, shots: [{shot, shot_ar}] } | null (hidden)
   const [sitePhotos, setSitePhotos] = useState([]); const sitePhotosRef = useRef([]); // [{ shot, job_id, status, notice }]
   const photoRef = useRef(null); const photoShot = useRef(null); const photosDeclined = useRef(false);
+  // the shot whose photo is being read and sent to the check (17 Nov 2026: the press said nothing until the check answered)
+  const [photoUploading, setPhotoUploading] = useState(null);
   const postedRef = useRef(false); const sentJobs = useRef(new Set()); // the photo jobs create_inquiry was given with Send
   // ONE CONTRACTOR OR SEPARATE QUOTES IS ASKED, NEVER SILENT (evidence run of 10 Nov 2026, ledger 1604, finding c). The
   // composer sent 'turnkey' for every brief naming two trades without the customer seeing the choice. Both choices are
@@ -208,8 +210,12 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     try { if (photoRef.current) photoRef.current.value = ''; } catch (_e) {}
     if (!file || tooBig(file)) return;
     try {
-      const p = await fileToImages(file);
-      const res = await call('customer_api', { action: 'site_photo', image_b64: p.b64, mime: p.mime || 'image/jpeg', shot, intake_id: intakeId || null }, token).catch(() => null);
+      setPhotoUploading(shot);
+      let res;
+      try {
+        const p = await fileToImages(file);
+        res = await call('customer_api', { action: 'site_photo', image_b64: p.b64, mime: p.mime || 'image/jpeg', shot, intake_id: intakeId || null }, token).catch(() => null);
+      } finally { setPhotoUploading(null); }
       if (res && res.error === 'photo_daily_limit') { push({ role: 'assistant', text: t(lang, 'ph_daily_limit') }); return; }
       if (!res || !res.ok || !res.job_id) { push({ role: 'assistant', text: t(lang, 'nr_file_unreadable') }); return; }
       setPhotos((a) => [...a, { shot, job_id: res.job_id, status: 'checking', notice: '', recorded: res.recorded === true }]);
@@ -731,7 +737,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
                 return (
                   <li key={i} className="flex flex-wrap items-center gap-2">
                     <span className="min-w-0 flex-1">{ar && s.shot_ar ? s.shot_ar : s.shot}</span>
-                    <button type="button" className="rounded-lg border border-primary/40 px-2 py-0.5 text-primary hover:bg-primary/10" onClick={() => { photoShot.current = s.shot; if (photoRef.current) photoRef.current.click(); }}>{t(lang, 'ph_add')}</button>
+                    <button type="button" className="rounded-lg border border-primary/40 px-2 py-0.5 text-primary hover:bg-primary/10" disabled={photoUploading !== null} onClick={() => { photoShot.current = s.shot; if (photoRef.current) photoRef.current.click(); }}>{t(lang, 'ph_add')}</button>
+                    {photoUploading === s.shot ? <span role="status" className="w-full text-[11.5px] text-muted-foreground">{t(lang, 'ph_checking')}</span> : null}
                     {mine.map((p) => <span key={p.job_id} className="w-full text-[11.5px] text-muted-foreground">{p.status === 'checking' ? t(lang, 'ph_checking') : p.notice}</span>)}
                   </li>
                 );
