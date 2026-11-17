@@ -44,7 +44,7 @@ const SITE = process.env.QD_SITE || 'https://quotesdone.ae';
 import { sinkAddress, readCode, cleanSink } from './resend_sink.mjs';
 import { BASE, internalCred } from '../lib/demo_factory.mjs';
 import { recordFixtureMobileBeforeTheForm } from './fixture_mobile.mjs';
-import { holdConnectionsLikeABrowser } from './node_keepalive.mjs';
+import { holdConnectionsLikeABrowser, retried } from './node_keepalive.mjs';
 import { LICENCES, NOT_LICENCES, PROFILES, fixturePath, fixturesPresent } from './registration_fixtures.mjs';
 import { walkServices } from './services_screens_walk.mjs';
 import { readiness, judgeVagueProposals, stepTiming, judgeLicence, judgeExpired, judgeProposals, arabicIn, messageFaults, certify, waitsOnTheModel, failureOrigin, splitEnvironmentFaults, MOBILE_NETWORK, REAL_MOBILE_OTP_MS, INTERACTIVE_MS, CEILING_MS, SUPPLIER_MINUTES_MAX } from './registration_certification_judge.mjs';
@@ -804,6 +804,7 @@ async function main() {
   const dirs = (d) => readdirSync(d).filter((x) => { try { return statSync(join(d, x)).isDirectory(); } catch { return false; } });
   const videos = []; for (const r of dirs(OUT)) if (r.startsWith('run')) for (const j of dirs(join(OUT, r))) for (const f of readdirSync(join(OUT, r, j))) if (f.endsWith('.webm')) videos.push(`${r}/${j}/${f} ${(statSync(join(OUT, r, j, f)).size / 1e6).toFixed(1)} MB`);
   log('verdicts:'); for (const [k, v] of Object.entries(verdicts)) log(`  ${v.verdict.padEnd(7)} ${k}`);
+  log(`connections the proxy dropped and the harness sent once more, as a browser does: ${retried.length}${retried.length ? ' - ' + retried.map((x) => `${x.at.slice(11, 19)} ${x.method} ${x.url.split('/functions/v1/')[1] ?? x.url} (${x.code})`).join('; ') : ''}`);
   log(`report ${join(OUT, 'CERTIFICATION.md')}; ${videos.length} recordings`);
   // READY TO INVITE: a paid run, every criterion PASS, AND no failed step anywhere (review of PR #1969, finding 1: a failed step that
   // no criterion read did not stop the verdict)

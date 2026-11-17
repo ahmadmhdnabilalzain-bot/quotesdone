@@ -22,9 +22,33 @@ export async function holdConnectionsLikeABrowser() {
   if (!globalThis[KEY]) await fetch('http://127.0.0.1:9/').catch(() => {});   // makes Node install its dispatcher; nothing listens there
   const d = globalThis[KEY];
   if (!d || d.__qdHeld) return d || null;
+  globalThis.fetch = fetchLikeABrowser;
   const held = new d.constructor({ keepAliveTimeout: KEEP_ALIVE_MS, keepAliveMaxTimeout: KEEP_ALIVE_MAX_MS });
   Object.defineProperty(held, '__qdHeld', { value: true });
   globalThis[KEY] = held;
   await d.close?.().catch?.(() => {});
   return held;
 }
+
+// A HELD CONNECTION THE PROXY HAS ALREADY DROPPED IS RETRIED ONCE, AS A BROWSER DOES (17 Nov 2026, it_engineer; targeted rerun
+// 07:43 UTC). Holding connections for 60 s means a call can go out on one the session proxy has quietly closed: the targeted rerun of
+// J1/J4/J5/J10 stopped in run 2 J5 on "TypeError: fetch failed ... read ECONNRESET" from the route that carries the page's calls, an
+// unhandled rejection that ended the whole run after 224 passing steps. A browser that sends a request on a reused idle connection and
+// gets a reset before any byte of the answer sends it again on a new connection (Chromium's HttpNetworkTransaction retries on
+// ERR_CONNECTION_RESET for a reused socket); Node's fetch does not. Only a failure with NO response is retried, once: an answer of any
+// status, a timeout, or a second failure goes to the page as it is, so the product is judged on what a supplier's browser would see.
+const RESET = new Set(['ECONNRESET', 'EPIPE', 'UND_ERR_SOCKET', 'UND_ERR_CLOSED', 'ECONNREFUSED']);
+export const isDroppedConnection = (e) => e?.name === 'TypeError' && RESET.has(e?.cause?.code ?? e?.cause?.cause?.code);
+const nativeFetch = globalThis.fetch;
+export const retried = [];   // every request sent a second time: the certification reports these, so a retry is never invisible
+export async function fetchLikeABrowser(url, init) {
+  try { return await nativeFetch(url, init); }
+  catch (e) {
+    if (!isDroppedConnection(e)) throw e;
+    retried.push({ method: init?.method || 'GET', url: String(url).split('?')[0], code: e.cause?.code ?? e.cause?.cause?.code, at: new Date().toISOString() });
+    console.warn(`[harness] ${init?.method || 'GET'} ${String(url).split('?')[0]} reset (${retried.at(-1).code}); sent once more`);
+    return await nativeFetch(url, init);
+  }
+}
+// The harness's own calls (demo factory, polls, teardown) go through the same retry: holdConnectionsLikeABrowser installs it as the
+// process's fetch, since the 07:43 stack named no caller and every one of them shares the held connections.

@@ -7,6 +7,7 @@ import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { holdConnectionsLikeABrowser, KEEP_ALIVE_MS } from './node_keepalive.mjs';
 
+const NATIVE = globalThis.fetch;   // captured before holdConnectionsLikeABrowser installs the retry
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function server() {
   let connections = 0;
@@ -37,4 +38,34 @@ test('the certification and the browser route hold their connections before the 
     const src = readFileSync(new URL(f, import.meta.url), 'utf8');
     assert.match(src, /await holdConnectionsLikeABrowser\(\)/, `${f} routes the page's calls through Node without holding its connections`);
   }
+});
+
+test('a request whose connection is reset before any answer is sent once more; an answer of any status is not', async () => {
+  const { fetchLikeABrowser, isDroppedConnection } = await import('./node_keepalive.mjs');
+  let hits = 0;
+  const s = createServer((q, r) => { hits++; if (hits === 1) { q.socket.destroy(); return; } r.statusCode = q.url === '/500' ? 500 : 200; r.end('ok'); });
+  await new Promise((r) => s.listen(0, '127.0.0.1', r));
+  const u = `http://127.0.0.1:${s.address().port}/`;
+  try {
+    const e = await NATIVE(u, { method: 'POST', body: '{}' }).then(() => null, (x) => x);
+    assert.ok(e && isDroppedConnection(e), 'plain fetch rejects on the reset: the unhandled rejection that ended the 07:43 rerun');
+    hits = 0;
+    const r = await fetchLikeABrowser(u, { method: 'POST', body: '{}' });
+    assert.equal(r.status, 200); assert.equal(hits, 2, 'sent exactly twice');
+    hits = 1;   // no reset now
+    const r500 = await fetchLikeABrowser(u + '500', { method: 'POST', body: '{}' });
+    assert.equal(r500.status, 500); assert.equal(hits, 2, 'an answer of any status is not retried');
+  } finally { s.closeAllConnections(); await new Promise((r) => s.close(r)); }
+});
+
+test('the routes that carry the page\'s calls never let a dropped connection become an unhandled rejection', () => {
+  const src = readFileSync(new URL('./browser.mjs', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /const res = await fetch\(/, 'a route fetches without fetchLikeABrowser');
+  assert.equal((src.match(/fetchLikeABrowser\([^\n]*\.catch\(\(\) => null\)/g) || []).length, 2, 'both routes catch a second failure');
+});
+
+test('once connections are held, the process\'s own fetch retries a dropped connection too', async () => {
+  const { fetchLikeABrowser } = await import('./node_keepalive.mjs');
+  await holdConnectionsLikeABrowser();
+  assert.equal(globalThis.fetch, fetchLikeABrowser, 'the harness\'s own calls (demo factory, polls, teardown) share the retry');
 });
