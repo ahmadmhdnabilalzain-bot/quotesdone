@@ -9,7 +9,7 @@ import { render } from '@/lib/chatRender';
 import { SUPA_ANON as ANON, fnUrl } from '@/lib/supaEnv';
 import { forgetWidgetConv, readWidgetConv } from '@/lib/widgetConv';
 import { take } from '../prefetch';
-import { lookForStoredAnswer, lookForStoredQuestion, answerRightAfter, noVerdict, pendingDue, readReply, savedLineDue, waitingOf, PENDING_EVERY_MS, PENDING_FOR_MS } from '@/lib/portalReply';
+import { lookForStoredAnswer, lookForStoredQuestion, answerRightAfter, noVerdict, pendingDue, readReply, savedLineDue, waitingOf, withUnansweredLine, PENDING_EVERY_MS, PENDING_FOR_MS } from '@/lib/portalReply';
 import { stillWorking } from '@/lib/stillWorking';
 
 // ── THE ASSISTANT, AS A SURFACE ────────────────────────────────────────────────────────────────
@@ -131,7 +131,8 @@ export function AssistantPanel({ token, lang, open, onClose, seed, t, suggestion
           shown.splice(k + 1, 0, { role: 'pending', q: w.message, content: pendingText(w.state) });
           watch(w.message);
         }
-        setMsgs(shown);
+        // a stored question with no answer and nothing pending gets back the "saved" line it was shown (withUnansweredLine)
+        setMsgs(withUnansweredLine(shown, t('asst_saved')));
       })
       .catch(() => { /* the next turn still reads the whole conversation on the server */ });
   }, [token]);

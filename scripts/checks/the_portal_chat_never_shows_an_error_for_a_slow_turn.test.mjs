@@ -16,7 +16,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { functionSource } from '../lib/function_sources.mjs';
-import { answerAfter, noVerdict, readReply, savedLineDue } from '../../src/lib/portalReply.ts';
+import * as portalReply from '../../src/lib/portalReply.ts';
+const { answerAfter, noVerdict, readReply, savedLineDue } = portalReply;
 import { readSource } from '../lib/portal_sources.mjs';
 
 const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
@@ -57,6 +58,40 @@ test('the stored answer is found after the question that asked it, not an older 
   assert.equal(answerAfter(turns, 'doors?'), 'Sliding.');
   assert.equal(answerAfter([...turns, { role: 'user', content: 'handles?' }], 'handles?'), '');
   assert.equal(answerAfter(null, 'x'), '');
+});
+
+// 17 Nov 2026, continuity run b7bdf916: turn 8 got no answer, turn 9 did. The answer under turn 9 belongs to turn 9 only.
+test('a later question\'s answer is never taken for an earlier question that has none', () => {
+  const turns = [{ role: 'user', content: 'Is QuotesDone liable?' }, { role: 'user', content: 'Price of windows?' }, { role: 'assistant', content: 'AED 250 to 800 per sqm.' }];
+  assert.equal(answerAfter(turns, 'Is QuotesDone liable?'), '', 'turn 8 has no answer; turn 9\'s answer is not drawn under it');
+  assert.equal(answerAfter(turns, 'Price of windows?'), 'AED 250 to 800 per sqm.');
+  // KNOWN-BAD CONTROL: the answer that DOES sit under the question is still found once it is stored (a re-ask filled its row)
+  assert.equal(answerAfter([turns[0], { role: 'assistant', content: 'No, the contract is with the supplier.' }, ...turns.slice(1)], 'Is QuotesDone liable?'), 'No, the contract is with the supplier.');
+});
+
+// 17 Nov 2026, continuity run b7bdf916 ("history stays on screen after a page reload: screen has 15, expected 16"): the saved
+// line the customer saw under an unanswered question comes back on a reload; answered and pending turns are left as they are.
+test('a reload draws the saved line back under a stored question with no answer, and nowhere else', () => {
+  const { withUnansweredLine } = portalReply;
+  assert.equal(typeof withUnansweredLine, 'function', 'portalReply.withUnansweredLine redraws the line the customer saw');
+  const LINE = 'Your question is saved with your sales engineer, but the answer did not reach this chat.';
+  const shown = [
+    { role: 'user', content: 'guarantee?' }, { role: 'assistant', content: 'No.' },
+    { role: 'user', content: 'liable?' },
+    { role: 'user', content: 'windows?' }, { role: 'assistant', content: 'AED 250 to 800 per sqm.' },
+    { role: 'user', content: 'refund?' }, { role: 'pending', q: 'refund?', content: 'Still working on your answer.' },
+    { role: 'user', content: 'minimum?' },
+  ];
+  const out = withUnansweredLine(shown, LINE);
+  assert.deepEqual(out.map((m) => m.role), ['user', 'assistant', 'user', 'notice', 'user', 'assistant', 'user', 'pending', 'user', 'notice']);
+  assert.ok(out.filter((m) => m.role === 'notice').every((m) => m.content === LINE));
+  // KNOWN-BAD CONTROL: a whole answered conversation is redrawn exactly as stored
+  assert.deepEqual(withUnansweredLine(shown.slice(0, 2), LINE), shown.slice(0, 2));
+});
+
+test('the portal panel redraws its history through withUnansweredLine', () => {
+  const src = read('src/components/me/shell/AssistantPanel.tsx');
+  assert.match(src, /setMsgs\(withUnansweredLine\(shown, t\('asst_saved'\)\)\)/);
 });
 
 // founder_instruction 1339 (27 Oct 2026): "the engineer and customer support never replies without llm unless the server of
