@@ -154,6 +154,21 @@ export function pdfPlanCall(secret: string | undefined, b64: string, until: numb
   };
 }
 
+// THE DUCT AND PIPE LENGTHS, READ BY drawing_boq SHEET BY SHEET (mode 'lengths', 17 Nov 2026; drawing_boq/length_read.ts).
+// A part's request carries the original (serialised once, planBodies); the last request, which puts the parts together,
+// carries only the parts and the BOQ. Any answer that is not ok (a 500 as much as a 546) is no answer (null).
+export function lengthsCall(secret: string | undefined, b64: string, until: number): (b: Record<string, unknown>) => Promise<unknown> {
+  const bodyOf = planBodies(secret, b64.replace(/^data:[^;]+;base64,/, ''));
+  return async (b) => {
+    const left = until - Date.now();
+    if (left < 1_000) return null;
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` },
+      body: b.parts ? JSON.stringify({ __secret: secret, ...b }) : bodyOf(b), signal: AbortSignal.timeout(Math.min(30_000, left)) });
+    if (!r.ok) { await r.body?.cancel(); return null; }
+    return await r.json().catch(() => null);
+  };
+}
+
 // THE DRAWING FILE ITSELF (28 Sep 2026, sales_engineer; founder ledger 30, 31, 32, 580, 703): drawing_redact mode
 // 'file' returns the customer's PDF / DWG / DXF anonymised as a PDF or DXF a supplier opens and measures, released
 // only when _shared/drawing_file_redact.ts's verifier proved geometry, counts and zero identifiers. null = not
