@@ -3,7 +3,7 @@
 // Offline, no model, no network. The statement the worker runs was also executed on a local Postgres 16 (hand-back).
 //   deno test --no-lock --node-modules-dir=none --allow-read=. supabase/functions/_shared/drawing_pages_follow.test.ts
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
-import { CONCLUDED, PAGES_FOLLOW_LINE, PAGES_FOLLOW_MESSAGE, pagesArrivedMail, pagesAttachedForCustomer, pagesFollowFor, pagesReachTheirRequestsSql } from './drawing_pages_follow.ts';
+import { CONCLUDED, FINISHED_PAGES_JOBS_SQL, PAGES_FOLLOW_LINE, STILL_FOLLOWING_SQL, followUpFinishedPages, PAGES_FOLLOW_MESSAGE, pagesArrivedMail, pagesAttachedForCustomer, pagesFollowFor, pagesReachTheirRequestsSql } from './drawing_pages_follow.ts';
 import { attachedLine, newInquiryBody } from '../supplier_api/what_a_supplier_receives.ts';
 import { hasArabic, toSuppliers } from './supplier_english.ts';
 
@@ -92,4 +92,32 @@ Deno.test('wired: create_inquiry, the supplier inbox and the portal say the page
   const worker = src('../../../scripts/cad_read_worker.ts');
   assertMatch(worker, /if \(drawing\.redaction_complete === true\) \{\s*const stmt = pagesReachTheirRequestsSql\(job, /);
   assertMatch(worker, /catch \(e\) \{ throw new Error\('the verified pages could not be attached to the requests: '/, 'an attach that fails sends the job back to the queue, never lost');
+});
+
+Deno.test('every worker run: pages jobs finished in the last day are attached again (a request saved after its job finished gets them), and a request still without its pages 2 h on is raised', async () => {
+  const ran: string[] = []; const raised: { key: string; evidence: Record<string, unknown> }[] = [];
+  const J2 = { ...JOB, id: '22222222-2222-4222-8222-222222222222' };
+  const sql = async (q: string) => {
+    ran.push(q);
+    if (q === FINISHED_PAGES_JOBS_SQL) return [{ id: JOB.id, customer_id: JOB.customer_id, source_path: JOB.source_path, paths: ['redacted/a/page_p0.jpg'] }, { id: J2.id, customer_id: J2.customer_id, source_path: 'drawings/c1/2.pdf', paths: ['redacted/b/page_p0.jpg'] }, { id: 'x', customer_id: null, source_path: 'p', paths: [] }];
+    if (q === STILL_FOLLOWING_SQL) return [{ job_id: J2.id, status: 'done', why: '', inquiries: ['a0000000-0000-4000-8000-000000000009'] }];
+    if (q.includes('drawings/c1/2.pdf')) throw new Error('statement timeout');
+    return [{ attached: ['a0000000-0000-4000-8000-000000000007'], delivered: [{}, {}] }];
+  };
+  const out = await followUpFinishedPages({ sql, raise: async (key, _t, evidence) => { raised.push({ key, evidence }); } });
+  assertEquals(out, { jobs: 2, attached: 1, failed: 1, still: 1 }, 'a job with no customer is skipped; one failed attach does not stop the rest');
+  assertEquals(ran.filter((q) => q.startsWith('with att as')).length, 2, 'the same idempotent attach-and-tell statement, once per finished job');
+  assertEquals(raised.map((r) => r.key), ['cad_read_worker:pages_never_followed:' + J2.id]);
+  assertEquals(raised[0].evidence.inquiries, ['a0000000-0000-4000-8000-000000000009']);
+  // the finding's read: only requests saved while the job was open or just after it finished, still without pages, still open
+  assertMatch(FINISHED_PAGES_JOBS_SQL, /why = 'pages_need_time' and status = 'done' and result->>'redaction_complete' = 'true'\s+and finished_at > now\(\) - interval '24 hours'/);
+  assertMatch(STILL_FOLLOWING_SQL, /j\.finished_at between now\(\) - interval '24 hours' and now\(\) - interval '2 hours'/);
+  assertMatch(STILL_FOLLOWING_SQL, /i\.created_at >= j\.created_at and i\.created_at < j\.finished_at \+ interval '10 minutes'/);
+  assertMatch(STILL_FOLLOWING_SQL, /coalesce\(cardinality\(i\.drawing_redacted_paths\), 0\) = 0/);
+  assert(!/\b(update|insert|delete)\b/i.test(STILL_FOLLOWING_SQL), 'the finding read writes nothing');
+  const worker = Deno.readTextFileSync(new URL('../../../scripts/cad_read_worker.ts', import.meta.url));
+  const main = worker.slice(worker.indexOf('if (import.meta.main)'));
+  assertMatch(main, /\n  \}\n  \/\/ EVERY RUN, claimed jobs or none[\s\S]*const f = await followUpFinishedPages\(\{/, 'outside the claimed-jobs branch: every run');
+  assertMatch(worker, /redactQueuedPages\(q, \{ originalB64: b64u\(bytes\), raster, redact, progress, signal: stop\.signal \}\)/, 'the budget stops the asking');
+  assertMatch(worker, /const budgetTimer = setTimeout\(\(\) => stop\.abort\(\), PAGES_JOB_MS\);/);
 });

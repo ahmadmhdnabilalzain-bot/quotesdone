@@ -119,3 +119,58 @@ export async function pagesFollowFor(db: { from: (t: string) => any }, rows: { i
   } catch (_e) { /* nothing follows */ }
   return out;
 }
+
+// ── EVERY RUN, THE PAGES FINISHED IN THE LAST DAY REACH ANY REQUEST THAT MISSED THEM (review 17 Nov 2026, item 3) ───────────
+// The race: create_inquiry reads the job OPEN (customer_api lib/drawings.ts pagesStillBeingChecked), the worker finishes and
+// attaches to the requests that exist, and only then is the new request inserted: it says "pages follow" and nothing would
+// ever attach them. So every worker run re-runs the same idempotent statement for each pages job finished with every sheet
+// verified in the last FOLLOW_UP_HOURS (a request saved after the job finished gets its pages and its rfq_addendum; one that
+// already has pages, and every mail already sent, is untouched by the statement's own guards and dedupe keys), and a request
+// that still has no pages STILL_FOLLOWING_HOURS after its job finished (held, failed, or an attach that keeps failing) is the
+// sales_engineer's finding, never silence.
+export const FOLLOW_UP_HOURS = 24;
+export const STILL_FOLLOWING_HOURS = 2;
+/** A request counts as one that was told "pages follow" when it was saved while its job was open, or within this grace after
+ *  the job finished (the race above). */
+export const RACE_GRACE_MINUTES = 10;
+
+/** The pages jobs finished with every sheet verified in the last FOLLOW_UP_HOURS, with their published pages. */
+export const FINISHED_PAGES_JOBS_SQL = `select id, customer_id, source_path, result->'drawing_redacted_paths' as paths
+  from public.cad_read_jobs
+ where why = 'pages_need_time' and status = 'done' and result->>'redaction_complete' = 'true'
+   and finished_at > now() - interval '${FOLLOW_UP_HOURS} hours'
+ order by finished_at limit 200`;
+
+/** Requests saved while their pages job was open (or just after it finished) that still have no pages STILL_FOLLOWING_HOURS
+ *  after the job finished, one row per job. Read only. */
+export const STILL_FOLLOWING_SQL = `select j.id as job_id, j.status, coalesce(j.result->>'held_reason', j.error, '') as why,
+       jsonb_agg(i.id order by i.created_at) as inquiries
+  from public.cad_read_jobs j
+  join public.inquiries i on i.customer_id = j.customer_id and i.drawing_file_path = j.source_path
+ where j.why = 'pages_need_time' and j.status in ('done', 'failed')
+   and j.finished_at between now() - interval '${FOLLOW_UP_HOURS} hours' and now() - interval '${STILL_FOLLOWING_HOURS} hours'
+   and i.created_at >= j.created_at and i.created_at < j.finished_at + interval '${RACE_GRACE_MINUTES} minutes'
+   and coalesce(cardinality(i.drawing_redacted_paths), 0) = 0
+   and coalesce(i.status, 'open') not in (${CONCLUDED.map((c) => `'${c}'`).join(', ')})
+ group by j.id, j.status, j.result, j.error
+ limit 50`;
+
+/** The sweep. `sql` runs one statement and returns its rows; `raise` files one finding (the worker's fn_it_engineer_finding_upsert).
+ *  A failure in one job's attach is counted and does not stop the others or the finding read. */
+export async function followUpFinishedPages(deps: { sql: (q: string) => Promise<Record<string, unknown>[]>; raise: (key: string, title: string, evidence: Record<string, unknown>) => Promise<void> }): Promise<{ jobs: number; attached: number; failed: number; still: number }> {
+  let jobs = 0, attached = 0, failed = 0;
+  for (const j of await deps.sql(FINISHED_PAGES_JOBS_SQL)) {
+    const paths = Array.isArray(j.paths) ? j.paths.map(String) : [];
+    const stmt = pagesReachTheirRequestsSql({ id: String(j.id), customer_id: j.customer_id ? String(j.customer_id) : null, source_path: String(j.source_path || '') }, paths);
+    if (!stmt) continue;
+    jobs++;
+    try { const r = await deps.sql(stmt); attached += Array.isArray(r[0]?.attached) ? (r[0].attached as unknown[]).length : 0; } catch (_e) { failed++; }
+  }
+  const still = await deps.sql(STILL_FOLLOWING_SQL);
+  for (const s of still) {
+    await deps.raise('cad_read_worker:pages_never_followed:' + String(s.job_id),
+      `A request told "drawing pages follow" still has no pages ${STILL_FOLLOWING_HOURS} h after its sheets' job finished`,
+      { job_id: s.job_id, job_status: s.status, why: String(s.why || '').slice(0, 200), inquiries: s.inquiries });
+  }
+  return { jobs, attached, failed, still: still.length };
+}

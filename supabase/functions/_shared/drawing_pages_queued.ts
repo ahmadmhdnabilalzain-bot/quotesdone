@@ -112,7 +112,10 @@ export const SHEET_RETRY_WAIT_MS = 5_000;
  * `raster(path)` is the stored sheet as base64 (a throw is a sheet not sent, asked again). `progress(q)` is told the queue
  * after each verified sheet (that sheet moved from left to done), so a later run never asks a verified sheet again.
  */
-export async function redactQueuedPages(q: QueuedPages, deps: { originalB64: string; raster: (path: string) => Promise<string>; redact: (body: SheetBody) => Promise<any>; progress?: (q: QueuedPages) => Promise<void>; wait?: (ms: number) => Promise<void>; tries?: number }): Promise<Record<string, unknown>> {
+export async function redactQueuedPages(q: QueuedPages, deps: { originalB64: string; raster: (path: string) => Promise<string>; redact: (body: SheetBody) => Promise<any>; progress?: (q: QueuedPages) => Promise<void>; wait?: (ms: number) => Promise<void>; tries?: number; signal?: AbortSignal }): Promise<Record<string, unknown>> {
+  // THE JOB'S BUDGET STOPS THE ASKING (review 17 Nov 2026): once `signal` is aborted no sheet is sent again (no paid call after
+  // the budget); the job goes back to the queue with what it kept.
+  const spent = () => deps.signal?.aborted === true;
   const tries = Math.max(1, deps.tries ?? SHEET_TRIES);
   const wait = deps.wait ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const done: DonePage[] = [...q.done];
@@ -120,7 +123,9 @@ export async function redactQueuedPages(q: QueuedPages, deps: { originalB64: str
   for (const s of q.left) {
     let v: SheetVerdict = { state: 'retry', why: 'sheet_not_sent' };
     for (let k = 0; k < tries; k++) {
+      if (spent()) return { ...held(s.page, 'job_budget'), retry_later: true };
       if (k) await wait(SHEET_RETRY_WAIT_MS * k);
+      if (spent()) return { ...held(s.page, 'job_budget'), retry_later: true };
       try {
         const data = await deps.raster(s.path);
         v = sheetVerdict(await deps.redact({ images: [{ mime: 'image/jpeg', data }], page_offset: s.page, manual_boxes: [s.boxes], seed_terms: q.seed_terms, original_b64: deps.originalB64, prefix: 'redacted' }).catch(() => null));

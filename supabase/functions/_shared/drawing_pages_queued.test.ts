@@ -151,7 +151,7 @@ Deno.test('the queue is wired: customer_api queues every sheet it did not verify
   assertMatch(lib, /export async function queuePagesOnce[\s\S]{0,900}\.eq\('why', PAGES_NEED_TIME\)\.in\('status', \['queued', 'running'\]\)/);
   const worker = Deno.readTextFileSync(new URL('../../../scripts/cad_read_worker.ts', import.meta.url));
   assertMatch(worker, /if \(job\.why === PAGES_NEED_TIME\) \{/);
-  assertMatch(worker, /redactQueuedPages\(q, \{ originalB64: b64u\(bytes\), raster, redact, progress \}\)/);
+  assertMatch(worker, /redactQueuedPages\(q, \{ originalB64: b64u\(bytes\), raster, redact, progress, signal: stop\.signal \}\)/);
   assertMatch(worker, /if \(drawing\.retry_later === true\) throw new Error/);
   assertMatch(worker, /const stmt = pagesReachTheirRequestsSql\(job, /);
   const sql = Deno.readTextFileSync(new URL('../../../scripts/sql/a_drawing_sheet_not_checked_in_time_is_queued_for_the_cad_reader.sql', import.meta.url));
@@ -160,4 +160,22 @@ Deno.test('the queue is wired: customer_api queues every sheet it did not verify
   assertMatch(once, /create unique index if not exists cad_read_jobs_one_open_pages_job\s+on public\.cad_read_jobs \(source_path\)\s+where why = 'pages_need_time' and status in \('queued', 'running'\);/);
   const portal = Deno.readTextFileSync(new URL('../../../src/components/me/NewRequest.tsx', import.meta.url));
   assertMatch(portal, /if \(res && res\.pages_job_id\) \{/);
+});
+
+Deno.test('redactQueuedPages: once the job\'s budget is spent (signal aborted) no sheet is sent again, and the job goes back to the queue', async () => {
+  const stop = new AbortController(); stop.abort();
+  const none = scripted({});
+  const out = await redactQueuedPages(Q, { originalB64: 'x', raster: async () => 'b', redact: none.redact, wait: noWait, signal: stop.signal });
+  assertEquals(none.sent.length, 0, 'no paid call after the budget');
+  assertEquals(out.retry_later, true);
+  assertMatch(String(out.held_reason), /job_budget/);
+  // cut while the first sheet is answered: that sheet is kept, the next one is never sent
+  const mid = new AbortController();
+  const s = scripted({});
+  const cutRedact = async (b: SheetBody) => { const r = await s.redact(b); mid.abort(); return r; };
+  const kept: QueuedPages[] = [];
+  const cut = await redactQueuedPages(Q, { originalB64: 'x', raster: async () => 'b', redact: cutRedact, wait: noWait, signal: mid.signal, progress: async (q) => { kept.push(q); } });
+  assertEquals(s.sent.map((b) => b.page_offset), [6]);
+  assertEquals(cut.retry_later, true);
+  assertEquals(kept.at(-1)?.left.map((l) => l.page), [7], 'the verified sheet is kept for the next run');
 });

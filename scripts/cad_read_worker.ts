@@ -30,7 +30,7 @@ import { lengthsForSet, mergeLengths } from '../supabase/functions/drawing_boq/d
 import { pdfPages } from '../supabase/functions/_shared/pdf_text_positions.ts';
 import { seedTerms } from '../supabase/functions/_shared/anonymise.ts';
 import { PAGES_NEED_TIME, redactQueuedPages, type QueuedPages, type SheetBody } from '../supabase/functions/_shared/drawing_pages_queued.ts';
-import { pagesReachTheirRequestsSql } from '../supabase/functions/_shared/drawing_pages_follow.ts';
+import { followUpFinishedPages, pagesReachTheirRequestsSql } from '../supabase/functions/_shared/drawing_pages_follow.ts';
 import { pickApiKey } from './lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const REF = 'htdblwldjkcgjvmqkbeh';
@@ -126,9 +126,10 @@ async function internalSecret(_key: string): Promise<string> {
   if (credCache === null) { const r = await sql<{ value: string }>(`select value from public.app_secrets where key = 'cred_fn_customer_api'`); credCache = String(r[0]?.value || ''); }
   return credCache;
 }
-async function edge(key: string, body: Record<string, unknown>): Promise<any> {
+async function edge(key: string, body: Record<string, unknown>, stop?: AbortSignal): Promise<any> {
   try {
-    const r = await fetch(`${BASE}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify(body), signal: AbortSignal.timeout(180_000) });
+    const signal = stop ? AbortSignal.any([stop, AbortSignal.timeout(180_000)]) : AbortSignal.timeout(180_000);
+    const r = await fetch(`${BASE}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify(body), signal });
     return await r.json().catch(() => null);
   } catch (_e) { return null; }
 }
@@ -337,10 +338,14 @@ async function runJob(job: Job, key: string): Promise<void> {
       if (!rr.ok) throw new Error(`a stored sheet could not be downloaded (HTTP ${rr.status})`);
       return b64u(new Uint8Array(await rr.arrayBuffer()));
     };
-    const redact = async (b: SheetBody) => await edge(key, { __secret: await internalSecret(key), ...b, owner_customer_id: job.customer_id, owner_email: job.owner_email, source_path: job.source_path });
+    // THE BUDGET STOPS THE ASKING (review 17 Nov 2026): at PAGES_JOB_MS the call under way is cut and no sheet is sent again,
+    // so nothing is paid for after the budget; the job goes back to the queue with every sheet it kept.
+    const stop = new AbortController();
+    const budgetTimer = setTimeout(() => stop.abort(), PAGES_JOB_MS);
+    const redact = async (b: SheetBody) => await edge(key, { __secret: await internalSecret(key), ...b, owner_customer_id: job.customer_id, owner_email: job.owner_email, source_path: job.source_path }, stop.signal);
     // Each verified sheet is kept on the job at once, so a run that is cut, or a later run, never asks (or pays for) it again.
     const progress = async (now: QueuedPages) => { await sql(`update public.cad_read_jobs set boq_in = jsonb_set(boq_in, '{queued_pages}', ${lit(JSON.stringify(now))}::jsonb) where id = ${lit(job.id)}::uuid`); };
-    const drawing = await Promise.race([redactQueuedPages(q, { originalB64: b64u(bytes), raster, redact, progress }), new Promise<never>((_, no) => setTimeout(() => no(new Error('the sheets ran past their budget')), PAGES_JOB_MS))]);
+    const drawing = await redactQueuedPages(q, { originalB64: b64u(bytes), raster, redact, progress, signal: stop.signal }).finally(() => clearTimeout(budgetTimer));
     // A sheet still lost or held for a transient reason: back to the queue for the next run (three runs, then the finding).
     if (drawing.retry_later === true) throw new Error(`sheet ${Number(drawing.held_page) + 1} not checked yet (${drawing.held_reason}); asked again at the next run`);
     // THE PAGES REACH THE REQUESTS ALREADY SENT (_shared/drawing_pages_follow.ts): attached to each open request of this customer
@@ -408,5 +413,15 @@ if (import.meta.main) {
       }
     }
   }
+  // EVERY RUN, claimed jobs or none (review 17 Nov 2026, item 3; _shared/drawing_pages_follow.ts): the pages finished in the last
+  // day reach any request saved after its job finished (idempotent, deduped mail), and a request still without the pages it was
+  // promised 2 h after its job finished is raised. A failure here never fails the run's jobs.
+  try {
+    const f = await followUpFinishedPages({
+      sql: (q) => sql(q),
+      raise: async (k, title, evidence) => { await sql(`select public.fn_it_engineer_finding_upsert(${lit(k)}, ${lit(title)}, 'scripts/cad_read_worker.ts followUpFinishedPages, tables public.cad_read_jobs and public.inquiries', 'customer_facing', 1, ${lit(JSON.stringify({ subject: 'cad_read_jobs', owner_seat: 'sales_engineer', ...evidence }))}::jsonb, '{}'::text[], '{}'::text[], 'sales_engineer')`); },
+    });
+    console.log(`pages follow-up: ${f.jobs} finished job(s) re-checked, ${f.attached} request(s) given their pages, ${f.failed} attach(es) failed, ${f.still} job(s) raised`);
+  } catch (e) { console.log(`pages follow-up could not run: ${String((e as Error)?.message || e).slice(0, 200)}`); }
   Deno.exit(0);
 }
