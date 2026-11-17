@@ -7,7 +7,7 @@
 import { replyLanguageProblems, turnLang } from '../../_shared/chat_answers.ts';
 import { acceptImages } from '../../_shared/chat_images.ts';
 import { recallCases, recallTrace } from '../../_shared/case_recall.ts';
-import { accountKey, clientHistory, fitHistory, openConversation } from '../../_shared/chat_history.ts';
+import { accountKey, clientHistory, fitHistory, markUnanswered, openConversation } from '../../_shared/chat_history.ts';
 import { answerFromBrief } from '../../_shared/brief_answer.ts';
 import { allowedNumbers, companyBrief, figureSource, warmBrief } from '../../_shared/company_brief.ts';
 import { aiSystem, replyProblems } from '../../_shared/ai_reply.ts';
@@ -230,7 +230,8 @@ export async function portalActions(c: ActionCtx): Promise<Response | undefined>
       const known = allowedNumbers(brief, facts, sys);   // the brief's figures read once per brief (company_brief.ts, 11 Nov 2026 load test)
       // a photo or drawing the customer sent (ruling 1200): only what chat_images accepts reaches the model
       const images = acceptImages(body.images, new URL(Deno.env.get('SUPABASE_URL')!).host).images;
-      const past = fitHistory(turns, message);
+      // a question of theirs that was never answered is marked so, and this reply answers only the newest (chat_history.markUnanswered)
+      const past = fitHistory(markUnanswered(turns), message);
       // WHAT THE CONVERSATION ALREADY HOLDS (portal_conversation.ts; 27 Oct 2026, the bank's re-asks and unasked lines): read
       // from the whole stored conversation, not the fitted window, shown to the model as "do not ask again", and enforced
       // sentence by sentence after it (replyFilter: a re-ask or an unasked line is dropped, never shown).

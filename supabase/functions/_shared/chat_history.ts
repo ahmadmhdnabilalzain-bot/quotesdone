@@ -60,6 +60,22 @@ export function transcriptFromRows(rows: { message?: string | null; reply?: stri
   return out;
 }
 
+// A LATE ANSWER LANDS UNDER ITS OWN QUESTION, NEVER UNDER THE NEXT ONE (sales_engineer, 17 Nov 2026; founder ledger 1474).
+// Measured on production (continuity run b7bdf916, agent_runs 13:12:32Z and 13:13:13Z): portal turn 8 got no answer (every
+// model route open-circuit; the turn was not filed for the re-ask), so its assistant_logs row kept reply NULL and
+// transcriptFromRows handed the model a question with nothing after it. On turn 9 the model answered BOTH, and the portal
+// showed "No, QuotesDone is not legally liable..." (turn 8's answer) under "What would a typical price be for aluminium
+// windows for a villa?". Their words stay in the history (they carry the facts of the job); the model is told that message
+// was never answered and that this reply answers only the newest one. Model input only: what is stored and what
+// assist_history shows are unchanged. A turn the re-ask answers later is answered in its own row, under its own question.
+export const UNANSWERED_NOTE = '[No answer to this message reached them. Do not answer it in this reply: answer only their newest MESSAGE, unless that message asks about this one.]';
+/** The model's copy of the conversation: a message of theirs with no reply after it is marked as never answered. */
+export function markUnanswered(turns: ChatMsg[]): ChatMsg[] {
+  return turns.map((t, i) => (t.role !== 'user' || turns[i + 1]?.role === 'assistant'
+    // cut so the note survives fitHistory's MAX_TURN_CHARS (an unanswered 9,000-character spec lost its note at the end)
+    ? t : { role: 'user' as const, content: String(t.content).slice(0, MAX_TURN_CHARS - UNANSWERED_NOTE.length - 2) + '\n\n' + UNANSWERED_NOTE }));
+}
+
 /** Every stored turn of one conversation, oldest first, paged so no row limit can cut it. null when unreadable. */
 // deno-lint-ignore no-explicit-any
 export async function loadTranscript(admin: any, convId: string): Promise<ChatMsg[] | null> {

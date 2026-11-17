@@ -77,14 +77,40 @@ export function savedLineDue(r: ReadReply, reply: string = r.reply): boolean {
   return noVerdict(r) || r.done?.outage === true;
 }
 
-/** The newest assistant turn after the customer's message, from assist_history's turns ('' when none yet). */
+/** The assistant turn answering the customer's message, from assist_history's turns ('' when none yet). It is looked for
+ *  only up to their NEXT message (17 Nov 2026, continuity run b7bdf916): a question with no answer stored under it is
+ *  unanswered, and the answer to a later question (another tab, the widget, a turn the model never reached) is never
+ *  taken for it. Before, the first answer anywhere after the question was returned, so a later question's reply could be
+ *  drawn under an earlier one. */
 export function answerAfter(turns: { role?: string; content?: string }[] | null | undefined, question: string): string {
   if (!Array.isArray(turns)) return '';
   let i = -1;
   for (let k = turns.length - 1; k >= 0; k--) if (turns[k]?.role === 'user' && String(turns[k]?.content || '').trim() === question.trim()) { i = k; break; }
   if (i < 0) return '';
-  const a = turns.slice(i + 1).find((x) => x?.role === 'assistant' && String(x?.content || '').trim());
-  return a ? String(a.content).trim() : '';
+  for (const x of turns.slice(i + 1)) {
+    if (x?.role === 'user') return '';
+    if (x?.role === 'assistant' && String(x?.content || '').trim()) return String(x.content).trim();
+  }
+  return '';
+}
+
+// WHAT THE CUSTOMER SAW COMES BACK AFTER A RELOAD (17 Nov 2026, continuity run b7bdf916: "screen has 15, expected 16").
+// When the answer never reached the chat and the turn was not filed for the re-ask, the panel showed its "saved" line
+// under the question; the line is the panel's own text and is not stored (rulings 1195/1196: code writes no reply text,
+// and a stored line would be replayed as the answer to the same question sent again: _shared/turn_replay.ts). The redraw
+// read only the stored turns, so after a reload the line was gone and the question stood with nothing under it. The
+// stored conversation already says which questions have no answer: a question with no answer and no pending marker
+// directly under it gets the same line back. UI state, never sent back as history.
+export type Shown = { role: string; content: string; q?: string };
+/** The redrawn conversation with the panel's "saved" line under every stored question that has nothing under it. */
+export function withUnansweredLine(shown: Shown[], line: string): Shown[] {
+  const out: Shown[] = [];
+  shown.forEach((m, i) => {
+    out.push(m);
+    const n = shown[i + 1];
+    if (m.role === 'user' && !(n && (n.role === 'assistant' || n.role === 'pending' || n.role === 'notice'))) out.push({ role: 'notice', content: line });
+  });
+  return out;
 }
 
 // THE TURN STILL OWED THE MODEL'S ANSWER (27 Oct 2026; supabase/functions/_shared/reask.ts). With the model up and every
@@ -125,7 +151,8 @@ export const PENDING_FOR_MS = 20 * 60_000;
 // stream). The portal looked for that answer; the website widget did not and printed its error line over an answer the
 // database already held, which reappeared only after a reload. One loop now serves both: readTurns returns the stored
 // turns (assist_history on the portal, action 'history' on the widget) or null; the answer is the first assistant turn
-// after the LAST copy of the question. '' when none arrives inside waitMs; the caller then says what it says.
+// after the LAST copy of the question and before their next message (answerAfter). '' when none arrives inside waitMs; the
+// caller then says what it says.
 // prevented by: scripts/checks/the_widget_finds_a_stored_answer_and_redraws_its_history.test.mjs
 export async function lookForStoredAnswer(
   readTurns: () => Promise<{ role?: string; content?: string }[] | null | undefined>,
