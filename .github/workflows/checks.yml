@@ -145,6 +145,13 @@ jobs:
           deno test --no-lock --node-modules-dir=auto --allow-read=.
           --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-net=deno.land,esm.sh
           supabase/functions/drawing_redact/a_sheet_is_redacted_within_the_edge_budget.check.ts
+      # 17 NOV 2026 — EVERY DUCT-LENGTH REQUEST IS MEASURED WITHIN THE EDGE CPU BUDGET. Each drawing_boq 'lengths' request
+      # customer_api makes for the 8-sheet ZZ DEMO set runs the real handler in a fresh process of its own (--allow-run).
+      - name: Every duct-length request is measured within the edge CPU budget
+        run: >-
+          deno test --no-lock --node-modules-dir=none --allow-read=.
+          --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-run
+          supabase/functions/drawing_boq/a_duct_run_is_measured_sheet_by_sheet.check.ts
       # 24 SEP 2026 — A SCANNED DRAWING IS REDACTED BY OCR OR HELD (founder instruction 579). The real engine
       # (tesseract.js 7.0.0 with the repository's own eng + ara data) on a synthetic ZZ DEMO scan: the title block
       # blacked out, rooms / dimensions / legend kept, a second OCR reads no identity, a title block read below

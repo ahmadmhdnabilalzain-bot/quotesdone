@@ -17,13 +17,14 @@ import { readPdfPlan } from '../../_shared/drawing_plan.ts';
 import { isQuotationReading, looksPriced } from '../../drawing_boq/quotation_gate.ts';
 import { pricedRoute } from '../lib/priced_document.ts';
 import { understoodMessage } from '../lib/what_was_understood.ts';
-import { LENGTHS_FAILED_NOTE, LENGTHS_QUEUED_NOTE } from '../../drawing_boq/length_notes.ts';
+import { LENGTHS_FAILED_NOTE, LENGTHS_QUEUED_NOTE, lengthsToConfirm } from '../../drawing_boq/length_notes.ts';
+import { readLengths } from '../../drawing_boq/length_read.ts';
 import { timedFetch } from '../../_shared/timed_fetch.ts';
 import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from '../../_shared/drawing_format.ts';
 import { cadJobNeedsRedispatch, claimCadDispatch } from '../cad_dispatch.ts';
 import { PHOTOS_PER_DAY, photosToday, recordSitePhotos } from '../../_shared/site_photos.ts';
 import { type ActionCtx, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
-import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, pdfPlanCall, queueCadRead, recordHeld, redactCad, scheduleTables, storeOriginal } from '../lib/drawings.ts';
+import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, lengthsCall, pdfPlanCall, queueCadRead, recordHeld, redactCad, scheduleTables, storeOriginal } from '../lib/drawings.ts';
 
 /** analyze_drawing answers inside this (ms from its request), 10 s before the 150 s edge wall. See the action below. */
 export const ANALYZE_DRAWING_BUDGET_MS = 140_000;
@@ -413,23 +414,25 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
                                redaction_job_id: null, redaction_job_ids: [], redaction_pages_in: 0, redaction_pages_out: 0, redaction_pages_lost: 0, redaction_complete: false, needs_manual_boxes: false });
         const boqOut = isCad && jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(String(body.original_b64 || ''))) : jd.boq;
         let lengthsJob: string | null = null;
-        // THE LENGTHS (22 Sep 2026): a drawing set read from a PDF gets its duct and pipe lengths from a SECOND
-        // drawing_boq call that reads the CAD layers (drawing_set.ts, "THE LENGTHS ARE A SECOND CALL"). If it
-        // fails or is killed, boqOut stands with its counted lines, and the customer is told why no lengths.
+        // THE LENGTHS (22 Sep 2026): a drawing set read from a PDF gets its duct and pipe lengths from drawing_boq reading the
+        // CAD layers - since 17 Nov 2026 SHEET BY SHEET, each call within the edge's CPU cap, a failed call asked once more
+        // (drawing_boq/length_read.ts: the whole-set call took ~2.1 s of CPU and answered 500 on production). If the read
+        // still fails, the CAD worker measures the stored original and merges the lengths in; only when that cannot be
+        // queued does boqOut stand with its counted lines, each unmeasured length saying on its line it is to be confirmed.
         if (boqOut && boqOut.method === 'drawing_set' && /pdf/i.test(mime) && body.original_b64) {
           try {
-            const lengthsLeft = analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now();
-            const lr = lengthsLeft < 3_000 ? null : await timedFetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, mode: 'lengths', boq: boqOut, original_b64: body.original_b64 }) }, lengthsLeft).catch(() => null);
-            const lj = lr ? await lr.json().catch(() => null) : null;
-            // A big set's lengths killed the edge worker (measured 22 Sep 2026: 546 at 40 synthetic sheets,
-            // 200 at 20), or did not finish inside the analysis budget (queued under the same reason: the table's check
-            // allows no other), the counted take-off goes back now, and the CAD worker merges the lengths in.
-            if ((!lr || lr.status === 546) && path && Array.isArray(boqOut.boq)) {
-              const job = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64).length, why: 'pdf_lengths_worker_died', boqIn: boqOut });
-              if (job) { lengthsJob = job; boqOut.missing_info = [LENGTHS_QUEUED_NOTE, ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])]; }
+            const measured = await readLengths(lengthsCall(secret, String(body.original_b64), analyzeAt + ANALYZE_DRAWING_BUDGET_MS - 2_000), boqOut);
+            if (measured) Object.assign(boqOut, measured);
+            else {
+              if (path && Array.isArray(boqOut.boq)) {
+                const job = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64).length, why: 'pdf_lengths_worker_died', boqIn: boqOut });
+                if (job) { lengthsJob = job; boqOut.missing_info = [LENGTHS_QUEUED_NOTE, ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])]; }
+              }
+              if (!lengthsJob && Array.isArray(boqOut.boq) && boqOut.boq.some((l: any) => /^(duct|pipe):/.test(String(l?.type || '')) && l?.qty == null)) {
+                boqOut.boq = lengthsToConfirm(boqOut.boq);
+                boqOut.missing_info = [LENGTHS_FAILED_NOTE, ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])];
+              }
             }
-            if (lj?.ok && lj.boq && Array.isArray(lj.boq.boq)) Object.assign(boqOut, lj.boq);
-            else if (!lengthsJob && Array.isArray(boqOut.boq) && boqOut.boq.some((l: any) => /^(duct|pipe):/.test(String(l?.type || '')) && l?.qty == null)) boqOut.missing_info = [LENGTHS_FAILED_NOTE, ...(Array.isArray(boqOut.missing_info) ? boqOut.missing_info : [])];
           } catch (_e) { /* the counted take-off stands */ }
         }
         // THE VISION COUNT FOR A PHOTO OR A SCAN (27 Oct 2026, ledger 580; ./vision_count_wire.ts says what was measured).

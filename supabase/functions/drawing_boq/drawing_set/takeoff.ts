@@ -5,6 +5,8 @@ import { abbreviations, clip, drawingIndex, EQUIPMENT, FIXTURE, inBox, parseTag,
 import { keyedNotes, tagsOnSheet, unreadTagLike } from './tags.ts';
 import { scheduleRows } from './schedules.ts';
 import type { Consumed, ScheduleTable, Sheet, Status, TakeoffLine } from './types.ts';
+import { planRoles, sheetWords, type SheetWords } from './enlarged.ts';
+import { LENGTH_MAY_INCLUDE_ENLARGED, LENGTH_MAY_INCLUDE_ENLARGED_AR } from '../length_notes.ts';
 
 // A keyed note is scope when it tells someone to do or supply something; "EXISTING … TO REMAIN" is not.
 const SCOPE_NOTE = /\b(PROVIDE|INSTALL|REMOVE|DEMO(?:LISH)?|RELOCATE|REPLACE|CONNECT|ROUTE|FURNISH|EXTEND|CAP|NEW|TERMINATION|LOUVER|DAMPER|VALVE|MAN\s+BARS?|GOOSENECK|SOLENOID|FLUSH\s+VALVE)\b/;
@@ -188,7 +190,10 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
   }
   // Lengths measured from the CAD layers replace the "to be measured" lines for what they cover.
   const measuredDuct = measured.some((x) => x.m.kind === 'duct');
-  const lengthLines = lengthLinesOf(measured);
+  // Each physical run once (enlarged.ts): read what every sheet says of itself and of the others, only when something was measured.
+  const words = new Map<number, SheetWords>();
+  if (measured.length) pages.forEach((p, i) => words.set(i + 1, sheetWords(p, strips[i], { number: sheets[i].number, title: sheetOf(p, i, strips[i], new Map()).title })));
+  const lengthLines = lengthLinesOf(measured, words);
   const agg = new Set(lengthLines.map((l) => l.type));
   lines.push(...lengthLines);
   if (ductAll.size && !measuredDuct) {
@@ -215,13 +220,21 @@ export function takeoff(pages: PdfPage[], schedules: ScheduleTable[] = []) {
 }
 
 /** Measured runs -> BOQ lines, one per system and size across the set. */
-export function lengthLinesOf(measured: { sheet: Sheet; m: Measured }[]): TakeoffLine[] {
+/** The measured runs as BOQ lines, one per size, each physical run once: `words` (enlarged.ts sheetWords, by page) lets an
+ *  enlarged plan of an area already measured drop out of the sum, and flags a line that may still include one. */
+export function lengthLinesOf(measured: { sheet: Sheet; m: Measured }[], words: Map<number, SheetWords> = new Map()): TakeoffLine[] {
   const out: TakeoffLine[] = [];
-  const agg = new Map<string, { m: Measured; sheets: Set<string>; realIn: number; single: number }>();
+  const roles = planRoles(measured, words);
+  const agg = new Map<string, { m: Measured; sheets: Set<string>; realIn: number; single: number; notes: Set<string>; flag: boolean }>();
   for (const { sheet, m } of measured) {
     const k = `${m.kind}:${m.key}`;
-    const g = agg.get(k) || { m, sheets: new Set<string>(), realIn: 0, single: 0 };
-    g.realIn += m.realIn; g.single += m.single || 0; g.sheets.add(sheet.number); agg.set(k, g);
+    const role = roles.get(sheet.page);
+    const g = agg.get(k) || { m, sheets: new Set<string>(), realIn: 0, single: 0, notes: new Set<string>(), flag: false };
+    if (role?.why) g.notes.add(role.why);
+    if (role?.flag) g.flag = true;
+    agg.set(k, g);
+    if (role && !role.counted) continue;                                         // an enlargement of an area already summed
+    g.realIn += m.realIn; g.single += m.single || 0; g.sheets.add(sheet.number);
   }
   for (const [k, g] of [...agg.entries()].sort((a, b) => a[0].localeCompare(b[0], 'en', { numeric: true }))) {
     const m = g.m, sh = [...g.sheets], qty = metres(g.realIn);
@@ -231,20 +244,30 @@ export function lengthLinesOf(measured: { sheet: Sheet; m: Measured }[]): Takeof
     if (m.kind === 'pipe') {
       const [sz, svc] = m.labelled ? m.key.split(' ') : ['', m.svc];
       const what = `${sz ? sz + ' ' : ''}${SERVICE[svc] || svc} pipe`;
-      out.push({ section: 'Piping', section_ar: 'الأنابيب', type: `pipe:${m.key}`, status: 'new', item: what, description: `${what}, new${m.labelled ? '' : ' (size not labelled on the plan)'}`,
+      out.push(once({ section: 'Piping', section_ar: 'الأنابيب', type: `pipe:${m.key}`, status: 'new', item: what, description: `${what}, new${m.labelled ? '' : ' (size not labelled on the plan)'}`,
         description_ar: `أنابيب ${SERVICE_AR[svc] || svc}${sz ? ' مقاس ' + sz : ''}، جديدة${m.labelled ? '' : ' (المقاس غير مكتوب على المخطط)'}`,
-        qty, unit: 'm', ...(m.labelled ? { qty_status: 'read' as const, confidence: 'medium' as const } : { estimate: qty, qty_status: 'to_confirm' as const, confidence: 'low' as const }), sheets: sh, basis: where });
+        qty, unit: 'm', ...(m.labelled ? { qty_status: 'read' as const, confidence: 'medium' as const } : { estimate: qty, qty_status: 'to_confirm' as const, confidence: 'low' as const }), sheets: sh, basis: where }, g));
     } else {
       // A duct stretch is 'read' when both walls are drawn and the gap matches a printed size; a
       // single-line run takes its size from the nearest label, so that length is ours to confirm.
       const sure = m.labelled && g.single === 0;
       const what = m.labelled ? (/round/.test(m.key) ? `Round ductwork ${m.key.replace(' round', ' dia')}` : `Rectangular ductwork ${m.key}`) : `Ductwork, ${m.key}`;
       const whatAr = m.labelled ? (/round/.test(m.key) ? `مجاري هواء دائرية قطر ${m.key.replace(' round', '')}` : `مجاري هواء مستطيلة ${m.key.replace(' (1" liner)', ' (بطانة 1 إنش)')}`) : `مجاري هواء، ${m.key.replace(' wide (size not labelled)', ' عرض (المقاس غير مكتوب)').replace('single-line duct (size not labelled)', 'خط مفرد (المقاس غير مكتوب)')}`;
-      out.push({ section: 'Ductwork', section_ar: 'مجاري الهواء', type: `duct:${m.key}`, status: 'new', item: what, description: what, description_ar: whatAr, qty, unit: 'm',
+      out.push(once({ section: 'Ductwork', section_ar: 'مجاري الهواء', type: `duct:${m.key}`, status: 'new', item: what, description: what, description_ar: whatAr, qty, unit: 'm',
         ...(sure ? { qty_status: 'read' as const, confidence: 'medium' as const } : { estimate: qty, qty_status: 'to_confirm' as const, confidence: 'low' as const }), sheets: sh,
-        basis: `${where}${g.single ? `; ${feet(g.single)} ft of it is drawn single-line and sized from the nearest label — to confirm` : ''}${m.labelled ? '' : '; no printed size matches this width — to confirm'}` });
+        basis: `${where}${g.single ? `; ${feet(g.single)} ft of it is drawn single-line and sized from the nearest label — to confirm` : ''}${m.labelled ? '' : '; no printed size matches this width — to confirm'}` }, g));
     }
   }
   return out;
 }
 
+
+/** A length line with what the enlarged-plan reading found (enlarged.ts): a sheet not counted again is named in the basis;
+ *  a line that may still include an enlarged plan says so in its description, EN and AR, and is open (to confirm). */
+function once(l: TakeoffLine, g: { notes: Set<string>; flag: boolean }): TakeoffLine {
+  if (!g.notes.size) return l;
+  const basis = `${l.basis}; ${[...g.notes].join('; ')}`;
+  if (!g.flag) return { ...l, basis };
+  return { ...l, basis, description: `${l.description} — ${LENGTH_MAY_INCLUDE_ENLARGED}`, ...(l.description_ar ? { description_ar: `${l.description_ar} — ${LENGTH_MAY_INCLUDE_ENLARGED_AR}` } : {}),
+    estimate: l.qty, qty_status: 'to_confirm', confidence: 'low' };
+}

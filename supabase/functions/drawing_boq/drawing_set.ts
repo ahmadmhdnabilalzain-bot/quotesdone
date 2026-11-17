@@ -43,4 +43,4 @@ export { tagsOnSheet, unreadTagLike, keyedNotes, tagCounts } from './drawing_set
 export { takeoff } from './drawing_set/takeoff.ts';
 export { normTag, scheduleRows } from './drawing_set/schedules.ts';
 export { boqFromDrawingSet, countedCompletely, setBeforeModel } from './drawing_set/boq.ts';
-export { lengthsForSet, mergeLengths } from './drawing_set/lengths.ts';
+export { lengthsForSet, lengthsOfParts, lengthsPart, mergeLengths, type LengthsPart } from './drawing_set/lengths.ts';

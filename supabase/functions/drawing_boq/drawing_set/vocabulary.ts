@@ -72,9 +72,13 @@ export function sheetOf(p: PdfPage, pi: number, strip: Box | null, index: Map<st
   const sc = /SCALE\s*:?\s*((?:\d+\/)?\d+"\s*=\s*\d+'\s*-?\s*\d*"?|1\s*[:\/]\s*\d{1,4})/i.exec(all);
   let scale = sc ? sc[1].replace(/\s+/g, ' ').trim() : '';
   if (!scale) { const i = p.runs.findIndex((r) => /^SCALE:?$/i.test(r.text.trim())); if (i >= 0) { const r0 = p.runs[i]; const nx = p.runs.filter((o) => Math.abs(cy(o) - cy(r0)) < r0.h && o.x > r0.x && o.x < r0.x + 0.06).sort((a, b) => a.x - b.x)[0]; if (nx) scale = nx.text.trim(); } }
+  return { page: pi + 1, number, title, scale, kind: kindOf(title) };
+}
+
+/** What a sheet is, from its title (the drawing index's, else its own): the one rule sheetOf and the lengths' merge share. */
+export function kindOf(title: string): SheetKind {
   const T = title.toUpperCase();
-  const kind: SheetKind = /DEMO/.test(T) ? 'demolition_plan' : /SCHEDULE/.test(T) ? 'schedule' : /PLAN/.test(T) ? 'plan' : 'other';
-  return { page: pi + 1, number, title, scale, kind };
+  return /DEMO/.test(T) ? 'demolition_plan' : /SCHEDULE/.test(T) ? 'schedule' : /PLAN/.test(T) ? 'plan' : 'other';
 }
 
 /** Drawing index on any sheet: a sheet-number run with a title run to its right on the same line. */

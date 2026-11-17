@@ -96,6 +96,10 @@ const STEPS = [
   // 17 Nov 2026: one 2600 px sheet through the real drawing_redact handler, each worker held to a CPU budget inside the edge's
   // (the live set died "CPU Time exceeded" on every sheet). A CPU budget: run alone of other heavy steps, like deno-suite.
   ['redact-budget', 'checks', 'a drawing sheet is redacted within the edge CPU budget', `${DENO} --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-net=deno.land,esm.sh supabase/functions/drawing_redact/a_sheet_is_redacted_within_the_edge_budget.check.ts`, { heavy: true, alone: true, hosts: ['deno.land', 'esm.sh'] }],
+  // 17 Nov 2026: every drawing_boq 'lengths' request customer_api makes (a sheet each, then the merge) through the real handler,
+  // each in a fresh process of its own, held to a CPU budget inside the edge's (the whole-set request answered 500 on
+  // production and left the duct without metres). A CPU budget: run alone of other heavy steps, like redact-budget.
+  ['lengths-budget', 'checks', 'every duct-length request is measured within the edge CPU budget', `${DENO} --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-run supabase/functions/drawing_boq/a_duct_run_is_measured_sheet_by_sheet.check.ts`, { heavy: true, alone: true }],
   ['scan-redact', 'checks', 'a scanned drawing is redacted by OCR, or held', `${DENO} --allow-env --allow-net=deno.land supabase/functions/_shared/scan_redact.check.ts`, { heavy: true, hosts: ['deno.land'] }],
   ['scan-takeoff', 'checks', 'a scanned PDF set is counted by OCR to the hand count', `${DENO} --allow-env --allow-net=deno.land,esm.sh supabase/functions/_shared/scan_takeoff.check.ts`, { heavy: true, hosts: ['deno.land', 'esm.sh'] }],
   ['migration-lint', 'migration-lint', 'lint migrations for locking operations (squawk)', () => { const f = migrations(); return f.length ? `npx squawk ${f.join(' ')}` : null; }],

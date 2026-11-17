@@ -15,7 +15,8 @@ import { scrubIdentityText } from '../_shared/identity_text.ts';
 import { linesFromRuns, pdfPages } from '../_shared/pdf_text_positions.ts';
 import { isQuotationReading, pricedKind, quotationGate, quotationTerms, termsToKeep } from './quotation_gate.ts';
 import { boqFromPages } from './boq_from_text.ts';
-import { boqFromDrawingSet, lengthsForSet, mergeLengths, setBeforeModel, type ScheduleTable } from './drawing_set.ts';
+import { boqFromDrawingSet, lengthsForSet, lengthsOfParts, lengthsPart, mergeLengths, setBeforeModel, type ScheduleTable } from './drawing_set.ts';
+import { LENGTHS_MAX_PAGES_PER_CALL } from './length_read.ts';
 import { boqFromSheet } from './boq_from_sheet.ts';
 import { boqFromExtracted } from './boq_from_document.ts';
 import { readDocument } from '../_shared/doc_read/index.ts';
@@ -172,6 +173,22 @@ Deno.serve(observe('drawing_boq', async (req) => {
     // 22 Sep 2026. THE LENGTHS, as a second call after the take-off (drawing_set.ts, "THE LENGTHS ARE A SECOND
     // CALL"): the same PDF read WITH its CAD layers, duct and pipe runs measured at the printed scale, and
     // merged into the BOQ the first call returned. If this call dies, the caller keeps that BOQ.
+    // 17 Nov 2026: SHEET BY SHEET (drawing_set/lengths.ts, length_read.ts): `from`/`to` measure a few sheets and answer the
+    // part; `parts` put every part together and merge it into the BOQ. The whole-set request below is kept for a caller
+    // deployed before this one.
+    if (body.mode === 'lengths' && body.from !== undefined) {
+      const b64 = String(body.original_b64 || '');
+      if (!/^(data:[^;]+;base64,)?JVBER/.test(b64)) return J({ ok: false, error: 'lengths_need_a_pdf' }, 400);
+      const from = Math.max(0, Math.floor(Number(body.from) || 0));
+      const to = Math.min(from + LENGTHS_MAX_PAGES_PER_CALL, Math.max(from + 1, Math.floor(Number(body.to) || 0)));
+      return J({ ok: true, ...lengthsPart(await pdfPages(b64Bytes(b64), [from, to]), from, to) });
+    }
+    if (body.mode === 'lengths' && Array.isArray(body.parts)) {
+      const set = body.boq && typeof body.boq === 'object' && Array.isArray(body.boq.boq) ? body.boq : null;
+      const lengths = lengthsOfParts(body.parts);
+      if (!set || !lengths) return J({ ok: false, error: 'lengths_need_every_part_and_the_boq' }, 400);
+      return J({ ok: true, boq: mergeLengths({ ...set, missing_info: Array.isArray(set.missing_info) ? set.missing_info : [] }, lengths) });
+    }
     if (body.mode === 'lengths') {
       const set = body.boq && typeof body.boq === 'object' && Array.isArray(body.boq.boq) ? body.boq : null;
       const b64 = String(body.original_b64 || '');
