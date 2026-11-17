@@ -1012,6 +1012,10 @@
   "d5e8cb4363a1",
   "fa24f24c3dfe"
  ],
+ "scripts/sql/a_referral_is_recorded_counted_and_thanked.sql": [
+  "3e9076cafc48",
+  "ac692c85b745"
+ ],
  "scripts/sql/a_refund_request_after_a_partial_stripe_refund_is_answered_not_a_500.sql": [
   "2dc8d6b31c47",
   "2f07e86bbe56",
@@ -1768,6 +1772,12 @@
  ],
  "scripts/sql/every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql": [
   "624819270073"
+ ],
+ "scripts/sql/every_one_time_code_the_database_makes_is_unguessable.sql": [
+  "014ff0cd3cb4",
+  "157e9ef57506",
+  "64d677e419b0",
+  "dc9917268801"
  ],
  "scripts/sql/every_social_message_is_answered_probe.sql": [
   "debfd4865d39"
@@ -4067,6 +4077,20 @@
  ],
  "scripts/sql/uae_price_benchmarks_come_only_from_real_quotes.sql": [
   "ebfb393ab473"
+ ],
+ "scripts/sql/what_the_seats_were_asked_and_did_not_know_is_answered_where_they_read.sql": [
+  "152f202aadab",
+  "2e84eb4998e0",
+  "385e43c18cd2",
+  "41cac421740a",
+  "50a984e68e6f",
+  "758356f3219a",
+  "79a604a86bde",
+  "84d9e03d1dfa",
+  "94a7fbb0ef51",
+  "9c954231f915",
+  "da58cf478216",
+  "f2863f52aee9"
  ],
  "src/app/[locale]/blog/[slug]/opengraph-image.tsx": [
   "4bb69a8b2b4f"
@@ -10197,19 +10221,5 @@
   "d99cd47fba2a",
   "d9a9b884d813",
   "f7049682f252"
- ],
- "scripts/sql/what_the_seats_were_asked_and_did_not_know_is_answered_where_they_read.sql": [
-  "152f202aadab",
-  "2e84eb4998e0",
-  "385e43c18cd2",
-  "41cac421740a",
-  "50a984e68e6f",
-  "758356f3219a",
-  "79a604a86bde",
-  "84d9e03d1dfa",
-  "94a7fbb0ef51",
-  "9c954231f915",
-  "da58cf478216",
-  "f2863f52aee9"
  ]
 }
