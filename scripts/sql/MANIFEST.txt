@@ -2463,3 +2463,9 @@ scripts/sql/the_export_pages_never_written_on_12_to_15_november_close_as_abandon
 scripts/sql/the_13_november_export_pages_the_refile_picked_up_close_as_abandoned_too.sql
 # 17 Nov 2026 06:45 UTC (sales_engineer): applied after the trade checklists were loaded (305 checklists); PROBE OK, 13 gaps closed, 0 open.
 scripts/sql/what_the_seats_were_asked_and_did_not_know_is_answered_where_they_read.sql
+# 17 Nov 2026 10:59 UTC (it_engineer): applied after #2032 (13 functions deployed first); PROBE OK.
+scripts/sql/an_identity_in_a_routine_is_matched_by_equality_never_a_pattern.sql
+# 17 Nov 2026 12:58 UTC (it_engineer): applied after #2034; PROBE OK.
+scripts/sql/the_holdout_runner_is_executable_by_no_client_role.sql
+# 17 Nov 2026 12:59 UTC (it_engineer): applied after #2034, the bucket re-read first (exactly the 10 listed objects); PROBE OK.
+scripts/sql/the_stale_admin_and_crm_pages_leave_the_public_site_bucket.sql
