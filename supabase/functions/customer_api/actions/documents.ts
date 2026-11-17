@@ -332,6 +332,9 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // pages_abandoned (round 5, fourth review fix 2): the set's page numbers drawing_redact held for time, or whose call the
         // clock cut; pages_not_started: never sent. Both go on the held row and back to the customer.
         let timeHeld = 0; let notReached: number[] = []; const abandoned: number[] = [];
+        // What drawing_redact said about each sheet (REDACT_BATCH is 1: one sheet a call), sorted by sheetVerdict
+        // (_shared/drawing_pages_queued.ts): verified, to be checked off the request, or refused. Read below by the queue.
+        const verdictOf: SheetVerdict[] = [];
         // Only pass paths back to the client once drawing_redact has RECORDED the run server-side
         // (drawing_redaction_runs). An unrecorded run cannot be verified at create_inquiry, so its
         // paths are unusable — dropping them here lands on the existing total-failure behaviour
@@ -340,9 +343,6 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // Pages finish out of order when they run side by side: each batch's paths and run are kept at its place and joined
         // in page order below, so a supplier still receives sheet 1 first.
         const pathsOf: string[][] = [], jobsOf: string[][] = [];
-        // What drawing_redact said about each sheet (REDACT_BATCH is 1: one sheet a call), sorted by sheetVerdict
-        // (_shared/drawing_pages_queued.ts): verified, to be checked off the request, or refused. Read below by the queue.
-        const verdictOf: SheetVerdict[] = [];
         const ran = await eachPageInTime(batches, async (b) => {
           const i = b * REDACT_BATCH, slice = images.slice(i, i + REDACT_BATCH);
           inFlight++;
