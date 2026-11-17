@@ -21,7 +21,7 @@ import type { Sheet } from './types.ts';
 // titled ENLARGED that carries runs no other plan has (the main plan says "see enlarged plan" and leaves the room
 // empty), or an ordinary-titled sheet at a larger scale whose runs are all on the other plans. Nothing is dropped silently.
 
-const ENLARGED = /\bENLARGE(?:D|MENT)\b|\bBLOW[- ]?UP\b|\bDETAIL(?:ED)?\s+PLAN\b|\bZOOM(?:ED)?\b/;
+const ENLARGED = /\bENLARGE(?:D|MENT)\b|\bBLOW[- ]?UP\b|\bDETAIL(?:ED)?\s+PLAN\b|\bZOOM(?:ED)?\b|مكب[ّ]?ر|تكبير|مخطط\s+تفصيلي/;
 const PART = /\bPART(?:IAL)?\b/;
 const SHEET_REF = /\b[A-Z]{1,2}-?\d{1,2}\.\d{1,2}[A-Z]?\b/g;
 /** A size on a candidate sheet is "also on the other plans" when they carry at least this share of its length. */
@@ -60,7 +60,8 @@ export function planRoles(measured: { sheet: Sheet; m: Measured }[], words: Map<
   if (pages.size < 2) { for (const pg of pages.keys()) roles.set(pg, { counted: true, flag: false, why: '' }); return roles; }
   // Sheets another sheet calls enlarged ("SEE ENLARGED PLAN M4.1").
   const named = new Map<string, string>();
-  for (const w of words.values()) for (const n of w.names) if (n !== w.number && !named.has(n)) named.set(n, w.number);
+  // Only an ordinary sheet names its enlargement: an enlarged sheet's own "ENLARGED PLAN OF AREA ON M1.0" points back at its main plan.
+  for (const w of words.values()) if (!w.titles.some((t) => ENLARGED.test(t))) for (const n of w.names) if (n !== w.number && !named.has(n)) named.set(n, w.number);
   // A discipline's usual plan scale: the one most of its measured sheets use (a tie goes to the smaller drawing scale).
   const base = new Map<string, number>();
   const tally = new Map<string, Map<number, number>>();
@@ -77,7 +78,8 @@ export function planRoles(measured: { sheet: Sheet; m: Measured }[], words: Map<
     const title = titles.find((t) => ENLARGED.test(t));
     const by = named.get(p.sheet.number);
     const s = title ? { s: 2, what: `its title says ${/DETAIL/.test(title) ? 'detail plan' : /BLOW/.test(title) ? 'blow-up' : /ZOOM/.test(title) ? 'zoom' : 'enlarged'}` } : by ? { s: 2, what: `named as an enlarged plan on ${by}` }
-      : finer && titles.some((t) => PART.test(t)) ? { s: 2, what: 'a part plan drawn at a larger scale than the other plans' }
+      // A part plan at a larger scale may be another zone with the same duct sizes (PART PLAN - ZONE B): open, never dropped.
+      : finer && titles.some((t) => PART.test(t)) ? { s: 1, what: 'a part plan drawn at a larger scale than the other plans' }
       : finer ? { s: 1, what: 'drawn at a larger scale than the other plans' } : { s: 0, what: '' };
     score.set(p.sheet.page, s);
   }
@@ -92,7 +94,11 @@ export function planRoles(measured: { sheet: Sheet; m: Measured }[], words: Map<
       there.forEach((o) => on.add(o.sheet.number));
       return there.reduce((a, o) => a + o.len.get(k)!, 0) >= v * COVERED;
     });
-    if (sc.s === 2 && covered) roles.set(p.sheet.page, { counted: false, flag: false, why: `${p.sheet.number} is an enlarged plan (${sc.what}) and every run on it is also measured on ${[...on].join(', ')}, so it is not counted again` });
+    // Dropped only when ONE plan carries it all - the sheet that names it, if one does: an enlargement repeats one area of one
+    // plan. Sizes summed over several floors match any sheet of common sizes (another floor's plant room, another zone).
+    const by = named.get(p.sheet.number);
+    const one = p.len.size > 0 ? areas.find((o) => (!by || o.sheet.number === by) && [...p.len.entries()].every(([k, v]) => (o.len.get(k) || 0) >= v * COVERED)) : undefined;
+    if (sc.s === 2 && one) roles.set(p.sheet.page, { counted: false, flag: false, why: `${p.sheet.number} is an enlarged plan (${sc.what}) and every run on it is also measured on ${one.sheet.number}, so it is not counted again` });
     else if (sc.s === 2) roles.set(p.sheet.page, { counted: true, flag: true, why: `${p.sheet.number} looks like an enlarged plan (${sc.what}) but carries runs the other plans do not show, so it is counted` });
     else if (covered) roles.set(p.sheet.page, { counted: true, flag: true, why: `${p.sheet.number} is ${sc.what} and every run on it is also on ${[...on].join(', ')}, so it may be an enlarged plan of the same area; it is counted` });
     else roles.set(p.sheet.page, { counted: true, flag: false, why: '' });

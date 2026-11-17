@@ -11,6 +11,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { lineKey, settleLines } from '../_shared/boq_open_lines.ts';
+import { planRoles } from './drawing_set/enlarged.ts';
 import { lengthsForSet, lengthsOfParts, lengthsPart, takeoff, type TakeoffLine } from './drawing_set.ts';
 import { LENGTH_MAY_INCLUDE_ENLARGED, LENGTH_MAY_INCLUDE_ENLARGED_AR } from './length_notes.ts';
 
@@ -91,7 +92,7 @@ Deno.test('an enlarged plan the drawing index names, or another sheet calls enla
     sheet('GROUND FLOOR PLAN', 'M1.0', duct(200, 600, 50, 26, 18)),
     sheet('PART PLAN - PLANT ROOM', 'M1.1', duct(200, 600, 50, 26, 18, 4), 4),
   ])), 'duct:26x18');
-  assertEquals([d.qty, d.sheets, flagged(d)], [15.2, ['M1.0'], false], 'a part plan at a larger scale');
+  assertEquals([d.qty, d.qty_status, d.sheets, flagged(d)], [30.5, 'to_confirm', ['M1.0', 'M1.1'], true], 'a part plan at a larger scale may be another zone: counted, open');
 });
 
 Deno.test('a sheet that may be an enlargement is still counted, and its line says so - never a silent guess', async () => {
@@ -145,4 +146,43 @@ Deno.test("the e2e 8-sheet set (eight PARTIAL PLANs of eight areas) keeps the ke
   assertEquals([d.qty, d.qty_status, d.sheets.length, flagged(d)], [16433.2, 'read', 8, false]);
   assert(Math.abs(d.qty! - 16432.9) / 16432.9 < 0.005);
   assert(!/enlarged/.test(d.basis), d.basis);
+});
+
+Deno.test('an enlarged plan is dropped only when ONE plan - the one that names it - carries it all (review 17 Nov)', async () => {
+  // The main plan leaves the plant room to M4.1; the second floor's own 12x10 is another room, not this one.
+  let ls = await lengths(setPdf([
+    sheet('FIRST FLOOR PLAN', 'M1.0', duct(200, 600, 50, 26, 18), 8, t(400, 700, 8, 'SEE ENLARGED PLAN M4.1')),
+    sheet('SECOND FLOOR PLAN', 'M1.1', duct(200, 600, 50, 26, 18) + duct(200, 900, 40, 12, 10)),
+    sheet('ENLARGED PLANT ROOM PLAN', 'M4.1', duct(200, 900, 30, 12, 10, 4), 4),
+  ]));
+  let d = line(ls, 'duct:12x10');
+  assertEquals([d.qty, d.qty_status, d.sheets, flagged(d)], [21.3, 'to_confirm', ['M1.1', 'M4.1'], true], 'the plant room is counted, open');
+  // PART PLAN - ZONE B at 1/4" is another zone with the floors' size.
+  d = line(await lengths(setPdf([
+    sheet('FIRST FLOOR PLAN', 'M1.0', duct(200, 600, 50, 26, 18)),
+    sheet('SECOND FLOOR PLAN', 'M1.1', duct(200, 600, 50, 26, 18)),
+    sheet('PART PLAN - ZONE B', 'M1.2', duct(200, 600, 40, 26, 18, 4), 4),
+  ])), 'duct:26x18');
+  assertEquals([d.qty, d.qty_status, flagged(d)], [42.7, 'to_confirm', true]);
+  // The enlarged sheet's own note pointing back at its main plan does not make the main plan an enlargement.
+  d = line(await lengths(setPdf([
+    sheet('FIRST FLOOR PLAN', 'M1.0', duct(200, 600, 50, 26, 18)),
+    sheet('SECOND FLOOR PLAN', 'M1.1', duct(200, 600, 50, 26, 18)),
+    sheet('ENLARGED PLANT ROOM PLAN', 'M4.1', duct(200, 600, 20, 26, 18, 4), 4, t(400, 300, 8, 'ENLARGED PLAN OF AREA SHOWN ON M1.0')),
+  ])), 'duct:26x18');
+  assertEquals([d.qty, d.sheets, flagged(d)], [30.5, ['M1.0', 'M1.1'], false], 'both floors counted, the enlargement once');
+  // More run than any one plan carries is not a repeat of one area.
+  d = line(await lengths(setPdf([
+    sheet('FIRST FLOOR PLAN', 'M1.0', duct(200, 600, 20, 26, 18)),
+    sheet('SECOND FLOOR PLAN', 'M1.1', duct(200, 600, 20, 26, 18)),
+    sheet('ENLARGED PLAN - CORE', 'M4.1', duct(200, 600, 30, 26, 18, 4), 4),
+  ])), 'duct:26x18');
+  assertEquals([d.qty, d.qty_status, flagged(d)], [21.3, 'to_confirm', true]);
+});
+
+Deno.test('an Arabic title says enlarged too (مخطط مكبّر)', () => {
+  const m = (page: number, number: string, title: string, scale: string) => ({ sheet: { page, number, title, scale: '', kind: 'plan' as const },
+    m: { key: '26x18', svc: '', kind: 'duct' as const, pt: 100, realIn: 600, labelled: true, scale, layers: new Set<string>(), runs: 1 } });
+  const r = planRoles([m(1, 'M1.0', 'MECHANICAL PLAN', '1/8" = 1\'-0"'), m(2, 'M4.1', 'مخطط مكبّر - غرفة المعدات', '1/8" = 1\'-0"')], new Map());
+  assertEquals(r.get(2)?.counted, false, JSON.stringify([...r]));
 });
