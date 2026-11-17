@@ -21,6 +21,7 @@
 // Restored 9 Sep 2026 (deleted by the 137-function sweep, 182308b, with customer_api:615 still
 // calling it — every buyer since was told their drawing had been attached when nothing ran).
 // Routed through ai_gateway (v3 multimodal passthrough) - the model ladder now lives in the gateway.
+import { parseJson as readModelJson } from '../_shared/model_json.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
@@ -69,7 +70,9 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
 // secretOk() is the shared one, in ../_shared/internal_auth.ts.
-function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return null; } }
+// the redaction gates fail closed: a reply that is JSON but not one object (an array) is no verdict (_shared/model_json.ts)
+// deno-lint-ignore no-explicit-any
+function parseJson(t:string){ return readModelJson<any>(t, { wholeDecides: true }); }
 // The byte helpers, MAXW (2600 px, kept not shrunk: founder instruction 580) and the server-box margin live
 // in _shared/drawing_redact_page.ts since 24 Sep 2026, with the deterministic page steps, so a test runs them.
 // Measured locally (deno, imagescript 1.2.17, a real 2600 px sheet): decode 455 ms, paint + encode 270 ms;

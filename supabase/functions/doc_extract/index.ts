@@ -1,3 +1,4 @@
+import { parseJson } from '../_shared/model_json.ts';
 import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 // doc_extract — universal Document Intelligence extractor.
 // Pulls {text, specifications, brands[], models[], dates[], quantities[], certifications[]}
@@ -97,9 +98,9 @@ async function llmJSON(apiKey:string, content:unknown):Promise<any>{
     if(!r.ok) continue;
     const d=await r.json().catch(()=>null);
     if(!d || d?.ok===false) continue;
-    let t=d?.content||'';
-    t=String(t).replace(/^```(json)?/i,'').replace(/```$/,'').trim();
-    const m=t.match(/\{[\s\S]*\}/); if(m){ try{ return JSON.parse(m[0]); }catch(_p){ /* asked again */ } }
+    const t=d?.content||'';
+    // deno-lint-ignore no-explicit-any
+    const o=parseJson<any>(t); if(o) return o;   // otherwise asked again
     }
   }catch(_e){/*fall through to null*/}
   return null;

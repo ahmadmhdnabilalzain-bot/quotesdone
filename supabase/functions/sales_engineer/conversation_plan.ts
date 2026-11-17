@@ -27,6 +27,7 @@
 // prevented by: sales_engineer/conversation_plan.test.ts, sales_engineer/portal_conversation.test.ts
 // The playbooks are read from every compiled trade pack (company_brief.ts PLAYBOOK_TEXT), not from the core a reply
 // carries; normalise, rx and TRADE_WORDS live in _shared/conversation_trade.ts since 3 Nov 2026 (every reply's pack uses them).
+import { parseJson } from '../_shared/model_json.ts';
 import { PLAYBOOK_TEXT } from '../_shared/company_brief.ts';
 import { normalise, rx, TRADE_WORDS, tradeIn } from '../_shared/conversation_trade.ts';
 import { capRule, saysDontKnow, type CapStage } from '../_shared/inquiry_state.ts';
@@ -449,10 +450,8 @@ export function extractionPrompt(st: State, lastSeat: string, message: string): 
 }
 /** The extraction answer, kept only where it names an open slot and its value is the customer's own words. */
 export function parseExtraction(text: string, st: State, message: string): Extracted {
-  const m = String(text || '').match(/\{[\s\S]*\}/);
-  if (!m) return {};
-  let o: Record<string, unknown>;
-  try { o = JSON.parse(m[0]); } catch { return {}; }
+  const o = parseJson(text);
+  if (!o) return {};
   const out: Extracted = {}; const M = stems(message);
   for (const [k, v] of Object.entries(o ?? {})) {
     if (!st.undecided.includes(k) || typeof v !== 'string' || !v.trim()) continue;

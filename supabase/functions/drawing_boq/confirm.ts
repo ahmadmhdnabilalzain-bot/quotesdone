@@ -16,6 +16,7 @@
 // to the founder's OpenRouter hold, with a per-call token cap and a daily spend cap
 // (scripts/sql/the_drawing_confirm_check_is_the_one_named_exception_to_the_hold.sql). Both ship OFF.
 // Nothing here calls a model; drawing_boq does, through ai_gateway, so every call is logged and priced.
+import { parseJson } from '../_shared/model_json.ts';
 import type { Line, OpenLine } from '../_shared/boq_open_lines.ts';
 import { isOpen, lineKey } from '../_shared/boq_open_lines.ts';
 import { scrubIdentity } from './boq_from_text.ts';
@@ -65,9 +66,8 @@ const frac = (v: unknown) => { const n = Number(v); return Number.isFinite(n) &&
 
 /** Strict: anything outside the contract is dropped; a reply with no valid part is null. */
 export function parseConfirm(raw: string, keys: Set<string>): ConfirmReply | null {
-  let j: unknown;
-  try { j = JSON.parse(raw); } catch { const m = String(raw || '').match(/\{[\s\S]*\}/); if (!m) return null; try { j = JSON.parse(m[0]); } catch { return null; } }
-  if (!j || typeof j !== 'object') return null;
+  const j = parseJson(raw, { wholeDecides: true });
+  if (!j) return null;
   const o = j as Record<string, unknown>;
   const lines: Verdict[] = [];
   for (const v of Array.isArray(o.lines) ? o.lines.slice(0, 80) : []) {

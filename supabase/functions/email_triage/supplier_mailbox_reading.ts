@@ -31,6 +31,7 @@
 // Nothing is routed to the founder. supplier@ keeps its reading word for word (READING_SYS) and its outcomes.
 // prevented by: email_triage/supplier_mailbox_reading.test.ts (the info@ and management@ cases)
 // prevented by: email_triage/supplier_mailbox_reading.test.ts, scripts/e2e/supplier_mailbox_reply_gate_sql.mjs
+import { parseJson } from '../_shared/model_json.ts';
 import { whereAddress } from '../_shared/address_filter.ts';
 import { INVITATION_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { untrustedBlock, untrustedMail } from '../_shared/untrusted.ts';
@@ -165,11 +166,9 @@ export function readingInput(m: Mail, thread: ThreadItem[], o: { known?: SenderK
 
 /** The model's answer, or null when it is not one of the nine with a reason. */
 export function parseReading(content: string | null | undefined): { reading: Reading; why: string; quote: string; seat: RouteSeat | null; whatsapp_yes: boolean; whatsapp_no: boolean } | null {
-  const s = String(content ?? '');
-  const at = s.indexOf('{'), end = s.lastIndexOf('}');
-  if (at < 0 || end <= at) return null;
+  const o = parseJson(content);
+  if (!o) return null;
   try {
-    const o = JSON.parse(s.slice(at, end + 1)) as Record<string, unknown>;
     const reading = String(o.reading ?? '').trim() as Reading;
     if (!(READINGS as readonly string[]).includes(reading)) return null;
     const why = String(o.why ?? '').trim();

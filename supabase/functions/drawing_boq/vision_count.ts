@@ -9,6 +9,7 @@
 // each a whole number 0..999. The counts stay estimates the customer confirms (qty_status 'to_confirm').
 // WHICH COUNT STANDS (reconcile): on an addressable loop, the set whose implied addresses equal the loop's highest
 // address wins (crossCheck); otherwise the model's count, which the bench measured nearer than the template counter.
+import { parseJson } from '../_shared/model_json.ts';
 import { crossCheck } from './symbol_count.ts';
 
 export const VISION_COUNT_ROUTE = 'drawing_vision_count';
@@ -26,8 +27,7 @@ export function visionUserText(types: { type: string; en: string }[]): string {
 
 /** The model's reply, kept only for the legend's types, each a whole number 0..999. Null when unreadable. */
 export function parseVisionCounts(raw: string, types: string[]): Record<string, number> | null {
-  let j: unknown = null;
-  try { j = JSON.parse(raw); } catch { const m = String(raw || '').match(/\{[\s\S]*\}/); if (m) try { j = JSON.parse(m[0]); } catch { /* unreadable */ } }
+  const j: unknown = parseJson(raw, { wholeDecides: true });
   const c = (j as { counts?: Record<string, unknown> } | null)?.counts;
   if (!c || typeof c !== 'object') return null;
   const out: Record<string, number> = {};

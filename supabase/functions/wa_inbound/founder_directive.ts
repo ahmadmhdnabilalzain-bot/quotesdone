@@ -17,6 +17,7 @@
 // instruction onto a registry key (the prompt says so, and a registry key it did pick goes through the routine's own
 // type and bounds checks).
 
+import { parseJson } from '../_shared/model_json.ts';
 /** The classifier's system prompt over the live registry (fn_founder_settings rows, one line each). */
 export function directiveSystemPrompt(catalogue: string): string {
   return 'You decide whether the message is an INSTRUCTION TO CHANGE SOMETHING, and if so, what.\n\nTHE SETTINGS THAT CAN BE CHANGED BY MESSAGE:\n'
@@ -41,10 +42,7 @@ function keyOf(p: Record<string, unknown>): string | null {
  * as a directive whose key is what he named. Anything unparseable, or {"directive":false}, is returned as it came.
  */
 export function readDirectiveReply<T extends { content?: unknown }>(cj: T): T {
-  const m = String(cj?.content ?? '').match(/\{[\s\S]*\}/);
-  if (!m) return cj;
-  let p: Record<string, unknown> | null = null;
-  try { p = JSON.parse(m[0]); } catch (_e) { return cj; }
+  const p = parseJson(cj?.content);
   if (!p || p.directive !== true) return cj;
   const key = keyOf(p);
   if (!key) return { ...cj, content: JSON.stringify({ directive: false }) };

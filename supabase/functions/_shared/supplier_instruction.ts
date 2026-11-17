@@ -15,6 +15,7 @@
 //     message, or the portal). "Not for me" and "I'm available" apply at once: they only record his answer.
 // The reply he gets is written by the channel's own reply model from `facts` below (suppliers: always English).
 // prevented by: _shared/supplier_instruction.test.ts
+import { parseJson } from './model_json.ts';
 import { servicesSaveRewrite, splitServices } from './supplier_services.ts';
 import { untrustedBlock } from './untrusted.ts';
 import { memberMayInstruct } from './supplier_company.ts';
@@ -144,10 +145,8 @@ export function factsForReader(f: Facts): string {
 /** The model's reading, checked against his own facts (an unknown reference or code is dropped, never guessed). Null: unreadable. */
 export async function readInstruction(ask: Ask, message: string, f: Facts): Promise<Reading | null> {
   const out = await ask(INSTRUCTION_SYS, factsForReader(f) + '\n\nHIS MESSAGE:' + untrustedBlock(String(message || '').slice(0, 2500), 'NOTE'));
-  const m = String(out ?? '').match(/\{[\s\S]*\}/);
-  if (!m) return null;
-  let j: Record<string, unknown>;
-  try { j = JSON.parse(m[0]); } catch (_e) { return null; }
+  const j = parseJson(out);
+  if (!j) return null;
   const kind = (KINDS as readonly string[]).includes(String(j.kind)) ? j.kind as Kind : 'none';
   const arr = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x ?? '').trim()).filter(Boolean) : []);
   const myTrades = new Set(f.trades.map((t) => t.code)), myServices = new Set(f.services.map((s) => s.key));

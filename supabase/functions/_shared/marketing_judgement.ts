@@ -16,6 +16,7 @@
 // take no arbitrary video URL — and the judgement ('quality_review') gets the perception row plus key frames as
 // images (signed URLs, which sol can read).
 
+import { parseJson } from './model_json.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 export type Seat = 'marketing';
@@ -48,11 +49,7 @@ export interface Deps {
 }
 
 export function parseAnswer(text: string | null): Record<string, unknown> | null {
-  if (!text) return null;
-  try {
-    const v = JSON.parse(text.trim().replace(/^```(?:json)?\s*|\s*```$/g, ''));
-    return v && typeof v === 'object' && !Array.isArray(v) ? v : null;
-  } catch { return null; }
+  return parseJson(text);   // _shared/model_json.ts: a fence or a sentence around the object is read too (17 Nov 2026)
 }
 
 function b64(bytes: Uint8Array): string {

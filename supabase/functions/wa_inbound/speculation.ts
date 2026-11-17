@@ -17,6 +17,7 @@
 //   4. a PAID measurement on recorded turns shows the adopted drafts agree with the replies the real route writes.
 // Until then it is adopted only on the same facts it was composed on (general_turn.ts sameFacts), as below.
 // prevented by: wa_inbound/a_wrong_draft_is_never_sent_for_a_change_a_cancel_or_a_chase.test.ts, wa_inbound/no_unwritten_send.test.ts
+import { parseJson } from '../_shared/model_json.ts';
 import type { DirectiveReading } from './reprice_outage.ts';
 import { supplierDirectiveAllowed } from './directive_gate.ts';
 import { composeSituation } from './compose.ts';
@@ -95,8 +96,8 @@ export function startSpeculation(t: WaTurn): void {
     });
     const cj = await cr.json().catch(() => ({} as Record<string, unknown>));
     if (!cr.ok || (cj as { ok?: unknown })?.ok === false) return { outage: true as const, why: 'gateway ' + String((cj as { error?: unknown })?.error || cr.status).slice(0, 80) };
-    const cm = String((cj as { content?: string })?.content || '').match(/\{[\s\S]*\}/);
-    return cm ? JSON.parse(cm[0]) : { outage: true as const, why: 'no reading in the answer' };
+    // deno-lint-ignore no-explicit-any
+    return parseJson<any>((cj as { content?: string })?.content) ?? { outage: true as const, why: 'no reading in the answer' };
   })().catch((e) => (specAbort.signal.aborted ? null : { outage: true as const, why: String((e as Error)?.message || e).slice(0, 80) })));   // never swallowed: an outage is said (supplier_directive.ts)
   if (supplierDirectiveAllowed({ audience, internalCaller }) && typedQuestion) directiveRead();   // never read for a turn it cannot apply
   Object.assign(t, { specAbort, speculative, specFacts, directiveRead });
