@@ -94,7 +94,10 @@
 --   only marker rows written since are deleted, every check still applies).
 -- LOCKS: lock_timeout 5s, so a purge that would queue behind a live writer gives up instead of holding the queue.
 -- ROLLBACK: the whole file is one transaction and every refusal rolls back everything, the queues included. A purge that
---   committed cannot be undone in SQL: the rows are gone (the daily export of the day before holds them); the storage and
+--   committed cannot be undone in SQL: the rows are gone. The daily export (table_export_registry) holds only the exported
+--   tables (customers, leads, inquiries, quotes, transactions, notifications, agent_actions, accountant_reveal_reconcile_item);
+--   demo_shadow_trace, ai_cost_log, rehearsal_window, rehearsal_spend_reservation, support_reply_readability, doc_backups,
+--   rl_hits, company_event, email_verifications and auth.users are NOT exported and are gone for good (review 17 Nov); the storage and
 --   Dropbox queues can be stopped before dropbox_backup drains them (15 minutes after listing) by setting done_at on this
 --   purge's signup_purge_object / signup_purge_dropbox rows.
 -- WHEN: apply it outside campaign hours, in a quiet minute, AFTER the certification (scripts/apply_sql.mjs, no --ddl).
@@ -122,7 +125,13 @@ begin
     (select 'run-tagged cost rows at or after the cutoff: ' || count(*) from public.ai_cost_log l, _l5_cut k
       where l.e2e_run_tag is not null and (l.occurred_at >= k.t or l.e2e_run_tag = any(k.running_tags)) having count(*) > 0),
     (select 'leads tagged by a running run: ' || string_agg(l.id::text, ', ') from public.leads l, _l5_cut k
-      where l.tags && array(select 'qd_run:' || x from unnest(k.running_tags) x))) into v_bad;
+      where l.tags && array(select 'qd_run:' || x from unnest(k.running_tags) x)),
+    -- review 17 Nov: the OpenRouter reconcile (20:30Z, the Asia/Dubai day before) compares the meter with ai_cost_log and never
+    -- recomputes a day; purged run-tagged rows of a day not yet reconciled read as unattributed spend (17 Nov: USD 0.69 of ~2.08,
+    -- 33% against the 5% threshold) and raise a false it_engineer finding
+    (select 'OpenRouter day(s) not yet reconciled hold run-tagged cost rows: ' || string_agg(distinct d::text, ', ')
+       from (select (l.occurred_at at time zone 'Asia/Dubai')::date d from public.ai_cost_log l where l.e2e_run_tag is not null) s
+      where s.d > coalesce((select max(o.day) from public.openrouter_day o where o.reconciled_at is not null), '-infinity'::date))) into v_bad;
   if nullif(v_bad, '') is not null then
     raise exception 'DEMO PURGE REFUSED before it started: the certification of 17 Nov is running or its rows are still here (%): nothing of it may be touched; after it, move the cutoff in review', v_bad;
   end if;
@@ -401,6 +410,12 @@ begin
     from public.signup_purge_dropbox s join public.doc_backups d on d.id = s.doc_backup_id
    where s.purge_id = v_pid and d.created_at >= (select t from _l5_cut);
   if v_bad is not null then raise exception 'DEMO PURGE REFUSED: backup records made at or after the cutoff are queued for Dropbox deletion: %', v_bad; end if;
+  -- review 17 Nov: storage is not in the daily export, so a queued object is gone for good 15 minutes after commit. The reviewed
+  -- queue was 68 objects (22 the routine lists + 46 by this file's rules; the 6 evidence objects taken off): no more, or nothing.
+  if (select count(*) from public.signup_purge_object where purge_id = v_pid) > 68 then
+    raise exception 'DEMO PURGE REFUSED: % storage objects queued, more than the 68 reviewed on 17 Nov: list them and review',
+      (select count(*) from public.signup_purge_object where purge_id = v_pid);
+  end if;
   -- the four tables the routine never reaches: each lost exactly the rows its own delete reported, nothing else moved there
   -- (a purge trigger writing one of them, or a row of it deleted by another route, refuses)
   select string_agg(format('%s: %s -> %s, its delete says %s', b.k, b.n, a.n, f.n), '; ' order by b.k) into v_bad
