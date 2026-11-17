@@ -553,7 +553,7 @@ export async function readTexts(admin: Admin, docs: DocIn[], known: (string | nu
 export async function proposeFromRead(admin: Admin, supplierId: number, fresh: DocEvidence[], deps: TradeResolveDeps, known: (string | null)[]): Promise<ProposeResult> {
   try {
     const texts = new Map<string, string | null>();   // path|read_at -> kept text: a second attempt does not parse again
-    let live = fresh, reading: Reading | null = null, given = '', asked = 0;
+    let live = fresh, reading: Reading | null = null, given = '', asked = 0, questionsOf = -1;   // questionsOf: the `asked` whose questions are stored
     for (let attempt = 0; attempt < STORE_TRIES + READ_AGAIN_MAX; attempt++) {
       const prevSrc = await readSourceDocs(admin, supplierId);
       const prevDocs = docsOf(prevSrc);
@@ -621,6 +621,22 @@ export async function proposeFromRead(admin: Admin, supplierId: number, fresh: D
       // reader @5: the reading itself, its tick list, his own words and the drafted questions (report 3.1), through the same compare-and-set
       const profile = !ownOnly && reading.ok && reading.profile ? reading.profile : null;
       const stored = profile ? { reading: profile } : {};
+      // THE QUESTIONS THE READING DRAFTED ARE PUT TO HIM (slice 4, ruling 1647; supplier_service_questions.ts): stored once per question,
+      // never re-asking what he answered. A failure is logged and never fails the reading.
+      // THEY ARE STORED BEFORE THE READING IS (17 Nov 2026, sales_engineer; paid certification of 17 Nov). The store below is the write
+      // that turns his profile from 'reading' to 'read', and the Services tab's poll (servicesPoll.ts) stops on that answer and draws
+      // it: stored after it, the questions landed ~190 ms later (run 2 J1: extracted_at 05:29:07.329, asked_at 05:29:07.518) and a
+      // poll in between drew screen 1 with no card, never asking again. Measured on the stored state against the cards shown: run 1
+      // J10 (the manpower supplier's "What types of staff do you supply?", the founder's labour_supply chips), run 2 J1 (the umbrella
+      // card carrying plumbing.drainage), run 1 J6, run 2 J2, and on 16 Nov (before #2028) run 1 J5 and run 2 J6: 6 of the 32 journeys
+      // whose store held open questions showed none.
+      // storeQuestions is idempotent (kind + about_hash) and expires what a later reading no longer drafts, so a store that is 'moved'
+      // and laid again asks nothing twice.
+      if (profile && asked !== questionsOf) {
+        questionsOf = asked;
+        const q = await storeQuestions(admin, supplierId, profile.questions, profile.tick.map((x) => x.key), profile.evidence);
+        if (q.error) console.error(JSON.stringify({ at: 'supplier_doc_trades.proposeFromRead', supplier: supplierId, questions: q.error }));
+      }
       const { reading_progress: _progress, ...prevKept } = prevSrc;
       const r = await storeSourceDocs(admin, supplierId, prevSrc, { ...prevKept, reader: READER, docs: merged, proposed_services: proposedServices, licence_check, ...stored },
         { proposed_trades: proposed, extracted: true });
@@ -629,12 +645,6 @@ export async function proposeFromRead(admin: Admin, supplierId: number, fresh: D
       // a read the next sweep run continues (resume) is not filed; a scan cut for the model is, since nothing will read the rest
       for (const d of live) if (d.pages && d.pages.read < d.pages.of && !d.resume) await docPartiallyRead(admin, supplierId, d);
       if (!ownOnly && licence_check.not_covered.length) await licenceScopeCheck(admin, supplierId, licence_check, proposedServices);
-      // THE QUESTIONS THE READING DRAFTED ARE PUT TO HIM (slice 4, ruling 1647; supplier_service_questions.ts): stored once per question,
-      // never re-asking what he answered. A failure is logged and never fails the reading: the proposal above is already stored.
-      if (profile) {
-        const q = await storeQuestions(admin, supplierId, profile.questions, profile.tick.map((x) => x.key), profile.evidence);
-        if (q.error) console.error(JSON.stringify({ at: 'supplier_doc_trades.proposeFromRead', supplier: supplierId, questions: q.error }));
-      }
       return { ok: true, proposed_trades: proposed, docs: merged.filter(isFresh) };
     }
     return { ok: false, error: `store: the row was written by another read ${STORE_TRIES + READ_AGAIN_MAX} times in a row` };
