@@ -8,27 +8,9 @@
 import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 import { DRAWING_DEADLINE, TIME_HELD, callTimeoutMs, deadlinesFrom, eachPageInTime } from '../_shared/drawing_deadline.ts';
 import { pageSizeFromMediaBox, pixelBudget, pixelGate, planTiles, type Tile } from '../_shared/drawing_pixel_gate.ts';
+import { virtualClock } from './virtual_clock.ts';
 
 const A1 = pageSizeFromMediaBox(841 / (25.4 / 72), 594 / (25.4 / 72));
-
-/** A virtual clock: sleep(ms) waits on it, and run() moves it to the next timer once every waiting call has registered. */
-function virtualClock(t0 = 0) {
-  let t = t0; const timers: { at: number; go: () => void }[] = [];
-  const sleep = (ms: number) => new Promise<void>((go) => timers.push({ at: t + ms, go }));
-  async function run<T>(p: Promise<T>): Promise<T> {
-    let done = false, val: T | undefined, err: unknown = null;
-    p.then((v) => { done = true; val = v; }, (e) => { done = true; err = e; });
-    while (!done) {
-      await new Promise((r) => setTimeout(r, 0));
-      if (done || !timers.length) continue;
-      const at = Math.min(...timers.map((x) => x.at)); t = at;
-      for (const x of timers.filter((y) => y.at === at)) { timers.splice(timers.indexOf(x), 1); x.go(); }
-    }
-    if (err) throw err;
-    return val as T;
-  }
-  return { now: () => t, sleep, run };
-}
 
 /** One A1 page through the gate: every model call takes `callMs` of the clock; four run at once (the gate's pool). */
 function slowGate(clock: ReturnType<typeof virtualClock>, callMs: number, stopAt: number) {

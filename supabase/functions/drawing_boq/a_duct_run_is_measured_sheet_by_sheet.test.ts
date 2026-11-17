@@ -72,3 +72,27 @@ Deno.test('the requests customer_api makes, answered by the real handler, give t
   assert(!merged.boq.some((l: any) => /^(duct|pipe):/.test(l.type) && l.qty === null), 'no length left blank');
   assert(merged.missing_info[0].startsWith('Duct and pipe lengths are measured in plan'));
 });
+
+// ── THE MODEL'S OWN LINES REACH THE MERGE (17 Nov 2026, paid proof 623d9200) ─────────────────────────────────────────────
+// SELECT, production agent_runs 17:20:57 and 17:22:38 UTC: every merge request answered HTTP 500
+// {"error":"Cannot read properties of undefined (reading 'startsWith')"} in 61-188 ms, twice per take-off (the retry), so the
+// 16,432.9 m of 26x18 duct never reached the BOQ. The take-off customer_api sends is the MODEL's reading merged with code's
+// (cross_check.ts): a line the model alone read has no `type` at all, and one with no quantity met `l.type.startsWith` in
+// mergeLengths. The test above sent code's take-off only, so it never had such a line.
+Deno.test('a take-off carrying the model\'s own lines (no type, no quantity) is merged, not answered 500', async () => {
+  const { crossCheck } = await import('./cross_check.ts');
+  const code = json(boqFromDrawingSet(await pdfPages(SET8, undefined, { layers: false }))!);
+  const modelOnly = { section: 'HVAC', item: 'Fire damper at each rated wall', description: 'Fire dampers, quantity per the fire strategy', qty: null, unit: 'nos', confidence: 'low' };
+  const first = json({ ...code, boq: crossCheck([modelOnly], code.boq).boq });
+  assert(first.boq.some((l: any) => l.type === undefined && l.qty === null), 'the take-off carries a model line with no type and no quantity');
+  const statuses: number[] = [];
+  const merged = await readLengths(async (b) => {
+    const r = await invoke(fn, stub, { __secret: 'zz-cred-0123456789abcdef0123', ...b, ...(b.parts ? {} : { original_b64: ORIGINAL }) });
+    if (b.parts) statuses.push(r.status);
+    return r.status === 200 ? r.json : null;
+  }, first);
+  assertEquals(statuses, [200], 'the merge request answers 200 the first time');
+  assert(merged, 'the lengths were read');
+  assertEquals(merged.boq.filter((l: any) => /26\s*x\s*18/.test(l.description)).map((l: any) => l.type), ['duct:26x18'], 'the BOQ has the measured line');
+  assert(merged.boq.some((l: any) => l.item === modelOnly.item && l.qty === null), 'the model\'s own line is kept, still asking for its quantity');
+});

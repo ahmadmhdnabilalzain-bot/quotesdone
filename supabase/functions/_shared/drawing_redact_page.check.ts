@@ -16,7 +16,8 @@
 // the same geometry, with ink that cannot be mistaken for a redaction box (stripes are grey, boxes are black).
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
-import { cadPage, MAXW, repaintJpeg, serverBoxedPage, supplierPagePrefix } from './drawing_redact_page.ts';
+import { cadPage, MAXW, repaintJpeg, serverBoxedPage, supplierPagePrefix, tileJpeg, tilesJpeg } from './drawing_redact_page.ts';
+import { newMark, pageSizeFromMediaBox, planTiles } from './drawing_pixel_gate.ts';
 import { pdfPages, type PdfPage, type TextRun } from './pdf_text_positions.ts';
 import { seedTerms, titleBlockBoxes } from './anonymise.ts';
 import { supplierBoxes } from './supplier_copy.ts';
@@ -117,4 +118,26 @@ Deno.test('the verifier\'s retry repaints an already-redacted JPEG with one deco
   assert(rgb(330, 255) < 0x101010, 'the named region is under solid black');
   assert(rgb(50, 50) > 0xe0e0e0, 'the drawing outside the region is untouched');
   assert(!hasApp1(out), 'no metadata segment survives the re-encode');
+});
+
+// SEVERAL VIEWS FROM ONE DECODE (17 Nov 2026, sales_engineer; paid proof 623d9200). drawing_redact mode 'tiles' cuts a page's
+// views a few to a worker from one decode (tilesJpeg), where mode 'tile' decoded the page for every view (tileJpeg). The
+// model must see the same bytes either way: every view of the e2e set's sheet 1 (36 x 24 in: 24 tiles and the whole page),
+// each with its own reading mark, cut both ways and compared byte for byte; the page itself is left as it was decoded.
+Deno.test('tilesJpeg: every view of a 2600 px sheet, cut from one decode, is byte for byte the view tileJpeg cuts alone', async () => {
+  const sheet = await Deno.readFile(new URL('./testdata/zz_demo_mechanical_set_sheet1_portal_2600.jpg', import.meta.url));
+  const plan = planTiles(pageSizeFromMediaBox(36 * 72, 24 * 72));
+  const views = [...plan.tiles, plan.whole!].map((tile) => ({ tile, mark: newMark() }));
+  assertEquals(views.length, 25);
+  const together = await tilesJpeg(sheet, views, 85);
+  assertEquals(together.length, views.length);
+  for (let i = 0; i < views.length; i++) {
+    const alone = await tileJpeg(sheet, views[i].tile, 85, views[i].mark);
+    assertEquals(together[i], alone, `view ${i} differs when cut from the shared decode`);
+  }
+  // A view outside the page (a clamp) and an unmarked view are the same both ways too.
+  const odd = [{ tile: { x: 0.95, y: 0.95, w: 0.2, h: 0.2, outW: 300, outH: 200 } }, { tile: { x: 0, y: 0, w: 0.5, h: 0.5, outW: 640, outH: 427 }, mark: '123456' }];
+  const both = await tilesJpeg(sheet, odd, 85);
+  assertEquals(both[0], await tileJpeg(sheet, odd[0].tile, 85));
+  assertEquals(both[1], await tileJpeg(sheet, odd[1].tile, 85, '123456'));
 });

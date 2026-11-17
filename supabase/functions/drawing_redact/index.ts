@@ -28,13 +28,12 @@ import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages, pdfRedactionView, type PdfPage } from '../_shared/pdf_text_positions.ts';
 import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
-import { MAX_BOXES, SERVER_MARGIN, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintedJpeg, repaintJpeg, serverBoxPlan, stripB64, supplierPagePrefix, tileJpeg, type PaintGroup } from '../_shared/drawing_redact_page.ts';
+import { MAX_BOXES, SERVER_MARGIN, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintedJpeg, repaintJpeg, serverBoxPlan, stripB64, supplierPagePrefix, tileJpeg, tilesJpeg, type PaintGroup } from '../_shared/drawing_redact_page.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
 import { readerAgrees } from '../_shared/pdf_vector_redact.ts';
-import { notReached } from '../_shared/not_reached.ts';
 import { codeFloorBoxes, padded, unpaintedUnread, unreadTextHold, vocabularyVet, type Vet } from '../_shared/drawing_code_floor.ts';
-import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelGate, planTiles, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
+import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelGate, planTiles, VIEWS_PER_CROP, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
 import { readCadStrings, readingHandedOn, type StringsReading } from '../_shared/drawing_string_reading.ts';
 import { INK_GRID, aspectMatches, expectedInk, imageDenseEnough, inkAgrees, pageCountHolds, pxNeeded } from '../_shared/released_file_pages.ts';
 import { asciiDxfOf } from '../_shared/cad_file_redact.ts';
@@ -232,9 +231,38 @@ async function verifyPage(key: string, jpgB64: string, authors: string): Promise
 }
 
 // The retry's repaint, asked of a fresh drawing_redact worker (mode 'repaint'). The caller's own credential goes
-// with it, so the child is authorised exactly as the parent was. A relay refusal no worker served is asked once more
-// (_shared/not_reached.ts); anything else that is not a verdict comes back as ok:false and the page is refused.
+// with it, so the child is authorised exactly as the parent was. A failed answer is asked again (workerAnswer below);
+// anything that is still not a verdict comes back as ok:false and the page is refused.
 const SELF = Deno.env.get('SUPABASE_URL')! + '/functions/v1/drawing_redact';
+
+// A PURE WORKER IS ASKED AGAIN (17 Nov 2026, sales_engineer; paid proof 623d9200). paint, repaint and tile record and upload
+// nothing, so asking one again repeats no work. Only a relay refusal was asked again, and the edge does not give a request
+// a worker of its own: concurrent requests share an isolate, and its CPU cap (2 s) is counted over all of them. MEASURED,
+// production function logs 17 Nov 17:19 UTC: isolate 97b3686e ran a paint and four tile crops at once and was killed at
+// 2,246 ms ("CPU Time exceeded", two tiles answered HTTP 546); isolate 2bddfe15 ran twelve plan reads, three 546 at 2,074 ms.
+// One crop each is ~550 ms there (shutdown cpu_time_used of isolates that served two: 1,052-1,137 ms), ~1.15x this machine.
+// A dead tile was a view never asked, so the page was HELD 'pixels_unverified' (ai_cost_log: 12-15 of each page's 25 views
+// were asked). Any answer that is not the worker's (a 546, a 5xx, a 429, no answer) is now asked again, at most
+// WORKER_TRIES times and never past the stop; a refusal of the request itself (400, 403, 413) is final. Every failure is
+// logged with its status, so the next proof's function logs say why. Still nothing but a painted page or a crop comes back.
+const WORKER_TRIES = 3;
+async function workerAnswer(ask: () => Promise<Response>, mode: string, stopAt?: number): Promise<Response> {
+  const late = () => stopAt !== undefined && Number.isFinite(stopAt) && Date.now() >= stopAt;
+  for (let k = 1; ; k++) {
+    try {
+      const r = await ask();
+      if (r.ok || [400, 403, 413].includes(r.status)) return r;
+      console.warn(`drawing_redact: the ${mode} worker answered HTTP ${r.status} (${r.headers.get('x-served-by') || 'no runtime'}), try ${k} of ${WORKER_TRIES}`);
+      if (k >= WORKER_TRIES || late()) return r;
+      await r.body?.cancel();
+    } catch (e) {
+      console.warn(`drawing_redact: the ${mode} worker did not answer (${(e as Error)?.name || 'error'}), try ${k} of ${WORKER_TRIES}`);
+      if (k >= WORKER_TRIES || late()) throw e;
+    }
+    await new Promise((res) => setTimeout(res, 150 * k));
+    if (late()) throw new Error(`${mode}_past_the_stop`);   // the pause may have crossed the stop: no attempt begins past it
+  }
+}
 
 // ── THE PIXEL GATE AND THE STRING READING (13 Nov 2026, design changes A and B; _shared/drawing_pixel_gate.ts,
 // _shared/drawing_string_reading.ts). Both are model calls through ai_gateway; neither is ever skipped: no key, the
@@ -263,8 +291,7 @@ async function askStrings(key: string, sys: string, user: string): Promise<strin
 /** Paint verifier boxes in a fresh worker (one decode and one encode per worker, repaintJpeg's measurement). */
 async function paintElsewhere(secret: string, jpgB64: string, regions: Array<{x:number;y:number;w:number;h:number}>, stopAt?: number): Promise<string> {
   const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'repaint', verify: false, jpg_b64: jpgB64, regions }), signal: AbortSignal.timeout(callTimeoutMs(stopAt, 90_000)) });
-  let r = await ask();
-  if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
+  const r = await workerAnswer(ask, 'repaint', stopAt);
   const j = await r.json().catch(() => null);
   if (!r.ok || j?.ok !== true || typeof j.jpg_b64 !== 'string') throw new Error('repaint_failed');
   return j.jpg_b64;
@@ -278,8 +305,7 @@ async function paintedElsewhere(secret: string, rasterB64: string, groups: Paint
   const c = (v: number) => Math.max(0, Math.min(1, Number.isNaN(v) ? 0 : v));
   const sent: PaintGroup[] = groups.flatMap((g) => { const bs = g.boxes.map((b) => ({ x: c(b.x), y: c(b.y), w: c(b.w), h: c(b.h) })); const out: PaintGroup[] = []; for (let k = 0; k < bs.length; k += MAX_BOXES) out.push({ boxes: bs.slice(k, k + MAX_BOXES), pad: g.pad }); return out; });
   const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'paint', jpg_b64: rasterB64, groups: sent }), signal: AbortSignal.timeout(callTimeoutMs(stopAt, 60_000)) });
-  let r = await ask();
-  if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
+  const r = await workerAnswer(ask, 'paint', stopAt);
   const j = await r.json().catch(() => null);
   if (!r.ok || j?.ok !== true || typeof j.jpg_b64 !== 'string') throw new Error(j?.error === 'decode_failed' ? 'decode_failed' : 'paint_failed');
   return j.jpg_b64;
@@ -287,11 +313,19 @@ async function paintedElsewhere(secret: string, rasterB64: string, groups: Paint
 /** Cut one view of the page for the model in a fresh worker (mode 'tile': one decode, one encode). */
 async function cropElsewhere(secret: string, jpgB64: string, tile: Tile, mark: string, stopAt?: number): Promise<string> {
   const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'tile', jpg_b64: jpgB64, tile, mark }), signal: AbortSignal.timeout(callTimeoutMs(stopAt, 60_000)) });
-  let r = await ask();
-  if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
+  const r = await workerAnswer(ask, 'tile', stopAt);
   const j = await r.json().catch(() => null);
   if (!r.ok || j?.ok !== true || typeof j.jpg_b64 !== 'string') throw new Error('tile_failed');
   return j.jpg_b64;
+}
+/** Cut several views of the page for the model in ONE fresh worker (mode 'tiles': one decode, an encode a view;
+ *  drawing_redact_page.tilesJpeg). Anything but one view back per view asked throws, and the gate holds the page. */
+async function cropsElsewhere(secret: string, jpgB64: string, views: { tile: Tile; mark: string }[], stopAt?: number): Promise<string[]> {
+  const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'tiles', jpg_b64: jpgB64, views }), signal: AbortSignal.timeout(callTimeoutMs(stopAt, 60_000)) });
+  const r = await workerAnswer(ask, 'tiles', stopAt);
+  const j = await r.json().catch(() => null);
+  if (!r.ok || j?.ok !== true || !Array.isArray(j.jpgs) || j.jpgs.length !== views.length || j.jpgs.some((x: unknown) => typeof x !== 'string' || !x)) throw new Error('tiles_failed');
+  return j.jpgs;
 }
 /** Where a page image shows ink, read in a fresh worker (mode 'ink': one decode, no encode). null = not read. */
 async function inkElsewhere(secret: string, jpgB64: string): Promise<{ cells: boolean[]; w: number; h: number } | null> {
@@ -336,7 +370,7 @@ async function gatePage(key: string | undefined, held: boolean, secret: string, 
   if (held || !key) return { ok: false, held: 'pixels_unverified', calls: 0, usd: 0, detail: { reason: held ? 'model_hold' : 'no_ai_key' } };
   const plan = planTiles(oriented(size ?? sizeOfPixels(jpgB64), jpgB64));
   // stopAt (drawing_deadline.ts): past it no view is asked and the page is held for time.
-  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b, stopAt, sys), (b, regions) => paintElsewhere(secret, b, regions, stopAt), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m, stopAt), stopAt, vet });
+  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b, stopAt, sys), (b, regions) => paintElsewhere(secret, b, regions, stopAt), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m, stopAt), cropMany: (b, vs) => cropsElsewhere(secret, b, vs, stopAt), stopAt, vet });
 }
 /** Checker boxes left unpainted because they cover drawing vocabulary only (drawing_code_floor.vocabularyVet): logged and
  *  recorded on the run, so an over-eager checker is visible rather than silent. */
@@ -458,6 +492,15 @@ Deno.serve(observe('drawing_redact', async (req) => {
       const ow = Math.min(2000, Math.max(1, Number(t.outW) || 0)), oh = Math.min(2000, Math.max(1, Number(t.outH) || 0));
       const jpg = await tileJpeg(b64ToBytes(body.jpg_b64), { x: n(t.x), y: n(t.y), w: n(t.w) || 1, h: n(t.h) || 1, outW: ow, outH: oh }, 85, String(body.mark));
       return J({ ok: true, jpg_b64: bytesToB64(jpg) });
+    }
+    // ── SEVERAL VIEWS OF A PAGE FROM ONE DECODE (17 Nov 2026; drawing_redact_page.tilesJpeg has the measurement): at most
+    // VIEWS_PER_CROP views, each with its reading mark, each clamped exactly as mode 'tile' clamps it. Records nothing.
+    if (body.mode === 'tiles') {
+      const vs: any[] = Array.isArray(body.views) ? body.views : [];
+      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !vs.length || vs.length > VIEWS_PER_CROP || vs.some((v) => !v?.tile || !/^\d{6}$/.test(String(v?.mark ?? '')))) return J({ ok: false, error: 'jpg_b64_and_views_with_marks_required' }, 400);
+      const n = (v: unknown) => Math.max(0, Math.min(1, Number(v) || 0)), px = (v: unknown) => Math.min(2000, Math.max(1, Number(v) || 0));
+      const jpgs = await tilesJpeg(b64ToBytes(body.jpg_b64), vs.map((v) => ({ tile: { x: n(v.tile.x), y: n(v.tile.y), w: n(v.tile.w) || 1, h: n(v.tile.h) || 1, outW: px(v.tile.outW), outH: px(v.tile.outH) }, mark: String(v.mark) })), 85);
+      return J({ ok: true, jpgs: jpgs.map(bytesToB64) });
     }
     // ── A PDF'S TEXT LAYER, A FEW PAGES AT A TIME, FOR analyze_drawing (17 Nov 2026; _shared/drawing_plan.ts) ──────────
     // 'strips': the page count, each page's words, printed lines and title-strip seeds; 'boxes': each page boxed with the
@@ -705,7 +748,8 @@ Deno.serve(observe('drawing_redact', async (req) => {
       // A (13 Nov 2026): every page passes the pixel gate before it is shared; review item 4: the reader must agree with
       // pdf-lib on what the page draws, or its boxes are not trusted.
       const heldM = await modelHeld(admin); const keyM = heldM ? undefined : await sec('cred_fn_ai');
-      const budget = await pixelBudgetFor(body.source_path);
+      // spent_usd: what the caller's other pages in flight may spend (customer_api runs pages side by side, 17 Nov 2026).
+      const budget = await budgetInFlight(body.source_path, body.spent_usd);
       const agrees = body.original_b64 ? await readerAgrees(b64ToBytes(body.original_b64), [pageOffset, pageOffset + imgs.length]) : false;
       let pixelCalls = 0, pixelUsd = 0;
       const timePages: number[] = [];
@@ -782,7 +826,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
     } catch (_e) { const recorded = await publish(job_id, body, { status: 'detect_exception', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_exception', job_id, recorded, needs_manual_boxes: true, redaction_complete: false }, 200); }
 
     const paths: string[] = []; let skipped = 0; let verified = 0; let verifyFailed = 0; const verifyDetail: any[] = [];
-    const budget = await pixelBudgetFor(body.source_path); let pixelCalls = 0, pixelUsd = 0;
+    const budget = await budgetInFlight(body.source_path, body.spent_usd); let pixelCalls = 0, pixelUsd = 0;
     const seeds: string[] = Array.isArray(body.seed_terms) ? body.seed_terms.map((x: unknown) => String(x)).filter(Boolean).slice(0, 200) : [];
     // Boxes code adds under the models' answer (see THE CODE FLOOR below; drawing_redact_page.codeFloorBoxes); null = no
     // reading of this page exists.

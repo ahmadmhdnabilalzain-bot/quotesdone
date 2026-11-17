@@ -105,6 +105,11 @@ export const TIME_MESSAGE = {
   en: 'We could not check every sheet in the time one upload allows, so suppliers do not see this drawing yet. Upload the sheets suppliers need most, a few at a time, and each upload is checked in full.',
   ar: 'لم يتّسع وقت الرفع الواحد لفحص كل اللوحات، لذلك لا يرى المورّدون هذا المخطّط حتى الآن. ارفع اللوحات التي يحتاجها المورّدون أكثر من غيرها، بضع لوحات في كل مرة، فتُفحص كل دفعة كاملة.',
 } as const;
+/** Said instead when the sheets held for time were queued for the CAD read routine (_shared/drawing_pages_queued.ts). */
+export const QUEUED_MESSAGE = {
+  en: 'Most sheets are checked. The rest could not be checked in the time one upload allows, so they are being checked now and follow, usually within two hours. Suppliers see the drawing once every sheet is checked.',
+  ar: 'تم فحص معظم اللوحات. لم يتّسع وقت الرفع الواحد لفحص الباقي، فهي قيد الفحص الآن وتصل عادةً خلال ساعتين. يرى المورّدون المخطّط بعد فحص كل لوحاته.',
+} as const;
 export function timeNote(pagesHeldForTime: number, pages: number[] = []) {
   if (!(pagesHeldForTime > 0)) return {};
   // The sheets not checked, numbered as the customer numbers them (1 = the first sheet), so he knows which to send again.

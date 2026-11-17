@@ -270,11 +270,20 @@ try {
     'Needed by 30 November 2026. Ground floor, direct vehicle access.',
   ];
   // The intake asks what it still needs; each open question gets a plain answer in its own words.
+  // ORDER MATTERS (17 Nov 2026, run 712aae1d): the AC-type question lists "ceiling cassettes" and was answered "No ceiling
+  // works", and "a new installation, replacing old units, adding more, or a repair?" was answered "Supply and installation";
+  // the intake rightly held after 11 turns on two questions the script never answered. The AC type and new-vs-replacement
+  // are matched before the words they contain.
   const reply = (m) => /warranty/i.test(m) ? '12 months warranty at least.'
     : /by when|date|deliver/i.test(m) ? 'Needed by 30 November 2026.'
+    // Run 623d9200 (17 Nov 17:23 UTC): "How many AC units do you need, of each kind? For example: 4 wall units and 1 hidden
+    // ceiling unit." was answered by the ceiling rule below, so the intake stayed needs_info and create_inquiry answered 428.
+    // The drawing's own count answers it (RTU-1 = 1, the answer key in the summary).
+    : /how many (ac |indoor )?units|of each kind/i.test(m) ? 'One rooftop packaged unit (RTU-1) with ducted supply, as drawn. No wall units and no other indoor units.'
+    : /air conditioning|split|ducted|cassette/i.test(m) ? 'A central ducted system: rooftop units with ductwork and diffusers, as drawn.'
+    : /new install|replac|repair|adding more/i.test(m) ? 'A new installation: nothing existing is being replaced or repaired.'
     : /ceiling/i.test(m) ? 'No ceiling works - existing ceiling stays.'
     : /partition/i.test(m) ? 'No partitions - existing walls stay.'
-    : /air conditioning|split|ducted|cassette/i.test(m) ? 'A central ducted system: rooftop units with ductwork and diffusers, as drawn.'
     : /used for|how big|size of|area/i.test(m) ? 'Offices and storage, about 1,200 square metres.'
     : /install/i.test(m) ? 'Supply and installation.'
     : /material|spec/i.test(m) ? 'Galvanised steel ductwork, standard commercial grade.'

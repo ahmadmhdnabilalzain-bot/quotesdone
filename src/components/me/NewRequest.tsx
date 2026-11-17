@@ -351,6 +351,24 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       if (s && !s.ok && s.error === 'not_found') return;
     }
   };
+  // SHEETS CHECKED OFF THE REQUEST (17 Nov 2026): analyze_drawing queued the sheets it could not check in time
+  // (pages_job_id; supabase/functions/_shared/drawing_pages_queued.ts). The CAD read routine runs every two hours, so this
+  // polls once a minute for three hours while the page is open, and adopts the WHOLE set (every sheet, in order) when done.
+  const pollPages = async (res, name, source) => {
+    for (let i = 0; i < 180; i++) {
+      await new Promise((r) => setTimeout(r, 60000));
+      const s = await call('customer_api', { action: 'cad_read_status', job_id: res.pages_job_id }, token).catch(() => null);
+      if (s && s.ok && s.status === 'done') {
+        const pages = Array.isArray(s.drawing_redacted_paths) ? s.drawing_redacted_paths : [];
+        if (!pages.length) return;
+        adopt({ ...res, drawing_redacted_paths: pages, drawing_held: false }, name, source);
+        push({ role: 'assistant', text: tf(lang, 'nr_sheets_all_checked', { n: pages.length, c: countPhrase(lang, pages.length, 'page', { oblique: true }) }) });
+        return;
+      }
+      if (s && s.ok && s.status === 'failed') return;
+      if (s && !s.ok && s.error === 'not_found') return;
+    }
+  };
   const MAX_UPLOAD_BYTES = 20 * 1024 * 1024; // customer_api analyze_document refuses more
   // Returns true when it has already told the customer and cleared the pickers.
   const tooBig = (file) => {
@@ -431,6 +449,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       // A big PDF set's lengths are measured by the CAD worker; the take-off above updates when they arrive.
       if (res && res.note === 'lengths_queued' && res.cad_job_id) pollCad(res, file.name, source, true);
       if (res && res.note === 'scan_queued' && res.cad_job_id) pollScan(res, file.name, source);
+      if (res && res.pages_job_id) { const left = Array.isArray(res.redaction_sheets_queued) ? res.redaction_sheets_queued.length : 0; push({ role: 'assistant', text: tf(lang, 'nr_pages_queued', { n: left, c: countPhrase(lang, left, 'page', { oblique: true }) }) }); pollPages(res, file.name, source); }
     } catch (e) { push({ role: 'assistant', text: t(lang, String(e && e.message).includes('HEIC') ? 'nr_heic_unsupported' : 'nr_file_unreadable') }); }
     setAnalyzing(false); try { if (fileRef.current) fileRef.current.value = ''; } catch (_e) {}
   };
