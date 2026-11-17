@@ -74,6 +74,39 @@ export async function tileJpeg(jpg: Uint8Array, tile: { x: number; y: number; w:
   return await img.encodeJPEG(quality);
 }
 
+// ── SEVERAL VIEWS OF A PAGE FROM ONE DECODE (17 Nov 2026, sales_engineer; paid proof 623d9200). MEASURED, LOCAL (deno,
+// imagescript 1.2.17, the e2e set's sheet 1 at 2600 x 1733 px, the 25 views of a 36 x 24 in sheet): tileJpeg costs 424 ms
+// of CPU a view, of which the DECODE of the whole 2600 px page is 340 ms; the view itself (cut, scale, band, encode) is
+// ~60 ms. On production (function logs 17 Nov 17:19-17:21 UTC) each view was a worker of its own, 3.1-4.9 s of wall cold
+// and 0.5-1.9 s warm, 25 of them a round. tilesJpeg decodes the page ONCE and cuts several views from it (drawing_redact
+// mode 'tiles', at most drawing_pixel_gate.VIEWS_PER_CROP a call): 340 + 6 x 60 is ~700 ms for six views, where six
+// tileJpeg calls are 2,544 ms. Every view is byte for byte what tileJpeg returns for it (drawing_redact_page_views.test.ts):
+// the same pixels are cut, scaled, banded and encoded the same way; only the page is not decoded again.
+export type ViewTile = { x: number; y: number; w: number; h: number; outW: number; outH: number };
+/** The views of one page, each what tileJpeg(jpg, view.tile, quality, view.mark) returns, from ONE decode. */
+export async function tilesJpeg(jpg: Uint8Array, views: { tile: ViewTile; mark?: string }[], quality = 85): Promise<Uint8Array[]> {
+  const page = await Image.decode(jpg) as Image;
+  const out: Uint8Array[] = [];
+  for (const v of views) {
+    const t = v.tile;
+    const x = Math.max(0, Math.min(page.width - 1, Math.floor(t.x * page.width))), y = Math.max(0, Math.min(page.height - 1, Math.floor(t.y * page.height)));
+    const w = Math.max(1, Math.min(page.width - x, Math.ceil(t.w * page.width))), h = Math.max(1, Math.min(page.height - y, Math.ceil(t.h * page.height)));
+    // imagescript's crop and resize change the image they are called on: each view is cut from a COPY of its region.
+    let img = regionOf(page, x, y, w, h);
+    const ow = Math.max(1, Math.round(t.outW || w)), oh = Math.max(1, Math.round(t.outH || h));
+    if (ow !== img.width || oh !== img.height) img = img.resize(ow, oh);
+    if (v.mark) img = withMarkBand(img, v.mark);
+    out.push(await img.encodeJPEG(quality));
+  }
+  return out;
+}
+/** A copy of the w x h region of `page` at (x, y): the pixels page.crop(x, y, w, h) leaves, with `page` unchanged. */
+function regionOf(page: Image, x: number, y: number, w: number, h: number): Image {
+  const out = new Image(w, h), src = page.bitmap, dst = out.bitmap, row = w * 4;
+  for (let r = 0; r < h; r++) { const s = ((y + r) * page.width + x) * 4; dst.set(src.subarray(s, s + row), r * row); }
+  return out;
+}
+
 // ── THE READING MARK (round 3, 13 Nov 2026, sales_engineer; brief f3_finish: an ALWAYS-CLEAN model, one that answers
 // "clean" without looking, published every page the code floor left identity on - the reviewer's v01 and v12 - because
 // nothing showed whether a tile had been read). Every view the pixel gate shows the model carries, in a white band BELOW

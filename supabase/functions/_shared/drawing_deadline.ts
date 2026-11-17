@@ -26,6 +26,10 @@ export function callTimeoutMs(stopAt: number | undefined, capMs: number, now: ()
   return Math.min(capMs, Math.max(1_000, stopAt + DRAWING_DEADLINE.callGraceMs - now()));
 }
 
+/** How many pages of a set customer_api's analyze_drawing redacts at once, each its own drawing_redact request
+ *  (eachPageInTime below; the timing model is drawing_redact/every_page_is_verified_in_time.test.ts). */
+export const REDACT_PAGES_AT_ONCE = 4;
+
 /** The hold reason for a page not checked in time. */
 export const TIME_HELD = 'time' as const;
 
@@ -41,14 +45,23 @@ export function deadlinesFrom(body: { deadline_at?: unknown; stop_at?: unknown }
 }
 
 /**
- * Run `run(i)` for each page in order, starting none after `startBy`. Returns what ran and the pages never started.
- * Sequential on purpose: two pages of one set never spend its budget at once (customer_api REDACT_BATCH).
+ * Run `run(i)` for each page in order, `atOnce` at a time, starting none after `startBy`. Returns what ran (in page order)
+ * and the pages never started.
+ * PAGES AT ONCE (17 Nov 2026, sales_engineer; paid proof 623d9200). It was sequential so that two pages of one set never
+ * spent its budget at once; at 20.5-27.5 s a page and a start cut-off of 100 s, only 4 of 8 sheets were ever begun. Each
+ * page is its own drawing_redact request, so pages run side by side in their own invocations; the budget is kept by the
+ * caller reserving what the pages in flight may still spend (customer_api, drawing_pixel_gate.PIXEL_PAGE_RESERVE_USD).
  */
-export async function eachPageInTime<T>(pages: number, run: (i: number) => Promise<T>, startBy: number, now: () => number = Date.now): Promise<{ done: { i: number; out: T }[]; notReached: number[] }> {
+export async function eachPageInTime<T>(pages: number, run: (i: number) => Promise<T>, startBy: number, now: () => number = Date.now, atOnce = 1): Promise<{ done: { i: number; out: T }[]; notReached: number[] }> {
   const done: { i: number; out: T }[] = [], notReached: number[] = [];
-  for (let i = 0; i < pages; i++) {
-    if (now() >= startBy) { notReached.push(i); continue; }
-    done.push({ i, out: await run(i) });
-  }
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(atOnce, pages)) }, async () => {
+    while (next < pages) {
+      const i = next++;
+      if (now() >= startBy) { notReached.push(i); continue; }
+      done.push({ i, out: await run(i) });
+    }
+  }));
+  done.sort((a, b) => a.i - b.i); notReached.sort((a, b) => a - b);
   return { done, notReached };
 }

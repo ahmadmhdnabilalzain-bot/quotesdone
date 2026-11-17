@@ -10,7 +10,8 @@ import { seedTerms } from '../../_shared/anonymise.ts';
 import { supplierBoxes } from '../../_shared/supplier_copy.ts';
 import { cadSupplierBoq, dxfTextOf } from '../../_shared/cad_identity.ts';
 import { PDF_PREVIEWS_ONLY, budgetNote, cadNote, cutByClock, fileHeldNote, drawingHandoff, heldRun, pagesHeldForTime, timeNote } from '../drawing_hold.ts';
-import { DRAWING_DEADLINE, eachPageInTime } from '../../_shared/drawing_deadline.ts';
+import { DRAWING_DEADLINE, REDACT_PAGES_AT_ONCE, eachPageInTime } from '../../_shared/drawing_deadline.ts';
+import { PIXEL_PAGE_RESERVE_USD } from '../../_shared/drawing_pixel_gate.ts';
 import { isPhotoOrScan, visionCountBody, applyVisionCounts } from '../vision_count_wire.ts';
 import { documentLocale } from '../../_shared/registered_locale.ts';
 import { readPdfPlan } from '../../_shared/drawing_plan.ts';
@@ -297,10 +298,17 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // THE REDACTION'S CLOCK (round 4; _shared/drawing_deadline.ts): no page is started after redStartBy, a page under way
         // is abandoned at redStopAt; either is held for time, counted below and said (drawing_hold.timeNote).
         const redStartBy = analyzeAt + DRAWING_DEADLINE.startByMs, redStopAt = analyzeAt + DRAWING_DEADLINE.stopAtMs;
+        // PAGES SIDE BY SIDE (17 Nov 2026, sales_engineer; paid proof 623d9200): REDACT_PAGES_AT_ONCE pages run at once, each
+        // its own drawing_redact request. The set's budget (drawing_pixel_gate PIXEL_SET_BUDGET_USD) is read by each page from
+        // the runs already recorded, which do not yet hold the pages still in flight; each page is therefore sent what the
+        // OTHER pages in flight may spend on their first look (spent_usd, PIXEL_PAGE_RESERVE_USD each), so that pages run
+        // together never spend the set's budget twice.
+        let inFlight = 0;
         const redactBatch = async (slice: any[], from: number) => {
           // The request's own clock goes with every call (drawing_deadline.ts): drawing_redact starts no page after deadline_at
           // and abandons one at stop_at, both measured from THIS request's start, so analyze_drawing answers inside its budget.
-          const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path, page_offset: from, seed_terms: floorSeeds, original_b64: body.original_b64 || null, deadline_at: redStartBy, stop_at: redStopAt, ...(manualBoxes ? { manual_boxes: manualBoxes.slice(from, from + slice.length) } : {}) }), signal: AbortSignal.timeout(Math.max(5_000, analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now())) });
+          const othersUsd = Math.max(0, inFlight - 1) * PIXEL_PAGE_RESERVE_USD;
+          const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path, page_offset: from, seed_terms: floorSeeds, original_b64: body.original_b64 || null, deadline_at: redStartBy, stop_at: redStopAt, spent_usd: othersUsd, ...(manualBoxes ? { manual_boxes: manualBoxes.slice(from, from + slice.length) } : {}) }), signal: AbortSignal.timeout(Math.max(5_000, analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now())) });
           return await r.json();
         };
         // original_b64 lets drawing_boq read a PDF's own text layer with no model — the hold-proof path.
@@ -328,8 +336,12 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // paths are unusable — dropping them here lands on the existing total-failure behaviour
         // (inquiry goes out with no drawing) instead of a confusing rejection later.
         const batches = pricedByCode ? 0 : Math.ceil(images.length / REDACT_BATCH);
+        // Pages finish out of order when they run side by side: each batch's paths and run are kept at its place and joined
+        // in page order below, so a supplier still receives sheet 1 first.
+        const pathsOf: string[][] = [], jobsOf: string[][] = [];
         const ran = await eachPageInTime(batches, async (b) => {
           const i = b * REDACT_BATCH, slice = images.slice(i, i + REDACT_BATCH);
+          inFlight++;
           try {
             const rj = await redactBatch(slice, i);
             const inN = Number(rj?.pages_in || 0);
@@ -341,13 +353,15 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             // One that answers after the stop is the clock's doing (round 6): held for time, not a dead redactor.
             if (!inN && !rj?.ok) { redIn += slice.length; if (!cut.length && cutByClock(null, Date.now(), redStopAt)) { timeHeld += slice.length; abandoned.push(...slice.map((_x, k) => i + k)); } else if (!cut.length) redDied += slice.length; return; }
             redIn += inN; redOut += Number(rj?.pages_out || 0);
-            if (rj?.ok && rj?.recorded && rj?.job_id && Array.isArray(rj.paths)) { redacted = redacted.concat(rj.paths.map((x: any) => String(x))); redJobs.push(String(rj.job_id)); }
+            if (rj?.ok && rj?.recorded && rj?.job_id && Array.isArray(rj.paths)) { pathsOf[b] = rj.paths.map((x: any) => String(x)); jobsOf[b] = [String(rj.job_id)]; }
           } catch (e) {
             // A call the clock cut (its signal ends at the answer budget) is held for TIME, not lost to a dead redactor.
             redIn += slice.length;
             if (cutByClock(e, Date.now(), redStopAt)) { timeHeld += slice.length; abandoned.push(...slice.map((_x, k) => i + k)); } else redDied += slice.length;
-          }
-        }, redStartBy);
+          } finally { inFlight--; }
+        }, redStartBy, Date.now, REDACT_PAGES_AT_ONCE);
+        for (let b = 0; b < batches; b++) { redacted = redacted.concat(pathsOf[b] ?? []); redJobs.push(...(jobsOf[b] ?? [])); }
+        abandoned.sort((a, b) => a - b);
         // A page never started is a page sent and not verified: it counts in redIn, so the set is held, and it is recorded.
         notReached = ran.notReached.flatMap((b) => images.slice(b * REDACT_BATCH, (b + 1) * REDACT_BATCH).map((_x, k) => b * REDACT_BATCH + k));
         redIn += notReached.length; timeHeld += notReached.length;

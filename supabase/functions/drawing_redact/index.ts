@@ -28,12 +28,12 @@ import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages, pdfRedactionView, type PdfPage } from '../_shared/pdf_text_positions.ts';
 import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
-import { MAX_BOXES, SERVER_MARGIN, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintedJpeg, repaintJpeg, serverBoxPlan, stripB64, supplierPagePrefix, tileJpeg, type PaintGroup } from '../_shared/drawing_redact_page.ts';
+import { MAX_BOXES, SERVER_MARGIN, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintedJpeg, repaintJpeg, serverBoxPlan, stripB64, supplierPagePrefix, tileJpeg, tilesJpeg, type PaintGroup } from '../_shared/drawing_redact_page.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
 import { readerAgrees } from '../_shared/pdf_vector_redact.ts';
 import { codeFloorBoxes, padded, unpaintedUnread, unreadTextHold, vocabularyVet, type Vet } from '../_shared/drawing_code_floor.ts';
-import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelGate, planTiles, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
+import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelGate, planTiles, VIEWS_PER_CROP, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
 import { readCadStrings, readingHandedOn, type StringsReading } from '../_shared/drawing_string_reading.ts';
 import { INK_GRID, aspectMatches, expectedInk, imageDenseEnough, inkAgrees, pageCountHolds, pxNeeded } from '../_shared/released_file_pages.ts';
 import { asciiDxfOf } from '../_shared/cad_file_redact.ts';
@@ -318,6 +318,15 @@ async function cropElsewhere(secret: string, jpgB64: string, tile: Tile, mark: s
   if (!r.ok || j?.ok !== true || typeof j.jpg_b64 !== 'string') throw new Error('tile_failed');
   return j.jpg_b64;
 }
+/** Cut several views of the page for the model in ONE fresh worker (mode 'tiles': one decode, an encode a view;
+ *  drawing_redact_page.tilesJpeg). Anything but one view back per view asked throws, and the gate holds the page. */
+async function cropsElsewhere(secret: string, jpgB64: string, views: { tile: Tile; mark: string }[], stopAt?: number): Promise<string[]> {
+  const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'tiles', jpg_b64: jpgB64, views }), signal: AbortSignal.timeout(callTimeoutMs(stopAt, 60_000)) });
+  const r = await workerAnswer(ask, 'tiles', stopAt);
+  const j = await r.json().catch(() => null);
+  if (!r.ok || j?.ok !== true || !Array.isArray(j.jpgs) || j.jpgs.length !== views.length || j.jpgs.some((x: unknown) => typeof x !== 'string' || !x)) throw new Error('tiles_failed');
+  return j.jpgs;
+}
 /** Where a page image shows ink, read in a fresh worker (mode 'ink': one decode, no encode). null = not read. */
 async function inkElsewhere(secret: string, jpgB64: string): Promise<{ cells: boolean[]; w: number; h: number } | null> {
   try {
@@ -361,7 +370,7 @@ async function gatePage(key: string | undefined, held: boolean, secret: string, 
   if (held || !key) return { ok: false, held: 'pixels_unverified', calls: 0, usd: 0, detail: { reason: held ? 'model_hold' : 'no_ai_key' } };
   const plan = planTiles(oriented(size ?? sizeOfPixels(jpgB64), jpgB64));
   // stopAt (drawing_deadline.ts): past it no view is asked and the page is held for time.
-  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b, stopAt, sys), (b, regions) => paintElsewhere(secret, b, regions, stopAt), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m, stopAt), stopAt, vet });
+  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b, stopAt, sys), (b, regions) => paintElsewhere(secret, b, regions, stopAt), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m, stopAt), cropMany: (b, vs) => cropsElsewhere(secret, b, vs, stopAt), stopAt, vet });
 }
 /** Checker boxes left unpainted because they cover drawing vocabulary only (drawing_code_floor.vocabularyVet): logged and
  *  recorded on the run, so an over-eager checker is visible rather than silent. */
@@ -483,6 +492,15 @@ Deno.serve(observe('drawing_redact', async (req) => {
       const ow = Math.min(2000, Math.max(1, Number(t.outW) || 0)), oh = Math.min(2000, Math.max(1, Number(t.outH) || 0));
       const jpg = await tileJpeg(b64ToBytes(body.jpg_b64), { x: n(t.x), y: n(t.y), w: n(t.w) || 1, h: n(t.h) || 1, outW: ow, outH: oh }, 85, String(body.mark));
       return J({ ok: true, jpg_b64: bytesToB64(jpg) });
+    }
+    // ── SEVERAL VIEWS OF A PAGE FROM ONE DECODE (17 Nov 2026; drawing_redact_page.tilesJpeg has the measurement): at most
+    // VIEWS_PER_CROP views, each with its reading mark, each clamped exactly as mode 'tile' clamps it. Records nothing.
+    if (body.mode === 'tiles') {
+      const vs: any[] = Array.isArray(body.views) ? body.views : [];
+      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !vs.length || vs.length > VIEWS_PER_CROP || vs.some((v) => !v?.tile || !/^\d{6}$/.test(String(v?.mark ?? '')))) return J({ ok: false, error: 'jpg_b64_and_views_with_marks_required' }, 400);
+      const n = (v: unknown) => Math.max(0, Math.min(1, Number(v) || 0)), px = (v: unknown) => Math.min(2000, Math.max(1, Number(v) || 0));
+      const jpgs = await tilesJpeg(b64ToBytes(body.jpg_b64), vs.map((v) => ({ tile: { x: n(v.tile.x), y: n(v.tile.y), w: n(v.tile.w) || 1, h: n(v.tile.h) || 1, outW: px(v.tile.outW), outH: px(v.tile.outH) }, mark: String(v.mark) })), 85);
+      return J({ ok: true, jpgs: jpgs.map(bytesToB64) });
     }
     // ── A PDF'S TEXT LAYER, A FEW PAGES AT A TIME, FOR analyze_drawing (17 Nov 2026; _shared/drawing_plan.ts) ──────────
     // 'strips': the page count, each page's words, printed lines and title-strip seeds; 'boxes': each page boxed with the
@@ -730,7 +748,8 @@ Deno.serve(observe('drawing_redact', async (req) => {
       // A (13 Nov 2026): every page passes the pixel gate before it is shared; review item 4: the reader must agree with
       // pdf-lib on what the page draws, or its boxes are not trusted.
       const heldM = await modelHeld(admin); const keyM = heldM ? undefined : await sec('cred_fn_ai');
-      const budget = await pixelBudgetFor(body.source_path);
+      // spent_usd: what the caller's other pages in flight may spend (customer_api runs pages side by side, 17 Nov 2026).
+      const budget = await budgetInFlight(body.source_path, body.spent_usd);
       const agrees = body.original_b64 ? await readerAgrees(b64ToBytes(body.original_b64), [pageOffset, pageOffset + imgs.length]) : false;
       let pixelCalls = 0, pixelUsd = 0;
       const timePages: number[] = [];
@@ -807,7 +826,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
     } catch (_e) { const recorded = await publish(job_id, body, { status: 'detect_exception', paths: [], pages_in: imgs.length, pages_out: 0, skipped: imgs.length }); return J({ ok: false, error: 'detect_exception', job_id, recorded, needs_manual_boxes: true, redaction_complete: false }, 200); }
 
     const paths: string[] = []; let skipped = 0; let verified = 0; let verifyFailed = 0; const verifyDetail: any[] = [];
-    const budget = await pixelBudgetFor(body.source_path); let pixelCalls = 0, pixelUsd = 0;
+    const budget = await budgetInFlight(body.source_path, body.spent_usd); let pixelCalls = 0, pixelUsd = 0;
     const seeds: string[] = Array.isArray(body.seed_terms) ? body.seed_terms.map((x: unknown) => String(x)).filter(Boolean).slice(0, 200) : [];
     // Boxes code adds under the models' answer (see THE CODE FLOOR below; drawing_redact_page.codeFloorBoxes); null = no
     // reading of this page exists.

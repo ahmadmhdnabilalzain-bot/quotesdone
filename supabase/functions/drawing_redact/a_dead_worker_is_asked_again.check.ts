@@ -15,6 +15,7 @@ import { supplierBoxes } from '../_shared/supplier_copy.ts';
 // Imported BEFORE the harness replaces fetch: drawing_redact_page.ts loads imagescript, whose codec .wasm is fetched from
 // deno.land at import (the reason this is a .check.ts with that one host, like ./a_sheet_is_redacted_within_the_edge_budget).
 import { bytesToB64 } from '../_shared/drawing_redact_page.ts';
+import { VIEWS_PER_CROP, pageSizeFromMediaBox, planTiles } from '../_shared/drawing_pixel_gate.ts';
 
 const SET8 = Deno.readFileSync(new URL('../_shared/testdata/zz_demo_mechanical_set_8_sheets.pdf', import.meta.url));
 const SHEET1 = bytesToB64(Deno.readFileSync(new URL('../_shared/testdata/zz_demo_mechanical_set_sheet1_portal_2600.jpg', import.meta.url)));
@@ -29,7 +30,7 @@ const boxes = supplierBoxes(plan.tb, null, 8)!;
 
 /** One page through the real handler. `tileDies(n)` / `paintDies(n)`: does the n-th call (1-based) of that worker die? */
 async function onePage(o: { tileDies?: (n: number, view: string) => boolean; paintDies?: (n: number) => boolean }) {
-  const marks = new Map<string, string>(); let tiles = 0, paints = 0, asked = 0;
+  const marks = new Map<string, string>(); let tiles = 0, paints = 0, asked = 0, cropCalls = 0, deadCalls = 0;
   const stub: Stub = {
     rpc: { fn_internal_auth: { ok: true, context: 'fn.customer_api', credential_id: 7, legacy: false } },
     handle: async (req, u) => {
@@ -37,6 +38,8 @@ async function onePage(o: { tileDies?: (n: number, view: string) => boolean; pai
         const b = await req.clone().json();
         if (b.mode === 'paint') { paints++; return o.paintDies?.(paints) ? DIED() : J({ ok: true, jpg_b64: b.jpg_b64 }); }
         if (b.mode === 'tile') { tiles++; if (o.tileDies?.(tiles, JSON.stringify(b.tile))) return DIED(); const id = 'V' + tiles; marks.set(id, b.mark); return J({ ok: true, jpg_b64: id }); }
+        // Several views a worker (mode 'tiles', 17 Nov 2026): the n-th CALL dies or cuts all its views.
+        if (b.mode === 'tiles') { cropCalls++; if (o.tileDies?.(cropCalls, JSON.stringify(b.views.map((v: any) => v.tile)))) { deadCalls++; return DIED(); } return J({ ok: true, jpgs: b.views.map((v: any) => { const id = 'V' + (++tiles); marks.set(id, v.mark); return id; }) }); }
         return J({ ok: false, error: 'unexpected_mode' }, 400);
       }
       if (u.pathname === '/functions/v1/ai_gateway') {
@@ -49,7 +52,7 @@ async function onePage(o: { tileDies?: (n: number, view: string) => boolean; pai
   };
   const fn = await loadFunction('drawing_redact', () => import('./index.ts'));
   const r = await invoke(fn, stub, { __secret: SECRET, images: [{ mime: 'image/jpeg', data: SHEET1 }], prefix: 'redacted/zz/page', owner_customer_id: crypto.randomUUID(), owner_email: 'qd-cust@example.invalid', source_path: 'drawings/zz/zz.pdf', page_offset: 0, seed_terms: [...new Set([...seeds, ...plan.tb.setSeeds])], original_b64: bytesToB64(SET8), manual_boxes: [boxes[0]] });
-  return { status: r.status, json: r.json, tiles, paints, asked, uploads: r.calls.filter((c) => c.method === 'POST' && c.url.includes('/storage/v1/object/')).length };
+  return { status: r.status, json: r.json, tiles, paints, asked, cropCalls, deadCalls, uploads: r.calls.filter((c) => c.method === 'POST' && c.url.includes('/storage/v1/object/')).length };
 }
 
 Deno.test('control: with every worker answering, the sheet is checked view by view and published', async () => {
@@ -60,10 +63,12 @@ Deno.test('control: with every worker answering, the sheet is checked view by vi
   assertEquals(r.uploads, 1);
 });
 
-Deno.test('a tile crop that dies (546, the isolate it shared was past the CPU cap) is cut again, and the page is published', async () => {
+Deno.test('a crop worker that dies (546, the isolate it shared was past the CPU cap) is asked again, and the page is published', async () => {
   const r = await onePage({ tileDies: (n) => n === 2 || n === 5 });
   assertEquals(r.json.pages_out, 1, `held: ${JSON.stringify(r.json.verify_detail)}`);
-  assertEquals(r.asked, r.tiles - 2, 'every view was asked once it was cut');
+  assertEquals(r.deadCalls, 2);
+  assertEquals(r.cropCalls, Math.ceil(r.tiles / VIEWS_PER_CROP) + 2, 'each dead worker was asked once more');
+  assertEquals(r.asked, r.tiles, 'every view was asked once it was cut');
 });
 
 Deno.test('a paint that dies once is asked again, and the page is published', async () => {
@@ -73,10 +78,12 @@ Deno.test('a paint that dies once is asked again, and the page is published', as
 });
 
 Deno.test('FAIL CLOSED: a crop that never comes back holds the page, after three asks; a paint likewise', async () => {
-  let dead = '';   // the first view asked dies every time it is cut
-  const t = await onePage({ tileDies: (_n, view) => (dead ||= view) === view });
-  assertEquals(t.tiles - t.asked, 3, 'the dead view was cut three times and never shown');
-  assertEquals(t.json.pages_out, 0, 'one view never asked: the page is held');
+  let dead = '';   // the first group of views asked dies every time it is cut
+  const t = await onePage({ tileDies: (_n, views) => (dead ||= views) === views });
+  assertEquals(t.deadCalls, 3, 'the dead worker was asked three times');
+  assertEquals(t.asked, t.tiles, 'no view of the dead worker was ever shown');
+  assertEquals(t.tiles, planTiles(pageSizeFromMediaBox(36 * 72, 24 * 72)).calls - VIEWS_PER_CROP, 'its views were never cut');
+  assertEquals(t.json.pages_out, 0, 'views never asked: the page is held');
   assertEquals(t.uploads, 0);
   assertEquals(t.json.verify_detail[0].skipped, 'pixels_unverified');
   const p = await onePage({ paintDies: () => true });
@@ -89,5 +96,5 @@ Deno.test('FAIL CLOSED: a crop that never comes back holds the page, after three
 Deno.test('a refusal of the request itself (400) is final, never asked again', () => {
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   assert(/if \(r\.ok \|\| \[400, 403, 413\]\.includes\(r\.status\)\) return r;/.test(src));
-  for (const mode of ['repaint', 'paint', 'tile']) assert(src.includes(`await workerAnswer(ask, '${mode}', stopAt)`), `${mode} goes through workerAnswer`);
+  for (const mode of ['repaint', 'paint', 'tile', 'tiles']) assert(src.includes(`await workerAnswer(ask, '${mode}', stopAt)`), `${mode} goes through workerAnswer`);
 });

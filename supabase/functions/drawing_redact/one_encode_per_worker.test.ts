@@ -12,7 +12,8 @@ Deno.test('no worker of a page decodes or encodes it more than once; the paint a
   // 17 Nov 2026: the one encode left here (the model path's) moved to the paint worker with the manual path's, because the
   // worker that reads the PDF and asks the gate died "CPU Time exceeded" on every 2600 px sheet of the 8-sheet set
   // (a_sheet_is_redacted_within_the_edge_budget.check.ts). Every decode and encode is now in a _shared function one
-  // worker mode runs: paint (paintedJpeg), repaint (repaintJpeg), tile (tileJpeg), ink (inkCells).
+  // worker mode runs: paint (paintedJpeg), repaint (repaintJpeg), tile (tileJpeg), tiles (tilesJpeg: one decode, an encode a
+  // view, 17 Nov 2026), ink (inkCells).
   assertEquals(count(/\.encodeJPEG\(|Image\.decode\(/g), 0, 'a JPEG decode or encode is back in drawing_redact/index.ts');
   assertMatch(src, /paintedElsewhere\(/);
   assertMatch(src, /body\.mode === 'paint'/);

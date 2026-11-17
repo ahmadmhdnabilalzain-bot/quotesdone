@@ -159,6 +159,11 @@ export function planTiles(page: PageSize, cfg: { textPt: number; minTextPx: numb
   return { cols, rows, tiles, whole, textPx: textMm * d * k0, calls: all.length, usd: all.reduce((s, t) => s + callUsd(t.outW, t.outH + band), 0), page };
 }
 
+/** What customer_api holds back of a set's budget for each OTHER page in flight when pages run side by side (17 Nov 2026,
+ *  customer_api REDACT_PAGES_AT_ONCE): one look at an A1 sheet, the size the budget's 20-page figure is set by. A page's
+ *  re-checks ask only the views that were not clean, so what a page in flight may spend beyond this is a few views. */
+export const PIXEL_PAGE_RESERVE_USD = planTiles({ wMm: SHEETS_MM.A1[0], hMm: SHEETS_MM.A1[1], from: 'mediabox' }).usd;
+
 /** The pixel size of a baseline or progressive JPEG from its SOF marker, without decoding it (null if not a JPEG). */
 export function jpegSize(b: Uint8Array): { w: number; h: number } | null {
   if (b.length < 4 || b[0] !== 0xFF || b[1] !== 0xD8) return null;
@@ -204,6 +209,9 @@ export type PixelPaint = (jpgB64: string, regions: Box[]) => Promise<string>;
 /** Cut `tile` out of the page image, scale it to tile.outW x tile.outH and draw `mark` in a band under it (base64 JPEG;
  *  drawing_redact_page.tileJpeg). */
 export type PixelCrop = (jpgB64: string, tile: Tile, mark: string) => Promise<string>;
+/** Cut SEVERAL views of the page image in one worker (one decode; drawing_redact_page.tilesJpeg, drawing_redact mode
+ *  'tiles'): one base64 JPEG per view, in order, each what PixelCrop returns for it. A throw is no view for any of them. */
+export type PixelCropMany = (jpgB64: string, views: { tile: Tile; mark: string }[]) => Promise<string[]>;
 export type PixelBudget = { left: () => number; spend: (usd: number) => void };
 
 export type PixelOutcome =
@@ -213,8 +221,60 @@ export type PixelOutcome =
 /** Map a box found in `t` back to page fractions. */
 export const toPage = (t: Tile, r: Box): Box => ({ x: t.x + r.x * t.w, y: t.y + r.y * t.h, w: r.w * t.w, h: r.h * t.h });
 
-/** At most this many views of a page are asked at once. */
+/** At most this many views of a page are asked at once when each view is cut by a worker of its own (look.crop). */
 const CONCURRENCY = 4;
+
+// ── A PAGE'S VIEWS, CUT A FEW AT A TIME AND ASKED MANY AT A TIME (17 Nov 2026, sales_engineer; paid proof 623d9200) ────────
+// MEASURED, production 17 Nov 17:19-17:21 UTC (function logs, ai_cost_log): a page of the 8-sheet set took 20.5-27.5 s of
+// wall in drawing_redact, and analyze_drawing starts no page after 100 s, so only 4 of the 8 sheets were begun. Of a page's
+// time, the views were 25 x (a crop worker of its own, 0.5-1.9 s warm and 3.1-4.9 s cold, then the model, 2.0-3.8 s,
+// p50 2.33 s over 84 calls), four at a time: about seven waves of ~4.5 s. With look.cropMany a worker cuts VIEWS_PER_CROP
+// views from ONE decode (drawing_redact_page.tilesJpeg: ~640 ms of CPU locally for five, where five single crops are
+// ~2,100 ms), at most CROPS_AT_ONCE such workers run for a page at once (each well inside the edge's 2 s, and few enough
+// that two sharing an isolate still fit), and each view is asked as soon as its crop is back, ASKS_AT_ONCE at a time.
+// The local timing model (drawing_redact/every_page_is_verified_in_time.test.ts) puts a page at ~12 s.
+// Nothing about WHAT is asked changes: the same views, the same marks, the same verdict rules below.
+export const VIEWS_PER_CROP = 5;
+export const CROPS_AT_ONCE = 2;
+export const ASKS_AT_ONCE = 8;
+
+type Answer = { t: Tile; v: PixelVerdict | null; read: boolean; late: boolean };
+/** One round's views through look.cropMany: cut in groups of VIEWS_PER_CROP (CROPS_AT_ONCE groups at a time), each view
+ *  asked when its group is back (ASKS_AT_ONCE at a time). A group or an ask not begun by the stop is late, as in pool. */
+async function batchedRound(pending: Tile[], page: string, ask: PixelAsk, cropMany: PixelCropMany, stopped: () => boolean): Promise<Answer[]> {
+  const out: Answer[] = new Array(pending.length);
+  const groups: number[][] = [];
+  for (let i = 0; i < pending.length; i += VIEWS_PER_CROP) groups.push(Array.from({ length: Math.min(VIEWS_PER_CROP, pending.length - i) }, (_x, k) => i + k));
+  let freeAsks = ASKS_AT_ONCE; const waiting: (() => void)[] = [];
+  const slot = async () => { if (freeAsks > 0) { freeAsks--; return; } await new Promise<void>((r) => waiting.push(r)); };
+  const free = () => { const w = waiting.shift(); if (w) w(); else freeAsks++; };
+  const asks: Promise<void>[] = [];
+  let next = 0;
+  await Promise.all(Array.from({ length: Math.min(CROPS_AT_ONCE, groups.length) }, async () => {
+    while (next < groups.length) {
+      const g = groups[next++];
+      if (stopped()) { for (const i of g) out[i] = { t: pending[i], v: null, read: false, late: true }; continue; }
+      const marks = g.map(() => newMark());
+      const cut = await cropMany(page, g.map((i, k) => ({ tile: pending[i], mark: marks[k] }))).catch(() => null);
+      g.forEach((i, k) => {
+        const shown = cut && typeof cut[k] === 'string' && cut[k] ? cut[k] : null;
+        if (!shown) { out[i] = { t: pending[i], v: null, read: false, late: false }; return; }
+        asks.push((async () => {
+          await slot();
+          try {
+            if (stopped()) { out[i] = { t: pending[i], v: null, read: false, late: true }; return; }
+            const v = parsePixelVerdict(await ask(shown).catch(() => null));
+            out[i] = { t: pending[i], v, read: !!v && v.mark === marks[k], late: false };
+          } catch (_e) {
+            out[i] = { t: pending[i], v: null, read: false, late: false };   // no answer: the page is held, never published
+          } finally { free(); }
+        })());
+      });
+    }
+  }));
+  await Promise.all(asks);
+  return out;
+}
 async function pool<T, R>(items: T[], f: (x: T) => Promise<R>, late: (x: T) => R = () => { throw new Error('late'); }, stopped: () => boolean = () => false): Promise<R[]> {
   const out: R[] = new Array(items.length); let next = 0;
   // A view not yet started when the clock runs out is not asked (drawing_deadline: the page is then held for time).
@@ -228,7 +288,7 @@ async function pool<T, R>(items: T[], f: (x: T) => Promise<R>, late: (x: T) => R
  * again (at most PIXEL_MAX_RECHECKS times); painting only adds black, so a view once clean stays clean. Without a plan
  * the image is asked whole (one view, PIXEL_CALL_USD). `budget` is in USD; a round it cannot pay for HOLDS the page.
  */
-export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint, budget: PixelBudget = { left: () => Infinity, spend: () => {} }, look?: { plan: TilePlan; crop: PixelCrop; stopAt?: number; now?: () => number; vet?: (regions: (Box & { what?: string })[]) => { keep: Box[]; ignored: { box: Box; text: string }[] } }): Promise<PixelOutcome> {
+export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint, budget: PixelBudget = { left: () => Infinity, spend: () => {} }, look?: { plan: TilePlan; crop: PixelCrop; cropMany?: PixelCropMany; stopAt?: number; now?: () => number; vet?: (regions: (Box & { what?: string })[]) => { keep: Box[]; ignored: { box: Box; text: string }[] } }): Promise<PixelOutcome> {
   const views: Tile[] = look ? [...look.plan.tiles, ...(look.plan.whole ? [look.plan.whole] : [])] : [{ x: 0, y: 0, w: 1, h: 1, outW: 0, outH: 0, whole: true }];
   const cost = (t: Tile) => look ? callUsd(t.outW, t.outH + TILING.markPx) : PIXEL_CALL_USD;
   let img = jpgB64, calls = 0, usd = 0, added = 0, pending = views;
@@ -247,7 +307,8 @@ export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint
     if (budget.left() < due) return { ok: false, held: 'pixels_budget', calls, usd, detail: { calls, usd, boxes_added: added, round, due } };
     budget.spend(due); calls += pending.length; usd += due;
     const page = img;
-    const answers = await pool(pending, async (t) => {
+    // With look.cropMany the views are cut a few to a worker (batchedRound); the answers are judged exactly the same.
+    const answers = look?.cropMany ? await batchedRound(pending, page, ask, look.cropMany, late) : await pool(pending, async (t) => {
       const mark = look ? newMark() : '';
       const shown = look ? await look.crop(page, t, mark).catch(() => null) : page;
       if (!shown) return { t, v: null, read: false, late: false };

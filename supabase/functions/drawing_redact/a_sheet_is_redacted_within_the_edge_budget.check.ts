@@ -26,7 +26,7 @@ import { supplierBoxes } from '../_shared/supplier_copy.ts';
 import { bytesToB64, serverBoxedPage } from '../_shared/drawing_redact_page.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
-import { pageSizeFromMediaBox, planTiles } from '../_shared/drawing_pixel_gate.ts';
+import { VIEWS_PER_CROP, pageSizeFromMediaBox, planTiles } from '../_shared/drawing_pixel_gate.ts';
 
 /** The edge kills a worker past about 2 s of CPU (measured: 2,205 ms). A worker here gets at most this, LOCALLY: the edge
  *  ran the same steps about 1.3x slower than this machine (the 546s at 2,205-2,551 ms against ~1.8 s here). */
@@ -66,6 +66,8 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
       // A view of the page (mode 'tile'): the stub hands back a token for it and remembers its mark; the real crop worker
       // is measured on its own (one decode, one crop and scale, one encode).
       if (mode === 'tile') { const q = JSON.parse(body), id = 'V' + (++viewNo); marks.set(id, q.mark); if (q.tile?.whole) wholeViews.add(id); return json({ ok: true, jpg_b64: id }); }
+      // Several views of the page (mode 'tiles', 17 Nov 2026): a token and a mark for each, the real worker measured below.
+      if (mode === 'tiles') { const q = JSON.parse(body); return json({ ok: true, jpgs: q.views.map((v: any) => { const id = 'V' + (++viewNo); marks.set(id, v.mark); if (v.tile?.whole) wholeViews.add(id); return id; }) }); }
       // Any other worker (the paint, a repaint) runs the REAL handler, its CPU measured as its own worker's.
       stubMs += cpu() - t0;
       const w0 = cpu();
@@ -126,11 +128,18 @@ async function oneSheet(stamp: boolean) {
   const tile = await handler!(new Request('http://127.0.0.1:9/functions/v1/drawing_redact', { method: 'POST', body: JSON.stringify({ __secret: SECRET, mode: 'tile', jpg_b64: bytesToB64(published!), tile: { x: 0, y: 0, w: 0.27, h: 0.39, outW: 1256, outH: 742 }, mark: '123456' }) }));
   const crop = cpu() - t1;
   assertEquals((await tile.json()).ok, true);
-  console.log(`main worker ${Math.round(main)} ms; ${workers.map((w) => `${w.mode} ${Math.round(w.ms)} ms`).join('; ') || 'no pixel worker'}; one crop worker ${Math.round(crop)} ms; views asked ${views}`);
-  return { j, main, crop, views, boxes, workers: [...workers], page: published! };
+  // One batched crop worker (mode 'tiles') with the most views a call carries: the first VIEWS_PER_CROP views of the plan.
+  const plan = planTiles(pageSizeFromMediaBox(36 * 72, 24 * 72));
+  const t2 = cpu();
+  const many = await handler!(new Request('http://127.0.0.1:9/functions/v1/drawing_redact', { method: 'POST', body: JSON.stringify({ __secret: SECRET, mode: 'tiles', jpg_b64: bytesToB64(published!), views: plan.tiles.slice(0, VIEWS_PER_CROP).map((tile, k) => ({ tile, mark: String(100000 + k) })) }) }));
+  const crops = cpu() - t2;
+  assertEquals((await many.json()).jpgs?.length, VIEWS_PER_CROP);
+  console.log(`main worker ${Math.round(main)} ms; ${workers.map((w) => `${w.mode} ${Math.round(w.ms)} ms`).join('; ') || 'no pixel worker'}; one crop worker ${Math.round(crop)} ms; one ${VIEWS_PER_CROP}-view crop worker ${Math.round(crops)} ms; views asked ${views}`);
+  return { j, main, crop, crops, views, boxes, workers: [...workers], page: published! };
 }
 
-function withinBudget(o: { main: number; crop: number; workers: { mode: string; ms: number }[] }) {
+function withinBudget(o: { main: number; crop: number; crops: number; workers: { mode: string; ms: number }[] }) {
+  assert(o.crops <= WORKER_CPU_BUDGET_MS, `a ${VIEWS_PER_CROP}-view crop worker spent ${Math.round(o.crops)} ms (budget ${WORKER_CPU_BUDGET_MS})`);
   assert(o.main <= WORKER_CPU_BUDGET_MS, `the main worker spent ${Math.round(o.main)} ms of CPU on one sheet (budget ${WORKER_CPU_BUDGET_MS})`);
   for (const w of o.workers) assert(w.ms <= WORKER_CPU_BUDGET_MS, `the ${w.mode} worker spent ${Math.round(w.ms)} ms (budget ${WORKER_CPU_BUDGET_MS})`);
   assert(o.crop <= WORKER_CPU_BUDGET_MS, `a crop worker spent ${Math.round(o.crop)} ms (budget ${WORKER_CPU_BUDGET_MS})`);
