@@ -30,7 +30,9 @@ import { pageSizeFromMediaBox, planTiles } from '../_shared/drawing_pixel_gate.t
 
 /** The edge kills a worker past about 2 s of CPU (measured: 2,205 ms). A worker here gets at most this, LOCALLY: the edge
  *  ran the same steps about 1.3x slower than this machine (the 546s at 2,205-2,551 ms against ~1.8 s here). */
-export const WORKER_CPU_BUDGET_MS = 1_000;
+// MEASURED by the reviewer (3 idle runs): the cold paint worker 820-955 ms, so 1,000 ms left 5% and flaked under load; 1,400 ms
+// is still inside the edge's 2,205 ms at the 1.3x the edge runs slower.
+export const WORKER_CPU_BUDGET_MS = 1_400;
 
 const SET = Deno.readFileSync(new URL('../_shared/testdata/zz_demo_mechanical_set_8_sheets.pdf', import.meta.url));
 // Sheet 1 of that set, rasterised as the portal does it (pdf.js, long edge 2600 px, JPEG 0.8): scripts/e2e/portal_raster.mjs.

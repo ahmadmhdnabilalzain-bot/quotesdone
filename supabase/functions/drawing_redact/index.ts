@@ -28,7 +28,7 @@ import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages, pdfRedactionView, type PdfPage } from '../_shared/pdf_text_positions.ts';
 import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
-import { SERVER_MARGIN, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintedJpeg, repaintJpeg, serverBoxPlan, stripB64, supplierPagePrefix, tileJpeg, type PaintGroup } from '../_shared/drawing_redact_page.ts';
+import { MAX_BOXES, SERVER_MARGIN, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintedJpeg, repaintJpeg, serverBoxPlan, stripB64, supplierPagePrefix, tileJpeg, type PaintGroup } from '../_shared/drawing_redact_page.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
 import { readerAgrees } from '../_shared/pdf_vector_redact.ts';
@@ -83,6 +83,8 @@ function parseJson(t:string){ return readModelJson<any>(t, { wholeDecides: true 
 // paintedElsewhere below): no worker of a page decodes the sheet twice, and the one that plans it decodes it not at all.
 // MARGIN pads a MODEL's region (a guess); the server's own boxes get SERVER_MARGIN (see the shared module).
 const MARGIN = 0.03;
+// The paint worker's ceiling on groups (each at most MAX_BOXES): 64 x 1,200 boxes is past any page measured.
+const MAX_PAINT_GROUPS = 64;
 // The margin mode 'repaint' (verify:false) paints the checker's boxes at: paintElsewhere below.
 const REPAINT_MARGIN = 0.01;
 
@@ -270,7 +272,12 @@ async function paintElsewhere(secret: string, jpgB64: string, regions: Array<{x:
 /** Paint a page's boxes onto its raster in a fresh worker (mode 'paint': one decode, one encode; drawing_redact_page.paintedJpeg).
  *  Anything but a painted page back throws, and the caller holds the page (fail closed). */
 async function paintedElsewhere(secret: string, rasterB64: string, groups: PaintGroup[], stopAt?: number): Promise<string> {
-  const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'paint', jpg_b64: rasterB64, groups }), signal: AbortSignal.timeout(callTimeoutMs(stopAt, 60_000)) });
+  // The paint worker takes at most MAX_BOXES a group (cleanBoxes): a longer group is sent as several, in order, at the same
+  // margin, so no box is dropped (a page's text-layer and code-floor boxes come AFTER the boxes it arrived with). Each value
+  // is clamped to 0..1 here, before JSON, so a model's 1e999 is the page edge, not a null the worker reads as 0.
+  const c = (v: number) => Math.max(0, Math.min(1, Number.isNaN(v) ? 0 : v));
+  const sent: PaintGroup[] = groups.flatMap((g) => { const bs = g.boxes.map((b) => ({ x: c(b.x), y: c(b.y), w: c(b.w), h: c(b.h) })); const out: PaintGroup[] = []; for (let k = 0; k < bs.length; k += MAX_BOXES) out.push({ boxes: bs.slice(k, k + MAX_BOXES), pad: g.pad }); return out; });
+  const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'paint', jpg_b64: rasterB64, groups: sent }), signal: AbortSignal.timeout(callTimeoutMs(stopAt, 60_000)) });
   let r = await ask();
   if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
   const j = await r.json().catch(() => null);
@@ -433,7 +440,10 @@ Deno.serve(observe('drawing_redact', async (req) => {
     // black). Records and uploads nothing: the calling worker does both, after the gate.
     if (body.mode === 'paint') {
       if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !Array.isArray(body.groups)) return J({ ok: false, error: 'jpg_b64_and_groups_required' }, 400);
-      const groups: PaintGroup[] = body.groups.slice(0, 8).map((g: any) => ({ boxes: cleanBoxes(g?.boxes) ?? [], pad: Math.max(0, Math.min(0.1, Number(g?.pad) || 0)) }));
+      // Never paint fewer boxes than were sent (fail closed): a group over MAX_BOXES, or too many groups, is refused and the
+      // caller holds the page. paintedElsewhere splits long groups, so this is reached only by a caller that did not.
+      if (body.groups.length > MAX_PAINT_GROUPS || body.groups.some((g: any) => !Array.isArray(g?.boxes) || g.boxes.length > MAX_BOXES)) return J({ ok: false, error: 'too_many_boxes' }, 400);
+      const groups: PaintGroup[] = body.groups.map((g: any) => ({ boxes: cleanBoxes(g?.boxes) ?? [], pad: Math.max(0, Math.min(0.1, Number(g?.pad) || 0)) }));
       let out: Awaited<ReturnType<typeof paintedJpeg>>;
       try { out = await paintedJpeg(b64ToBytes(body.jpg_b64), groups); } catch (_e) { return J({ ok: false, error: 'decode_failed' }); }
       return J({ ok: true, jpg_b64: bytesToB64(out.jpg) });
