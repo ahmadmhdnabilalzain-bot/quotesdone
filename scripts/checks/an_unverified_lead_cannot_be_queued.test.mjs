@@ -54,9 +54,17 @@ test('no routine inserts a real supplier_invite past the guard', () => {
 });
 
 test('every brake reads real sends, not the queue time', () => {
+  // 16 Nov 2026 (the_bounce_brake_judges_each_bounce_by_kind_provider_and_sample_...sql): the brakes read the bounce JUDGEMENT
+  // (fn_invite_bounce_judgement, directly or through fn_invite_judge_and_brake), which counts real sends like the health did;
+  // either reader passes, and the judgement itself is held to the same rule below.
+  const READS_SENDS = /fn_invite_send_health\(|fn_invite_bounce_judgement\(|fn_invite_judge_and_brake\(/;
+  const judgement = body('fn_invite_bounce_judgement(');
+  assert.match(judgement, /n\.sent_at is not null and n\.sent_at > v_from and n\.sent_at <= p_now/, 'the judgement no longer counts real sends');
+  assert.ok(!READS_QUEUE_TIME.test(judgement), 'the judgement counts by queue time');
+  assert.match(body('fn_invite_judge_and_brake('), /public\.fn_invite_bounce_judgement\(now\(\)\)/);
   for (const f of ['enqueue_supplier_invites(', 'fn_invite_same_day_brake(', 'fn_sales_engineer_nudges_invited_suppliers(']) {
     const b = body(f);
-    assert.match(b, /fn_invite_send_health\(/, f + ' does not read fn_invite_send_health');
+    assert.match(b, READS_SENDS, f + ' reads neither fn_invite_send_health nor the bounce judgement');
     assert.ok(!/brake_since|resumed_at/.test(b), f + ' lets a restart reset the bounce window');
     assert.ok(!/from\s+(public\.)?leads\s+where\s+invited_at\s*>/.test(b), f + ' still counts by queue time');
   }
@@ -77,7 +85,8 @@ test('invite_schedule.sent is not written at queue time, and the view counts the
 test('the restart never lifts the founder\'s go, a complaint or another seat\'s pause, and touches no cap', () => {
   const b = body('fn_sales_engineer_restarts_invites_after_a_brake(');
   assert.match(b, /fn_supplier_outreach_golive\(\)/);
-  assert.match(b, /v_complaints > 0/);
+  // the judgement's complaint count since 16 Nov (any complaint in its window holds the restart)
+  assert.match(b, /v_complaints > 0|coalesce\(\(j->'all'->>'complaint'\)::int, 0\) > 0/);
   assert.match(b, /b\.fired_at \+ interval '3 days'/, 'no cooldown');
   assert.match(b, /restarted_by_seat and x\.resumed_at > b\.fired_at - interval '30 days'/, 'no limit on restarts');
   assert.match(b, /fn_ceo_task_open\(/, 'a second breach does not reach the CEO seat');
@@ -88,7 +97,7 @@ test('the restart never lifts the founder\'s go, a complaint or another seat\'s 
   assert.ok(b.indexOf('email_suppressions') < b.indexOf("set value = 'true'"), 'it resumes before suppressing');
   const writes = [...b.matchAll(/update\s+public\.app_secrets\s+set\s+value\s*=[^;]*;/gi)].map((m) => m[0]);
   assert.ok(writes.length > 0 && writes.every((w) => /key = 'invite_enabled'/.test(w)), 'it writes another switch');
-  assert.match(b, /fn_invite_send_health\(v_since\)/, 'the second breach does not read the sends since the restart');
+  assert.match(b, /fn_invite_send_health\(v_since\)|fn_invite_bounce_judgement\(now\(\), v_since\)/, 'the second breach does not read the sends since the restart');
   const cap = body('fn_invite_restart_cap(');
   const clockOnly = (s) => !/first_sent/.test(s);
   assert.ok(!clockOnly(cap), 'the first-batch limit runs on a clock, so a restart on a closed day lapses before anything is sent');
