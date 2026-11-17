@@ -286,10 +286,10 @@ export async function photoWithheld(shot: string | null, why: string): Promise<R
 // A JOB THAT FAILS FOR GOOD IS RAISED, NOT ONLY LOGGED (24 Sep 2026, drawings audit finding 4): a customer's
 // drawing that no reader could open was visible only in this runner's log. The same finding helper every
 // seat uses, one deduplicated key; failing to raise it never stops the other jobs.
-async function raiseFailed(job: Job, msg: string): Promise<void> {
+async function raiseFailed(job: Job, msg: string, key = 'cad_read_worker:job_failed'): Promise<void> {
   try {
     await sql(`select public.fn_it_engineer_finding_upsert(
-      'cad_read_worker:job_failed', ${lit('A queued CAD drawing could not be read after 3 attempts')},
+      ${lit(key)}, ${lit(key === 'cad_read_worker:job_failed' ? 'A queued CAD drawing could not be read after 3 attempts' : 'A drawing\'s queued sheets were held: its sent requests get no pages')},
       'scripts/cad_read_worker.ts (.github/workflows/cad-read-worker.yml), table public.cad_read_jobs', 'customer_facing', 1,
       ${lit(JSON.stringify({ subject: 'cad_read_jobs', owner_seat: 'sales_engineer', job_id: job.id, error: msg.slice(0, 300) }))}::jsonb,
       '{}'::text[], '{}'::text[], 'sales_engineer')`);
@@ -355,6 +355,8 @@ async function runJob(job: Job, key: string): Promise<void> {
       catch (e) { throw new Error('the verified pages could not be attached to the requests: ' + String((e as Error)?.message || e).slice(0, 200)); }
     }
     await sql(`update public.cad_read_jobs set status = 'done', finished_at = now(), error = null, result = ${lit(JSON.stringify({ boq: null, kind: 'pdf_sheets', ms: Math.round(performance.now() - t0), ...drawing, ...follow }))}::jsonb where id = ${lit(job.id)}::uuid`);
+    // HELD HERE IS NOT SILENT (review 17 Nov 2026): a request already sent says "pages follow", and no page will. The seat is told.
+    if (drawing.redaction_complete !== true) await raiseFailed(job, 'pages job held, the requests that say pages follow get none: ' + String(drawing.held_reason ?? '').slice(0, 160), 'cad_read_worker:pages_held');
     console.log(`job ${job.id}: ${q.left.length} sheet(s) ${drawing.redaction_complete ? 'published with the set' : 'held (' + drawing.held_reason + ')'}, ${JSON.stringify(follow)}, ${Math.round(performance.now() - t0)} ms`);
     return;
   }

@@ -57,9 +57,14 @@ export function sheetVerdict(rj: any): SheetVerdict {
   if (rj.ok === true && rj.recorded === true && Number(rj.pages_out) === 1 && Array.isArray(rj.paths) && rj.paths.length === 1 && typeof rj.job_id === 'string' && rj.job_id) {
     return { state: 'verified', paths: rj.paths.map(String), job: String(rj.job_id) };
   }
+  const d = Array.isArray(rj.verify_detail) ? rj.verify_detail[0] : null;
+  // A HOLD AFTER THE CHECKER SAW SOMETHING IS NOT TRANSIENT (review 17 Nov 2026). The gate returns 'pixels_unverified' or
+  // 'time' for a round in which one view went unanswered BEFORE it judges the views that did answer, so a sheet whose checker
+  // had already named identity (boxes painted, or a view still dirty) came back looking transient; asked again from the
+  // unpainted raster, the same checker saying "clean" once by chance would publish it. Held as the leak finding it is.
+  if (d && (Number(d.boxes_added) > 0 || Number(d.dirty) > 0)) return { state: 'refused', why: 'checker_found_then_' + String(d.skipped || 'held'), identity: true };
   if (Number(rj.time_held) > 0) return { state: 'retry', why: 'time' };
   if (rj.ok === true && rj.recorded !== true && Number(rj.pages_out) === 1) return { state: 'retry', why: 'unrecorded' };
-  const d = Array.isArray(rj.verify_detail) ? rj.verify_detail[0] : null;
   const why = String(d?.skipped || (Array.isArray(d?.found) && d.found.length ? 'pixels_not_clean' : '') || rj.held_reason || (rj.customer_message ? 'pixels_budget' : '') || rj.error || 'not_verified');
   if (REFUSED_FOR_IDENTITY.includes(why)) return { state: 'refused', why, identity: true };
   if (RETRIED.includes(why)) return { state: 'retry', why };

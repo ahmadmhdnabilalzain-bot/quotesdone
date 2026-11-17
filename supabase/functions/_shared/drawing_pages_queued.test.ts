@@ -72,6 +72,13 @@ Deno.test('sheetVerdict: a sheet the checker REFUSED for identity is a finding (
   assertEquals(sheetVerdict(HELD('something_new')).state, 'refused', 'a reason nobody sorted is held, not retried blindly');
 });
 
+Deno.test('sheetVerdict: a time or unverified hold AFTER the checker named identity is refused, never retried from the unpainted sheet (review 17 Nov 2026)', () => {
+  assertEquals(sheetVerdict({ ...HELD('pixels_unverified'), verify_detail: [{ page: 0, skipped: 'pixels_unverified', boxes_added: 0, round: 0, dirty: 1 }] }).state, 'refused');
+  assertEquals(sheetVerdict({ ...HELD('pixels_unverified'), verify_detail: [{ page: 0, skipped: 'pixels_unverified', boxes_added: 2, round: 1, dirty: 0 }] }), { state: 'refused', why: 'checker_found_then_pixels_unverified', identity: true });
+  assertEquals(sheetVerdict({ ...HELD('time', { time_held: 1 }), verify_detail: [{ page: 0, skipped: 'time', boxes_added: 1, round: 1 }] }).state, 'refused');
+  assertEquals(sheetVerdict({ ...HELD('pixels_unverified'), verify_detail: [{ page: 0, skipped: 'pixels_unverified', boxes_added: 0, round: 0, dirty: 0 }] }), { state: 'retry', why: 'pixels_unverified' }, 'nothing seen: transient');
+});
+
 Deno.test('sheetsToCheckOff: the proof\'s set (7 lost, 1 unverified) is queued WHOLE; one identity refusal queues nothing and names the sheet', () => {
   const proof = [DIED_546, DIED_546, DIED_546, HELD('pixels_unverified'), DIED_546, DIED_546, DIED_546, DIED_546].map(sheetVerdict);
   const p = sheetsToCheckOff(proof, 8);
