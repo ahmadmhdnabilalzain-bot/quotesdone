@@ -2458,3 +2458,8 @@ scripts/sql/a_mashreq_fee_the_bank_has_not_taken_is_owed_not_paid_and_the_1_augu
 # does not read; every 12, 14 and 15 Nov page closed. The 13 Nov pages close in
 # the_13_november_export_pages_the_refile_picked_up_close_as_abandoned_too.sql.
 scripts/sql/the_export_pages_never_written_on_12_to_15_november_close_as_abandoned_with_their_reason.sql
+
+# 17 Nov 2026 06:44 UTC (it_engineer): applied after #2029; PROBE OK, 1453 never-written 12-15 Nov export pages closed, 343 by this file.
+scripts/sql/the_13_november_export_pages_the_refile_picked_up_close_as_abandoned_too.sql
+# 17 Nov 2026 06:45 UTC (sales_engineer): applied after the trade checklists were loaded (305 checklists); PROBE OK, 13 gaps closed, 0 open.
+scripts/sql/what_the_seats_were_asked_and_did_not_know_is_answered_where_they_read.sql
