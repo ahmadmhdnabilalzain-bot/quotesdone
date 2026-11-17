@@ -548,7 +548,7 @@
           "why": "tells someone to upload a drawing format the founder ruled out on 28 Sep 2026; rewrite by hand to PDF or CAD (DWG/DXF)"
         },
         {
-          "re": "(?:ارفع|رفع|أرسل|أرفق|يقبل|نقبل)(?:[^.\\n]|\\.(?=\\w)){0,120}?(?:ريفيت|Revit|RVT|RFA|IFC|DGN|مايكروستيشن)",
+          "re": "(?:ارفع|رفع|أرسل|أرفق|يقبل|نقبل)(?:[^.\\n]|\\.(?=\\w)){0,120}?(?:ريفيت|مايكروستيشن|\\b(?:Revit|RVT|RFA|IFC|DGN)\\b)",
           "why": "the Arabic of the same: a drawing is uploaded as PDF or CAD (DWG/DXF) only"
         }
       ]
