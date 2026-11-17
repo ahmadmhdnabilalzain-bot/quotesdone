@@ -438,12 +438,26 @@ const STRIP_WORD_STOP = new Set(['owner', 'client', 'consultant', 'contractor', 
 /** An image this large is the drawing itself (a scanned sheet in a PDF wrapper): the page goes the scan route. */
 export const SHEET_IMAGE = 0.5;
 
-export function titleBlockBoxes(pages: PdfPage[], seeds: string[]): { boxes: Box[][]; confidence: 'low' | 'medium'; residual: string[]; strips: (Box | null)[]; regions: Box[][]; setSeeds: string[] } {
+/** What every sheet's title strip names, in page order (the `setSeeds` titleBlockBoxes reads from `pages`). */
+export function setStripSeeds(pages: PdfPage[]): string[] {
+  return [...new Set(pages.flatMap((p) => { const s = p.runs.length ? titleStrip(p) : null; return s ? stripSeeds(p, s) : []; }))];
+}
+
+/**
+ * `setOf` (17 Nov 2026, sales_engineer): the set's strip seeds, read from EVERY sheet by setStripSeeds, when `pages` is only
+ * part of the set. analyze_drawing reads a PDF page by page in workers of their own (_shared/drawing_plan.ts): one call over
+ * a whole 8-sheet set ran customer_api past the edge's CPU cap (HTTP 546 at 3.1 s CPU, 17 Nov). With `setOf` each page is
+ * boxed exactly as the whole set would box it; without it (every other caller) nothing changes.
+ */
+export function titleBlockBoxes(pages: PdfPage[], seeds: string[], setOf?: string[]): { boxes: Box[][]; confidence: 'low' | 'medium'; residual: string[]; strips: (Box | null)[]; regions: Box[][]; setSeeds: string[] } {
   let low = !seeds.length || !pages.length;
   const residual: string[] = [];
   const strips = pages.map((p) => (p.runs.length ? titleStrip(p) : null));
   // Seeds from every sheet's strip apply to the whole set: the project name is the same on every sheet.
-  const setSeeds = [...new Set(pages.flatMap((p, i) => (strips[i] ? stripSeeds(p, strips[i]!) : [])))];
+  // With `setOf` the pages' OWN strip seeds are still added (review, 17 Nov): a set_seeds that came back empty or short can
+  // never box a page with fewer seeds than the page alone gives. In the planned read setOf already holds them, so the order
+  // and the result are unchanged; without setOf this is the line as it was.
+  const setSeeds = [...new Set([...(setOf ?? []), ...pages.flatMap((p, i) => (strips[i] ? stripSeeds(p, strips[i]!) : []))])];
   // L3 (13 Nov 2026): the strip's phrases are ALSO split into their words, as scan_redact does (seedTerms({extra})).
   // Whole phrases only ("villa 15 al barsha 2 dubai") missed the site plan's "AL BARSHA 2" and the scale-bar note
   // "(Survey by ZZ Demo Surveyors, Al Barsha 2)" whenever the file name did not happen to say "Barsha". A word that is

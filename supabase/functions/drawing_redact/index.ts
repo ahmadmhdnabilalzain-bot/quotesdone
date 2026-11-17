@@ -40,6 +40,7 @@ import { readCadStrings, readingHandedOn, type StringsReading } from '../_shared
 import { INK_GRID, aspectMatches, expectedInk, imageDenseEnough, inkAgrees, pageCountHolds, pxNeeded } from '../_shared/released_file_pages.ts';
 import { asciiDxfOf } from '../_shared/cad_file_redact.ts';
 import { TIME_HELD, callTimeoutMs, deadlinesFrom } from '../_shared/drawing_deadline.ts';
+import { PLAN_MAX_PAGES_PER_CALL, planBoxes, planStrips } from '../_shared/drawing_plan.ts';
 
 import { instructingRuns, verifyVerdict } from './verify_verdict.ts';
 import { PHOTO_VERIFY_SYS, photoBudget, photoPageSize } from '../_shared/site_photo_gate.ts';
@@ -422,6 +423,20 @@ Deno.serve(observe('drawing_redact', async (req) => {
       const ow = Math.min(2000, Math.max(1, Number(t.outW) || 0)), oh = Math.min(2000, Math.max(1, Number(t.outH) || 0));
       const jpg = await tileJpeg(b64ToBytes(body.jpg_b64), { x: n(t.x), y: n(t.y), w: n(t.w) || 1, h: n(t.h) || 1, outW: ow, outH: oh }, 85, String(body.mark));
       return J({ ok: true, jpg_b64: bytesToB64(jpg) });
+    }
+    // ── A PDF'S TEXT LAYER, A FEW PAGES AT A TIME, FOR analyze_drawing (17 Nov 2026; _shared/drawing_plan.ts) ──────────
+    // 'strips': the page count, each page's words, printed lines and title-strip seeds; 'boxes': each page boxed with the
+    // whole set's strip seeds. Reads nothing but the bytes it is sent; records and uploads nothing.
+    if (body.mode === 'plan') {
+      if (typeof body.original_b64 !== 'string' || !body.original_b64) return J({ ok: false, error: 'original_b64_required' }, 400);
+      const from = Math.max(0, Math.floor(Number(body.from) || 0));
+      const to = Math.min(from + PLAN_MAX_PAGES_PER_CALL, Math.max(from + 1, Math.floor(Number(body.to) || 0)));
+      const bytes = b64ToBytes(body.original_b64);
+      if (body.step === 'boxes') {
+        const list = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+        return J({ ok: true, ...(await planBoxes(bytes, from, to, list(body.seed_terms), list(body.set_seeds))) });
+      }
+      return J({ ok: true, ...(await planStrips(bytes, from, to)) });
     }
     if (body.mode === 'ink') {
       if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64) return J({ ok: false, error: 'jpg_b64_required' }, 400);

@@ -6,14 +6,14 @@
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,516-line index.ts split into modules, a pure move).
 import { clearerCopyAsk } from '../../_shared/clearer_copy.ts';
 import { SAFE_UPLOAD, SAFE_SHEET, SAFE_DOCS } from '../../_shared/attachment.ts';
-import { seedTerms, titleBlockBoxes } from '../../_shared/anonymise.ts';
+import { seedTerms } from '../../_shared/anonymise.ts';
 import { supplierBoxes } from '../../_shared/supplier_copy.ts';
 import { cadSupplierBoq, dxfTextOf } from '../../_shared/cad_identity.ts';
 import { PDF_PREVIEWS_ONLY, budgetNote, cadNote, cutByClock, fileHeldNote, drawingHandoff, heldRun, pagesHeldForTime, timeNote } from '../drawing_hold.ts';
 import { DRAWING_DEADLINE, eachPageInTime } from '../../_shared/drawing_deadline.ts';
 import { isPhotoOrScan, visionCountBody, applyVisionCounts } from '../vision_count_wire.ts';
 import { documentLocale } from '../../_shared/registered_locale.ts';
-import { linesFromRuns, pdfPages } from '../../_shared/pdf_text_positions.ts';
+import { readPdfPlan } from '../../_shared/drawing_plan.ts';
 import { isQuotationReading, looksPriced } from '../../drawing_boq/quotation_gate.ts';
 import { pricedRoute } from '../lib/priced_document.ts';
 import { understoodMessage } from '../lib/what_was_understood.ts';
@@ -23,7 +23,7 @@ import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from
 import { cadJobNeedsRedispatch, claimCadDispatch } from '../cad_dispatch.ts';
 import { PHOTOS_PER_DAY, photosToday, recordSitePhotos } from '../../_shared/site_photos.ts';
 import { type ActionCtx, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
-import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, queueCadRead, recordHeld, redactCad, scheduleTables, storeOriginal } from '../lib/drawings.ts';
+import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, pdfPlanCall, queueCadRead, recordHeld, redactCad, scheduleTables, storeOriginal } from '../lib/drawings.ts';
 
 /** analyze_drawing answers inside this (ms from its request), 10 s before the 150 s edge wall. See the action below. */
 export const ANALYZE_DRAWING_BUDGET_MS = 140_000;
@@ -272,15 +272,18 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         let pdfWords = -1;
         // The PDF's own text lines: the party terms of a priced document are read from them (drawing_boq/quotation_gate.ts).
         let pdfLines: string[] = [];
+        // THE PDF IS READ OFF THIS REQUEST, PAGE BY PAGE (17 Nov 2026, sales_engineer; _shared/drawing_plan.ts has the
+        // measurement). Decoding the whole original and boxing every title block here ran customer_api past the edge CPU cap
+        // (546 at 3.1 s CPU, an 8-sheet set and one sheet of it alike), so no drawing was analysed. drawing_redact reads each
+        // page in a worker of its own (mode 'plan') and this merges the answers into the same verdict. No answer = the old
+        // parse failure: no server boxes.
         if (/pdf/i.test(mime) && body.original_b64) {
-          try {
-            const bytes = Uint8Array.from(atob(String(body.original_b64).replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
-            const pp = await pdfPages(bytes, undefined, { layers: false });
-            pdfWords = pp.reduce((n, pg) => n + pg.runs.length, 0);
-            pdfLines = linesFromRuns(pp).split('\n').map((l) => l.trim()).filter(Boolean);
-            const tb = titleBlockBoxes(pp, seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }));
+          const plan = await readPdfPlan(pdfPlanCall(secret, String(body.original_b64), analyzeAt + ANALYZE_DRAWING_BUDGET_MS), seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }));
+          if (plan) {
+            const tb = plan.tb;
+            pdfWords = plan.pdfWords; pdfLines = plan.pdfLines;
             serverBoxes = supplierBoxes(tb, manualBoxes, images.length); floorSeeds = [...new Set([...floorSeeds, ...tb.setSeeds])];
-          } catch (_e) { serverBoxes = null; }
+          } else serverBoxes = null;
         }
         manualBoxes = serverBoxes;
         // A PRICED DOCUMENT IS NEVER PICTURED FOR A SUPPLIER (13 Nov 2026, sales_engineer; anonymity audit A, L2; founder ruling
