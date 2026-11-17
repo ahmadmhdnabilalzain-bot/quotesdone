@@ -244,6 +244,44 @@ Deno.test('a reading that lands stores its questions once: a re-read neither dup
   assertEquals(t.supplier_capabilities[0].services, [], 'a reading writes no service');
 });
 
+// THE QUESTIONS ARE THERE WHEN THE TAB IS TOLD THE PROFILE IS READ (paid certification of 17 Nov 2026): the Services tab's poll stops
+// on the first answer whose profile is no longer 'reading' and draws it. The questions were stored ~190 ms after that write, and run 1
+// J10 (the manpower supplier's "What types of staff do you supply?") and run 2 J1 (the umbrella card with plumbing.drainage) were
+// walked with no card. The store that lays the reading must find its questions already stored, and a store that is 'moved' and laid
+// again asks nothing twice.
+Deno.test('the reading\'s questions are stored before the write that says his profile is read, once even when that write is moved', async () => {
+  const { admin, t } = memDb({ supplier_capabilities: [{ supplier_id: 7, services: [], source_docs: {} }] });
+  const store = sourceDocsStoreRpc(() => t.supplier_capabilities[0], (n) => Object.assign(t.supplier_capabilities[0], n));
+  const seen: { questions: number }[] = [];
+  let moveOnce = true;
+  const rpc = async (fn: string, a: Record<string, unknown>) => {
+    const laid = fn === 'fn_supplier_source_docs_store' && !!(a.p_source_docs as Row)?.reading;
+    if (laid) seen.push({ questions: t.supplier_service_question.length });
+    // another read wrote first, once: the row moves under this writer and it lays the same reading again
+    if (laid && moveOnce) { moveOnce = false; t.supplier_capabilities[0].source_docs = { ...(t.supplier_capabilities[0].source_docs as Row), v: 99 }; }
+    return store(fn, a);
+  };
+  const a = { ...admin, rpc, storage: { from: () => ({ download: async () => ({ data: null }), upload: async () => ({ error: null }) }) } };
+  const quote = 'We supply staff and similar services to companies across the Emirates.';
+  const tax = fakeTaxonomy(['labour_supply'], ['labour_supply.general', 'labour_supply.skilled']);
+  let reads = 0;
+  const readProfile: ProfileReader = async (docs, company) => {
+    reads++;
+    const r = await readInTwoSteps(docs, company, tax, (step) => Promise.resolve({ ok: true as const, content: step === 'read'
+      ? JSON.stringify({ summary: 'A staffing company.', evidence: [], vague: [{ quote, why: 'no kind of staff', ask: 'What types of staff do you supply?',
+          options: [{ label: 'General labour', trade: 'labour_supply' }, { label: 'Skilled labour', trade: 'labour_supply' }] }], also_ask: [], licence: { covers_profile: 'no_licence', note: '' } })
+      : JSON.stringify({ map: [{ i: 1, keys: ['labour_supply.general'] }, { i: 2, keys: ['labour_supply.skilled'] }] }) }));
+    return r.ok ? { ...r, taxonomy: tax, implications: [] } : r;
+  };
+  const doc = (): DocEvidence => ({ path: 'profiles/7/p.pdf', name: 'ZZ DEMO profile.pdf', kind: 'profile', status: 'read', read_at: '2026-11-12T09:00:00Z', text: quote, trades: [] } as DocEvidence);
+  assert((await proposeFromRead(a, 7, [doc()], { readProfile }, ['ZZ DEMO Staffing', null])).ok);
+  assertEquals(reads, 1, 'the moved store lays the same reading again, without asking the model again');
+  assertEquals(seen.length, 2, 'the first store was moved, the second laid the reading');
+  assert(seen.every((s) => s.questions === 1), `every store that lays the reading finds its question already stored: ${JSON.stringify(seen)}`);
+  assertEquals(t.supplier_service_question.map((r) => `${r.kind}:${r.status}`), ['vague:open'], 'asked once');
+  assert(!!(t.supplier_capabilities[0].source_docs as Row).reading, 'and the reading is stored');
+});
+
 Deno.test('a trade-wide shown card is stored only from two captions of that trade, never from a brand line (measured on H09 and H10)', () => {
   const pro = draft('shown', { quote: 'DHA fit-out approvals', doc: 'p.pdf', trade: 'pro_government_services', words: ['DHA fit-out approvals'] },
     [{ key: 'pro_government_services.employment_visas_work_permits', label_en: 'Employment visas' }]);

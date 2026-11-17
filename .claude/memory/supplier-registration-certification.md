@@ -127,3 +127,11 @@ Related: [[a-journey-step-is-proved-by-its-outcome]], [[the-registration-walk-re
   word with the item ("booster pump", "stucco"). Without that last condition (review of 16 Nov) a genuine second trade named once on a mixed line
   was dropped: an electrician's generator supply, a fit-out line's flooring. On recorded.json it drops nothing (H07 stays known-wrong: the 12 Nov
   catalogue had no "sticker" alias; today's drops it); any looser rule dropped 5 must-find services in prose lines (H13, H15).
+
+- **Paid round 17 Nov 04:53 (after #2028): run 1 J10 "the card his profile calls for is asked" and run 2 J1 "must not shown:
+  plumbing.drainage" FAILED, both one cause, not #2028.** The store held the cards (J10's vague "What types of staff do you supply?" with
+  the founder's labour_supply chips; J1's umbrella card carrying plumbing.drainage, which is how both 16 Nov J1 runs showed drainage) but
+  the walk saw none: `proposeFromRead` stored the questions ~190 ms AFTER the write that turns the profile from 'reading' to 'read', and the
+  tab's poll stops on that answer (6 of 26 journeys with stored questions showed none, 2 of them on 16 Nov). The reading itself was right:
+  `rejected` [] on J1, the vague card drafted on J10, drainage never a screen-1 item on 16 Nov either. Fixed by storing the questions
+  first (branch `sales_engineer-a-manpower-supplier-is-asked-what-staff-he-supplies`).
