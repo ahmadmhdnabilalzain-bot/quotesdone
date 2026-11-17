@@ -48,6 +48,7 @@
 //     leads); the form always sends the constant 'supplier', so it is written only where the lead has none.
 //   * index.ts `claim` (/portal?t=) writes under the same guard, so a website sign-up and a token claim racing for
 //     one listing have exactly one winner too.
+import { whereAddress } from '../_shared/address_filter.ts';
 import { COMPANY_ALREADY_REGISTERED, isDuplicateCompany, registrationRefusal, type PgError } from '../_shared/duplicate_company.ts';
 import { SANCTIONED_REGISTRATION_REFUSAL } from '../_shared/sanctioned.ts';
 import { isFixtureLead } from '../_shared/demo_identity.ts';
@@ -286,7 +287,7 @@ export async function createCompany(admin: Db, email: string, body: Record<strin
   const probes = typed ? listingProbes(name) : [];
   const [own, byEmail, provenRead, { data: twins }, listingsRead] = await Promise.all([
     admin.from('leads').select('id').eq('claimed_by', email).maybeSingle(),
-    admin.from('leads').select('id,claimed,claimed_by,business_role').ilike('email', ilikeExact(email)).limit(2),
+    whereAddress(admin.from('leads').select('id,claimed,claimed_by,business_role'), 'email', email).limit(2),
     deps.emailProven(email),
     typed ? admin.from('leads').select('id').eq('claimed', true).ilike('company_name', ilikeExact(name.replace(/\s+/g, ' '))).limit(1) : Promise.resolve({ data: [], error: null }),
     probes.length ? probes.reduce((q, re) => q.filter('company_name', 'imatch', re), admin.from('leads').select(LISTING_COLUMNS).is('claimed_by', null)).limit(LISTING_LIMIT) : Promise.resolve({ data: [], error: null }),

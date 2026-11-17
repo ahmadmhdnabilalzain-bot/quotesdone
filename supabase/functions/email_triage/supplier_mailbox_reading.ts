@@ -32,6 +32,7 @@
 // prevented by: email_triage/supplier_mailbox_reading.test.ts (the info@ and management@ cases)
 // prevented by: email_triage/supplier_mailbox_reading.test.ts, scripts/e2e/supplier_mailbox_reply_gate_sql.mjs
 import { parseJson } from '../_shared/model_json.ts';
+import { whereAddress } from '../_shared/address_filter.ts';
 import { INVITATION_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { untrustedBlock, untrustedMail } from '../_shared/untrusted.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
@@ -181,12 +182,11 @@ export function parseReading(content: string | null | undefined): { reading: Rea
 export async function loadCorrespondence(admin: Db, m: Mail): Promise<ThreadItem[] | null> {
   const addr = senderAddress(m.from_email);
   if (!addr) return [];
-  const esc = addr.replace(/[\\%_]/g, (c) => '\\' + c);
   const before = m.created_at || new Date().toISOString();
   const [ins, outs] = await Promise.all([
-    admin.from('inbound_messages').select('id,created_at,subject,body').ilike('from_email', '%' + esc + '%').neq('id', m.id)
+    whereAddress(admin.from('inbound_messages').select('id,created_at,subject,body'), 'from_email', addr).neq('id', m.id)
       .lte('created_at', before).order('created_at', { ascending: false }).limit(THREAD_ITEMS),
-    admin.from('notifications').select('id,created_at,subject,body,type,dedupe_key,status').eq('channel', 'email').ilike('to_email', esc)
+    whereAddress(admin.from('notifications').select('id,created_at,subject,body,type,dedupe_key,status').eq('channel', 'email'), 'to_email', addr)
       .lte('created_at', before).order('created_at', { ascending: false }).limit(THREAD_ITEMS),
   ]);
   if (ins.error || outs.error) return null;

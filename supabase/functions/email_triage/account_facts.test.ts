@@ -15,14 +15,14 @@ Deno.test('supplier facts carry only their own quote', () => {
 });
 Deno.test('an unknown sender, or an address on two accounts, gets no account data and no read', async () => {
   let reads = 0;
-  const db = { from: () => { reads++; const q: any = { select: () => q, ilike: () => q, limit: async () => ({ data: [{ id: 1 }, { id: 2 }] }) }; return q; }, rpc: () => { throw new Error('no'); } };
+  const db = { from: () => { reads++; const q: any = { select: () => q, ilike: () => q, eq: () => q, limit: async () => ({ data: [{ id: 1 }, { id: 2 }] }) }; return q; }, rpc: () => { throw new Error('no'); } };
   assertEquals(await accountFacts(db, 'x@example.invalid', null), '');
   assertEquals(reads, 0);
   assertEquals(await accountFacts(db, 'x@example.invalid', 'customer'), '');
 });
 
 const custDb = () => { let reads = 0; const db: any = { reads: () => reads,
-  from: () => { reads++; const q: any = { select: () => q, ilike: () => q, limit: async () => ({ data: [{ id: 'c1' }] }) }; return q; },
+  from: () => { reads++; const q: any = { select: () => q, ilike: () => q, eq: () => q, limit: async () => ({ data: [{ id: 'c1' }] }) }; return q; },
   rpc: async (fn: string) => ({ data: fn === 'fn_customer_inquiry_facts' ? [{ ref: 'i1', category: 'gypsum', status: 'quoted', quotes_received: 1 }] : null, error: null }) }; return db; };
 
 Deno.test('DMARC/aligned pass: the account is given', async () => {
@@ -146,7 +146,7 @@ Deno.test('a customer\'s open refund and dispute reach the e-mail facts; none, o
   assert(t.includes('HIS MONEY CASES') && t.includes('QD-RF-7') && !t.includes('"disputes"'), t);
   assertEquals(moneyCasesFact({ refunds: [], disputes: [], being_read: [], revealed_jobs: [] }), '');
   assertEquals(moneyCasesFact(null), '');
-  const db: any = { from: () => { const q: any = { select: () => q, ilike: () => q, limit: async () => ({ data: [{ id: 'c1' }] }) }; return q; },
+  const db: any = { from: () => { const q: any = { select: () => q, ilike: () => q, eq: () => q, limit: async () => ({ data: [{ id: 'c1' }] }) }; return q; },
     rpc: async (fn: string) => fn === 'fn_customer_money_cases' ? { data: null, error: { message: 'missing' } } : { data: [{ ref: 7, status: 'sent' }], error: null } };
   const f = await accountFacts(db, 'a@example.invalid', 'customer');
   assert(f.includes('THE SENDER IS A REGISTERED CUSTOMER') && !f.includes('MONEY CASES'), f);

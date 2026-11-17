@@ -1,5 +1,6 @@
 // resilience_ping ticks owned by the it_engineer seat: the 15-minute integrations tick, the morning inbox placement check and the Microsoft 365 reply readers. Moved out of ticks/it_engineer.ts unchanged (9 Nov 2026);
 // the order the steps run in is still set in resilience_ping/index.ts (STEP_RUN).
+import { normalEmail } from '../../../_shared/address_filter.ts';
 import { timedFetch } from '../../../_shared/timed_fetch.ts';
 import { integrationItems } from '../../../_shared/integration_watch.ts';
 import { placementTick } from '../../../_shared/inbox_placement.ts';
@@ -97,7 +98,7 @@ async function m365Sender(address: string): Promise<SenderKind> {
   if (own.error || rel.error) throw new Error('sender lookup failed');
   if (own.data === true || rel.data === 'staff') return 'founder';
   if (rel.data) return 'known';
-  const { data, error } = await admin.from('leads').select('id').ilike('claimed_by', address.replace(/[\\%_]/g, '\\$&')).limit(1);
+  const { data, error } = await admin.from('leads').select('id').eq('claimed_by', normalEmail(address)).limit(1);
   if (error) throw new Error('sender lookup failed');
   return data?.length ? 'known' : null;
 }

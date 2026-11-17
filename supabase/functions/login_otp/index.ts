@@ -182,8 +182,9 @@ async function mintSession(email: string, emailProven: boolean, facts: AccountFa
 // two branches, so +971 50 931 9355 and 0509319355 both land.
 async function resolveAdminEmailByPhone(e164: string): Promise<string | null> {
   const admins = (await sec('admin_mfa_phone') || '').split(',').map((s) => s.replace(/\D/g, '')).filter((s) => s.length >= 9);
-  const last9 = e164.replace(/\D/g, '').slice(-9);
-  if (!admins.some((a) => a.slice(-9) === last9)) return null;
+  // THE WHOLE NUMBER, NOT ITS LAST NINE DIGITS (security review 17 Nov 2026): +44 7501 234567 and +1 650 123 4567 end in the
+  // same nine digits as +971 50 123 4567. The holder of one could take the other's code and his session.
+  if (!admins.some((a) => toE164(a) === e164)) return null;
   const first = (await sec('admin_emails') || '').split(',')[0]?.trim().toLowerCase();
   return first || null;
 }
@@ -213,11 +214,12 @@ async function resolveAdminEmailByPhone(e164: string): Promise<string | null> {
 type PhoneOwner = { email: string } | { ambiguous: true } | null;
 async function resolveEmailByPhone(kind: string, e164: string): Promise<PhoneOwner> {
   if (kind === 'admin') { const e = await resolveAdminEmailByPhone(e164); return e ? { email: e } : null; }
-  const last9 = e164.replace(/\D/g, '').slice(-9);
+  // the whole E.164 number, as every verified-phone writer stores it (kyc, mobile_otp): a number abroad that ends in the same
+  // nine digits is somebody else (security review 17 Nov 2026)
   const col = kind === 'supplier' ? 'claimed_by' : 'email';
   const q = kind === 'supplier'
-    ? admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).eq('owner_phone_verified', true).eq('owner_email_verified', true).ilike('phone', '%' + last9).limit(5)
-    : admin.from('customers').select('email').not('email', 'is', null).eq('phone_verified', true).eq('email_verified', true).ilike('phone', '%' + last9).limit(5);
+    ? admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).eq('owner_phone_verified', true).eq('owner_email_verified', true).eq('phone', e164).limit(5)
+    : admin.from('customers').select('email').not('email', 'is', null).eq('phone_verified', true).eq('email_verified', true).eq('phone', e164).limit(5);
   const { data } = await q;
   const owners = [...new Set((data || []).map((r: any) => String(r[col] || '').trim().toLowerCase()).filter(Boolean))];
   if (owners.length > 1) return { ambiguous: true };
@@ -229,11 +231,9 @@ async function resolveEmailByPhone(kind: string, e164: string): Promise<PhoneOwn
 // verify answers role_conflict instead of a session. Asked of the account tables only, like the resolver.
 async function otherRoleByPhone(kind: string, e164: string): Promise<'supplier' | 'customer' | null> {
   if (kind !== 'customer' && kind !== 'supplier') return null;
-  const last9 = e164.replace(/\D/g, '').slice(-9);
-  if (last9.length < 9) return null;
   const { data } = kind === 'customer'
-    ? await admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).eq('owner_phone_verified', true).eq('owner_email_verified', true).ilike('phone', '%' + last9).limit(1)
-    : await admin.from('customers').select('email').not('email', 'is', null).eq('phone_verified', true).eq('email_verified', true).ilike('phone', '%' + last9).limit(1);
+    ? await admin.from('leads').select('claimed_by').not('claimed_by', 'is', null).eq('owner_phone_verified', true).eq('owner_email_verified', true).eq('phone', e164).limit(1)
+    : await admin.from('customers').select('email').not('email', 'is', null).eq('phone_verified', true).eq('email_verified', true).eq('phone', e164).limit(1);
   return data && data.length ? (kind === 'customer' ? 'supplier' : 'customer') : null;
 }
 const ROLE_CONFLICT_MSG = { supplier: 'This mobile number is registered to a supplier account. Please use the Supplier portal to sign in.', customer: 'This mobile number is registered to a customer account. Please use the customer app to sign in.' };

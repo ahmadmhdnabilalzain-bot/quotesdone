@@ -3,6 +3,7 @@
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 1,214-line index.ts split into modules, a pure move).
 import { requireInternal } from '../../_shared/internal_auth.ts';
 import { adminCaller, type TwoStepBody } from '../../_shared/admin_session.ts';
+import { customerIdOf } from '../../_shared/address_filter.ts';
 import { admin, sec } from '../context.ts';
 
 // THE CREDENTIAL DECIDES THE SEAT, NOT THE CALLER. Same rule as ceo_agent, and written this way from
@@ -51,6 +52,8 @@ export async function whoami(req: Request, body: Record<string, unknown>): Promi
   if (a.kind === 'admin') return { kind: 'founder' };
   if (a.kind !== 'not_admin') return null;
   const email = a.email;
-  const { data: cust } = await admin.from('customers').select('id').ilike('email', email).maybeSingle();
-  return cust?.id ? { kind: 'customer', customerId: String(cust.id), email } : null;
+  // EXACT, NEVER A PATTERN (security audit 17 Nov 2026, finding 1): `.ilike('email', email)` let `john_smith@x.com`
+  // resolve to the customer `john.smith@x.com`. _shared/address_filter.ts.
+  const customerId = await customerIdOf(admin, email);
+  return customerId ? { kind: 'customer', customerId, email } : null;
 }

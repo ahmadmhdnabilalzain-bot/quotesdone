@@ -15,6 +15,7 @@
 //      (reasoned_delivery.ts, channel 'email'). It goes out through fn_inbox_send - the Inbox's own send, now
 //      threaded with In-Reply-To - and send_outbox is woken at once rather than on its 2-minute poll.
 // A mail that asks for a person gets a reply saying so and a pending inbound_review for the founder's Inbox.
+import { customerIdOf, whereAddress } from '../_shared/address_filter.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { makeLlm, SONNET_FIRST } from '../_shared/llm.ts';
@@ -69,8 +70,8 @@ async function mailForbidden(m: Mail, audience: 'customer' | 'supplier'): Promis
   if (audience === 'supplier' && m.lead_id) return preRevealIdentities(admin, { leadId: Number(m.lead_id) });
   const addr = String(m.from_email || '').trim();
   if (!addr) return [];
-  const { data } = await admin.from('customers').select('id').ilike('email', addr.replace(/[\\%_]/g, (c) => '\\' + c)).limit(1).maybeSingle();
-  return data?.id ? preRevealIdentities(admin, { customerId: String(data.id) }) : [];
+  const customerId = await customerIdOf(admin, addr);   // exact, never a pattern (_shared/address_filter.ts)
+  return customerId ? preRevealIdentities(admin, { customerId }) : [];
 }
 
 // HIS INSTRUCTIONS BY E-MAIL (16 Nov 2026, sales_engineer; SUPPLIER holes 2 and 7, FAILURES 2): "not for me", "stop sending me
@@ -300,7 +301,7 @@ Deno.serve(observe('email_triage', async (req) => {
         const { data: rel } = await admin.rpc('fn_mail_sender_known', { p_email: String(m.from_email || '') });
         // a lead who opted out (email_suppressions, exact address) is never answered here (review of #1699)
         const fromAddr = String(m.from_email || '').trim().toLowerCase();
-        const { data: sup } = fromAddr ? await admin.from('email_suppressions').select('email').ilike('email', fromAddr.replace(/[\\%_]/g, (c) => '\\' + c)).limit(1) : { data: [] };
+        const { data: sup } = fromAddr ? await whereAddress(admin.from('email_suppressions').select('email'), 'email', fromAddr).limit(1) : { data: [] };
         if (invitationReplyAnswerable(m, rel, !!(sup && sup.length))) { skip = noAutoReply({ ...m, to_email: '' }, founder); invitationReply = !skip; }
         else if (tenantMailAnswerable(m, !!(sup && sup.length))) skip = noAutoReply({ ...m, to_email: '' }, founder);
         // anyone else on the supplier mailbox whose READING allowed an answer (step 0 above: a supplier or a customer; every
@@ -310,8 +311,8 @@ Deno.serve(observe('email_triage', async (req) => {
       // A reply never goes to the founder: fn_is_founder_own_inbox also names his personal inboxes, which admin_emails does not.
       if (!skip) { const { data: own } = await admin.rpc('fn_is_founder_own_inbox', { p_addr: String(m.from_email || '') }); if (own === true) skip = 'founder'; }
       if (!skip) {
-        const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true }).eq('type', 'inbound_reply')
-          .ilike('to_email', String(m.from_email || '').trim().replace(/[\\%_]/g, (c) => '\\' + c)).gte('created_at', new Date(Date.now() - 86_400_000).toISOString());
+        const { count } = await whereAddress(admin.from('notifications').select('id', { count: 'exact', head: true }).eq('type', 'inbound_reply'),
+          'to_email', m.from_email).gte('created_at', new Date(Date.now() - 86_400_000).toISOString());
         if (overDailyAnswerCap(count)) skip = 'daily_answer_cap';
       }
       // two machines never answer each other for ever: 3 answers in the hour with no human-sounding mail between (auto_reply_loop.ts)

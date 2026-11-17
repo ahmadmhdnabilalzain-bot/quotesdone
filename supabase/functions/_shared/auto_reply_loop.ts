@@ -16,6 +16,7 @@
 // repeats, word for word, a message of theirs already in the window (a responder sends the same text every time; a person
 // rarely sends the same 20+ characters twice). Anything else is human: a single human message resets the count.
 // prevented by: _shared/auto_reply_loop.test.ts
+import { whereAddress } from './address_filter.ts';
 
 export const LOOP_CAP = 3;
 export const LOOP_WINDOW_MS = 60 * 60_000;
@@ -64,7 +65,6 @@ export function loopVerdict(events: readonly LoopEvent[], now: number = Date.now
 // ---- email: the hour of one address, read from the outbox and the inbox (email_triage, beside the daily answer cap) ----------
 // deno-lint-ignore no-explicit-any
 type Admin = any;
-const likeExact = (s: string) => s.trim().replace(/[\\%_]/g, (c) => '\\' + c);
 
 /** Whether an automatic answer to this mail would be one too many. When it would, an it_engineer finding is raised here.
  *  A read that fails answers false (the daily cap and the header rules still stand): the cap may never stop a real answer
@@ -75,9 +75,9 @@ export async function mailLoopHeld(admin: Admin, m: { id?: unknown; from_email?:
   const since = new Date(now - LOOP_WINDOW_MS).toISOString();
   try {
     const [ours, theirs] = await Promise.all([
-      admin.from('notifications').select('created_at,sent_at').eq('type', 'inbound_reply').in('status', ['sent', 'sending'])
-        .ilike('to_email', likeExact(addr)).gte('created_at', since).limit(200),
-      admin.from('inbound_messages').select('id,created_at,subject,body').ilike('from_email', likeExact(addr)).gte('created_at', since).limit(200),
+      whereAddress(admin.from('notifications').select('created_at,sent_at').eq('type', 'inbound_reply').in('status', ['sent', 'sending']),
+        'to_email', addr).gte('created_at', since).limit(200),
+      whereAddress(admin.from('inbound_messages').select('id,created_at,subject,body'), 'from_email', addr).gte('created_at', since).limit(200),
     ]);
     if (ours.error || theirs.error) return false;
     const events: LoopEvent[] = [

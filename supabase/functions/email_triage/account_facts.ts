@@ -5,6 +5,7 @@
 // 16 Nov 2026 (ledger 1711): a customer's requests are the ONE reading every channel gives (fn_customer_inquiry_facts: what
 // he asked, each quote's letter and price as his portal shows it), with the same rule (_shared/own_request_facts.ts). It read
 // fn_customer_stats before: a status and a count per request, under the request's uuid instead of the number he quotes.
+import { customerIdOf, whereAddress } from '../_shared/address_filter.ts';
 import { generaliseOwnRequestFacts, OWN_REQUEST_RULE } from '../_shared/own_request_facts.ts';
 // deno-lint-ignore no-explicit-any
 type Db = any;
@@ -118,21 +119,20 @@ export async function accountFacts(admin: Db, email: string, relation: unknown):
   if (!e) return '';
   try {
     if (relation === 'customer') {
-      const { data: custs } = await admin.from('customers').select('id').ilike('email', e.replace(/[\\%_]/g, (c) => '\\' + c)).limit(2);
-      if (!custs || custs.length !== 1) return '';   // exactly one account, or nothing
+      const customerId = await customerIdOf(admin, e);   // exactly one account, or nothing; exact, never a pattern
+      if (!customerId) return '';
       const [{ data: facts, error }, money] = await Promise.all([
-        admin.rpc('fn_customer_inquiry_facts', { p_customer: custs[0].id, p_limit: 10 }),
+        admin.rpc('fn_customer_inquiry_facts', { p_customer: customerId, p_limit: 10 }),
         // his money cases beside his requests; a failed read adds nothing (never a reason to leave the requests out)
-        Promise.resolve(admin.rpc('fn_customer_money_cases', { p_customer: custs[0].id })).then((x: { data?: unknown; error?: unknown }) => (x?.error ? null : x?.data ?? null), () => null),
+        Promise.resolve(admin.rpc('fn_customer_money_cases', { p_customer: customerId })).then((x: { data?: unknown; error?: unknown }) => (x?.error ? null : x?.data ?? null), () => null),
       ]);
       if (error) return '';
       return customerFacts(Array.isArray(facts) ? facts : [], money);
     }
     if (relation === 'supplier') {
-      const exact = e.replace(/[\\%_]/g, (c) => '\\' + c);
-      let { data: leads } = await admin.from('leads').select('id,company_name,claimed,claim_token').ilike('email', exact).limit(2);
+      let { data: leads } = await whereAddress(admin.from('leads').select('id,company_name,claimed,claim_token'), 'email', e).limit(2);
       // the account holder's address may differ from the listing's (fn_mail_sender_known reads claimed_by too)
-      if (leads && !leads.length) ({ data: leads } = await admin.from('leads').select('id,company_name,claimed,claim_token').ilike('claimed_by', exact).limit(2));
+      if (leads && !leads.length) ({ data: leads } = await admin.from('leads').select('id,company_name,claimed,claim_token').eq('claimed_by', e).limit(2));
       if (!leads || leads.length !== 1) return '';
       const sup = leads[0];
       if (!sup.claimed) return unregisteredSupplierFacts(String(sup.company_name || ''), sup.claim_token ? `${SITE}/portal?t=${sup.claim_token}` : `${SITE}/portal`);
