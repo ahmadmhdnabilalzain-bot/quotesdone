@@ -160,6 +160,7 @@ const AUTHENTICATED_BY_DESIGN = {
 
 let rows = [], totals = {}, stillOpen = [], anonReadable = [], objViews = [], clientWritable = [];
 let clientMaintenance = [], clientSequences = [], exposedSchemas = null, invokerCallsNet = [];
+let definerOutsidePublic = [], realtimePublished = [];
 if (hasToken) {
   const { sql, PROJECT_REF } = await import('../lib/db.mjs');
   // PRE-LAUNCH AUDIT, 27 Oct 2026 (it_engineer, ledger 1143; docs/reports/security/prelaunch_audit_27_oct.md).
@@ -191,6 +192,26 @@ if (hasToken) {
      where n.nspname in ('public', 'graphql_public') and not p.prosecdef and p.prosrc ~* '\\mnet\\.'
        and (has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE'))
      order by 1`);
+  // EVERY SCHEMA THIS PROJECT OWNS, NOT ONLY public (17 Nov 2026, security audit finding 4). The sweeps below asked
+  // about public alone, so holdout_v2.fn_run_pending -- SECURITY DEFINER, writing into public, executable by anon and
+  // authenticated through PUBLIC -- was invisible here. A schema the platform owns (supabase_admin: auth, storage,
+  // realtime, vault, cron, net, graphql...; pgbouncer) is Supabase's to grant and is left out; every other schema is
+  // ours. Measured 17 Nov: that one routine was the only row in any of them.
+  definerOutsidePublic = await sql(`
+    select p.oid::regprocedure::text as sig,
+           has_function_privilege('anon',          p.oid, 'EXECUTE') as anon_can,
+           has_function_privilege('authenticated', p.oid, 'EXECUTE') as authed_can
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where p.prosecdef and n.nspname <> 'public'
+       and n.nspname not in ('pg_catalog', 'information_schema') and n.nspname not like 'pg\\_%'
+       and pg_get_userbyid(n.nspowner) not in ('supabase_admin', 'pgbouncer')
+       and (has_function_privilege('anon', p.oid, 'EXECUTE') or has_function_privilege('authenticated', p.oid, 'EXECUTE'))
+     order by 1`);
+  // What Realtime would stream (security audit finding 3): a table in this publication is delivered to any session
+  // whose policies admit it, with no two-step session asked. Nothing in src/ or the functions subscribes (17 Nov).
+  realtimePublished = (await sql(`
+    select tablename from pg_publication_tables
+     where pubname = 'supabase_realtime' and schemaname = 'public' order by 1`)).map((r) => r.tablename);
   const { supabaseAccessToken } = await import('../lib/supabase_token.mjs');
   const res = await fetch(`https://api.supabase.com/v1/projects/${PROJECT_REF}/postgrest`,
                           { headers: { Authorization: `Bearer ${supabaseAccessToken()}` } });
@@ -447,4 +468,34 @@ test('no client-executable SECURITY INVOKER routine calls pg_net', { skip: SKIP 
     'these routines run as their caller, are executable by anon or authenticated, and reference net.*:\n  '
     + found.join('\n  ') + '\nBecause anon can execute net.http_post, such a routine is an SSRF door over PostgREST.'
     + ' Make it SECURITY DEFINER with a pinned search_path and revoke it from public, anon, authenticated.');
+});
+
+// A REVOKE OR A PUBLICATION DROP THAT IS COMMITTED BUT NOT YET APPLIED (17 Nov 2026). Its file waits in
+// scripts/sql/pending/ and goes live after merge, so production still shows the old state while its own branch runs.
+// A routine is excused only when a pending file (not a probe) carries, on its own line, `revoke execute on function
+// <the exact signature> from public, anon, authenticated`; a table only when a pending file drops it from
+// supabase_realtime by name. Once applied, the note goes and the assertion holds with no excuse.
+const PENDING_TEXTS = [...pendingNotes()].filter(([, note]) => !/^\s*A PROBE\b/.test(note)).map(([f]) => {
+  try { return readFileSync(new URL('../../' + f, import.meta.url), 'utf8'); } catch { return ''; }
+});
+const PENDING_REVOKED = new Set(PENDING_TEXTS.flatMap((t) => [...t.matchAll(/^[ \t]*revoke execute on function ([^;]+);/gim)]
+  .map((m) => m[1].replace(/\s+/g, '').toLowerCase().match(/^(.+\))frompublic,anon,authenticated$/))
+  .filter(Boolean).map((k) => k[1])));
+const PENDING_UNPUBLISHED = PENDING_TEXTS.filter((t) => /alter publication supabase_realtime drop table/i.test(t)).join('\n');
+
+test('no SECURITY DEFINER routine in any schema this project owns, outside public, is executable by a client role', { skip: SKIP }, () => {
+  const open = definerOutsidePublic.filter((r) => !PENDING_REVOKED.has(r.sig.replace(/\s+/g, '').toLowerCase()));
+  for (const r of definerOutsidePublic) if (!open.includes(r)) console.log(`      excused while pending: ${r.sig}`);
+  assert.deepEqual(open.map((r) => `${r.sig} (${r.anon_can ? 'anon ' : ''}${r.authed_can ? 'authenticated' : ''})`), [],
+    'these SECURITY DEFINER routines outside public answer anon or authenticated. A missing USAGE on their schema is'
+    + ' the only thing in the way, and one grant removes it. Revoke from public, anon, authenticated (PUBLIC first),'
+    + ' naming every overload; a routine a signed-in client must call belongs in public, reviewed in AUTHENTICATED_BY_DESIGN.');
+});
+
+test('no table in public is published to Realtime', { skip: SKIP }, () => {
+  const open = realtimePublished.filter((t) => !PENDING_UNPUBLISHED.includes(`'${t}'`));
+  assert.deepEqual(open, [],
+    'these tables are in the supabase_realtime publication. Realtime streams their changes to any session its'
+    + ' policies admit, and no policy here asks for the two-step session the admin doors require. Nothing in the'
+    + ' product subscribes; read admin data through the _shared/admin_session.ts doors instead.');
 });

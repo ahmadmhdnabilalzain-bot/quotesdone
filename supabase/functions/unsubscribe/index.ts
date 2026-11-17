@@ -1,12 +1,8 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
+import { unsubscribeTokenMatches } from './token.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 async function sec(k: string) { const { data } = await admin.from('app_secrets').select('value').eq('key', k).maybeSingle(); return data?.value as string | undefined; }
-async function tok(email: string, secret: string) {
-  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(email.toLowerCase()));
-  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 20);
-}
 function page(title: string, msg: string) {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head><body style="margin:0;background:#f6f7f9;font-family:Arial,Helvetica,sans-serif;color:#1f2937"><div style="max-width:480px;margin:60px auto;padding:24px"><div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:28px;text-align:center"><div style="font-weight:800;font-size:20px;color:#0d9488;margin-bottom:14px">Quotes<span style="color:#111827">Done</span></div><div style="font-size:15px;line-height:1.6">${msg}</div></div><div style="text-align:center;color:#9ca3af;font-size:12px;margin-top:14px">QuotesDone — UAE sourcing marketplace</div></div></body></html>`;
 }
@@ -40,10 +36,8 @@ Deno.serve(observe('unsubscribe', async (req) => {
     const [signKey, legacyKey] = await Promise.all([
       sec('unsubscribe_signing_key'), sec('unsubscribe_signing_key_legacy'),
     ]);
-    const tokenOk = !!e && !!t && (
-      (!!signKey   && t === (await tok(e, signKey))) ||
-      (!!legacyKey && t === (await tok(e, legacyKey)))
-    );
+    // Constant-time, against both keys (17 Nov 2026, security audit finding 5; token.ts).
+    const tokenOk = await unsubscribeTokenMatches(e, t, [signKey, legacyKey]);
     if (!tokenOk) {
       // A REFUSED OPT-OUT IS RECORDED, NEVER LOST (19 Oct 2026, customer_support, CS-C09). The 30 Sep audit counted 125
       // refusals in 146 calls and nothing kept the address of any of them, so a real person's opt-out on a rewritten

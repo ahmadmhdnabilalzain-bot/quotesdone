@@ -19,6 +19,8 @@ import { blocksTransactional } from '../_shared/suppression_policy.ts';
 // TWIN: src/components/portal/supplier/uaeMobile.ts — _shared/uae_mobile.ts holds the one regex both
 // sides use, and src/components/portal/supplier/serverCopy.ts owns the EN/AR for `bad_mobile`.
 import { uaeMobile } from '../_shared/uae_mobile.ts';
+import { rateGate } from '../_shared/rate_gate.ts';
+import { checkEmailCode } from './email_code_check.ts';
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
 const FN = Deno.env.get('SUPABASE_URL')! + '/functions/v1';
 const CORS = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, content-type', 'Access-Control-Allow-Methods': 'POST, OPTIONS', 'Content-Type': 'application/json' };
@@ -84,10 +86,12 @@ async function otpKey(): Promise<string> { if (_otpKey) return _otpKey; const k 
 // codes are bound to the signed-in account's email as well as the number: one account's code verifies nothing for another.
 const waDeps: WaCodeDeps = { admin, secret: secCached, hmac: (s) => otpHash(s) };
 async function otpHash(code: string): Promise<string> { const ck = await crypto.subtle.importKey('raw', new TextEncoder().encode(await otpKey()), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); const mac = await crypto.subtle.sign('HMAC', ck, new TextEncoder().encode(code)); return Array.from(new Uint8Array(mac)).map((x) => x.toString(16).padStart(2, '0')).join(''); }
-async function rl(key: string, limit: number, seconds: number): Promise<boolean> {
-  try { const { data, error } = await admin.rpc('rl_check', { p_key: key, p_limit: limit, p_seconds: seconds }); if (error) return true; return data !== false; }
-  catch (_e) { return true; } // limiter unavailable must not lock legitimate users out of account completion
-}
+// FAILS CLOSED (17 Nov 2026, security audit finding 5). It answered "allowed" when rl_check errored or threw, so a
+// database fault lifted the per-IP cap on e-mail code guesses and the spacing of billable code sends at once. A
+// limiter that cannot answer is now 'down': the user is told to try again in a minute (LIMITER_DOWN), as login_otp does.
+const rl = (key: string, limit: number, seconds: number) => rateGate((fn, args) => admin.rpc(fn, args), key, limit, seconds);
+// The code is one the portals already carry copy for in English and Arabic (src/components/portal/supplier/serverCopy.ts).
+const LIMITER_DOWN = { error: 'Something went wrong. Please try again.', code: 'unexpected_error' };
 async function twilioAuth() { const [sid, secret, va] = await Promise.all([secCached('twilio_api_key_sid'), secCached('twilio_api_key_secret'), secCached('twilio_verify_service_sid')]); if (!sid || !secret || !va) return null; return { hdr: 'Basic ' + btoa(sid + ':' + secret), va }; }
 type TwAuth = { hdr: string; va: string };
 // ONE Verify send, ONE check, ONE per-number limit for every channel (14 Sep 2026). send_sms owned
@@ -346,30 +350,40 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       // counted — unlimited guesses at 10^6. Now: cap per caller BEFORE touching the row, fetch the
       // newest live code, compare in code, count the miss, and burn the code on the 5th.
       const vip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
-      if (!(await rl('kyc_verify_email_ip:' + vip, KYC_EMAIL_VERIFY_PER_IP_HOUR, 3600))) {
+      const ipGate = await rl('kyc_verify_email_ip:' + vip, KYC_EMAIL_VERIFY_PER_IP_HOUR, 3600);
+      if (ipGate === 'down') return J(LIMITER_DOWN, 503);
+      if (ipGate === 'limited') {
         await logRun('error', { action, kind, rate_limited: 1, scope: 'verify_ip' }, 'kyc blocked a caller making more than ' + KYC_EMAIL_VERIFY_PER_IP_HOUR + ' email-code attempts in an hour. A real person never reaches this; sustained hits mean someone is guessing codes.');
         return J({ error: 'Too many attempts. Please request a new code.', code: 'too_many_attempts' }, 429);
       }
       // limit(1) + [0], NOT maybeSingle(): a user who pressed send twice has two live rows and
       // maybeSingle() errors on >1 and returns null, which would reject BOTH codes (login_otp's
       // self-inflicted lockout, 21 Jul). limit(1) deterministically takes the newest.
-      const { data: rows } = await admin.from('email_verifications').select('*').eq('email', email).eq('purpose', 'kyc').is('used_at', null).order('created_at', { ascending: false }).limit(1);
-      const row = rows && rows[0];
-      if (!row) return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
-      if (new Date(row.expires_at) < new Date()) return J({ error: 'That code has expired.', code: 'code_expired' }, 400);
-      if ((row.attempts || 0) >= KYC_EMAIL_MAX_ATTEMPTS) {
-        await admin.from('email_verifications').update({ used_at: new Date().toISOString() }).eq('id', row.id);
-        await logRun('error', { action, kind, locked: 1 }, 'kyc burned an email code after ' + KYC_EMAIL_MAX_ATTEMPTS + ' wrong guesses; the user must request a new one. Sustained hits on one account mean someone is guessing.');
+      // ONE GUESS, ONE COUNTED ATTEMPT (17 Nov 2026, security audit finding 5): the count was read, the code compared,
+      // and the count written back from the value read, so guesses sent together all passed the cap. Each guess now
+      // claims its attempt with one conditional update before it is compared (email_code_check.ts).
+      const ev = () => admin.from('email_verifications');
+      const verdict = await checkEmailCode({
+        newest: async () => {
+          const { data: rows } = await ev().select('id,expires_at,attempts,token_hash').eq('email', email).eq('purpose', 'kyc').is('used_at', null).order('created_at', { ascending: false }).limit(1);
+          return (rows && rows[0]) || null;
+        },
+        claim: async (id, from) => {
+          const { data, error } = await ev().update({ attempts: from + 1 }).eq('id', id).eq('attempts', from).is('used_at', null).select('id');
+          return !error && !!data && data.length === 1;
+        },
+        burn: async (id) => { await ev().update({ used_at: new Date().toISOString() }).eq('id', id); },
+        // verified_at: this code was entered RIGHT, the one mark public.fn_email_proven counts (10 Nov 2026,
+        // an_email_is_proven_only_by_a_code_that_was_verified.sql); the burn sets used_at only.
+        verified: async (id) => { const at = new Date().toISOString(); await ev().update({ used_at: at, verified_at: at }).eq('id', id); },
+      }, c, otpHash, KYC_EMAIL_MAX_ATTEMPTS);
+      if (verdict === 'no_code' || verdict === 'wrong') return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400);
+      if (verdict === 'expired') return J({ error: 'That code has expired.', code: 'code_expired' }, 400);
+      if (verdict === 'retry') return J({ error: 'We could not check that code. Please try again.', code: 'verify_failed' }, 409);
+      if (verdict === 'burned') {
+        await logRun('error', { action, kind, locked: 1 }, 'kyc burned an email code after ' + KYC_EMAIL_MAX_ATTEMPTS + ' attempts; the user must request a new one. Sustained hits on one account mean someone is guessing.');
         return J({ error: 'Too many incorrect attempts. Please request a new code.', code: 'code_burned' }, 429);
       }
-      // Only the HMAC is compared (16 Nov 2026): the plaintext `token` fallback for codes issued before 27 Jul
-      // was removed when production held 0 rows with a token (SELECT, 625 rows, 0 without token_hash).
-      const match = !!row.token_hash && (await otpHash(c)) === row.token_hash;
-      if (!match) { await admin.from('email_verifications').update({ attempts: (row.attempts || 0) + 1 }).eq('id', row.id); return J({ error: 'Incorrect or expired code.', code: 'wrong_code' }, 400); }
-      // verified_at: this code was entered RIGHT, the one mark public.fn_email_proven counts (10 Nov 2026,
-      // an_email_is_proven_only_by_a_code_that_was_verified.sql); the burn above sets used_at only.
-      const at = new Date().toISOString();
-      await admin.from('email_verifications').update({ used_at: at, verified_at: at }).eq('id', row.id);
       // 27 Jul 2026: 'state' no longer creates the customers row as a side effect of a read, so this
       // must not assume one exists — an .update() on a missing row silently persists nothing and the
       // user would loop on the verify step forever. Insert it, falling back to update on a race.
@@ -404,7 +418,9 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       // "Send the code on WhatsApp" and "by SMS"; the signed-in user typed this number and picked one.
       // _shared/whatsapp_choice.ts nextChannel: a second request after a WhatsApp code goes by SMS. Resends
       // are spaced by the locked rl_check (one per RESEND_GAP_S per number), checked before Twilio is asked.
-      if (!(await rl('otp_gap:' + phone, 1, RESEND_GAP_S))) return J({ error: 'A code is on its way. Please wait a few seconds before asking for another.', code: 'resend_too_soon', retry_after: RESEND_GAP_S }, 429);
+      const gapGate = await rl('otp_gap:' + phone, 1, RESEND_GAP_S);
+      if (gapGate === 'down') return J(LIMITER_DOWN, 503);
+      if (gapGate === 'limited') return J({ error: 'A code is on its way. Please wait a few seconds before asking for another.', code: 'resend_too_soon', retry_after: RESEND_GAP_S }, 429);
       const { data: lastRow } = await admin.from('phone_verifications').select('code').eq('phone', phone)
         .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
       const pick = nextChannel({ e164: phone, asked: b.channel, lastChannel: channelOfRow(lastRow?.code) });
@@ -447,7 +463,8 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
       }
       const step = failoverStep(status, Date.now() - Date.parse(row.created_at));
       if (step !== 'sms') return J({ ok: true, state: step === 'none' ? 'delivered' : 'waiting' });
-      if (!(await rl('otp_failover:' + sid, 1, 600)) || await phoneRateLimited(phone, email)) return J({ ok: true, state: 'waiting' });
+      // A limiter that is 'down' sends no failover SMS either: the user keeps waiting and can ask again.
+      if ((await rl('otp_failover:' + sid, 1, 600)) !== 'ok' || await phoneRateLimited(phone, email)) return J({ ok: true, state: 'waiting' });
       const vLocale = await registeredLocale(admin, { role: kind, email }, b.lang);
       const x = await verifySend(tw, phone, 'sms', vLocale);
       if (!x.r.ok || x.jd?.status === 'canceled') { await logRun('error', { action, kind, http: x.r.status, wa_status: status }, 'whatsapp failover SMS refused: ' + String(x.jd?.message || x.jd?.status || '').slice(0, 200)); return J({ ok: false, state: 'failed', code: 'sms_send_failed' }, 502); }
