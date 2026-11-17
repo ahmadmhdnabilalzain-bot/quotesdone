@@ -398,7 +398,9 @@
         "https://owa-ceilings.co.uk/product-category/ceiling-grid/",
         "https://www.armstrongceilings.com/commercial/en/commercial-ceilings-walls/mineral-fiber-and-fiberglass-ceiling-tiles.html",
         "https://www.armstrongceilings.com/commercial/en/performance/durable-ceilings/humidity-resistant-ceilings.html",
-        "https://www.designingbuildings.co.uk/wiki/BS_EN_13501-1"
+        "https://www.designingbuildings.co.uk/wiki/BS_EN_13501-1",
+        "https://www.dcd.gov.ae/portal/preventive-safety/uae-fire-and-life-safety-code-of-practice.jsp",
+        "https://approvalsindubai.com/list-of-documents-required-for-dubai-civil-defence-submission/"
       ],
       "confidence": "high",
       "as_of": "2026-09-23",
@@ -453,9 +455,9 @@
         },
         {
           "spec": "MEP cut-outs: who cuts, who supplies",
-          "why_needed_to_price": "Openings for lights and diffusers take labour.",
-          "uae_options": "ceiling contractor cuts; MEP contractor",
-          "follow_up_if": "",
+          "why_needed_to_price": "Every light, AC grille, sprinkler head, smoke detector and speaker in the ceiling is an opening to cut, frame and trim, and the count changes the labour and the coordination with the MEP trades.",
+          "uae_options": "Spotlights or downlights and LED strip in coves; AC supply and return grilles or linear slot diffusers; sprinkler heads and smoke detectors; speakers and access panels. Cut-outs by the ceiling contractor; fittings supplied by the electrical or MEP contractor or by the client.",
+          "follow_up_if": "Ask how many spotlights, which AC grilles must stay, and whether sprinkler heads or smoke detectors are in the area: a new ceiling below them means they are moved down to the new ceiling by a Civil Defence registered fire contractor, which is usually priced separately and follows the approved ceiling layout.",
           "blocking": false
         },
         {
@@ -531,7 +533,7 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for an existing ceiling replacement, to check services and access.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
+      "source_note": "Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page. 17 Nov 2026 (sales_engineer): checklist widened for sales_knowledge_gap #771, what the interview did not ask in the live seat conversation run 35568a84 of 1 Nov 2026: sprinkler heads, smoke detectors, spotlights and AC grilles in the ceiling (entry gypsum:dcd-fitout-submission: sprinkler and detector positions follow the approved layout).",
       "photos_to_ask": [
         {
           "shot": "Inside the false ceiling through an access panel, if one opens",

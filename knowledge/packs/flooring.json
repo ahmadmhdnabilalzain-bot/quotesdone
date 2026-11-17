@@ -12,6 +12,7 @@
         "type and thickness",
         "area in square metres",
         "wear or use class",
+        "carpet construction, fibre and backing (carpet only)",
         "slip resistance",
         "fire classification",
         "subfloor preparation",
@@ -29,7 +30,9 @@
       ],
       "sources": [
         "https://www.dm.gov.ae/municipality-business/",
-        "https://www.dcd.gov.ae/portal/en/home.jsp"
+        "https://www.dcd.gov.ae/portal/en/home.jsp",
+        "https://www.centexbel.be/en/problem-solving/testing/floorcovering-classification-according-en-13072014",
+        "https://associated-weavers.com/en/about-carpet/prodis/en-1307"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
@@ -67,9 +70,19 @@
         {
           "spec": "wear or use class",
           "why_needed_to_price": "Wear and use class decide product grade and price.",
-          "uae_options": "EN 685 classes for resilient and carpet; PEI for tiles.",
+          "uae_options": "EN 1307 classes for carpet (31 moderate, 32 general, 33 heavy commercial use); EN ISO 10874 classes (formerly EN 685) for resilient floors; PEI for glazed tiles.",
           "follow_up_if": "If the area is commercial, ask for heavy use class.",
           "blocking": false
+        },
+        {
+          "spec": "carpet construction, fibre and backing (carpet only)",
+          "why_needed_to_price": "Loop or cut pile, the fibre and the backing decide how a carpet wears under office chairs and what it costs per m2; two quotes for \"carpet tiles\" can be very different products.",
+          "uae_options": "Carpet tiles (commonly 50 x 50 cm, also planks) or broadloom rolls; level loop, textured loop or cut pile; solution-dyed nylon (polyamide), polypropylene or wool blend; bitumen, PVC-free or cushion backing. EN 1307 use class 31 moderate, 32 general or 33 heavy commercial, with a luxury class LC1 to LC5.",
+          "follow_up_if": "An office, corridor or reception with chairs: ask for EN 1307 class 33 and a castor-chair rating; ask the colour and whether a sample is wanted first.",
+          "blocking": false,
+          "not_needed_when": {
+            "text": "the floor chosen is not carpet"
+          }
         },
         {
           "spec": "slip resistance",
@@ -145,7 +158,7 @@
           "spec": "existing floor to remove or overlay",
           "why_needed_to_price": "Removal, disposal and levelling are labour and cost the buyer often forgets.",
           "uae_options": "remove and dispose; overlay; new screed",
-          "follow_up_if": "Overlay: ask the existing floor type and its flatness.",
+          "follow_up_if": "Overlay: ask the existing floor type and its flatness. Raised access floor: carpet tiles are laid over the panels, which must stay liftable; ask whether old glued carpet must be stripped from the panels.",
           "blocking": true
         },
         {
@@ -160,7 +173,7 @@
           "blocking": false,
           "why_needed_to_price": "Night or weekend work, occupied premises, restricted delivery hours and gate passes change labour cost and programme.",
           "uae_options": "Normal day shift; night or weekend only; occupied building; mall, community or free-zone permit hours; loading-bay booking.",
-          "follow_up_if": "Restricted hours bring the landlord or community permission the work needs."
+          "follow_up_if": "Restricted hours bring the landlord or community permission the work needs. In a managed office tower or a mall, ask whether building management needs a permit to work and who obtains it."
         },
         {
           "spec": "payment terms",
@@ -172,7 +185,7 @@
       ],
       "site_visit_required_when": "A site visit is genuinely needed when the existing floor will be overlaid or removed, when screed flatness or moisture is unknown, or when no measured drawing exists.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
+      "source_note": "Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page. 17 Nov 2026 (sales_engineer): checklist widened for sales_knowledge_gap #772, what the interview did not ask in the live seat conversation run 35568a84 of 1 Nov 2026: carpet grade, pile and use class; raised floor panels; the building permit to work.",
       "photos_to_ask": [
         {
           "shot": "The floor as it is now, with a close-up of its surface",
