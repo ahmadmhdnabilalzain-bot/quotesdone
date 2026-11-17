@@ -33,6 +33,10 @@ export const PLAN_PAGES_PER_CALL = 1;
 export const PLAN_PARALLEL = 4;
 /** The most pages one 'plan' call reads, whatever a caller asks. */
 export const PLAN_MAX_PAGES_PER_CALL = 4;
+/** The planned read's own wall clock (review, 17 Nov): every call of it ends inside this many ms of the read's start, so a
+ *  long set (the PDF's page count is not capped by MAX_DRAWING_PAGES) cannot hold the redaction past its start-by or the
+ *  answer past the edge wall. Past it the read is given up: no server boxes, the old parse failure. */
+export const PLAN_BUDGET_MS = 30_000;
 
 export type StripsPart = { pages: number; from: number; words: number[]; lines: string[]; strips: string[][] };
 export type BoxesPart = { from: number; boxes: Box[][]; low: boolean; residual: string[]; setSeeds: string[] };
@@ -98,7 +102,12 @@ export type PlanCall = (body: Record<string, unknown>) => Promise<unknown>;
  * not answer in shape: the caller then does what the old in-request parse did when it threw (no server boxes).
  */
 export async function readPdfPlan(call: PlanCall, seeds: string[], per = PLAN_PAGES_PER_CALL, width = PLAN_PARALLEL): Promise<PdfPlan | null> {
-  const ask = async (b: Record<string, unknown>) => { try { return await call(b); } catch (_e) { return null; } };
+  // A part that does not answer (a cold worker's 546, a timeout) is asked ONCE more (review, 17 Nov): one lost call of 2N
+  // would otherwise take the whole set's server boxes, set seeds and printed lines (the priced-document test) with it.
+  const ask = async (b: Record<string, unknown>) => {
+    for (let k = 0; k < 2; k++) { try { const j: any = await call(b); if (j && j.ok === true) return j; } catch (_e) { /* asked again once */ } }
+    return null;
+  };
   const first: any = await ask({ mode: 'plan', step: 'strips', from: 0, to: per });
   if (!stripsOk(first, 0, per)) return null;
   const n = first.pages;

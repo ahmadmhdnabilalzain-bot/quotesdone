@@ -454,7 +454,10 @@ export function titleBlockBoxes(pages: PdfPage[], seeds: string[], setOf?: strin
   const residual: string[] = [];
   const strips = pages.map((p) => (p.runs.length ? titleStrip(p) : null));
   // Seeds from every sheet's strip apply to the whole set: the project name is the same on every sheet.
-  const setSeeds = setOf ? [...new Set(setOf)] : [...new Set(pages.flatMap((p, i) => (strips[i] ? stripSeeds(p, strips[i]!) : [])))];
+  // With `setOf` the pages' OWN strip seeds are still added (review, 17 Nov): a set_seeds that came back empty or short can
+  // never box a page with fewer seeds than the page alone gives. In the planned read setOf already holds them, so the order
+  // and the result are unchanged; without setOf this is the line as it was.
+  const setSeeds = [...new Set([...(setOf ?? []), ...pages.flatMap((p, i) => (strips[i] ? stripSeeds(p, strips[i]!) : []))])];
   // L3 (13 Nov 2026): the strip's phrases are ALSO split into their words, as scan_redact does (seedTerms({extra})).
   // Whole phrases only ("villa 15 al barsha 2 dubai") missed the site plan's "AL BARSHA 2" and the scale-bar note
   // "(Survey by ZZ Demo Surveyors, Al Barsha 2)" whenever the file name did not happen to say "Barsha". A word that is

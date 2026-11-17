@@ -85,3 +85,19 @@ Deno.test('a file with no pages reads as no words and no server boxes, as before
   assertEquals(got.tb.confidence, 'low');
   assertEquals(mergePlan([], [], SEEDS).tb.boxes, []);
 });
+
+Deno.test('a part that fails once (a cold worker, a timeout) is asked once more and the verdict is the whole-set one (review, 17 Nov)', async () => {
+  const bytes = await Deno.readFile(SET8);
+  const good = local(bytes), seen = new Set<string>(); let calls = 0;
+  const flaky: PlanCall = async (b) => { calls++; const k = `${b.step}:${b.from}`; if (!seen.has(k) && (b.from === 3 || b.from === 6)) { seen.add(k); if (b.step === 'boxes') throw new Error('timeout'); return null; } return await good(b); };
+  const got = await readPdfPlan(flaky, SEEDS), want = await wholeSet(bytes);
+  assert(got, 'recovered');
+  assertEquals(got.tb.boxes, JSON.parse(JSON.stringify(want.tb.boxes)));
+  assertEquals(calls, 16 + 4, 'two parts of each step failed once and were asked once more');
+});
+
+Deno.test('setOf never boxes a page with fewer seeds than the page alone (an empty set_seeds is not a weaker read)', async () => {
+  const pp = await pdfPages(await Deno.readFile(SET8), [0, 1], { layers: false });
+  const alone = titleBlockBoxes([pp[0]], SEEDS), empty = titleBlockBoxes([pp[0]], SEEDS, []);
+  assertEquals(empty.boxes, alone.boxes); assertEquals(empty.setSeeds, alone.setSeeds);
+});
