@@ -21,6 +21,10 @@ export function auditFindings(report, exceptions, today, newestOf) {
       const id = String(via.url ?? '').split('/').pop();
       const ex = byKey.get(`${id}|${name}`);
       if (!ex) { out.push(`${name}: ${id} (${via.severity}) ${via.title ?? ''}`.trim()); continue; }
+      // the exception covers the named route only: every install of the package must sit under one of `via`
+      const nodes = (v.nodes ?? []).map(String);
+      const offRoute = nodes.filter((n) => !(ex.via ?? []).some((p) => n.includes(`node_modules/${p}/`)));
+      if (!nodes.length || offRoute.length) { out.push(`${name}: ${id} (${via.severity}) reached outside the excused route ${JSON.stringify(ex.via ?? [])}: ${offRoute.join(', ') || 'no install path reported'}`); continue; }
       used.add(`${id}|${name}`);
       if (String(ex.expires) < today) out.push(`${name}: ${id} - the exception expired on ${ex.expires}; upgrade or decide again`);
       const newest = newestOf(name);
@@ -45,7 +49,10 @@ export function coversNewest(range, v) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const run = (args) => { try { return execFileSync('npm', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); } catch (e) { return e.stdout ?? ''; } };
-  const report = JSON.parse(run(['audit', '--omit=dev', '--json']) || '{}');
+  let report;
+  try { report = JSON.parse(run(['audit', '--omit=dev', '--json'])); } catch { report = null; }
+  // fail closed: no report (registry or network failure) is never a pass
+  if (!report || report.error || !report.metadata) { console.error('npm audit produced no report: ' + JSON.stringify(report?.error ?? {}).slice(0, 300)); process.exit(1); }
   const { exceptions } = JSON.parse(readFileSync(new URL('./audit_exceptions.json', import.meta.url), 'utf8'));
   const newestOf = (pkg) => { const t = run(['view', pkg, 'version']).trim(); return /^\d+\.\d+\.\d+$/.test(t) ? t : null; };
   const findings = auditFindings(report, exceptions, new Date().toISOString().slice(0, 10), newestOf);
