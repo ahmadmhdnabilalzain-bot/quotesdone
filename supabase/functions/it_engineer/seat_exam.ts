@@ -23,6 +23,7 @@
 // (decision_policy seat_exam_weekly.week_aed_cap) before it posts again, and this batch stops at its own clock.
 // This module holds no I/O: index.ts wires the database, the gateway and think(); seat_exam.test.ts drives it with stubs.
 
+import { parseJson } from '../_shared/model_json.ts';
 export type ExamItem = {
   item_id: string; seat: string; q_en: string; expected_facts: string[];
   used_wordings: string[]; fix_id: number | null; fix_ref: string | null;
@@ -69,10 +70,9 @@ export function rewordInput(item: Pick<ExamItem, 'q_en' | 'used_wordings'>): str
 
 /** The wording out of the model's reply, or null when it is absent, not JSON, or not fresh. */
 export function parseWording(content: string | null, item: Pick<ExamItem, 'q_en' | 'used_wordings'>): string | null {
-  if (!content) return null;
-  const m = content.match(/\{[\s\S]*\}/);
-  let w = '';
-  try { w = String((JSON.parse(m ? m[0] : content) as { wording?: unknown }).wording ?? '').trim(); } catch { return null; }
+  const o = parseJson<{ wording?: unknown }>(content);
+  if (!o) return null;
+  const w = String(o.wording ?? '').trim();
   return isFreshWording(w, item) ? w : null;
 }
 
@@ -86,10 +86,9 @@ export function judgeInput(question: string, answer: string, facts: string[]): s
 
 /** The facts the judge found missing, or null when its reply cannot be read or does not grade every fact asked. */
 export function parseJudge(content: string | null, facts: string[]): string[] | null {
-  if (!content) return null;
-  const m = content.match(/\{[\s\S]*\}/);
-  let rows: { fact?: unknown; present?: unknown }[];
-  try { rows = (JSON.parse(m ? m[0] : content) as { facts?: typeof rows }).facts ?? []; } catch { return null; }
+  const o = parseJson<{ facts?: { fact?: unknown; present?: unknown }[] }>(content);
+  if (!o) return null;
+  const rows = o.facts ?? [];
   if (!Array.isArray(rows)) return null;
   const seen = new Map(rows.map((r) => [norm(r.fact), r.present === true]));
   if (!facts.every((f) => seen.has(norm(f)))) return null;

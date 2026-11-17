@@ -1,3 +1,4 @@
+import { parseJson as readModelJson } from '../_shared/model_json.ts';
 import { siteCors } from '../_shared/site_origins.ts';
 // supplier_onboard — SPEC FILE #5 §2. A SENTENCE IN, A SUPPLIER PROFILE OUT.
 //
@@ -92,11 +93,11 @@ Field rules:
 
 Never output "N/A", "unknown" or a placeholder. Use null.`;
 
-function parseJson(txt: string) {
-  try { return JSON.parse(txt); } catch { /* the model wrapped it */ }
-  const m = String(txt || '').match(/\{[\s\S]*\}/);
-  if (m) { try { return JSON.parse(m[0]); } catch { /* genuinely not JSON */ } }
-  throw new Error('AI returned non-JSON');
+// deno-lint-ignore no-explicit-any
+function parseJson(txt: string): any {
+  const o = readModelJson(txt, { wholeDecides: true });   // _shared/model_json.ts
+  if (!o) throw new Error('AI returned non-JSON');
+  return o;
 }
 
 const clean = (v: unknown, max = 600): string | null => {

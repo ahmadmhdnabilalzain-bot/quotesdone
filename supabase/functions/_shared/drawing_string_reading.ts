@@ -11,6 +11,7 @@
 // content. cad_file_redact.ts then removes what the model marked PLUS everything the deny rules know (the floor), and
 // proves the released bytes carry none of it. No answer (model held, over budget, unparseable) = no file is attached.
 // prevented by: _shared/a_drawing_reaches_a_supplier_with_no_owner_no_area_no_map.test.ts (faithful and lazy stubs)
+import { parseJson } from './model_json.ts';
 import { stripMtext } from './doc_read/cad.ts';
 
 /** Group codes whose value is a string a person could read or a name a CAD program shows (not a handle or a class). */
@@ -93,8 +94,7 @@ export const stringsPrompt = (items: (ReadItem | string)[]) => items.map((x, i) 
  *  exist is no answer at all (it was read against another list), so it HOLDS rather than being trimmed. */
 export function readIndexes(n: number, content: string | null | undefined): Set<number> | null {
   if (!content) return null;
-  let p: unknown = null;
-  try { p = JSON.parse(content); } catch { const m = String(content).match(/\{[\s\S]*\}/); if (m) { try { p = JSON.parse(m[0]); } catch { p = null; } } }
+  const p: unknown = parseJson(content, { wholeDecides: true });
   const ids = (p as { identity?: unknown } | null)?.identity;
   if (!Array.isArray(ids)) return null;
   const out = new Set<number>();

@@ -13,6 +13,7 @@
 // fn_inquiry_state_merge. The NEXT turn's reply reads it (its trade's packs, the solution so far). A failed or slow reading
 // changes nothing: the reply has already gone and the state stays as it was.
 // prevented by: supabase/functions/_shared/inquiry_reading.test.ts
+import { parseJson } from './model_json.ts';
 import { readSolution, solutionPatch, type Problem, type SolutionReading } from './solution_catalogue.ts';
 import { placeTrades, taxonomyBlock, validCodes, validServiceKeys, type TaxTrade, type TradeService } from './inquiry_trades.ts';
 import type { StatePatch } from './inquiry_state.ts';
@@ -54,10 +55,8 @@ export function readingPrompt(i: ReadingInput): { sys: string; input: string } {
 
 /** The reading's answer, kept only where it names what exists. */
 export function parseReading(text: string | null | undefined, i: Pick<ReadingInput, 'taxonomy' | 'services' | 'siteVisits'>): Reading | null {
-  const m = String(text ?? '').match(/\{[\s\S]*\}/);
-  if (!m) return null;
-  let o: Record<string, unknown>;
-  try { o = JSON.parse(m[0]); } catch { return null; }
+  const o = parseJson(text);
+  if (!o) return null;
   const codes = validCodes(o.trade_codes, i.taxonomy), keys = validServiceKeys(o.service_keys, i.services);
   // The placement follows the services, as in the request chat (inquiry_trades.ts placeTrades, finding b1 of 10 Nov 2026).
   const placed = codes.length ? placeTrades(codes, keys) : null;

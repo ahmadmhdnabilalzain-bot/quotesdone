@@ -11,6 +11,7 @@
 //
 // Restored 9 Sep 2026 (deleted by the 137-function sweep, 182308b). Of the five this one degraded
 // best: supplier_api saw a 502 and showed the manual form.
+import { parseJson as readModelJson } from '../_shared/model_json.ts';
 import '../_shared/doc_read/workbook_local.ts'; // reads workbooks and .doc/.msg here with SheetJS (why one line: that file's header)
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
@@ -37,7 +38,8 @@ async function sec(k: string){ const {data}=await admin.from('app_secrets').sele
 // service-role authority on a function that requires no JWT. The stored secret must now be a real
 // value before any caller value can equal it.
 // secretOk() is the shared one, in ../_shared/internal_auth.ts.
-function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return {}; } }
+// deno-lint-ignore no-explicit-any
+function parseJson(t:string){ return readModelJson<any>(t, { wholeDecides: true }) ?? {}; }   // _shared/model_json.ts
 // scrub() moved to ./model_reading.ts (scrubModelText) on 13 Nov 2026, with the anonymiser that runs it (modelAnonymiser).
 // 10 Nov 2026 (founder ledger 1588-1590, sales_engineer): the replacement rule names ORIGIN and TIER. It said
 // "premium branded mixer", which kept the tier and lost the origin, so a customer who asked for Italian origin could

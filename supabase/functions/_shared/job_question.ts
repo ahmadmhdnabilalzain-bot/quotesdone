@@ -15,6 +15,7 @@
 //   * what the facts cannot answer goes to the customer, once, and the sweep reminds him once after the clock
 //     (fn_job_questions_due, policy job_question_chase_hours, 24 by default).
 // prevented by: _shared/job_question.test.ts
+import { parseJson } from './model_json.ts';
 import { stripSupplierQuestion } from '../messages_api/strip_contact.ts';
 import { forSuppliers, readOwner } from '../supplier_api/what_a_supplier_receives.ts';
 import { isClosedRequest } from './request_closed.ts';
@@ -73,10 +74,10 @@ export function factsOf(inq: Inq, answered: { question: string | null; answer: s
 /** The model's verdict, or null when it is unreadable (the question then goes to the customer, as before this file existed). */
 export async function readFirstAnswer(ask: Ask, question: string, facts: string): Promise<{ verdict: 'answered' | 'ask_customer'; answer: string | null } | null> {
   const out = await ask(FIRST_ANSWER_SYS, facts + '\n\nTHE SUPPLIER\'S QUESTION:' + untrustedBlock(String(question).slice(0, 1500), 'NOTE'));
-  const m = String(out ?? '').match(/\{[\s\S]*\}/);
-  if (!m) return null;
+  // deno-lint-ignore no-explicit-any
+  const j = parseJson<any>(out);
+  if (!j) return null;
   try {
-    const j = JSON.parse(m[0]);
     if (j.verdict === 'answered' && typeof j.answer === 'string' && j.answer.trim().length >= 3) return { verdict: 'answered', answer: j.answer.trim().slice(0, 1200) };
     return { verdict: 'ask_customer', answer: null };
   } catch (_e) { return null; }

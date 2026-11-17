@@ -148,13 +148,8 @@ export function valueInEvidence(val: string, ev: string): boolean {
   return numbersOf(val).every((v) => evNums.some((e) => e.n === v.n && (v.code || !e.code)));
 }
 
-/** One JSON object out of a model reply, or null. Tolerates a ```json fence; nothing else. */
-export function parseJson<T = Record<string, unknown>>(text: string | null | undefined): T | null {
-  if (!text) return null;
-  const m = text.trim().match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
-  const one = (t: string) => { try { const o = JSON.parse(t); return o && typeof o === 'object' && !Array.isArray(o) ? o as T : null; } catch (_e) { return null; } };
-  // A REASONING MODEL WRITES A SENTENCE AROUND ITS JSON (exam run b2f80d4d, 19 Oct 2026: GPT-6 Luna Pro since matrix v3;
-  // 5 of 30 seat answers held as 'the reply is not one JSON object'). The outermost object is the reply.
-  const t = m ? m[1] : text.trim(), a = t.indexOf('{'), b = t.lastIndexOf('}');
-  return one(t) ?? (a >= 0 && b > a ? one(t.slice(a, b + 1)) : null);
-}
+// One JSON object out of a model reply, or null: the whole reply (inside a ```json fence), else the outermost object.
+// A REASONING MODEL WRITES A SENTENCE AROUND ITS JSON (exam run b2f80d4d, 19 Oct 2026: GPT-6 Luna Pro since matrix v3;
+// 5 of 30 seat answers held as 'the reply is not one JSON object'). The 16 Nov audit named this reader the owner; it moved,
+// unchanged in behaviour, to _shared/model_json.ts on 17 Nov 2026 so every function reads a reply one way.
+export { parseJson } from '../model_json.ts';

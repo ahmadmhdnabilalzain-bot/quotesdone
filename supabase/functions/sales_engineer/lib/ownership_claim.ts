@@ -7,6 +7,7 @@
 // the routine gives the owner three days, and completes it here on a later beat if he did not keep it. No answer from the model
 // leaves the case open on the sales engineer's queue (its agent_actions task), never a guessed decision.
 // prevented by: sales_engineer/lib/ownership_claim.test.ts
+import { parseJson } from '../../_shared/model_json.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 export type Ask = (system: string, input: string) => Promise<string | null>;
@@ -32,10 +33,8 @@ export function claimInput(c: ClaimDue): string {
 
 /** The model's answer, accepted only as one of the three decisions with both texts; anything else is no decision. */
 export function readDecision(out: string | null | undefined): Decision | null {
-  const m = String(out ?? '').match(/\{[\s\S]*\}/);
-  if (!m) return null;
-  let j: Record<string, unknown>;
-  try { j = JSON.parse(m[0]); } catch (_e) { return null; }
+  const j = parseJson(out);
+  if (!j) return null;
   const d = String(j.decision ?? '');
   const reasoning = String(j.reasoning ?? '').trim().slice(0, 3000), message = String(j.message ?? '').trim().slice(0, 1500);
   if (!['transfer', 'ask', 'refuse'].includes(d) || !reasoning || !message) return null;

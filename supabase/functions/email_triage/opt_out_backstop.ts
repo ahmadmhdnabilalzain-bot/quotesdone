@@ -23,6 +23,7 @@
 // never a sign-in code or a registered supplier's request for quotation.
 // NOT CHANGED: every other mail. A customer's "cancel my request" to info@ is classified and answered as before; the
 // category is recorded, nothing is suppressed.
+import { parseJson } from '../_shared/model_json.ts';
 import { replyStopRefusal } from '../_shared/suppression_policy.ts';
 
 export const OPT_OUT_CATEGORY = 'opt_out';
@@ -41,10 +42,10 @@ export type Triage = { parsed: boolean; category: string; summary: string; reply
 /** Reads the triage model's answer exactly as before; parsed is false for no answer, no JSON object, bad JSON, or no category. */
 export function readTriage(out: string | null | undefined): Triage {
   const none: Triage = { parsed: false, category: 'other', summary: '', reply: '' };
-  const mm = out ? out.match(/\{[\s\S]*\}/) : null;
-  if (!mm) return none;
+  // deno-lint-ignore no-explicit-any
+  const pj = parseJson<any>(out);
+  if (!pj) return none;
   try {
-    const pj = JSON.parse(mm[0]);
     return { parsed: typeof pj?.category === 'string' && pj.category.trim() !== '', category: String(pj?.category || 'other').slice(0, 40),
       summary: String(pj?.summary || '').slice(0, 500), reply: String(pj?.reply || '').slice(0, 4000) };
   } catch (_e) { return none; }

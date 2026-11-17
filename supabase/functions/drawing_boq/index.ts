@@ -5,6 +5,7 @@
 //
 // Restored 9 Sep 2026 (deleted by the 137-function sweep, 182308b, with customer_api:618 still
 // calling it — the buyer got HTTP 200 with ok:false and was told nothing).
+import { parseJson as readModelJson } from '../_shared/model_json.ts';
 import '../_shared/doc_read/workbook_local.ts'; // reads workbooks and .doc/.msg here with SheetJS (why one line: that file's header)
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
@@ -88,7 +89,8 @@ async function confirmStep(lines: any[], page: RedactedPage, author: string): Pr
   return { boq: m.lines, confirm: m.status, confirm_detail: { why, redaction_job_id: page.job_id, disagreements: m.disagreements, model_only: m.model_only } };
 }
 
-function parseJson(t:string){ try{return JSON.parse(t);}catch{ const m=t.match(/\{[\s\S]*\}/); if(m){try{return JSON.parse(m[0]);}catch{}} return {}; } }
+// deno-lint-ignore no-explicit-any
+function parseJson(t:string){ return readModelJson<any>(t, { wholeDecides: true }) ?? {}; }   // _shared/model_json.ts
 function dataUrl(b64: string, mime: string){ return `data:${mime};base64,${String(b64).replace(/^data:[^;]+;base64,/,'')}`; }
 // The model's take-off text: e-mails and URLs, and since 3 Nov 2026 the shared identity shapes (_shared/identity_text.ts).
 function scrub(s: unknown){ let t = String(s == null ? '' : s); t = t.replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[removed]'); t = t.replace(/\b(?:https?:\/\/|www\.)[^\s)]+/gi, '[removed]'); return scrubIdentityText(t, '[removed]'); }

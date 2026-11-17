@@ -33,6 +33,7 @@
 //     the model is asked only when there is a recorded matter to compare with. One open case per matter.
 // prevented by: _shared/support_case_memory.test.ts
 
+import { parseJson } from './model_json.ts';
 import type { ThinkDeps, Turn } from './think.ts';
 import { think } from './think.ts';
 import { surfaceEffort } from './effort_policy.ts';
@@ -410,10 +411,7 @@ export const SUMMARY_SYSTEM = 'You keep the case record of a customer support ag
  *  The one summary_not_written finding on production (12 Nov 2026, an audit run, reason 'not json') was a reply that was not
  *  bare JSON; anything that holds no object is still refused, and checkSummary still checks the shape. */
 export function summaryJson(content: unknown): Record<string, unknown> | null {
-  const text = String(content ?? '').replace(/^\s*```(?:json)?\s*|\s*```\s*$/g, '').trim();
-  const take = (t: string) => { try { const v = JSON.parse(t); return v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : null; } catch (_e) { return null; } };
-  const a = text.indexOf('{'), b = text.lastIndexOf('}');
-  return take(text) ?? (a >= 0 && b > a ? take(text.slice(a, b + 1)) : null);
+  return parseJson(content);   // _shared/model_json.ts, the same rule since 17 Nov 2026
 }
 
 /** After an exchange: one cheap call rewrites the summary, code checks it, the database keeps every version. Never throws. */

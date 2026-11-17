@@ -10,6 +10,7 @@
 // mail is HELD for review (customer_support, needs_review) and nothing is sent. No keyword decides it; known customers and
 // suppliers are never asked about (their correspondence is a relationship, the daily cap and the loop guard still stand).
 // prevented by: email_triage/supplier_mailbox_reading.test.ts (the stranger-repeat cases)
+import { parseJson } from '../_shared/model_json.ts';
 import { whereAddress } from '../_shared/address_filter.ts';
 import { untrustedBlock, untrustedMail } from '../_shared/untrusted.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
@@ -61,10 +62,9 @@ export async function strangerRepeatHeld(admin: Db, deps: ThinkDeps, m: Mail, no
 }
 
 export function parseRepeat(content: string | null | undefined): { newQuestion: boolean; why: string } | null {
-  const s = String(content ?? ''); const at = s.indexOf('{'), end = s.lastIndexOf('}');
-  if (at < 0 || end <= at) return null;
+  const o = parseJson(content);
+  if (!o) return null;
   try {
-    const o = JSON.parse(s.slice(at, end + 1)) as Record<string, unknown>;
     if (typeof o.new_human_question !== 'boolean' || !String(o.why ?? '').trim()) return null;
     return { newQuestion: o.new_human_question, why: String(o.why).trim().slice(0, 400) };
   } catch { return null; }

@@ -22,6 +22,7 @@
 // only if it is an active taxonomy key (no invented service reaches a supplier), confidence is clamped
 // to 0..1, and the result is a PROPOSAL the supplier confirms, like everything else on this tab.
 
+import { parseJson } from './model_json.ts';
 // deno-lint-ignore no-explicit-any
 type Admin = any;
 
@@ -71,10 +72,9 @@ const SYSTEM = [
 /** The model's reply, validated: unknown keys dropped, lists bounded, confidence clamped. */
 export function parseModelRead(content: string | null, knownKeys: Set<string>): ModelRead | null {
   if (!content) return null;
-  const m = /\{[\s\S]*\}/.exec(content);
-  if (!m) return null;
+  const j = parseJson(content);
+  if (!j) return null;
   try {
-    const j = JSON.parse(m[0]) as Record<string, unknown>;
     const list = (v: unknown, n: number) => (Array.isArray(v) ? v.map((x) => String(x ?? '').trim()).filter(Boolean).slice(0, n) : []);
     const c = Number(j.confidence);
     return {
