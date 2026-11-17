@@ -17,8 +17,14 @@ declare
 begin
   -- an approved fixture skips the registration gate (its documents are not the subject here); triggers are off for this one row only
   set local session_replication_role = replica;
-  insert into public.leads (company_name, email, claimed_by, claimed, emirate, phone, owner_email_verified, approval_status, verified)
-  values ('ZZ DEMO W3R Referrer', 'zz-demo-w3r-a@example.invalid', 'zz-demo-w3r-a@example.invalid', true, 'Dubai', '+971500000751', true, 'approved', true)
+  -- 17 Nov 2026: an approved fixture still carries the founder's mandatory six as evidence (a_seeded_approved_supplier_carries_
+  -- the_mandatory_six.test.mjs); these storage rows are the probe's own and roll back with it
+  insert into storage.objects (bucket_id, name) values ('supplier-docs', 'suppliers/zz-demo-w3r-licence.pdf'), ('supplier-docs', 'suppliers/zz-demo-w3r-profile.pdf')
+  on conflict do nothing;
+  insert into public.leads (company_name, email, claimed_by, claimed, emirate, phone, owner_phone_verified, owner_email_verified, license_doc_path,
+                            company_profile_doc_path, signed_terms_path, approval_status, verified)
+  values ('ZZ DEMO W3R Referrer', 'zz-demo-w3r-a@example.invalid', 'zz-demo-w3r-a@example.invalid', true, 'Dubai', '+971500000751', true, true,
+          'suppliers/zz-demo-w3r-licence.pdf', 'suppliers/zz-demo-w3r-profile.pdf', 'demo://terms', 'approved', true)
   returning id into s_ref;
   set local session_replication_role = origin;
   insert into public.leads (company_name, email, claimed_by, claimed, emirate, phone, owner_email_verified, approval_status)

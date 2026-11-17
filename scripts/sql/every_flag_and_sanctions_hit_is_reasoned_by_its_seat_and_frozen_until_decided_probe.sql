@@ -64,6 +64,17 @@ begin
   insert into public.leads (company_name, email, lifecycle_stage, approval_status, verified, claimed, claimed_by)
   values ('ZZ DEMO — Probe Busy Inbox', 'zzprobe-l5@example.invalid', 'registered', 'approved', true, true, 'zzprobe-l5@example.invalid')
   returning id into v_l5;
+  -- 17 Nov 2026: an approved fixture still carries the founder's mandatory six as evidence (a_seeded_approved_supplier_carries_
+  -- the_mandatory_six.test.mjs): a distinct reserved +9715 number each, both e-mails verified, the probe's own licence and
+  -- profile objects (they roll back with it) and signed terms. Nothing the probe reads is about these columns.
+  insert into storage.objects (bucket_id, name) values ('supplier-docs', 'suppliers/zzprobe-flags-licence.pdf'), ('supplier-docs', 'suppliers/zzprobe-flags-profile.pdf')
+  on conflict do nothing;
+  update public.leads l
+     set phone = '+97150000079' || six.n, owner_phone_verified = true, owner_email_verified = true,
+         license_doc_path = 'suppliers/zzprobe-flags-licence.pdf', company_profile_doc_path = 'suppliers/zzprobe-flags-profile.pdf',
+         signed_terms_path = 'demo://terms'
+    from unnest(array[v_l1, v_l2, v_l3, v_l4, v_l5, v_l6, v_l7]) with ordinality six(id, n)   -- not x: the block declares a record x
+   where l.id = six.id;
   insert into public.customers (id, full_name, email, tos_accepted_at) values
     (v_c1, 'ZZ DEMO Zzprobe Listed Holdings', 'zzprobe-c1@example.invalid', now()),
     (v_c2, 'ZZ DEMO Probe Buyer Two', 'zzprobe-c2@example.invalid', now()),

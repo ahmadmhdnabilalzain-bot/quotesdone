@@ -36,6 +36,16 @@ begin
   values ('ZZ DEMO Held Steel Rival', 'zz-demo-supknown-b@example.invalid', true, 'zz-demo-supknown-b@example.invalid', 'approved', true,
           today - 10, 'ZZ-DEMO-1002', 3) returning id into sB;
   insert into public.leads (company_name, email) values ('ZZ DEMO Unclaimed Glass', 'zz-demo-supknown-c@example.invalid') returning id into sC;
+  -- 17 Nov 2026: an approved fixture still carries the founder's mandatory six as evidence (a_seeded_approved_supplier_carries_
+  -- the_mandatory_six.test.mjs): a reserved +9715 number each, both e-mails verified, the probe's own licence and profile
+  -- objects (they roll back with it) and signed terms
+  insert into storage.objects (bucket_id, name) values ('supplier-docs', 'suppliers/zz-demo-supknown-licence.pdf'), ('supplier-docs', 'suppliers/zz-demo-supknown-profile.pdf')
+  on conflict do nothing;
+  update public.leads
+     set phone = case when id = sA then '+971500000781' else '+971500000782' end, owner_phone_verified = true, owner_email_verified = true,
+         license_doc_path = 'suppliers/zz-demo-supknown-licence.pdf', company_profile_doc_path = 'suppliers/zz-demo-supknown-profile.pdf',
+         signed_terms_path = 'demo://terms'
+   where id in (sA, sB);
 
   -- A: confirmed HVAC in Dubai (the trade closed to customers); B: unconfirmed, held, busy
   insert into public.supplier_capabilities (supplier_id, trades, services, coverage_emirates, confirmed_at, roles)
