@@ -28,18 +28,11 @@
 -- does not stop reads or writes.
 --   node scripts/apply_sql.mjs scripts/sql/no_table_is_published_to_realtime_because_nothing_subscribes.sql --apply --ddl
 
-do $$
-declare t text;
-  twin text[] := array['ai_cost_log','customers','edge_health_probe','expenses','gl_journal','inquiries','kb_chunks',
-                       'leads','org_agents','risk_register','transactions','vision_horizon','workflow'];
-begin
-  foreach t in array twin loop
-    if exists (select 1 from pg_publication_tables
-                where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = t) then
-      execute format('alter publication supabase_realtime drop table public.%I', t);
-    end if;
-  end loop;
-end $$;
+-- Written out (the apply tool sends no dynamic EXECUTE to production, 17 Nov 2026 12:58 UTC). All 13 were in the
+-- publication at 13:00 UTC (SELECT pg_publication_tables); a second apply errors "not part of the publication" and changes nothing.
+alter publication supabase_realtime drop table public.ai_cost_log, public.customers, public.edge_health_probe,
+  public.expenses, public.gl_journal, public.inquiries, public.kb_chunks, public.leads, public.org_agents,
+  public.risk_register, public.transactions, public.vision_horizon, public.workflow;
 
 -- verdict row
 select case
