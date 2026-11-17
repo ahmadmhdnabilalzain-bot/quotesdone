@@ -5,11 +5,9 @@
 // proves, on the e2e's own 8-sheet set (_shared/testdata, = scripts/e2e/drawing_reaches_suppliers.mjs stressSetPdf(8)):
 //   1. the parts, each sheet parsed alone and sent as JSON, give EXACTLY the whole-set lines, and the answer key's metres;
 //   2. every request customer_api now makes runs the REAL handler inside a CPU budget well under the edge's 2 s.
-// Run: deno test --no-lock --node-modules-dir=none --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-read=. \
-//   supabase/functions/drawing_boq/a_duct_run_is_measured_sheet_by_sheet.test.ts
+// Run: deno test --no-lock --node-modules-dir=none --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-read=. --allow-run \
+//   supabase/functions/drawing_boq/a_duct_run_is_measured_sheet_by_sheet.test.ts   (--allow-run: each request in its own process)
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import process from 'node:process';
-import { invoke, loadFunction, type Stub } from '../_shared/twilio_free_harness.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
 import { boqFromDrawingSet, lengthsForSet, lengthsOfParts, lengthsPart } from './drawing_set.ts';
 import { layeredSetPdf } from './drawing_lengths.fixtures.ts';
@@ -25,7 +23,6 @@ const KEY_TOL_PCT = 0.5;
  *  1,400 ms is the most that is still inside it. MEASURED, cold process, real handler: one sheet 349-458 ms, the merge 38 ms;
  *  the whole set in one call (the request customer_api made until now) 2,006-2,106 ms. */
 const CALL_CPU_BUDGET_MS = 1_400;
-const cpu = () => { const u = process.cpuUsage(); return (u.user + u.system) / 1000; };
 const json = <T>(x: T): T => JSON.parse(JSON.stringify(x));
 
 Deno.test('the sheets measured one by one and put together are the whole-set measurement, to the byte, and the answer key', async () => {
@@ -55,11 +52,23 @@ Deno.test('a set of parts that does not cover every sheet once is no measurement
   assertEquals(lengthsOfParts([...parts.slice(0, 7), { ...parts[7], sheets: [{ ...parts[7].sheets[0], measured: [{ key: '26x18' }] }] }]), null, 'a malformed run');
 });
 
-// ── the real handler, every edge stubbed ─────────────────────────────────────────────────────────────────────────────
-const stub: Stub = { rpc: { fn_internal_auth: { ok: true, context: 'fn.customer_api', credential_id: 7, legacy: false } }, handle: async () => undefined };
-const fn = await loadFunction('drawing_boq', () => import('./index.ts'));
+// ── the real handler, each request in a fresh process of its own (./a_duct_run_is_measured_sheet_by_sheet.call.ts) ─────
+// A fresh process per request is a fresh edge worker, and its CPU is that request's alone: measured in this process, a run of
+// this file with the drawing_boq and customer_api suites counted the other files' work and failed (17 Nov 2026).
 let b64 = ''; for (let i = 0; i < SET8.length; i += 0x8000) b64 += String.fromCharCode(...SET8.subarray(i, i + 0x8000));
 const ORIGINAL = btoa(b64);
+const CALL = new URL('./a_duct_run_is_measured_sheet_by_sheet.call.ts', import.meta.url).pathname;
+async function inFreshWorker(body: Record<string, unknown>): Promise<{ status: number; json: any; cpu_ms: number }> {
+  const p = new Deno.Command(Deno.execPath(), {
+    args: ['run', '--no-lock', '--node-modules-dir=none', '--allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY,RESEND_INBOUND_NO_SERVE', '--allow-read=.', CALL],
+    stdin: 'piped', stdout: 'piped', stderr: 'piped',
+  }).spawn();
+  const w = p.stdin.getWriter(); await w.write(new TextEncoder().encode(JSON.stringify(body))); await w.close();
+  const out = await p.output();
+  const text = new TextDecoder().decode(out.stdout).trim().split('\n').pop() || '';
+  assert(out.success && text.startsWith('{'), `the request's process failed: ${new TextDecoder().decode(out.stderr).slice(-600)}`);
+  return JSON.parse(text);
+}
 
 Deno.test('every lengths request customer_api makes runs inside the edge CPU budget, and the BOQ gets the metres', async () => {
   const first = json(boqFromDrawingSet(await pdfPages(SET8, undefined, { layers: false }))!);
@@ -67,9 +76,8 @@ Deno.test('every lengths request customer_api makes runs inside the edge CPU bud
   const spent: { req: string; ms: number }[] = [];
   const merged = await readLengths(async (b) => {
     const body = { __secret: 'zz-cred-0123456789abcdef0123', ...b, ...(b.parts ? {} : { original_b64: ORIGINAL }) };
-    const t0 = cpu();
-    const r = await invoke(fn, stub, body);
-    spent.push({ req: b.parts ? 'merge' : `sheet ${b.from}`, ms: Math.round(cpu() - t0) });
+    const r = await inFreshWorker(body);
+    spent.push({ req: b.parts ? 'merge' : `sheet ${b.from}`, ms: r.cpu_ms });
     return r.status === 200 ? r.json : null;
   }, first);
   assert(merged, 'the lengths were read');
