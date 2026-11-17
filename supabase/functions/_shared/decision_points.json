@@ -1052,7 +1052,14 @@
     {
      "file": "supabase/functions/quote_extract/index.ts",
      "must_contain": [
-      "quoteTerms(defaultDeps(admin, 'quote_extract'), { text: quoteText(rd) })"
+      "const read = checkReading(proposalFromModel(ai, gen), docText, codeRead);"
+     ],
+     "_moved": "12 Nov 2026 (#1981, 401f25c4c): the model reads the whole quotation in ONE call, its terms included, so the separate quoteTerms call left quote_extract; the terms come from the model's answer (model_reading.ts proposalFromModel) and code only checks figures"
+    },
+    {
+     "file": "supabase/functions/quote_extract/model_reading.ts",
+     "must_contain": [
+      "lead_time: gen(ai.lead_time), validity: gen(ai.validity)"
      ]
     },
     {
@@ -2208,9 +2215,11 @@
     {
      "file": "supabase/functions/marketing/duties/social_comments.ts",
      "must_contain": [
-      "(await commentClass(defaultDeps(admin, 'marketing')",
+      "const reasonDeps = () => deadline ? withDeadline(defaultDeps(admin, 'marketing'), deadline) : defaultDeps(admin, 'marketing');",
+      "(await commentClass(reasonDeps(),",
       "ev, cls, person)"
-     ]
+     ],
+     "_moved": "12 Nov 2026 (1075b3df5): the reasoning deps carry the beat's deadline (withDeadline over the same defaultDeps(admin, 'marketing'))"
     },
     {
      "file": "supabase/functions/_shared/reasoned_delivery.ts",
@@ -2719,8 +2728,10 @@
     {
      "file": "supabase/functions/_shared/supplier_services.ts",
      "must_contain": [
-      "const meaning = await meaningFor(admin, services, [...unnamed, ...prose], rw1.service_keys, supplyOnly);"
+      "const r = await Promise.race([read([{ path: TYPED_PATH, name: 'what the supplier typed on the Services tab', kind: 'profile', text: raw }]",
+      "meaning: { state: unavailable !== null ? 'unavailable' : exact ? 'exact_labels' : 'model', proposals },"
      ],
+     "_moved": "12 Nov 2026 (#1980, 9bc4b5d57): the model reads everything he typed (supplier_profile_reading two steps, claims only) and every service is OFFERED, never listed; meaningFor's name-then-vector reading is gone",
      "must_not_contain": [
       "servicesFromText(",
       "servicePattern("
@@ -2761,9 +2772,11 @@
     {
      "file": "supabase/functions/_shared/supplier_doc_trades.ts",
      "must_contain": [
-      "const ch: ChoiceResult = await deps.chooseTrades(combined, 'documents', company);",
+      "return await readInTwoSteps(usable, deps, company, opts);",
+      "const r = await deps.readProfile!(docs, company, opts);",
       "await liveTradeDeps(admin)"
      ],
+     "_moved": "12 Nov 2026 (37d8a288f): the one-call chooser was deleted; the documents are read by the model in two steps (readInTwoSteps over the profile reader), still never by words",
      "must_not_contain": [
       "tradesFromText(",
       "tradesOfText(",
@@ -2776,7 +2789,7 @@
     {
      "file": "supabase/functions/_shared/trade_resolve.ts",
      "must_contain": [
-      "return { chooseTrades: liveTradeChooser(admin, choice) };"
+      "return { readProfile: liveProfileReader(admin, choice) };"
      ],
      "must_not_contain": [
       "fn_norm_trades_many",
