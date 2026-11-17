@@ -93,6 +93,9 @@ const STEPS = [
   ['fetch-timeout', 'checks', 'no new outbound fetch without a deadline', 'node scripts/checks/every_outbound_fetch_has_a_timeout.mjs'],
   ['dwg', 'checks', 'a DWG is read into the same take-off as its DXF', `${DENO} --allow-net=raw.githubusercontent.com,registry.npmjs.org supabase/functions/_shared/doc_read/dwg_samples.check.ts`, { heavy: true, hosts: ['raw.githubusercontent.com', 'registry.npmjs.org'] }],
   ['redact-page', 'checks', 'a redacted drawing page covers every identity', `${DENO} --allow-net=deno.land supabase/functions/_shared/drawing_redact_page.check.ts`, { heavy: true, hosts: ['deno.land'] }],
+  // 17 Nov 2026: one 2600 px sheet through the real drawing_redact handler, each worker held to a CPU budget inside the edge's
+  // (the live set died "CPU Time exceeded" on every sheet). A CPU budget: run alone of other heavy steps, like deno-suite.
+  ['redact-budget', 'checks', 'a drawing sheet is redacted within the edge CPU budget', `${DENO} --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-net=deno.land,esm.sh supabase/functions/drawing_redact/a_sheet_is_redacted_within_the_edge_budget.check.ts`, { heavy: true, alone: true, hosts: ['deno.land', 'esm.sh'] }],
   ['scan-redact', 'checks', 'a scanned drawing is redacted by OCR, or held', `${DENO} --allow-env --allow-net=deno.land supabase/functions/_shared/scan_redact.check.ts`, { heavy: true, hosts: ['deno.land'] }],
   ['scan-takeoff', 'checks', 'a scanned PDF set is counted by OCR to the hand count', `${DENO} --allow-env --allow-net=deno.land,esm.sh supabase/functions/_shared/scan_takeoff.check.ts`, { heavy: true, hosts: ['deno.land', 'esm.sh'] }],
   ['migration-lint', 'migration-lint', 'lint migrations for locking operations (squawk)', () => { const f = migrations(); return f.length ? `npx squawk ${f.join(' ')}` : null; }],
