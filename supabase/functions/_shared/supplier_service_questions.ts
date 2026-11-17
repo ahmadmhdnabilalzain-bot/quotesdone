@@ -302,7 +302,7 @@ async function rowsOf(admin: Admin, supplierId: number): Promise<QuestionRow[]> 
 }
 
 /**
- * A READING LANDED (`listed`: the keys of his tick list; a partner card asks the partner list itself): its drafted questions are stored for this supplier (proposeFromRead calls this after the reading is stored).
+ * A READING LANDED (`listed`: the keys of his tick list; a partner card asks the partner list itself): its drafted questions are stored for this supplier (proposeFromRead calls this BEFORE the write that lays the reading, so the tab never sees "read" without its cards).
  * Idempotent: a re-read of the same documents adds nothing (same kind and about_hash), never re-asks what he answered, and an
  * open or later question an earlier reading drafted that this reading no longer drafts is 'expired' (his documents changed: the
  * sentence it quoted is gone). Never throws; `error` says why nothing was stored (the table not applied yet, a write refused).
