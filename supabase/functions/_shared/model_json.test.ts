@@ -88,6 +88,7 @@ const CORPUS: string[] = [
   '{"answer":"line one\nline two"}', 'Reply: {"answer":"a\tb\r\nc"} end',            // raw control characters inside a string
   '{\n  "a": 1,\n  "b": "x"\n}',                                                     // line breaks between keys are whitespace
   '[1,2]', '[{"a":1}]', '```json\n[{"a":1}]\n```', '[]',
+  '```json\n[{"a":1}]', '[{"a":1}]\n```', '```JSON\n[{"a":1}]\n```',                // an array behind a half or upper-case fence
   '5', '"text"', '"{\\"a\\":1}"', 'true', 'null',
 ];
 
@@ -139,7 +140,7 @@ Deno.test('ceo plan: the same plan whenever the old reader read one; also an arr
   for (const s of CORPUS) {
     const was = oldPlan(s), now = parseJson(s, { wholeDecides: true });
     if (was !== null) assertEquals(now, was, s);
-    else if (now !== null) assertEquals(s, '```json\n[{"a":1}]\n```', 'the one input the plan reader now reads and did not: ' + s);
+    else if (now !== null) assert(s.includes('```') && s.includes('[{'), 'the plan reader now reads only an array behind a fence: ' + s);
   }
 });
 
@@ -155,7 +156,7 @@ Deno.test('ai_reply: the same object, the same {} for nothing, raw line breaks i
     const was = oldAiReply(s);
     if (Array.isArray(was)) {
       // a bare array: no answer before, no answer now; an array fenced as a whole: the object inside is now the answer
-      if (s.startsWith('```')) assertEquals(now(s), { a: 1 }, s); else assertEquals(now(s), {}, s);
+      if (s.includes('```')) assertEquals(now(s), { a: 1 }, s); else assertEquals(now(s), {}, s);
     } else assertEquals(now(s), was, s);
   }
   assertEquals(now('{"answer":"Call us on\n+971 4 000 0000"}'), { answer: 'Call us on\n+971 4 000 0000' });
