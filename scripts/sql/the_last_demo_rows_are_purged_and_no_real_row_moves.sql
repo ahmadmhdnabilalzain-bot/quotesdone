@@ -353,6 +353,58 @@ insert into _l5_pre select (select k from _l5_scope where rel = 'public.quote_re
 -- own sweep, for entities it deletes. So the high-water mark of doc_versions is read here, and after the purge every row above
 -- it made by this transaction for a demo entity goes; one for any other entity is a real quote, request or document changed,
 -- and refuses. Guard a then reads the table exactly as before.
+-- LATE ROWS OF A PINNED DEMO ENTITY (17 Nov 23:00:29Z: the apply of 7f10343f1 refused at the cutoff check, 'charge_audit:
+-- 1 -> 0 rows made since 19:30'). The row was the accountant seat's charge audit of the demo transaction 29ac49f5 (Stripe TEST,
+-- livemode false), written at 22:31:22Z by fn_accountant_duties -> fn_accountant_charge_audit_record (seat_duty cron, every 5
+-- minutes): not the purge's, and not a certification's, but a row made after the cutoff about an entity the census pins. The
+-- cutoff check protects what a running certification makes; a certification makes NEW demo entities, which the census pin
+-- refuses, and an open window refuses before anything. So the rows made at or after the cutoff that hang off a pinned demo
+-- entity are counted here, before the purge: by a foreign key the walk deletes through (not SET NULL / SET DEFAULT) to a
+-- pinned customer, lead, inquiry, quote, transaction or login, or by the routine's own id-keyed rules (company_event,
+-- agent_actions, doc_versions, documents, notifications). The cutoff check then requires each table's rows made since the
+-- cutoff to be EXACTLY its count before less these: a late row the purge was not meant to take, or a row a trigger wrote
+-- into a dated table during the purge, refuses.
+create temp table _l5_late_q on commit drop as
+select z.rel, z.k, z.ts, string_agg(z.cond, ' or ') as cond from (
+  select s.rel, s.k, s.ts, format('x.%I::text in (select id from _l5_demo where rel = %L::regclass)', a.attname, c.confrelid::regclass::text) as cond
+    from _l5_scope s
+    join pg_constraint c on c.conrelid = s.rel and c.contype = 'f' and cardinality(c.conkey) = 1 and c.confdeltype not in ('n', 'd')
+    join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
+    join pg_attribute pa on pa.attrelid = c.confrelid and pa.attnum = c.confkey[1] and pa.attname = 'id'
+   where s.ts is not null and c.conrelid <> c.confrelid and c.confrelid in (select distinct rel::oid from _l5_demo)
+  union all
+  select s.rel, s.k, s.ts, r.cond from _l5_scope s join (values
+    ('public.company_event', 'x.entity_type in (''customer'',''supplier'',''lead'',''inquiry'',''quote'',''transaction'',''refund'') and x.entity_id in (select id from _l5_demo where rel <> ''auth.users''::regclass)'),
+    ('public.agent_actions', 'x.target_table in (''customers'',''leads'',''suppliers'',''inquiries'',''quotes'',''transactions'') and x.target_id in (select id from _l5_demo where rel <> ''auth.users''::regclass)'),
+    ('public.doc_versions', 'x.entity_type in (''quote'',''rfq'',''inquiry'',''customer'',''lead'',''supplier'',''transaction'') and x.entity_id in (select id from _l5_demo where rel <> ''auth.users''::regclass)'),
+    ('public.documents', 'x.ref_table in (''inquiries'',''quotes'',''leads'',''customers'',''transactions'') and x.ref_id in (select id from _l5_demo where rel <> ''auth.users''::regclass)'),
+    ('public.notifications', 'public.fn_demo_purge_address(x.to_email) or public.fn_is_demo_phone(x.to_phone) or x.lead_id::text in (select id from _l5_demo where rel = ''public.leads''::regclass) or x.inquiry_id::text in (select id from _l5_demo where rel = ''public.inquiries''::regclass) or x.quote_id::text in (select id from _l5_demo where rel = ''public.quotes''::regclass)')
+  ) r(t, cond) on s.rel = r.t::regclass::oid
+   where s.ts is not null) z
+ group by z.rel, z.k, z.ts;
+create temp table _l5_late on commit drop as
+select q.k, (xpath('/row/n/text()', query_to_xml(format('select count(*) as n from %s x where x.%I >= %L::timestamptz and (%s)',
+         q.rel::regclass::text, q.ts, (select t from _l5_cut), q.cond), false, true, '')))[1]::text::bigint as n
+  from _l5_late_q q;
+
+-- THE GONE-SUPPLIER CLOSE (z90_leads_gone_closes_its_pending_actions, a statement trigger on the leads delete): it dismisses
+-- every pending agent action that names a supplier who no longer exists. The routine deletes the actions it names by target;
+-- one naming the demo supplier only in its detail would be dismissed, a row outside the demo set changed. None on 17 Nov
+-- 23:10Z; if one appears, it is reviewed before purging.
+do $gone$
+declare v_bad text;
+begin
+  select string_agg(a.id::text, ', ') into v_bad from public.agent_actions a
+   where a.status = 'pending' and a.kind <> 'handoff'
+     and coalesce(nullif(a.detail ->> 'supplier_id', ''), case when a.target_table = 'leads' then a.target_id end)
+         in (select id from _l5_demo where rel = 'public.leads'::regclass)
+     and not (a.target_table in ('customers', 'leads', 'suppliers', 'inquiries', 'quotes', 'transactions')
+              and a.target_id in (select id from _l5_demo where rel <> 'auth.users'::regclass));
+  if v_bad is not null then
+    raise exception 'DEMO PURGE REFUSED: pending agent actions name a demo supplier and would be dismissed by the leads delete: %', v_bad;
+  end if;
+end $gone$;
+
 create temp table _l5_dv on commit drop as
 select (select coalesce(max(id), 0) from public.doc_versions) as max_id,
        (select count(*) from public.doc_versions v
@@ -473,9 +525,10 @@ begin
     raise exception 'DEMO PURGE REFUSED: the demo census is not the reviewed one (%): re-census and review before purging', v_out->'demo_ids';
   end if;
   -- the running certification (17 Nov): no table in scope lost a row made at or after the cutoff
-  select string_agg(format('%s: %s -> %s rows made since %s', b.k, b.r, a.r, (select t from _l5_cut)), '; ' order by b.k) into v_bad
-    from _l5_before b join _l5_after a on a.rel = b.rel
-   where b.r is not null and (a.r is null or a.r < b.r);
+  select string_agg(format('%s: %s -> %s rows made since %s (%s of them late rows of a pinned demo entity)', b.k, b.r, a.r,
+                           (select t from _l5_cut), coalesce(l.n, 0)), '; ' order by b.k) into v_bad
+    from _l5_before b join _l5_after a on a.rel = b.rel left join _l5_late l on l.k = b.k
+   where b.r is not null and (a.r is null or a.r <> b.r - coalesce(l.n, 0));
   if v_bad is not null then raise exception 'DEMO PURGE REFUSED: rows made at or after the cutoff (the running certification''s) would be deleted: %', v_bad; end if;
   -- ...nor is a Dropbox copy of a backup record made since the cutoff queued for deletion
   select string_agg(s.doc_backup_id::text, ', ') into v_bad
@@ -585,6 +638,7 @@ select 'PROBE OK: demo ' || ((select out from _l5_out)->'demo_ids')::text
        || (select count(*) from _l5_running_kept)::text || ' storage objects kept off the queue'
        || '; review requests of demo quote reviews deleted first: ' || coalesce((select sum(n) from _l5_pre), 0)::text
        || '; version rows the purge itself wrote, removed: ' || (select count(*) from _l5_dv_made)::text
+       || '; late rows of pinned demo entities: ' || coalesce((select string_agg(k || ' ' || n, ', ' order by k) from _l5_late where n > 0), 'none')
        || '; the four tables the routine never reaches: ' || (select string_agg(k || ' ' || n, ', ' order by k) from _l5_four)
        || '; foreign keys to a real party pinned: ' || (select count(*) from _l5_fk_before)::text
        || '; kept: customers 0dc8c94f, ba61fa16 and leads 19398, 158318, 143027; non-demo counts ' || public.fn_demo_purge_real_counts()::text
