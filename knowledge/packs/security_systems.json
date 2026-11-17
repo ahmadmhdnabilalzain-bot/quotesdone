@@ -506,6 +506,7 @@
         "UPS autonomy (minutes/hours)",
         "drawings / site visit availability",
         "warranty years, AMC, handover documents, authority approval responsibility",
+        "building or mall management rules (approved contractor, permit to work, working hours)",
         "Payment terms"
       ],
       "sources": [
@@ -575,7 +576,7 @@
           "spec": "VMS / video wall / mobile / monitoring-centre connection",
           "why_needed_to_price": "VMS and video walls add cost.",
           "uae_options": "VMS; video wall; mobile; monitoring centre.",
-          "follow_up_if": "If the inquiry is silent on vms / video wall / mobile / monitoring-centre connection, each supplier prices its own default; ask the buyer so every quote rests on the same vms / video wall / mobile / monitoring-centre connection.",
+          "follow_up_if": "If the inquiry is silent on vms / video wall / mobile / monitoring-centre connection, each supplier prices its own default; ask the buyer so every quote rests on the same vms / video wall / mobile / monitoring-centre connection. Ask whether they want to watch live and play back on a phone (remote viewing): it needs the recorder on the internet, the maker's app and secured access.",
           "blocking": false
         },
         {
@@ -621,6 +622,13 @@
           "blocking": false
         },
         {
+          "spec": "building or mall management rules (approved contractor, permit to work, working hours)",
+          "why_needed_to_price": "Malls, managed towers and master communities admit only contractors on their approved list, with a permit to work and set working hours (in a mall usually outside trading hours), which decides who can quote and adds night or after-hours labour.",
+          "uae_options": "Mall or building management approved-contractor list; permit to work or NOC; work outside trading hours; a SIRA-approved installer where the premises fall under SIRA (Dubai).",
+          "follow_up_if": "A shop in a mall or a unit in a managed tower: ask whether management requires an approved contractor or a permit, and the hours when work is allowed.",
+          "blocking": false
+        },
+        {
           "spec": "Payment terms",
           "why_needed_to_price": "Advance, cash-on-delivery and credit terms carry different finance cost and risk; a supplier left to assume its own terms quotes a price that cannot be compared with one given on credit.",
           "uae_options": "Full advance; part advance with the balance on delivery or completion; cash or cheque on delivery; 30, 60 or 90 days credit for an approved account; milestone payments for projects; retention where the contract holds one.",
@@ -651,7 +659,8 @@
           "shot_ar": "جهاز الإنترنت (الراوتر) أو خزانة الشبكة",
           "from": "the network"
         }
-      ]
+      ],
+      "source_note": "17 Nov 2026 (sales_engineer): checklist widened for sales_knowledge_gap #770, what the interview did not ask in the live seat conversation run 35568a84 of 1 Nov 2026: mall or landlord approved-contractor and permit rules; remote viewing on a phone. Retention is already blocking and sourced (SIRA Preventive Systems Manual 2025, entry security_systems:sira-retention-and-technical)."
     },
     {
       "id": "security_systems:spec-access-control",

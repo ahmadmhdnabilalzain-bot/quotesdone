@@ -105,7 +105,9 @@
       "body_ar": "لتسعير نظام إنذار الحريق بدقة يحتاج المورد التصميم المعتمد لا المساحة فقط. الأساس جدول الأجهزة: أعداد كل نوع من الكواشف ونقاط الإنذار اليدوية والصافرات والأضواء الوامضة ووحدات الربط والمراقبة، وحجم اللوحة بعدد الحلقات أو المناطق. ويجب ذكر تقنية النظام (تقليدي أو معنون) والماركات المفضلة أو المحددة، وهل يشمل الإخلاء الصوتي أو محطة الرسوم أو اللوحات التكرارية أو الربط الشبكي بين المباني. والكابلات بند كلفة ومخاطرة كبير: نوع الكابل المقاوم للحريق وتصنيفه وفق الكود، والمجاري، ومن يوردها. ويجب سرد الربط مع الأنظمة: المصاعد ووحدات مناولة الهواء والمراوح ومخمدات الدخان وتحرير التحكم بالدخول وقطع الغاز ومفاتيح تدفق الرشاشات والتلاعب ولوحات العوامل النظيفة وجهاز الإرسال لمراقبة الدفاع المدني. وتتبع مدد البطاريات الاحتياطية والإنذار ما يحدده الكود. ويجب أن يكون النطاق واضحاً (توريد فقط، أو توريد وتركيب، والاختبار والتشغيل، والمخططات النهائية، والتدريب، والموافقات والرسوم)، مع فترة الضمان والصيانة. ودون المخططات المعتمدة ومصفوفة السبب والنتيجة يكون أي سعر مقطوع تخميناً ويجب تعليقه.\n\nمقابلة الخبير (2026-11-10): البنود المانعة للتسعير: موقع العمل والإمارة، والمخططات المعتمدة أو جدول الأجهزة، ونوع النظام، والعلامات المقبولة. مراجعة أسئلة الموردين (10 نوفمبر 2026)، حتى لا يعود أي مورد إلى العميل بسؤال: يذكر الطلب أيضاً موقع العمل والإمارة، ومبنى جديد أم قائم، وشروط الدفع.",
       "sources": [
         "https://www.nfpa.org/codes-and-standards/nfpa-72-standard-development/72",
-        "https://www.thenationalnews.com/uae/2024/01/19/dubai-civil-defence-expects-hassantuk-fire-alarm-system-in-all-villas-by-end-of-2024/"
+        "https://www.thenationalnews.com/uae/2024/01/19/dubai-civil-defence-expects-hassantuk-fire-alarm-system-in-all-villas-by-end-of-2024/",
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf",
+        "https://www.nfpa.org/codes-and-standards/nfpa-2001-standard-development/2001"
       ],
       "confidence": "high",
       "as_of": "2026-09-23",
@@ -122,6 +124,8 @@
         "Scope: supply/install/test/commission/as-built/training",
         "Authority approvals and fees included or excluded",
         "Warranty and AMC period",
+        "base-building panel to connect to (make, model, spare loop capacity)",
+        "special risk rooms: server, UPS, electrical or archive rooms",
         "site location and emirate",
         "new or existing building",
         "payment terms"
@@ -137,7 +141,7 @@
           "spec": "Approved fire alarm drawings and device schedule",
           "why_needed_to_price": "Quantities come from approved drawings; Civil Defence approves the design.",
           "uae_options": "approved drawings; design-and-build",
-          "follow_up_if": "No drawings: a design by an approved contractor is needed first.",
+          "follow_up_if": "No drawings: a design by an approved contractor is needed first. The design and shop drawings are prepared and submitted to Civil Defence by a Civil Defence registered contractor or consultant before installation; ask who will prepare and submit them.",
           "blocking": true
         },
         {
@@ -186,7 +190,7 @@
           "spec": "Fire-resistant cable type/rating and containment scope",
           "why_needed_to_price": "Fire-resistant cable and containment are a large share of cost.",
           "uae_options": "Enhanced fire-resistant cable; containment by contractor or others.",
-          "follow_up_if": "If containment is by others, state it.",
+          "follow_up_if": "If containment is by others, state it. If the buyer proposes normal cable, correct it: the UAE Fire and Life Safety Code of Practice 2018 (Chapter 8) requires fire detection and alarm wiring to be 2-hour fire rated and Civil Defence listed.",
           "blocking": false
         },
         {
@@ -218,6 +222,20 @@
           "blocking": false
         },
         {
+          "spec": "base-building panel to connect to (make, model, spare loop capacity)",
+          "why_needed_to_price": "An office or shop in a tower usually ties into the building's main addressable panel; the tie-in needs the same make or a compatible interface and often the building's own fire contractor, which changes the device list and the price.",
+          "uae_options": "Standalone panel; a sub-panel networked to the building panel; devices added to the building's loops by the building's registered fire contractor.",
+          "follow_up_if": "A unit in a tower or mall: ask the make of the main panel and who the building's fire contractor is.",
+          "blocking": false
+        },
+        {
+          "spec": "special risk rooms: server, UPS, electrical or archive rooms",
+          "why_needed_to_price": "A server or UPS room usually needs gas suppression and often aspirating smoke detection instead of water, which is a separate system with its own price.",
+          "uae_options": "None; clean agent (HFC-227ea, FK-5-1-12) or inert gas (IG-541, IG-55) suppression; aspirating smoke detection for very early warning.",
+          "follow_up_if": "A server room: ask its length, width and height (and raised floor and ceiling void), and put the gas suppression checklist (fire_fighting:clean-agent-spec-checklist) to them as well.",
+          "blocking": false
+        },
+        {
           "spec": "site location and emirate",
           "blocking": true,
           "why_needed_to_price": "Travel, mobilisation and which emirate's authorities approve the work depend on where the site is.",
@@ -241,7 +259,7 @@
       ],
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
       "site_visit_required_when": "A site visit is needed for an existing building, to check cable routes, ceilings and the existing panel.",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
+      "source_note": "Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page. 17 Nov 2026 (sales_engineer): checklist widened for sales_knowledge_gap #774, what the interview did not ask in the live seat conversation run 35568a84 of 1 Nov 2026: Civil Defence approved shop drawings by a registered contractor; the base-building panel tie-in; server-room gas suppression; the fire-rated cable correction (entries fire_fighting:fire-rated-cables, dcd-amc-contractor, clean-agent-comparison).",
       "photos_to_ask": [
         {
           "shot": "Where the cables would run (ceiling, walls, trunking or trays)",
