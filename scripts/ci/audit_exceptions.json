@@ -1,0 +1,14 @@
+{
+  "_rule": "A HIGH or CRITICAL advisory in a production dependency fails the gate. An entry here excuses ONE advisory on ONE package, only while no patched version exists, and only until its expiry. scripts/ci/audit_production.mjs fails the gate when an entry has expired, when the advisory's affected range no longer covers the newest published version (a fix exists: upgrade and delete the entry), or when any advisory not listed here appears.",
+  "exceptions": [
+    {
+      "advisory": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "reason": "ReDoS through single-branch repeated extglobs. No patched version exists (17 Nov 2026: affected range <=4.0.7, newest published 4.0.7). Reached only through next-intl -> @parcel/watcher, the file watcher next-intl's plugin uses during development; the production site does not watch files or match user-supplied globs. Downgrading @parcel/watcher to 2.5.1 pulls picomatch 2.3.2 through micromatch and raises the count from 2 to 4 HIGH (measured).",
+      "via": ["@parcel/watcher"],
+      "added": "2026-11-17",
+      "expires": "2026-12-01",
+      "owner": "it_engineer"
+    }
+  ]
+}

@@ -105,7 +105,7 @@ const STEPS = [
   ['migration-lint', 'migration-lint', 'lint migrations for locking operations (squawk)', () => { const f = migrations(); return f.length ? `npx squawk ${f.join(' ')}` : null; }],
   ['lint', 'typecheck', 'lint the website (oxlint; warnings are counted debt, errors fail)', 'npm run lint'],
   ['typecheck', 'typecheck', 'typecheck the app', 'npm run typecheck', { heavy: true }],
-  ['audit', 'typecheck', 'no HIGH or CRITICAL advisory in a production dependency', 'npm audit --omit=dev --audit-level=high'],
+  ['audit', 'typecheck', 'no HIGH or CRITICAL advisory in a production dependency, except a named one with no fix yet (scripts/ci/audit_exceptions.json)', 'node scripts/ci/audit_production.mjs'],
   // In-process, not a command: the findings are the note (the first three), so a red row says what differs.
   ['node-tree', 'build', 'node_modules is exactly package-lock.json (what Vercel installs)', () => {
     const f = treeFindings(REPO);

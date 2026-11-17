@@ -229,7 +229,7 @@ jobs:
       # reached production and were first seen by the weekly IT reading, then fixed by #776. The weekly
       # duty finds advisories published AFTER a merge; this step refuses a PR that ships one already known.
       - name: No HIGH or CRITICAL advisory in a production dependency
-        run: npm audit --omit=dev --audit-level=high
+        run: node scripts/ci/audit_production.mjs
 
   deno-check:
     name: typecheck the edge functions
