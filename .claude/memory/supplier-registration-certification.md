@@ -132,6 +132,9 @@ Related: [[a-journey-step-is-proved-by-its-outcome]], [[the-registration-walk-re
   plumbing.drainage" FAILED, both one cause, not #2028.** The store held the cards (J10's vague "What types of staff do you supply?" with
   the founder's labour_supply chips; J1's umbrella card carrying plumbing.drainage, which is how both 16 Nov J1 runs showed drainage) but
   the walk saw none: `proposeFromRead` stored the questions ~190 ms AFTER the write that turns the profile from 'reading' to 'read', and the
-  tab's poll stops on that answer (6 of 26 journeys with stored questions showed none, 2 of them on 16 Nov). The reading itself was right:
+  tab's poll stops on that answer (6 of 32 journeys with stored questions showed none, 2 of them on 16 Nov). The reading itself was right:
   `rejected` [] on J1, the vague card drafted on J10, drainage never a screen-1 item on 16 Nov either. Fixed by storing the questions
   first (branch `sales_engineer-a-manpower-supplier-is-asked-what-staff-he-supplies`).
+  Paid re-read on the branch (tag 5d9fdea2, USD 0.0298, 20 calls, torn down): P8 3 of 3 drafted the vague labour_supply card, ticked
+  nothing (run 1's recruitment tick was 1 reading in 6); P1 3 of 3 kept booster pumps as plumbing.heaters_pumps, `rejected` [],
+  drainage a screen-1 item in 2 and a chip of the umbrella card in 1. Run 2 J10 passed (nothing ticked, so the walk re-opened the tab).

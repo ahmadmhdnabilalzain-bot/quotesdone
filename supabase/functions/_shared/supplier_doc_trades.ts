@@ -628,7 +628,7 @@ export async function proposeFromRead(admin: Admin, supplierId: number, fresh: D
       // it: stored after it, the questions landed ~190 ms later (run 2 J1: extracted_at 05:29:07.329, asked_at 05:29:07.518) and a
       // poll in between drew screen 1 with no card, never asking again. Measured on the stored state against the cards shown: run 1
       // J10 (the manpower supplier's "What types of staff do you supply?", the founder's labour_supply chips), run 2 J1 (the umbrella
-      // card carrying plumbing.drainage), run 1 J6, run 2 J2, and on 16 Nov (before #2028) run 1 J5 and run 2 J6: 6 of the 26 journeys
+      // card carrying plumbing.drainage), run 1 J6, run 2 J2, and on 16 Nov (before #2028) run 1 J5 and run 2 J6: 6 of the 32 journeys
       // whose store held open questions showed none.
       // storeQuestions is idempotent (kind + about_hash) and expires what a later reading no longer drafts, so a store that is 'moved'
       // and laid again asks nothing twice.
