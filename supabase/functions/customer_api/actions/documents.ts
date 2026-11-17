@@ -412,11 +412,15 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           const done: DonePage[] = [];
           for (let b = 0; b < batches; b++) if (pathsOf[b]?.length && jobsOf[b]?.length) done.push({ page: b * REDACT_BATCH, paths: pathsOf[b], job: jobsOf[b][0] });
           const stored = new Map<number, string>();
-          await Promise.all(leftForTime.map(async (pg) => {
+          // Bounded (review 17 Nov 2026): the stores never take the answer past its budget; a sheet not stored in time leaves
+          // the set unqueued (queuedPagesOf answers null) and the drawing held, as before.
+          const storeBy = analyzeAt + ANALYZE_DRAWING_BUDGET_MS - 4_000;
+          await Promise.race([Promise.all(leftForTime.map(async (pg) => {
             const im = images[pg], b64 = String((im && (im.b64 || im.data)) || im || '');
             const pth = b64 ? await storeOriginal(cust.id, email, `sheet_${pg + 1}.jpg`, 'image/jpeg', b64, SAFE_UPLOAD) : null;
-            if (pth) stored.set(pg, pth);
-          }));
+            if (pth && Date.now() < storeBy) stored.set(pg, pth);
+          })), new Promise((ok) => setTimeout(ok, Math.max(0, storeBy - Date.now())))]);
+          if (Date.now() >= storeBy) stored.clear();
           const q = REDACT_BATCH === 1 ? queuedPagesOf({ pagesIn: images.length, seeds: floorSeeds, done, left: leftForTime, boxes: serverBoxes, storedAt: (pg) => stored.get(pg) ?? null }) : null;
           if (q) pagesJob = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64 || '').length, why: PAGES_NEED_TIME, boqIn: { queued_pages: q } });
         }

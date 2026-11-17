@@ -362,7 +362,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
         const pages = Array.isArray(s.drawing_redacted_paths) ? s.drawing_redacted_paths : [];
         if (!pages.length) return;
         adopt({ ...res, drawing_redacted_paths: pages, drawing_held: false }, name, source);
-        push({ role: 'assistant', text: tf(lang, 'nr_pages_ready', { n: pages.length, c: countPhrase(lang, pages.length, 'page', { oblique: true }) }) });
+        push({ role: 'assistant', text: tf(lang, 'nr_sheets_all_checked', { n: pages.length, c: countPhrase(lang, pages.length, 'page', { oblique: true }) }) });
         return;
       }
       if (s && s.ok && s.status === 'failed') return;
