@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it always raises CHK<<...>> and writes nothing. It is run after before_a_reveal_a_supplier_portal_title_is_the_trade_and_the_emirate.sql is applied, and must print PROBE OK. This note therefore stays for the life of the file. Seat: sales_engineer.
