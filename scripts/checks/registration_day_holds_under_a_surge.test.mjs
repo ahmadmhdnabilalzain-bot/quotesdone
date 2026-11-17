@@ -23,7 +23,8 @@ const login = code(read('supabase/functions/login_otp/index.ts'));
 
 test('a sign-in code that Resend refused is not answered as sent (login_otp)', () => {
   const branch = between(login, "codeEmail('signin'", "channel: 'email', identifier: email");
-  assert.match(branch, /if \(!\(await sendEmail\(email, mail\.subject, mail\.html\)\)\)/,
+  // 15 Nov 2026 (06881a2d6): the mail carries its text/plain part too
+  assert.match(branch, /if \(!\(await sendEmail\(email, mail\.subject, mail\.html(?:, mail\.text)?\)\)\)/,
     'login_otp must check the send result before answering ok:true');
   assert.match(branch, /code: 'email_not_sent' \}, 502\)/);
 });
@@ -37,7 +38,7 @@ test('a verification email that did not leave is not answered as sent (kyc send_
 
 test('both code senders retry a busy second through the one shared helper', () => {
   for (const [name, s] of [['kyc', kyc], ['login_otp', login]]) {
-    assert.match(s, /return await resendWithRetry\(key, \{ from, to, subject, html, reply_to \}\)/, name + ' sendEmail must use resendWithRetry');
+    assert.match(s, /return await resendWithRetry\(key, \{ from, to, subject, html, (?:\.\.\.\(text \? \{ text \} : \{\}\), )?reply_to \}\)/, name + ' sendEmail must use resendWithRetry');
     assert.doesNotMatch(s, /fetch\('https:\/\/api\.resend\.com\/emails'/, name + ' must not POST to Resend directly');
   }
   const helper = code(read('supabase/functions/_shared/resend_send.ts'));

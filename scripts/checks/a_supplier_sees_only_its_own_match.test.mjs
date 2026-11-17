@@ -156,9 +156,15 @@ test('SP-C-02: the dry run snapshots the row and its lines, and puts them back',
   const write = a.search(/from\('quotes'\)\.update\((?:det|d)\)/);
   assert.ok(write !== -1, 'submit_quote writes the quotes row by update');
   assert.ok(snap !== -1 && snap < write, 'the snapshot must be taken before the write it undoes');
-  assert.match(a, /if \(se \|\| sle \|\| !sr\) return J\(\{ error: 'preflight_unavailable'/, 'a snapshot we could not take refuses the check');
-  assert.match(a, /if \(dryRun\) \{[\s\S]{0,1400}update\(snapRow\)[\s\S]{0,400}insert\(snapLines\)/, 'the prior row and its lines are restored');
-  assert.match(a, /if \(dryRun\) \{[\s\S]{0,1600}from\('quotes'\)\.delete\(\)\.eq\('id', qid\)/, 'a row the check created is removed');
+  // 15 Nov 2026 (third review of the certificate branch, item 4): the snapshot and the put-back moved into
+  // lib/quote_acceptance.ts (snapshotQuote / restoreQuote), shared with a re-sent quotation whose lines failed. The same three
+  // guarantees, read where they now live:
+  const lib = code(read('supabase', 'functions', 'supplier_api', 'lib', 'quote_acceptance.ts'));
+  assert.match(lib, /if \(se \|\| sle \|\| !sr\) return null;/, 'snapshotQuote answers a snapshot it could not take');
+  assert.match(a, /snap = await snapshotQuote\(String\(prior\.id\), snapCols\);[\s\S]{0,300}if \(!snap && dryRun\) return J\(\{ error: 'preflight_unavailable'/, 'a snapshot we could not take refuses the check');
+  assert.match(lib, /export async function restoreQuote\([\s\S]{0,200}from\('quotes'\)\.update\(snap\.row\)[\s\S]{0,200}from\('quote_items'\)\.delete\(\)[\s\S]{0,200}from\('quote_items'\)\.insert\(snap\.lines\)/, 'the prior row and its lines are restored');
+  assert.match(a, /const restore = async \(\): Promise<boolean> => \{\s*if \(snap\) return await restoreQuote\(qid, snap\);[\s\S]{0,200}from\('quotes'\)\.delete\(\)\.eq\('id', qid\)/, 'a row the check created is removed');
+  assert.match(a, /if \(dryRun\) \{[\s\S]{0,400}const restored = await restore\(\);/, 'the dry run puts the row back');
   assert.doesNotMatch(a, /update\(\{ status: prior\?\.status \|\| 'draft' \}\)/, 'restoring only the status is what let a dry run rewrite a sent quotation');
 });
 

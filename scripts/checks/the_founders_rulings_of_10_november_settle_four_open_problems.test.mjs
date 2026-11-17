@@ -102,7 +102,8 @@ test('a TEST-mode payment the accountant resolved stays resolved when the sweep 
   assert.match(rec, /when excluded\.outcome = 'deferred' then null\s+(?:--[^\n]*\s+)*when excluded\.outcome = 'test_mode_not_demo' and not excluded\.livemode then it\.resolved_at end(?:;|\s+(?:--[^\n]*\s+)*where not \(it\.resolved_at is null and it\.attempts >= 10)/,
     'the upsert resets a resolved test-mode payment again, so its finding reopens every hour (founder ruling 1558)');
   // The classifier contract is unchanged: a test payment whose quote is not provably demo is still filed once.
-  assert.match(rec, /v_demo := case when x->>'outcome' = 'test_mode_not_demo' then public\.fn_is_demo_email\(x->>'customer_email'\)/);
+  // 15 Nov 2026 (#2005): a torn-down rehearsal is read by the same demo rule as a test-mode payment
+  assert.match(rec, /v_demo := case when x->>'outcome' (?:= 'test_mode_not_demo'|in \('test_mode_not_demo', 'rehearsal_torn_down'\)) then public\.fn_is_demo_email\(x->>'customer_email'\)/);
 });
 
 test('every routine the file defines keeps SECURITY DEFINER, a pinned search_path and its revoke', () => {

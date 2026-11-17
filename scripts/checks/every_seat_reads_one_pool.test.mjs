@@ -22,6 +22,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { supabaseTokenOrEmpty } from '../lib/supabase_token.mjs';
+import { manifestWithPending, pendingNotes } from '../lib/pending_sql.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -52,6 +53,11 @@ export function handoffKinds() {
     // only inside the VALUES of an insert into seat_handoff_kind (a call like fn_seat_duty_cross_review('x.y', 'ceo', ...) is not one)
     for (const ins of t.matchAll(/insert into public\.seat_handoff_kind[^;]*?values([\s\S]*?);/gi))
       for (const m of ins[1].matchAll(/\(\s*'([a-z_]+\.[a-z_.]+)',\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'/g)) if (SEATS.includes(m[2]) && SEATS.includes(m[3])) out.push([m[1], m[2], m[3]]);
+    // ...and `select '<type>', '<from>', s, ... from unnest(array['<to>', ...]) s` (info_and_management_mail_is_read_before_it_is_
+    // answered.sql registers mail.routed so; read on review 17 Nov 2026, it had no subscription row here or on production).
+    // The pool file's own kinds of this shape (ceo.order) are its seed's, written by its own rule.
+    if ('scripts/sql/' + f !== FILE) for (const ins of t.matchAll(/insert into public\.seat_handoff_kind \([^)]*\)\s*select\s+'([a-z_]+\.[a-z_.]+)',\s*'([a-z_]+)',\s*(\w+),(?:(?!\bon conflict\b|\bunion\b)[\s\S])*?from\s+unnest\(array\[([^\]]*)\]\)\s+(\w+)/gi))
+      if (ins[3] === ins[5]) for (const to of [...ins[4].matchAll(/'([a-z_]+)'/g)].map((m) => m[1])) if (SEATS.includes(ins[2]) && SEATS.includes(to)) out.push([ins[1], ins[2], to]);
   }
   return out;
 }
@@ -80,8 +86,17 @@ export function coverageFindings(rows, types, seats = SEATS) {
   return out;
 }
 
+/** Rows a LATER file adds with the seed's own shape (17 Nov 2026: three kinds registered after the pool had no row anywhere,
+ *  three_hand_over_kinds_made_after_the_pool_have_an_owner_and_an_audience.sql gives them theirs). Apply order; probes never. */
+export function laterRows() {
+  const notes = pendingNotes(REPO);
+  return manifestWithPending(REPO).filter((f) => f !== FILE && existsSync(join(REPO, f)) && !/^\s*A PROBE\b/.test(notes.get(f) || ''))
+    .flatMap((f) => [...read(f).matchAll(/insert into public\.event_subscription as s \(event_type, agent_key, owns, delivery, reason\) values([\s\S]*?)\non conflict/g)])
+    .flatMap((ins) => [...ins[1].matchAll(/\(\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)',\s*(true|false),\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)'\s*\)/g)]
+      .map((m) => [m[1], m[2], m[3] === 'true', m[4], m[5].replace(/''/g, "'")]));
+}
 const sqlText = read(FILE);
-const rows = seedRows(sqlText);
+const rows = [...seedRows(sqlText), ...laterRows()];
 const LIVE_FIXTURE = JSON.parse(read('scripts/fixtures/company_event_types_2026-11-13.json')).types;
 
 test('1. every live type, every registered hand-over kind and the siblings\' types: one producing owner and an audience', () => {

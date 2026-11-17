@@ -22,7 +22,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readSchemaMirror } from '../lib/schema_mirror.mjs';
+import { readSchemaMirror, publicTablesNow } from '../lib/schema_mirror.mjs';
 import { manifestWithPending, manifestHas } from '../lib/pending_sql.mjs';
 import { readRegistry, registryRowsIn, EXCLUSION_CATEGORIES } from '../lib/table_export_registry.mjs';
 import { definitions } from '../lib/canonical_sql.mjs';
@@ -50,17 +50,17 @@ export const createdIn = (sql) => [...stripComments(sql).matchAll(/create\s+tabl
 
 // A pending `drop table public.x` removes x the same way: the mirror still has it until the release train applies the
 // file, and that same file deletes its registry row (30 Sep 2026, enterprise accounts).
-export const droppedIn = (sql) => [...stripComments(sql).matchAll(/drop\s+table\s+(?:if\s+exists\s+)?public\."?([a-z0-9_]+)"?/gi)].map((m) => m[1].toLowerCase());
+// Not `alter publication ... drop table public.x`: that only stops publishing x (17 Nov 2026, #2035 read ai_cost_log as dropped).
+export const droppedIn = (sql) => [...stripComments(sql).matchAll(/(?<!alter\s+publication\s+\w+\s+)drop\s+table\s+(?:if\s+exists\s+)?public\."?([a-z0-9_]+)"?/gi)].map((m) => m[1].toLowerCase());
 // A pending `alter table public.x set schema retired` takes x out of public the same way (16 Nov 2026, it_engineer: phase 1 of
 // the simplification moves unused tables to schema retired instead of dropping them, and deletes their registry rows).
 export const movedOutIn = (sql) => [...stripComments(sql).matchAll(/alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?public\."?([a-z0-9_]+)"?\s+set\s+schema\s+(?!public\b)[a-z_]/gi)].map((m) => m[1].toLowerCase());
 
 const PENDING = manifestWithPending(REPO).filter((f) => !manifestHas(f)).map((f) => read(f));
 const DROPPED_PENDING = new Set([...PENDING.flatMap(droppedIn), ...PENDING.flatMap(movedOutIn)]);
-const TABLES = new Set([
-  ...[...SCHEMA.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?public\."?([a-z0-9_]+)"? \(/g)].map((m) => m[1]),
-  ...PENDING.flatMap(createdIn),
-].filter((t) => !DROPPED_PENDING.has(t)));
+// 17 Nov 2026: the mirror PLUS every file applied after its capture, then the pending files (publicTablesNow). Reading the
+// mirror alone hid 47 live tables created 12-17 Nov with no registry row, and listed 28 that had moved to schema retired.
+const TABLES = publicTablesNow(REPO);
 const REG = readRegistry(REPO);
 
 // The one rule, pure so the self-test runs it on a fake table.

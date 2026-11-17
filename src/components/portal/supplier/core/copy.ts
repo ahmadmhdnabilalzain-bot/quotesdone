@@ -30,8 +30,8 @@ const T = {
     // WHAT A DUE IS ACTUALLY MADE OF (audit 22 Sep 2026, SP-C-01). This row read `d.commission` and
     // `d.fine`; supplier_pay's `list` has never returned either name — it returns `refunded_fee`,
     // `admin_fee` and `interest` (supplier_pay/index.ts). Every outstanding due therefore printed
-    // "Refunded amount recovered AED 0", and the AED 250 administrative fee and the 9% interest of
-    // clause 33 were invisible. These three keys are those three fields, named as clause 33 names them.
+    // "Refunded amount recovered AED 0", and clause 33's administrative fee and interest were invisible (the figures are
+    // company_facts.json's; a comment here once quoted the v12 ones and read as a live statement, 17 Nov 2026). These three keys are those three fields, named as clause 33 names them.
     bill_refund:'Non-response charge (refund and unrecovered processor fee)', bill_admin:'Administrative fee', bill_interest:'Late interest and fines', bill_due:'Due', bill_retry:'Try again', bill_secure:'You will be redirected to Stripe to pay securely. QuotesDone never sees your card details. These charges arise only when a customer is refunded because we could not reach you \u2014 there is no commission on won work.', t_rfqs:'RFQs', approved:'Approved', pending:'Pending',
     
     

@@ -26,7 +26,8 @@ import { readFileSync, existsSync } from 'node:fs';
 // token while this check must SKIP — a check with no credential has measured nothing, and saying so
 // is not the same as failing.
 import { sql } from '../lib/db.mjs';
-import { SCHEMA_MIRROR, readSchemaMirror, writeSchemaMirror } from '../lib/schema_mirror.mjs';
+import { SCHEMA_MIRROR, readSchemaMirror, writeSchemaMirror, boundaryLine } from '../lib/schema_mirror.mjs';
+import { manifestLines } from '../lib/pending_sql.mjs';
 
 const LOCAL_TOKEN = SUPABASE_TOKEN_FILE;
 const token = (process.env.SUPABASE_ACCESS_TOKEN
@@ -116,6 +117,8 @@ const banner = () => [
   '-- ================================================================================================',
   '-- QuotesDone — FULL SCHEMA EXPORT',
   `-- Captured ${new Date().toISOString()} from public.fn_schema_export() on ${PROD}.`,
+  // what of MANIFEST this capture already holds: readers replay only the files after it (schema_mirror.mjs, 17 Nov 2026)
+  boundaryLine(manifestLines()),
   '--',
   '-- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use',
   '-- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and',
