@@ -83,7 +83,21 @@
 --     accountant_reveal_reconcile_item 53 with demo = true, livemode false, outcome rehearsal_torn_down, all on example.invalid
 --       (the 7 test_mode_not_demo rows of the 10 Nov ruling have no demo address and stay). NOTE: the hourly reveal sweep
 --       re-reads Stripe TEST events for 30 days and re-files these 53 as resolved rehearsal_torn_down until about 12 Dec.
--- THE CUTOFF (17 Nov): _l5_cut holds it (now 2026-11-17 10:09:32Z, after the certification's teardown) and any running
+-- RE-COUNTED 17 NOV 2026 ~20:43Z (it_engineer; SELECT only), after the apply of 20:41Z REFUSED, safely, on today's five paid
+--   drawing/memory proofs (qd_run 712aae1d, b7bdf916, 14173f94, 623d9200, 6244a525; 12:57Z-19:24:04Z, each torn down by its
+--   harness; 408 run-tagged cost rows after 10:09:32Z). The cutoff moves to 19:30:00Z, after the last teardown, and their
+--   rows go like every other run's. Census against the pin: entities UNCHANGED (2 customers, 1 lead, 3 inquiries, 3 quotes,
+--   1 transaction, 12 logins; none made after the cutoff); kept (2,2,3); no qd_run window open or started after 19:30Z;
+--   0 run-tagged cost rows, demo notifications, email codes or windows after it. Moved since 10:13Z: run-tagged cost rows
+--   31,657 -> 32,065; qd_run windows 2,102 -> 2,107; demo_shadow_trace before the cutoff 13,586 -> 16,366 (of 16,746);
+--   rehearsal_spend_reservation 907 -> 913; support_reply_readability 68 and reconcile items 53 unchanged; storage by this
+--   file's rules 44 (unchanged), evidence 6 kept. The OpenRouter reconcile check: the Asia/Dubai day 17 Nov, which holds every
+--   tagged row of today's proofs (16:57-23:24 Dubai), was reconciled at 20:30:29Z; no tagged day is unreconciled.
+--   cad_read_jobs: the 17:20Z proof left two queued jobs (943e0b0e, 62c5537d) whose customer f09eab3b and source drawings are
+--   gone; their owner is an example.invalid address, so fn_demo_purge_run already deletes them (owner_email marker), and the
+--   check below now refuses unless every cad_read_jobs row with a demo owner, or a ZZ DEMO file name, made before the cutoff
+--   is gone (4 such rows on production; 0 with the name and a real owner, so none is a real job).
+-- THE CUTOFF (17 Nov): _l5_cut holds it (now 2026-11-17 19:30:00Z, after the last proof's teardown at 19:24:04Z) and any running
 --   tag (none now). The routine is unchanged and deletes every run-tagged cost row and window, so this file REFUSES, before
 --   anything is purged, while a qd_run window is open or any row it would delete carries a running tag or was created at or
 --   after the cutoff; and after the purge it refuses if any table in scope lost a row created at or after the cutoff (each
@@ -106,10 +120,10 @@
 set transaction isolation level repeatable read;
 set local lock_timeout = '5s';
 
--- the cutoff, the running certification's tag(s) and the reviewed census, in one place (17 Nov 2026 ~10:13Z: the
--- certification 54943ac4 ended 10:09:31Z and tore itself down; nothing is running, so no tag is protected by name)
+-- the cutoff, the running certification's tag(s) and the reviewed census, in one place (17 Nov 2026 ~20:43Z: the day's last
+-- paid proof, 6244a525, tore itself down at 19:24:04Z; nothing is running, so no tag is protected by name; census unchanged)
 create temp table _l5_cut on commit drop as
-select '2026-11-17 10:09:32+00'::timestamptz as t, '{}'::text[] as running_tags,
+select '2026-11-17 19:30:00+00'::timestamptz as t, '{}'::text[] as running_tags,
        '{"customers": 2, "leads": 1, "inquiries": 3, "quotes": 3, "transactions": 1, "auth_users": 12}'::jsonb as pin,
        '{"customers": 0, "leads": 0, "inquiries": 0, "quotes": 0, "transactions": 0, "auth_users": 0}'::jsonb as pin_done;
 
@@ -424,6 +438,12 @@ begin
    where b.n - f.n <> a.n;
   if v_bad is not null then raise exception 'DEMO PURGE REFUSED: a demo table outside the routine moved by other than its demo rows: %', v_bad; end if;
   if (select count(*) from _l5_four) <> 4 then raise exception 'DEMO PURGE REFUSED: the four demo tables were not all purged (%)', (select count(*) from _l5_four); end if;
+  -- 17 Nov: the CAD read jobs a proof leaves behind (943e0b0e, 62c5537d of 17:20Z, customer and drawings already torn down) are
+  -- demo by their owner address; none with a demo owner or a ZZ DEMO file name, made before the cutoff, may survive the purge
+  select string_agg(left(j.id::text, 8), ', ') into v_bad from public.cad_read_jobs j
+   where j.created_at < (select t from _l5_cut)
+     and (public.fn_demo_purge_address(j.owner_email) or j.file_name ~* '(^|[^a-z0-9])zz[ _-]?demo([^a-z]|$)');
+  if v_bad is not null then raise exception 'DEMO PURGE INCOMPLETE: demo CAD read jobs left: %', v_bad; end if;
   if (v_out->'demo_ids') is distinct from (select jsonb_build_object('customers', count(*) filter (where rel = 'public.customers'::regclass),
         'leads', count(*) filter (where rel = 'public.leads'::regclass), 'inquiries', count(*) filter (where rel = 'public.inquiries'::regclass),
         'quotes', count(*) filter (where rel = 'public.quotes'::regclass), 'transactions', count(*) filter (where rel = 'public.transactions'::regclass),
