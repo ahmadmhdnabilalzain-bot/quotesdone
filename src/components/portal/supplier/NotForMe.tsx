@@ -32,6 +32,8 @@ export function NotForMe({ token, lang, inquiryId, declined = false, onDone }: {
   const [offer, setOffer] = useState<{ trades: string[]; label: string } | null>(null);
   const [stopped, setStopped] = useState('');
   const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  // busy-exempt: the stage 'sending' is this press's busy state: Send is disabled and reads t.sending until the answer
   const decline = async () => {
     setStage('sending'); setErr('');
     const j = await call('supplier_api', { action: 'decline_request', inquiry_id: inquiryId, reason: reason.trim() || null }, token);
@@ -39,9 +41,9 @@ export function NotForMe({ token, lang, inquiryId, declined = false, onDone }: {
     setOffer(j.offer ?? null); setStage('done'); onDone?.();
   };
   const stop = async () => {
-    if (!offer) return;
-    setErr('');
-    const j = await call('supplier_api', { action: 'remove_work', trades: offer.trades, from_decline: true, inquiry_id: inquiryId, reason: reason.trim() || null }, token);
+    if (!offer || busy) return;
+    setErr(''); setBusy(true);
+    const j = await call('supplier_api', { action: 'remove_work', trades: offer.trades, from_decline: true, inquiry_id: inquiryId, reason: reason.trim() || null }, token).finally(() => setBusy(false));
     if (!j?.ok) { setErr(j?.error ? String(j.error) : t.err); return; }
     setStopped(offer.label); setOffer(null);
   };
@@ -49,7 +51,7 @@ export function NotForMe({ token, lang, inquiryId, declined = false, onDone }: {
     return (
       <div className="mt-4 space-y-2" role="status">
         <p className="text-[13px] text-foreground">{declined && !offer && !stopped ? t.declined : t.done}</p>
-        {offer ? <Button variant="ghost" onClick={stop}>{t.stop(offer.label)}</Button> : null}
+        {offer ? <Button variant="ghost" onClick={stop} disabled={busy} aria-busy={busy}>{t.stop(offer.label)}</Button> : null}
         {stopped ? <p className="text-[13px] text-foreground">{t.stopped(stopped)}</p> : null}
         {err ? <p role="alert" className="text-[12.5px] text-danger-fg">{err}</p> : null}
       </div>
@@ -74,6 +76,7 @@ export function UnansweredNote({ token, lang }: { token: string; lang: Lang }) {
   const t = COPY.en; void lang;
   const [s, setS] = useState<{ strikes: number; strike_limit: number } | null>(null);
   const [msg, setMsg] = useState('');
+  const [busy, setBusy] = useState(false);
   useEffect(() => {
     let on = true;
     call('supplier_api', { action: 'standing' }, token).then((j) => { if (on && j?.ok && j.standing) setS({ strikes: Number(j.standing.strikes) || 0, strike_limit: Number(j.standing.strike_limit) || 3 }); });
@@ -81,12 +84,12 @@ export function UnansweredNote({ token, lang }: { token: string; lang: Lang }) {
   }, [token]);
   if (msg) return <p role="status" className="qd-panel mb-3 p-4 text-[13px] text-foreground">{msg}</p>;
   if (!s || s.strikes <= 0) return null;
-  const available = async () => { const j = await call('supplier_api', { action: 'say_available' }, token); setMsg(j?.ok ? t.cleared : t.err); };
+  const available = async () => { setBusy(true); const j = await call('supplier_api', { action: 'say_available' }, token).finally(() => setBusy(false)); setMsg(j?.ok ? t.cleared : t.err); };
   return (
     <div role="status" className="qd-panel mb-3 space-y-2 p-4">
       <p className="text-[13px] text-foreground">{s.strikes >= s.strike_limit ? t.paused(s.strike_limit) : t.note(s.strikes, s.strike_limit)}</p>
       <p className="text-[12.5px] text-muted-foreground">{t.how}</p>
-      <Button onClick={available}>{t.available}</Button>
+      <Button onClick={available} disabled={busy} aria-busy={busy}>{t.available}</Button>
     </div>
   );
 }

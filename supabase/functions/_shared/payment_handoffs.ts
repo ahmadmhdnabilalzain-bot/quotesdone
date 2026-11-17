@@ -231,4 +231,40 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   // customer support closes it once the customer is told (scripts/sql/a_customer_asking_on_whatsapp_reads_their_own_requests_and_every_ask_closes_its_loop.sql,
   // handler fn_sales_engineer_chases_for_status, closer fn_customer_support_closes_status_chases)
   { type: 'inquiry.status_chase', from: 'customer_support', to: 'sales_engineer' },
+  // 16 Nov 2026, the one pool (scripts/sql/every_seat_reads_one_pool_and_every_hand_over_comes_back.sql). Listed here 17 Nov:
+  // payments_are_the_accountant.test.mjs had failed on these since that day, unseen because the gate skips npm-test.
+  // a seat asks the CEO for authority it does not hold; the CEO grants it once or refuses
+  { type: 'ceo.authority', from: 'accountant', to: 'ceo' },
+  { type: 'ceo.authority', from: 'customer_support', to: 'ceo' },
+  { type: 'ceo.authority', from: 'it_engineer', to: 'ceo' },
+  { type: 'ceo.authority', from: 'marketing', to: 'ceo' },
+  { type: 'ceo.authority', from: 'sales_engineer', to: 'ceo' },
+  // the CEO's order, a conversation until its outcome (an_order_is_a_conversation_until_its_outcome.sql)
+  { type: 'ceo.order', from: 'ceo', to: 'accountant' },
+  { type: 'ceo.order', from: 'ceo', to: 'customer_support' },
+  { type: 'ceo.order', from: 'ceo', to: 'it_engineer' },
+  { type: 'ceo.order', from: 'ceo', to: 'marketing' },
+  { type: 'ceo.order', from: 'ceo', to: 'sales_engineer' },
+  // the review of a seat's deliberation said revise or reject: the author reworks it by the deadline
+  { type: 'deliberation.rework', from: 'ceo', to: 'accountant' },
+  { type: 'deliberation.rework', from: 'ceo', to: 'customer_support' },
+  { type: 'deliberation.rework', from: 'ceo', to: 'it_engineer' },
+  { type: 'deliberation.rework', from: 'ceo', to: 'marketing' },
+  { type: 'deliberation.rework', from: 'ceo', to: 'sales_engineer' },
+  // an event the sales engineer owns needs his action (event_subscription delivery 'handover'): his own queue
+  { type: 'event.act', from: 'sales_engineer', to: 'sales_engineer' },
+  // a mail to info@ or management@ customer_support read and did not answer: the seat it belongs to
+  // (scripts/sql/info_and_management_mail_is_read_before_it_is_answered.sql)
+  { type: 'mail.routed', from: 'customer_support', to: 'accountant' },
+  { type: 'mail.routed', from: 'customer_support', to: 'ceo' },
+  { type: 'mail.routed', from: 'customer_support', to: 'it_engineer' },
+  { type: 'mail.routed', from: 'customer_support', to: 'marketing' },
+  // the comparison's open points: the sales engineer asks the supplier to confirm them, in his own queue
+  // (scripts/sql/the_comparison_hands_its_open_points_to_the_sales_engineer.sql)
+  { type: 'comparison.points', from: 'sales_engineer', to: 'sales_engineer' },
+  // a partnership proposal e-mailed to the company: the CEO decides (a_partnership_email_reaches_the_ceo_with_the_senders_facts.sql)
+  { type: 'partnership.proposed', from: 'customer_support', to: 'ceo' },
+  // an interested supplier's reply the model did not answer by its due time: the CEO has it answered today
+  // (every_interested_supplier_reply_is_answered_the_same_day_and_the_parked_get_one_last_note.sql)
+  { type: 'supplier.reply_overdue', from: 'sales_engineer', to: 'ceo' },
 ] as const;

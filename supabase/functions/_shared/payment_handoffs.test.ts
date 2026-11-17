@@ -18,7 +18,10 @@ Deno.test('every conversation is between real seats and listed once', () => {
         // a contested messaging or account decision is support's own to review on another model family (ledger 1152, #1566)
         || h.type === 'review.requested')
     // The CEO's morning five numbers (ruling 1209, #1365): its own daily reading, queued and closed like any other.
-    || (h.from === 'ceo' && h.to === 'ceo' && h.type === 'report.five_numbers');
+    || (h.from === 'ceo' && h.to === 'ceo' && h.type === 'report.five_numbers')
+    // The sales engineer's own queue (16 Nov 2026): an event he owns that needs his action, and a comparison's open points
+    // he asks the supplier to confirm.
+    || (h.from === 'sales_engineer' && h.to === 'sales_engineer' && (h.type === 'event.act' || h.type === 'comparison.points'));
   for (const h of HANDOFF_TYPES) assert(seats.has(h.from) && seats.has(h.to) && (h.from !== h.to || selfTalk(h)), JSON.stringify(h));
 });
 
@@ -65,6 +68,12 @@ Deno.test('only customer_support delivers, and every seat that asks hears back',
     // chase the suppliers who have not quoted as inquiry.status_chase (handler fn_sales_engineer_chases_for_status);
     // support itself closes it once the customer is told, and the request delivers nothing to the sales engineer.
     if (h.type === 'inquiry.status_chase' && h.to === 'sales_engineer') continue;
+    // — and three of the one pool (16 Nov 2026; listed here 17 Nov when payment_handoffs.ts caught up with production): a
+    // mail to info@ or management@ support read and did not answer goes to the seat it belongs to as mail.routed; a
+    // partnership proposal e-mailed to the company goes to the CEO as partnership.proposed; and support asks the CEO for an
+    // authority it does not hold as ceo.authority. Each asks the receiving seat to act and delivers nothing.
+    if (h.type === 'mail.routed' && ['accountant', 'ceo', 'it_engineer', 'marketing'].includes(h.to)) continue;
+    if ((h.type === 'partnership.proposed' || h.type === 'ceo.authority') && h.to === 'ceo') continue;
     assertEquals(h.type, 'delivery.result');
   }
   for (const h of HANDOFF_TYPES.filter((x) => x.type === 'delivery.request')) {
@@ -91,13 +100,16 @@ Deno.test('marketing reports to the CEO, talks money with the accountant both wa
   // the CEO steers marketing (the daily plan's directive, the month directive, a root-cause question on a missed
   // target, an assigned improvement) and approves nothing; since founder_instruction 1059 it also returns its reasons
   // on a submission (ceo.revise) and its final decision on one (ceo.decision_closed) — reasons, not approval
+  // 16 Nov 2026 (the one pool): an order is a conversation until its outcome (ceo.order), and a reviewed deliberation the
+  // review sent back is reworked by its author (deliberation.rework): steering and reasons, still no approval
   assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'ceo' && h.to === 'marketing').map((h) => h.type).sort(),
-    ['ceo.decision_closed', 'ceo.directive', 'ceo.improvement', 'ceo.month_directive', 'ceo.revise', 'ceo.root_cause']);
+    ['ceo.decision_closed', 'ceo.directive', 'ceo.improvement', 'ceo.month_directive', 'ceo.order', 'ceo.revise', 'ceo.root_cause', 'deliberation.rework']);
   // marketing's month plan reaches the CEO for judgement as a review on another model family (866, 873); the quarterly
   // brand review and the monthly GEO report are read by the CEO as marketing.review (ledger 983, gap 8); a submission
   // sent back 4 times or stalled owes the CEO a final decision as ceo.decision_owed (founder_instruction 1059)
   // and the daily lead-sourcing report (counts by trade, no company names) as marketing.lead_sourcing (#1304, 12 Oct)
-  assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing' && h.to === 'ceo').map((h) => h.type).sort(), ['ceo.decision_owed', 'deliberation.review', 'marketing.lead_sourcing', 'marketing.report', 'marketing.review']);
+  // and (16 Nov 2026, the one pool) asks the CEO for an authority it does not hold as ceo.authority
+  assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing' && h.to === 'ceo').map((h) => h.type).sort(), ['ceo.authority', 'ceo.decision_owed', 'deliberation.review', 'marketing.lead_sourcing', 'marketing.report', 'marketing.review']);
   // and marketing asks nobody else; the one exception is a public comment's lead, handed to sales_engineer
   // (instruction 866, 23 Sep 2026), an invited supplier's reply to the invitation, handed to sales_engineer to set up
   // its company page (founder_instruction 1301, 27 Oct 2026: no link, so a reply is the way in), and the escalation of
@@ -107,5 +119,5 @@ Deno.test('marketing reports to the CEO, talks money with the accountant both wa
     assert(['ceo', 'accountant', 'customer_support'].includes(h.to) || ((h.type === 'social.lead' || h.type === 'invite.reply' || h.type === 'mailbox.supplier_reply') && h.to === 'sales_engineer'), JSON.stringify(h));
   }
   assertEquals(HANDOFF_TYPES.filter((h) => h.from === 'marketing').map((h) => h.type + '>' + h.to).sort(),
-    ['adspend.recorded>accountant', 'ceo.decision_owed>ceo', 'deliberation.review>ceo', 'delivery.request>customer_support', 'invite.reply>sales_engineer', 'mailbox.supplier_reply>sales_engineer', 'marketing.lead_sourcing>ceo', 'marketing.report>ceo', 'marketing.review>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
+    ['adspend.recorded>accountant', 'ceo.authority>ceo', 'ceo.decision_owed>ceo', 'deliberation.review>ceo', 'delivery.request>customer_support', 'invite.reply>sales_engineer', 'mailbox.supplier_reply>sales_engineer', 'marketing.lead_sourcing>ceo', 'marketing.report>ceo', 'marketing.review>ceo', 'social.escalation>customer_support', 'social.lead>sales_engineer']);
 });

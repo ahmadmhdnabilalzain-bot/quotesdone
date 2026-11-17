@@ -27,8 +27,10 @@ const code = (s) => s.split('\n').filter((l) => !/^\s*(\/\/|\*|--)/.test(l)).joi
 
 test('static: nothing in the code reads the negotiation policy', () => {
   const T = 'supplier_negotiation_policy';
+  // scripts/staging went to the archive on 16 Nov 2026 (2fe16f562): code that does not run reads nothing, so a folder that
+  // is gone is skipped; any that exists is still read
   const bad = [join(REPO, 'supabase', 'functions'), join(REPO, 'src'), join(REPO, 'scripts', 'lib'), join(REPO, 'scripts', 'staging')]
-    .flatMap((d) => walk(d)).filter((f) => !/\.RETIRED\.mjs$/.test(f) && code(readFileSync(f, 'utf8')).includes(T));
+    .filter((d) => existsSync(d)).flatMap((d) => walk(d)).filter((f) => !/\.RETIRED\.mjs$/.test(f) && code(readFileSync(f, 'utf8')).includes(T));
   assert.deepEqual(bad.map((f) => relative(REPO, f)), [], 'the negotiation policy is read again');
   const sql = read(FILE);
   assert.match(sql, /drop table if exists public\.supplier_negotiation_policy;/);

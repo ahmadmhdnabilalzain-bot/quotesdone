@@ -130,7 +130,8 @@ for (const [f, why] of PENDING) {
   let ref = 'HEAD';
   try { git('rev-parse', '--verify', '--quiet', 'origin/main'); ref = 'origin/main'; } catch { /* no remote ref */ }
   const onPr = process.env.GITHUB_EVENT_NAME === 'pull_request';
-  const stale = [...PENDING].filter(([f, why]) => !f.endsWith('_probe.sql') && !/^\s*A PROBE\b/.test(why));
+  // A note that says the file is never applied (A PROBE, or A DRY RUN of a write, 15 Nov 2026) is not a debt.
+  const stale = [...PENDING].filter(([f, why]) => !f.endsWith('_probe.sql') && !/^\s*A (?:PROBE|DRY RUN)\b/.test(why));
   for (const [f] of stale) {
     const note = `scripts/sql/pending/${f.slice('scripts/sql/'.length, -4)}.txt`;
     const [hash, when, subject = ''] = boundary

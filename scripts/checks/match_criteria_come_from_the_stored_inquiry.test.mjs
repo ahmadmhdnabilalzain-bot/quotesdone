@@ -86,7 +86,8 @@ test('every criterion is read from the one src source', () => {
   const initEnd = init.indexOf('};') + 2;
   const outside = b.replace(init.slice(0, initEnd), ' ');
   const allowed = new Set(['body.inquiry_id', 'body.persist', 'body.products', 'body.brands', 'body.need']);
-  const stray = [...new Set([...outside.matchAll(/body\.\w+/g)].map((m) => m[0]))].filter((x) => !allowed.has(x));
+  // the REQUEST body only: `auth.body.handoff_id` (16 Nov 2026, the CEO's authority answer for a match) is another object
+  const stray = [...new Set([...outside.matchAll(/(?<![\w.])body\.\w+/g)].map((m) => m[0]))].filter((x) => !allowed.has(x));
   assert.deepEqual(stray, [], 'a criterion is read straight off the body outside the src initialiser');
   for (const f of ['products', 'brands']) {
     assert.match(outside, new RegExp('inq \\? \\[\\] : arr\\(body\\.' + f + '\\)'),

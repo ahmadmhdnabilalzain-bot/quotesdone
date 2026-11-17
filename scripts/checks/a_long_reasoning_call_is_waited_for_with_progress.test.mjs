@@ -51,7 +51,8 @@ test('the comparison waits longer than it was measured to take, and says it is s
 test("the supplier's check before sending waits the reasoning timeout, and says it is still checking", () => {
   const wait = num(SUP_API, 'REASONING_TIMEOUT_MS');
   assert.ok(wait > MEASURED_CHECK_MS && wait <= EDGE_WALL_MS, `REASONING_TIMEOUT_MS ${wait}`);
-  assert.match(QUOTE_FORM, /call\('supplier_api', \{ \.\.\.buildPayload\(\), dry_run: true \}, token, \{ timeoutMs: REASONING_TIMEOUT_MS \}\)/, 'the dry run waits only the 20 s default');
+  // 15 Nov 2026: the payload also carries the currency the supplier typed (a non-AED total is refused, ruling 1008)
+  assert.match(QUOTE_FORM, /call\('supplier_api', \{ \.\.\.buildPayload\(\),(?: currency,)? dry_run: true \}, token, \{ timeoutMs: REASONING_TIMEOUT_MS \}\)/, 'the dry run waits only the 20 s default');
   assert.match(QUOTE_FORM, /setTimeout\(\(\) => setMsg\(t\(lang, 'check_still'\)\), STILL_WORKING_MS\)/);
   assert.match(read('src/components/portal/supplier/core/copy.ts'), /check_still:'Still checking your quote\./);
 });

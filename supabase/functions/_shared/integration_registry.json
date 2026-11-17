@@ -144,7 +144,7 @@
       "what": "the website's hosting and deployments",
       "hosts": ["api.vercel.com"],
       "secrets": ["vercel_token", "vercel_team_id", "vercel_project_id", "vercel_project"],
-      "env": ["VERCEL_ENV", "VERCEL_DEPLOYMENT_ID", "NEXT_PUBLIC_VERCEL_ENV", "CRON_SECRET"],
+      "env": ["VERCEL_ENV", "VERCEL_DEPLOYMENT_ID", "NEXT_PUBLIC_VERCEL_ENV", "CRON_SECRET", "NEXT_PUBLIC_WEB_ANALYTICS"],
       "owner_seat": "it_engineer", "blast": "internal",
       "probe": { "kind": "http", "method": "GET", "url": "https://api.vercel.com/v2/user", "auth": "bearer:vercel_token", "ok": [200], "every_minutes": 60 },
       "self_fix": "retried once after 3 s; deployments themselves are duty:live_code's",
@@ -228,6 +228,15 @@
       "action": "Grant the postmaster.readonly consent with the Google account that verified quotesdone.com and store the refresh token as app_secrets.google_postmaster_refresh_token",
       "link": "https://postmaster.google.com/managedomains"
     },
+    "google_search_console": {
+      "what": "Google Search Console for quotesdone.com: search clicks, impressions and sitemaps per day (marketing duty 'search_console', 15 Nov 2026; registered 17 Nov 2026)",
+      "hosts": ["searchconsole.googleapis.com", "oauth2.googleapis.com"],
+      "secrets": ["google_search_console_sa", "google_search_console_site"],
+      "owner_seat": "marketing", "blast": "internal",
+      "probe": { "kind": "covered", "by": "duty marketing_duties: search_console throws on a refused token or a failed query and fn_it_duty_settle files 'marketing duty search_console failed' until it reads again; inert (no finding) while the two keys are unset" },
+      "action": "Add the service account as a user of the Search Console property and store its JSON key as app_secrets.google_search_console_sa and the property as app_secrets.google_search_console_site",
+      "link": "https://search.google.com/search-console/users"
+    },
     "linkedin": {
       "what": "the LinkedIn company page (published through Postiz; the direct API only for comments)",
       "hosts": ["api.linkedin.com", "www.linkedin.com"],
@@ -292,7 +301,7 @@
       "www.stripestatus.com": "Stripe public status page, read hourly by it_provider_readings.ts", "resend-status.com": "Resend public status page, read hourly", "status.twilio.com": "Twilio public status page, read hourly", "www.vercel-status.com": "Vercel public status page, read hourly", "status.dropbox.com": "Dropbox public status page, read hourly",
       "schema.org": "structured-data vocabulary in page markup", "www.w3.org": "SVG/XML namespace", "www.sitemaps.org": "sitemap XML namespace",
       "schemas.openxmlformats.org": "Office XML namespace in a parser fixture", "www.gaeb.de": "GAEB XML namespace in a parser fixture",
-      "zz-noor.example.invalid": "reserved test domain in the drawing bench fixture (bench.fixtures.ts)", "evil.example": "reserved test domain in a fixture", "example.invalid": "reserved test domain", "db.invalid": "reserved test domain in a harness", "fn.invalid": "reserved test domain in a harness",
+      "zz-noor.example.invalid": "reserved test domain in the drawing bench fixture (bench.fixtures.ts)", "evil.example": "reserved test domain in a fixture", "zzdemo.example.invalid": "reserved test domain: the ZZ DEMO vendor e-mail of pdf_native/every_document_we_issue.fixtures.ts, printed with fetch stubbed for that one call; never reached", "example.invalid": "reserved test domain", "db.invalid": "reserved test domain in a harness", "fn.invalid": "reserved test domain in a harness",
       "wa.me": "a click-to-chat link shown to people", "x.com": "footer link", "www.instagram.com": "footer link", "www.facebook.com": "footer link",
       "consumerrights.ae": "a link shown to a complainant", "status.supabase.com": "the status page named in this registry", "status.esm.sh": "the status page named in this registry"
     }

@@ -19,6 +19,7 @@ import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { replaySql } from '../lib/safe_replay.mjs';
+import { pendingNotes } from '../lib/pending_sql.mjs';
 import { functionSource } from '../lib/function_sources.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -30,7 +31,11 @@ const code = (t) => t.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
 
 /** Every SQL file that registers a seat duty, in MANIFEST order then pending files by name. */
 export function dutyFiles() {
-  const all = readdirSync(join(REPO, 'scripts/sql')).filter((f) => f.endsWith('.sql'))
+  // A probe that is never applied (its pending note says 'A PROBE') may insert a ZZ DEMO seat_duty row inside its
+  // rolled-back transaction (16 Nov, each_seat_works_..._probe.sql): that registers no duty, so it is not a duty file.
+  const notes = pendingNotes(REPO);
+  const neverApplied = (f) => /^\s*A PROBE\b/.test(notes.get('scripts/sql/' + f) || '');
+  const all = readdirSync(join(REPO, 'scripts/sql')).filter((f) => f.endsWith('.sql') && !neverApplied(f))
     .filter((f) => /insert into public\.seat_duty\b/.test(code(read('scripts/sql/' + f))));
   const rank = (f) => { const i = MANIFEST.indexOf('scripts/sql/' + f); return i < 0 ? 1e9 : i; };
   return all.sort((a, b) => rank(a) - rank(b) || a.localeCompare(b)).map((f) => 'scripts/sql/' + f);
@@ -48,11 +53,20 @@ test('every duty file: routines revoked with a pinned search_path, each duty rou
     const src = code(read(f));
     assert.ok(!/^\s*(begin|commit)\s*;/im.test(src), `${f}: a migration file carries its own transaction control`);
     const made = [...src.matchAll(/create or replace function public\.(\w+)\(([^)]*)\)/g)];
-    for (const [, name] of made) {
-      const body = src.slice(src.indexOf(`function public.${name}(`));
+    // One revoke may list many routines (an_order_is_a_conversation_until_its_outcome.sql closes eighteen in one
+    // statement, 16 Nov); every name inside a revoke that ends 'from public, anon, authenticated' is closed.
+    // A body copied from production keeps pg_get_functiondef's upper case (SET search_path TO, 16 Nov): either spelling
+    // pins it. (Upper-case CREATE definitions are outside this check's scope as before; their live ACLs and search_path
+    // were read 17 Nov: all eleven closed to postgres and service_role and pinned.)
+    const revoked = new Set([...src.matchAll(/revoke execute on function ([^;]*?) from public, anon, authenticated/gi)]
+      .flatMap((r) => [...r[1].matchAll(/public\.(\w+)\(/g)].map((n) => n[1])));
+    for (const m of made) {
+      const name = m[1];
+      // the head of THIS definition (a revoke or a probe naming the routine may come earlier in the file)
+      const body = src.slice(m.index);
       const head = body.slice(0, body.indexOf('$'));
-      assert.match(head, /set search_path to 'public', 'pg_temp'/, `${f}: ${name} does not pin its search_path`);
-      assert.match(src, new RegExp(`revoke execute on function public\\.${name}\\([^)]*\\) from public, anon, authenticated`), `${f}: ${name} is not revoked`);
+      assert.match(head, /set search_path to 'public', 'pg_temp'/i, `${f}: ${name} does not pin its search_path`);
+      assert.ok(revoked.has(name), `${f}: ${name} is not revoked`);
     }
     for (const m of src.matchAll(/insert into public\.seat_duty[^;]*?values([\s\S]*?)on conflict/g)) {
       for (const r of m[1].matchAll(/'(fn_[a-z0-9_]+)'/g)) {

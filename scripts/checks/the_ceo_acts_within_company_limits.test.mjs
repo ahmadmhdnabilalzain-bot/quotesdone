@@ -98,7 +98,8 @@ test('4. the objective is data, and the CEO orders with a measure, the leads and
   // ONE routine for the numbers: no other SQL file defines it
   const owners = read('scripts/sql/MANIFEST.txt').split('\n').filter((l) => l.endsWith('.sql')).map((l) => l.trim())
     .filter((f) => existsSync(join(REPO, f.startsWith('scripts/') ? f : 'scripts/sql/' + f)) && read(f.startsWith('scripts/') ? f : 'scripts/sql/' + f).includes('function public.fn_supplier_coverage('));
-  assert.deepEqual(owners, [], 'a second definition of fn_supplier_coverage');
+  // COVER itself is in MANIFEST since its apply (16 Nov): only ANOTHER file defining the routine is a second definition
+  assert.deepEqual(owners.filter((f) => f !== COVER), [], 'a second definition of fn_supplier_coverage');
   const loop = code(fnBody(c, 'fn_ceo_grows_supply'));
   for (const m of ["'invitations'", "'stuck_followed_up'", "'held_unblocked'"]) assert.ok(loop.includes(`'measure', ${m}`), `an order on ${m}`);
   assert.equal((loop.match(/public\.fn_seat_handoff\('ceo', [^,]+, 'ceo\.order', 'supplier_coverage'/g) || []).length, 3, 'three orders, through the pool');

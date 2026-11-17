@@ -689,6 +689,9 @@ begin
   return (case when v_spec is null then '[]'::jsonb else jsonb_build_array(v_spec) end) || coalesce(v_price, '[]'::jsonb) || v_terms;
 end
 $function$;
+-- 17 Nov 2026 (it_engineer): CREATE OR REPLACE kept the closed ACL the first file gave it (production read 17 Nov:
+-- postgres and service_role only); this file now says so itself, so it stands alone if it is ever replayed first.
+revoke execute on function public.fn_quote_quality_flags(public.quotes) from public, anon, authenticated;
 
 -- fn_quote_quality_fixes_en: the same lines, plus the peer line, which names only his own total (never a rival figure or a
 -- direction: telling him "too high" would be the implied comparison the founder removed with the best-and-final round).
@@ -731,6 +734,7 @@ as $function$
             from jsonb_array_elements(coalesce(p_flags, '[]'::jsonb)) with ordinality a(f, o)) x
    where line is not null
 $function$;
+revoke execute on function public.fn_quote_quality_fixes_en(jsonb) from public, anon, authenticated;
 
 create or replace function public.fn_supplier_confirms_quote_figure(p_supplier bigint, p_quote uuid, p_channel text default 'portal')
  returns jsonb

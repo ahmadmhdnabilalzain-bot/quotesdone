@@ -37,7 +37,9 @@ export async function dropboxVerifyTick(): Promise<unknown> {
 // The env vars the site reads are the names in the site's own code (src/: process.env.*), listed here.
 // 27 Oct 2026: the site reads the new keys first (NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY) and the legacy
 // ones only as the temporary fallback; drop the two legacy names with that fallback.
-const SITE_ENV_NAMES = ['CRON_SECRET', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'SITE_ERROR_INGEST_SECRET', 'SUPABASE_SECRET_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
+// 17 Nov 2026: NEXT_PUBLIC_WEB_ANALYTICS (src/components/WebAnalytics.tsx, 15 Nov) turns Vercel Web Analytics on; a public
+// value, so it is recoverable from the repository, and a project that lost it is named in missing_in_vercel.
+const SITE_ENV_NAMES = ['CRON_SECRET', 'NEXT_PUBLIC_SUPABASE_ANON_KEY', 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_WEB_ANALYTICS', 'SITE_ERROR_INGEST_SECRET', 'SUPABASE_SECRET_KEY', 'SUPABASE_SERVICE_ROLE_KEY'];
 export async function vercelSnapshotTick(): Promise<unknown> {
   try {
     const [token, pid, team] = await Promise.all([sec('vercel_token'), sec('vercel_project_id'), sec('vercel_team_id')]);

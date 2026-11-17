@@ -59,3 +59,17 @@ export function manifestHas(file, lines = manifestLines()) {
 export function manifestIndex(file, lines = manifestLines()) {
   return lines.lastIndexOf(manifestKey(file));
 }
+
+// APPLIED XOR WAITING (it_engineer, 17 Nov 2026). Measured 17 Nov: six checks asserted "the file has a pending
+// note and no MANIFEST line" and turned red the moment the coordinator applied the file and moved it, exactly as
+// the rule above says he must (#2010, #2011, #2015 and batch B on 16 Nov; #1960 on 12 Nov). Nobody saw it: the
+// local gate runs with --skip=npm-test. The guarantee those checks protect is "never both, never neither, never
+// out of order", so they read the state through here and assert THAT, whichever side the file is on today:
+//   { applied: <has a MANIFEST line>, index: <its last MANIFEST position, -1 if none>, note: <reason | null> }
+export function applyState(file, repo = REPO) {
+  const key = manifestKey(file);
+  const lines = manifestLines(repo);
+  const notePath = join(repo, PENDING_DIR, key.slice('scripts/sql/'.length).replace(/\.sql$/, '.txt'));
+  const note = existsSync(notePath) ? readFileSync(notePath, 'utf8').trim() : null;
+  return { applied: lines.includes(key), index: lines.lastIndexOf(key), note };
+}

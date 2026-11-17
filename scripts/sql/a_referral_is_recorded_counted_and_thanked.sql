@@ -185,8 +185,9 @@ begin
       'Thank you for recommending QuotesDone',
       'Someone you recommended has just come to QuotesDone and named you. Thank you for passing our name on: it is the best '
       || 'thing a customer can do for us.',
-      'شكرًا لتوصيتك بـ QuotesDone',
-      'أحد من نصحتهم بنا جاء للتو إلى QuotesDone وذكر اسمك. شكرًا لأنك ذكرت اسمنا، فهذا أفضل ما يمكن أن يقدّمه لنا عميل.',
+      -- 17 Nov 2026 (it_engineer, Arabic review): the formal plural of the register, as every other customer line (was singular)
+      'شكرًا لتوصيتكم بـ QuotesDone',
+      'انضمّ إلى QuotesDone للتوّ أحدُ من نصحتموهم بنا، وذكر اسمكم. نشكركم على هذه التوصية، فهي أثمن ما يقدّمه لنا عملاؤنا.',
       '{}'::text[], 'customer_referral_thanks:' || p_customer);
     update public.customer_referral set thanked_at = now(), thanks_handoff = v_h where customer_id = p_customer;
   end if;

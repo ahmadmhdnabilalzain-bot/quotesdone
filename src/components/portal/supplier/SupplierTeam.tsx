@@ -137,7 +137,7 @@ export default function SupplierTeam({ token }: { token?: string | null }) {
           ) : (
             <form className="grid gap-2" onSubmit={(e) => { e.preventDefault(); act({ action: 'transfer_confirm', code }, () => `${team.transfer?.to_email} is now the owner. You stay as an estimator.`); }}>
               <label className="text-[13px]" htmlFor="qd-transfer-code">The code we e-mailed to you</label>
-              <input id="qd-transfer-code" inputMode="numeric" maxLength={6} className={field} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
+              <input id="qd-transfer-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} className={field} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} />
               <button type="submit" className={btn} disabled={busy || code.length !== 6}>Confirm the hand-over to {team.transfer.to_email}</button>
             </form>
           )}

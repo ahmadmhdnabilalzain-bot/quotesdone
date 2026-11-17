@@ -16,7 +16,7 @@ import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative } from 'node:path';
 import { homedir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { pendingNotes } from '../lib/pending_sql.mjs';
+import { pendingNotes, applyState } from '../lib/pending_sql.mjs';
 import { replaySql } from '../lib/safe_replay.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -26,7 +26,6 @@ const tsCode = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\
 const NAME = 'a_partner_service_is_matched_knowingly';
 const FILE = `scripts/sql/${NAME}.sql`;
 const PROBE = `scripts/sql/${NAME}_probe.sql`;
-const pendingNoteOf = (f) => f.replace('scripts/sql/', 'scripts/sql/pending/').replace(/\.sql$/, '.txt');
 const SIG = 'public.fn_match_capability(text[], text, text[], text[], text, numeric, text, integer, text[])';
 
 test('the SQL: an idempotent shared column, a changed result type closed again, own team first, the partner named', () => {
@@ -36,7 +35,11 @@ test('the SQL: an idempotent shared column, a changed result type closed again, 
   assert.ok(s.trimStart().startsWith("set local lock_timeout = '3s';"), 'the file does not start with its lock timeout');
   // apply_sql.mjs reads only `create or replace`: the file says --ddl and reads its own routine back
   assert.match(R(FILE), /--apply --ddl/);
-  assert.match(R(pendingNoteOf(FILE)), /--apply --ddl/);
+  // the apply instruction says --ddl while it waits; once applied (12 Nov, f8e948478) it is canonical: after the own-words file
+  const st = applyState(FILE);
+  if (st.note !== null) assert.match(st.note, /--apply --ddl/);
+  else assert.ok(st.index > applyState('scripts/sql/a_suppliers_own_words_reach_every_customer_who_asks_for_the_same_work.sql').index,
+    'applied before the own-words file, so it is not the canonical fn_match_capability');
   assert.match(R(FILE), /position\('-- version: a_partner_service_is_matched_knowingly \(12 Nov 2026\)' in/);
   assert.ok(R(FILE).includes('\n-- version: a_partner_service_is_matched_knowingly (12 Nov 2026), partner_hits and own team first\nwith w as ('), 'the body lost its version marker');
   assert.ok(s.indexOf(`drop function if exists ${SIG};`) >= 0, 'the old result type is not dropped');

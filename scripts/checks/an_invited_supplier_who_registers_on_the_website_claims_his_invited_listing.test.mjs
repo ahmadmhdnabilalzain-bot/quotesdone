@@ -40,7 +40,8 @@ test('static: the door delegates, looks up the address before inserting, claims 
   assert.match(door, /const r = await createCompany\(admin, email, body, \{ emailProven, /, 'the create_company door no longer goes through create_company.ts');
   assert.doesNotMatch(door, /\.insert\(/, 'the create_company door inserts a lead itself again');
   const src = noComments(read(DOOR));
-  const look = src.indexOf(".ilike('email', ilikeExact(email))");
+  // #2032 (17 Nov 2026): the look-up is whereAddress (_shared/address_filter.ts), a case-insensitive EQUALITY, never a pattern
+  const look = src.indexOf("whereAddress(admin.from('leads').select('id,claimed,claimed_by,business_role'), 'email', email)");
   // the leads insert, not the first `.insert(` in the file: the agent_actions record (audit, H10) is defined above createCompany,
   // and found first it failed this on origin/main da0e42909 (15 Nov 2026) though the leads insert still comes after the look-up
   const ins = src.indexOf("admin.from('leads').insert(");
