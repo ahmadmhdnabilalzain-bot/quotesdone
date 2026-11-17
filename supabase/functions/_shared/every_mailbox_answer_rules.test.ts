@@ -55,7 +55,9 @@ Deno.test('an account holder whose address is not the listing\'s still gets the 
   const db = { from: () => {
     let col = '';
     // deno-lint-ignore no-explicit-any
-    const q: any = { select: () => q, eq: () => q, order: () => q, in: () => q,
+    // the listing's address is an escaped ilike (leads.email carries capitals); claimed_by is lower-cased, so .eq (address_filter.ts)
+    const q: any = { select: () => q, order: () => q, in: () => q,
+      eq: (c: string) => { if (c === 'claimed_by') { col = c; seen.push(c); } return q; },
       ilike: (c: string) => { col = c; seen.push(c); return q; },
       limit: () => Promise.resolve({ data: col === 'claimed_by' ? [{ id: 7, company_name: 'ZZ DEMO', claimed: true }] : col === 'email' ? [] : [] }) };
     return q;
