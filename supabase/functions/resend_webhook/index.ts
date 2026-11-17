@@ -14,6 +14,7 @@
 // app_secrets.resend_webhook_signing_secret. This is real cryptographic proof of origin and cannot
 // be replayed outside a 5-minute window. The ?key= check is KEPT as a second factor, so both must
 // pass - the query secret alone is no longer sufficient.
+import { whereAddress } from '../_shared/address_filter.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { inviteStatusFor } from './invite_status.ts';
@@ -112,10 +113,10 @@ Deno.serve(observe('resend_webhook', async (req) => {
         try { await admin.from('email_suppressions').upsert({ email: e, reason, source: 'resend_webhook' }, { onConflict: 'email' }); suppressed++; } catch (_e) {}
         // CASE-INSENSITIVE (21 Sep 2026): `e` is lower-cased above and 47 lead emails carry a capital,
         // so an exact match left those leads 'sent' after a hard bounce and the invite bounce brake
-        // never counted them. ilike with LIKE's metacharacters escaped is an exact, case-folded match.
+        // never counted them. whereAddress is an exact, case-folded match, never a pattern (_shared/address_filter.ts).
         // 22 Sep 2026: a complaint is recorded as 'complained', not 'bounced' (invite_status.ts), so the
         // complaint rate the warm-up brakes on is measurable at all.
-        try { await admin.from('leads').update({ invite_status: inviteStatusFor(isComplaint, isHardBounce) }).ilike('email', e.replace(/[\\%_]/g, '\\$&')).or('invite_status.is.null,invite_status.eq.queued,invite_status.eq.sent'); } catch (_e) {}
+        try { await whereAddress(admin.from('leads').update({ invite_status: inviteStatusFor(isComplaint, isHardBounce) }), 'email', e).or('invite_status.is.null,invite_status.eq.queued,invite_status.eq.sent'); } catch (_e) {}
       }
       try { await admin.from('error_events').insert({ source: 'resend_webhook', kind: reason, severity: 'low', detail: { emails, type } }); } catch (_e) {}
     }

@@ -1,5 +1,6 @@
 // resend_inbound step: a bounce that came back as mail, and an unsubscribe by email. Moved out of index.ts's handler unchanged (9 Nov 2026);
 // the handler in index.ts calls the steps in the order they ran inline, each handing on what the next one reads.
+import { whereAddress } from '../../_shared/address_filter.ts';
 import type { Out as ExpenseGateOut } from './expense_gate.ts';
 import { permanentlyBouncedAddress } from '../../_shared/mailbox_bounce.ts';
 import { isUnsubscribeRequest } from '../../_shared/unsubscribe_mailbox.ts';
@@ -13,11 +14,10 @@ export async function bounceUnsubscribe(ctx: ExpenseGateOut) {
     // ---- A BOUNCE THAT COMES BACK AS MAIL (1 Nov 2026, sales_engineer): _shared/mailbox_bounce.ts ----
     const bounced = permanentlyBouncedAddress(from, fullText);
     if (bounced) {
-      const exact = bounced.replace(/[\\%_]/g, '\\$&');
-      const { data: invited } = await admin.from('notifications').select('lead_id').ilike('to_email', exact).in('type', ['supplier_invite', 'supplier_invite_nudge']).eq('status', 'sent').limit(1);
+      const { data: invited } = await whereAddress(admin.from('notifications').select('lead_id'), 'to_email', bounced).in('type', ['supplier_invite', 'supplier_invite_nudge']).eq('status', 'sent').limit(1);
       if (invited?.length) {
         await admin.from('email_suppressions').upsert({ email: bounced, reason: 'hard_bounce:permanent', source: 'mailbox_report' }, { onConflict: 'email' });
-        await admin.from('leads').update({ invite_status: 'bounced' }).ilike('email', exact).in('invite_status', ['queued', 'sent']);
+        await whereAddress(admin.from('leads').update({ invite_status: 'bounced' }), 'email', bounced).in('invite_status', ['queued', 'sent']);
       }
     }
 

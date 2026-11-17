@@ -32,6 +32,7 @@ import { givenTradeKnowledge } from '../_shared/given_trade_knowledge.ts';
 import { turnContent, turnFacts } from './turn_facts.ts';
 import { gteReads } from '../_shared/ml_embed_recipe.ts';
 import { sanctionedEmail } from '../_shared/sanctioned.ts';
+import { claimedLeadIdOf, customerIdOf } from '../_shared/address_filter.ts';
 import { needsAPerson } from '../_shared/reasoned_decisions.ts';
 import { widgetComplaintReport } from '../_shared/complaint_register.ts';
 import { caseKeyOf } from '../_shared/support_fault_handover.ts';
@@ -172,14 +173,16 @@ async function identify(req: Request): Promise<{ email: string; audience: 'custo
     const { data } = await admin.auth.getUser(jwt);
     const email = String(data?.user?.email || '').toLowerCase().trim();
     if (!email) return null;
-    const { data: cust } = await admin.from('customers').select('id').ilike('email', email).maybeSingle();
-    if (cust) return { email, audience: 'customer', id: String(cust.id) };
-    const { data: sup } = await admin.from('leads').select('id').ilike('claimed_by', email).maybeSingle();
+    // EXACT, NEVER A PATTERN (security audit 17 Nov 2026, finding 1): `.ilike('email', email)` let a look-alike
+    // address (`john_smith@` for `john.smith@`) speak as that customer, or that supplier. _shared/address_filter.ts.
+    const custId = await customerIdOf(admin, email);
+    if (custId) return { email, audience: 'customer', id: custId };
+    const supId = await claimedLeadIdOf(admin, email);
     // A SANCTIONED PARTY IS NOBODY HERE (founder instruction 516, 18 Sep 2026). Returning null
     // drops them to the anonymous voice every stranger gets — no account-scoped answers, no
     // supplier surface — rather than refusing outright, because this widget serves the public
     // homepage and a 403 here would tell a passer-by something about somebody else's account.
-    if (sup) return (await sanctionedEmail(admin, email)) ? null : { email, audience: 'supplier', id: String(sup.id) };
+    if (supId) return (await sanctionedEmail(admin, email)) ? null : { email, audience: 'supplier', id: supId };
     return null;
   } catch (_e) { return null; }
 }
