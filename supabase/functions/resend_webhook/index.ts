@@ -72,18 +72,11 @@ Deno.serve(observe('resend_webhook', async (req) => {
   try {
     const url = new URL(req.url);
     const key = url.searchParams.get('key') || '';
-    const wk = await sec('resend_webhook_key'); const ib = await sec('inbound_secret');
-    if (!key || (key !== wk && key !== ib)) { await logRun('error', { authorised: 0, stage: 'query_key' }, 'resend_webhook rejected a caller whose ?key= did not match. No bounce or complaint was processed, so a genuine suppression may have been missed if this was a misconfigured endpoint URL.'); return J({ error: 'forbidden' }, 403); }
-    // AUDIT 9.5 (3 Aug 2026) - see the same block in resend_inbound. This accepts the omnipotent
-    // shared secret as a ?key= query token; whether withdrawing it breaks bounce and complaint
-    // handling depends on which value the Resend dashboard actually has, which cannot be read from
-    // here. Silence for seven days means withdrawal is safe. One of these means re-issue the URL
-    // with resend_webhook_key first, or bounces and spam complaints stop being recorded and the
-    // sending domain quietly degrades.
-    if (ib && key === ib && key !== wk) {
-      await logRun('error', { authorised: 1, stage: 'query_key', via: 'legacy_shared_secret' },
-        'resend_webhook was authorised by the SHARED SECRET, not by resend_webhook_key. When the shared secret is withdrawn this endpoint will start refusing genuine Resend deliveries and bounces/complaints will stop being suppressed. Re-issue the Resend webhook URL with resend_webhook_key before withdrawal.');
-    }
+    // ONLY resend_webhook_key (17 Nov 2026, security audit finding 6). The retired shared inbound_secret was also
+    // accepted, with an alarm row whenever it authorised; SELECT on agent_runs, 17 Nov: 0 such rows ever, against 614
+    // runs in the 7 days before. Resend's URL and the e2e stage2 probe send resend_webhook_key. Compared in constant time.
+    const wk = await sec('resend_webhook_key');
+    if (!key || !wk || !timingSafeEq(key, wk)) { await logRun('error', { authorised: 0, stage: 'query_key' }, 'resend_webhook rejected a caller whose ?key= did not match. No bounce or complaint was processed, so a genuine suppression may have been missed if this was a misconfigured endpoint URL.'); return J({ error: 'forbidden' }, 403); }
 
     // Read the body ONCE as text - the signature is over the exact bytes, so re-parsing is not enough.
     const raw = await req.text();
