@@ -108,7 +108,7 @@ export async function reviewAction(o: { sup: Supplier; email: string; self: Self
       boq: i.boq ?? null, boq_withheld: !!i.boq_withheld, boq_confidence: i.boq_confidence ?? null, drawing_pages: i.drawing_pages || [],
       drawing_pages_expected: Number(i.drawing_pages_expected ?? (i.drawing_pages || []).length),
       drawing_pages_served: Number(i.drawing_pages_served ?? (i.drawing_pages || []).length),
-      drawing_pages_failed: Number(i.drawing_pages_failed || 0), drawing_withheld: !!i.drawing_withheld,
+      drawing_pages_failed: Number(i.drawing_pages_failed || 0), drawing_withheld: !!i.drawing_withheld, drawing_pages_follow: !!i.drawing_pages_follow,
       // Photos from the site (ledger 1704): the inbox row's section as built by site_photos_door.ts, checked copies only.
       site_photos: i.site_photos ?? null,
       quotes: i.quotes || [], review: stateOf(await repo.reviewsOf(sup.id), i.id),

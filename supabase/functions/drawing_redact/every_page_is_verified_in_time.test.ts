@@ -5,7 +5,7 @@
 // then took 20.5-27.5 s in drawing_redact, one after another; no sheet is started after 100 s, so 4 were begun and none was
 // published. A sheet's time was its 25 views, four at a time, each a crop worker of its own (0.5-4.9 s) then the model
 // (2.0-3.8 s). The change: a crop worker cuts several views from one decode (mode 'tiles'), a page asks its views eight at a
-// time, and analyze_drawing runs REDACT_PAGES_AT_ONCE sheets side by side. WHAT is checked does not change: every view is
+// time, and analyze_drawing runs REDACT_PAGES_AT_ONCE sheets side by side (one since the evening of 17 Nov: see below). WHAT is checked does not change: every view is
 // still asked with its own reading mark, and a view with no answer still holds the page.
 //
 // The timing below is the REAL scheduler and the REAL gate on a virtual clock, every wait one production measured
@@ -27,23 +27,27 @@ Deno.test('the 8-sheet set of the proof: one sheet at a time with a worker per v
   assert(Math.min(...r.perPageMs) > 30_000, `a sheet took ${Math.min(...r.perPageMs)} ms with every view asked`);
 });
 
-Deno.test('the 8-sheet set as the code runs it now: every sheet verified, the last answer well before the 100 s start-by', async () => {
+// ONE SHEET IN FLIGHT (17 Nov 2026 evening; paid proof 6244a525, _shared/drawing_deadline.ts REDACT_PAGES_AT_ONCE says what was
+// measured). Four at once verified all 8 sheets in this model and lost 7 of 8 on production: the model has no isolate, and the
+// edge's 2 s CPU is spent per isolate by every call routed to it. One sheet at a time begins fewer sheets inside the 100 s;
+// what matters now is that none is abandoned or lost, and every sheet not begun is counted, so customer_api queues it.
+Deno.test('the 8-sheet set as the code runs it now: one sheet in flight; every sheet is verified or never begun (queued), none abandoned', async () => {
   const clock = virtualClock();
   const r = await clock.run(redactSet(clock, 8, { atOnce: REDACT_PAGES_AT_ONCE, batched: true }));
-  assertEquals(r.verified, 8, JSON.stringify({ time: r.heldForTime, notStarted: r.notStarted }));
-  assert(r.lastAnswerMs < DRAWING_DEADLINE.startByMs, `the set ended at ${r.lastAnswerMs} ms`);
-  assert(Math.max(...r.perPageMs) < 25_000, `a sheet took ${Math.max(...r.perPageMs)} ms`);
-  console.log(`8 sheets: verified ${r.verified}, last answer ${(r.lastAnswerMs / 1000).toFixed(1)} s, a sheet ${(Math.min(...r.perPageMs) / 1000).toFixed(1)}-${(Math.max(...r.perPageMs) / 1000).toFixed(1)} s`);
+  assertEquals(r.heldForTime, 0, 'no sheet under way is abandoned at the stop');
+  assertEquals(r.verified + r.notStarted, 8, 'every sheet is either verified or never begun (customer_api queues those)');
+  assert(r.verified >= 3, `verified ${r.verified} of 8 inside the request`);
+  assert(r.lastAnswerMs <= DRAWING_DEADLINE.stopAtMs, `the last sheet answered at ${r.lastAnswerMs} ms`);
+  console.log(`8 sheets, one at a time: verified ${r.verified}, not begun ${r.notStarted}, last answer ${(r.lastAnswerMs / 1000).toFixed(1)} s, a sheet ${(Math.min(...r.perPageMs) / 1000).toFixed(1)}-${(Math.max(...r.perPageMs) / 1000).toFixed(1)} s`);
 });
 
-Deno.test('a 20-sheet set: nearly every sheet verified inside the request; none is lost or abandoned, and the few never begun are counted to be queued', async () => {
+Deno.test('a 20-sheet set: none is lost or abandoned, and every sheet not begun is counted to be queued', async () => {
   const clock = virtualClock();
   const r = await clock.run(redactSet(clock, 20, { atOnce: REDACT_PAGES_AT_ONCE, batched: true }));
-  assert(r.verified >= 18, `verified ${r.verified} of 20`);
   assertEquals(r.heldForTime, 0, 'no sheet under way is abandoned at the stop');
   assertEquals(r.verified + r.notStarted, 20, 'every sheet is either verified or never begun (customer_api queues those)');
   assert(r.lastAnswerMs <= DRAWING_DEADLINE.stopAtMs, `the last sheet answered at ${r.lastAnswerMs} ms`);
-  console.log(`20 sheets: verified ${r.verified}, not begun ${r.notStarted}, last answer ${(r.lastAnswerMs / 1000).toFixed(1)} s`);
+  console.log(`20 sheets, one at a time: verified ${r.verified}, not begun ${r.notStarted}, last answer ${(r.lastAnswerMs / 1000).toFixed(1)} s`);
 });
 
 /** A gate on one 36 x 24 in sheet with the batched crop, recording what each worker and the model were given. */
@@ -111,13 +115,16 @@ Deno.test('drawing_redact cuts views in its own worker (mode tiles), refuses a v
   assertEquals((src.match(/await budgetInFlight\(body\.source_path, body\.spent_usd\)/g) ?? []).length, 4, "mode gate, read_strings, the manual and the model path");
 });
 
-Deno.test('customer_api runs REDACT_PAGES_AT_ONCE sheets side by side, reserves the others\' spend, and hands the pages back in page order', () => {
+Deno.test('customer_api keeps ONE sheet in flight and a sheet ONE crop worker (the 2 s CPU is per isolate), and hands the pages back in page order', () => {
   const api = Deno.readTextFileSync(new URL('../customer_api/actions/documents.ts', import.meta.url));
   assertMatch(api, /\}, redStartBy, Date\.now, REDACT_PAGES_AT_ONCE\);/);
   assertMatch(api, /const othersUsd = Math\.max\(0, inFlight - 1\) \* PIXEL_PAGE_RESERVE_USD;/);
   assertMatch(api, /spent_usd: othersUsd/);
   assertMatch(api, /for \(let b = 0; b < batches; b\+\+\) \{ redacted = redacted\.concat\(pathsOf\[b\] \?\? \[\]\); redJobs\.push\(\.\.\.\(jobsOf\[b\] \?\? \[\]\)\); \}/);
-  assert(REDACT_PAGES_AT_ONCE >= 2 && REDACT_PAGES_AT_ONCE <= 4);
+  // Production, 17 Nov 19:12-19:16 UTC: 7 isolates killed at 2,005-3,239 ms of CPU, each with 2-4 drawing_redact calls in flight
+  // (3 sheets and a paint; 2 sheets and 2 paints; 2 tiles calls of ONE sheet). Two heavy calls on one isolate is the defect.
+  assertEquals(REDACT_PAGES_AT_ONCE, 1);
+  assertEquals(CROPS_AT_ONCE, 1);
   // One A1 look: what a set's 20-page budget figure is made of (drawing_pixel_gate PIXEL_COST).
   assert(PIXEL_PAGE_RESERVE_USD > 0.05 && PIXEL_PAGE_RESERVE_USD < 0.15, String(PIXEL_PAGE_RESERVE_USD));
 });

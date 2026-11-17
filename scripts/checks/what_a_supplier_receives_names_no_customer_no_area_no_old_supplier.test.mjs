@@ -68,7 +68,8 @@ test('a priced document is never pictured for a supplier, and a drawing beside i
   assert.match(docs, /const batches = pricedByCode \? 0 : Math\.ceil\(images\.length \/ REDACT_BATCH\);\s*(?:\/\/[^\n]*\n\s*)*const pathsOf: string\[\]\[\] = \[\], jobsOf: string\[\]\[\] = \[\];\s*const ran = await eachPageInTime\(batches,/, 'no page of a priced document is redacted for suppliers');
   assert.match(docs, /const priced = pricedRoute\(\{ isCad, pdfLines, reading: jd\.boq \|\| null \}\);\s*if \(priced\) return J/, 'the priced route answers before the drawing route');
   const create = code(F('customer_api/actions/inquiry_create.ts'));
-  assert.match(create, /const drawingRedacted = rr\.paths\.length \? rr\.paths\.slice\(0, 24\) : null/, 'a drawing attached beside a quotation keeps its pages');
+  // 17 Nov 2026 evening: with none resolved from the body, a finished pages job's verified pages (_shared/drawing_pages_follow.ts).
+  assert.match(create, /const drawingRedacted = rr\.paths\.length \? rr\.paths\.slice\(0, 24\) : \(follow\.paths\.length \? follow\.paths\.slice\(0, 24\) : null\)/, 'a drawing attached beside a quotation keeps its pages');
   assert.match(create, /isQuotationReading\(boqObj\) \? 'quotation'/, 'the reading decides the source, not the browser');
   assert.match(create, /const emirate = oneOfSeven\(body\.emirate\)/, 'the emirate is one of the seven');
   assert.match(code(F('drawing_boq/index.ts')), /if \(isQuotationReading\(ai\)\) ai = quotationGate\(ai, quotationTerms\(pdfLines\)\)/, 'the model reading of a priced document passes the quotation gate');

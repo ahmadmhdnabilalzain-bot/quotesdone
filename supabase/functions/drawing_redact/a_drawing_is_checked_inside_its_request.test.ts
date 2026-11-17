@@ -64,7 +64,8 @@ Deno.test('drawing_redact starts no page after the clock and passes stopAt to ev
   assertMatch(api, /const ran = await eachPageInTime\(batches, async \(b\) => \{/);
   assertMatch(api, /redIn \+= notReached\.length; timeHeld \+= notReached\.length;/);
   assertMatch(api, /\.\.\.timeNote\(timeHeld, \[\.\.\.abandoned, \.\.\.notReached\]\)/);
-  assertMatch(api, /const reason = timeHeld \? 'time' :/);
+  // a sheet the checker refused is named first (17 Nov 2026 evening: no retry lifts it); otherwise time, as before
+  assertMatch(api, /const reason = refusedPages\.length \? \(refusedPages\.some\(\(r\) => r\.identity\) \? 'sheet_refused_for_identity' : 'sheet_refused'\) : timeHeld \? 'time' :/);
 });
 
 // Round 5 (fourth review, fix 3): a view under way at the stop was not cut (the model call had no signal: the gateway's 55 s;
@@ -99,7 +100,7 @@ Deno.test('SLOW stub: a model call started at 124 s is cut by 135 s and the page
   assertMatch(src, /askPixels\(key, authors, b, stopAt(?:, sys)?\), \(b, regions\) => paintElsewhere\(secret, b, regions, stopAt\)[^\n]*cropElsewhere\(secret, b, t, m, stopAt\)/);
   // customer_api: a batch the clock cut is time (the time message), not a dead redactor; abandoned pages are recorded.
   const api = Deno.readTextFileSync(new URL('../customer_api/actions/documents.ts', import.meta.url));
-  assertMatch(api, /if \(cutByClock\(e, Date\.now\(\), redStopAt\)\) \{ timeHeld \+= slice\.length; abandoned\.push\(/);
+  assertMatch(api, /const clock = cutByClock\(e, Date\.now\(\), redStopAt\);\s*verdictOf\[b\] = \{ state: 'retry', why: clock \? 'time' : 'lost' \};\s*if \(clock\) \{ timeHeld \+= slice\.length; abandoned\.push\(/);
   assertMatch(api, /const cut = pagesHeldForTime\(rj, i, slice\.length\); timeHeld \+= cut\.length; abandoned\.push\(\.\.\.cut\);/);
   assertMatch(api, /pages_abandoned: abandoned, pages_not_started: notReached/);
   // Round 6: a JSON {ok:false} with no pages_in that arrives after the stop is time too.

@@ -234,8 +234,14 @@ const CONCURRENCY = 4;
 // that two sharing an isolate still fit), and each view is asked as soon as its crop is back, ASKS_AT_ONCE at a time.
 // The local timing model (drawing_redact/every_page_is_verified_in_time.test.ts) puts a page at ~12 s.
 // Nothing about WHAT is asked changes: the same views, the same marks, the same verdict rules below.
+// ONE CROP WORKER AT A TIME (17 Nov 2026 evening, sales_engineer; paid proof 6244a525). "Two sharing an isolate still fit"
+// was measured false on production (function logs 19:15:08-19:15:14 UTC): a fresh isolate (16f1cc97) given the two 'tiles'
+// calls of ONE sheet died "CPU Time exceeded" at 2,271 ms, and that sheet came back unverified. The edge's 2 s is spent per
+// ISOLATE, across every request it serves, and the platform routes concurrent requests of one function to the same isolate.
+// One crop worker in flight per page costs a few seconds of wall per page; the sheets the request does not reach are checked
+// off it (_shared/drawing_pages_queued.ts).
 export const VIEWS_PER_CROP = 5;
-export const CROPS_AT_ONCE = 2;
+export const CROPS_AT_ONCE = 1;
 export const ASKS_AT_ONCE = 8;
 
 type Answer = { t: Tile; v: PixelVerdict | null; read: boolean; late: boolean };
@@ -315,19 +321,22 @@ export async function pixelGate(jpgB64: string, ask: PixelAsk, paint: PixelPaint
       const v = parsePixelVerdict(await ask(shown).catch(() => null));
       return { t, v, read: !look || (!!v && v.mark === mark), late: false };
     }, (t) => ({ t, v: null, read: false, late: true }), late);
+    // Views that answered "not clean" this round, said on every hold below (review 17 Nov 2026): a hold for time or an unanswered
+    // view after the checker named identity is not transient (drawing_pages_queued.sheetVerdict never retries it).
+    const dirtySeen = answers.filter((a) => a.v && a.read && !a.v.clean).length;
     const notAsked = answers.filter((a) => a.late).length;
     // What was never asked was never spent: it goes back to the set's budget and out of the record.
     if (notAsked) { const back = answers.filter((a) => a.late).reduce((s, a) => s + cost(a.t), 0); budget.spend(-back); calls -= notAsked; usd -= back; }
-    if (notAsked) return { ok: false, held: 'time', calls, usd, detail: { calls, usd, boxes_added: added, round, not_asked: notAsked } };
+    if (notAsked) return { ok: false, held: 'time', calls, usd, detail: { calls, usd, boxes_added: added, round, not_asked: notAsked, dirty: dirtySeen } };
     // An answer missing once the clock has run out was cut by it (round 5: every call's timeout ends at the stop plus a
     // grace, drawing_deadline.callTimeoutMs): held for time, not as unverified.
-    if (late() && answers.some((a) => !a.v || !a.read)) return { ok: false, held: 'time', calls, usd, detail: { calls, usd, boxes_added: added, round, cut: answers.filter((a) => !a.v || !a.read).length } };
-    if (answers.some((a) => !a.v)) return { ok: false, held: 'pixels_unverified', calls, usd, detail: { calls, usd, boxes_added: added, round } };
+    if (late() && answers.some((a) => !a.v || !a.read)) return { ok: false, held: 'time', calls, usd, detail: { calls, usd, boxes_added: added, round, cut: answers.filter((a) => !a.v || !a.read).length, dirty: dirtySeen } };
+    if (answers.some((a) => !a.v)) return { ok: false, held: 'pixels_unverified', calls, usd, detail: { calls, usd, boxes_added: added, round, dirty: dirtySeen } };
     // A VIEW NOT READ IS NO ANSWER (round 3, the reading mark): an answer that does not carry the number drawn under that
     // view did not read it, whatever it says, so the page is HELD. MEASURED with an ALWAYS-CLEAN stub on the reviewer's
     // v01 and v12 (13 Nov 2026): both previews were published with "AL BARSHA 2 VILLA 15" before this rule.
     const unread = answers.filter((a) => !a.read).length;
-    if (unread) return { ok: false, held: 'pixels_unverified', calls, usd, detail: { calls, usd, boxes_added: added, round, unread } };
+    if (unread) return { ok: false, held: 'pixels_unverified', calls, usd, detail: { calls, usd, boxes_added: added, round, unread, dirty: dirtySeen } };
     let dirty = answers.filter((a) => !a.v!.clean);
     const blind = dirty.find((a) => !a.v!.regions.length);
     if (blind) return { ok: false, held: 'pixels_not_clean', calls, usd, detail: { calls, usd, boxes_added: added, unsure: blind.v!.unsure, addressed: blind.v!.addressed } };

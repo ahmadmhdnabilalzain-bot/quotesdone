@@ -32,6 +32,7 @@
 //     only and returns product ids; fn_supplier_twin / advisor / products return counts; fn_contact_timeline and fn_wa_context
 //     give a supplier contact his own transactions only.
 
+import { PAGES_FOLLOW_LINE } from '../_shared/drawing_pages_follow.ts';
 import { norm, redactBoq, residualScan, seedTerms } from '../_shared/anonymise.ts';
 import { isQuotationReading, quotationGate, quotationProse } from '../drawing_boq/quotation_gate.ts';
 import { revealedSpec, siteSeeds, supplierSpec, tidyWithheld } from '../_shared/site_location.ts';
@@ -143,12 +144,15 @@ export function newInquiryBody(o: { resolved: boolean; buyer: Buyer; spec: unkno
 
 /** What the supplier is told is attached, said of what it is (13 Nov 2026, anonymity audit A, L6: "A drawing with a draft bill
  *  of quantities is attached" was said of another supplier's quotation, and "A redacted drawing" of a BOQ with no drawing). */
-export function attachedLine(source: string | null, hasBoq: boolean, hasDrawing: boolean): string {
-  if (source === 'quotation') return (hasBoq ? ' The items of the customer’s existing quotation are listed on our inquiry: no prices, no names, no references of the old supplier.' : '') + (hasDrawing ? ' A redacted drawing is attached.' : '');
-  if (source === 'boq') return hasBoq ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : '';
+/** `pagesFollow` (17 Nov 2026 evening, _shared/drawing_pages_follow.ts): the drawing's sheets are still being checked and are
+ *  added to the request when they are; said only when no page is attached yet. */
+export function attachedLine(source: string | null, hasBoq: boolean, hasDrawing: boolean, pagesFollow = false): string {
+  const follows = !hasDrawing && pagesFollow ? PAGES_FOLLOW_LINE : '';
+  if (source === 'quotation') return (hasBoq ? ' The items of the customer’s existing quotation are listed on our inquiry: no prices, no names, no references of the old supplier.' : '') + (hasDrawing ? ' A redacted drawing is attached.' : '') + follows;
+  if (source === 'boq') return (hasBoq ? ' The customer’s own bill of quantities is attached (quantities as the customer wrote them, prices removed).' : '') + follows;
   if (hasBoq && hasDrawing) return ' A redacted drawing with a draft bill of quantities is attached.';
-  if (hasBoq) return ' A draft bill of quantities from the customer’s drawing is attached.';
-  return hasDrawing ? ' A redacted drawing is attached.' : '';
+  if (hasBoq) return ' A draft bill of quantities from the customer’s drawing is attached.' + follows;
+  return hasDrawing ? ' A redacted drawing is attached.' : follows;
 }
 
 /** A trade slug as words, for a line that would otherwise be empty ("plumbing_sanitary" -> "Plumbing sanitary work"). */

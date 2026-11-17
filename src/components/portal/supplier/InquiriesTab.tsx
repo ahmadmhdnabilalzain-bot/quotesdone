@@ -151,6 +151,7 @@ function Detail({ token, lang, id, onQuote, renderQuoteForm }: { token: string; 
       <DrawingGallery pages={d.drawing_pages} failed={Number(d.drawing_pages_failed || 0)} lang={lang} />
       <SitePhotos photos={d.site_photos} />
       {d.drawing_withheld ? <p role="status" className="mt-4 max-w-[70ch] text-[12.5px] text-muted-foreground">{ws(lang, 'rfq_file_withheld')}</p> : null}
+      {d.drawing_pages_follow ? <p role="status" className="mt-4 max-w-[70ch] text-[12.5px] text-muted-foreground">{ws(lang, 'rfq_pages_follow')}</p> : null}
       <BoqTable boq={d.boq} confidence={d.boq_confidence} lang={lang} />
       {d.boq_withheld ? <p className="mt-3 text-[12.5px] text-muted-foreground">{t.boqHeld}</p> : null}
       {/* A question stays possible after a quote exists (audit 21 Sep 2026, finding 30): the answer reaches every

@@ -27,8 +27,17 @@ export function callTimeoutMs(stopAt: number | undefined, capMs: number, now: ()
 }
 
 /** How many pages of a set customer_api's analyze_drawing redacts at once, each its own drawing_redact request
- *  (eachPageInTime below; the timing model is drawing_redact/every_page_is_verified_in_time.test.ts). */
-export const REDACT_PAGES_AT_ONCE = 4;
+ *  (eachPageInTime below; the timing model is drawing_redact/every_page_is_verified_in_time.test.ts).
+ *  ONE (17 Nov 2026 evening, sales_engineer; paid proof 6244a525). At four, the 8-sheet set lost 7 sheets to HTTP 546.
+ *  MEASURED in the Supabase function logs, 19:12:43-19:13:16 UTC: the edge's 2 s CPU is spent per ISOLATE (execution_id),
+ *  summed over every request it serves, and concurrent drawing_redact requests are routed to the same isolate. Of the four
+ *  sheets started at 19:12:58, three landed on ONE isolate (e15948e7) with a paint call and all four requests died at 2,107 ms;
+ *  the next three sheets landed two and one on isolates already carrying paint calls (aa0c12d8 2,169 ms, 494d4b17 2,105 ms).
+ *  Every one of the 7 killed isolates had 2-4 calls in flight (12 requests lost); the isolates that lived retired at 1,264-
+ *  1,694 ms, so a second heavy call in flight at that moment is what crosses 2 s. So a request now keeps ONE sheet in flight (with its own paint and one crop worker,
+ *  drawing_pixel_gate.CROPS_AT_ONCE): fewer sheets are begun inside the 100 s, and none is spent on a call that dies. Every
+ *  sheet not verified in the request is checked off it (_shared/drawing_pages_queued.ts), never released unchecked. */
+export const REDACT_PAGES_AT_ONCE = 1;
 
 /** The hold reason for a page not checked in time. */
 export const TIME_HELD = 'time' as const;

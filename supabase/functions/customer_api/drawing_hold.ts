@@ -105,11 +105,31 @@ export const TIME_MESSAGE = {
   en: 'We could not check every sheet in the time one upload allows, so suppliers do not see this drawing yet. Upload the sheets suppliers need most, a few at a time, and each upload is checked in full.',
   ar: 'لم يتّسع وقت الرفع الواحد لفحص كل اللوحات، لذلك لا يرى المورّدون هذا المخطّط حتى الآن. ارفع اللوحات التي يحتاجها المورّدون أكثر من غيرها، بضع لوحات في كل مرة، فتُفحص كل دفعة كاملة.',
 } as const;
-/** Said instead when the sheets held for time were queued for the CAD read routine (_shared/drawing_pages_queued.ts). */
+/** Said instead when the sheets the upload did not verify were queued for the CAD read routine (_shared/drawing_pages_queued.ts):
+ *  held for time or lost to the edge alike. The customer may send now: suppliers are told the pages follow and get them. */
 export const QUEUED_MESSAGE = {
-  en: 'Most sheets are checked. The rest could not be checked in the time one upload allows, so they are being checked now and follow, usually within two hours. Suppliers see the drawing once every sheet is checked.',
-  ar: 'تم فحص معظم اللوحات. لم يتّسع وقت الرفع الواحد لفحص الباقي، فهي قيد الفحص الآن وتصل عادةً خلال ساعتين. يرى المورّدون المخطّط بعد فحص كل لوحاته.',
+  en: 'Not every sheet could be checked during the upload, so the rest are being checked now and usually follow within two hours. You can send your request now: suppliers are told the drawing pages follow, and receive them as soon as every sheet is checked.',
+  ar: 'لم يتّسع وقت الرفع لفحص كل اللوحات، فالباقي قيد الفحص الآن ويصل عادةً خلال ساعتين. يمكنكم إرسال طلبكم الآن: يُبلَّغ المورّدون بأن لوحات المخطّط ستلحق بالطلب، وتصلهم بمجرّد فحص كل اللوحات.',
 } as const;
+
+/**
+ * A SHEET THE CHECKER REFUSED, SAID WITH ITS NUMBER (17 Nov 2026 evening, sales_engineer). A sheet held because the checker
+ * found what identifies the customer and could not cover it (or text it could not read, or the set's budget) is not retried:
+ * the same sheet meets the same finding. The drawing is held, and the customer is told which sheet and what he can do.
+ */
+export const REFUSED_MESSAGE = {
+  en: 'Suppliers do not see this drawing: on the sheets named, we found details that could identify you and could not remove them with certainty. Remove your name, contacts and project details from those sheets (or leave them out) and upload the drawing again. Your request can still be sent without it.',
+  ar: 'لا يرى المورّدون هذا المخطّط: وجدنا في اللوحات المذكورة بيانات قد تكشف هويتكم ولم نتمكّن من حذفها بيقين. احذفوا اسمكم وبيانات الاتصال وتفاصيل المشروع من تلك اللوحات (أو استبعدوها) ثم ارفعوا المخطّط من جديد. ويمكن إرسال طلبكم من دونه.',
+} as const;
+export function refusedNote(refused: { page: number; why: string; identity: boolean }[]) {
+  if (!refused.length) return {};
+  const sheets = [...new Set(refused.map((r) => r.page + 1))].sort((a, b) => a - b);
+  // Only an identity finding gets the identity words; a budget or reader refusal keeps the message already said for it
+  // (budgetNote, or the general hold), with the sheets named.
+  return refused.some((r) => r.identity)
+    ? { drawing_held_reason: 'sheet_refused_for_identity' as const, drawing_held_message: REFUSED_MESSAGE, redaction_sheets_refused: sheets }
+    : { redaction_sheets_refused: sheets };
+}
 export function timeNote(pagesHeldForTime: number, pages: number[] = []) {
   if (!(pagesHeldForTime > 0)) return {};
   // The sheets not checked, numbered as the customer numbers them (1 = the first sheet), so he knows which to send again.

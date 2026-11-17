@@ -19,7 +19,8 @@ import { currentCustomerTermsVersion, needsReacceptance, REACCEPT_MESSAGE } from
 import { applyEdits, validateStored, supplierLine } from '../../_shared/intake_requirements.ts';
 import { type ActionCtx, INQUIRY_LIMIT_PER_HOUR, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
 import { inquiryNotSaved, labelize } from '../lib/inquiry_rules.ts';
-import { drawingIdentityFinding, resolveRedactedPaths, storedDrawingTerms } from '../lib/drawings.ts';
+import { drawingIdentityFinding, pagesStillBeingChecked, resolveRedactedPaths, storedDrawingTerms } from '../lib/drawings.ts';
+import { PAGES_FOLLOW_MESSAGE } from '../../_shared/drawing_pages_follow.ts';
 import { gateAtSend } from '../drawing_send_gate.ts';
 import { ownDrawingPath } from '../drawing_path.ts';
 import { matchAndNotify } from '../lib/matching.ts';
@@ -225,7 +226,14 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       if ('err' in rr) return J(rr.err, rr.status);
       // A quotation's pages are never shown to a supplier: analyze_drawing returns none for it. Pages here are a DRAWING's,
       // attached beside the quotation (review of F2: a quotation and a drawing together kept neither drawing), so they stay.
-      const drawingRedacted = rr.paths.length ? rr.paths.slice(0, 24) : null;
+      // THE SHEETS STILL BEING CHECKED (17 Nov 2026 evening; _shared/drawing_pages_follow.ts). A drawing with no verified pages
+      // here may have its sheets queued for the CAD read routine: a job already finished with every sheet verified gives its
+      // pages now (resolved like any other run, by ownership and completeness); one still open makes the request say the
+      // pages follow, and the routine attaches them and tells the suppliers when it publishes. The job is looked up by this
+      // customer's own stored drawing, never taken from the body.
+      const follow = drawingPath && !rr.paths.length ? await pagesStillBeingChecked(String(cust.id), String(user.id || ''), drawingPath) : { paths: [] as string[], follows: false };
+      const drawingRedacted = rr.paths.length ? rr.paths.slice(0, 24) : (follow.paths.length ? follow.paths.slice(0, 24) : null);
+      const pagesFollow = !drawingRedacted && follow.follows;
       // `tradesIn` arrives from the request body, so Set<unknown> is what TypeScript infers and
       // every downstream use of a trade - labelize(tr), KW[tr], category: tr - was an error.
       // Coercing here rather than casting at each use means a non-string trade is normalised once,
@@ -274,7 +282,8 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         if (boqObj && briefSource === 'quotation') boqObj = quotationGate(boqObj, { parties: at.terms ?? [], refs: [], prefixes: [] });
       }
       // A drawing attached but not redacted and verified goes nowhere; the customer was told on upload, the seat is told here.
-      if (drawingPath && !drawingRedacted && (briefSource === 'drawing' || drawing?.held === true)) await drawingIdentityFinding('sent_without_drawing', { source_path: drawingPath, held: drawing?.held === true });
+      // Pages that follow are not "sent without": the CAD read routine attaches them (and raises its own finding if it cannot).
+      if (drawingPath && !drawingRedacted && !pagesFollow && (briefSource === 'drawing' || drawing?.held === true)) await drawingIdentityFinding('sent_without_drawing', { source_path: drawingPath, held: drawing?.held === true });
       if (boqObj && Array.isArray(boqObj.boq)) {
         const open = openLines(boqObj.boq);
         if (open.length) {
@@ -295,6 +304,8 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
           boqObj = null;
         } else boqObj = gate.boq;
       }
+      // Said to the customer on every posted answer: the pages follow, and each supplier is told when they arrive.
+      const followSaid = pagesFollow ? { drawing_pages_follow: true, drawing_pages_follow_message: PAGES_FOLLOW_MESSAGE } : {};
       const drawCols = { drawing_file_path: drawingPath, drawing_file_name: drawingName, drawing_redacted_paths: drawingRedacted, boq: boqObj, boq_confidence: boqObj?.confidence || null };
 
       // ── §7: THREE THINGS THE ASSISTANT EXTRACTED AND THIS ROUTINE THREW AWAY ────────────────────
@@ -416,7 +427,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
           },
           notifyChild: async (id, tr) => {
             const tlabel = labelize(tr);
-            const extra = ' This is the ' + tlabel + ' portion of a larger project — please quote for the ' + tlabel + ' works only; other trades are handled separately.' + attachedLine(briefSource, !!boqObj, !!drawingRedacted);
+            const extra = ' This is the ' + tlabel + ' portion of a larger project — please quote for the ' + tlabel + ' works only; other trades are handled separately.' + attachedLine(briefSource, !!boqObj, !!drawingRedacted, pagesFollow);
             // Each child is ONE trade and is routed like any single request: through the capability
             // matcher (sales_engineer.match), not keyword matching. Measured 14 Sep 2026: split children
             // went to match_suppliers_kw, which matched a registered aluminium supplier and no one for
@@ -439,7 +450,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         // A part the matcher did not answer waits for the re-match (lib/rematch.ts): the portal says so for that part.
         const { data: waitingKids } = await admin.from('inquiries').select('id').eq('parent_inquiry_id', res.parentId).eq('routing->>matcher_unavailable', 'true');
         const waitingIds = new Set((waitingKids || []).map((k: { id: string }) => String(k.id)));
-        return J({ ...postedSplit(res.parentId, res.children.map((c) => ({ ...c, label: labelize(c.trade), matching: waitingIds.has(String(c.inquiry_id)) })), distinctTrades), concierge: await confirmRequest(res.parentId) });
+        return J({ ...followSaid, ...postedSplit(res.parentId, res.children.map((c) => ({ ...c, label: labelize(c.trade), matching: waitingIds.has(String(c.inquiry_id)) })), distinctTrades), concierge: await confirmRequest(res.parentId) });
       }
 
       if (wantTurnkey) {
@@ -447,19 +458,19 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category: 'fitout', emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords: tkKeywords, status: 'sent', budget, scope_type: 'turnkey', trades: distinctTrades.length ? distinctTrades : (tradesIn.length ? tradesIn : null), brief_source: briefSource, ...drawCols, ...briefCols, ...serviceKeyCols(stateKeys), compliance_checklist: await checklistFor('fitout') }).select('id').maybeSingle();
         if (e1) { await releaseIntake(admin, String(intake.id)); return J(...inquiryNotSaved(e1)); }
         const tradeList = distinctTrades.map(labelize).join(', ');
-        const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + attachedLine(briefSource, !!boqObj, !!drawingRedacted) + photosLine(sitePhotos, photoState);
+        const extra = (tradeList ? ' Combined turnkey scope covering: ' + tradeList + '.' : '') + attachedLine(briefSource, !!boqObj, !!drawingRedacted, pagesFollow) + photosLine(sitePhotos, photoState);
         const { matches, routing } = await matchAndNotify(String(inq!.id), { category: 'fitout', emirate, summary, budget, extra: extra + supplierLine(reqStored) });
         // The routing goes back with the answer (finding c of 10 Nov 2026): a turnkey request no turnkey contractor matched
         // carries routing.separate_offer (how many specialists could quote it per trade), and the portal asks the customer
         // whether they want separate quotes. Nothing is split until they answer 'multi' (rulings 1021, 1025).
-        return J({ ...postedSingle(String(inq!.id), 'turnkey', matches, routing), concierge: await confirmRequest(String(inq!.id)) });
+        return J({ ...followSaid, ...postedSingle(String(inq!.id), 'turnkey', matches, routing), concierge: await confirmRequest(String(inq!.id)) });
       }
 
       const { data: inq, error: e1 } = await admin.from('inquiries').insert({ customer_id: cust.id, lang: inquiryLang, category, emirate, role_needed: 'supplier', raw_input: raw, spec, summary, keywords, status: 'sent', budget, scope_type: 'single', trades: tradesIn.length || intakeTradeCodes.length ? [...new Set([...tradesIn, ...intakeTradeCodes])] : null, brief_source: briefSource, ...drawCols, ...briefCols, ...serviceKeyCols(stateKeys), compliance_checklist: await checklistFor(category) }).select('id').maybeSingle();
       if (e1) { await releaseIntake(admin, String(intake.id)); return J(...inquiryNotSaved(e1)); }
-      const extra = attachedLine(briefSource, !!boqObj, !!drawingRedacted) + photosLine(sitePhotos, photoState);
+      const extra = attachedLine(briefSource, !!boqObj, !!drawingRedacted, pagesFollow) + photosLine(sitePhotos, photoState);
       const { matches, routing } = await matchAndNotify(String(inq!.id), { category, emirate, summary, budget, extra: extra + supplierLine(reqStored) });
-      return J({ ...postedSingle(String(inq!.id), 'single', matches, routing), concierge: await confirmRequest(String(inq!.id)) });
+      return J({ ...followSaid, ...postedSingle(String(inq!.id), 'single', matches, routing), concierge: await confirmRequest(String(inq!.id)) });
     }
 }
 

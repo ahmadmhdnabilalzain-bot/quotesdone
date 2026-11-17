@@ -67,7 +67,9 @@ test('the CAD worker draws what the edge cannot, records it, and raises a job th
   // anonymised drawing FILE is attached beside it only when its verifier passed, and a held file never loses the page.
   assert.match(worker, /const out = await publishPages\(job, key, \[seen\], \{ method: 'cad_render'[\s\S]{0,120}if \(out\.redaction_complete !== true\) return out;/);
   assert.match(worker, /const f = await anonymisedDrawingFile\([\s\S]{0,80}if \(!f\.ok\) \{[\s\S]{0,160}?return out; \}/, 'an unproved drawing file is no longer left out');
-  assert.match(worker, /fn_it_engineer_finding_upsert\(\s*'cad_read_worker:job_failed'/);
+  // 17 Nov 2026 review: the key is raiseFailed's default (a held pages job raises cad_read_worker:pages_held through it)
+  assert.match(worker, /async function raiseFailed\(job: Job, msg: string, key = 'cad_read_worker:job_failed'\)[\s\S]{0,120}fn_it_engineer_finding_upsert\(\s*\$\{lit\(key\)\}/);
+  assert.match(worker, /if \(job\.attempts >= 3\) await raiseFailed\(job, msg\);/);
   assert.match(worker, /if \(job\.attempts >= 3\) await raiseFailed\(job, msg\)/);
   const status = between(api, "action === 'cad_read_status'", "action === 'analyze_boq'");
   assert.match(status, /drawing_redacted_paths: pages/, 'the worker\'s drawn page never reaches the customer');
