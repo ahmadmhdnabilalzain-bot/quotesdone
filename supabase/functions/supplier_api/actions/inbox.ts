@@ -11,6 +11,7 @@ import { arabicOf } from '../../_shared/reasoned_governance.ts';
 // A DRAWING PAGE THAT FAILS TO SIGN IS COUNTED, LOGGED AND RAISED - never silently dropped from the
 // inbox (18 Sep 2026, sales_engineer). See _shared/drawing_pages.ts for the production measurement.
 import { drawingWithheld, signRedactedDrawings } from '../../_shared/drawing_pages.ts';
+import { pagesFollowFor } from '../../_shared/drawing_pages_follow.ts';
 import { releasedSitePhotos, sitePhotosSection } from '../site_photos_door.ts';
 import { jobNo } from '../quote_review.ts';
 // The identity scrubbers (scrubIdentity, inboxField, inboxBoq) live in ./identity_scrub.ts.
@@ -141,7 +142,11 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
       // without identifying them (a held drawing, any CAD file) left the supplier with no drawing and no
       // word that one existed. Only the FACT is read here — the path never leaves this function.
       const hasOriginal = new Set<string>();
+      // PAGES THAT FOLLOW (17 Nov 2026 evening, _shared/drawing_pages_follow.ts): a request whose drawing's sheets are still being
+      // checked says so, instead of "withheld"; the CAD read routine attaches them and tells this supplier when they are.
+      let pagesFollow = new Set<string>();
       { const { data: owners, error: eOwners } = await admin.from('inquiries').select('id,customer_id,project_id,rfq_no,drawing_file_path').in('id', ids);
+        if (!eOwners) pagesFollow = await pagesFollowFor(admin, owners || []);
         if (eOwners) ownerResolved = false;
         else for (const o of (owners || [])) { rfqOf[String(o.id)] = o?.rfq_no ?? null; if (o?.drawing_file_path) hasOriginal.add(String(o.id)); if (o?.customer_id) ownerOf[String(o.id)] = String(o.customer_id); if (o?.project_id) projectOf[String(o.id)] = String(o.project_id); } }
       const custIds = Array.from(new Set(Object.values(ownerOf)));
@@ -217,7 +222,7 @@ export async function inboxActions(c: ActionCtx): Promise<Response | undefined> 
         // loop in one batch (decision point trade_glossary_ar); until it exists — under the model hold — it stays
         // null and the portal shows the customer's own words, never a partial or word-by-word reading.
         const sSummaryAr: string | null = null;
-        out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_withheld: summaryWithheld, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected), site_photos: photosOf(i), status: i.status, concluded, you_won: youWon, revealed, declined: declinedSet.has(String(i.id)), quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
+        out.push({ id: i.id, rfq_no: rfqOf[String(i.id)] ?? null, job_no: jobNo({ id: String(i.id), rfq_no: rfqOf[String(i.id)] }), category: i.category, emirate: i.emirate, summary: sSummary, summary_withheld: summaryWithheld, summary_ar: sSummaryAr, spec: sSpec, spec_withheld: specWithheld, created_at: i.created_at, budget: sBudget || null, budget_withheld: budgetWithheld, scope_type: i.scope_type || null, brief_source: i.brief_source || null, boq: sBoqAr || null, boq_withheld: boqWithheld, boq_confidence: i.boq_confidence || null, drawing_file_name: null, drawing_file_url: null, drawing_pages: pages, drawing_pages_expected: dp.expected, drawing_pages_served: dp.served, drawing_pages_failed: dp.failed, drawing_withheld: drawingWithheld(hasOriginal.has(String(i.id)), dp.expected) && !(pagesFollow.has(String(i.id)) && dp.expected === 0), drawing_pages_follow: pagesFollow.has(String(i.id)) && dp.expected === 0, site_photos: photosOf(i), status: i.status, concluded, you_won: youWon, revealed, declined: declinedSet.has(String(i.id)), quote: optsOf(i.id)[0] || null, quotes: optsOf(i.id) });
       }
       // The BOQ read in Arabic (audit 21 Sep 2026, findings 26/27). Which Arabic heading a section means is
       // reasoned (decision point documents.boq_arabic) over the GATED BOQs only — a revealed BOQ is the customer's

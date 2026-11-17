@@ -3,6 +3,7 @@
 // Moved here verbatim from index.ts on 9 Nov 2026 (it_engineer: the 2,516-line index.ts split into modules, a pure move).
 import { safeFilename, SAFE_UPLOAD, SAFE_CAD } from '../../_shared/attachment.ts';
 import { heldRun } from '../drawing_hold.ts';
+import { PAGES_NEED_TIME } from '../../_shared/drawing_pages_queued.ts';
 import { pdfIdentityTerms } from '../../_shared/drawing_identity_gate.ts';
 // MALWARE WATCH, 9 Sep 2026 — see _shared/malware.ts. A customer drawing is stored AND handed to a
 // supplier to quote from, so a malicious file here would be forwarded by us, under our name.
@@ -68,6 +69,21 @@ export async function queueCadRead(o: { customerId: string; email: string; path:
   await startCadWorker(String(data.id), o.why);
   return String(data.id);
 }
+// A DRAWING'S SHEETS ARE QUEUED ONCE (17 Nov 2026 evening, sales_engineer; _shared/drawing_pages_queued.ts). One open
+// 'pages_need_time' job per stored drawing: an open job of this customer for the same stored original is answered back instead
+// of a second one, so the worker never checks (and pays for) a sheet twice. The database says the same (the partial unique
+// index of scripts/sql/a_drawing_sheet_is_queued_once.sql refuses a second open job); a refused insert reads the job back.
+export async function queuePagesOnce(o: { customerId: string; email: string; path: string; name: string; mime: string; b64Len: number; queued: unknown }): Promise<string | null> {
+  const open = async () => {
+    const { data } = await admin.from('cad_read_jobs').select('id').eq('customer_id', o.customerId).eq('source_path', o.path)
+      .eq('why', PAGES_NEED_TIME).in('status', ['queued', 'running']).limit(1);
+    return Array.isArray(data) && data[0]?.id ? String(data[0].id) : null;
+  };
+  const had = await open();
+  if (had) return had;
+  return (await queueCadRead({ customerId: o.customerId, email: o.email, path: o.path, name: o.name, mime: o.mime, b64Len: o.b64Len, why: PAGES_NEED_TIME, boqIn: { queued_pages: o.queued } })) ?? await open();
+}
+
 // THE QUEUE IS READ BY THE CAD READ ROUTINE, NOT BY GITHUB ACTIONS (it_engineer, 10 Nov 2026; channels audit R3).
 // History: 3 Nov this dispatched .github/workflows/cad-read-worker.yml the moment a job was queued (Actions on, ledger 1410).
 // Actions is OFF again (ledger 1564, budget spent), so every dispatch reached nothing: the channels audit's 2.1 MB DWG was
@@ -366,6 +382,27 @@ export async function resolveRedactedPaths(custId: string, authUserId: string, d
     return { err: { error: 'redaction_incomplete', pages_missing: missing, message: `${missing} page(s) of your drawing could not be redacted, so no pages were shared. Please re-upload a clearer copy, or send the request without the drawing.` }, status: 409 };
   }
   return { paths };
+}
+
+/**
+ * THE SHEETS OF THIS DRAWING STILL BEING CHECKED OFF THE REQUEST (17 Nov 2026 evening, sales_engineer;
+ * _shared/drawing_pages_follow.ts). The newest 'pages_need_time' job of this customer for this stored drawing: open = the
+ * pages follow; done with every sheet verified = its pages, resolved through resolveRedactedPaths (the runs must be this
+ * customer's and complete). Anything else, or a failed read: nothing follows, nothing is attached (fail closed).
+ */
+export async function pagesStillBeingChecked(custId: string, authUserId: string, sourcePath: string): Promise<{ paths: string[]; follows: boolean }> {
+  const none = { paths: [] as string[], follows: false };
+  try {
+    const { data, error } = await admin.from('cad_read_jobs').select('id,status,result').eq('customer_id', custId).eq('source_path', sourcePath)
+      .eq('why', PAGES_NEED_TIME).order('created_at', { ascending: false }).limit(1);
+    const job = !error && Array.isArray(data) ? data[0] : null;
+    if (!job) return none;
+    if (job.status === 'queued' || job.status === 'running') return { paths: [], follows: true };
+    const res = job.status === 'done' ? (job.result as any) : null;
+    if (res?.redaction_complete !== true || !Array.isArray(res.redaction_job_ids) || !res.redaction_job_ids.length) return none;
+    const rr = await resolveRedactedPaths(custId, authUserId, { redaction_job_ids: res.redaction_job_ids.map(String) });
+    return 'err' in rr ? none : { paths: rr.paths, follows: false };
+  } catch (_e) { return none; }
 }
 
 // THE RELEASED PDF'S OWN PIXELS (13 Nov 2026, sales_engineer; design change A after the independent review of the

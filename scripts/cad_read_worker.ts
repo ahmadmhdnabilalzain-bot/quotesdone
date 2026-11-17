@@ -29,7 +29,8 @@ import { cadSupplierBoq } from '../supabase/functions/_shared/cad_identity.ts';
 import { lengthsForSet, mergeLengths } from '../supabase/functions/drawing_boq/drawing_set.ts';
 import { pdfPages } from '../supabase/functions/_shared/pdf_text_positions.ts';
 import { seedTerms } from '../supabase/functions/_shared/anonymise.ts';
-import { PAGES_NEED_TIME, redactQueuedPages, type SheetBody } from '../supabase/functions/_shared/drawing_pages_queued.ts';
+import { PAGES_NEED_TIME, redactQueuedPages, type QueuedPages, type SheetBody } from '../supabase/functions/_shared/drawing_pages_queued.ts';
+import { pagesReachTheirRequestsSql } from '../supabase/functions/_shared/drawing_pages_follow.ts';
 import { pickApiKey } from './lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
 const REF = 'htdblwldjkcgjvmqkbeh';
@@ -38,8 +39,9 @@ const MAX_JOBS = 6;
 const JOB_MS = 5 * 60_000;
 // A site photo's check is cut sooner (_shared/site_photo_gate.ts PHOTO_JOB_MS, 4 minutes), inside JOB_MS.
 const PHOTO_JOB_MS = 4 * 60_000;
-// Sheets held for time: each is one drawing_redact call of at most its own 125 s clock (drawing_deadline.ts), about 20 s
-// measured; customer_api queues at most MAX_DRAWING_PAGES of them, so 30 minutes is room for every one at its slowest.
+// Sheets the request did not verify: each is one drawing_redact call of at most its own 125 s clock (drawing_deadline.ts),
+// about 20-30 s measured, asked at most SHEET_TRIES times. A run cut by this budget keeps the sheets it verified (progress)
+// and the next run carries on, so the budget bounds one run, not the set.
 const PAGES_JOB_MS = 30 * 60_000;
 
 let token = '';   // set in main; importing this file (dwg_samples.check.ts) reads no environment
@@ -324,19 +326,36 @@ async function runJob(job: Job, key: string): Promise<void> {
     return;
   }
   if (job.why === PAGES_NEED_TIME) {
-    // THE SHEETS analyze_drawing COULD NOT CHECK IN TIME (17 Nov 2026; _shared/drawing_pages_queued.ts): each through the edge's
-    // own manual path, one sheet a call with the whole edge clock to itself; the set is published only when every sheet is.
-    const q = job.boq_in?.queued_pages;
-    if (!q || !Array.isArray(q.left) || !q.left.length) throw new Error('a pages job with no sheets left');
+    // THE SHEETS analyze_drawing COULD NOT VERIFY (17 Nov 2026; _shared/drawing_pages_queued.ts): held for time, lost to a 546 or
+    // a timeout, or held for a transient reason. Each through the edge's own manual path, one sheet a call with the whole edge
+    // clock to itself, asked again up to SHEET_TRIES times; the set is published only when every sheet is verified.
+    const q = job.boq_in?.queued_pages as QueuedPages | undefined;
+    // No sheet left is a run cut after its last sheet was kept (progress) and before the job was closed: it completes at once.
+    if (!q || !Array.isArray(q.left) || !Array.isArray(q.done) || q.done.length + q.left.length !== q.pages_in) throw new Error('a pages job whose sheets do not add up');
     const raster = async (p: string) => {
       const rr = await fetch(`${BASE}/storage/v1/object/drawing-files/${p.split('/').map(encodeURIComponent).join('/')}`, { headers: { Authorization: 'Bearer ' + key, apikey: key }, signal: AbortSignal.timeout(60_000) });
       if (!rr.ok) throw new Error(`a stored sheet could not be downloaded (HTTP ${rr.status})`);
       return b64u(new Uint8Array(await rr.arrayBuffer()));
     };
     const redact = async (b: SheetBody) => await edge(key, { __secret: await internalSecret(key), ...b, owner_customer_id: job.customer_id, owner_email: job.owner_email, source_path: job.source_path });
-    const drawing = await Promise.race([redactQueuedPages(q, { originalB64: b64u(bytes), raster, redact }), new Promise<never>((_, no) => setTimeout(() => no(new Error('the sheets ran past their budget')), PAGES_JOB_MS))]);
-    await sql(`update public.cad_read_jobs set status = 'done', finished_at = now(), error = null, result = ${lit(JSON.stringify({ boq: null, kind: 'pdf_sheets', ms: Math.round(performance.now() - t0), ...drawing }))}::jsonb where id = ${lit(job.id)}::uuid`);
-    console.log(`job ${job.id}: ${q.left.length} sheet(s) ${drawing.redaction_complete ? 'published with the set' : 'held (' + drawing.held_reason + ')'}, ${Math.round(performance.now() - t0)} ms`);
+    // Each verified sheet is kept on the job at once, so a run that is cut, or a later run, never asks (or pays for) it again.
+    const progress = async (now: QueuedPages) => { await sql(`update public.cad_read_jobs set boq_in = jsonb_set(boq_in, '{queued_pages}', ${lit(JSON.stringify(now))}::jsonb) where id = ${lit(job.id)}::uuid`); };
+    const drawing = await Promise.race([redactQueuedPages(q, { originalB64: b64u(bytes), raster, redact, progress }), new Promise<never>((_, no) => setTimeout(() => no(new Error('the sheets ran past their budget')), PAGES_JOB_MS))]);
+    // A sheet still lost or held for a transient reason: back to the queue for the next run (three runs, then the finding).
+    if (drawing.retry_later === true) throw new Error(`sheet ${Number(drawing.held_page) + 1} not checked yet (${drawing.held_reason}); asked again at the next run`);
+    // THE PAGES REACH THE REQUESTS ALREADY SENT (_shared/drawing_pages_follow.ts): attached to each open request of this customer
+    // with this drawing and no pages, every matched supplier and the customer told through the delivery door. A failure here
+    // leaves the job done with its pages (the portal still adopts them) and is said in the log and on the job's result.
+    let follow: Record<string, unknown> = {};
+    if (drawing.redaction_complete === true) {
+      const stmt = pagesReachTheirRequestsSql(job, (drawing.drawing_redacted_paths as string[]) ?? []);
+      try { const r = stmt ? await sql<{ attached: unknown; delivered: unknown }>(stmt) : []; follow = { requests_attached: r[0]?.attached ?? [], deliveries: Array.isArray(r[0]?.delivered) ? (r[0].delivered as unknown[]).length : 0 }; }
+      // Not swallowed: the job goes back to the queue with every sheet kept, and the next run attaches (never mails twice:
+      // only requests with no pages are touched, and each e-mail carries a dedupe key).
+      catch (e) { throw new Error('the verified pages could not be attached to the requests: ' + String((e as Error)?.message || e).slice(0, 200)); }
+    }
+    await sql(`update public.cad_read_jobs set status = 'done', finished_at = now(), error = null, result = ${lit(JSON.stringify({ boq: null, kind: 'pdf_sheets', ms: Math.round(performance.now() - t0), ...drawing, ...follow }))}::jsonb where id = ${lit(job.id)}::uuid`);
+    console.log(`job ${job.id}: ${q.left.length} sheet(s) ${drawing.redaction_complete ? 'published with the set' : 'held (' + drawing.held_reason + ')'}, ${JSON.stringify(follow)}, ${Math.round(performance.now() - t0)} ms`);
     return;
   }
   if (job.why === 'site_photo_check') {

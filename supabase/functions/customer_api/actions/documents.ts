@@ -9,8 +9,8 @@ import { SAFE_UPLOAD, SAFE_SHEET, SAFE_DOCS } from '../../_shared/attachment.ts'
 import { seedTerms } from '../../_shared/anonymise.ts';
 import { supplierBoxes } from '../../_shared/supplier_copy.ts';
 import { cadSupplierBoq, dxfTextOf } from '../../_shared/cad_identity.ts';
-import { PDF_PREVIEWS_ONLY, QUEUED_MESSAGE, budgetNote, cadNote, cutByClock, fileHeldNote, drawingHandoff, heldRun, pagesHeldForTime, timeNote } from '../drawing_hold.ts';
-import { PAGES_NEED_TIME, queuedPagesOf, type DonePage } from '../../_shared/drawing_pages_queued.ts';
+import { PDF_PREVIEWS_ONLY, QUEUED_MESSAGE, budgetNote, cadNote, cutByClock, fileHeldNote, drawingHandoff, heldRun, pagesHeldForTime, refusedNote, timeNote } from '../drawing_hold.ts';
+import { queuedPagesOf, sheetVerdict, sheetsToCheckOff, type DonePage, type SheetVerdict } from '../../_shared/drawing_pages_queued.ts';
 import { DRAWING_DEADLINE, REDACT_PAGES_AT_ONCE, eachPageInTime } from '../../_shared/drawing_deadline.ts';
 import { PIXEL_PAGE_RESERVE_USD } from '../../_shared/drawing_pixel_gate.ts';
 import { isPhotoOrScan, visionCountBody, applyVisionCounts } from '../vision_count_wire.ts';
@@ -26,7 +26,7 @@ import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from
 import { cadJobNeedsRedispatch, claimCadDispatch } from '../cad_dispatch.ts';
 import { PHOTOS_PER_DAY, photosToday, recordSitePhotos } from '../../_shared/site_photos.ts';
 import { type ActionCtx, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
-import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, lengthsCall, pdfPlanCall, queueCadRead, recordHeld, redactCad, scheduleTables, storeOriginal } from '../lib/drawings.ts';
+import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, lengthsCall, pdfPlanCall, queueCadRead, queuePagesOnce, recordHeld, redactCad, scheduleTables, storeOriginal } from '../lib/drawings.ts';
 
 /** analyze_drawing answers inside this (ms from its request), 10 s before the 150 s edge wall. See the action below. */
 export const ANALYZE_DRAWING_BUDGET_MS = 140_000;
@@ -340,11 +340,15 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // Pages finish out of order when they run side by side: each batch's paths and run are kept at its place and joined
         // in page order below, so a supplier still receives sheet 1 first.
         const pathsOf: string[][] = [], jobsOf: string[][] = [];
+        // What drawing_redact said about each sheet (REDACT_BATCH is 1: one sheet a call), sorted by sheetVerdict
+        // (_shared/drawing_pages_queued.ts): verified, to be checked off the request, or refused. Read below by the queue.
+        const verdictOf: SheetVerdict[] = [];
         const ran = await eachPageInTime(batches, async (b) => {
           const i = b * REDACT_BATCH, slice = images.slice(i, i + REDACT_BATCH);
           inFlight++;
           try {
             const rj = await redactBatch(slice, i);
+            verdictOf[b] = sheetVerdict(rj);
             const inN = Number(rj?.pages_in || 0);
             if (rj?.needs_manual_boxes === true) needsManual = true;
             if (rj?.customer_message) budgetHit = true;
@@ -358,7 +362,9 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           } catch (e) {
             // A call the clock cut (its signal ends at the answer budget) is held for TIME, not lost to a dead redactor.
             redIn += slice.length;
-            if (cutByClock(e, Date.now(), redStopAt)) { timeHeld += slice.length; abandoned.push(...slice.map((_x, k) => i + k)); } else redDied += slice.length;
+            const clock = cutByClock(e, Date.now(), redStopAt);
+            verdictOf[b] = { state: 'retry', why: clock ? 'time' : 'lost' };
+            if (clock) { timeHeld += slice.length; abandoned.push(...slice.map((_x, k) => i + k)); } else redDied += slice.length;
           } finally { inFlight--; }
         }, redStartBy, Date.now, REDACT_PAGES_AT_ONCE);
         for (let b = 0; b < batches; b++) { redacted = redacted.concat(pathsOf[b] ?? []); redJobs.push(...(jobsOf[b] ?? [])); }
@@ -366,6 +372,10 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // A page never started is a page sent and not verified: it counts in redIn, so the set is held, and it is recorded.
         notReached = ran.notReached.flatMap((b) => images.slice(b * REDACT_BATCH, (b + 1) * REDACT_BATCH).map((_x, k) => b * REDACT_BATCH + k));
         redIn += notReached.length; timeHeld += notReached.length;
+        for (const b of ran.notReached) verdictOf[b] = { state: 'retry', why: 'time' };
+        // Sorted once (_shared/drawing_pages_queued.ts sheetsToCheckOff): a sheet with no word at all is LOST, never verified.
+        const sorted = sheetsToCheckOff(verdictOf, batches);
+        const refusedPages = sorted.refused;
         const boqRes = await Promise.allSettled([boqP]).then((a) => a[0]);
         // redaction_complete compared redOut >= redIn, and both are 0 when the redactor dies before
         // it can report anything - so total failure read as "complete". It now requires that pages
@@ -381,8 +391,10 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         if (!pricedByCode && redMeta.redaction_complete && path && !isCad && body.original_b64 && /^JVBERi0/.test(String(body.original_b64).replace(/^data:[^;]+;base64,/, ''))) fileHeld = PDF_PREVIEWS_ONLY;
         const hand = drawingHandoff(redMeta, path, redacted);
         if (hand.drawing_held && path && !pricedByCode) {
-          const reason = timeHeld ? 'time' : (serverBoxes ? 'server_boxes_sent_pages_refused' : (needsManual ? 'no_server_boxes_and_model_refused' : (redDied ? 'redactor_died' : 'pages_not_verified')));
-          await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: redMeta, reason, detail: timeHeld ? { pages_held_for_time: timeHeld, pages_abandoned: abandoned, pages_not_started: notReached } : undefined }));
+          // A sheet the checker REFUSED is named first: it is the one hold no retry lifts (refusedNote below).
+          const reason = refusedPages.length ? (refusedPages.some((r) => r.identity) ? 'sheet_refused_for_identity' : 'sheet_refused') : timeHeld ? 'time' : (serverBoxes ? 'server_boxes_sent_pages_refused' : (needsManual ? 'no_server_boxes_and_model_refused' : (redDied ? 'redactor_died' : 'pages_not_verified')));
+          const sheets = Array.from({ length: batches }, (_x, k) => verdictOf[k] ?? { state: 'retry' as const, why: 'lost' }).map((v, k) => (v.state === 'verified' ? null : { page: k, state: v.state, why: v.why })).filter(Boolean);
+          await recordHeld(heldRun({ customerId: cust.id, email, sourcePath: path, meta: redMeta, reason, detail: { ...(timeHeld ? { pages_held_for_time: timeHeld, pages_abandoned: abandoned, pages_not_started: notReached } : {}), ...(sheets.length ? { sheets } : {}) } }));
         }
         // SCANNED PAGES ARE READ BY OCR OFF THE REQUEST PATH (24 Sep 2026, sales_engineer; founder instruction 579:
         // "OCR for scanned drawings"). A photo or a PDF with no text layer gives the server no words to box, so the
@@ -402,30 +414,36 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           if (pagePaths.length === images.length) scanJob = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64 || '').length, why: 'scan_needs_ocr', boqIn: { scan_pages: pagePaths } });
         }
         const scanNote = scanJob ? { note: 'scan_queued', cad_job_id: scanJob } : {};
-        // SHEETS LEFT FOR TIME ARE CHECKED OFF THE REQUEST (17 Nov 2026; _shared/drawing_pages_queued.ts). When every other
-        // sheet of a PDF set was verified and the rest were held for time only, those sheets are stored and queued for the CAD
-        // read routine, which checks each through the same manual path and publishes the set when all are verified. If the
-        // store or the queue fails, or too little of the answer budget is left, the drawing simply stays held, as before.
+        // EVERY SHEET THE REQUEST DID NOT VERIFY IS CHECKED OFF IT (17 Nov 2026; _shared/drawing_pages_queued.ts). Held for time,
+        // LOST to a 546 / 5xx / timeout (paid proof 6244a525: 7 of 8 sheets, none queued), or held for a transient reason: stored
+        // and queued for the CAD read routine, which checks each through the same manual path and publishes the set only when
+        // every sheet is verified. A sheet the checker REFUSED (identity it found, text it could not read, the budget) holds the
+        // set and queues nothing: retrying it blindly would meet the same finding (refusedNote tells the customer). Never queued
+        // twice: one job per stored drawing (a scan job takes the scan route instead; the database refuses a second open job,
+        // scripts/sql/a_drawing_sheet_is_queued_once.sql). If the store or the queue fails, or too little of the answer budget is
+        // left, the drawing simply stays held, as before.
         let pagesJob: string | null = null;
-        const leftForTime = [...new Set([...abandoned, ...notReached])];
-        if (!pricedByCode && !isCad && path && hand.drawing_held && serverBoxes && leftForTime.length && leftForTime.length === timeHeld && !redDied && redOut + timeHeld === redIn && analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now() > 8_000) {
+        const leftToCheck = sorted.left.map((l) => l.page);
+        if (!pricedByCode && !isCad && path && hand.drawing_held && serverBoxes && !scanJob && !refusedPages.length && leftToCheck.length && analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now() > 8_000) {
           const done: DonePage[] = [];
-          for (let b = 0; b < batches; b++) if (pathsOf[b]?.length && jobsOf[b]?.length) done.push({ page: b * REDACT_BATCH, paths: pathsOf[b], job: jobsOf[b][0] });
+          for (const b of sorted.verified) if (pathsOf[b]?.length && jobsOf[b]?.length) done.push({ page: b * REDACT_BATCH, paths: pathsOf[b], job: jobsOf[b][0] });
           const stored = new Map<number, string>();
           // Bounded (review 17 Nov 2026): the stores never take the answer past its budget; a sheet not stored in time leaves
           // the set unqueued (queuedPagesOf answers null) and the drawing held, as before.
           const storeBy = analyzeAt + ANALYZE_DRAWING_BUDGET_MS - 4_000;
-          await Promise.race([Promise.all(leftForTime.map(async (pg) => {
+          await Promise.race([Promise.all(leftToCheck.map(async (pg) => {
             const im = images[pg], b64 = String((im && (im.b64 || im.data)) || im || '');
             const pth = b64 ? await storeOriginal(cust.id, email, `sheet_${pg + 1}.jpg`, 'image/jpeg', b64, SAFE_UPLOAD) : null;
             if (pth && Date.now() < storeBy) stored.set(pg, pth);
           })), new Promise((ok) => setTimeout(ok, Math.max(0, storeBy - Date.now())))]);
           if (Date.now() >= storeBy) stored.clear();
-          const q = REDACT_BATCH === 1 ? queuedPagesOf({ pagesIn: images.length, seeds: floorSeeds, done, left: leftForTime, boxes: serverBoxes, storedAt: (pg) => stored.get(pg) ?? null }) : null;
-          if (q) pagesJob = await queueCadRead({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64 || '').length, why: PAGES_NEED_TIME, boqIn: { queued_pages: q } });
+          const q = REDACT_BATCH === 1 ? queuedPagesOf({ pagesIn: images.length, seeds: floorSeeds, done, left: leftToCheck, boxes: serverBoxes, storedAt: (pg) => stored.get(pg) ?? null, why: (pg) => sorted.left.find((l) => l.page === pg)?.why }) : null;
+          if (q) pagesJob = await queuePagesOnce({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64 || '').length, queued: q });
         }
-        // Said apart from `note` (a lengths or scan job may use it): the portal waits on pages_job_id and adopts the whole set.
-        const pagesNote = pagesJob ? { pages_job_id: pagesJob, drawing_held_message: QUEUED_MESSAGE, redaction_sheets_queued: leftForTime.sort((a, b) => a - b).map((n) => n + 1) } : {};
+        // Said apart from `note` (a lengths or scan job may use it): the portal waits on pages_job_id and adopts the whole set,
+        // and hands pages_job_id to create_inquiry, so a request sent first says the pages follow (_shared/drawing_pages_follow.ts).
+        const pagesNote = pagesJob ? { pages_job_id: pagesJob, drawing_held_reason: 'pages_queued', drawing_held_message: QUEUED_MESSAGE, redaction_sheets_queued: leftToCheck.map((n) => n + 1) }
+          : (hand.drawing_held && refusedPages.length ? refusedNote(refusedPages) : {});
         // pdf_words (10 Nov 2026): the composer reads a PDF in the browser by OCR ONLY when this says it has no text layer (0).
         // It used to OCR any PDF that came back without lines - including one whose read it had itself cut off at 30 s.
         if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords, ...redMeta, ...hand }, 200);
