@@ -57,8 +57,13 @@ test('the supplier gets the exact fixes in English only; the customer is told in
 
 test('supplier_api does not tell the customer of a held quote, and the comparison shows the reason', () => {
   const api = functionSource('supplier_api');
-  const al = api.slice(api.indexOf('async function acceptLive('), api.indexOf('async function acceptLive(') + 2500);
-  assert.ok(al.indexOf('await qualityHold(qid)') > 0 && al.indexOf('await qualityHold(qid)') < al.indexOf('notifyNewQuote(inquiryId)'),
+  // 15 Nov 2026: acceptLive grew a guarded submitted-write (lib/quote_acceptance.ts) and notifyNewQuote takes the quote id, so
+  // the body is read to its end, not 2,500 characters, and the notice is matched by its name and first argument.
+  const at = api.indexOf('async function acceptLive(');
+  const al = api.slice(at, api.indexOf('\n}\n', at));
+  const notify = al.indexOf('notifyNewQuote(inquiryId');
+  assert.ok(notify > 0, 'acceptLive no longer tells the customer of a quote at all');
+  assert.ok(al.indexOf('await qualityHold(qid)') > 0 && al.indexOf('await qualityHold(qid)') < notify,
     'acceptLive notifies the customer before reading the quality hold back');
   const cmp = read('supabase/functions/quote_compare/index.ts');
   assert.match(cmp, /from\('quote_quality_hold'\)/, 'quote_compare does not read the holds');
