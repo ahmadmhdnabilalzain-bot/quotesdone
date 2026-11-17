@@ -260,6 +260,7 @@ async function workerAnswer(ask: () => Promise<Response>, mode: string, stopAt?:
       if (k >= WORKER_TRIES || late()) throw e;
     }
     await new Promise((res) => setTimeout(res, 150 * k));
+    if (late()) throw new Error(`${mode}_past_the_stop`);   // the pause may have crossed the stop: no attempt begins past it
   }
 }
 
