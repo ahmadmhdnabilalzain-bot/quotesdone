@@ -68,14 +68,28 @@
 --   Storage carrying the marker anywhere in the name (this file's rule 1 below): signed-terms 33 (3 after 09:00Z: the running
 --     run's), drawing-files 3, quote-files 2, supplier-docs 2, receipt-files 1, evidence 6 (kept). Dropbox: 169 files under the
 --     82 reviewed paths (listing synced 16 Nov 22:30Z); the 6 "ZZ DEMO" files in the listing are all inside a reviewed path.
--- THE RUNNING CERTIFICATION IS NEVER TOUCHED (17 Nov): _l5_cut holds the cutoff 2026-11-17 09:00Z and the running tag(s).
---   The routine is unchanged and deletes every run-tagged cost row and window, so this file REFUSES, before anything is
---   purged, while a qd_run window is open or any row it would delete carries a running tag or was created at or after the
---   cutoff; and after the purge it refuses if any table in scope lost a row created at or after the cutoff (each table dated
---   by its created_at or by its column that defaults to the insertion time). Storage created at or after the cutoff, or
---   named by a running tag, is taken off the queue like the evidence bucket, never deleted. The certification's cost rows and
---   window outlive its teardown, so: once its report is kept, a review MOVES THE CUTOFF in _l5_cut, re-reads the census with
---   SELECTs and updates the pin there. Until then this file refuses by design, and nothing is purged.
+-- RE-COUNTED AGAIN 17 NOV 2026 ~10:13Z, after the certification (54943ac4) ended at 10:09:31Z with EXIT 0 and its own
+--   teardown (coordinator, 17 Nov: its leftover cost rows and closed window are demo and go like every other run's). SELECT
+--   only: demo entities 2 customers, 1 lead (126512), 3 inquiries, 3 quotes, 1 transaction, 12 logins, the same again, so the
+--   pin is unchanged; no qd_run window open, none started after 10:09:32Z; the run's leads, logins and sink addresses are
+--   gone. ai_cost_log with a run tag 31,657 (49 of them 54943ac4's, 0 after the cutoff); rehearsal_window qd_run 2,102;
+--   doc_backups demo 1,076; notifications to a demo address 90; signed-terms by marker or sink name 36. Kept: (2,2,3).
+--   THE FOUR DEMO TABLES THE ROUTINE NEVER REACHED (no foreign key to anything it walks), brought in below by exact markers:
+--     demo_shadow_trace 13,586 (every row of the table is a demo shadow by construction: its writer fn_demo_shadow_record is
+--       called only for Stripe TEST-mode payments or fn_seat_work_is_demo work, never for a live payment; 0 rows name an
+--       existing real customer, inquiry, quote, transaction or supplier, 0 carry livemode true);
+--     rehearsal_spend_reservation 907 (every row's e2e_run_tag is a qd_run rehearsal window's tag);
+--     support_reply_readability 68 with demo = true (the writer's own flag; the 2,159 others stay);
+--     accountant_reveal_reconcile_item 53 with demo = true, livemode false, outcome rehearsal_torn_down, all on example.invalid
+--       (the 7 test_mode_not_demo rows of the 10 Nov ruling have no demo address and stay). NOTE: the hourly reveal sweep
+--       re-reads Stripe TEST events for 30 days and re-files these 53 as resolved rehearsal_torn_down until about 12 Dec.
+-- THE CUTOFF (17 Nov): _l5_cut holds it (now 2026-11-17 10:09:32Z, after the certification's teardown) and any running
+--   tag (none now). The routine is unchanged and deletes every run-tagged cost row and window, so this file REFUSES, before
+--   anything is purged, while a qd_run window is open or any row it would delete carries a running tag or was created at or
+--   after the cutoff; and after the purge it refuses if any table in scope lost a row created at or after the cutoff (each
+--   table dated by its created_at or by its column that defaults to the insertion time). Storage created at or after the
+--   cutoff, or named by a running tag, is taken off the queue like the evidence bucket, never deleted. A later certification
+--   therefore makes it refuse again until a review moves the cutoff, re-reads the census with SELECTs and updates the pin.
 -- IDEMPOTENT: the pin accepts the reviewed census or an all-zero one (a second apply after a successful purge: 0 entities,
 --   only marker rows written since are deleted, every check still applies).
 -- LOCKS: lock_timeout 5s, so a purge that would queue behind a live writer gives up instead of holding the queue.
@@ -89,9 +103,10 @@
 set transaction isolation level repeatable read;
 set local lock_timeout = '5s';
 
--- the cutoff, the running certification's tag(s) and the reviewed census, in one place (17 Nov 2026 ~09:08Z)
+-- the cutoff, the running certification's tag(s) and the reviewed census, in one place (17 Nov 2026 ~10:13Z: the
+-- certification 54943ac4 ended 10:09:31Z and tore itself down; nothing is running, so no tag is protected by name)
 create temp table _l5_cut on commit drop as
-select '2026-11-17 09:00:00+00'::timestamptz as t, array['54943ac4']::text[] as running_tags,
+select '2026-11-17 10:09:32+00'::timestamptz as t, '{}'::text[] as running_tags,
        '{"customers": 2, "leads": 1, "inquiries": 3, "quotes": 3, "transactions": 1, "auth_users": 12}'::jsonb as pin,
        '{"customers": 0, "leads": 0, "inquiries": 0, "quotes": 0, "transactions": 0, "auth_users": 0}'::jsonb as pin_done;
 
@@ -261,6 +276,17 @@ select z.child, z.col, z.pk,
          query_to_xml(format('select string_agg(x.%I::text, %L) as i ', z.pk, chr(31)) || z.q_from, false, true, '')))[1]::text, chr(31)) end as ids
   from _l5_setnull_q z;
 
+-- THE FOUR TABLES THE ROUTINE NEVER REACHES (17 Nov, header): their totals and the rehearsal tags, read BEFORE the purge
+-- deletes the windows that name the tags
+create temp table _l5_run_tags on commit drop as
+select distinct substring(w.run_tag from 8) as tag from public.rehearsal_window w, _l5_cut k
+ where w.run_tag like 'qd\_run:%' and w.started_at < k.t and not (substring(w.run_tag from 8) = any(k.running_tags));
+create temp table _l5_four_before on commit drop as
+select 'public.demo_shadow_trace' as k, (select count(*) from public.demo_shadow_trace) as n
+union all select 'public.rehearsal_spend_reservation', (select count(*) from public.rehearsal_spend_reservation)
+union all select 'public.support_reply_readability', (select count(*) from public.support_reply_readability)
+union all select 'public.accountant_reveal_reconcile_item', (select count(*) from public.accountant_reveal_reconcile_item);
+
 create temp table _l5_out on commit drop as select public.fn_demo_purge(true) as out;
 
 -- the sandbox test's evidence screenshots stay (header): off this purge's storage queue, never deleted
@@ -305,9 +331,46 @@ with d as (
   delete from public.signup_purge_object q
    where q.purge_id = (select (out->>'purge_id')::bigint from _l5_out) and q.done_at is null
      and exists (select 1 from storage.objects o, _l5_cut k where o.bucket_id = q.bucket and o.name = q.path
-                  and (o.created_at >= k.t or o.name ~* ('qd[-_](run:)?(' || array_to_string(k.running_tags, '|') || ')')))
+                  and (o.created_at >= k.t
+                       -- with no running tag the pattern would be 'qd[-_](run:)?()', which matches every sink name: guarded
+                       or (cardinality(k.running_tags) > 0 and o.name ~* ('qd[-_](run:)?(' || array_to_string(k.running_tags, '|') || ')'))))
   returning q.bucket, q.path)
 select bucket, path from d;
+
+-- THE FOUR TABLES, by exact markers only, never a row made at or after the cutoff (header). Run AFTER the purge, so every
+-- customer, inquiry, quote, transaction and lead that still exists is a real one: a shadow that names any of them stays.
+create temp table _l5_four (k text, n bigint) on commit drop;
+with d as (
+  delete from public.demo_shadow_trace x
+   where x.recorded_at < (select t from _l5_cut)
+     and coalesce(x.payload->>'livemode', '') <> 'true'
+     and (x.customer_id is null or not exists (select 1 from public.customers c where c.id = x.customer_id))
+     and (x.inquiry_id is null or not exists (select 1 from public.inquiries i where i.id = x.inquiry_id))
+     and (x.quote_id is null or not exists (select 1 from public.quotes q where q.id = x.quote_id))
+     and (x.transaction_id is null or not exists (select 1 from public.transactions t where t.id = x.transaction_id))
+     and not (x.payload->>'supplier_id' ~ '^[0-9]{1,12}$'
+              and exists (select 1 from public.leads l where l.id = (x.payload->>'supplier_id')::bigint))
+     and not (x.payload->>'subject_table' = 'leads' and x.payload->>'subject_id' ~ '^[0-9]{1,12}$'
+              and exists (select 1 from public.leads l where l.id = (x.payload->>'subject_id')::bigint))
+  returning 1)
+insert into _l5_four select 'public.demo_shadow_trace', count(*) from d;
+with d as (
+  delete from public.rehearsal_spend_reservation r
+   where r.created_at < (select t from _l5_cut) and r.e2e_run_tag in (select tag from _l5_run_tags)
+  returning 1)
+insert into _l5_four select 'public.rehearsal_spend_reservation', count(*) from d;
+with d as (
+  delete from public.support_reply_readability s
+   where s.demo and s.created_at < (select t from _l5_cut)
+  returning 1)
+insert into _l5_four select 'public.support_reply_readability', count(*) from d;
+with d as (
+  delete from public.accountant_reveal_reconcile_item a
+   where a.demo and a.livemode is false and a.outcome = 'rehearsal_torn_down' and public.fn_is_demo_email(a.customer_email)
+     and a.first_seen_at < (select t from _l5_cut)
+     and (a.transaction_id is null or not exists (select 1 from public.transactions t where t.id = a.transaction_id))
+  returning 1)
+insert into _l5_four select 'public.accountant_reveal_reconcile_item', count(*) from d;
 
 create temp table _l5_after on commit drop as
 select s.rel, s.k, (xpath('/row/n/text()', x.x))[1]::text::bigint as n, (xpath('/row/r/text()', x.x))[1]::text::bigint as r
@@ -338,6 +401,14 @@ begin
     from public.signup_purge_dropbox s join public.doc_backups d on d.id = s.doc_backup_id
    where s.purge_id = v_pid and d.created_at >= (select t from _l5_cut);
   if v_bad is not null then raise exception 'DEMO PURGE REFUSED: backup records made at or after the cutoff are queued for Dropbox deletion: %', v_bad; end if;
+  -- the four tables the routine never reaches: each lost exactly the rows its own delete reported, nothing else moved there
+  -- (a purge trigger writing one of them, or a row of it deleted by another route, refuses)
+  select string_agg(format('%s: %s -> %s, its delete says %s', b.k, b.n, a.n, f.n), '; ' order by b.k) into v_bad
+    from _l5_four_before b join _l5_four f on f.k = b.k
+    cross join lateral (select (xpath('/row/n/text()', query_to_xml('select count(*) as n from ' || b.k, false, true, '')))[1]::text::bigint as n) a
+   where b.n - f.n <> a.n;
+  if v_bad is not null then raise exception 'DEMO PURGE REFUSED: a demo table outside the routine moved by other than its demo rows: %', v_bad; end if;
+  if (select count(*) from _l5_four) <> 4 then raise exception 'DEMO PURGE REFUSED: the four demo tables were not all purged (%)', (select count(*) from _l5_four); end if;
   if (v_out->'demo_ids') is distinct from (select jsonb_build_object('customers', count(*) filter (where rel = 'public.customers'::regclass),
         'leads', count(*) filter (where rel = 'public.leads'::regclass), 'inquiries', count(*) filter (where rel = 'public.inquiries'::regclass),
         'quotes', count(*) filter (where rel = 'public.quotes'::regclass), 'transactions', count(*) filter (where rel = 'public.transactions'::regclass),
@@ -402,6 +473,7 @@ select 'PROBE OK: demo ' || ((select out from _l5_out)->'demo_ids')::text
        || (select coalesce(sum(r), 0) from _l5_after)::text || ' rows in ' || (select count(*) from _l5_scope where ts is not null)::text
        || ' dated tables (undated: ' || coalesce((select string_agg(k, ', ' order by k) from _l5_scope where ts is null), 'none') || '), '
        || (select count(*) from _l5_running_kept)::text || ' storage objects kept off the queue'
+       || '; the four tables the routine never reaches: ' || (select string_agg(k || ' ' || n, ', ' order by k) from _l5_four)
        || '; foreign keys to a real party pinned: ' || (select count(*) from _l5_fk_before)::text
        || '; kept: customers 0dc8c94f, ba61fa16 and leads 19398, 158318, 143027; non-demo counts ' || public.fn_demo_purge_real_counts()::text
        as verdict;
