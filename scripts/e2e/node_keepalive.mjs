@@ -40,9 +40,15 @@ export async function holdConnectionsLikeABrowser() {
 const RESET = new Set(['ECONNRESET', 'EPIPE', 'UND_ERR_SOCKET', 'UND_ERR_CLOSED', 'ECONNREFUSED']);
 export const isDroppedConnection = (e) => e?.name === 'TypeError' && RESET.has(e?.cause?.code ?? e?.cause?.cause?.code);
 const nativeFetch = globalThis.fetch;
+export const retried = [];   // every request sent a second time: the certification reports these, so a retry is never invisible
 export async function fetchLikeABrowser(url, init) {
   try { return await nativeFetch(url, init); }
-  catch (e) { if (!isDroppedConnection(e)) throw e; return await nativeFetch(url, init); }
+  catch (e) {
+    if (!isDroppedConnection(e)) throw e;
+    retried.push({ method: init?.method || 'GET', url: String(url).split('?')[0], code: e.cause?.code ?? e.cause?.cause?.code, at: new Date().toISOString() });
+    console.warn(`[harness] ${init?.method || 'GET'} ${String(url).split('?')[0]} reset (${retried.at(-1).code}); sent once more`);
+    return await nativeFetch(url, init);
+  }
 }
 // The harness's own calls (demo factory, polls, teardown) go through the same retry: holdConnectionsLikeABrowser installs it as the
 // process's fetch, since the 07:43 stack named no caller and every one of them shares the held connections.
