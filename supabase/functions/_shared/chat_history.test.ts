@@ -230,6 +230,9 @@ Deno.test('a question never answered reaches the model marked so, and the answer
   const whole: ChatMsg[] = [{ role: 'user', content: 'a' }, { role: 'assistant', content: 'b' }, { role: 'user', content: 'c' }, { role: 'assistant', content: 'd' }];
   assertEquals(markUnanswered(whole), whole);
   assertEquals(markUnanswered([]), []);
+  // a pasted spec longer than one stored turn keeps its note through fitHistory's per-turn cut
+  const long = fitHistory(markUnanswered([{ role: 'user', content: 'x'.repeat(9000) }, { role: 'user', content: 'q9' }, { role: 'assistant', content: 'a9' }]));
+  assert(long[0].content.endsWith(UNANSWERED_NOTE), 'the note is cut off a long unanswered message');
 });
 
 Deno.test('the portal and the website widget hand the model the marked conversation', async () => {

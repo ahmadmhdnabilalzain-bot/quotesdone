@@ -72,7 +72,8 @@ export const UNANSWERED_NOTE = '[No answer to this message reached them. Do not 
 /** The model's copy of the conversation: a message of theirs with no reply after it is marked as never answered. */
 export function markUnanswered(turns: ChatMsg[]): ChatMsg[] {
   return turns.map((t, i) => (t.role !== 'user' || turns[i + 1]?.role === 'assistant'
-    ? t : { role: 'user' as const, content: String(t.content) + '\n\n' + UNANSWERED_NOTE }));
+    // cut so the note survives fitHistory's MAX_TURN_CHARS (an unanswered 9,000-character spec lost its note at the end)
+    ? t : { role: 'user' as const, content: String(t.content).slice(0, MAX_TURN_CHARS - UNANSWERED_NOTE.length - 2) + '\n\n' + UNANSWERED_NOTE }));
 }
 
 /** Every stored turn of one conversation, oldest first, paged so no row limit can cut it. null when unreadable. */
