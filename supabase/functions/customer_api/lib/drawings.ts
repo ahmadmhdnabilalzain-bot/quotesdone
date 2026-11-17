@@ -134,6 +134,19 @@ export async function redactCad(o: { secret: string | undefined; b64: string; cu
   return { meta, redacted, reason: ok ? null : String(rj?.held_reason || rj?.error || 'cad_redactor_unreachable') };
 }
 
+// PAGES OF THE PDF'S TEXT LAYER, READ BY drawing_redact (mode 'plan', 17 Nov 2026; _shared/drawing_plan.ts says why they
+// are not read here). Each call waits at most 30 s and never past the analysis's answer budget (`until`, epoch ms); a
+// refusal, a 546 or a timeout is no answer (null), and readPdfPlan then gives the whole read up.
+export function pdfPlanCall(secret: string | undefined, b64: string, until: number): (b: Record<string, unknown>) => Promise<unknown> {
+  const original = b64.replace(/^data:[^;]+;base64,/, '');
+  return async (b) => {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` },
+      body: JSON.stringify({ __secret: secret, ...b, original_b64: original }), signal: AbortSignal.timeout(Math.min(30_000, Math.max(5_000, until - Date.now()))) });
+    if (!r.ok) { await r.body?.cancel(); return null; }
+    return await r.json().catch(() => null);
+  };
+}
+
 // THE DRAWING FILE ITSELF (28 Sep 2026, sales_engineer; founder ledger 30, 31, 32, 580, 703): drawing_redact mode
 // 'file' returns the customer's PDF / DWG / DXF anonymised as a PDF or DXF a supplier opens and measures, released
 // only when _shared/drawing_file_redact.ts's verifier proved geometry, counts and zero identifiers. null = not
