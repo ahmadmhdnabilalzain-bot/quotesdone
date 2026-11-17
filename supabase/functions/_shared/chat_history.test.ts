@@ -209,3 +209,36 @@ Deno.test('A signs out and B signs in on the same browser: B adopts nothing', as
   assertEquals([b.adopted, b.turns?.length], [0, 0]);
   assert(rows.every((r) => r.conv_id === 'v-' + V + '07'), 'the visitor chat was moved into nobody');
 });
+
+// A LATE ANSWER LANDS UNDER ITS OWN QUESTION (17 Nov 2026, continuity run b7bdf916): portal turn 8's row kept reply NULL
+// (the model was unreachable), and turn 9's model call answered turn 8 too, under turn 9's question.
+Deno.test('a question never answered reaches the model marked so, and the answered turns are untouched', async () => {
+  const { markUnanswered, UNANSWERED_NOTE } = await import('./chat_history.ts');
+  const tr = transcriptFromRows([
+    { message: 'Do you give a 90-day money-back guarantee?', reply: 'No.' },
+    { message: 'If the supplier damages my villa, is QuotesDone legally liable?', reply: null },
+  ]);
+  assertEquals(tr.map((t) => t.role), ['user', 'assistant', 'user'], 'the stored turns: the second question has no answer after it');
+  const m = markUnanswered(tr);
+  assertEquals(m[0], tr[0]); assertEquals(m[1], tr[1]);
+  assert(m[2].content.startsWith('If the supplier damages my villa'), 'their words stay (they carry the facts of the job)');
+  assert(m[2].content.endsWith(UNANSWERED_NOTE));
+  // an unanswered question in the MIDDLE (the newer one was answered) is marked too; its neighbour is not
+  const mid = markUnanswered([{ role: 'user', content: 'q8' }, { role: 'user', content: 'q9' }, { role: 'assistant', content: 'a9' }]);
+  assert(mid[0].content.endsWith(UNANSWERED_NOTE)); assertEquals(mid[1].content, 'q9');
+  // KNOWN-BAD CONTROL: a whole answered conversation goes to the model byte for byte
+  const whole: ChatMsg[] = [{ role: 'user', content: 'a' }, { role: 'assistant', content: 'b' }, { role: 'user', content: 'c' }, { role: 'assistant', content: 'd' }];
+  assertEquals(markUnanswered(whole), whole);
+  assertEquals(markUnanswered([]), []);
+  // a pasted spec longer than one stored turn keeps its note through fitHistory's per-turn cut
+  const long = fitHistory(markUnanswered([{ role: 'user', content: 'x'.repeat(9000) }, { role: 'user', content: 'q9' }, { role: 'assistant', content: 'a9' }]));
+  assert(long[0].content.endsWith(UNANSWERED_NOTE), 'the note is cut off a long unanswered message');
+});
+
+Deno.test('the portal and the website widget hand the model the marked conversation', async () => {
+  for (const [p, re] of [['../sales_engineer/actions/portal.ts', /const past = fitHistory\(markUnanswered\(turns\), message\)/],
+    ['../site_assistant/index.ts', /const past = fitHistory\(markUnanswered\(history\.filter\(/]] as const) {
+    const src = await Deno.readTextFile(new URL(p, import.meta.url));
+    assert(re.test(src), p + ' must mark the unanswered turns before the model reads them');
+  }
+});
