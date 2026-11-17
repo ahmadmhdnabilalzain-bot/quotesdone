@@ -54,7 +54,9 @@ test('drawing_redact draws, uploads, records, and removes the upload when the re
   assert.doesNotMatch(redact.slice(redact.indexOf('Deno.serve(')), /await recordRun\(/, 'a run is recorded without the orphan clean-up');
   assert.match(redact, /if \(await modelHeld\(admin\)\)/, 'the model path asks a held model instead of saying it is held');
   assert.match(page, /export async function cadPage\([\s\S]{0,900}renderCadForSupplier\(/);
-  assert.match(page, /export async function serverBoxedPage\([\s\S]{0,700}supplierPageReadable\(/, 'a page the server cannot read is no longer held');
+  // 17 Nov 2026: the readability rule lives in serverBoxPlan, which both serverBoxedPage and drawing_redact's paint worker route take.
+  assert.match(page, /export function serverBoxPlan\([\s\S]{0,700}supplierPageReadable\(/, 'a page the server cannot read is no longer held');
+  assert.match(page, /export async function serverBoxedPage\([\s\S]{0,200}serverBoxPlan\(/, 'serverBoxedPage no longer plans through serverBoxPlan');
 });
 
 test('the CAD worker draws what the edge cannot, records it, and raises a job that fails for good', () => {

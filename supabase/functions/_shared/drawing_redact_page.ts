@@ -126,24 +126,54 @@ export function supplierPagePrefix(callerPrefix: unknown): string {
 // painted: every box blackened on the page, page fractions, with the margin it was painted at (drawing_code_floor.unreadTextHold).
 export type PageOut = { ok: true; jpg: Uint8Array; image: Image; detail: Record<string, unknown>; painted?: Box[] } | { ok: false; skipped: string };
 
+/** Boxes painted at one margin; a page's paint is a list of these, painted in order. */
+export type PaintGroup = { boxes: Box[]; pad: number };
+
 /**
- * One portal raster of a PDF page, painted with the server's boxes and the text layer's identity boxes.
+ * ONE DECODE, THE BOXES, ONE ENCODE (17 Nov 2026, sales_engineer). The pixel half of a page's redaction, as its own unit of
+ * work: drawing_redact runs it in a worker of its own (mode 'paint'), as it already ran the tiles and the repaint.
+ * MEASURED on the 8-sheet ZZ DEMO set (2600 x 1733 px, local deno, cold): decode 460 ms, the boxes 8 ms, encode 300 ms.
+ * In the worker that also read the PDF and asked the gate's 25 views that was ~1.6 s of CPU, and on the edge every
+ * sheet died "CPU Time exceeded" (HTTP 546 at 2,205-2,551 ms; scripts/e2e/drawing_reaches_suppliers.mjs, 17 Nov 14:44
+ * UTC): no page reached a supplier. Same steps, same order, same quality as before: the bytes are identical
+ * (drawing_redact/a_sheet_is_redacted_within_the_edge_budget.check.ts).
+ */
+export async function paintedJpeg(raster: Uint8Array, groups: PaintGroup[], quality = 82): Promise<{ jpg: Uint8Array; image: Image }> {
+  let img = await Image.decode(raster) as Image;
+  if (img.width > MAXW) img = img.resize(MAXW, Image.RESIZE_AUTO);
+  for (const g of groups) paintBoxes(img, g.boxes, g.pad);
+  // Re-encoded from pixels: no text layer, no annotation, no /Info metadata and no EXIF survive into it.
+  return { jpg: await img.encodeJPEG(quality), image: img };
+}
+
+export type BoxPlan = { ok: true; boxes: Box[]; detail: Record<string, unknown>; painted: Box[] } | { ok: false; skipped: string };
+
+/**
+ * What the server paints on a PDF page it can read (no pixels touched): the boxes that came with it and every identity run
+ * the text layer locates, at SERVER_MARGIN; `painted` is the same boxes with their margin (drawing_code_floor.unreadTextHold).
  * `pdf` holds the source PDF's pages (pdfPages), `pageIndex` is this raster's page in it.
  */
-export async function serverBoxedPage(raster: Uint8Array, pdf: PdfPage[], pageIndex: number, boxes: Box[] | null, quality = 82): Promise<PageOut> {
+export function serverBoxPlan(pdf: PdfPage[], pageIndex: number, boxes: Box[] | null): BoxPlan {
   // A missing / non-array entry means the page was not reviewed: never published.
   if (!boxes) return { ok: false, skipped: 'not_reviewed_by_customer' };
   const tl = textLayerBoxes(pdf, pageIndex);
   // TRUST BOUNDARY (14 Sep 2026): boxes prove nothing on a page the server cannot read. Such a page is held.
   if (!supplierPageReadable(pdf[pageIndex], tl.rotated)) return { ok: false, skipped: boxes.length ? 'held_unverifiable_client_boxes_ignored' : 'held_unverified_no_text_no_boxes' };
-  let img: Image;
-  try { img = await Image.decode(raster) as Image; } catch (_e) { return { ok: false, skipped: 'decode_failed' }; }
-  if (img.width > MAXW) img = img.resize(MAXW, Image.RESIZE_AUTO);
-  paintBoxes(img, [...boxes, ...tl.boxes]);
-  // Re-encoded from pixels: no text layer, no annotation, no /Info metadata and no EXIF survive into it.
-  const jpg = await img.encodeJPEG(quality);
-  const painted = [...boxes, ...tl.boxes].map((b) => ({ x: b.x - SERVER_MARGIN, y: b.y - SERVER_MARGIN, w: b.w + 2 * SERVER_MARGIN, h: b.h + 2 * SERVER_MARGIN }));
-  return { ok: true, jpg, image: img, detail: { manual_boxes: boxes.length, text_layer_boxes: tl.boxes.length }, painted };
+  const all = [...boxes, ...tl.boxes];
+  const painted = all.map((b) => ({ x: b.x - SERVER_MARGIN, y: b.y - SERVER_MARGIN, w: b.w + 2 * SERVER_MARGIN, h: b.h + 2 * SERVER_MARGIN }));
+  return { ok: true, boxes: all, detail: { manual_boxes: boxes.length, text_layer_boxes: tl.boxes.length }, painted };
+}
+
+/**
+ * One portal raster of a PDF page, painted with the server's boxes and the text layer's identity boxes, in this worker
+ * (serverBoxPlan, then paintedJpeg). drawing_redact itself plans here and paints in a worker of its own.
+ */
+export async function serverBoxedPage(raster: Uint8Array, pdf: PdfPage[], pageIndex: number, boxes: Box[] | null, quality = 82): Promise<PageOut> {
+  const plan = serverBoxPlan(pdf, pageIndex, boxes);
+  if (!plan.ok) return plan;
+  let out: { jpg: Uint8Array; image: Image };
+  try { out = await paintedJpeg(raster, [{ boxes: plan.boxes, pad: SERVER_MARGIN }], quality); } catch (_e) { return { ok: false, skipped: 'decode_failed' }; }
+  return { ok: true, jpg: out.jpg, image: out.image, detail: plan.detail, painted: plan.painted };
 }
 
 export type CadOut =

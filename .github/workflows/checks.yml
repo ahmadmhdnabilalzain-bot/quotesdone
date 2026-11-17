@@ -137,6 +137,14 @@ jobs:
           deno test --no-lock --node-modules-dir=auto --allow-read=.
           --allow-net=deno.land
           supabase/functions/_shared/drawing_redact_page.check.ts
+      # 17 NOV 2026 — A DRAWING SHEET IS REDACTED WITHIN THE EDGE CPU BUDGET. One 2600 px sheet of the 8-sheet ZZ DEMO set
+      # through the real drawing_redact handler (every edge stubbed): each worker it uses stays under its CPU budget, every
+      # view is asked, and the published page is byte for byte the one-worker paint. Same network need as the step above.
+      - name: A drawing sheet is redacted within the edge CPU budget
+        run: >-
+          deno test --no-lock --node-modules-dir=auto --allow-read=.
+          --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-net=deno.land,esm.sh
+          supabase/functions/drawing_redact/a_sheet_is_redacted_within_the_edge_budget.check.ts
       # 24 SEP 2026 — A SCANNED DRAWING IS REDACTED BY OCR OR HELD (founder instruction 579). The real engine
       # (tesseract.js 7.0.0 with the repository's own eng + ara data) on a synthetic ZZ DEMO scan: the title block
       # blacked out, rooms / dimensions / legend kept, a second OCR reads no identity, a title block read below

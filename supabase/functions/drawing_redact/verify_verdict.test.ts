@@ -31,7 +31,8 @@ Deno.test('code boxes the instructing runs (a split phrase too), never the page:
 
 Deno.test('drawing_redact boxes those runs and reads the verifier through verifyVerdict', async () => {
   const src = await Deno.readTextFile(new URL('./index.ts', import.meta.url));
-  assert(/paint\(img, \[\.\.\.regions, \.\.\.textBoxes\(i\)\.boxes, \.\.\.instructingRuns\(pdf\[pageOffset \+ i\]\?\.runs \?\? \[\]\)\]\)/.test(src));
+  // 17 Nov 2026: painted in the paint worker (paintedElsewhere), the find's regions and the instructing runs at MARGIN.
+  assert(/paintedElsewhere\([^\n]*\[\{ boxes: \[\.\.\.regions, \.\.\.textBoxes\(i\)\.boxes, \.\.\.instructingRuns\(pdf\[pageOffset \+ i\]\?\.runs \?\? \[\]\)\], pad: MARGIN \}/.test(src));
   assert(/return verifyVerdict\(parseJson\(jd\?\.content \|\| ''\)\);/.test(src));
   assert(src.includes('"addressed": false'), 'VERIFY_SYS asks for the addressed field');
 });
