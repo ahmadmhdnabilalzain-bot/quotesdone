@@ -114,6 +114,13 @@ test('every edge function that calls a review class names counterpart_model', ()
       ...src.matchAll(/task_class\s*:\s*CONFIRM_ROUTE/g),
     ];
     for (const h of hits) {
+      // A review fn's label on a call that names its OWN class is routed by that class (fn_ai_route takes a caller-supplied class
+      // before fn_task_class): 16 Nov 2026, ceo_agent's weekly and daily plan calls (ceo_strategic_planning /
+      // routine_employee_reasoning) are not reviews. A review class named on such a call is still caught by the class pattern above.
+      if (/^fn\s*:/.test(h[0])) {
+        const obj = src.slice(h.index, src.indexOf('}', h.index) + 1);
+        if (/\btaskClass\b|\btask_class\s*:/.test(obj)) continue;
+      }
       // The call that carries this class: the statement around it (a fetch body, or the makeLlmRich + its call).
       const win = src.slice(Math.max(0, h.index - 200), h.index + 1200);
       if (!/counterpart_model\s*:|counterpartModel\s*:/.test(win)) offenders.push(`${rel}: ${h[0]}`);

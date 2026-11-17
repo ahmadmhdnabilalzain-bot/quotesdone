@@ -18,6 +18,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { applyState } from '../lib/pending_sql.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const NAME = 'a_paid_reveal_asks_the_customer_and_every_money_problem_reaches_a_case';
@@ -182,8 +183,15 @@ test('the CEO refund checklist file: built on production, reads the word and the
   assert.match(C, /exception when others then\s+v_seen := '\[\]'::jsonb; v_prom := '\[\]'::jsonb;/, 'item 1b is not guarded');
   assert.match(C, /revoke execute on function public\.fn_ceo_refund_checklist\(uuid, text, boolean\) from public, anon, authenticated;/);
   assert.doesNotMatch(C, /execute format\(/i);
-  const note = read('scripts/sql/pending/' + CN + '.txt');
-  assert.match(note, /every_door_and_the_ceo_read_the_same_case\.sql[\s\S]*THIS FILE/, 'the pending note does not order it after the every-door file');
-  assert.ok(existsSync(join(REPO, 'scripts/sql', CN + '_probe.sql')) && existsSync(join(REPO, 'scripts/sql/pending', CN + '_probe.txt')));
-  assert.ok(!read('scripts/sql/MANIFEST.txt').includes(CN), 'the checklist file is listed before it is applied');
+  // Waiting, its note orders it after the every-door file; applied (16 Nov 05:39 UTC, 14ac60ac2), its MANIFEST line follows
+  // BOTH branch files, so it is the canonical fn_ceo_refund_checklist and file 2 was not re-applied over it.
+  const st = applyState('scripts/sql/' + CN + '.sql');
+  assert.ok(st.applied !== (st.note !== null), 'the checklist file is both pending and in MANIFEST, or neither');
+  if (st.note !== null) assert.match(st.note, /every_door_and_the_ceo_read_the_same_case\.sql[\s\S]*THIS FILE/, 'the pending note does not order it after the every-door file');
+  else for (const before of ['a_paid_reveal_asks_the_customer_and_every_money_problem_reaches_a_case', 'every_door_and_the_ceo_read_the_same_case']) {
+    const b = applyState(`scripts/sql/${before}.sql`).index;
+    assert.ok(b >= 0 && b < st.index, `the checklist file is applied before ${before}.sql, or that file was re-applied over it`);
+  }
+  const probe = applyState('scripts/sql/' + CN + '_probe.sql');
+  assert.ok(existsSync(join(REPO, 'scripts/sql', CN + '_probe.sql')) && /^A PROBE/.test(probe.note || '') && !probe.applied, 'the probe is missing, or is applied');
 });

@@ -39,7 +39,9 @@ test('send_outbox sends a text/plain part', () => {
 test('a hard bounce reaches the lead whatever the case of its stored email', () => {
   // 22 Sep 2026: the status comes from inviteStatusFor (a complaint is 'complained', not 'bounced');
   // the case-insensitive match is what this test guards.
-  assert.match(webhook, /from\('leads'\)\.update\(\{ invite_status: inviteStatusFor\(isComplaint, isHardBounce\) \}\)\.ilike\('email', /,
+  // #2032 (17 Nov 2026): whereAddress (_shared/address_filter.ts) is the case-folded EQUALITY the old escaped ilike was;
+  // its own test (address_filter.test.ts) proves a capitalised stored address is matched and a look-alike is not.
+  assert.match(webhook, /whereAddress\(admin\.from\('leads'\)\.update\(\{ invite_status: inviteStatusFor\(isComplaint, isHardBounce\) \}\), 'email', e\)/,
     'resend_webhook marks the bounced lead by an exact-case match again, so capitalised lead emails are never marked bounced');
 });
 

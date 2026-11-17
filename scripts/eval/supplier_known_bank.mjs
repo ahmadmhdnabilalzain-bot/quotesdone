@@ -117,11 +117,19 @@ export function fixtureSql() {
     `insert into public.customers (id, full_name, email, phone, locale) values ('5e5e5e5e-0000-4000-8000-000000000093', ${q(CUSTOMER.name)}, ${q(CUSTOMER.email)}, ${q(CUSTOMER.phone)}, 'en');`,
     "insert into public.trade_customer_opening (trade, verified_suppliers, open_at, is_open) values ('hvac', 0, 10, false), ('plumbing', 12, 10, true) on conflict (trade) do update set is_open = excluded.is_open;",
   ];
+  // 17 Nov 2026: an approved fixture still carries the founder's mandatory six as evidence (a_seeded_approved_supplier_carries_
+  // the_mandatory_six.test.mjs): the fixture's own licence and profile objects, written in the same rolled-back run
+  lines.push("insert into storage.objects (bucket_id, name) values ('supplier-docs', 'suppliers/zz-demo-bank-licence.pdf'), ('supplier-docs', 'suppliers/zz-demo-bank-profile.pdf') on conflict do nothing;");
+  let n = 0;
   for (const [k, s] of Object.entries(SUPPLIERS)) {
     const approved = (s.approval || 'approved') === 'approved';
-    lines.push(`insert into public.leads (company_name, email, claimed, claimed_by, approval_status, verified, license_expiry, trade_license_no, licence_gate_reason, chat_strikes)
+    n += 1;
+    // a distinct reserved +9715 number, both e-mails verified, the documents above and signed terms
+    lines.push(`insert into public.leads (company_name, email, claimed, claimed_by, approval_status, verified, license_expiry, trade_license_no, licence_gate_reason, chat_strikes,
+                phone, owner_phone_verified, owner_email_verified, license_doc_path, company_profile_doc_path, signed_terms_path)
       values (${q(s.company)}, ${q(email(k))}, true, ${q(email(k))}, ${q(s.approval || 'approved')}, ${approved}, (now() at time zone 'Asia/Dubai')::date + ${s.licence_days},
-              ${q('ZZ-DEMO-' + k)}, ${s.gate ? q(s.gate) : 'null'}, ${s.strikes || 0});`);
+              ${q('ZZ-DEMO-' + k)}, ${s.gate ? q(s.gate) : 'null'}, ${s.strikes || 0},
+              ${q('+9715000008' + String(n).padStart(2, '0'))}, true, true, 'suppliers/zz-demo-bank-licence.pdf', 'suppliers/zz-demo-bank-profile.pdf', 'demo://terms');`);
     const id = `(select id from public.leads where email = ${q(email(k))})`;
     lines.push(`insert into public.supplier_capabilities (supplier_id, trades, coverage_emirates, confirmed_at, roles) values (${id}, ${arr(s.trades)}, ${arr(s.areas)}, ${s.confirmed === false ? 'null' : "now() - interval '20 days'"}, array['installer']);`);
     if (s.busy_days) lines.push(`insert into public.supplier_availability (supplier_id, state, busy_until, set_by) values (${id}, 'busy', (now() at time zone 'Asia/Dubai')::date + ${s.busy_days}, 'ZZ DEMO bank');`);

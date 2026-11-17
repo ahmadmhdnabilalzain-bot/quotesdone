@@ -21,6 +21,7 @@ import assert from 'node:assert/strict';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { applyState } from '../lib/pending_sql.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -41,13 +42,14 @@ function body(src, fn) {
   return rest.slice(0, end > 0 ? end + 12 : 4000);
 }
 
-test('each file and its probe exist, wait for the apply as pending notes, and carry no MANIFEST line yet', () => {
-  const manifest = R('scripts/sql/MANIFEST.txt');
+// The four files were applied 16 Nov 00:53-01:00 UTC (cc0e08868) and moved to MANIFEST; their probes are never applied.
+test('each file and its probe exist; a file waits with its reason XOR has its MANIFEST line; a probe is never applied', () => {
   for (const n of NAMES) for (const f of [n, n + '_probe']) {
     assert.ok(existsSync(join(ROOT, `scripts/sql/${f}.sql`)), `${f}.sql is missing`);
-    const note = join(ROOT, `scripts/sql/pending/${f}.txt`);
-    assert.ok(existsSync(note) && readFileSync(note, 'utf8').trim().length > 40, `${f} has no pending note with its reason`);
-    assert.ok(!manifest.split(/\r?\n/).includes(`scripts/sql/${f}.sql`), `${f} has a MANIFEST line before it is applied`);
+    const st = applyState(`scripts/sql/${f}.sql`);
+    assert.ok(st.note === null || st.note.length > 40, `${f} has a pending note with no reason`);
+    if (f.endsWith('_probe')) assert.ok(st.note !== null && !st.applied, `${f} is applied, or has no note saying it never is`);
+    else assert.ok(st.applied !== (st.note !== null), `${f} is pending and in MANIFEST at once, or neither`);
   }
 });
 

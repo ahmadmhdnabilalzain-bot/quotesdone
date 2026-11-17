@@ -116,7 +116,15 @@ test('every function that imports _shared/llm.ts has a credential minted for it'
     'the migration that issues the llm.ts credentials is not in the repo, so a rebuilt database would put every ' +
     'model call back on the shared secret.');
 
-  const missing = importers.filter((n) => !new RegExp("'" + n + "'").test(sql));
+  // 17 Nov 2026: a function whose every model call names its caller (makeLlm/makeLlmRich({ fn: '<x>' })) presents
+  // cred_fn_<x>, never one named after its directory (llm.ts gatewayCredential(def.fn)); the test below requires each
+  // such <x> to be minted. it_engineer's seat exam calls only as fn 'knowledge_exam' (fn.knowledge_exam, live and active).
+  const namesEveryCaller = (n) => {
+    const s = readFileSync(join(FNDIR, n, 'index.ts'), 'utf8');
+    const calls = [...s.matchAll(/makeLlm(?:Rich)?\(([^;]*?)\)/g)];
+    return calls.length > 0 && calls.every((c) => /\bfn:\s*'[a-z0-9_]+'/.test(c[1]));
+  };
+  const missing = importers.filter((n) => !new RegExp("'" + n + "'").test(sql) && !namesEveryCaller(n));
   assert.deepEqual(missing, [],
     'these functions import _shared/llm.ts but are not in the credential migration, so each one falls back to ' +
     'the shared inbound_secret on every model call: ' + missing.join(', '));

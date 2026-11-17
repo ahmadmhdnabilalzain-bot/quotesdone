@@ -49,8 +49,22 @@ const body = (name) => { const d = canon.get(name); assert.ok(d, `no canonical d
 // A language decided from a lead's locale: the routine reads leads and a `locale` of a row alias that is not
 // a customer (c./c2./cust.), or takes an Arabic company name as a language.
 // A customer row alias (c, c2, cust, v_cust, ...) or the trigger's own row is not a lead.
-const leadLocale = (b) => /\bleads\b/i.test(b)
-  && /\b[a-z_][a-z0-9_]*\.locale\b/i.test(b.replace(/\b(c|c2|new|old|[a-z_]*cust[a-z0-9_]*)\.locale\b/gi, ''));
+// A customer's locale is not a finding. Besides the usual names (c, c2, *cust*), any alias the routine binds to
+// public.customers, and any record it selects a customers alias's locale INTO, is a customer (16 Nov 2026:
+// fn_supplier_ack_record and fn_reason_apply_customer_support__dispute_intake read `customers cu` into v_c and write the
+// supplier's row in 'en'; the detector read cu.locale and v_c.locale as a lead's).
+const NOT_AN_ALIAS = new Set(['on', 'where', 'join', 'left', 'inner', 'set', 'using', 'group', 'order', 'limit', 'for', 'and', 'or']);
+const customerNames = (b) => {
+  const a = new Set([...b.matchAll(/\bcustomers\s+(?:as\s+)?([a-z_][a-z0-9_]*)/gi)].map((m) => m[1].toLowerCase()).filter((x) => !NOT_AN_ALIAS.has(x)));
+  for (const m of b.matchAll(/select\s[^;]*?\b([a-z_][a-z0-9_]*)\.locale\b[^;]*?\binto\s+([a-z_][a-z0-9_]*)/gi)) if (a.has(m[1].toLowerCase())) a.add(m[2].toLowerCase());
+  return a;
+};
+const leadLocale = (b) => {
+  const cust = customerNames(b);
+  const rest = b.replace(/\b(c|c2|new|old|[a-z_]*cust[a-z0-9_]*)\.locale\b/gi, '')
+    .replace(/\b([a-z_][a-z0-9_]*)\.locale\b/gi, (m, a) => (cust.has(a.toLowerCase()) ? '' : m));
+  return /\bleads\b/i.test(b) && /\b[a-z_][a-z0-9_]*\.locale\b/i.test(rest);
+};
 const arabicNameAsLanguage = (b) => /company_name[^;]{0,80}~\s*'\[؀-ۿ\]'[\s\S]{0,300}'ar'/.test(b);
 const registeredLocaleIsEnglishForSuppliers = (b) => /when\s+p_role\s*=\s*'supplier'\s+then\s+'en'/i.test(b) && !/\bleads\b/i.test(b);
 const a04ForcesEnglish = (b) => /if\s+new\.to_role\s*=\s*'supplier'\s+then\s+new\.lang\s*:=\s*'en'/i.test(b.replace(/\s+/g, ' '))
@@ -73,6 +87,9 @@ test('the detectors flag the code that was live before 28 Sep 2026', () => {
   assert.equal(leadLocale("v_ar boolean := lower(coalesce(p.locale, '')) like 'ar%'; select 1 from leads"), true);
   // a customer's locale is not a finding
   assert.equal(leadLocale("select c.locale from public.customers c join public.leads l on true"), false);
+  assert.equal(leadLocale("select cu.locale into v_c from public.customers cu left join public.leads l on true; x := v_c.locale;"), false);
+  // ...but a lead's locale beside a customer's still is
+  assert.equal(leadLocale("select cu.locale, l.locale into v_c from public.customers cu join public.leads l on true"), true);
 });
 
 test('fn_registered_locale answers English for every supplier', () => {
@@ -135,5 +152,6 @@ test('create_inquiry stores the language the customer chose on every inquiry it 
   assert.ok(inserts.length >= 4, `expected the four create_inquiry inserts, found ${inserts.length}`);
   for (const i of inserts) assert.match(i, /lang: inquiryLang/, 'an inquiry is created without the customer\'s chosen language: ' + i.slice(0, 80));
   assert.match(s, /const inquiryLang = documentLocale\(body\.lang, cust\.locale\);/);
-  assert.match(readSource('src/components/me/NewRequest.tsx'), /action: 'create_inquiry'[^\n]*requirement_edits: edits, lang \}/, 'the composer no longer sends the page language');
+  // 15 Nov 2026 (8170e5077): site_photos follows lang in the payload, so lang is no longer its last key
+  assert.match(readSource('src/components/me/NewRequest.tsx'), /action: 'create_inquiry'[^\n]*requirement_edits: edits, lang(?: \}|, )/, 'the composer no longer sends the page language');
 });

@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { applyState } from '../lib/pending_sql.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -80,9 +81,12 @@ test('every routine the file creates is closed to PUBLIC, anon and authenticated
 });
 
 test('the file waits for the release with its note and its probe, and writes no row', () => {
-  assert.ok(read(`scripts/sql/pending/${NAME}.txt`).trim().length > 40);
-  assert.match(read(`scripts/sql/pending/${NAME}_probe.txt`), /^A PROBE/);
-  assert.ok(!read('scripts/sql/MANIFEST.txt').includes(`scripts/sql/${NAME}.sql`), 'pending and in MANIFEST at once');
+  // waiting with a reason, or applied (16 Nov 02:24-03:xx UTC, 0db1eacfc) with a MANIFEST line: never both, never neither
+  const st = applyState(`scripts/sql/${NAME}.sql`);
+  assert.ok(st.applied !== (st.note !== null), 'pending and in MANIFEST at once, or neither');
+  if (st.note !== null) assert.ok(st.note.length > 40);
+  const probeSt = applyState(`scripts/sql/${NAME}_probe.sql`);
+  assert.match(probeSt.note || '', /^A PROBE/); assert.ok(!probeSt.applied, 'the probe is applied');
   assert.doesNotMatch(CODE, /\bupdate public\.quotes\b/i, 'a backfill belongs in its own statement');
   const probe = read(`scripts/sql/${NAME}_probe.sql`);
   assert.match(probe, /raise exception 'CHK<<%>>', case when fails = '' then 'PROBE OK' else 'PROBE FAILED:' \|\| fails end;/);

@@ -25,6 +25,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { applyState } from '../lib/pending_sql.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -142,9 +143,11 @@ test('7. routines revoked and pinned, tables with a policy, the file pending unt
   }
   for (const t of ['seat_capability', 'engineer_session_request', 'seat_order_thread', 'seat_order_turn']) assert.match(C, new RegExp(`'${t}'`), `${t} gets its policy`);
   for (const t of ['seat_capability', 'engineer_session_request', 'seat_order_thread', 'seat_order_turn']) assert.match(C, new RegExp(`create policy ${t}_service_role_only on public\\.${t} as permissive for all to public using \\(false\\) with check \\(false\\)`), `${t}: a static policy (apply_sql refuses dynamic SQL in a DO block)`);
-  const manifest = read('scripts/sql/MANIFEST.txt');
-  assert.ok(!manifest.split('\n').some((l) => l.trim() === 'an_order_is_a_conversation_until_its_outcome.sql'), 'not in MANIFEST until applied');
-  assert.ok(existsSync(join(REPO, 'scripts/sql/pending/an_order_is_a_conversation_until_its_outcome.txt')), 'its pending note says why');
+  // Before 17 Nov this compared a BARE name with MANIFEST's 'scripts/sql/' lines, so 'not in MANIFEST' could never fail.
+  // Applied 16 Nov 01:47-01:50 UTC (443c12730): a MANIFEST line and no note; waiting: a note that says why and no line.
+  const st = applyState('scripts/sql/an_order_is_a_conversation_until_its_outcome.sql');
+  assert.ok(st.applied !== (st.note !== null), 'pending and in MANIFEST at once, or neither');
+  if (st.note !== null) assert.ok(st.note.length > 40, 'its pending note says why');
 });
 
 // ── LOCAL ───────────────────────────────────────────────────────────────────────────────────────────────────────────

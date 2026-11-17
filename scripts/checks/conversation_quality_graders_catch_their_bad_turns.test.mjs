@@ -43,7 +43,8 @@ test('the brief states that a request is revised until a supplier is revealed, a
   const api = functionSource('customer_api');
   // no edit window any more: fn_edit_inquiry revises a request until it is revealed, paid or closed
   assert.doesNotMatch(api, /const EDIT_WINDOW_MS = /, 'customer_api still carries an edit window');
-  assert.match(BRIEF_TEXT, /\*\*until he reveals a supplier\*\*/, 'the brief states the request is changed until a reveal');
+  // 16 Nov 2026 (fc24d39b2): the brief was shortened to fit beside the largest trade pack; the rule is one plain line now
+  assert.match(BRIEF_TEXT, /revise a request (?:\*\*)?until he reveals(?: a supplier)?(?:\*\*)?/, 'the brief states the request is changed until a reveal');
   assert.doesNotMatch(BRIEF_TEXT, /edit an inquiry within \*\*(1 hour|24 hours)\*\*/);
 });
 

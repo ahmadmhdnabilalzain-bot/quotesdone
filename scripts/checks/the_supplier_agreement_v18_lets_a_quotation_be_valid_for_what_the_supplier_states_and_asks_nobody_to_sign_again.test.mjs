@@ -20,6 +20,7 @@ import { createHash } from 'node:crypto';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { signedBody } from '../legal/company_facts.mjs';
+import { applyState } from '../lib/pending_sql.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -81,8 +82,10 @@ test('company facts, the exported module and the registry SQL name v18, and v18 
   assert.match(sql, /where d\.slug = 'supplier-agreement' and d\.version = 'v17'\non conflict \(slug\) do nothing;/, 'v17 archived before the body is replaced');
   assert.ok(sql.indexOf("'archived:' || d.slug") < sql.indexOf('update public.pages set html'));
   assert.doesNotMatch(sql, /^\s*(begin|commit)\s*;/im);
-  assert.ok(read(`scripts/sql/pending/${NAME}.txt`).trim().length > 40);
-  assert.ok(!read('scripts/sql/MANIFEST.txt').includes(`scripts/sql/${NAME}.sql`), 'pending and in MANIFEST at once');
+  // waiting with a reason, or applied (16 Nov, 0db1eacfc) with a MANIFEST line: never both, never neither
+  const st = applyState(`scripts/sql/${NAME}.sql`);
+  assert.ok(st.applied !== (st.note !== null), 'pending and in MANIFEST at once, or neither');
+  if (st.note !== null) assert.ok(st.note.length > 40);
 });
 
 test('a supplier who accepted v17 is not asked to accept v18; the v17 text stays served for its signers', async () => {

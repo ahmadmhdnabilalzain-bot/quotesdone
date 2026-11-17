@@ -110,6 +110,25 @@ export const REGISTER = {
     replay: 'pg_temp.qd_replay_fn_it_restore_table_overdue()',
     asOf: { agent_runs: 'started_at' },
   },
+  // 17 Nov 2026 (it_engineer, offline-checks repair): three clocks of 16 Nov that were never registered. Their replay at the
+  // healthy instants is asserted by the production half of this file (with a token); offline only the registration is.
+  // fn_it_registration_watch: a person stalled in registration, a licence read failed, terms accepted and unsigned; present
+  // state of the people's rows, cut by when each row came to be.
+  fn_it_registration_watch: {
+    replay: 'pg_temp.qd_replay_fn_it_registration_watch()',
+    asOf: { leads: 'created_at', customers: 'created_at', support_fault_report: 'reported_at', email_verifications: 'created_at' },
+  },
+  // fn_ceo_sanctions_review_tick: a screening hit not decided within 24 h of its first sight.
+  fn_ceo_sanctions_review_tick: {
+    replay: 'pg_temp.qd_replay_fn_ceo_sanctions_review_tick()',
+    asOf: { customer_screening_hit: 'created_at', agent_actions: 'created_at' },
+  },
+  // fn_table_export_unpageable_settle: a registered table the daily export cannot page (fn_table_export_unpageable); present
+  // state of the registry, so a healthy day (every exported table has a primary key) is quiet.
+  fn_table_export_unpageable_settle: {
+    replay: 'pg_temp.qd_replay_fn_table_export_unpageable_settle()',
+    asOf: { table_export_registry: 'added_at' },
+  },
   // 22 Sep 2026 (it_engineer, SEATS-01). Replayed with p_dry_run FALSE on purpose: the dry run does
   // not call the finding upsert at all, so registering it would be a replay that cannot fire —
   // quiet proving nothing. With false it takes its real branch and the transaction's raise rolls
@@ -369,6 +388,15 @@ export const REGISTER = {
   fn_wa_supplier_invite_brake: { relay: 'records the WhatsApp invitation brake that fn_wa_sender_quality_record (a Twilio quality reading below HIGH / ONLINE) or fn_wa_supplier_invite_gate (>= 2 STOPs and >= 5% of 7-day invitations) decided; a healthy day sends no invitation below HIGH and has no STOPs, so it raises nothing' },
   fn_wa_signature_watch: { relay: 'records a WhatsApp webhook wa_inbound itself refused for a bad X-Twilio-Signature; the refusal is the decision of the signature check, and nothing fires on a healthy day with no refused inbound' },
   fn_seat_clock_deliver: { relay: 'records a message the send door refused; the refusal is the door\'s decision' },
+  // 17 Nov 2026 (it_engineer, offline-checks repair): seven alarms of 16 Nov that were never registered, each read in its body.
+  // Each raises only on an event a healthy day does not have; the decision is another routine's or another seat's.
+  fn_support_profile_resolve: { relay: 'records that two NAMED people met on one e-mail or phone tail when a support profile was opened (the profile is opened apart, nothing joined); raised only on that clash, never by a clock' },
+  fn_support_hands_it_a_fault: { relay: 'files the fault customer_support\'s reasoning found in a person\'s conversation (once per case per hour); the finding is support\'s decision, and a healthy day has none' },
+  fn_inbound_mail_dead_letter: { relay: 'records a mail the inbound queue gave up reading after its attempts (the queue\'s decision, an_inbound_burst_is_accepted_at_once_and_read_in_turn.sql); a healthy day reads every mail' },
+  fn_expense_document_waits_for_statement: { relay: 'records, for the one expense it is called on, a fee booked on the founder\'s word whose document is held (fn_expense_held_entry_for decides); called per entry, never by a clock' },
+  fn_sanctions_ban_tells_affected_customers: { relay: 'the trigger on a sanctions ban the CEO decided: records only that the affected customers could NOT be told (its exception arm); a healthy day has no ban' },
+  fn_fraud_flag_goes_to_the_accountants_reasoning: { relay: 'the trigger on a fraud flag: records only that the accountant\'s review could not be opened for it (its exception arm); a healthy day raises no flag' },
+  fn_injection_attempt_record: { relay: 'records an attempt to instruct the assistant that the conversation guard detected, raising only on a REPEAT from one sender in 30 days; a healthy day has none' },
   // Missing on origin/main as well (review 4, item 5): a00 on notifications (a_notice_is_a_duplicate_only_of_the_same_event.sql).
   fn_notifications_the_same_message_is_sent_once: { relay: 'records a notification its own insert guard cancelled because the same message to the same person (same channel, type, subject, body, event and dedupe key) was already queued or sent inside the window (founder ruling 1631); the cancellation is the guard\'s decision on the row being written, there is no reading to replay, and a healthy day queues no repeat' },
   // 13 Nov 2026 (accountant; a_paid_reveal_is_reconciled_booked_and_timed_by_the_accountant_from_the_moment_it_is_paid.sql).

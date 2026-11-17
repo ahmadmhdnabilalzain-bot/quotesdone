@@ -165,7 +165,9 @@ const requestedMax = () => {
     const p = join(REPO, root, d, 'index.ts');
     try { if (!statSync(p).isFile()) continue; } catch { continue; }
     // Every file of the function: a split moves the gateway call out of index.ts (resend_inbound: lib/runtime.ts).
-    const src = functionSource(d);
+    // The CEO's plan budgets (plan.ts PLAN_CALL) are asked under their own task class, not ceo_agent's row: they are
+    // checked against those classes by the test below, so they are not attributed to the ceo_agent label here.
+    const src = d === 'ceo_agent' ? functionSource(d).replace(PLAN_CALL_BLOCK, '') : functionSource(d);
     if (!/functions\/v1\/ai_gateway|makeLlmRich|makeLlm\(/.test(src)) continue;
     files.push(d);
     const lines = src.split('\n');
@@ -173,6 +175,9 @@ const requestedMax = () => {
       const mx = /\bmax:\s*(\d+)/.exec(l);
       if (!mx) return;
       const ctx = lines.slice(Math.max(0, i - 14), i + 14).join('\n');
+      // A `max:` with no gateway call near it is not an ask (17 Nov 2026: it_engineer's runExamBatch option
+      // `{ budgetMs, itemMs, max: 3 }`, items per post, was read as the it_engineer label asking for 3 tokens).
+      if (!/makeLlm|ai_gateway|\bfn:|taskClass|task_class/.test(ctx)) return;
       const fn = /\bfn:\s*['"]([a-z0-9_]+)['"]/.exec(ctx)?.[1] ?? d;
       asks[fn] = Math.max(asks[fn] ?? 0, Number(mx[1]));
     });
@@ -196,6 +201,25 @@ const requestedMax = () => {
   assert.ok(files.length >= 15, `only ${files.length} gateway callers found - the walk is broken, not the estate`);
   return asks;
 };
+
+// THE CEO'S PLAN CALLS ARE ROUTED BY THEIR OWN CLASS (17 Nov 2026). ceo_agent/index.ts asks makeLlmRich({ fn: 'ceo_agent',
+// taskClass, max: c.max }) with c = planCallFor(taskClass): fn_ai_route takes a caller-supplied class before fn_task_class,
+// so the weekly plan (ceo_strategic_planning) and the daily review (routine_employee_reasoning) are bounded by those two
+// classes, never by ceo_agent's ceo_judgement row. Ceilings read on production 17 Nov 2026 (public.model_policy).
+const PLAN_CALL_BLOCK = /export const PLAN_CALL = \{[\s\S]*?\} as const;/;
+const PLAN_CLASS_CEILING = { weekly: ['ceo_strategic_planning', 8000], daily: ['routine_employee_reasoning', 2000] };
+test('the CEO plan asks no more than the class it names allows', () => {
+  const plan = read('supabase/functions/ceo_agent/plan.ts');
+  const block = PLAN_CALL_BLOCK.exec(plan)?.[0];
+  assert.ok(block, 'plan.ts no longer declares PLAN_CALL: re-anchor this test on where the plan budgets live');
+  for (const [kind, [cls, ceiling]] of Object.entries(PLAN_CLASS_CEILING)) {
+    const max = Number(new RegExp(`${kind}: \\{ max: (\\d+)`).exec(block)?.[1]);
+    assert.ok(max > 0 && max <= ceiling, `the ${kind} plan asks ${max}, ${cls} allows ${ceiling}`);
+  }
+  assert.match(plan, /return taskClass === 'routine_employee_reasoning' \? PLAN_CALL\.daily : PLAN_CALL\.weekly;/);
+  assert.match(read('supabase/functions/ceo_agent/index.ts'), /const c = planCallFor\(taskClass\);\s*\n\s*const llm = makeLlmRich\(undefined, \{ json: true, fn: 'ceo_agent', agent: 'ceo', taskClass, max: c\.max,/,
+    'the plan call no longer names its own class beside its budget, so ceo_agent\'s row would clamp it');
+});
 
 test('every function that calls ai_gateway has a task class decided for it', () => {
   const asks = requestedMax();

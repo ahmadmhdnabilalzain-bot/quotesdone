@@ -71,6 +71,13 @@ test('every tick the file defines is a step the handler runs', () => {
     const kick = `kickDetached('${k}')`;
     assert.ok(stepRun().includes(kick) || detachedBodies.includes(kick), `detached step ${k} is never kicked from STEP_RUN or from a detached run`);
   }
+  // 16 Nov 2026: a listed tick may run ticks of its own (ceoPlanTick awaits planCTick and ceoPlanningLoopTick, ticks/ceo.ts):
+  // a tick called from the body of a tick that runs is run too, transitively. One defined and called by nothing still fails.
+  for (let grew = true; grew;) {
+    grew = false;
+    const bodies = [...listed].map(bodyOf).join('\n');
+    for (const t of defined) if (!listed.has(t) && new RegExp(`\\b${t}\\(`).test(bodies)) { listed.add(t); grew = true; }
+  }
   assert.deepEqual(defined.filter((t) => !listed.has(t)), [], 'ticks defined but never run');
 });
 

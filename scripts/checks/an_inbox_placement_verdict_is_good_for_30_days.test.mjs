@@ -54,7 +54,11 @@ test('nothing but the verdict reader reads max_age, and it reads it from the bar
     e.isDirectory() ? (e.name === 'node_modules' ? [] : walk(`${d}/${e.name}`)) : (/\.(sql|ts|mjs)$/.test(e.name) ? [`${d}/${e.name}`] : []));
   const readers = dirs.flatMap((d) => (d === 'scripts' ? readdirSync(join(ROOT, d)).filter((n) => n.endsWith('.mjs')).map((n) => `scripts/${n}`) : walk(d)))
     .filter((p) => !/\.test\.mjs$/.test(p) && /(?<![A-Za-z0-9_])max_age(?![A-Za-z0-9_])/.test(code(R(p))));
-  assert.deepEqual([...new Set(readers)].sort(), [FILE, PROBE, GATE, GATE_PROBE].sort(),
+  // 11 Nov 2026 (7d34e00be): the GlockApps re-test record's verdict row reads tested_at + the bar's max_age to say how long that
+  // verdict is good (until 10 Dec on the 30-day window); it computes the window this file set, it does not change it.
+  const RETEST = 'scripts/sql/glockapps_10_nov_placement_verdict_is_recorded.sql';
+  assert.match(code(R(RETEST)), /select d\.tested_at \+ b\.max_age from public\.deliverability_test d, public\.invite_placement_bar b/, 'the re-test record reads max_age some other way');
+  assert.deepEqual([...new Set(readers)].sort(), [FILE, PROBE, GATE, GATE_PROBE, RETEST].sort(),
     'another file reads max_age: check that a 30-day window does not change what it does');
   const gate = code(R(GATE));
   assert.match(gate, /t\.tested_at < p_now - b\.max_age/, 'the verdict reader no longer compares a test with the bar\'s own max_age');

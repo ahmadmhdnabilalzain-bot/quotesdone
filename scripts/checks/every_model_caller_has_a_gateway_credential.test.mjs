@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { MIG_DIRS } from './_migration_files.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -41,10 +42,13 @@ test('every model caller name has a credential issued in scripts/sql or the migr
   }
   assert.ok(callers.size > 0, 'no model caller names found — the patterns no longer match and this guard tests nothing');
 
-  const sql = [join(root, 'scripts', 'sql'), join(root, 'supabase', 'migrations'), join(root, 'supabase', 'migrations_archive')]
+  // The migration folders are _migration_files.mjs's MIG_DIRS, not a copy: this list named supabase/migrations_archive after
+  // it became migrations_history, and so lost the 3 Aug 2026 issue of fn.knowledge_exam and fn.messages_api (live, active).
+  const sql = [join(root, 'scripts', 'sql'), ...MIG_DIRS]
     .flatMap((d) => walk(d, '.sql')).map((f) => readFileSync(f, 'utf8')).join('\n');
   const issued = (n) => sql.includes('cred_fn_' + n) || sql.includes("'fn." + n + "'")
-    || new RegExp("internal_credential[\s\S]{0,4000}'" + n + "'").test(sql);
+    // "[\\s\\S]": written "[\s\S]" in a string literal this was the class [sS], so a mint loop's caller array never matched
+    || new RegExp("internal_credential[\\s\\S]{0,4000}'" + n + "'").test(sql);
 
   const missing = [...callers.keys()].filter((n) => !ALLOW.has(n) && !issued(n)).sort();
   assert.deepEqual(missing, [],

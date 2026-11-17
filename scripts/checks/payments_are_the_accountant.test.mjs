@@ -198,6 +198,16 @@ test('every conversation has a producer and a handler in the receiving seat', ()
       // a contested decision goes to the seat review_route names as its owner (ledger 1152, #1566)
       || (type === 'review.requested' && from === 'customer_support'
           && allSql.includes("fn_seat_handoff('customer_support', v_route.owner_seat, 'review.requested'"))
+      // THE ONE POOL (16 Nov 2026; listed in payment_handoffs.ts 17 Nov). A seat asks the CEO for an authority it does not hold
+      // (fn_ceo_grant_once's request names the asking seat); the CEO's order goes to the seat its bet or its sub-order names;
+      // a reviewed deliberation sent back goes to its author; an owned event with a 'handover' subscription is filed to that seat
+      // as its action_class (event.act); email_triage routes a mail it read to the seat it belongs to.
+      || (type === 'ceo.authority' && to === 'ceo' && allSql.includes("fn_seat_handoff(p_grantee_role_id, 'ceo', 'ceo.authority'"))
+      || (type === 'ceo.order' && from === 'ceo' && (allSql.includes("fn_seat_handoff('ceo', v_arg, 'ceo.order'") || allSql.includes("fn_seat_handoff('ceo', p_seat, 'ceo.order'")))
+      || (type === 'deliberation.rework' && from === 'ceo' && allSql.includes("fn_seat_handoff('ceo', r.author_seat, 'deliberation.rework'"))
+      || (type === 'event.act' && allSql.includes("fn_seat_handoff(coalesce(r.owner, 'ceo'), r.agent_key, r.action_class,")
+          && allSql.includes("case when p.delivery = 'handover' then 'event.act' end"))
+      || (type === 'mail.routed' && from === 'customer_support' && /p_from: 'customer_support', p_to: o\.seat, p_type: 'mail\.routed'/.test(ts))
       // a review is started only by a real call site for THIS pair (founder_instruction 873): the generic opener
       // proves nothing about which pairs anything opens
       || (type === 'deliberation.review' && (new RegExp(`fn_seat_deliberation_open\\(\\s*'[a-z_.]+',\\s*'${from}',\\s*'${to}'`).test(allSql)

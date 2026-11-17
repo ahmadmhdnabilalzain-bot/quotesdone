@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it writes nothing and always raises CHK<<...>>, rolling back. Run it after the_forty_six_tables_made_after_the_12_november_mirror_are_in_the_daily_export.sql is applied (it reads the registry, fn_table_export_list() and pg_class). This note therefore stays for the life of the file. Seat: it_engineer.

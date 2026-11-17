@@ -1,6 +1,7 @@
 -- ================================================================================================
 -- QuotesDone — FULL SCHEMA EXPORT
 -- Captured 2026-11-12T11:19:41.554Z from public.fn_schema_export() on htdblwldjkcgjvmqkbeh.
+-- MANIFEST at capture: 1946 applied files, the last scripts/sql/a_supplier_is_asked_what_his_documents_could_not_say.sql
 --
 -- This is a REFERENCE MIRROR of the live database, not a restore procedure. To rebuild, use
 -- Supabase managed backups / PITR. Replaying this file is not a supported recovery path and

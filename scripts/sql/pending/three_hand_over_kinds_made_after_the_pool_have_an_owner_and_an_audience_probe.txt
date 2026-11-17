@@ -1,0 +1,1 @@
+A PROBE, so it is never applied at all: it writes nothing and always raises CHK<<...>>. Run it after three_hand_over_kinds_made_after_the_pool_have_an_owner_and_an_audience.sql is applied. This note therefore stays for the life of the file. Seat: it_engineer.
