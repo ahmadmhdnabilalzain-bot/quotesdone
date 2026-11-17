@@ -298,7 +298,9 @@ export async function redactPdfVector(bytes: Uint8Array, seeds: string[]): Promi
  */
 export async function readerAgrees(bytes: Uint8Array, only?: [number, number]): Promise<boolean> {
   try {
-    const view = await pdfRedactionView(bytes);
+    // Only the asked pages are read (17 Nov 2026: reading the whole set to compare one page put drawing_redact past the
+    // edge CPU cap; pdf_text_positions.pdfRedactionView says what it cost). The page count still comes from the whole tree.
+    const view = await pdfRedactionView(bytes, only);
     if (!view) return false;
     const doc = await PDFDocument.load(bytes, { updateMetadata: false });
     const pl = doc.getPages();

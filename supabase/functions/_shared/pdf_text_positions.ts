@@ -557,12 +557,22 @@ export async function pdfPageContents(bytes: Uint8Array, only?: [number, number]
 /** What pdf_vector_redact.ts needs to cut a run out of the file: every page with its object number and
  *  decoded content, and the decoded source of every Form XObject the pages drew (by object number).
  *  A run's / an image's `at` is "p:<op>" (the page's content, all its streams joined) or "f<num>:<op>". */
-export async function pdfRedactionView(bytes: Uint8Array): Promise<{ pages: { num: number; page: PdfPage; content: string }[]; forms: Map<number, string> } | null> {
+/** `only` = [from, to): read only those pages; the others are stubs in place (their size, no runs, no content), as in
+ *  pdfPageContents. 17 Nov 2026: pdf_vector_redact.readerAgrees compares ONE page per drawing_redact call and read every
+ *  page of the set (all paths) to do it, ~580 ms of a cold worker's CPU on the 8-sheet ZZ DEMO set; with the page's pixel
+ *  work that worker died "CPU Time exceeded" (HTTP 546) on every sheet. A page's content is its own streams, so the page
+ *  read here is the page read whole. */
+export async function pdfRedactionView(bytes: Uint8Array, only?: [number, number]): Promise<{ pages: { num: number; page: PdfPage; content: string }[]; forms: Map<number, string> } | null> {
   if (!bytes || bytes.length < 5 || DEC.decode(bytes.subarray(0, 5)) !== '%PDF-') return null;
   const objs = await readObjects(bytes);
   const ctx: Ctx = { objs, forms: new Map(), fonts: new Map(), ocg: new Map(), ops: 0, truncated: false, segs: 0, layers: true, paths: true };
   const pages: { num: number; page: PdfPage; content: string }[] = [];
-  for (const p of pageTree(objs)) pages.push({ num: p.num, ...(await readPage(ctx, p)) });
+  const tree = pageTree(objs);
+  for (let i = 0; i < tree.length; i++) {
+    const p = tree[i];
+    if (only && (i < only[0] || i >= only[1])) { pages.push({ num: p.num, page: { width: p.mb[2] - p.mb[0], height: p.mb[3] - p.mb[1], rotate: p.rotate, runs: [] }, content: '' }); continue; }
+    pages.push({ num: p.num, ...(await readPage(ctx, p)) });
+  }
   const forms = new Map<number, string>();
   for (const [k, v] of ctx.forms) if (v !== null) forms.set(k, v);
   return { pages, forms };

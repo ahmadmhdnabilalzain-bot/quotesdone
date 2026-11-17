@@ -25,11 +25,10 @@ import { parseJson as readModelJson } from '../_shared/model_json.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
 import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
-import { Image } from 'https://deno.land/x/imagescript@1.2.17/mod.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages, pdfRedactionView, type PdfPage } from '../_shared/pdf_text_positions.ts';
 import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
-import { MAXW, SERVER_MARGIN, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintBoxes, repaintJpeg, serverBoxedPage, stripB64, supplierPagePrefix, tileJpeg } from '../_shared/drawing_redact_page.ts';
+import { SERVER_MARGIN, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintedJpeg, repaintJpeg, serverBoxPlan, stripB64, supplierPagePrefix, tileJpeg, type PaintGroup } from '../_shared/drawing_redact_page.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
 import { readerAgrees } from '../_shared/pdf_vector_redact.ts';
@@ -78,6 +77,10 @@ function parseJson(t:string){ return readModelJson<any>(t, { wholeDecides: true 
 // in _shared/drawing_redact_page.ts since 24 Sep 2026, with the deterministic page steps, so a test runs them.
 // Measured locally (deno, imagescript 1.2.17, a real 2600 px sheet): decode 455 ms, paint + encode 270 ms;
 // on 22 Sep 2026 the edge killed 4-page calls (546, 8 of 8 pages lost), so customer_api sends ONE page per call.
+// On 17 Nov 2026 the edge killed the ONE-page calls too (546 at 2,205-2,551 ms CPU, every sheet of the 8-sheet set held):
+// this worker read the whole PDF to compare one page (readerAgrees) and decoded, painted and encoded the sheet before
+// asking the gate's views. Now it reads only its page and hands the pixels to a worker of its own (mode 'paint',
+// paintedElsewhere below): no worker of a page decodes the sheet twice, and the one that plans it decodes it not at all.
 // MARGIN pads a MODEL's region (a guess); the server's own boxes get SERVER_MARGIN (see the shared module).
 const MARGIN = 0.03;
 // The margin mode 'repaint' (verify:false) paints the checker's boxes at: paintElsewhere below.
@@ -264,6 +267,16 @@ async function paintElsewhere(secret: string, jpgB64: string, regions: Array<{x:
   if (!r.ok || j?.ok !== true || typeof j.jpg_b64 !== 'string') throw new Error('repaint_failed');
   return j.jpg_b64;
 }
+/** Paint a page's boxes onto its raster in a fresh worker (mode 'paint': one decode, one encode; drawing_redact_page.paintedJpeg).
+ *  Anything but a painted page back throws, and the caller holds the page (fail closed). */
+async function paintedElsewhere(secret: string, rasterB64: string, groups: PaintGroup[], stopAt?: number): Promise<string> {
+  const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'paint', jpg_b64: rasterB64, groups }), signal: AbortSignal.timeout(callTimeoutMs(stopAt, 60_000)) });
+  let r = await ask();
+  if (notReached(r)) { await r.body?.cancel(); r = await ask(); }
+  const j = await r.json().catch(() => null);
+  if (!r.ok || j?.ok !== true || typeof j.jpg_b64 !== 'string') throw new Error(j?.error === 'decode_failed' ? 'decode_failed' : 'paint_failed');
+  return j.jpg_b64;
+}
 /** Cut one view of the page for the model in a fresh worker (mode 'tile': one decode, one encode). */
 async function cropElsewhere(secret: string, jpgB64: string, tile: Tile, mark: string, stopAt?: number): Promise<string> {
   const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'tile', jpg_b64: jpgB64, tile, mark }), signal: AbortSignal.timeout(callTimeoutMs(stopAt, 60_000)) });
@@ -412,6 +425,18 @@ Deno.serve(observe('drawing_redact', async (req) => {
       if (body.verify === false) return J({ ok: true, jpg_b64: b64 });
       const vr = await verifyPage(key, b64, String(body.authors || 'unknown'));
       return J({ ok: true, clean: vr.clean, found: vr.found, jpg_b64: b64 });
+    }
+
+    // ── A PAGE'S BOXES, PAINTED (17 Nov 2026): the manual and model paths plan the boxes and send the raster here, so the
+    // worker that reads the PDF and asks the gate never decodes the sheet (drawing_redact_page.paintedJpeg has the
+    // measurement). Each group is painted at its own margin, in order; a margin is at most 0.1 of the page (boxes only add
+    // black). Records and uploads nothing: the calling worker does both, after the gate.
+    if (body.mode === 'paint') {
+      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !Array.isArray(body.groups)) return J({ ok: false, error: 'jpg_b64_and_groups_required' }, 400);
+      const groups: PaintGroup[] = body.groups.slice(0, 8).map((g: any) => ({ boxes: cleanBoxes(g?.boxes) ?? [], pad: Math.max(0, Math.min(0.1, Number(g?.pad) || 0)) }));
+      let out: Awaited<ReturnType<typeof paintedJpeg>>;
+      try { out = await paintedJpeg(b64ToBytes(body.jpg_b64), groups); } catch (_e) { return J({ ok: false, error: 'decode_failed' }); }
+      return J({ ok: true, jpg_b64: bytesToB64(out.jpg) });
     }
 
     // ── ONE VIEW OF A PAGE FOR THE PIXEL GATE (second review, 13 Nov 2026): a tile cut and scaled (planTiles), or where a
@@ -681,13 +706,17 @@ Deno.serve(observe('drawing_redact', async (req) => {
         // steps live in _shared/drawing_redact_page.ts serverBoxedPage: a page the server cannot read (a scan,
         // a photo) is HELD whatever boxes came with it; a readable one is painted with the boxes plus the
         // text layer's own identity boxes and re-encoded from pixels. drawing_redact_page.test.ts proves it.
+        // The boxes are planned here (serverBoxPlan) and painted in a worker of its own (paintedElsewhere, 17 Nov 2026).
         try {
           const b = (imgs[i] && (imgs[i].b64 || imgs[i].data)) || imgs[i];
-          const r = await serverBoxedPage(b64ToBytes(String(b)), pdf, pageOffset + i, cleanBoxes(body.manual_boxes[i]));
+          const r = serverBoxPlan(pdf, pageOffset + i, cleanBoxes(body.manual_boxes[i]));
           if (!r.ok) { skipped++; detail.push({ page: i, skipped: r.skipped }); continue; }
+          let boxed: string;
+          try { boxed = await paintedElsewhere(String(body.__secret || ''), stripB64(String(b)), [{ boxes: r.boxes, pad: SERVER_MARGIN }], clock.stopAt); }
+          catch (e) { skipped++; detail.push({ page: i, skipped: (e as Error)?.message === 'decode_failed' ? 'decode_failed' : 'paint_failed' }); continue; }
           textHits += Number(r.detail.text_layer_boxes) || 0;
           const pp = pdf[pageOffset + i];
-          const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', bytesToB64(r.jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt, vocabularyVet(pp, []));
+          const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', boxed, budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt, vocabularyVet(pp, []));
           pixelCalls += g.calls; pixelUsd += g.usd;
           if (!g.ok) { skipped++; if (g.held === TIME_HELD) timePages.push(i); detail.push({ page: i, skipped: g.held, ...g.detail }); continue; }
           // The same rule as the model path (drawing_code_floor.unreadTextHold, round 4): every area of text code cannot read
@@ -760,20 +789,6 @@ Deno.serve(observe('drawing_redact', async (req) => {
         // is not enough to publish a page to competitors; it now falls through to the
         // verification pass below like every other page.
         const b = (imgs[i] && (imgs[i].b64 || imgs[i].data)) || imgs[i];
-        let img = await Image.decode(b64ToBytes(String(b)));
-        if (img.width > MAXW) img = img.resize(MAXW, Image.RESIZE_AUTO);
-        // Boxing is its own step now because the retry below has to do it again, with regions the
-        // verifier asked for rather than the ones the first detection pass guessed at.
-        const paint = (target: any, gs: Array<{x:number;y:number;w:number;h:number}>) => {
-          const W2 = target.width, H2 = target.height;
-          for (const g of gs) {
-            let x = Math.floor((g.x - MARGIN) * W2), y = Math.floor((g.y - MARGIN) * H2);
-            let w = Math.ceil((g.w + 2 * MARGIN) * W2), h = Math.ceil((g.h + 2 * MARGIN) * H2);
-            x = Math.max(0, Math.min(x, W2 - 1)); y = Math.max(0, Math.min(y, H2 - 1));
-            w = Math.max(1, Math.min(w, W2 - x)); h = Math.max(1, Math.min(h, H2 - y));
-            target.composite(new Image(w, h).fill(0x000000ff), x, y);
-          }
-        };
         // THE CODE FLOOR (13 Nov 2026, sales_engineer; anonymity audit B finding I1). The model names the regions and a model
         // of another family checks the result; MEASURED with a stand-in "title strip only" answer on the auditor's scan B2,
         // the area, the villa, the street, the watermark firm, the rotated edge text, the Arabic owner line and the contact
@@ -790,16 +805,17 @@ Deno.serve(observe('drawing_redact', async (req) => {
         const floor = codeFloor(i) ?? [];
         // Identity the text layer locates is boxed as well as what the model named; so is text-layer text that instructs
         // the checker (verify_verdict.ts instructingRuns): covered before any model reads the page.
-        paint(img, [...regions, ...textBoxes(i).boxes, ...instructingRuns(pdf[pageOffset + i]?.runs ?? [])]);
-        paintBoxes(img, floor);   // the code floor, at the server's own margin (its boxes are measured, not guessed)
-        let jpg = await img.encodeJPEG(82);
+        // Painted in a worker of its own (paintedElsewhere, 17 Nov 2026): the model's regions at MARGIN (a guess, padded),
+        // then the code floor at the server's own margin (its boxes are measured, not guessed). A paint that does not come
+        // back is caught below: the page is skipped, never published.
+        let jpgB64 = await paintedElsewhere(String(body.__secret || ''), stripB64(String(b)), [{ boxes: [...regions, ...textBoxes(i).boxes, ...instructingRuns(pdf[pageOffset + i]?.runs ?? [])], pad: MARGIN }, { boxes: floor, pad: SERVER_MARGIN }], clock.stopAt);
         const pp = pdf[pageOffset + i];
-        const gate = await gatePage(key, false, String(body.__secret || ''), findModel, bytesToB64(jpg), budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt, vocabularyVet(pp, seeds));
+        const gate = await gatePage(key, false, String(body.__secret || ''), findModel, jpgB64, budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt, vocabularyVet(pp, seeds));
         if (!gate.ok && gate.held === TIME_HELD) { skipped++; timePages.push(i); verifyDetail.push({ page: i, skipped: TIME_HELD, calls: gate.calls }); pixelCalls += gate.calls; pixelUsd += gate.usd; continue; }
         pixelCalls += gate.calls; pixelUsd += gate.usd;
         const attempt = gate.ok ? (gate.firstLookClean ? 1 : 2) : gate.calls;
         const vr = gate.ok ? { clean: true, found: [] as string[] } : { clean: false, found: [gate.held, ...((gate.detail as any).still ?? [])] };
-        if (gate.ok) jpg = b64ToBytes(gate.jpgB64);
+        if (gate.ok) jpgB64 = gate.jpgB64;
         // Still refused after the second attempt: unchanged behaviour, the page is not published.
         // The ledger now records which attempt decided it, so "the retry never helps" is a query
         // rather than an opinion the next session has to take on trust.
@@ -814,7 +830,7 @@ Deno.serve(observe('drawing_redact', async (req) => {
         if (gate.ok && gate.detail.ignored) verifyDetail.push({ page: i, ...ignoredSaid(gate) });
         verified++;
         const path = `${prefix}_p${i}.jpg`;
-        const up = await admin.storage.from('drawing-files').upload(path, jpg, { contentType: 'image/jpeg', upsert: true });
+        const up = await admin.storage.from('drawing-files').upload(path, b64ToBytes(jpgB64), { contentType: 'image/jpeg', upsert: true });
         // A skipped page always says why (24 Sep 2026, audit finding 5): the count alone could not tell an
         // upload failure from a decode failure from a page the model boxed nothing on.
         if (up.error) { skipped++; verifyDetail.push({ page: i, skipped: 'upload_failed' }); continue; }

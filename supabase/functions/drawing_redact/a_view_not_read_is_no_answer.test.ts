@@ -98,7 +98,7 @@ Deno.test('LAZY and TITLE-ONLY: text code cannot read (outlines v01, a Type3 fon
   }
   // Both drawing_redact routes ask it after the gate and before any upload, with every box that was painted.
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
-  assertMatch(src, /const painted = \[\.\.\.\[\.\.\.regions, \.\.\.textBoxes\(i\)\.boxes, \.\.\.instructingRuns\([^\n]*\.\.\.floor\.map\([^\n]*gate\.boxes\.map[^\n]*\n\s*const unreadHeld = gate\.ok \? unreadTextHold\(pp, seeds, painted\) : null;\n\s*if \(unreadHeld\) \{ skipped\+\+;[^\n]*continue; \}[\s\S]{0,400}storage\.from\('drawing-files'\)\.upload\(path, jpg/);
+  assertMatch(src, /const painted = \[\.\.\.\[\.\.\.regions, \.\.\.textBoxes\(i\)\.boxes, \.\.\.instructingRuns\([^\n]*\.\.\.floor\.map\([^\n]*gate\.boxes\.map[^\n]*\n\s*const unreadHeld = gate\.ok \? unreadTextHold\(pp, seeds, painted\) : null;\n\s*if \(unreadHeld\) \{ skipped\+\+;[^\n]*continue; \}[\s\S]{0,400}storage\.from\('drawing-files'\)\.upload\(path, b64ToBytes\(jpgB64\)/);
   assertMatch(src, /const unreadHeld = unreadTextHold\(pp, \[\], \[\.\.\.\(r\.painted \?\? \[\]\), \.\.\.g\.boxes\.map\([^\n]*\);\n\s*if \(unreadHeld\) \{ skipped\+\+;[^\n]*continue; \}\n\s*const path = /);
 });
 

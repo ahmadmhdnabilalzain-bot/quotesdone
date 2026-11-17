@@ -39,8 +39,10 @@ Deno.test('LAZY: a clean answer publishes the page AS THE CODE FLOOR LEFT IT - t
   // The image the gate is given is the one every code box was painted on: the manual path's serverBoxedPage (title
   // strip, key plans, pictures, every party / place / seed run), the CAD path's renderer, the model path's find + floor.
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
-  assertMatch(src, /const r = await serverBoxedPage\([\s\S]{0,500}const g = await gatePage\(keyM, heldM, String\(body\.__secret \|\| ''\), 'deterministic', bytesToB64\(r\.jpg\), budget, /);
-  assertMatch(src, /paintBoxes\(img, floor\);[\s\S]{0,300}const gate = await gatePage\(key, false, String\(body\.__secret \|\| ''\), findModel, bytesToB64\(jpg\), budget, /);
+  // 17 Nov 2026: the boxes are planned in the worker (serverBoxPlan) and painted in a worker of their own (paintedElsewhere);
+  // the gate is given what came back painted, the code floor included.
+  assertMatch(src, /const r = serverBoxPlan\([\s\S]{0,300}boxed = await paintedElsewhere\([^\n]*\[\{ boxes: r\.boxes, pad: SERVER_MARGIN \}\][\s\S]{0,500}const g = await gatePage\(keyM, heldM, String\(body\.__secret \|\| ''\), 'deterministic', boxed, budget, /);
+  assertMatch(src, /let jpgB64 = await paintedElsewhere\([^\n]*\{ boxes: floor, pad: SERVER_MARGIN \}\][^\n]*\n[\s\S]{0,100}const gate = await gatePage\(key, false, String\(body\.__secret \|\| ''\), findModel, jpgB64, budget, /);
   assertMatch(src, /out = await cadPage\(b64ToBytes\(body\.original_b64\), seeds, \{ identity \}\)[\s\S]{0,300}const g = await gatePage\(keyM, heldM/);
   // Every upload of a page or a file is downstream of a gate.
   const uploads = [...src.matchAll(/storage\.from\('drawing-files'\)\.upload\(/g)].length;
