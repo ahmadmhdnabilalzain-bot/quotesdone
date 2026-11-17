@@ -151,7 +151,13 @@ const SURFACES = [
   ['supabase/functions/site_assistant/index.ts',
    // #1036 (customer_support): identify() also returns the verified party id, so a signed-in widget chat is
    // logged as 'supplier:<lead id>' and lands on that supplier's support case. The refusal is unchanged.
-   "if (sup) return (await sanctionedEmail(admin, email)) ? null : { email, audience: 'supplier', id: String(sup.id) };",
+   // #2032 (it_engineer, 17 Nov 2026, security audit finding 1) moved the listing read into _shared/address_filter.ts
+   // (claimedLeadIdOf: .eq on the verified address, never an ilike), so the id is `supId`; the refusal is the same
+   // line, and the second pin holds that the supplier id still comes from the address auth.getUser verified.
+   "const supId = await claimedLeadIdOf(admin, email);",
+   'the site assistant must find the supplier by the exact address the session verified'],
+  ['supabase/functions/site_assistant/index.ts',
+   "if (supId) return (await sanctionedEmail(admin, email)) ? null : { email, audience: 'supplier', id: supId };",
    'the site assistant must not recognise a sanctioned party as a supplier'],
 
   // FAIL CLOSED. A PostgREST error resolves as { data: null, error } rather than throwing, so a
