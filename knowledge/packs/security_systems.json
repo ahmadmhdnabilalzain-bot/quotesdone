@@ -506,7 +506,7 @@
         "UPS autonomy (minutes/hours)",
         "drawings / site visit availability",
         "warranty years, AMC, handover documents, authority approval responsibility",
-        "landlord, mall or community rules: approved contractor, permit to work and working hours",
+        "building or mall management rules (approved contractor, permit to work, working hours)",
         "Payment terms"
       ],
       "sources": [
@@ -622,7 +622,7 @@
           "blocking": false
         },
         {
-          "spec": "landlord, mall or community rules: approved contractor, permit to work and working hours",
+          "spec": "building or mall management rules (approved contractor, permit to work, working hours)",
           "why_needed_to_price": "Malls, managed towers and master communities admit only contractors on their approved list, with a permit to work and set working hours (in a mall usually outside trading hours), which decides who can quote and adds night or after-hours labour.",
           "uae_options": "Mall or building management approved-contractor list; permit to work or NOC; work outside trading hours; a SIRA-approved installer where the premises fall under SIRA (Dubai).",
           "follow_up_if": "A shop in a mall or a unit in a managed tower: ask whether management requires an approved contractor or a permit, and the hours when work is allowed.",

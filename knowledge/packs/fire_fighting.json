@@ -124,7 +124,7 @@
         "Scope: supply/install/test/commission/as-built/training",
         "Authority approvals and fees included or excluded",
         "Warranty and AMC period",
-        "existing base-building fire alarm panel to connect to: make, model and spare capacity",
+        "base-building panel to connect to (make, model, spare loop capacity)",
         "special risk rooms: server, UPS, electrical or archive rooms",
         "site location and emirate",
         "new or existing building",
@@ -222,7 +222,7 @@
           "blocking": false
         },
         {
-          "spec": "existing base-building fire alarm panel to connect to: make, model and spare capacity",
+          "spec": "base-building panel to connect to (make, model, spare loop capacity)",
           "why_needed_to_price": "An office or shop in a tower usually ties into the building's main addressable panel; the tie-in needs the same make or a compatible interface and often the building's own fire contractor, which changes the device list and the price.",
           "uae_options": "Standalone panel; a sub-panel networked to the building panel; devices added to the building's loops by the building's registered fire contractor.",
           "follow_up_if": "A unit in a tower or mall: ask the make of the main panel and who the building's fire contractor is.",
