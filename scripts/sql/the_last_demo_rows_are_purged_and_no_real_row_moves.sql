@@ -292,11 +292,17 @@ select c.conrelid::regclass as child, a.attname::text as col,
                    then format(' and x.id::text not in (select id from _l5_demo where rel = %L::regclass)', c.conrelid::regclass::text) else '' end) as q_from
   from pg_constraint c join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
  where c.contype = 'f' and cardinality(c.conkey) = 1 and c.confdeltype in ('n', 'd') and c.confrelid in (select distinct rel from _l5_demo);
+-- the keys travel through query_to_xml as hex of a jsonb array ([0-9a-f] only, so no value can make the XML invalid) and come
+-- back as a text[] through jsonb_array_elements_text; no row gives null, as before. (17 Nov 21:17:57Z: the apply of bfa7231a1
+-- failed with 2200M because the keys were joined with chr(31), which XML 1.0 forbids; nothing was deleted.)
 create temp table _l5_setnull on commit drop as
 select z.child, z.col, z.pk,
        (xpath('/row/n/text()', query_to_xml('select count(*) as n ' || z.q_from, false, true, '')))[1]::text::bigint as n,
-       case when z.pk is null then null else string_to_array((xpath('/row/i/text()',
-         query_to_xml(format('select string_agg(x.%I::text, %L) as i ', z.pk, chr(31)) || z.q_from, false, true, '')))[1]::text, chr(31)) end as ids
+       case when z.pk is null then null else (
+         select array(select jsonb_array_elements_text(convert_from(decode(h.h, 'hex'), 'UTF8')::jsonb))
+           from (select (xpath('/row/h/text()', query_to_xml(format('select encode(convert_to(jsonb_agg(x.%I::text)::text, %L), %L) as h ',
+                   z.pk, 'UTF8', 'hex') || z.q_from, false, true, '')))[1]::text as h) h
+          where h.h is not null) end as ids
   from _l5_setnull_q z;
 
 -- THE FOUR TABLES THE ROUTINE NEVER REACHES (17 Nov, header): their totals and the rehearsal tags, read BEFORE the purge
