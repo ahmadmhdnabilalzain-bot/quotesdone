@@ -106,8 +106,13 @@ type SetBoq = { boq: TakeoffLine[]; missing_info: string[] } & Record<string, un
 /** The first call's BOQ with the measured lengths merged in: measured sizes replace the "to be measured"
  *  lines they cover; `null` (the lengths call failed or was killed) keeps every line and says so. */
 export function mergeLengths<T extends SetBoq>(set: T, lengths: { lines: TakeoffLine[]; dense: string[] } | null): T {
+  // A LINE WITH NO TYPE IS THE MODEL'S (17 Nov 2026, paid proof 623d9200). SELECT, production agent_runs 17:20:57 and 17:22:38 UTC:
+  // every merge answered HTTP 500 "Cannot read properties of undefined (reading 'startsWith')", so the 26x18 duct reached the
+  // inquiry with no length. The take-off customer_api sends is the model's reading merged with code's (cross_check.ts), and a
+  // line only the model read carries no `type` key; one with no quantity met `.startsWith` on an undefined type. Read through `ty`.
+  const ty = (l: { type?: unknown }) => (typeof l?.type === 'string' ? l.type : '');
   const missing = set.missing_info.filter((m) => m !== NO_LENGTHS_NOTE && m !== PLAN_LENGTHS_NOTE);
-  const asked = set.boq.filter((l) => /^(duct|pipe):/.test(l.type) && l.qty === null);
+  const asked = set.boq.filter((l) => /^(duct|pipe):/.test(ty(l)) && l.qty === null);
   if (!lengths) {
     return asked.length ? { ...set, boq: lengthsToConfirm(set.boq), missing_info: [LENGTHS_FAILED_NOTE, ...missing] } : set;
   }
@@ -119,11 +124,11 @@ export function mergeLengths<T extends SetBoq>(set: T, lengths: { lines: Takeoff
   // ductwork 26x18 16,433.2 m", so the size read as unmeasured. A line with no type of its own (the model's) that names a
   // measured duct or pipe size is that measurement; it goes, and the measured line stands.
   const sizes = lengths.lines.map((l) => l.type.replace(/^(duct|pipe):/, '').replace(/ \(1" liner\)$/, '').toLowerCase()).filter((z) => /\d/.test(z));
-  const namesMeasured = (l: TakeoffLine) => !l.type && /duct|pipe/i.test(`${l.description} ${l.item}`) && sizes.some((z) => {
+  const namesMeasured = (l: TakeoffLine) => !ty(l) && /duct|pipe/i.test(`${l.description} ${l.item}`) && sizes.some((z) => {
     const m = /^(\d+)x(\d+)$/.exec(z);
     return m ? new RegExp(`(^|[^\\d])${m[1]}\\s*[x×]\\s*${m[2]}([^\\d]|$)`, 'i').test(`${l.description} ${l.item}`) : false;
   });
-  const keep = set.boq.filter((l) => !namesMeasured(l) && !(l.qty === null && ((anyDuct && (l.type === 'duct:rectangular' || l.type === 'duct:round')) || (l.type.startsWith('pipe:') && got.has(l.type)))));
-  const still = keep.some((l) => /^(duct|pipe):/.test(l.type) && l.qty === null);
+  const keep = set.boq.filter((l) => !namesMeasured(l) && !(l.qty === null && ((anyDuct && (ty(l) === 'duct:rectangular' || ty(l) === 'duct:round')) || (ty(l).startsWith('pipe:') && got.has(ty(l))))));
+  const still = keep.some((l) => /^(duct|pipe):/.test(ty(l)) && l.qty === null);
   return { ...set, boq: lengthsToConfirm([...keep, ...lengths.lines]), missing_info: [still ? NO_LENGTHS_NOTE : PLAN_LENGTHS_NOTE, ...(lengths.dense.length ? [DENSE_NOTE(lengths.dense.join(', '), MAX_MEASURED_LINES.toLocaleString('en'))] : []), ...missing] };
 }
