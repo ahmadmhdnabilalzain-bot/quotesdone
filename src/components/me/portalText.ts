@@ -625,6 +625,9 @@ const CODE_KEY = {
   // customer can act on, not a blank screen or a raw parser error.
   resend_too_soon: 'err_resend_soon',
   qd_timeout: 'err_timeout', qd_network: 'err_network', qd_bad_response: 'err_generic',
+  // kyc, 17 Nov 2026 (security audit finding 5): a limiter that cannot answer (503) and a guess that lost the race for
+  // its attempt (409) are "try again", never the 'err_incorrect' fallback the e-mail verify step would otherwise show.
+  unexpected_error: 'err_generic', verify_failed: 'err_generic',
 };
 const MSG_KEY = [
   [/do-not-send/i, 'err_suppressed'], [/create an account from a mobile/i, 'signup_email_only'], [/not linked|No account is registered/i, 'err_mobile_unknown'],
