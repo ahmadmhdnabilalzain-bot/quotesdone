@@ -69,8 +69,8 @@ Deno.test("the reviewer's set: an enlarged plan of the main plan's area is not c
     sheet('DRAWING INDEX', 'M0.0', '', 8, idx(1500, 'M1.0', 'FIRST FLOOR PLAN') + idx(1480, 'M1.2', 'DUCT DETAILS') + idx(1460, 'M1.3', 'SECOND FLOOR PLAN')),
   ]));
   const d = line(ls, 'duct:26x18');
-  assertEquals([d.qty, d.qty_status, d.sheets], [30.5, 'read', ['M1.0', 'M1.3']], 'the first and second floors; the enlargement is the first floor again');
-  assert(!flagged(d), 'certain, so not flagged');
+  assertEquals([d.qty, d.qty_status, d.sheets], [30.5, 'to_confirm', ['M1.0', 'M1.3']], 'the first and second floors; the enlargement is the first floor again');
+  assert(flagged(d), 'not counted again, and open: by size alone it cannot be told from a room the main plan leaves empty');
   assert(/M1\.1 is an enlarged plan .* not counted again/.test(d.basis), d.basis);
 });
 
@@ -80,13 +80,13 @@ Deno.test('an enlarged plan the drawing index names, or another sheet calls enla
     sheet('MECHANICAL PLAN', 'M1.0', duct(200, 600, 50, 26, 18), 8, idx(1500, 'M4.1', 'ENLARGED PLAN - PLANT ROOM')),
     sheet('PLANT ROOM PLAN', 'M4.1', duct(200, 600, 50, 26, 18)),
   ])), 'duct:26x18');
-  assertEquals([d.qty, d.sheets, flagged(d)], [15.2, ['M1.0'], false], 'the drawing index');
+  assertEquals([d.qty, d.sheets, flagged(d)], [15.2, ['M1.0'], true], 'the drawing index');
   // The main plan says "SEE ENLARGED PLAN M4.1"; M4.1 draws the same 50 ft run at 1/4".
   d = line(await lengths(setPdf([
     sheet('MECHANICAL PLAN', 'M1.0', duct(200, 600, 50, 26, 18), 8, t(400, 700, 8, 'SEE ENLARGED PLAN M4.1')),
     sheet('MECHANICAL ROOM PLAN', 'M4.1', duct(200, 600, 50, 26, 18, 4), 4),
   ])), 'duct:26x18');
-  assertEquals([d.qty, d.sheets, flagged(d)], [15.2, ['M1.0'], false], 'named on the main plan');
+  assertEquals([d.qty, d.sheets, flagged(d)], [15.2, ['M1.0'], true], 'named on the main plan');
   // A PART PLAN drawn at a larger scale than the plans, carrying only what the main plan carries.
   d = line(await lengths(setPdf([
     sheet('GROUND FLOOR PLAN', 'M1.0', duct(200, 600, 50, 26, 18)),
@@ -170,7 +170,7 @@ Deno.test('an enlarged plan is dropped only when ONE plan - the one that names i
     sheet('SECOND FLOOR PLAN', 'M1.1', duct(200, 600, 50, 26, 18)),
     sheet('ENLARGED PLANT ROOM PLAN', 'M4.1', duct(200, 600, 20, 26, 18, 4), 4, t(400, 300, 8, 'ENLARGED PLAN OF AREA SHOWN ON M1.0')),
   ])), 'duct:26x18');
-  assertEquals([d.qty, d.sheets, flagged(d)], [30.5, ['M1.0', 'M1.1'], false], 'both floors counted, the enlargement once');
+  assertEquals([d.qty, d.sheets, flagged(d)], [30.5, ['M1.0', 'M1.1'], true], 'both floors counted, the enlargement once, open');
   // More run than any one plan carries is not a repeat of one area.
   d = line(await lengths(setPdf([
     sheet('FIRST FLOOR PLAN', 'M1.0', duct(200, 600, 20, 26, 18)),
@@ -178,6 +178,24 @@ Deno.test('an enlarged plan is dropped only when ONE plan - the one that names i
     sheet('ENLARGED PLAN - CORE', 'M4.1', duct(200, 600, 30, 26, 18, 4), 4),
   ])), 'duct:26x18');
   assertEquals([d.qty, d.qty_status, flagged(d)], [21.3, 'to_confirm', true]);
+});
+
+Deno.test('second review (17 Nov): a dropped enlargement keeps its line open; a floor plan that also carries enlargements is a floor', async () => {
+  // M1.0 leaves the plant room to M4.1 but runs 26x18 elsewhere: by size M4.1 looks repeated. 15.2 m is sent, never as 'read'.
+  let d = line(await lengths(setPdf([
+    sheet('FIRST FLOOR PLAN', 'M1.0', duct(200, 600, 50, 26, 18), 8, t(400, 700, 8, 'SEE ENLARGED PLAN M4.1')),
+    sheet('ENLARGED PLANT ROOM PLAN', 'M4.1', duct(200, 600, 20, 26, 18, 4), 4),
+  ])), 'duct:26x18');
+  assertEquals([d.qty, d.qty_status, flagged(d)], [15.2, 'to_confirm', true]);
+  // Three identical typical floors; the third's title also names its toilet enlargements. Was 30.5 m 'read' (a floor lost).
+  for (const extra of ['', idx(1500, 'M1.3', 'THIRD FLOOR PLAN AND ENLARGED PLANS')]) {
+    d = line(await lengths(setPdf([
+      sheet('FIRST FLOOR HVAC PLAN', 'M1.1', duct(200, 600, 50, 26, 18), 8, extra),
+      sheet('SECOND FLOOR HVAC PLAN', 'M1.2', duct(200, 600, 50, 26, 18)),
+      sheet(extra ? 'THIRD FLOOR HVAC PLAN' : 'THIRD FLOOR HVAC PLAN & ENLARGED TOILET PLANS', 'M1.3', duct(200, 600, 50, 26, 18)),
+    ])), 'duct:26x18');
+    assertEquals([d.qty, d.qty_status, d.sheets.length, flagged(d)], [45.7, 'read', 3, false], extra ? 'the index' : 'its own title');
+  }
 });
 
 Deno.test('an Arabic title says enlarged too (مخطط مكبّر)', () => {

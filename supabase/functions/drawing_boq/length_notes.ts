@@ -28,5 +28,5 @@ export function lengthsToConfirm<L extends Record<string, any>>(boq: L[]): L[] {
 
 // AN ENLARGED PLAN IS NOT MEASURED TWICE (17 Nov 2026, sales_engineer; drawing_set/enlarged.ts). A length that counts a sheet
 // which may be an enlarged plan of an area already measured says so on its line, and is open, never sent as certain.
-export const LENGTH_MAY_INCLUDE_ENLARGED = 'may include an enlarged plan — please confirm';
-export const LENGTH_MAY_INCLUDE_ENLARGED_AR = 'قد يشمل مخططًا مكبّرًا — يُرجى التأكيد';
+export const LENGTH_MAY_INCLUDE_ENLARGED = 'an enlarged plan in the set may repeat or add to this length — please confirm';
+export const LENGTH_MAY_INCLUDE_ENLARGED_AR = 'قد يكرّر مخطط مكبّر في المجموعة هذا الطول أو يضيف إليه — يُرجى التأكيد';
