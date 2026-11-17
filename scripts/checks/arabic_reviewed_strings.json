@@ -3712,6 +3712,10 @@
   "aed32c1fca36",
   "aff5b715b38a"
  ],
+ "scripts/sql/the_referral_thanks_is_said_in_the_formal_plural.sql": [
+  "3e9076cafc48",
+  "ac692c85b745"
+ ],
  "scripts/sql/the_registered_language_follows_every_message_until_the_reveal.sql": [
   "34d5d7e54ec8",
   "9d231fc92d97"

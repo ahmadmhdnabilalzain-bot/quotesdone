@@ -130,10 +130,6 @@ for (const [f, why] of PENDING) {
   let ref = 'HEAD';
   try { git('rev-parse', '--verify', '--quiet', 'origin/main'); ref = 'origin/main'; } catch { /* no remote ref */ }
   const onPr = process.env.GITHUB_EVENT_NAME === 'pull_request';
-  // OFFLINE (17 Nov 2026): a stale note is a debt of the APPLY, which is a production step; the local gate runs this engine
-  // as its 'manifest' parity step, with the token and QD_REQUIRE_GIT_HISTORY=1, and there it is counted. A run with neither
-  // (npm-test's offline canonical_routines.test.mjs, an --offline gate) prints it, named, and does not count it.
-  const offline = !process.env.SUPABASE_ACCESS_TOKEN && !existsSync(SUPABASE_TOKEN_FILE) && process.env.QD_REQUIRE_GIT_HISTORY !== '1';
   // A note that says the file is never applied (A PROBE, or A DRY RUN of a write, 15 Nov 2026) is not a debt.
   const stale = [...PENDING].filter(([f, why]) => !f.endsWith('_probe.sql') && !/^\s*A (?:PROBE|DRY RUN)\b/.test(why));
   for (const [f] of stale) {
@@ -151,9 +147,7 @@ for (const [f, why] of PENDING) {
     if ((Date.now() - Date.parse(when)) / 36e5 <= 24) continue;
     const pr = (subject.match(/\(#(\d+)\)/) || [])[1];
     const line = `PENDING OVER 24 H ON MAIN  ${f} — note reached main ${when} by ${pr ? `PR #${pr}` : `"${subject.slice(0, 80)}"`}; apply it with its MANIFEST line or delete it`;
-    if (onPr) console.log(`   ${line}  (reported, not counted, on a pull request)`);
-    else if (offline) console.log(`   ${line}  (reported, not counted, offline: applying it is a production step, counted by the manifest parity step)`);
-    else GAPS.push(line);
+    if (onPr) console.log(`   ${line}  (reported, not counted, on a pull request)`); else GAPS.push(line);
   }
 }
 

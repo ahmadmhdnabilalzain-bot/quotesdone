@@ -53,6 +53,11 @@ export function handoffKinds() {
     // only inside the VALUES of an insert into seat_handoff_kind (a call like fn_seat_duty_cross_review('x.y', 'ceo', ...) is not one)
     for (const ins of t.matchAll(/insert into public\.seat_handoff_kind[^;]*?values([\s\S]*?);/gi))
       for (const m of ins[1].matchAll(/\(\s*'([a-z_]+\.[a-z_.]+)',\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'/g)) if (SEATS.includes(m[2]) && SEATS.includes(m[3])) out.push([m[1], m[2], m[3]]);
+    // ...and `select '<type>', '<from>', s, ... from unnest(array['<to>', ...]) s` (info_and_management_mail_is_read_before_it_is_
+    // answered.sql registers mail.routed so; read on review 17 Nov 2026, it had no subscription row here or on production).
+    // The pool file's own kinds of this shape (ceo.order) are its seed's, written by its own rule.
+    if ('scripts/sql/' + f !== FILE) for (const ins of t.matchAll(/insert into public\.seat_handoff_kind \([^)]*\)\s*select\s+'([a-z_]+\.[a-z_.]+)',\s*'([a-z_]+)',\s*(\w+),(?:(?!\bon conflict\b|\bunion\b)[\s\S])*?from\s+unnest\(array\[([^\]]*)\]\)\s+(\w+)/gi))
+      if (ins[3] === ins[5]) for (const to of [...ins[4].matchAll(/'([a-z_]+)'/g)].map((m) => m[1])) if (SEATS.includes(ins[2]) && SEATS.includes(to)) out.push([ins[1], ins[2], to]);
   }
   return out;
 }

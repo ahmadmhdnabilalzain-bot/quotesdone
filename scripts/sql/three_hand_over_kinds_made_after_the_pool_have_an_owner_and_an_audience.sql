@@ -7,6 +7,8 @@
 --   partnership.proposed     customer_support -> ceo             a_partnership_email_reaches_the_ceo_with_the_senders_facts.sql
 --   supplier.reply_overdue   sales_engineer   -> ceo             every_interested_supplier_reply_is_answered_the_same_day_...sql
 --   comparison.points        sales_engineer   -> sales_engineer  the_comparison_hands_its_open_points_to_the_sales_engineer.sql
+--   mail.routed              customer_support -> accountant, it_engineer, marketing, ceo  info_and_management_mail_is_read_before_it_is_answered.sql
+--                            (a fourth kind, added on review 17 Nov: registered by insert ... select, so the check missed it)
 -- 0 events of these kinds so far, so nothing was missed yet. Each file registered its kind in seat_handoff_kind after the pool
 -- file (every_seat_reads_one_pool_and_every_hand_over_comes_back.sql) seeded event_subscription, and none added its rows; the
 -- check every_seat_reads_one_pool failed on exactly these twelve types, unseen because the gate skips npm-test.
@@ -41,7 +43,14 @@ insert into public.event_subscription as s (event_type, agent_key, owns, deliver
   ('handoff.comparison.points.waiting', 'sales_engineer', true, 'none', 'the one seat that sends and answers comparison.points; nobody else: it wrote this answer itself'),
   ('handoff.comparison.points.done', 'sales_engineer', true, 'none', 'the one seat that sends and answers comparison.points; nobody else: it wrote this answer itself'),
   ('handoff.comparison.points.failed', 'sales_engineer', true, 'digest', 'the one seat that sends comparison.points; a failed hand-over is the sender''s to re-send'),
-  ('handoff.comparison.points.failed', 'it_engineer', false, 'digest', 'a failed hand-over is a fault IT watches')
+  ('handoff.comparison.points.failed', 'it_engineer', false, 'digest', 'a failed hand-over is a fault IT watches'),
+  -- review of 17 Nov 2026: mail.routed (info_and_management_mail_is_read_before_it_is_answered.sql) is registered by
+  -- insert ... select from unnest, which the check did not read; production had no row for it either (SELECT 17 Nov)
+  ('handoff.mail.routed.sent', 'customer_support', true, 'none', 'the one seat that sends mail.routed (to the accountant, IT, marketing or the CEO); nobody else: the receiving seat holds it as a hand-over in its own queue'),
+  ('handoff.mail.routed.waiting', 'customer_support', true, 'none', 'the one seat that sends mail.routed (to the accountant, IT, marketing or the CEO); nobody else: the receiving seat holds it as a hand-over in its own queue'),
+  ('handoff.mail.routed.done', 'customer_support', true, 'none', 'the one seat that sends mail.routed (to the accountant, IT, marketing or the CEO); nobody else: the receiving seat holds it as a hand-over in its own queue'),
+  ('handoff.mail.routed.failed', 'customer_support', true, 'digest', 'the one seat that sends mail.routed; a failed hand-over is the sender''s to re-send'),
+  ('handoff.mail.routed.failed', 'it_engineer', false, 'digest', 'a failed hand-over is a fault IT watches')
 on conflict (agent_key, event_type) do update
    set owns = excluded.owns, delivery = excluded.delivery, reason = excluded.reason
  where s.edited_by is null;
