@@ -9,7 +9,7 @@ import { pdfIdentityTerms } from '../../_shared/drawing_identity_gate.ts';
 import { sanitizeAndScan } from '../../_shared/malware.ts';
 import { storedAt } from '../../_shared/stored_at.ts';
 import { SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
-import { PLAN_BUDGET_MS } from '../../_shared/drawing_plan.ts';
+import { PLAN_BUDGET_MS, planBodies } from '../../_shared/drawing_plan.ts';
 
 // The keyword map (./keywords.ts, KW + detect()) is DELETED (23 Sep 2026, founder_instruction 886-903): a trade is
 // reasoned among the real options (_shared/reasoned_trades.ts), never read off words.
@@ -139,14 +139,16 @@ export async function redactCad(o: { secret: string | undefined; b64: string; cu
 // are not read here). Each call waits at most 30 s and never past the analysis's answer budget (`until`, epoch ms); a
 // refusal, a 546 or a timeout is no answer (null), and readPdfPlan then gives the whole read up.
 export function pdfPlanCall(secret: string | undefined, b64: string, until: number): (b: Record<string, unknown>) => Promise<unknown> {
-  const original = b64.replace(/^data:[^;]+;base64,/, '');
+  // The original is serialised ONCE for the whole read (planBodies): each of the ~2N calls sends its small head and the same
+  // shared bytes, the wire body byte for byte what JSON.stringify({ __secret, ...b, original_b64 }) gave.
+  const bodyOf = planBodies(secret, b64.replace(/^data:[^;]+;base64,/, ''));
   // No call starts, and none waits, past the read's own budget (PLAN_BUDGET_MS) or the answer budget, whichever is first.
   const stop = Math.min(until, Date.now() + PLAN_BUDGET_MS);
   return async (b) => {
     const left = stop - Date.now();
     if (left < 1_000) return null;
     const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` },
-      body: JSON.stringify({ __secret: secret, ...b, original_b64: original }), signal: AbortSignal.timeout(Math.min(30_000, left)) });
+      body: bodyOf(b), signal: AbortSignal.timeout(Math.min(30_000, left)) });
     if (!r.ok) { await r.body?.cancel(); return null; }
     return await r.json().catch(() => null);
   };

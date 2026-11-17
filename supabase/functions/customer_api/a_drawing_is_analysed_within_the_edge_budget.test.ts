@@ -23,7 +23,11 @@ Deno.test('the read goes to drawing_redact page by page, and its answer is used 
   assertMatch(analyze, /serverBoxes = supplierBoxes\(tb, manualBoxes, images\.length\); floorSeeds = \[\.\.\.new Set\(\[\.\.\.floorSeeds, \.\.\.tb\.setSeeds\]\)\];/);
   assertMatch(analyze, /\} else serverBoxes = null;/, 'no answer is the old parse failure: no server boxes');
   const lib = code(new URL('./lib/drawings.ts', import.meta.url));
-  assertMatch(lib, /export function pdfPlanCall\([^)]*\)[\s\S]{0,400}functions\/v1\/drawing_redact/);
+  assertMatch(lib, /export function pdfPlanCall\([^)]*\)[\s\S]{0,800}functions\/v1\/drawing_redact/);
+  // the original is serialised once per read (_shared/drawing_plan.ts planBodies), never once per call
+  const call = lib.slice(lib.indexOf('export function pdfPlanCall'), lib.indexOf('export async function redactFile'));
+  assertMatch(call, /const bodyOf = planBodies\(secret, b64\.replace\([^\n]*\)\);[\s\S]*return async \(b\) => \{[\s\S]*body: bodyOf\(b\),/);
+  assert(!/JSON\.stringify\([^)]*original/.test(call), 'pdfPlanCall serialises the original per call again');
   const red = code(new URL('../drawing_redact/index.ts', import.meta.url));
   assertMatch(red, /if \(body\.mode === 'plan'\) \{[\s\S]{0,900}planBoxes\(bytes, from, to,[\s\S]{0,200}planStrips\(bytes, from, to\)/);
   // the plan mode sits behind the same internal-credential gate as every other mode

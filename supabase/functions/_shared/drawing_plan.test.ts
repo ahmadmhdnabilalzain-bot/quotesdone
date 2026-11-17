@@ -5,7 +5,7 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1';
 import { linesFromRuns, pdfPages } from './pdf_text_positions.ts';
 import { seedTerms, titleBlockBoxes } from './anonymise.ts';
-import { mergePlan, planBoxes, planStrips, readPdfPlan, type PlanCall } from './drawing_plan.ts';
+import { mergePlan, planBodies, planBoxes, planStrips, readPdfPlan, type PlanCall } from './drawing_plan.ts';
 
 const SEEDS = seedTerms({ name: 'ZZ Demo Drawing Customer', email: 'qd-zz-demo@example.invalid', phone: '+971500000123', extra: ['ZZ DEMO mechanical set.pdf'] });
 const SET8 = new URL('./testdata/zz_demo_mechanical_set_8_sheets.pdf', import.meta.url);
@@ -100,4 +100,34 @@ Deno.test('setOf never boxes a page with fewer seeds than the page alone (an emp
   const pp = await pdfPages(await Deno.readFile(SET8), [0, 1], { layers: false });
   const alone = titleBlockBoxes([pp[0]], SEEDS), empty = titleBlockBoxes([pp[0]], SEEDS, []);
   assertEquals(empty.boxes, alone.boxes); assertEquals(empty.setSeeds, alone.setSeeds);
+});
+
+// THE ORIGINAL IS SERIALISED ONCE PER READ (planBodies). The wire body is byte for byte the old JSON.stringify, and what a
+// call costs does not grow with the file: a 32 MB original costs a call what a 1 KB one does.
+const bytesOf = async (b: Blob) => new Uint8Array(await b.arrayBuffer());
+Deno.test('a plan body is byte for byte the JSON the per-call stringify sent', async () => {
+  const original = 'JVBERi0xLjUK' + 'QUJD'.repeat(500);
+  for (const secret of ['zz-demo-secret', undefined]) {
+    const bodyOf = planBodies(secret, original);
+    for (const b of [{ mode: 'plan', step: 'strips', from: 0, to: 1 }, { mode: 'plan', step: 'boxes', from: 3, to: 4, seed_terms: ['zz demo', 'qd-zz@example.invalid', 'غرفة "x"'], set_seeds: [] }, {}]) {
+      const want = new TextEncoder().encode(JSON.stringify({ __secret: secret, ...b, original_b64: original }));
+      assertEquals(await bytesOf(bodyOf(b)), want, JSON.stringify(b));
+    }
+    // a caller's own original_b64 never replaces the shared one
+    assertEquals(JSON.parse(await bodyOf({ mode: 'plan', original_b64: 'other' }).text()).original_b64, original);
+  }
+});
+
+Deno.test('a plan call\'s body does not cost more for a bigger file (the original is encoded once, not per call)', () => {
+  const small = 'QUJD'.repeat(256), big = 'QUJD'.repeat(8 * 1024 * 1024); // 1 KB and 32 MB of base64
+  const perCall = (original: string) => {
+    const bodyOf = planBodies('zz-demo-secret', original); // the one encode, paid once per read
+    bodyOf({ mode: 'plan', step: 'strips', from: 0, to: 1 });
+    const t0 = performance.now();
+    for (let i = 0; i < 40; i++) bodyOf({ mode: 'plan', step: i % 2 ? 'boxes' : 'strips', from: i, to: i + 1, seed_terms: ['zz demo'], set_seeds: ['zz demo consulting'] });
+    return (performance.now() - t0) / 40;
+  };
+  const s = Math.min(perCall(small), perCall(small)), g = Math.min(perCall(big), perCall(big));
+  // JSON.stringify + encode of 32 MB is tens of ms a call; a shared Blob part is well under one.
+  assert(g < s + 2, `per call: ${g.toFixed(3)} ms for 32 MB vs ${s.toFixed(3)} ms for 1 KB`);
 });

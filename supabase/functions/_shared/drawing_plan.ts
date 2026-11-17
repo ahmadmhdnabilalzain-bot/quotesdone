@@ -98,6 +98,25 @@ export function mergePlan(strips: StripsPart[], boxes: BoxesPart[], seeds: strin
 export type PlanCall = (body: Record<string, unknown>) => Promise<unknown>;
 
 /**
+ * THE ORIGINAL IS SERIALISED ONCE PER READ (17 Nov 2026, review of the page-by-page read). Every 'plan' call carries the
+ * whole original, and JSON.stringify({ __secret, ...b, original_b64 }) per call re-serialised and UTF-8 encoded it each
+ * time: measured by the review at ~55 ms per 32 MB of base64 per call, so a 24 MB, 20-page PDF (~41 calls) spent ~2 s of
+ * customer_api's CPU on that alone. Here `,"original_b64":"…"}` is encoded to bytes once, wrapped in one Blob, and each
+ * call's body is a Blob of its own small JSON head and that shared Blob (a Blob part is shared, not copied). The bytes on
+ * the wire are exactly JSON.stringify({ __secret: secret, ...b, original_b64: original }) for every `b` without its own
+ * original_b64 (one is dropped, so the shared copy is always the one sent).
+ */
+export function planBodies(secret: string | undefined, original: string): (b: Record<string, unknown>) => Blob {
+  const tail = new Blob([new TextEncoder().encode(`"original_b64":${JSON.stringify(original)}}`)]);
+  return (b) => {
+    const { original_b64: _drop, ...rest } = b;
+    const head = JSON.stringify({ __secret: secret, ...rest });
+    // `{...}` -> `{...,` (or `{` when the head is empty) and the shared `"original_b64":"…"}` after it.
+    return new Blob([head === '{}' ? '{' : head.slice(0, -1) + ',', tail], { type: 'application/json' });
+  };
+}
+
+/**
  * The whole read, through `call` (one drawing_redact 'plan' request; null or a throw = no answer). null when any part did
  * not answer in shape: the caller then does what the old in-request parse did when it threw (no server boxes).
  */
