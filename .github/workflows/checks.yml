@@ -145,6 +145,13 @@ jobs:
           deno test --no-lock --node-modules-dir=auto --allow-read=.
           --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-net=deno.land,esm.sh
           supabase/functions/drawing_redact/a_sheet_is_redacted_within_the_edge_budget.check.ts
+      # 17 NOV 2026 — A DEAD REDACTION WORKER IS ASKED AGAIN (paid proof 623d9200). A paint or tile crop answering 546 is
+      # asked again; one that never comes back still holds the page. Same network need as the step above.
+      - name: A dead redaction worker is asked again, and a page is never published on one
+        run: >-
+          deno test --no-lock --node-modules-dir=auto --allow-read=.
+          --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-net=deno.land,esm.sh
+          supabase/functions/drawing_redact/a_dead_worker_is_asked_again.check.ts
       # 17 NOV 2026 — EVERY DUCT-LENGTH REQUEST IS MEASURED WITHIN THE EDGE CPU BUDGET. Each drawing_boq 'lengths' request
       # customer_api makes for the 8-sheet ZZ DEMO set runs the real handler in a fresh process of its own (--allow-run).
       - name: Every duct-length request is measured within the edge CPU budget

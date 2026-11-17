@@ -96,6 +96,9 @@ const STEPS = [
   // 17 Nov 2026: one 2600 px sheet through the real drawing_redact handler, each worker held to a CPU budget inside the edge's
   // (the live set died "CPU Time exceeded" on every sheet). A CPU budget: run alone of other heavy steps, like deno-suite.
   ['redact-budget', 'checks', 'a drawing sheet is redacted within the edge CPU budget', `${DENO} --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-net=deno.land,esm.sh supabase/functions/drawing_redact/a_sheet_is_redacted_within_the_edge_budget.check.ts`, { heavy: true, alone: true, hosts: ['deno.land', 'esm.sh'] }],
+  // 17 Nov 2026 (paid proof 623d9200): a paint or tile worker that dies (546: concurrent requests share an isolate's CPU cap) is
+  // asked again, and one that never comes back still holds the page. No CPU is measured, so not alone; imagescript needs deno.land.
+  ['redact-dead-worker', 'checks', 'a dead redaction worker is asked again, and a page is never published on one', `${DENO} --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-net=deno.land,esm.sh supabase/functions/drawing_redact/a_dead_worker_is_asked_again.check.ts`, { heavy: true, hosts: ['deno.land', 'esm.sh'] }],
   // 17 Nov 2026: every drawing_boq 'lengths' request customer_api makes (a sheet each, then the merge) through the real handler,
   // each in a fresh process of its own, held to a CPU budget inside the edge's (the whole-set request answered 500 on
   // production and left the duct without metres). A CPU budget: run alone of other heavy steps, like redact-budget.
