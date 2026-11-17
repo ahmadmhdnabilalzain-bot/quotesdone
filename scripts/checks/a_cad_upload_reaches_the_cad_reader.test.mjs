@@ -79,8 +79,10 @@ test('the queue has a worker, a queued job is held for the sales_engineer, and t
   assert.match(status, /held_for: 'sales_engineer'/);
 });
 
+// 17 Nov 2026: the lengths are read sheet by sheet (drawing_boq/length_read.ts); ANY call that fails twice - a 500 as much
+// as a 546 (paid proof 14173f94: a 500 left the duct blank) - gives the read up, and the CAD worker is queued.
 test('a PDF set whose lengths call dies is queued with its counted take-off, and the worker merges them', () => {
-  assert.match(block, /lr\.status === 546[\s\S]{0,200}queueCadRead\([\s\S]{0,300}why: 'pdf_lengths_worker_died', boqIn: boqOut/);
+  assert.match(block, /const measured = await readLengths\([\s\S]{0,300}if \(measured\) Object\.assign\(boqOut, measured\);\s*else \{[\s\S]{0,200}queueCadRead\([\s\S]{0,300}why: 'pdf_lengths_worker_died', boqIn: boqOut/);
   assert.match(workerTs, /job\.boq_in[\s\S]{0,200}lengthsInto\(job\.boq_in, bytes\)/);
   assert.match(portal, /res\.note === 'lengths_queued'[\s\S]{0,80}pollCad\(res, file\.name, source, true\)/);
 });
