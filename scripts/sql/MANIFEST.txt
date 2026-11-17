@@ -2448,3 +2448,13 @@ scripts/sql/info_and_management_mail_is_read_before_it_is_answered.sql
 scripts/sql/a_stranger_writing_to_info_or_management_reaches_the_seats.sql
 scripts/sql/a_stop_from_the_number_a_supplier_opted_in_from_opts_that_supplier_out.sql
 scripts/sql/every_supplier_invitation_offers_whatsapp_and_a_model_read_yes_opens_job_requests_there.sql
+scripts/sql/the_ceos_weekly_plan_is_retried_and_fits_the_gateway_deadline.sql
+scripts/sql/the_company_runs_its_own_weekly_seat_exam.sql
+scripts/sql/a_cad_drawing_left_unread_is_an_alarm_whether_or_not_anyone_is_watching.sql
+scripts/sql/a_mashreq_fee_the_bank_has_not_taken_is_owed_not_paid_and_the_1_august_fee_is_booked.sql
+
+# 17 Nov 2026 04:33 UTC (it_engineer): applied; PROBE FAILED on 13 Nov only. Three minutes earlier remediation
+# handoff 407910 had requeued the 343 still-waiting 13 Nov pages to 'pending', which its 'waiting_source' update
+# does not read; every 12, 14 and 15 Nov page closed. The 13 Nov pages close in
+# the_13_november_export_pages_the_refile_picked_up_close_as_abandoned_too.sql.
+scripts/sql/the_export_pages_never_written_on_12_to_15_november_close_as_abandoned_with_their_reason.sql

@@ -1,5 +1,0 @@
-Committed, not applied (it_engineer, L7_JOBS, 16 Nov 2026). Applied by the release operator after the merge, AFTER deploying it_engineer
-(seat_exam.ts + the 'seat_exam' action): node scripts/apply_sql.mjs scripts/sql/the_company_runs_its_own_weekly_seat_exam.sql --apply --ddl,
-then delete this note and append the file to the END of MANIFEST.txt in the same commit. The first tick after the apply opens the run of
-the current week (Sunday 15 Nov) and spends at most AED 10 (decision_policy seat_exam_weekly). Proved locally: the verdict row PROBE OK and
-the probe's CHK<<PROBE OK ...>> twice (Postgres 16 from the mirror).
