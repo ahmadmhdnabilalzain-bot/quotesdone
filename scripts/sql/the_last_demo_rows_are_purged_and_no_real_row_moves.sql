@@ -316,6 +316,35 @@ union all select 'public.rehearsal_spend_reservation', (select count(*) from pub
 union all select 'public.support_reply_readability', (select count(*) from public.support_reply_readability)
 union all select 'public.accountant_reveal_reconcile_item', (select count(*) from public.accountant_reveal_reconcile_item);
 
+-- THE REVIEW REQUESTS OF A DEMO QUOTE REVIEW (17 Nov 21:58:20Z: the apply of 8712fe916 refused at guard e with
+-- 'quote_review_request (unlinked asked_message_id)=35, (unlinked answered_message_id)=35'). All 35 rows on production belong to
+-- the three quote reviews of the ZZ DEMO founderdemo supplier, lead 126512 (qd-founderdemo-sup0@example.invalid), on demo
+-- inquiries 8b287960, a179ea8d, d958e1ea (18-21 Sep). fn_demo_purge_walk walks quote_reviews' children in catalogue order:
+-- quote_review_messages first, which nulls the requests' message links and counts them 'unlinked', then quote_review_request,
+-- which it deletes by the CASCADE from the review. The rows were never going to survive, but guard e cannot tell. So they are
+-- deleted here first, by the walk's own rule (a review of a demo inquiry or of a demo lead), never one opened at or after the
+-- cutoff; guard a counts them with what the routine reports, and after the purge none of their reviews may still exist (a
+-- request of a review the walk kept would be a real row deleted).
+create temp table _l5_pre (k text, n bigint) on commit drop;
+create temp table _l5_pre_reviews on commit drop as
+select r.id from public.quote_reviews r
+ where r.inquiry_id::text in (select id from _l5_demo where rel = 'public.inquiries'::regclass)
+    or r.supplier_id::text in (select id from _l5_demo where rel = 'public.leads'::regclass);
+do $pre$
+begin
+  if not exists (select 1 from _l5_scope where rel = 'public.quote_review_request'::regclass::oid) then
+    raise exception 'DEMO PURGE REFUSED: quote_review_request is not in the measured scope; review the walk';
+  end if;
+  if exists (select 1 from public.quote_review_request q where q.review_id in (select id from _l5_pre_reviews)
+                and q.opened_at >= (select t from _l5_cut)) then
+    raise exception 'DEMO PURGE REFUSED: a demo quote review has a request opened at or after the cutoff: review it';
+  end if;
+end $pre$;
+with d as (
+  delete from public.quote_review_request q where q.review_id in (select id from _l5_pre_reviews)
+  returning 1)
+insert into _l5_pre select (select k from _l5_scope where rel = 'public.quote_review_request'::regclass::oid), count(*) from d;
+
 create temp table _l5_out on commit drop as select public.fn_demo_purge(true) as out;
 
 -- the sandbox test's evidence screenshots stay (header): off this purge's storage queue, never deleted
@@ -456,6 +485,9 @@ begin
         'auth_users', count(*) filter (where rel = 'auth.users'::regclass)) from _l5_demo) then
     raise exception 'DEMO PURGE REFUSED: the purge chose other demo rows (%) than the census read before it', v_out->'demo_ids';
   end if;
+  -- e0. the review requests deleted first belonged only to reviews the walk deleted too
+  select string_agg(left(r.id::text, 8), ', ') into v_bad from public.quote_reviews r where r.id in (select id from _l5_pre_reviews);
+  if v_bad is not null then raise exception 'DEMO PURGE REFUSED: review requests were deleted of quote reviews the purge kept: %', v_bad; end if;
   -- e. no surviving row was unlinked from a demo one (a SET NULL reference is a row that is not demo, changed)
   select string_agg(t.key || '=' || t.value, ', ') into v_bad from jsonb_each_text(v_touched) t where t.key ~ ' \(unlinked ' and t.value::bigint > 0;
   if v_bad is not null then raise exception 'DEMO PURGE REFUSED: a row that is not demo would be changed (its link to a demo row nulled): %', v_bad; end if;
@@ -471,10 +503,12 @@ begin
     from _l5_fk_before b cross join lateral (select (xpath('/row/n/text()', query_to_xml(b.q, false, true, '')))[1]::text::bigint as n) a
    where a.n <> b.n;
   if v_bad is not null then raise exception 'DEMO PURGE REFUSED: rows pointing at a real party moved: %', v_bad; end if;
-  -- a. every relation lost exactly what the purge says it deleted there; none lost anything else
-  select string_agg(format('%s: %s -> %s, purge says %s', b.k, b.n, a.n, coalesce(v_touched->>b.k, '0')), '; ' order by b.k) into v_bad
+  -- a. every relation lost exactly what the purge says it deleted there (with the review requests this file deleted first);
+  --    none lost anything else
+  select string_agg(format('%s: %s -> %s, purge says %s, deleted first %s', b.k, b.n, a.n, coalesce(v_touched->>b.k, '0'),
+                           coalesce((select p.n from _l5_pre p where p.k = b.k), 0)), '; ' order by b.k) into v_bad
     from _l5_before b join _l5_after a on a.rel = b.rel
-   where b.n - a.n <> coalesce((v_touched->>b.k)::bigint, 0);
+   where b.n - a.n <> coalesce((v_touched->>b.k)::bigint, 0) + coalesce((select p.n from _l5_pre p where p.k = b.k), 0);
   if v_bad is not null then raise exception 'DEMO PURGE REFUSED: a table moved by other than the demo rows: %', v_bad; end if;
   select string_agg(t.key, ', ') into v_bad from jsonb_each_text(v_touched) t
    where t.key !~ ' \(unlinked ' and t.value::bigint > 0 and not exists (select 1 from _l5_scope s where s.k = t.key);
@@ -514,6 +548,7 @@ select 'PROBE OK: demo ' || ((select out from _l5_out)->'demo_ids')::text
        || (select coalesce(sum(r), 0) from _l5_after)::text || ' rows in ' || (select count(*) from _l5_scope where ts is not null)::text
        || ' dated tables (undated: ' || coalesce((select string_agg(k, ', ' order by k) from _l5_scope where ts is null), 'none') || '), '
        || (select count(*) from _l5_running_kept)::text || ' storage objects kept off the queue'
+       || '; review requests of demo quote reviews deleted first: ' || coalesce((select sum(n) from _l5_pre), 0)::text
        || '; the four tables the routine never reaches: ' || (select string_agg(k || ' ' || n, ', ' order by k) from _l5_four)
        || '; foreign keys to a real party pinned: ' || (select count(*) from _l5_fk_before)::text
        || '; kept: customers 0dc8c94f, ba61fa16 and leads 19398, 158318, 143027; non-demo counts ' || public.fn_demo_purge_real_counts()::text
