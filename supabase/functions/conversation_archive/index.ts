@@ -16,6 +16,7 @@
 //
 // Called every 15 minutes by resilience_ping. Which rows, and where in Dropbox, is decided in SQL
 // (fn_conversation_archive_pending, fn_enqueue_doc_backups); this file only draws and stores.
+import { whereAddress } from '../_shared/address_filter.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { requireInternal } from '../_shared/internal_auth.ts';
 import { docIdentity } from '../_shared/doc_template.ts';
@@ -143,8 +144,8 @@ async function resendBackfill() {
     const at = String(e.created_at || it.created_at || new Date().toISOString());
     if (/example\.invalid/i.test(from)) continue;
     const t = new Date(at).getTime();
-    const { data: near } = await admin.from('inbound_messages').select('id,body,created_at')
-      .is('provider_email_id', null).ilike('from_email', from).eq('subject', subject)
+    const { data: near } = await whereAddress(admin.from('inbound_messages').select('id,body,created_at'), 'from_email', from)
+      .is('provider_email_id', null).eq('subject', subject)
       .gte('created_at', new Date(t - 3600e3).toISOString()).lte('created_at', new Date(t + 3600e3).toISOString()).limit(3);
     const match = (near || []).sort((a, b) => Math.abs(new Date(a.created_at).getTime() - t) - Math.abs(new Date(b.created_at).getTime() - t))[0];
     if (match) {

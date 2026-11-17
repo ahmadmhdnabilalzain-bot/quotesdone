@@ -4,6 +4,7 @@
 //      so 'email_enabled=false', a missing Resend key, or a hit daily cap looked identical to a healthy flush
 //      while mail silently piled up. Recurring config states are throttled to one row per hour so the
 //      2-minute cadence cannot bury the signal; idle runs with no work are not logged at all.
+import { whereAddress } from '../_shared/address_filter.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { encodeBase64 } from 'jsr:@std/encoding/base64';
 import { requireInternal, secretOk } from '../_shared/internal_auth.ts';
@@ -181,7 +182,7 @@ Deno.serve(observe('send_outbox', async (req) => {
     const inboundReplyTo = async (to: string, fallback: string) => {
       const e = String(to || '').trim().toLowerCase();
       const { data: rel } = await admin.rpc('fn_mail_sender_known', { p_email: e });
-      const { data: claimed } = rel === 'supplier' ? { data: [{}] } : await admin.from('leads').select('id').ilike('claimed_by', e.replace(/[\\%_]/g, '\\$&')).limit(1);
+      const { data: claimed } = rel === 'supplier' ? { data: [{}] } : await admin.from('leads').select('id').eq('claimed_by', e).limit(1);
       if (!claimed?.length) return fallback;
       const p = await admin.from('agent_runs').select('status,finished_at').eq('agent', M365_INBOX_AGENT).eq('counts->>m365_inbox', '1').order('finished_at', { ascending: false }).limit(1).maybeSingle();
       return conversationReplyTo({ type: 'inbound_reply', toSupplier: true, mailbox: await setting('invite_m365_mailbox'), proofAt: !p.error && p.data?.status === 'ok' ? p.data.finished_at as string : null, now: new Date(), fallback });
@@ -283,7 +284,7 @@ Deno.serve(observe('send_outbox', async (req) => {
     // (m365_lane.ts) whether the Microsoft 365 lane or the Resend fallback carries the row. ledger 1113: the note
     // names the company and its trade, read from the lead (a seed has none: its body's opening).
     const campaignFor = async (n: any) => {
-      const { data: lead } = n.kind === M365_SEED_KIND ? { data: null } : await admin.from('leads').select('id,company_name,invite_trades,whatsapp_opt').ilike('email', String(n.to_email).trim().replace(/[\\%_]/g, '\\$&')).limit(1).maybeSingle();
+      const { data: lead } = n.kind === M365_SEED_KIND ? { data: null } : await whereAddress(admin.from('leads').select('id,company_name,invite_trades,whatsapp_opt'), 'email', n.to_email).limit(1).maybeSingle();
       // HE SAID NO TO WHATSAPP (16 Nov 2026, marketing): a nudge or last note to him carries no WhatsApp offer again
       // ...and a supplier whose WhatsApp is set to 'none' (a STOP, or he said he has none) is never offered it either (review relL)
       const declinedWhatsapp = !!(lead as any)?.id && ((lead as any).whatsapp_opt === 'none'

@@ -10,6 +10,7 @@
 // mail is HELD for review (customer_support, needs_review) and nothing is sent. No keyword decides it; known customers and
 // suppliers are never asked about (their correspondence is a relationship, the daily cap and the loop guard still stand).
 // prevented by: email_triage/supplier_mailbox_reading.test.ts (the stranger-repeat cases)
+import { whereAddress } from '../_shared/address_filter.ts';
 import { untrustedBlock, untrustedMail } from '../_shared/untrusted.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
 
@@ -27,8 +28,6 @@ Return ONE JSON object only: {"new_human_question": true|false, "why": "<one sen
 
 export interface RepeatVerdict { held: boolean; why: string; answersSoFar: number; method: 'below_cap' | 'model' | 'no_model' }
 
-const likeExact = (s: string) => s.trim().replace(/[\\%_]/g, (c) => '\\' + c);
-
 /** Whether this stranger's mail must be held instead of answered. Never throws: a read that fails holds the mail. */
 export async function strangerRepeatHeld(admin: Db, deps: ThinkDeps, m: Mail, now: number = Date.now()): Promise<RepeatVerdict> {
   const addr = String(m.from_email ?? '').trim().toLowerCase();
@@ -38,8 +37,8 @@ export async function strangerRepeatHeld(admin: Db, deps: ThinkDeps, m: Mail, no
     if (!relErr && rel) return { held: false, why: 'a known ' + String(rel), answersSoFar: 0, method: 'below_cap' };
     const since = new Date(now - STRANGER_WINDOW_DAYS * 86_400_000).toISOString();
     const [ours, theirs] = await Promise.all([
-      admin.from('notifications').select('created_at,subject,body,dedupe_key').eq('type', 'inbound_reply').ilike('to_email', likeExact(addr)).gte('created_at', since).limit(50),
-      admin.from('inbound_messages').select('id,created_at,subject,body').ilike('from_email', likeExact(addr)).gte('created_at', since).limit(50),
+      whereAddress(admin.from('notifications').select('created_at,subject,body,dedupe_key').eq('type', 'inbound_reply'), 'to_email', addr).gte('created_at', since).limit(50),
+      whereAddress(admin.from('inbound_messages').select('id,created_at,subject,body'), 'from_email', addr).gte('created_at', since).limit(50),
     ]);
     if (ours.error || theirs.error) return { held: true, why: 'the earlier correspondence could not be read, so it is held, not answered blindly', answersSoFar: 0, method: 'no_model' };
     const answers = ((ours.data ?? []) as Record<string, unknown>[]).filter((n) => !String(n.dedupe_key ?? '').startsWith('mailbox_person_reply:'));

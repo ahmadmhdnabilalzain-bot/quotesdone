@@ -20,6 +20,7 @@
 // request he was not originally matched to -- cold outreach, so an opt-out stops it. The SQL mirror is
 // public.fn_opt_out_types() (scripts/sql/complaints_quotes_reveals_and_support_replies_each_run_on_a_clock.sql);
 // scripts/checks/every_duty_has_an_owner_and_a_clock.test.mjs fails if the two lists differ.
+import { whereAddress } from './address_filter.ts';
 
 // 'supplier_invite_nudge' (28 Oct 2026, sales_engineer; ledger 1401 audit, S6): the day-3/7/14 reminder of an unopened
 // invitation is the same cold outreach. It was missing, so an unsubscribe did not stop a nudge already queued (the
@@ -195,7 +196,6 @@ export async function replyStopRefusal(admin: StopDb, o: { from: string; protect
   const from = String(o.from || '').trim().toLowerCase();
   if (neverSuppressible(from, o.protectedList)) return 'a protected address (our own domain, an admin address or an expense forwarder)';
   if (!(await o.authenticated())) return 'the receiving server did not authenticate the sender domain (no aligned DMARC, DKIM or SPF pass)';
-  const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
-    .ilike('to_email', from.replace(/[\\%_]/g, '\\$&')).in('type', [...OPT_OUT_TYPES]).eq('status', 'sent');
+  const { count } = await whereAddress(admin.from('notifications').select('id', { count: 'exact', head: true }), 'to_email', from).in('type', [...OPT_OUT_TYPES]).eq('status', 'sent');
   return count ? '' : 'we never sent this address an invitation or reminder';
 }

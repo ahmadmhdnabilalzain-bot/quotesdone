@@ -1,3 +1,4 @@
+import { whereAddress } from '../_shared/address_filter.ts';
 import '../_shared/doc_read/workbook_local.ts'; // reads workbooks and .doc/.msg here with SheetJS (why one line: that file's header)
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { sanitizeUpload, SAFE_UPLOAD } from '../_shared/attachment.ts';
@@ -95,7 +96,7 @@ Deno.serve(observe('inbound_email', async (req) => {
     const isFree = FREE.has(dom);
 
     let lead: Record<string, unknown> | null = null;
-    const { data: exact } = await admin.from('leads').select('*').ilike('email', fromEmail);
+    const { data: exact } = await whereAddress(admin.from('leads').select('*'), 'email', fromEmail);   // exact, never a pattern
     let candidates: number[] = [];
     if (exact && exact.length === 1) lead = exact[0];
     else if (exact && exact.length > 1) candidates = exact.map((r: { id: number }) => r.id);
