@@ -22,6 +22,7 @@ import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { supabaseTokenOrEmpty } from '../lib/supabase_token.mjs';
+import { manifestWithPending, pendingNotes } from '../lib/pending_sql.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (p) => readFileSync(join(REPO, p), 'utf8');
@@ -80,8 +81,17 @@ export function coverageFindings(rows, types, seats = SEATS) {
   return out;
 }
 
+/** Rows a LATER file adds with the seed's own shape (17 Nov 2026: three kinds registered after the pool had no row anywhere,
+ *  three_hand_over_kinds_made_after_the_pool_have_an_owner_and_an_audience.sql gives them theirs). Apply order; probes never. */
+export function laterRows() {
+  const notes = pendingNotes(REPO);
+  return manifestWithPending(REPO).filter((f) => f !== FILE && existsSync(join(REPO, f)) && !/^\s*A PROBE\b/.test(notes.get(f) || ''))
+    .flatMap((f) => [...read(f).matchAll(/insert into public\.event_subscription as s \(event_type, agent_key, owns, delivery, reason\) values([\s\S]*?)\non conflict/g)])
+    .flatMap((ins) => [...ins[1].matchAll(/\(\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)',\s*(true|false),\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)'\s*\)/g)]
+      .map((m) => [m[1], m[2], m[3] === 'true', m[4], m[5].replace(/''/g, "'")]));
+}
 const sqlText = read(FILE);
-const rows = seedRows(sqlText);
+const rows = [...seedRows(sqlText), ...laterRows()];
 const LIVE_FIXTURE = JSON.parse(read('scripts/fixtures/company_event_types_2026-11-13.json')).types;
 
 test('1. every live type, every registered hand-over kind and the siblings\' types: one producing owner and an audience', () => {
