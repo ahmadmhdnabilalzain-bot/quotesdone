@@ -27,7 +27,7 @@ function stubDb(tables: Record<string, Row[]>) {
     from(t: string) {
       const keep: ((r: Row) => boolean)[] = [];
       const q = {
-        select: () => q,
+        select: (_columns?: string) => q,
         eq: (c: string, v: string) => { asked.push(`${t}.${c}=eq.${v}`); keep.push((r) => r[c] === v); return q; },
         ilike: (c: string, p: string) => { asked.push(`${t}.${c}=ilike.${p}`); keep.push((r) => r[c] != null && postgrestLike(p, String(r[c]), true)); return q; },
         limit: (n: number) => Promise.resolve({ data: (tables[t] ?? []).filter((r) => keep.every((k) => k(r))).slice(0, n), error: null }),
