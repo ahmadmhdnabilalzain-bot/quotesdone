@@ -79,7 +79,7 @@
           "spec": "Ironmongery and hardware",
           "why_needed_to_price": "Hinges, runners and lift systems vary from economy to premium brands at very different prices.",
           "uae_options": "soft-close hinges; full-extension runners; lift-up fittings; handles or handle-less profiles",
-          "follow_up_if": "Ask the hardware brand tier and the load rating of drawers.",
+          "follow_up_if": "Ask the hardware brand tier and the load rating of drawers. Hinged doors: ask the handle (knob, bar or profile handle, recessed J-pull, or handle-less push-to-open) and soft-close hinges; sliding doors: top-hung or bottom-rolling track and soft-close. When the customer changes the door type, ask the hardware again.",
           "blocking": true
         },
         {
@@ -204,7 +204,7 @@
       ],
       "site_visit_required_when": "A site measurement is unavoidable before a firm price unless the buyer provides dimensioned drawings; fitted joinery is always re-measured before production.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page.",
+      "source_note": "Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 3 spec(s) added; from trade expertise, not read from a page. 17 Nov 2026 (sales_engineer): checklist widened for sales_knowledge_gap #775, what the interview did not ask in the live seat conversation run 35568a84 of 1 Nov 2026: handles for hinged doors after the customer changed from sliding.",
       "photos_to_ask": [
         {
           "shot": "A wide photo of the whole area where the work is",

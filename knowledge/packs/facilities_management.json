@@ -18,6 +18,8 @@
         "key performance indicators",
         "licences held",
         "service levels",
+        "comprehensive or non-comprehensive: spare parts and consumables included or charged",
+        "fire and life safety systems in scope: Civil Defence registered maintenance company and annual certificate",
         "contract duration",
         "pricing basis",
         "exclusions",
@@ -25,7 +27,10 @@
       ],
       "sources": [
         "https://www.dubaidet.gov.ae/en/licences-and-permits",
-        "https://www.dcd.gov.ae/portal/en/home.jsp"
+        "https://www.dcd.gov.ae/portal/en/home.jsp",
+        "https://www.nfpa.org/codes-and-standards/nfpa-25-standard-development/25",
+        "https://www.nfpa.org/codes-and-standards/nfpa-72-standard-development/72",
+        "https://www.dcd.gov.ae/portal/portal/eng/UAEFIRECODE_ENG_SEPTEMBER_2018.pdf"
       ],
       "confidence": "medium",
       "as_of": "2026-09-28",
@@ -63,7 +68,7 @@
           "spec": "planned maintenance standard",
           "why_needed_to_price": "The maintenance standard sets the task list and frequency.",
           "uae_options": "SFG20 or manufacturer schedules; PPM calendar.",
-          "follow_up_if": "If no standard is named, ask the provider which it will use.",
+          "follow_up_if": "If no standard is named, ask the provider which it will use. Ask the planned (PPM) visit frequency they expect per system, for example monthly or quarterly.",
           "blocking": false
         },
         {
@@ -76,8 +81,8 @@
         {
           "spec": "response and resolution times",
           "why_needed_to_price": "Faster response needs more staff.",
-          "uae_options": "per priority level",
-          "follow_up_if": "",
+          "uae_options": "Per priority level: emergency attendance (24/7 or business hours) within a stated number of hours; urgent the same or next day; routine within agreed days.",
+          "follow_up_if": "Ask whether 24/7 emergency response is needed and the attendance time they expect.",
           "blocking": false
         },
         {
@@ -106,6 +111,20 @@
           "why_needed_to_price": "Service levels set the staffing, frequency and standby the provider must carry, and so most of the price.",
           "uae_options": "Defined frequency, response time, attendance hours and measurable KPIs; penalties or service credits by agreement.",
           "follow_up_if": "If no level is stated, ask the buyer for frequency and response expectations before comparing quotes.",
+          "blocking": false
+        },
+        {
+          "spec": "comprehensive or non-comprehensive: spare parts and consumables included or charged",
+          "why_needed_to_price": "A comprehensive contract carries the cost of spare parts and is priced well above a non-comprehensive one, where parts are charged on top; quotes on different bases cannot be compared.",
+          "uae_options": "Non-comprehensive (labour and planned visits, parts charged); semi-comprehensive (consumables and minor parts included, often up to a cap per item); comprehensive (parts included, with major items such as compressors or chillers sometimes excluded). Market terms, not a standard: each quote must define them.",
+          "follow_up_if": "Ask which they want; if comprehensive, ask every supplier to list the excluded major parts and any cap per item.",
+          "blocking": false
+        },
+        {
+          "spec": "fire and life safety systems in scope: Civil Defence registered maintenance company and annual certificate",
+          "why_needed_to_price": "In the UAE fire alarm and fire fighting systems may be maintained only by a company registered with Civil Defence for that work, and the building must hold a valid maintenance contract, checked at inspections and permit renewals; a provider without that registration subcontracts it, which changes the price.",
+          "uae_options": "Maintained by the provider's own Civil Defence registered fire division; subcontracted to a registered fire maintenance company; excluded and kept with the existing fire contractor.",
+          "follow_up_if": "Fire alarm or fire fighting in scope: ask for the provider's Civil Defence registration for fire-system maintenance and whether the maintenance certificate the building needs is included.",
           "blocking": false
         },
         {
@@ -139,7 +158,7 @@
       ],
       "site_visit_required_when": "A site visit and asset survey are unavoidable before a firm FM price.",
       "method": "checklist enriched from trade expertise on 2026-11-10 (why each spec prices, UAE options, follow-ups, quote-blocking); original sources kept",
-      "source_note": " Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page.",
+      "source_note": "Supplier ask-back review 10 Nov 2026 (ledger 1587) by sales_engineer, an independent supplier-side read: 1 spec(s) added; from trade expertise, not read from a page. 17 Nov 2026 (sales_engineer): checklist widened for sales_knowledge_gap #773, what the interview did not ask in the live seat conversation run 35568a84 of 1 Nov 2026: PPM frequency and emergency response time; comprehensive or non-comprehensive; the Civil Defence fire-system maintenance contract (entries fire_fighting:amc-maintenance, dcd-amc-contractor).",
       "photos_to_ask": [
         {
           "shot": "A wide photo of the whole area where the work is",
