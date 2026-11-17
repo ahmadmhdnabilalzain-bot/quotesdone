@@ -16,7 +16,7 @@
 // but could not cross-check). A quantity PRINTED on the document (qty_status absent or 'read') is
 // not re-asked: that is the customer's own document speaking.
 
-import { LENGTH_TO_CONFIRM, LENGTH_TO_CONFIRM_AR } from '../drawing_boq/length_notes.ts';
+import { LENGTH_MAY_INCLUDE_ENLARGED, LENGTH_MAY_INCLUDE_ENLARGED_AR, LENGTH_TO_CONFIRM, LENGTH_TO_CONFIRM_AR } from '../drawing_boq/length_notes.ts';
 
 // check_confirmed: our count agreed with the second, independent reading (drawing_boq/confirm.ts).
 export type QtyStatus = 'read' | 'to_confirm' | 'estimated' | 'check_confirmed' | 'customer_confirmed' | 'customer_stated' | 'estimated_supplier_to_verify';
@@ -110,7 +110,9 @@ export function readConfirmAnswer(open: OpenLine[], reply: string): { status: Bo
 const VERIFY_EN = 'estimated from drawing, supplier to verify take-off';
 // A length the customer stated is no longer "to be confirmed" on its line (drawing_boq/length_notes.ts lengthsToConfirm):
 // the supplier must not read "— length to be confirmed" beside "Stated by the customer".
-const unsaid = (s: unknown) => (typeof s === 'string' ? s.replace(` — ${LENGTH_TO_CONFIRM}`, '').replace(` — ${LENGTH_TO_CONFIRM_AR}`, '') : s);
+// The same for "may include an enlarged plan — please confirm" (drawing_set/enlarged.ts): the customer stated the length.
+const unsaid = (s: unknown) => (typeof s === 'string' ? s.replace(` — ${LENGTH_TO_CONFIRM}`, '').replace(` — ${LENGTH_TO_CONFIRM_AR}`, '')
+  .replace(` — ${LENGTH_MAY_INCLUDE_ENLARGED}`, '').replace(` — ${LENGTH_MAY_INCLUDE_ENLARGED_AR}`, '') : s);
 
 /** Apply the outcome to the BOQ the suppliers receive. Nothing is left silently assumed. */
 export function settleLines(boq: Line[], check: BoqCheck | null | undefined): Line[] {

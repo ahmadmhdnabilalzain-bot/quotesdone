@@ -5,6 +5,7 @@ import { DENSE_NOTE, LENGTHS_FAILED_NOTE, NO_LENGTHS_NOTE, PLAN_LENGTHS_NOTE, le
 import { MAX_MEASURED_LINES, measureDucts, measurePipes, scaleLabels, tooDense, type Measured } from '../drawing_lengths.ts';
 import { drawingIndex, kindOf, sheetOf } from './vocabulary.ts';
 import { lengthLinesOf } from './takeoff.ts';
+import { sheetWords } from './enlarged.ts';
 import type { Sheet, TakeoffLine } from './types.ts';
 
 // ── THE LENGTHS ARE A SECOND CALL (22 Sep 2026) ──────────────────────────────────────────────────────
@@ -30,7 +31,9 @@ import type { Sheet, TakeoffLine } from './types.ts';
 /** The JSON of one measured run group (`Measured` with its layer set as a list). */
 export type MeasuredJson = Omit<Measured, 'layers'> & { layers: string[] };
 /** One sheet as a lengths part reads it: what the merge needs to decide, with the whole set, whether it is a plan. */
-export type LengthSheet = { page: number; number: string; own_title: string; index: [string, string][]; seeds: string[]; dense: boolean; measured: MeasuredJson[] };
+export type LengthSheet = { page: number; number: string; own_title: string; index: [string, string][]; seeds: string[]; dense: boolean; measured: MeasuredJson[];
+  /** enlarged.ts sheetWords: its title-strip PLAN lines and the sheets it calls enlarged (optional: a part from before 17 Nov). */
+  titles?: string[]; names?: string[] };
 /** The sheets [from, from + sheets.length) of a set of `pages` sheets. */
 export type LengthsPart = { pages: number; from: number; sheets: LengthSheet[] };
 
@@ -41,7 +44,8 @@ export function lengthsPart(pages: PdfPage[], from: number, to: number): Lengths
     const p = pages[i];
     const strip = titleStrip(p);
     const own = sheetOf(p, i, strip, new Map());                              // the title the sheet prints itself
-    const sheet: LengthSheet = { page: i, number: own.number, own_title: own.title, index: [...drawingIndex([p])], seeds: strip ? stripSeeds(p, strip) : [], dense: false, measured: [] };
+    const w = sheetWords(p, strip, own);
+    const sheet: LengthSheet = { page: i, number: own.number, own_title: own.title, index: [...drawingIndex([p])], seeds: strip ? stripSeeds(p, strip) : [], dense: false, measured: [], titles: w.titles, names: w.names };
     if (p.layers) {
       if (tooDense(p, strip)) sheet.dense = true;
       else {
@@ -60,7 +64,8 @@ const measuredOk = (m: any): m is MeasuredJson => !!m && typeof m.key === 'strin
   && num(m.pt) && num(m.realIn) && typeof m.labelled === 'boolean' && typeof m.scale === 'string' && isStrs(m.layers) && num(m.runs) && (m.single === undefined || num(m.single));
 const sheetOk = (s: any, page: number): s is LengthSheet => !!s && s.page === page && typeof s.number === 'string' && typeof s.own_title === 'string'
   && Array.isArray(s.index) && s.index.every((e: unknown) => Array.isArray(e) && e.length === 2 && isStrs(e)) && isStrs(s.seeds)
-  && typeof s.dense === 'boolean' && Array.isArray(s.measured) && s.measured.every(measuredOk);
+  && typeof s.dense === 'boolean' && Array.isArray(s.measured) && s.measured.every(measuredOk)
+  && (s.titles === undefined || isStrs(s.titles)) && (s.names === undefined || isStrs(s.names));
 
 /** The parts put together as the whole-set read made them; null unless they cover every sheet of one set exactly once. */
 export function lengthsOfParts(parts: unknown[]): { lines: TakeoffLine[]; dense: string[] } | null {
@@ -78,6 +83,8 @@ export function lengthsOfParts(parts: unknown[]): { lines: TakeoffLine[]; dense:
   const index = new Map<string, string>();
   for (const s of sheets) for (const [k, v] of s.index) if (!index.has(k)) index.set(k, v);
   const measured: { sheet: Sheet; m: Measured }[] = []; const dense: string[] = [];
+  // Each physical run once (enlarged.ts): what every sheet says of itself and of the others, plans or not.
+  const words = new Map(sheets.map((s) => [s.page + 1, { number: s.number, titles: s.titles || (s.own_title ? [s.own_title.toUpperCase()] : []), names: s.names || [] }]));
   for (const s of sheets) {
     const title = index.get(s.number) || s.own_title;
     if (kindOf(title) !== 'plan') continue;                                   // new-work plans only
@@ -87,7 +94,7 @@ export function lengthsOfParts(parts: unknown[]): { lines: TakeoffLine[]; dense:
   }
   const seeds = [...new Set(sheets.flatMap((s) => s.seeds))];
   const clean = (s: string) => scrubIdentity(redactText(s, seeds).text.replace(/█/g, '').replace(/\s{2,}/g, ' ').trim());
-  return { lines: lengthLinesOf(measured).map((l) => ({ ...l, item: clean(l.item), description: clean(l.description), basis: clean(l.basis) })), dense };
+  return { lines: lengthLinesOf(measured, words).map((l) => ({ ...l, item: clean(l.item), description: clean(l.description), basis: clean(l.basis) })), dense };
 }
 
 /** Only the length lines of a set, scrubbed of the title strip's names like every other line (the CAD worker's whole-set read). */
