@@ -36,6 +36,7 @@
 import { readFileSync, writeFileSync, readdirSync, mkdirSync, existsSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { manifestLines, manifestWithPending } from './pending_sql.mjs';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 /** The mirror's directory, relative to the repository root. */
@@ -110,4 +111,48 @@ export function readSchemaMirror() {
       + 'node scripts/checks/export_from_either_source_is_identical.mjs --write');
   }
   return want.map((f) => readFileSync(join(DIR, f), 'utf8')).join('');
+}
+
+// WHAT THE MIRROR ALREADY HOLDS, AND WHAT WAS APPLIED AFTER IT (it_engineer, 17 Nov 2026).
+// MEASURED 17 Nov: the mirror was captured 12 Nov 11:19 UTC; 119 files were applied after it, creating 47 public
+// tables and moving 28 to schema retired. A check that read tables from the mirror alone (every_table_is_exported_
+// or_explicitly_excluded) therefore saw none of the 47 - all 47 were live with no row in table_export_registry, so
+// none reached the daily export - and complained about the 28 that had left. The banner now records how much of
+// MANIFEST the capture already holds (export_from_either_source_is_identical.mjs --write writes the line), so a
+// reader replays only what came after. The line sits above the sentinel: it is banner, never compared.
+const BOUNDARY = /^-- MANIFEST at capture: (\d+) applied files, the last (scripts\/sql\/\S+\.sql)$/m;
+export const boundaryLine = (lines) => `-- MANIFEST at capture: ${lines.length} applied files, the last ${lines.at(-1)}`;
+
+/** How many MANIFEST files the mirror already reflects. Throws when the banner lacks the line, or when MANIFEST's
+ *  line at that position is no longer the file the banner names (MANIFEST was edited above the capture). */
+export function mirrorManifestBoundary(text = readSchemaMirror(), lines = manifestLines()) {
+  const m = BOUNDARY.exec(text.slice(0, Math.max(0, text.indexOf('-- ===== END BANNER'))));
+  if (!m) throw new Error('schema mirror: the banner does not say how much of MANIFEST it holds; regenerate with node scripts/checks/export_from_either_source_is_identical.mjs --write');
+  const n = Number(m[1]);
+  if (lines[n - 1] !== m[2]) throw new Error(`schema mirror: MANIFEST line ${n} is ${lines[n - 1]}, the banner says ${m[2]}: MANIFEST was edited above the capture`);
+  return n;
+}
+
+const strip = (sql) => sql.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n');
+// create / drop (never `alter publication ... drop table`, which only stops publishing it) / set schema elsewhere / rename
+const TABLE_DDL = /create\s+table\s+(?:if\s+not\s+exists\s+)?public\."?([a-z0-9_]+)"?\s*\(|(?<!alter\s+publication\s+\w+\s+)drop\s+table\s+(?:if\s+exists\s+)?public\."?([a-z0-9_]+)"?|alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?public\."?([a-z0-9_]+)"?\s+set\s+schema\s+(?!public\b)[a-z_]|alter\s+table\s+(?:if\s+exists\s+)?(?:only\s+)?public\."?([a-z0-9_]+)"?\s+rename\s+to\s+"?([a-z0-9_]+)/gi;
+
+/** The public tables production holds once every file is applied: the mirror's, then the table DDL of every MANIFEST
+ *  file after the capture and every pending non-probe file, in apply order, the last statement about a table winning.
+ *  Measured 17 Nov 2026 against production (SELECT on pg_class): 849 tables, identical with the pending files left out. */
+export function publicTablesNow(repo = REPO) {
+  const mirror = readSchemaMirror();
+  const tables = new Set([...mirror.matchAll(/CREATE TABLE (?:IF NOT EXISTS )?public\."?([a-z0-9_]+)"? \(/g)].map((m) => m[1]));
+  const applied = manifestLines(repo);
+  const after = new Set(applied.slice(mirrorManifestBoundary(mirror, applied)));
+  for (const f of manifestWithPending(repo).filter((f) => after.has(f) || !applied.includes(f))) {
+    if (!existsSync(join(repo, f))) continue;
+    for (const m of strip(readFileSync(join(repo, f), 'utf8')).matchAll(TABLE_DDL)) {
+      if (m[1]) tables.add(m[1].toLowerCase());
+      const gone = (m[2] || m[3] || m[4] || '').toLowerCase();
+      if (gone) tables.delete(gone);
+      if (m[5]) tables.add(m[5].toLowerCase());
+    }
+  }
+  return tables;
 }
