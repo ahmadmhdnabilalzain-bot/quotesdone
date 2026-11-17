@@ -345,6 +345,20 @@ with d as (
   returning 1)
 insert into _l5_pre select (select k from _l5_scope where rel = 'public.quote_review_request'::regclass::oid), count(*) from d;
 
+-- THE VERSION ROWS THE PURGE ITSELF WRITES (17 Nov 22:28:34Z: the apply of f441afd38 refused at guard a, 'doc_versions:
+-- 2959 -> 2915, purge says 47'). fn_demo_purge_run deletes the demo entities' doc_versions (37 quote + 10 rfq rows) THIRD in
+-- its list, then deletes quote_items FIFTH; quote_items_rescore touches each demo quote, quotes_quality rewrites quality (it
+-- carries scored_at = now(), so it always changes) and version_quote writes one new version per demo quote (7ca86d2e v8,
+-- 3f0e7209 v24, f99c6e2f v8): 47 deleted, 3 written, 44 lost. Those 3 rows are made by this transaction, after the routine's
+-- own sweep, for entities it deletes. So the high-water mark of doc_versions is read here, and after the purge every row above
+-- it made by this transaction for a demo entity goes; one for any other entity is a real quote, request or document changed,
+-- and refuses. Guard a then reads the table exactly as before.
+create temp table _l5_dv on commit drop as
+select (select coalesce(max(id), 0) from public.doc_versions) as max_id,
+       (select count(*) from public.doc_versions v
+         where v.entity_type in ('quote', 'rfq', 'inquiry', 'customer', 'lead', 'supplier', 'transaction')
+           and v.entity_id in (select id from _l5_demo where rel <> 'auth.users'::regclass)) as demo_before;
+
 create temp table _l5_out on commit drop as select public.fn_demo_purge(true) as out;
 
 -- the sandbox test's evidence screenshots stay (header): off this purge's storage queue, never deleted
@@ -430,6 +444,15 @@ with d as (
   returning 1)
 insert into _l5_four select 'public.accountant_reveal_reconcile_item', count(*) from d;
 
+create temp table _l5_dv_made on commit drop as
+with d as (
+  delete from public.doc_versions v
+   where v.id > (select max_id from _l5_dv) and v.created_at = now()
+     and v.entity_type in ('quote', 'rfq', 'inquiry', 'customer', 'lead', 'supplier', 'transaction')
+     and v.entity_id in (select id from _l5_demo where rel <> 'auth.users'::regclass)
+  returning v.entity_type, v.entity_id, v.version)
+select * from d;
+
 create temp table _l5_after on commit drop as
 select s.rel, s.k, (xpath('/row/n/text()', x.x))[1]::text::bigint as n, (xpath('/row/r/text()', x.x))[1]::text::bigint as r
   from _l5_scope s
@@ -484,6 +507,18 @@ begin
         'quotes', count(*) filter (where rel = 'public.quotes'::regclass), 'transactions', count(*) filter (where rel = 'public.transactions'::regclass),
         'auth_users', count(*) filter (where rel = 'auth.users'::regclass)) from _l5_demo) then
     raise exception 'DEMO PURGE REFUSED: the purge chose other demo rows (%) than the census read before it', v_out->'demo_ids';
+  end if;
+  -- v. the purge left no version row of its own making (a real entity versioned is a real row changed), and none of a demo one
+  select string_agg(format('%s %s v%s', v.entity_type, left(v.entity_id, 8), v.version), ', ') into v_bad
+    from public.doc_versions v where v.id > (select max_id from _l5_dv) and v.created_at = now();
+  if v_bad is not null then raise exception 'DEMO PURGE REFUSED: the purge versioned an entity that is not demo: %', v_bad; end if;
+  select count(*)::text into v_bad from public.doc_versions v
+   where v.entity_type in ('quote', 'rfq', 'inquiry', 'customer', 'lead', 'supplier', 'transaction')
+     and v.entity_id in (select id from _l5_demo where rel <> 'auth.users'::regclass) having count(*) > 0;
+  if v_bad is not null then raise exception 'DEMO PURGE INCOMPLETE: % version rows of demo entities left', v_bad; end if;
+  if coalesce((v_touched->>(select k from _l5_scope where rel = 'public.doc_versions'::regclass::oid))::bigint, 0) <> (select demo_before from _l5_dv) then
+    raise exception 'DEMO PURGE REFUSED: the routine deleted % version rows, the demo entities had %',
+      v_touched->>(select k from _l5_scope where rel = 'public.doc_versions'::regclass::oid), (select demo_before from _l5_dv);
   end if;
   -- e0. the review requests deleted first belonged only to reviews the walk deleted too
   select string_agg(left(r.id::text, 8), ', ') into v_bad from public.quote_reviews r where r.id in (select id from _l5_pre_reviews);
@@ -549,6 +584,7 @@ select 'PROBE OK: demo ' || ((select out from _l5_out)->'demo_ids')::text
        || ' dated tables (undated: ' || coalesce((select string_agg(k, ', ' order by k) from _l5_scope where ts is null), 'none') || '), '
        || (select count(*) from _l5_running_kept)::text || ' storage objects kept off the queue'
        || '; review requests of demo quote reviews deleted first: ' || coalesce((select sum(n) from _l5_pre), 0)::text
+       || '; version rows the purge itself wrote, removed: ' || (select count(*) from _l5_dv_made)::text
        || '; the four tables the routine never reaches: ' || (select string_agg(k || ' ' || n, ', ' order by k) from _l5_four)
        || '; foreign keys to a real party pinned: ' || (select count(*) from _l5_fk_before)::text
        || '; kept: customers 0dc8c94f, ba61fa16 and leads 19398, 158318, 143027; non-demo counts ' || public.fn_demo_purge_real_counts()::text
