@@ -7,7 +7,7 @@
 // All THREE keys are written. Writing only the two tokens is the trap recorded in quotesdone-session §7:
 // the mount effect calls SB.auth.getSession() and would restore whichever session qd-*-auth held.
 import { chromium } from 'playwright';
-import { holdConnectionsLikeABrowser } from './node_keepalive.mjs';
+import { holdConnectionsLikeABrowser, fetchLikeABrowser } from './node_keepalive.mjs';
 
 export const SITE = process.env.QD_SITE || 'https://quotesdone.com';
 export const VIEWPORTS = { desktop: { width: 1440, height: 900 }, mobile: { width: 375, height: 812 }, tablet: { width: 768, height: 1024 } };
@@ -158,7 +158,8 @@ export async function signedInPage(browser, who, { lang = 'en', viewport = 'desk
     const { BASE } = await import('../lib/demo_factory.mjs');
     const target = BASE + '/functions/v1/' + req.url().split('/functions/v1/')[1];
     const h = req.headers();
-    const res = await fetch(target, { method: req.method(), headers: { authorization: h['authorization'] || '', 'content-type': h['content-type'] || 'application/json' }, body: req.method() === 'GET' ? undefined : req.postData() });
+    const res = await fetchLikeABrowser(target, { method: req.method(), headers: { authorization: h['authorization'] || '', 'content-type': h['content-type'] || 'application/json' }, body: req.method() === 'GET' ? undefined : req.postData() }).catch(() => null);
+    if (!res) return route.abort('connectionreset');   // a second failure reaches the page as a network error, never an unhandled rejection
     return route.fulfill({ status: res.status, headers: { ...cors, 'content-type': res.headers.get('content-type') || 'application/json' }, body: Buffer.from(await res.arrayBuffer()) });
   });
   // THIS CONTAINER CUTS A BROWSER CONNECTION AT ABOUT 30 s (measured 27 Oct and again 10 Nov 2026). supplier_full_walk
@@ -179,7 +180,8 @@ export async function signedInPage(browser, who, { lang = 'en', viewport = 'desk
       if (req.method() === 'OPTIONS') return route.fulfill({ status: 200, headers: cors, body: 'ok' });
       const h = req.headers();
       const fwd = { ...Object.fromEntries(['authorization', 'content-type', 'apikey', 'x-client-info'].filter((k) => h[k]).map((k) => [k, h[k]])), ...tagged };
-      const res = await fetch(req.url(), { method: req.method(), headers: fwd, body: req.method() === 'GET' ? undefined : req.postData() });
+      const res = await fetchLikeABrowser(req.url(), { method: req.method(), headers: fwd, body: req.method() === 'GET' ? undefined : req.postData() }).catch(() => null);
+      if (!res) return route.abort('connectionreset');   // node_keepalive.mjs: retried once like a browser; a second failure is the page's
       return route.fulfill({ status: res.status, headers: { ...cors, 'content-type': res.headers.get('content-type') || 'application/json' }, body: Buffer.from(await res.arrayBuffer()) });
     });
   }
