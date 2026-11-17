@@ -35,10 +35,13 @@ type Narrowable = { eq: (column: string, value: any) => any; ilike: (column: str
 
 /** Narrows a query to rows whose `column` is the address `email`, case and surrounding space ignored, never as a
  *  pattern. For a column every writer lower-cases, `.eq(column, normalEmail(email))` says the same more plainly. */
-export function whereAddress<Q extends Narrowable>(q: Q, column: string, email: unknown): Q {
+// Q is unconstrained on purpose: checking a supabase-js builder against Narrowable is "excessively deep" for TypeScript
+// (TS2589 at conversation_archive and resend_inbound, local gate 17 Nov 2026); the cast below is the same check, made once.
+export function whereAddress<Q>(q: Q, column: string, email: unknown): Q {
   const v = normalEmail(email);
   const p = likeLiteral(v);
-  return (p === null ? q.eq(column, v) : q.ilike(column, p)) as Q;
+  const n = q as unknown as Narrowable;
+  return (p === null ? n.eq(column, v) : n.ilike(column, p)) as Q;
 }
 
 type Read = { data?: unknown; error?: unknown };
