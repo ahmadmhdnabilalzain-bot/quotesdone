@@ -50,7 +50,8 @@ test('email_triage: an answer that cannot be recorded stops the batch instead of
 
 test('resend_inbound: an email already on file is answered before any reader or model', () => {
   const ri = functionSource('resend_inbound');
-  const dedupe = ri.indexOf(".eq('provider_email_id', providerEmailId)");
+  // 15 Nov 2026 (review of the inbound queue): the look-up moved before the Resend read and reads the queued id, emailId
+  const dedupe = ri.search(/\.eq\('provider_email_id', (?:providerEmailId|emailId)\)\.limit\(1\);\s*if \(seen && seen\.length\) \{[\s\S]{0,400}return J\(\{ ok: true, duplicate: true/);
   // 23 Sep 2026: the receipt model fallback is gone; the first model call is the reasoning (documentKind, think()).
   const firstModel = ri.indexOf('await documentKind(');
   const firstReaderCall = ri.indexOf('await extractDoc(');
