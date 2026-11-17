@@ -276,6 +276,10 @@ try {
   // are matched before the words they contain.
   const reply = (m) => /warranty/i.test(m) ? '12 months warranty at least.'
     : /by when|date|deliver/i.test(m) ? 'Needed by 30 November 2026.'
+    // Run 623d9200 (17 Nov 17:23 UTC): "How many AC units do you need, of each kind? For example: 4 wall units and 1 hidden
+    // ceiling unit." was answered by the ceiling rule below, so the intake stayed needs_info and create_inquiry answered 428.
+    // The drawing's own count answers it (RTU-1 = 1, the answer key in the summary).
+    : /how many (ac |indoor )?units|of each kind/i.test(m) ? 'One rooftop packaged unit (RTU-1) with ducted supply, as drawn. No wall units and no other indoor units.'
     : /air conditioning|split|ducted|cassette/i.test(m) ? 'A central ducted system: rooftop units with ductwork and diffusers, as drawn.'
     : /new install|replac|repair|adding more/i.test(m) ? 'A new installation: nothing existing is being replaced or repaired.'
     : /ceiling/i.test(m) ? 'No ceiling works - existing ceiling stays.'
