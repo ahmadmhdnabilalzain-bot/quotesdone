@@ -29,7 +29,7 @@ import { cadSupplierBoq } from '../supabase/functions/_shared/cad_identity.ts';
 import { lengthsForSet, mergeLengths } from '../supabase/functions/drawing_boq/drawing_set.ts';
 import { pdfPages } from '../supabase/functions/_shared/pdf_text_positions.ts';
 import { seedTerms } from '../supabase/functions/_shared/anonymise.ts';
-import { PAGES_NEED_TIME, redactQueuedPages, type QueuedPages, type SheetBody } from '../supabase/functions/_shared/drawing_pages_queued.ts';
+import { PAGES_NEED_TIME, planQueuedPages, redactQueuedPages, type QueuedPages, type SheetBody } from '../supabase/functions/_shared/drawing_pages_queued.ts';
 import { followUpFinishedPages, pagesReachTheirRequestsSql } from '../supabase/functions/_shared/drawing_pages_follow.ts';
 import { pickApiKey } from './lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
@@ -428,6 +428,13 @@ export async function readStored(bytes: Uint8Array, name: string): Promise<ReadR
 }
 
 /** One claimed job, start to finish (exported for the offline check of the queued-sheets path; main is the only caller). */
+/** Settles when the job's budget is cut, with the answer that puts the job back in the queue (nothing is decided by a cut). */
+export function budgetCut(signal: AbortSignal): Promise<{ held: Record<string, unknown> }> {
+  return new Promise((res) => {
+    const cut = () => res({ held: { redaction_complete: false, held_reason: 'pages_need_time_job_budget', held_page: -1, retry_later: true } });
+    if (signal.aborted) cut(); else signal.addEventListener('abort', cut, { once: true });
+  });
+}
 export async function runJob(job: Job, key: string): Promise<void> {
   const t0 = performance.now();
   const r = await fetch(`${BASE}/storage/v1/object/drawing-files/${job.source_path.split('/').map(encodeURIComponent).join('/')}`,
@@ -449,23 +456,33 @@ export async function runJob(job: Job, key: string): Promise<void> {
     // a timeout, or held for a transient reason. Each through drawing_redact's own manual path IN THIS PROCESS (18 Nov 2026,
     // sheetRedactorHere above: the edge's CPU cap is what lost them), one sheet a call with its own clock, asked again up to
     // SHEET_TRIES times; the set is published only when every sheet is verified.
-    const q = job.boq_in?.queued_pages as QueuedPages | undefined;
+    const queued = job.boq_in?.queued_pages as QueuedPages | undefined;
     // No sheet left is a run cut after its last sheet was kept (progress) and before the job was closed: it completes at once.
-    if (!q || !Array.isArray(q.left) || !Array.isArray(q.done) || q.done.length + q.left.length !== q.pages_in) throw new Error('a pages job whose sheets do not add up');
+    if (!queued || !Array.isArray(queued.left) || !Array.isArray(queued.done) || queued.done.length + queued.left.length !== queued.pages_in) throw new Error('a pages job whose sheets do not add up');
     const raster = async (p: string) => {
       const rr = await fetch(`${BASE}/storage/v1/object/drawing-files/${p.split('/').map(encodeURIComponent).join('/')}`, { headers: { Authorization: 'Bearer ' + key, apikey: key }, signal: AbortSignal.timeout(60_000) });
       if (!rr.ok) throw new Error(`a stored sheet could not be downloaded (HTTP ${rr.status})`);
       return b64u(new Uint8Array(await rr.arrayBuffer()));
     };
     // THE BUDGET STOPS THE ASKING (review 17 Nov 2026): at PAGES_JOB_MS the call under way is cut and no sheet is sent again,
-    // so nothing is paid for after the budget; the job goes back to the queue with every sheet it kept.
+    // so nothing is paid for after the budget; the job goes back to the queue with every sheet it kept. The plan read below
+    // runs inside the same budget (review of 578f49003, item 3): cut there, the job goes back to the queue too.
     const stop = new AbortController();
     const budgetTimer = setTimeout(() => stop.abort(), PAGES_JOB_MS);
-    // No view is asked past the budget either: its end is the clock's stop (drawing_deadline: a caller may bring it earlier).
-    const redact = await sheetRedactorHere(job, key, stop.signal, Date.now() + PAGES_JOB_MS);
-    // Each verified sheet is kept on the job at once, so a run that is cut, or a later run, never asks (or pays for) it again.
-    const progress = async (now: QueuedPages) => { await sql(`update public.cad_read_jobs set boq_in = jsonb_set(boq_in, '{queued_pages}', ${lit(JSON.stringify(now))}::jsonb) where id = ${lit(job.id)}::uuid`); };
-    const drawing = await redactQueuedPages(q, { originalB64: b64u(bytes), raster, redact, progress, signal: stop.signal }).finally(() => clearTimeout(budgetTimer));
+    let drawing: Record<string, unknown>;
+    try {
+      // EVERY SET IS PLANNED HERE FIRST (18 Nov 2026; _shared/drawing_pages_queued.ts planQueuedPages): the plan is read from the
+      // stored original with drawing_redact's own 'plan' steps in process (no CPU cap); a PRICED document (the edge's own
+      // decision, quotation_gate.pricedDocumentKind) is held and nothing of it is checked; a set the request could not plan
+      // (plan_in_worker) gets its server boxes, or is held when they are not confident, it has no text layer or the read fails.
+      const planned = await Promise.race([planQueuedPages(queued, bytes), budgetCut(stop.signal)]);
+      const q = 'q' in planned ? planned.q : queued;
+      // No view is asked past the budget either: its end is the clock's stop (drawing_deadline: a caller may bring it earlier).
+      const redact = await sheetRedactorHere(job, key, stop.signal, Date.now() + PAGES_JOB_MS);
+      // Each verified sheet is kept on the job at once, so a run that is cut, or a later run, never asks (or pays for) it again.
+      const progress = async (now: QueuedPages) => { await sql(`update public.cad_read_jobs set boq_in = jsonb_set(boq_in, '{queued_pages}', ${lit(JSON.stringify(now))}::jsonb) where id = ${lit(job.id)}::uuid`); };
+      drawing = 'held' in planned ? planned.held : await redactQueuedPages(q, { originalB64: b64u(bytes), raster, redact, progress, signal: stop.signal });
+    } finally { clearTimeout(budgetTimer); }
     // A sheet still lost or held for a transient reason: back to the queue for the next run (three runs, then the finding).
     if (drawing.retry_later === true) throw new Error(`sheet ${Number(drawing.held_page) + 1} not checked yet (${drawing.held_reason}); asked again at the next run`);
     // THE PAGES REACH THE REQUESTS ALREADY SENT (_shared/drawing_pages_follow.ts): attached to each open request of this customer
@@ -482,7 +499,7 @@ export async function runJob(job: Job, key: string): Promise<void> {
     await sql(`update public.cad_read_jobs set status = 'done', finished_at = now(), error = null, result = ${lit(JSON.stringify({ boq: null, kind: 'pdf_sheets', ms: Math.round(performance.now() - t0), ...drawing, ...follow }))}::jsonb where id = ${lit(job.id)}::uuid`);
     // HELD HERE IS NOT SILENT (review 17 Nov 2026): a request already sent says "pages follow", and no page will. The seat is told.
     if (drawing.redaction_complete !== true) await raiseFailed(job, 'pages job held, the requests that say pages follow get none: ' + String(drawing.held_reason ?? '').slice(0, 160), 'cad_read_worker:pages_held');
-    console.log(`job ${job.id}: ${q.left.length} sheet(s) ${drawing.redaction_complete ? 'published with the set' : 'held (' + drawing.held_reason + ')'}, ${JSON.stringify(follow)}, ${Math.round(performance.now() - t0)} ms`);
+    console.log(`job ${job.id}: ${queued.left.length} sheet(s) ${drawing.redaction_complete ? 'published with the set' : 'held (' + drawing.held_reason + ')'}, ${JSON.stringify(follow)}, ${Math.round(performance.now() - t0)} ms`);
     return;
   }
   if (job.why === 'site_photo_check') {

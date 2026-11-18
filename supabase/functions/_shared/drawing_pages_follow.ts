@@ -48,6 +48,16 @@ export function pagesAttachedForCustomer(locale: string | null | undefined, page
 /** A dollar-quoted literal whose tag cannot occur in the value (the worker's own `lit`). */
 const lit = (s: string) => { let tag = 'qd'; while (s.includes(`$${tag}$`)) tag += 'x'; return `$${tag}$${s}$${tag}$`; };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** NO PAGE REACHES A PRICED DOCUMENT'S REQUEST (18 Nov 2026; reviews of 578f49003 and 464673eff). A request built from a
+ *  quotation (brief_source 'quotation'), one whose reading is priced (drawing_boq's quotation or priced-BOQ marks on
+ *  inquiries.boq), or one whose stored original the server judged priced (customer_api lib/drawings.recordPricedVerdict)
+ *  carries that original as drawing_file_path for its own doors; attaching by path alone would picture another supplier's
+ *  offer, or the customer's rates. 'boq' alone is the button the customer pressed, not a verdict: a drawing sent that way keeps
+ *  its pages. The same rule as create_inquiry (drawingPagesRefused), in SQL. */
+export const PAGES_MAY_ATTACH = (alias: string) => `coalesce(${alias}.brief_source, 'drawing') <> 'quotation'
+     and coalesce(${alias}.boq->>'document_kind', '') <> 'quotation' and coalesce(${alias}.boq->>'priced', '') <> 'true'
+     and not exists (select 1 from public.drawing_redaction_runs v where v.customer_id = ${alias}.customer_id and v.source_path = ${alias}.drawing_file_path
+                       and v.status = 'held' and v.verify_detail->>'reason' = 'priced_document')`;
 /** Requests that are over: no pages are attached to them and nobody is told (supplier_api lib/fields.ts CONCLUDED). */
 export const CONCLUDED = ['completed', 'closed', 'cancelled'] as const;
 
@@ -68,6 +78,7 @@ export function pagesReachTheirRequestsSql(job: { id: string; customer_id: strin
   return `with att as (
   update public.inquiries i set drawing_redacted_paths = ${arr}
    where i.customer_id = ${lit(job.customer_id)}::uuid and i.drawing_file_path = ${lit(job.source_path)}
+     and ${PAGES_MAY_ATTACH('i')}
      and coalesce(cardinality(i.drawing_redacted_paths), 0) = 0
      and coalesce(i.status, 'open') not in (${CONCLUDED.map((s) => lit(s)).join(', ')})
   returning i.id, i.category, i.emirate
@@ -150,6 +161,7 @@ export const STILL_FOLLOWING_SQL = `select j.id as job_id, j.status, coalesce(j.
  where j.why = 'pages_need_time' and j.status in ('done', 'failed')
    and j.finished_at between now() - interval '${FOLLOW_UP_HOURS} hours' and now() - interval '${STILL_FOLLOWING_HOURS} hours'
    and i.created_at >= j.created_at and i.created_at < j.finished_at + interval '${RACE_GRACE_MINUTES} minutes'
+   and ${PAGES_MAY_ATTACH('i')}
    and coalesce(cardinality(i.drawing_redacted_paths), 0) = 0
    and coalesce(i.status, 'open') not in (${CONCLUDED.map((c) => `'${c}'`).join(', ')})
  group by j.id, j.status, j.result, j.error

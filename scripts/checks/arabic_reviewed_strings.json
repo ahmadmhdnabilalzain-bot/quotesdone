@@ -9453,6 +9453,9 @@
   "4c97d3dbbc80",
   "f8b350a9fd4c"
  ],
+ "supabase/functions/customer_api/lib/drawings.ts": [
+  "399c7ff92250"
+ ],
  "supabase/functions/customer_api/lib/edit_summary.ts": [
   "0fc094ee0d02",
   "257def7abd3e",

@@ -10,15 +10,14 @@
 //  * either way NO page of it is pictured for a supplier.
 //  * null: not priced; the drawing route goes on.
 // prevented by: drawing_boq/a_quotation_reaches_suppliers_as_our_inquiry.test.ts
-import { isQuotationReading, pricedKind, quotationGate, quotationTerms, termsToKeep } from '../../drawing_boq/quotation_gate.ts';
+import { pricedDocumentKind, quotationGate, quotationTerms, termsToKeep } from '../../drawing_boq/quotation_gate.ts';
 import { understoodMessage } from './what_was_understood.ts';
 
 // deno-lint-ignore no-explicit-any
 type Reading = Record<string, any>;
 export function pricedRoute(o: { isCad: boolean; pdfLines: string[]; reading: Reading | null }) {
   if (o.isCad) return null;
-  const pk = o.pdfLines.length ? pricedKind(o.pdfLines.join('\n')) : null;
-  const kind = isQuotationReading(o.reading) || pk === 'quotation' ? 'quotation' : pk === 'priced' ? 'priced' : null;
+  const kind = pricedDocumentKind(o.pdfLines, o.reading);
   if (!kind) return null;
   const terms = kind === 'quotation' ? quotationTerms(o.pdfLines) : { parties: [], refs: [], prefixes: [] };
   const qb: Reading = quotationGate({ ...(o.reading || {}) }, terms, kind);

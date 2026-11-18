@@ -76,7 +76,7 @@ Deno.test('wired: create_inquiry, the supplier inbox and the portal say the page
   const src = (p: string) => Deno.readTextFileSync(new URL(p, import.meta.url));
   const create = src('../customer_api/actions/inquiry_create.ts');
   assertMatch(create, /const follow = drawingPath && !rr\.paths\.length \? await pagesStillBeingChecked\(String\(cust\.id\), String\(user\.id \|\| ''\), drawingPath\)/);
-  assertMatch(create, /const pagesFollow = !drawingRedacted && follow\.follows;/);
+  assertMatch(create, /const pagesFollow = !pagesRefused && !drawingRedacted && follow\.follows;/, 'pages refused for a priced source never "follow" either');
   assertEquals((create.match(/attachedLine\(briefSource, !!boqObj, !!drawingRedacted, pagesFollow\)/g) ?? []).length, 3, 'single, turnkey and every split part');
   assertMatch(create, /if \(drawingPath && !drawingRedacted && !pagesFollow && \(briefSource === 'drawing'/);
   assertEquals((create.match(/return J\(\{ \.\.\.followSaid, \.\.\.posted/g) ?? []).length, 3);
