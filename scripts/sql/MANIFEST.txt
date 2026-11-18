@@ -2469,3 +2469,21 @@ scripts/sql/an_identity_in_a_routine_is_matched_by_equality_never_a_pattern.sql
 scripts/sql/the_holdout_runner_is_executable_by_no_client_role.sql
 # 17 Nov 2026 12:59 UTC (it_engineer): applied after #2034, the bucket re-read first (exactly the 10 listed objects); PROBE OK.
 scripts/sql/the_stale_admin_and_crm_pages_leave_the_public_site_bucket.sql
+# 17 Nov 2026 13:31 UTC (it_engineer): applied after #2035 (a literal ALTER PUBLICATION); PROBE OK.
+scripts/sql/no_table_is_published_to_realtime_because_nothing_subscribes.sql
+# 17 Nov 2026 14:54 UTC (ceo): applied; read back identical to the file; the trigger and its function are gone.
+scripts/sql/the_department_dispatcher_trigger_goes_once_its_body_is_a_no_op.sql
+# 17 Nov 2026 15:24 UTC (it_engineer): applied after #2038; probe OK; 0 public tables unregistered in the export.
+scripts/sql/the_forty_six_tables_made_after_the_12_november_mirror_are_in_the_daily_export.sql
+# 17 Nov 2026 15:24 UTC (it_engineer): applied after #2038; probe OK.
+scripts/sql/three_hand_over_kinds_made_after_the_pool_have_an_owner_and_an_audience.sql
+# 17 Nov 2026 15:24 UTC (it_engineer): applied after #2038; probe OK.
+scripts/sql/the_payment_exception_and_the_ceo_day_name_the_kind_they_send_the_founder.sql
+# 17 Nov 2026 15:25 UTC (it_engineer): applied after #2038; probe OK.
+scripts/sql/the_referral_thanks_is_said_in_the_formal_plural.sql
+# 17 Nov 2026 19:07 UTC (sales_engineer): applied after #2041; PROBE OK.
+scripts/sql/a_drawing_sheet_not_checked_in_time_is_queued_for_the_cad_reader.sql
+# 17 Nov 2026 21:13 UTC (sales_engineer): applied after #2042 (functions deployed, parity 79/79 at 21:17); PROBE OK.
+scripts/sql/a_drawing_sheet_is_queued_once.sql
+# 17 Nov 2026 23:47 UTC (it_engineer): applied after #2043-#2046 (four earlier applies refused by its own guards and rolled back, nothing deleted); in-file PROBE OK: 40,253 demo rows in 50 tables each exactly as reported, 2,498 post-cutoff rows kept, the founder's accounts and the three kept leads untouched. Its _probe.sql calls routines, so it was not run on production; dropbox_backup drains 68 storage objects and 635 Dropbox items, then `node scripts/it/purge_demo_data.mjs --verify-zero`.
+scripts/sql/the_last_demo_rows_are_purged_and_no_real_row_moves.sql
