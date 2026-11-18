@@ -8,37 +8,50 @@ import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 Deno.env.set('SUPABASE_URL', Deno.env.get('SUPABASE_URL') || 'http://127.0.0.1:1');
 Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || 'test');
 const { admin } = await import('./context.ts');
-const { PRICED_VERDICT, drawingPagesRefused, resolveRedactedPaths, sourcesJudgedPriced } = await import('./lib/drawings.ts');
+const { PRICED_VERDICT, drawingPagesRefused, recordPricedVerdict, resolveRedactedPaths, sourcesJudgedPriced } = await import('./lib/drawings.ts');
 
 const CUST = 'c0000000-0000-4000-8000-00000000000c';
 const QUOTE = `drawings/${CUST}/1_ZZ DEMO quotation.pdf`, DRAWING = `drawings/${CUST}/2_ZZ DEMO drawing.pdf`;
 type Row = Record<string, unknown>;
-/** drawing_redaction_runs as the stub holds it; each query is filtered as PostgREST would filter it. */
-function stubRuns(rows: Row[], fail = false) {
-  const asked: string[] = [];
+/** drawing_redaction_runs as the stub holds it; each query is filtered as PostgREST would filter it. `failInsert`: every insert
+ *  answers an error (a lost verdict write); `fail`: every read answers an error. Writes, removals and findings are recorded. */
+function stubRuns(rows: Row[], fail = false, o: { failInsert?: boolean } = {}) {
+  const asked: string[] = [], inserted: Row[] = [], updated: { set: Row; ids: unknown[] }[] = [], removed: string[][] = [], findings: string[] = [];
   // deno-lint-ignore no-explicit-any
-  (admin as any).from = (table: string) => {
+  const a = admin as any;
+  a.from = (table: string) => {
     assertEquals(table, 'drawing_redaction_runs');
-    let out = [...rows]; const q: Record<string, unknown> = {
+    let out = [...rows]; let set: Row | null = null; let ids: unknown[] = [];
+    const q: Record<string, unknown> = {
       select: () => q, order: () => q, limit: () => q, or: () => q,
+      insert: (row: Row) => { if (!o.failInsert) { rows.push(row); inserted.push(row); } return { then: (ok: (x: unknown) => unknown) => ok({ error: o.failInsert ? { message: 'write lost' } : null }) }; },
+      update: (row: Row) => { set = row; return q; },
       eq: (k: string, v: unknown) => { asked.push(`${k}=${v}`); out = out.filter((r) => k === 'verify_detail->>reason' ? (r.verify_detail as Row | undefined)?.reason === v : r[k] === v); return q; },
       neq: (k: string, v: unknown) => { out = out.filter((r) => r[k] !== v); return q; },
-      in: (k: string, vs: unknown[]) => { asked.push(`${k} in ${vs.length}`); out = out.filter((r) => vs.includes(r[k])); return q; },
-      then: (ok: (x: unknown) => unknown) => ok(fail ? { data: null, error: { message: 'down' } } : { data: out, error: null }),
+      in: (k: string, vs: unknown[]) => { asked.push(`${k} in ${vs.length}`); if (k === 'id') ids = vs; out = out.filter((r) => vs.includes(r[k])); return q; },
+      then: (ok: (x: unknown) => unknown) => {
+        if (set) { for (const r of out) Object.assign(r, set); updated.push({ set, ids }); return ok({ error: null }); }
+        return ok(fail ? { data: null, error: { message: 'down' } } : { data: out, error: null });
+      },
     };
     return q;
   };
-  return asked;
+  a.storage = { from: () => ({ remove: async (paths: string[]) => { removed.push(paths); return { error: null }; } }) };
+  a.rpc = async (_fn: string, args: Row) => { findings.push(String(args.p_issue_key)); return { error: null }; };
+  return Object.assign(asked, { inserted, updated, removed, findings });
 }
 const verdict = (source: string): Row => ({ id: 'v1', customer_id: CUST, source_path: source, status: 'held', output_paths: [], verify_detail: { reason: PRICED_VERDICT, kind: 'quotation' } });
 const run = (id: string, source: string, paths: string[]): Row => ({ id, customer_id: CUST, caller_ref: 'redacted/x/page', source_path: source, output_paths: paths, pages_in: paths.length, pages_out: paths.length, status: 'complete' });
 
-Deno.test('a quotation\'s or a priced BOQ\'s brief takes no pages at all, without asking the database', async () => {
+Deno.test('a quotation brief or a priced reading takes no pages; the BOQ button alone ("boq") is not a verdict', async () => {
   const asked = stubRuns([]);
-  for (const briefSource of ['quotation', 'boq', null]) assertEquals(await drawingPagesRefused({ custId: CUST, briefSource, offered: true, follows: false, sources: [DRAWING] }), true, String(briefSource));
-  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'quotation', offered: false, follows: true, sources: [] }), true, 'nor pages that follow');
-  assertEquals(asked, []);
-  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'quotation', offered: false, follows: false, sources: [] }), false, 'nothing offered: nothing refused');
+  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'quotation', pricedReading: false, offered: true, follows: false, sources: [DRAWING] }), true);
+  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'drawing', pricedReading: true, offered: true, follows: false, sources: [DRAWING] }), true, 'a priced reading (quotation or priced BOQ marks)');
+  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'quotation', pricedReading: false, offered: false, follows: true, sources: [] }), true, 'nor pages that follow');
+  assertEquals([...asked], [], 'decided without the database');
+  // A drawing PDF sent with the BOQ button, or merged with an unpriced BOQ sheet: 'boq' is the client's label, not a verdict.
+  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'boq', pricedReading: false, offered: true, follows: false, sources: [DRAWING] }), false);
+  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'quotation', pricedReading: true, offered: false, follows: false, sources: [] }), false, 'nothing offered: nothing refused');
 });
 
 Deno.test('a client that names a priced document\'s runs on a "drawing" request is refused: the server\'s verdict decides', async () => {
@@ -48,21 +61,49 @@ Deno.test('a client that names a priced document\'s runs on a "drawing" request 
   assert(!('err' in rr));
   assertEquals(rr.paths, ['redacted/q/page_p0.jpg'], 'the run is the customer\'s own, so it resolves');
   assertEquals(rr.sources, [QUOTE], 'and names the document it was redacted from');
-  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'drawing', offered: true, follows: false, sources: [DRAWING, ...(rr.sources ?? [])] }), true);
+  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'drawing', pricedReading: false, offered: true, follows: false, sources: [DRAWING, ...(rr.sources ?? [])] }), true);
   // The request's own stored drawing judged priced refuses too, even when the runs name another source.
   assertEquals(await sourcesJudgedPriced(CUST, [QUOTE]), true);
   stubRuns([run('22222222-2222-4222-8222-222222222222', DRAWING, ['redacted/d/page_p0.jpg'])]);
-  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'drawing', offered: true, follows: false, sources: [DRAWING] }), false, 'a drawing nobody judged priced keeps its pages');
+  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'drawing', pricedReading: false, offered: true, follows: false, sources: [DRAWING] }), false, 'a drawing nobody judged priced keeps its pages');
   stubRuns([], true);
   assertEquals(await sourcesJudgedPriced(CUST, [DRAWING]), true, 'a verdict nobody could read attaches nothing (fail closed)');
 });
 
 Deno.test('wired: analyze_drawing and analyze_document record the verdict; create_inquiry decides before any page is attached', () => {
   const docs = Deno.readTextFileSync(new URL('./actions/documents.ts', import.meta.url));
-  assertMatch(docs, /if \(priced && path\) await recordPricedVerdict\(\{ customerId: cust\.id, email, sourcePath: path, kind: priced\.document_kind \}\);\s*if \(priced\) return J\(/);
+  assertMatch(docs, /if \(priced && path\) await recordPricedVerdict\(\{ customerId: cust\.id, email, sourcePath: path, kind: priced\.document_kind, runIds: redJobs, paths: redacted \}\);\s*if \(priced\) return J\(/);
   assertMatch(docs, /const pk = pricedDocumentKind\(\[\], jd\.boq\);\s*if \(pk && path\) await recordPricedVerdict\(/);
   const create = Deno.readTextFileSync(new URL('./actions/inquiry_create.ts', import.meta.url));
-  assertMatch(create, /const pagesRefused = await drawingPagesRefused\(\{ custId: String\(cust\.id\), briefSource, offered: !!offered, follows: follow\.follows, sources: \[drawingPath \?\? '', \.\.\.\(rr\.sources \?\? \[\]\), \.\.\.\(follow\.sources \?\? \[\]\)\] \}\);/);
+  assertMatch(create, /const pagesRefused = await drawingPagesRefused\(\{ custId: String\(cust\.id\), briefSource, pricedReading: isQuotationReading\(boqObj\) \|\| isPricedReading\(boqObj\), offered: !!offered, follows: follow\.follows, sources: \[drawingPath \?\? '', \.\.\.\(rr\.sources \?\? \[\]\), \.\.\.\(follow\.sources \?\? \[\]\)\] \}\);/);
+  // The customer is told when pages were refused, and the seat too, a BOQ-button PDF included.
+  assertMatch(create, /: pagesRefused \? \{ drawing_pages_withheld: true, drawing_pages_withheld_reason: 'priced_document', drawing_pages_withheld_message: PRICED_PAGES_WITHHELD_MESSAGE \} : \{\};/);
+  assertMatch(create, /\(briefSource === 'drawing' \|\| \(briefSource === 'boq' && \/\\\.pdf\$\/i\.test\(drawingPath\)\) \|\| drawing\?\.held === true \|\| pagesRefused\)\) await drawingIdentityFinding\('sent_without_drawing'/);
+  assertEquals((create.match(/return J\(\{ \.\.\.followSaid, /g) ?? []).length, 3, 'single, turnkey and every split answer carry it');
   assertMatch(create, /const drawingRedacted = pagesRefused \? null : offered;\s*const pagesFollow = !pagesRefused && !drawingRedacted && follow\.follows;/);
   assertMatch(create, /isQuotationReading\(boqObj\) \? 'quotation' : isPricedReading\(boqObj\) \? 'boq' :/, 'a priced BOQ reading is a priced brief whatever the client says');
+});
+
+// RE-REVIEW OF 464673eff, ITEM 2: a verdict that cannot be written must not leave the document's runs attachable.
+Deno.test('a priced verdict that cannot be recorded retires the document\'s runs and removes their pages: still nothing to attach', async () => {
+  const RUN = '33333333-3333-4333-8333-333333333333';
+  const rows: Row[] = [run(RUN, QUOTE, ['redacted/q/page_p0.jpg'])];
+  const st = stubRuns(rows, false, { failInsert: true });
+  const ok = await recordPricedVerdict({ customerId: CUST, email: 'zz@example.invalid', sourcePath: QUOTE, kind: 'quotation', runIds: [RUN], paths: ['redacted/q/page_p0.jpg'] });
+  assertEquals(ok, true, 'held by the retirement');
+  assertEquals(st.inserted, [], 'the verdict itself was lost (asked twice)');
+  assertEquals(st.updated.map((u) => [u.set.status, u.set.output_paths, (u.set.verify_detail as Row).reason, u.ids]), [['held', [], PRICED_VERDICT, [RUN]]]);
+  assertEquals(st.removed, [['redacted/q/page_p0.jpg']], 'the stored pages are removed');
+  assert(st.findings.some((k) => k.startsWith('sales_engineer:priced_verdict_unrecorded:')), 'and the IT engineer is told');
+  // The retired run is now the verdict: the document is judged priced, and the run no longer resolves for any request.
+  assertEquals(await sourcesJudgedPriced(CUST, [QUOTE]), true);
+  const rr = await resolveRedactedPaths(CUST, 'u1', { redaction_job_ids: [RUN] });
+  assert('err' in rr && rr.status === 403, 'a client naming the run is refused');
+  // Nothing to retire and the write lost: false, so the caller knows (and the finding says so).
+  stubRuns([], false, { failInsert: true });
+  assertEquals(await recordPricedVerdict({ customerId: CUST, email: 'zz@example.invalid', sourcePath: QUOTE, kind: 'quotation' }), false);
+  // The write that succeeds is the verdict row, nothing retired.
+  const fine = stubRuns([run(RUN, QUOTE, ['redacted/q/page_p0.jpg'])]);
+  assertEquals(await recordPricedVerdict({ customerId: CUST, email: 'zz@example.invalid', sourcePath: QUOTE, kind: 'quotation', runIds: [RUN], paths: ['redacted/q/page_p0.jpg'] }), true);
+  assertEquals([fine.inserted.length, fine.updated.length, fine.removed.length], [1, 0, 0]);
 });

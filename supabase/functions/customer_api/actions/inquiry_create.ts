@@ -19,7 +19,7 @@ import { currentCustomerTermsVersion, needsReacceptance, REACCEPT_MESSAGE } from
 import { applyEdits, validateStored, supplierLine } from '../../_shared/intake_requirements.ts';
 import { type ActionCtx, INQUIRY_LIMIT_PER_HOUR, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
 import { inquiryNotSaved, labelize } from '../lib/inquiry_rules.ts';
-import { drawingIdentityFinding, drawingPagesRefused, pagesStillBeingChecked, resolveRedactedPaths, storedDrawingTerms } from '../lib/drawings.ts';
+import { PRICED_PAGES_WITHHELD_MESSAGE, drawingIdentityFinding, drawingPagesRefused, pagesStillBeingChecked, resolveRedactedPaths, storedDrawingTerms } from '../lib/drawings.ts';
 import { PAGES_FOLLOW_MESSAGE } from '../../_shared/drawing_pages_follow.ts';
 import { gateAtSend } from '../drawing_send_gate.ts';
 import { ownDrawingPath } from '../drawing_path.ts';
@@ -234,10 +234,10 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       // pages now (resolved like any other run, by ownership and completeness); one still open makes the request say the
       // pages follow, and the routine attaches them and tells the suppliers when it publishes. The job is looked up by this
       // customer's own stored drawing, never taken from the body.
-      // Only a DRAWING's request (review of 578f49003, item 1): a quotation or a priced document never takes pages from a job.
-      const follow = drawingPath && !rr.paths.length && briefSource === 'drawing' ? await pagesStillBeingChecked(String(cust.id), String(user.id || ''), drawingPath) : { paths: [] as string[], follows: false };
+      // A quotation or a priced document never takes pages from a job either: drawingPagesRefused below decides for both.
+      const follow = drawingPath && !rr.paths.length ? await pagesStillBeingChecked(String(cust.id), String(user.id || ''), drawingPath) : { paths: [] as string[], follows: false };
       const offered = rr.paths.length ? rr.paths.slice(0, 24) : (follow.paths.length ? follow.paths.slice(0, 24) : null);
-      const pagesRefused = await drawingPagesRefused({ custId: String(cust.id), briefSource, offered: !!offered, follows: follow.follows, sources: [drawingPath ?? '', ...(rr.sources ?? []), ...(follow.sources ?? [])] });
+      const pagesRefused = await drawingPagesRefused({ custId: String(cust.id), briefSource, pricedReading: isQuotationReading(boqObj) || isPricedReading(boqObj), offered: !!offered, follows: follow.follows, sources: [drawingPath ?? '', ...(rr.sources ?? []), ...(follow.sources ?? [])] });
       if (pagesRefused) await drawingIdentityFinding('priced_pages_refused', { source_path: drawingPath, brief_source: briefSource, pages_offered: offered?.length ?? 0 });
       const drawingRedacted = pagesRefused ? null : offered;
       const pagesFollow = !pagesRefused && !drawingRedacted && follow.follows;
@@ -290,7 +290,9 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       }
       // A drawing attached but not redacted and verified goes nowhere; the customer was told on upload, the seat is told here.
       // Pages that follow are not "sent without": the CAD read routine attaches them (and raises its own finding if it cannot).
-      if (drawingPath && !drawingRedacted && !pagesFollow && (briefSource === 'drawing' || drawing?.held === true)) await drawingIdentityFinding('sent_without_drawing', { source_path: drawingPath, held: drawing?.held === true });
+      // A PDF sent with the BOQ button ('boq') is a drawing all the same, and pages refused (drawingPagesRefused) are "sent without"
+      // too (re-review of 464673eff, item 1): the seat is told here, the customer in the answer (followSaid).
+      if (drawingPath && !drawingRedacted && !pagesFollow && (briefSource === 'drawing' || (briefSource === 'boq' && /\.pdf$/i.test(drawingPath)) || drawing?.held === true || pagesRefused)) await drawingIdentityFinding('sent_without_drawing', { source_path: drawingPath, held: drawing?.held === true });
       if (boqObj && Array.isArray(boqObj.boq)) {
         const open = openLines(boqObj.boq);
         if (open.length) {
@@ -312,7 +314,9 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         } else boqObj = gate.boq;
       }
       // Said to the customer on every posted answer: the pages follow, and each supplier is told when they arrive.
-      const followSaid = pagesFollow ? { drawing_pages_follow: true, drawing_pages_follow_message: PAGES_FOLLOW_MESSAGE } : {};
+      // Or, when its pages were refused (a priced source), that it went without them and why.
+      const followSaid = pagesFollow ? { drawing_pages_follow: true, drawing_pages_follow_message: PAGES_FOLLOW_MESSAGE }
+        : pagesRefused ? { drawing_pages_withheld: true, drawing_pages_withheld_reason: 'priced_document', drawing_pages_withheld_message: PRICED_PAGES_WITHHELD_MESSAGE } : {};
       const drawCols = { drawing_file_path: drawingPath, drawing_file_name: drawingName, drawing_redacted_paths: drawingRedacted, boq: boqObj, boq_confidence: boqObj?.confidence || null };
 
       // ── §7: THREE THINGS THE ASSISTANT EXTRACTED AND THIS ROUTINE THREW AWAY ────────────────────

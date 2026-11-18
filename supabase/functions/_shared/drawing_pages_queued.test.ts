@@ -308,13 +308,19 @@ Deno.test('customer_api decides priced BEFORE it queues a set, and queues only a
   assertEquals((api.match(/boqRes\.value\.json\(\)/g) || []).length, 1, 'the model\'s answer is read once');
 });
 
-Deno.test('pages reach a DRAWING\'s requests only: never a quotation\'s or a priced document\'s, at send or later', () => {
+Deno.test('pages never reach a priced document\'s request (a quotation brief, a priced reading, a priced verdict), at send or later; a drawing sent with the BOQ button keeps them', () => {
   const stmt = pagesReachTheirRequestsSql({ id: '11111111-1111-4111-8111-111111111111', customer_id: 'c0000000-0000-4000-8000-000000000001', source_path: 'drawings/c1/1_ZZ DEMO set.pdf' }, ['redacted/a/page_p0.jpg'])!;
   const att = stmt.slice(stmt.indexOf('with att as ('), stmt.indexOf('returning i.id'));
-  assertMatch(att, /coalesce\(i\.brief_source, 'drawing'\) = 'drawing'/, 'the attach skips brief_source quotation and boq');
-  assertMatch(STILL_FOLLOWING_SQL, /coalesce\(i\.brief_source, 'drawing'\) = 'drawing'/);
+  // Executed on a local Postgres 16 (hand-back): of a drawing, a BOQ-button, an unlabelled, a quotation and a priced-reading
+  // request for the same stored drawing, the first three were attached; with a priced verdict on the source, none.
+  for (const sql of [att, STILL_FOLLOWING_SQL]) {
+    assertMatch(sql, /coalesce\(i\.brief_source, 'drawing'\) <> 'quotation'/);
+    assertMatch(sql, /coalesce\(i\.boq->>'document_kind', ''\) <> 'quotation' and coalesce\(i\.boq->>'priced', ''\) <> 'true'/);
+    assertMatch(sql, /not exists \(select 1 from public\.drawing_redaction_runs v where v\.customer_id = i\.customer_id and v\.source_path = i\.drawing_file_path\s+and v\.status = 'held' and v\.verify_detail->>'reason' = 'priced_document'\)/);
+    assert(!/brief_source, 'drawing'\) = 'drawing'/.test(sql), '"boq" alone (the button pressed) is not a verdict');
+  }
   const create = Deno.readTextFileSync(new URL('../customer_api/actions/inquiry_create.ts', import.meta.url));
-  assertMatch(create, /const follow = drawingPath && !rr\.paths\.length && briefSource === 'drawing' \? await pagesStillBeingChecked\(/, 'create_inquiry takes no job\'s pages for a quotation');
+  assertMatch(create, /const follow = drawingPath && !rr\.paths\.length \? await pagesStillBeingChecked\(/, 'the job\'s pages are offered, and drawingPagesRefused decides');
 });
 
 // RE-REVIEW OF c1a934280, ITEM 1: drawing_boq marks a priced NON-quotation document itself ({ document_kind: 'boq', priced: true,

@@ -492,7 +492,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         const priced = pricedDoc;
         // The server's verdict is recorded against the stored original (lib/drawings.recordPricedVerdict): create_inquiry refuses
         // every page redacted from it, whatever a client names (re-review of c1a934280, item 2).
-        if (priced && path) await recordPricedVerdict({ customerId: cust.id, email, sourcePath: path, kind: priced.document_kind });
+        if (priced && path) await recordPricedVerdict({ customerId: cust.id, email, sourcePath: path, kind: priced.document_kind, runIds: redJobs, paths: redacted });
         if (priced) return J({ ok: true, ...priced, drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords,
                                redaction_job_id: null, redaction_job_ids: [], redaction_pages_in: 0, redaction_pages_out: 0, redaction_pages_lost: 0, redaction_complete: false, needs_manual_boxes: false });
         const boqOut = isCad && jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(String(body.original_b64 || ''))) : jd.boq;

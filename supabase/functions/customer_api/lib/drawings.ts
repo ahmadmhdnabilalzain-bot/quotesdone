@@ -226,6 +226,7 @@ const FINDING_TITLE = {
   boq_held: 'The take-off read from a customer drawing could not be proved free of identity and was held from suppliers',
   sent_without_drawing: 'A request went to suppliers without its drawing: the drawing was not redacted and verified at Send',
   priced_pages_refused: 'Drawing pages were offered for a request whose source document the server judged priced (a quotation or a priced BOQ): none were attached',
+  priced_verdict_unrecorded: 'A document judged priced could not have its verdict recorded: its redacted pages were retired instead, so no request can attach them',
 } as const;
 
 // THE SERVER'S OWN VERDICT THAT A DOCUMENT IS PRICED (18 Nov 2026, sales_engineer; re-review of c1a934280, item 2). analyze_drawing
@@ -234,18 +235,48 @@ const FINDING_TITLE = {
 // recorded against the stored original, as a 'held' row (no pages, reason PRICED_VERDICT), and create_inquiry refuses every
 // page whose run's source, or whose request's stored drawing, carries it (sourcesJudgedPriced).
 export const PRICED_VERDICT = 'priced_document' as const;
-export async function recordPricedVerdict(o: { customerId: string; email: string; sourcePath: string; kind: string }): Promise<void> {
-  try {
-    const { error } = await admin.from('drawing_redaction_runs').insert({ customer_id: o.customerId, owner_email: o.email, source_path: o.sourcePath, output_paths: [], pages_in: 0, pages_out: 0, skipped: 0, status: 'held', pages_verified: 0, verify_failed: 0, verify_detail: { reason: PRICED_VERDICT, kind: o.kind } });
-    if (error) console.error(`[drawing] the priced verdict on ${o.sourcePath} was not recorded: ${error.message}`);
-  } catch (e) { console.error(`[drawing] the priced verdict on ${o.sourcePath} was not recorded: ${String((e as Error)?.message || e)}`); }
+/** Said to the customer when create_inquiry refused drawing pages (drawingPagesRefused): what went, and why the pages did not. */
+export const PRICED_PAGES_WITHHELD_MESSAGE = {
+  en: 'Your request went to the suppliers without drawing pages: the document they come from was read as priced (a quotation or a priced bill of quantities), and no page of a priced document is shown to suppliers. To share a drawing, send it on its own.',
+  ar: 'أُرسل طلبكم إلى المورّدين دون لوحات المخطّط: فقد قُرئ المستند الذي جاءت منه على أنه مُسعَّر (عرض سعر أو جدول كميات مُسعَّر)، ولا تُعرض أي صفحة من مستند مُسعَّر على المورّدين. لمشاركة مخطّط، أرسلوه وحده.',
+} as const;
+/**
+ * Records the verdict; true when it holds. FAIL CLOSED (re-review of 464673eff, item 2): a verdict that cannot be written (asked
+ * twice) would leave the runs already redacted from the document attachable, so those runs are RETIRED in its place: each is
+ * turned into the verdict itself (status 'held', no output paths, reason PRICED_VERDICT, which sourcesJudgedPriced reads and
+ * resolveRedactedPaths never resolves), their stored pages are removed, and the IT engineer is told either way. false only when
+ * neither the verdict nor the retirement could be written (the finding says so).
+ */
+export async function recordPricedVerdict(o: { customerId: string; email: string; sourcePath: string; kind: string; runIds?: string[]; paths?: string[] }): Promise<boolean> {
+  const detail = { reason: PRICED_VERDICT, kind: o.kind };
+  for (let k = 0; k < 2; k++) {
+    try {
+      const { error } = await admin.from('drawing_redaction_runs').insert({ customer_id: o.customerId, owner_email: o.email, source_path: o.sourcePath, output_paths: [], pages_in: 0, pages_out: 0, skipped: 0, status: 'held', pages_verified: 0, verify_failed: 0, verify_detail: detail });
+      if (!error) return true;
+      console.error(`[drawing] the priced verdict on ${o.sourcePath} was not recorded: ${error.message}`);
+    } catch (e) { console.error(`[drawing] the priced verdict on ${o.sourcePath} was not recorded: ${String((e as Error)?.message || e)}`); }
+  }
+  const runIds = (o.runIds ?? []).filter((id) => REDACT_UUID_RE.test(id));
+  let retired = !runIds.length;
+  if (runIds.length) {
+    try {
+      const { error } = await admin.from('drawing_redaction_runs').update({ status: 'held', output_paths: [], verify_detail: { ...detail, retired: true } }).eq('customer_id', o.customerId).in('id', runIds);
+      retired = !error;
+    } catch (_e) { retired = false; }
+  }
+  let removed = !(o.paths ?? []).length;
+  if (!removed) { try { removed = !(await admin.storage.from('drawing-files').remove(o.paths!)).error; } catch (_e) { removed = false; } }
+  await drawingIdentityFinding('priced_verdict_unrecorded', { source_path: o.sourcePath, runs: runIds.length, runs_retired: retired, pages_removed: removed });
+  return retired && removed && runIds.length > 0;
 }
 /** create_inquiry's decision: are the drawing pages offered for this request (resolved from the customer's runs, or a pages
- *  job's) refused? Yes for a brief that is not a drawing's (a quotation, a priced BOQ) and for any page whose source, or whose
- *  request's stored document, the server judged priced; whatever the client sent. */
-export async function drawingPagesRefused(o: { custId: string; briefSource: string | null; offered: boolean; follows: boolean; sources: string[] }): Promise<boolean> {
+ *  job's) refused? Yes for a quotation brief, a reading that is priced (isQuotationReading / isPricedReading), and any page
+ *  whose source, or whose request's stored document, the server judged priced; whatever the client sent. */
+export async function drawingPagesRefused(o: { custId: string; briefSource: string | null; pricedReading: boolean; offered: boolean; follows: boolean; sources: string[] }): Promise<boolean> {
   if (!o.offered && !o.follows) return false;
-  if (o.briefSource !== 'drawing') return true;
+  // 'boq' is the button the customer pressed, not a verdict (re-review of 464673eff, item 1): a drawing PDF sent that way, or
+  // merged with an unpriced BOQ sheet, keeps its pages. Only a quotation brief, a priced reading or the server's verdict refuse.
+  if (o.briefSource === 'quotation' || o.pricedReading) return true;
   return await sourcesJudgedPriced(o.custId, o.sources);
 }
 /** Whether the server judged any of these stored documents of this customer priced. A read that fails is answered true: no
