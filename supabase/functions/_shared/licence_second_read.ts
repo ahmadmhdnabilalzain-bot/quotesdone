@@ -40,7 +40,10 @@ export async function licenceFileSha(body: { images?: any[]; file_b64?: string }
   const first = Array.isArray(body.images) && body.images.length ? (body.images[0]?.b64 ?? body.images[0]?.data ?? body.images[0]) : body.file_b64;
   if (typeof first !== 'string' || !first) return null;
   try {
-    const bytes = Uint8Array.from(atob(first.replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0));
+    // a plain loop, not Uint8Array.from with a callback: 1,106 ms of CPU for a 12 MB file, measured 18 Nov 2026 (review of #2054)
+    const bin = atob(first.replace(/^data:[^;]+;base64,/, ''));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
     const d = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
     return [...d].map((b) => b.toString(16).padStart(2, '0')).join('');
   } catch (_e) { return null; }

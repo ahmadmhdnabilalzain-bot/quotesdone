@@ -4,7 +4,8 @@
 // every PDF is a synthetic ZZ DEMO file built here or in scripts/e2e/fixtures/registration.
 //
 // WHAT FAILS IF THE CAUSE RETURNS
-//   * the page rule: a PDF of more than LICENCE_MAX_PAGES (8) pages reaches a model, or a licence of 1 to 8 pages is refused by code;
+//   * the page rule: a PDF of more than LICENCE_MAX_PAGES (8) pages reaches a model whole, or a licence of 1 to 8 pages is refused by code
+//     (since ruling 1728, 18 Nov 2026, a longer file is read by its first pages: a_long_licence_file_is_read_by_its_first_pages.test.ts);
 //   * an uncountable PDF (damaged) is refused instead of read; the sentence loses its count, its "what to do" or its way to a person;
 //   * license_extract counts pages after asking the model;
 //   * a file the first reader called a licence, or named at 'high', is read a second time;
@@ -21,7 +22,7 @@ import { demoPdfPages } from '../../../scripts/lib/demo_pdf.mjs';
 const b64 = (u8: Uint8Array) => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000)); return btoa(s); };
 const pdfOf = (pages: number) => b64(demoPdfPages(Array.from({ length: pages }, (_, i) => [[`ZZ DEMO page ${i + 1}`, 12], ['(QuotesDone synthetic fixture)', 8]])) as Uint8Array);
 
-Deno.test('the page rule: more than 8 pages is answered by code with the count and what to do; 1 to 8, an image and an uncountable file are read', async () => {
+Deno.test('the page rule: more than 8 pages that cannot be cut is answered by code with the count and what to do; 1 to 8, an image and an uncountable file are read', async () => {
   assertEquals(LICENCE_MAX_PAGES, 8);
   for (const n of [1, 4, 8, 9, 12]) assertEquals(await licencePageCount({ file_b64: pdfOf(n), mime: 'application/pdf' }), n, String(n));
   const fixture = await Deno.readFile(new URL('../../../scripts/e2e/fixtures/registration/N1_long_profile_12_pages.pdf', import.meta.url));
@@ -33,8 +34,8 @@ Deno.test('the page rule: more than 8 pages is answered by code with the count a
   for (const n of [null, 1, 4, 8]) assertEquals(tooManyPagesForALicence(n), null, String(n));
   const long = tooManyPagesForALicence(23)!;
   assertEquals(long.kind, 'long_file');
-  assertEquals(long.message, 'This file has 23 pages. A trade licence is a short document, usually 1 to 4 pages, so this is not one. Please attach your trade licence here on its own. If this is your company profile, it goes in the Company profile box below. If your licence is inside this file, please attach just the licence pages. If this is your trade licence, reply to our e-mail or write to management@quotesdone.com and we will check it.');
-  assertEquals(longFileSentence(9).startsWith('This file has 9 pages.'), true);
+  assertEquals(long.message, 'This file has 23 pages, and we could not open it to read its first pages. A trade licence is a short document, usually 1 to 4 pages. Please attach your trade licence here on its own. If this is your company profile, it goes in the Company profile box below. If your licence is inside this file, please attach just the licence pages. If this is your trade licence, reply to our e-mail or write to management@quotesdone.com and we will check it.');
+  assertEquals(longFileSentence(9).startsWith('This file has 9 pages,'), true);
   // the finding carries no licence field: the doors treat it exactly as a wrong document (put back, Submit blocked when nothing restored)
   const doc = { ...normaliseLicence({}), wrong_document: long };
   assertEquals([doc.unreadable, doc.license_number, doc.expiry_date, doc.held_for_person], [true, '', null, null]);

@@ -440,7 +440,7 @@ export async function buildCorpus(outDir) {
     ['Trade Licence No: ZZ-554120 | Issued by: Dubai Department of Economy and Tourism | Valid until: 30/06/2027', 9],
     ['(QuotesDone synthetic fixture - not a real company)', 8]]]), 'pdf', 'application/pdf',
     { kind: 'profile_quoting_licence_validity', authority: 'n/a', format: 'pdf', registered_name: 'ZZ DEMO Saqr MEP Contracting LLC', truth: { expiry_date: null }, text_layer: true });
-  // A 12-PAGE PROFILE IS ANSWERED BY ITS PAGE COUNT (licence_pages.ts LICENCE_MAX_PAGES = 8): no model is asked.
+  // A 12-PAGE PROFILE IS READ BY ITS FIRST 3 PAGES (licence_pages.ts, ruling 1728 of 18 Nov 2026; under ruling 1681 its count answered it).
   save('profile_long_12_pages', demoPdfPages(Array.from({ length: 12 }, (_, i) => [[`ZZ DEMO Saqr MEP Contracting LLC - Company Profile - page ${i + 1} of 12`, 12],
     [i === 0 ? 'About us: a UAE MEP contractor established in 2015.' : `Project ${i}: ZZ DEMO Tower block ${i}, HVAC and plumbing works.`, 10],
     ['(QuotesDone synthetic fixture - not a real company)', 8]])), 'pdf', 'application/pdf',
