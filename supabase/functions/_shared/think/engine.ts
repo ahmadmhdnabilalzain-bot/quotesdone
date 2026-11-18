@@ -125,7 +125,9 @@ export async function think(deps: ThinkDeps, req: ThinkRequest): Promise<ThinkRe
   // the seat answered nothing). Only a hold or an open circuit stops the answer; a slow plan never does.
   if ((!plan || !Array.isArray(plan.steps)) && (String(d0.content ?? '').trim() || (d0.error && !/circuit_open|open-circuit|founder_hold/.test(String(d0.error))))) {
     plan = { steps: [{ id: 's1', goal: 'answer the question', query: req.question.slice(0, 500), needs_knowledge: true }], facts: [], high_stakes: true };   // an unplanned answer is always cross-checked
-    steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: 'unparseable plan; one-step plan used' });
+    // The cause is kept (it_engineer, 18 Nov 2026): a planner that timed out read 'unparseable plan' here, so the held replay
+    // could not count the timeout it had billed (replay.ts timedOutAtGateway). A reply that was cut keeps the old words.
+    steps.push({ id: 'decompose', kind: 'decompose', goal: 'plan the reasoning', status: 'failed', detail: d0.error && !String(d0.content ?? '').trim() ? `${d0.error}; one-step plan used` : 'unparseable plan; one-step plan used' });
   }
   // A PLANNER THAT RAN OUT OF TIME IS NOT A REASON TO HOLD THE ANSWER (ceo, 19 Oct 2026, ledger 1003 stage 2). Measured
   // on the seat exam (ai_cost_log fn knowledge_exam, 05:00-08:00Z): the ceo seat's plans on gpt-6-luna-pro ran p90 77 s,
