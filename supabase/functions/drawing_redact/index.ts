@@ -28,12 +28,15 @@ import { tooLargeToParse } from '../_shared/parse_ceiling.ts';
 import { observe } from '../_shared/observe.ts';
 import { pdfPages, pdfRedactionView, type PdfPage } from '../_shared/pdf_text_positions.ts';
 import { textLayerBoxes } from '../_shared/drawing_identity_text.ts';
-import { MAX_BOXES, SERVER_MARGIN, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintedJpeg, repaintJpeg, serverBoxPlan, stripB64, supplierPagePrefix, tileJpeg, tilesJpeg, type PaintGroup } from '../_shared/drawing_redact_page.ts';
+import { SERVER_MARGIN, b64ToBytes, bytesToB64, cadPage, cleanBoxes, inkCells, paintedJpeg, repaintJpeg, stripB64, supplierPagePrefix, tileJpeg, tilesJpeg, type PaintGroup } from '../_shared/drawing_redact_page.ts';
+// One sheet's manual path, the pixel gate's per-page call and the run's row: shared with scripts/cad_read_worker.ts, which runs
+// them in process (18 Nov 2026; _shared/drawing_redact_sheet.ts says why).
+import { REPAINT_MARGIN, askPixelsVia, budgetSaid, gatePageWith, ignoredSaid, manualSheets, markOk, paintGroupsReceived, paintGroupsToSend, redactionRunRow, runSpentUsd, tileReceived, type GateWorkers, type SheetDeps } from '../_shared/drawing_redact_sheet.ts';
 import { modelHeld } from '../_shared/llm_hold.ts';
 import { anonymisedDrawingFile } from '../_shared/drawing_file_redact.ts';
-import { readerAgrees } from '../_shared/pdf_vector_redact.ts';
+// readerAgrees (pdf_vector_redact.ts) is asked by the manual path, in _shared/drawing_redact_sheet.ts.
 import { codeFloorBoxes, padded, unpaintedUnread, unreadTextHold, vocabularyVet, type Vet } from '../_shared/drawing_code_floor.ts';
-import { PIXEL_BUDGET_MESSAGE, PIXEL_CALL_USD, PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, pageSizeFromPixels, pixelGate, planTiles, VIEWS_PER_CROP, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
+import { PIXEL_PAGE_CAP, PIXEL_SET_BUDGET_USD, PIXEL_VERIFY_SYS, fileMayBeShared, jpegSize, pageSizeFromCad, pageSizeFromMediaBox, VIEWS_PER_CROP, type PageSize, type PixelBudget, type PixelOutcome, type Tile } from '../_shared/drawing_pixel_gate.ts';
 import { readCadStrings, readingHandedOn, type StringsReading } from '../_shared/drawing_string_reading.ts';
 import { INK_GRID, aspectMatches, expectedInk, imageDenseEnough, inkAgrees, pageCountHolds, pxNeeded } from '../_shared/released_file_pages.ts';
 import { asciiDxfOf } from '../_shared/cad_file_redact.ts';
@@ -82,10 +85,8 @@ function parseJson(t:string){ return readModelJson<any>(t, { wholeDecides: true 
 // paintedElsewhere below): no worker of a page decodes the sheet twice, and the one that plans it decodes it not at all.
 // MARGIN pads a MODEL's region (a guess); the server's own boxes get SERVER_MARGIN (see the shared module).
 const MARGIN = 0.03;
-// The paint worker's ceiling on groups (each at most MAX_BOXES): 64 x 1,200 boxes is past any page measured.
-const MAX_PAINT_GROUPS = 64;
-// The margin mode 'repaint' (verify:false) paints the checker's boxes at: paintElsewhere below.
-const REPAINT_MARGIN = 0.01;
+// The paint worker's ceiling on groups (MAX_PAINT_GROUPS) and the margin mode 'repaint' (verify:false) paints the checker's
+// boxes at (REPAINT_MARGIN) live in _shared/drawing_redact_sheet.ts since 18 Nov 2026, with what each mode receives.
 
 const SYS = `You are a privacy redaction assistant for construction / architectural / MEP drawings that will be shared with COMPETING suppliers. For EACH page image, find EVERY area containing information that could identify the client, the project, or the firms involved — so a supplier cannot identify or contact them.\nCover: the title block (usually a vertical strip on the right edge or a horizontal strip along the bottom), and any consultant / architect / engineer / contractor / developer / owner / client names, company logos, stamps, signatures, addresses, plot / parcel / makani numbers, project name or number, BUILDING or TOWER or VILLA name, COMMUNITY / DISTRICT / AREA name, drawing number or reference, revision number, phone numbers, emails and websites — wherever they appear (including next to the legend).\nALSO cover the NAMES OF INDIVIDUALS anywhere on the sheet: "Drawn by", "Checked by", "Approved by", "Prepared by", "Reviewed by" and any personal name beside a signature or a stamp. A draughtsman's or an approving engineer's name identifies the project to anyone in the trade as surely as the firm's does. (The text masker missed exactly these two on the one real drawing this platform has processed, which is why they are named here explicitly.)\nDo NOT cover the technical drawing, dimensions, room/space names, grid bubbles, north arrow, or the legend's SYMBOL EXPLANATIONS themselves — only the identifying text/logos. The distinction matters and is deliberate: the founder's instruction is that the legend must not show PROJECT DETAILS, not that the symbol key should be destroyed. A supplier who cannot read "◻ = single socket outlet" cannot price the job, and a drawing nobody can quote from is not anonymised, it is wasted.\nBe GENEROUS: if unsure whether a block is identifying, INCLUDE it. It is far better to over-cover than to leak.\nReturn STRICT JSON ONLY: {\"pages\":[{\"i\":0,\"has_identity\":true,\"regions\":[{\"x\":0.80,\"y\":0.0,\"w\":0.20,\"h\":1.0}]}]} — x,y,w,h are fractions 0..1 of the page (x,y = top-left corner of the box). One object per page, in the SAME order as the images. If a page truly has no identifying info, set has_identity=false and regions=[].`;
 
@@ -268,16 +269,9 @@ async function workerAnswer(ask: () => Promise<Response>, mode: string, stopAt?:
 // _shared/drawing_string_reading.ts). Both are model calls through ai_gateway; neither is ever skipped: no key, the
 // model hold, a refusal or an unparseable answer is a HELD page or an unattached file.
 async function askPixels(key: string, authors: string, jpgB64: string, stopAt?: number, sys: string = PIXEL_VERIFY_SYS): Promise<string | null> {
-  try {
-    // Cut at the stop plus a grace (round 5; drawing_deadline.callTimeoutMs); the gateway is told how long we wait.
-    const ms = callTimeoutMs(stopAt, 55_000);
-    const r = await fetch(GW, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(ms),
-      body: JSON.stringify({ __secret: key, fn: 'drawing_redact_verify', counterpart_model: authors, client_timeout_ms: ms, response_format: { type: 'json_object' }, temperature: 0, sys,
-        input: [{ role: 'user', content: [{ type: 'text', text: 'Check this page as the supplier will see it. Return the JSON.' }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + jpgB64 } }] }] }) });
-    const jd = await r.json().catch(() => null);
-    if (!r.ok || !jd || jd.truncated === true || jd.finish_reason === 'length' || typeof jd.content !== 'string') return null;
-    return jd.content;
-  } catch (_e) { return null; }
+  // The gateway call itself is _shared/drawing_redact_sheet.askPixelsVia (the CAD worker sends the same one): cut at the stop
+  // plus a grace (round 5; drawing_deadline.callTimeoutMs), and the gateway is told how long we wait.
+  return await askPixelsVia(GW, key, authors, jpgB64, stopAt, sys);
 }
 async function askStrings(key: string, sys: string, user: string): Promise<string | null> {
   try {
@@ -301,9 +295,9 @@ async function paintElsewhere(secret: string, jpgB64: string, regions: Array<{x:
 async function paintedElsewhere(secret: string, rasterB64: string, groups: PaintGroup[], stopAt?: number): Promise<string> {
   // The paint worker takes at most MAX_BOXES a group (cleanBoxes): a longer group is sent as several, in order, at the same
   // margin, so no box is dropped (a page's text-layer and code-floor boxes come AFTER the boxes it arrived with). Each value
-  // is clamped to 0..1 here, before JSON, so a model's 1e999 is the page edge, not a null the worker reads as 0.
-  const c = (v: number) => Math.max(0, Math.min(1, Number.isNaN(v) ? 0 : v));
-  const sent: PaintGroup[] = groups.flatMap((g) => { const bs = g.boxes.map((b) => ({ x: c(b.x), y: c(b.y), w: c(b.w), h: c(b.h) })); const out: PaintGroup[] = []; for (let k = 0; k < bs.length; k += MAX_BOXES) out.push({ boxes: bs.slice(k, k + MAX_BOXES), pad: g.pad }); return out; });
+  // is clamped to 0..1 here, before JSON, so a model's 1e999 is the page edge, not a null the worker reads as 0
+  // (drawing_redact_sheet.paintGroupsToSend).
+  const sent: PaintGroup[] = paintGroupsToSend(groups);
   const ask = () => fetch(SELF, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ __secret: secret, mode: 'paint', jpg_b64: rasterB64, groups: sent }), signal: AbortSignal.timeout(callTimeoutMs(stopAt, 60_000)) });
   const r = await workerAnswer(ask, 'paint', stopAt);
   const j = await r.json().catch(() => null);
@@ -342,7 +336,7 @@ async function pixelBudgetFor(sourcePath: unknown): Promise<PixelBudget> {
   if (typeof sourcePath === 'string' && sourcePath) {
     try {
       const { data } = await admin.from('drawing_redaction_runs').select('verify_detail').eq('source_path', sourcePath).gte('created_at', new Date(Date.now() - 86_400_000).toISOString());
-      for (const r of data || []) { const d = (r as any)?.verify_detail || {}; used += (Number(d.pixel_usd) || (Number(d.pixel_calls) || 0) * PIXEL_CALL_USD) + (Number(d.strings_usd) || 0); }
+      for (const r of data || []) used += runSpentUsd(r);
     } catch (_e) { used = Infinity; }
   }
   let left = PIXEL_SET_BUDGET_USD - used;
@@ -357,30 +351,22 @@ async function budgetInFlight(sourcePath: unknown, spentUsd: unknown): Promise<P
   b.spend(Math.max(0, Number(spentUsd) || 0));
   return b;
 }
-/** The page's physical size turned to the image's orientation (a MediaBox is unrotated; the image is as displayed). */
-function oriented(size: PageSize, jpgB64: string): PageSize {
-  const px = jpegSize(b64ToBytes(jpgB64));
-  if (!px) return size;
-  return (px.w >= px.h) === (size.wMm >= size.hMm) ? size : { ...size, wMm: size.hMm, hMm: size.wMm };
-}
-/** The size a page with no better measure is checked at: the larger of A1 and what its pixels imply. */
-function sizeOfPixels(jpgB64: string): PageSize { const px = jpegSize(b64ToBytes(jpgB64)); return pageSizeFromPixels(px?.w ?? 2600, px?.h ?? 1838); }
-/** One page through the gate, TILED to its physical size; the answer carries the calls and USD it spent. */
+/** The edge's pixel workers: each view, paint and repaint in a fresh drawing_redact worker of its own (inside the CPU cap),
+ *  the model through ai_gateway. */
+const edgeWorkers = (secret: string): GateWorkers => ({
+  ask: askPixels,
+  repaint: (b, regions, stopAt) => paintElsewhere(secret, b, regions, stopAt),
+  crop: (b, t, m, stopAt) => cropElsewhere(secret, b, t, m, stopAt),
+  cropMany: (b, vs, stopAt) => cropsElsewhere(secret, b, vs, stopAt),
+});
+/** One page through the gate, TILED to its physical size; the answer carries the calls and USD it spent
+ *  (drawing_redact_sheet.gatePageWith, with the edge's own workers). */
 async function gatePage(key: string | undefined, held: boolean, secret: string, authors: string, jpgB64: string, budget: PixelBudget, size?: PageSize, stopAt?: number, vet?: Vet, sys: string = PIXEL_VERIFY_SYS): Promise<PixelOutcome> {
-  if (held || !key) return { ok: false, held: 'pixels_unverified', calls: 0, usd: 0, detail: { reason: held ? 'model_hold' : 'no_ai_key' } };
-  const plan = planTiles(oriented(size ?? sizeOfPixels(jpgB64), jpgB64));
   // stopAt (drawing_deadline.ts): past it no view is asked and the page is held for time.
-  return await pixelGate(jpgB64, (b) => askPixels(key, authors, b, stopAt, sys), (b, regions) => paintElsewhere(secret, b, regions, stopAt), budget, { plan, crop: (b, t, m) => cropElsewhere(secret, b, t, m, stopAt), cropMany: (b, vs) => cropsElsewhere(secret, b, vs, stopAt), stopAt, vet });
+  return await gatePageWith(edgeWorkers(secret), key, held, authors, jpgB64, budget, size, stopAt, vet, sys);
 }
-/** Checker boxes left unpainted because they cover drawing vocabulary only (drawing_code_floor.vocabularyVet): logged and
- *  recorded on the run, so an over-eager checker is visible rather than silent. */
-function ignoredSaid(g: PixelOutcome): Record<string, unknown> {
-  if (!g.ok || !g.detail.ignored) return {};
-  console.log(`drawing_redact: ${g.detail.ignored} checker box(es) over drawing vocabulary only were not painted: ${JSON.stringify(g.detail.ignored_what ?? [])}`);
-  return { checker_boxes_ignored: g.detail.ignored, checker_ignored_what: g.detail.ignored_what ?? [] };
-}
-/** What the customer is told when the set is past its budget (plain words), or nothing. */
-const budgetSaid = (held: string | undefined) => held === 'pixels_budget' ? { customer_message: PIXEL_BUDGET_MESSAGE } : {};
+// ignoredSaid (checker boxes over drawing vocabulary, said on the run) and budgetSaid (the customer's words for a set past
+// its budget) live in _shared/drawing_redact_sheet.ts since 18 Nov 2026.
 
 // REDACTION PROVENANCE 2 Aug 2026 (external security review). WHY: suppliers are served the paths
 // this function returns as SIGNED URLs before any reveal fee is paid, and supplier_api will sign
@@ -396,22 +382,7 @@ const budgetSaid = (held: string | undefined) => held === 'pixels_budget' ? { cu
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 async function recordRun(id: string, body: any, o: { status: string; paths: string[]; pages_in: number; pages_out: number; skipped: number; pages_verified?: number; verify_failed?: number; verify_detail?: any }): Promise<boolean> {
   try {
-    const custId = typeof body?.owner_customer_id === 'string' && UUID_RE.test(body.owner_customer_id) ? body.owner_customer_id : null;
-    const { error } = await admin.from('drawing_redaction_runs').insert({
-      id,
-      customer_id: custId,
-      owner_email: body?.owner_email ? String(body.owner_email).toLowerCase().slice(0, 320) : null,
-      caller_ref: body?.prefix ? String(body.prefix).slice(0, 400) : null,
-      source_path: body?.source_path ? String(body.source_path).slice(0, 400) : null,
-      output_paths: o.paths,
-      pages_in: o.pages_in,
-      pages_out: o.pages_out,
-      skipped: o.skipped,
-      status: o.status,
-      pages_verified: o.pages_verified ?? 0,
-      verify_failed: o.verify_failed ?? 0,
-      verify_detail: o.verify_detail ?? null,
-    });
+    const { error } = await admin.from('drawing_redaction_runs').insert(redactionRunRow(id, body, o));
     return !error;
   } catch (_e) { return false; }
 }
@@ -476,8 +447,9 @@ Deno.serve(observe('drawing_redact', async (req) => {
       if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !Array.isArray(body.groups)) return J({ ok: false, error: 'jpg_b64_and_groups_required' }, 400);
       // Never paint fewer boxes than were sent (fail closed): a group over MAX_BOXES, or too many groups, is refused and the
       // caller holds the page. paintedElsewhere splits long groups, so this is reached only by a caller that did not.
-      if (body.groups.length > MAX_PAINT_GROUPS || body.groups.some((g: any) => !Array.isArray(g?.boxes) || g.boxes.length > MAX_BOXES)) return J({ ok: false, error: 'too_many_boxes' }, 400);
-      const groups: PaintGroup[] = body.groups.map((g: any) => ({ boxes: cleanBoxes(g?.boxes) ?? [], pad: Math.max(0, Math.min(0.1, Number(g?.pad) || 0)) }));
+      // (drawing_redact_sheet.paintGroupsReceived: the CAD worker paints in process from the same normalised groups.)
+      const groups: PaintGroup[] | null = paintGroupsReceived(body.groups);
+      if (!groups) return J({ ok: false, error: 'too_many_boxes' }, 400);
       let out: Awaited<ReturnType<typeof paintedJpeg>>;
       try { out = await paintedJpeg(b64ToBytes(body.jpg_b64), groups); } catch (_e) { return J({ ok: false, error: 'decode_failed' }); }
       return J({ ok: true, jpg_b64: bytesToB64(out.jpg) });
@@ -487,19 +459,17 @@ Deno.serve(observe('drawing_redact', async (req) => {
     // page image shows ink (verify_file's cross-check). Each in its own worker; neither records or uploads anything.
     if (body.mode === 'tile') {
       // The reading mark is required: a view without it could only ever be an unread answer (drawing_pixel_gate.newMark).
-      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !body.tile || !/^\d{6}$/.test(String(body.mark ?? ''))) return J({ ok: false, error: 'jpg_b64_tile_and_mark_required' }, 400);
-      const t = body.tile, n = (v: unknown) => Math.max(0, Math.min(1, Number(v) || 0));
-      const ow = Math.min(2000, Math.max(1, Number(t.outW) || 0)), oh = Math.min(2000, Math.max(1, Number(t.outH) || 0));
-      const jpg = await tileJpeg(b64ToBytes(body.jpg_b64), { x: n(t.x), y: n(t.y), w: n(t.w) || 1, h: n(t.h) || 1, outW: ow, outH: oh }, 85, String(body.mark));
+      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !body.tile || !markOk(body.mark)) return J({ ok: false, error: 'jpg_b64_tile_and_mark_required' }, 400);
+      // Clamped as drawing_redact_sheet.tileReceived clamps it (the CAD worker cuts its views in process the same way).
+      const jpg = await tileJpeg(b64ToBytes(body.jpg_b64), tileReceived(body.tile), 85, String(body.mark));
       return J({ ok: true, jpg_b64: bytesToB64(jpg) });
     }
     // ── SEVERAL VIEWS OF A PAGE FROM ONE DECODE (17 Nov 2026; drawing_redact_page.tilesJpeg has the measurement): at most
     // VIEWS_PER_CROP views, each with its reading mark, each clamped exactly as mode 'tile' clamps it. Records nothing.
     if (body.mode === 'tiles') {
       const vs: any[] = Array.isArray(body.views) ? body.views : [];
-      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !vs.length || vs.length > VIEWS_PER_CROP || vs.some((v) => !v?.tile || !/^\d{6}$/.test(String(v?.mark ?? '')))) return J({ ok: false, error: 'jpg_b64_and_views_with_marks_required' }, 400);
-      const n = (v: unknown) => Math.max(0, Math.min(1, Number(v) || 0)), px = (v: unknown) => Math.min(2000, Math.max(1, Number(v) || 0));
-      const jpgs = await tilesJpeg(b64ToBytes(body.jpg_b64), vs.map((v) => ({ tile: { x: n(v.tile.x), y: n(v.tile.y), w: n(v.tile.w) || 1, h: n(v.tile.h) || 1, outW: px(v.tile.outW), outH: px(v.tile.outH) }, mark: String(v.mark) })), 85);
+      if (typeof body.jpg_b64 !== 'string' || !body.jpg_b64 || !vs.length || vs.length > VIEWS_PER_CROP || vs.some((v) => !v?.tile || !markOk(v?.mark))) return J({ ok: false, error: 'jpg_b64_and_views_with_marks_required' }, 400);
+      const jpgs = await tilesJpeg(b64ToBytes(body.jpg_b64), vs.map((v) => ({ tile: tileReceived(v.tile), mark: String(v.mark) })), 85);
       return J({ ok: true, jpgs: jpgs.map(bytesToB64) });
     }
     // ── A PDF'S TEXT LAYER, A FEW PAGES AT A TIME, FOR analyze_drawing (17 Nov 2026; _shared/drawing_plan.ts) ──────────
@@ -731,6 +701,24 @@ Deno.serve(observe('drawing_redact', async (req) => {
     const imgs: any[] = Array.isArray(body.images) ? body.images.slice(0, 8) : [];
     if (!imgs.length) { const recorded = await publish(job_id, body, { status: 'empty', paths: [], pages_in: 0, pages_out: 0, skipped: 0 }); return J({ ok: true, job_id, recorded, paths: [], pages_in: 0, pages_out: 0 }); }
 
+    // ── MANUAL PATH: the customer's own boxes (or the server's, from the plan read), no find model involved ───────────────
+    // The per-sheet core is _shared/drawing_redact_sheet.manualSheets (18 Nov 2026): the CAD worker runs the SAME code in
+    // process for the sheets a request could not verify (why 'pages_need_time'), so none depends on this CPU cap. Here its
+    // paint, crops and repaint run in workers of their own (inside the cap), its storage and its run through supabase-js.
+    if (Array.isArray(body.manual_boxes)) {
+      const secret = String(body.__secret || '');
+      const deps: SheetDeps = {
+        ...edgeWorkers(secret),
+        paint: (raster, groups, stopAt) => paintedElsewhere(secret, raster, groups, stopAt),
+        modelHeld: () => modelHeld(admin),
+        aiKey: () => sec('cred_fn_ai'),
+        budget: (sourcePath, spentUsd) => budgetInFlight(sourcePath, spentUsd),
+        upload: async (path, jpg) => !(await admin.storage.from('drawing-files').upload(path, jpg, { contentType: 'image/jpeg', upsert: true })).error,
+        publish: (id, b, o) => publish(id, b, o),
+      };
+      return J(await manualSheets(body, { jobId: job_id, clock }, deps));
+    }
+
     // Text layer of the source PDF, if the caller sent it. page_offset maps this batch's images onto
     // PDF pages, because customer_api sends a drawing set to this function 4 pages at a time.
     const pageOffset = Math.max(0, Number(body.page_offset) || 0);
@@ -742,51 +730,6 @@ Deno.serve(observe('drawing_redact', async (req) => {
       try { pdf = await pdfPages(b64ToBytes(body.original_b64), [pageOffset, pageOffset + imgs.length], { layers: false }); } catch (_e) { pdf = []; }
     }
     const textBoxes = (i: number) => textLayerBoxes(pdf, pageOffset + i);
-    // ── MANUAL PATH: the customer's own boxes, no model involved ──────────────────────────────────
-    if (Array.isArray(body.manual_boxes)) {
-      const paths: string[] = []; let skipped = 0; let textHits = 0; const detail: any[] = [];
-      // A (13 Nov 2026): every page passes the pixel gate before it is shared; review item 4: the reader must agree with
-      // pdf-lib on what the page draws, or its boxes are not trusted.
-      const heldM = await modelHeld(admin); const keyM = heldM ? undefined : await sec('cred_fn_ai');
-      // spent_usd: what the caller's other pages in flight may spend (customer_api runs pages side by side, 17 Nov 2026).
-      const budget = await budgetInFlight(body.source_path, body.spent_usd);
-      const agrees = body.original_b64 ? await readerAgrees(b64ToBytes(body.original_b64), [pageOffset, pageOffset + imgs.length]) : false;
-      let pixelCalls = 0, pixelUsd = 0;
-      const timePages: number[] = [];
-      for (let i = 0; i < imgs.length; i++) {
-        if (Date.now() >= clock.startBy) { skipped++; timePages.push(i); detail.push({ page: i, skipped: TIME_HELD }); continue; }
-        if (!agrees) { skipped++; detail.push({ page: i, skipped: 'reader_disagrees_with_pdf' }); continue; }
-        // FAIL CLOSED (founder, 14 Sep 2026: nothing that identifies the customer may reach a supplier). The
-        // steps live in _shared/drawing_redact_page.ts serverBoxedPage: a page the server cannot read (a scan,
-        // a photo) is HELD whatever boxes came with it; a readable one is painted with the boxes plus the
-        // text layer's own identity boxes and re-encoded from pixels. drawing_redact_page.test.ts proves it.
-        // The boxes are planned here (serverBoxPlan) and painted in a worker of its own (paintedElsewhere, 17 Nov 2026).
-        try {
-          const b = (imgs[i] && (imgs[i].b64 || imgs[i].data)) || imgs[i];
-          const r = serverBoxPlan(pdf, pageOffset + i, cleanBoxes(body.manual_boxes[i]));
-          if (!r.ok) { skipped++; detail.push({ page: i, skipped: r.skipped }); continue; }
-          let boxed: string;
-          try { boxed = await paintedElsewhere(String(body.__secret || ''), stripB64(String(b)), [{ boxes: r.boxes, pad: SERVER_MARGIN }], clock.stopAt); }
-          catch (e) { skipped++; detail.push({ page: i, skipped: (e as Error)?.message === 'decode_failed' ? 'decode_failed' : 'paint_failed' }); continue; }
-          textHits += Number(r.detail.text_layer_boxes) || 0;
-          const pp = pdf[pageOffset + i];
-          const g = await gatePage(keyM, heldM, String(body.__secret || ''), 'deterministic', boxed, budget, pp && pp.width > 0 ? pageSizeFromMediaBox(pp.width, pp.height) : undefined, clock.stopAt, vocabularyVet(pp, []));
-          pixelCalls += g.calls; pixelUsd += g.usd;
-          if (!g.ok) { skipped++; if (g.held === TIME_HELD) timePages.push(i); detail.push({ page: i, skipped: g.held, ...g.detail }); continue; }
-          // The same rule as the model path (drawing_code_floor.unreadTextHold, round 4): every area of text code cannot read
-          // must lie under a painted box - the boxes that came with the page, the text layer's, or the checker's - or HELD.
-          const unreadHeld = unreadTextHold(pp, [], [...(r.painted ?? []), ...g.boxes.map((b) => padded(b, REPAINT_MARGIN))]);
-          if (unreadHeld) { skipped++; detail.push({ page: i, skipped: unreadHeld }); continue; }
-          const path = `${prefix}_p${i}.jpg`;
-          const up = await admin.storage.from('drawing-files').upload(path, b64ToBytes(g.jpgB64), { contentType: 'image/jpeg', upsert: true });
-          if (up.error) { skipped++; detail.push({ page: i, skipped: 'upload_failed' }); continue; }
-          paths.push(path); detail.push({ page: i, ...r.detail, ...ignoredSaid(g) });
-        } catch (_e) { skipped++; detail.push({ page: i, skipped: 'decode_failed' }); }
-      }
-      const status = paths.length === 0 ? 'failed' : (paths.length < imgs.length ? 'partial' : 'complete');
-      const recorded = await publish(job_id, body, { status, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: paths.length, verify_failed: 0, verify_detail: { method: 'manual', pages: detail, pixel_calls: pixelCalls, pixel_usd: pixelUsd } });
-      return J({ ok: true, job_id, recorded, paths, pages_in: imgs.length, pages_out: paths.length, skipped, pages_verified: 0, verify_failed: 0, verify_detail: detail, status, method: 'manual', text_layer_hits: textHits, time_held: timePages.length, time_held_pages: timePages, redaction_complete: recorded && paths.length === imgs.length, ...budgetSaid(detail.some((d: any) => d.skipped === 'pixels_budget') ? 'pixels_budget' : undefined) });
-    }
 
     // THE MODEL IS HELD: SAY SO, DO NOT ASK (24 Sep 2026). Under the OpenRouter hold every find call failed and
     // was recorded as a bare detect_failed, indistinguishable from a model that misread the page. The hold is

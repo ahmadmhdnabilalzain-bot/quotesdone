@@ -152,6 +152,14 @@ jobs:
           deno test --no-lock --node-modules-dir=auto --allow-read=.
           --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-net=deno.land,esm.sh
           supabase/functions/drawing_redact/a_dead_worker_is_asked_again.check.ts
+      # 18 NOV 2026 — A QUEUED DRAWING SHEET IS CHECKED IN THE CAD WORKER AS THE EDGE CHECKS IT. Sheet 1 of the 8-sheet set
+      # through the real drawing_redact handler and through scripts/cad_read_worker.ts's in-process core: the same answer, page
+      # bytes, run row and gateway calls, and the worker's pages job never calls drawing_redact. Same network need as above.
+      - name: A queued drawing sheet is checked in the CAD worker as the edge checks it
+        run: >-
+          deno test --no-lock --node-modules-dir=none --allow-read=.
+          --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-net=deno.land,esm.sh
+          supabase/functions/drawing_redact/a_queued_sheet_is_checked_in_the_worker_as_on_the_edge.check.ts
       # 17 NOV 2026 — EVERY DUCT-LENGTH REQUEST IS MEASURED WITHIN THE EDGE CPU BUDGET. Each drawing_boq 'lengths' request
       # customer_api makes for the 8-sheet ZZ DEMO set runs the real handler in a fresh process of its own (--allow-run).
       - name: Every duct-length request is measured within the edge CPU budget

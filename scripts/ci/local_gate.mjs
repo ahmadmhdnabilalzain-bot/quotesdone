@@ -99,6 +99,9 @@ const STEPS = [
   // 17 Nov 2026 (paid proof 623d9200): a paint or tile worker that dies (546: concurrent requests share an isolate's CPU cap) is
   // asked again, and one that never comes back still holds the page. No CPU is measured, so not alone; imagescript needs deno.land.
   ['redact-dead-worker', 'checks', 'a dead redaction worker is asked again, and a page is never published on one', `${DENO} --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-net=deno.land,esm.sh supabase/functions/drawing_redact/a_dead_worker_is_asked_again.check.ts`, { heavy: true, hosts: ['deno.land', 'esm.sh'] }],
+  // 18 Nov 2026: a sheet queued for the CAD worker ('pages_need_time') is checked IN THE WORKER'S PROCESS by the same core the edge
+  // runs (_shared/drawing_redact_sheet.ts): the same answer, bytes, run row and gateway calls as the edge, and no call to drawing_redact.
+  ['redact-worker', 'checks', 'a queued drawing sheet is checked in the CAD worker as the edge checks it', `${DENO} --allow-env=SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY --allow-net=deno.land,esm.sh supabase/functions/drawing_redact/a_queued_sheet_is_checked_in_the_worker_as_on_the_edge.check.ts`, { heavy: true, hosts: ['deno.land', 'esm.sh'] }],
   // 17 Nov 2026: every drawing_boq 'lengths' request customer_api makes (a sheet each, then the merge) through the real handler,
   // each in a fresh process of its own, held to a CPU budget inside the edge's (the whole-set request answered 500 on
   // production and left the duct without metres). A CPU budget: run alone of other heavy steps, like redact-budget.

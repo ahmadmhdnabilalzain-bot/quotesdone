@@ -39,6 +39,6 @@ Deno.test('the paint worker records and uploads nothing, and a paint that does n
   const branch = src.slice(start, src.indexOf('\n    }\n', start));
   assert(!/publish\(|storage\.from\(/.test(branch), 'the paint branch must leave recording and upload to its caller');
   assertMatch(src, /if \(!r\.ok \|\| j\?\.ok !== true \|\| typeof j\.jpg_b64 !== 'string'\) throw new Error\(j\?\.error === 'decode_failed' \? 'decode_failed' : 'paint_failed'\);/);
-  // The manual path counts a failed paint as a skipped page, never publishes it.
-  assertMatch(src, /catch \(e\) \{ skipped\+\+; detail\.push\(\{ page: i, skipped: \(e as Error\)\?\.message === 'decode_failed' \? 'decode_failed' : 'paint_failed' \}\); continue; \}/);
+  // The manual path counts a failed paint as a skipped page, never publishes it (its loop: _shared/drawing_redact_sheet.ts).
+  assertMatch(Deno.readTextFileSync(new URL('../_shared/drawing_redact_sheet.ts', import.meta.url)), /catch \(e\) \{ skipped\+\+; detail\.push\(\{ page: i, skipped: \(e as Error\)\?\.message === 'decode_failed' \? 'decode_failed' : 'paint_failed' \}\); continue; \}/);
 });

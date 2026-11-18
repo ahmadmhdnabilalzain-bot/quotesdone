@@ -54,10 +54,11 @@ Deno.test('a page whose views all answered before the stop is not held for time;
 });
 
 Deno.test('drawing_redact starts no page after the clock and passes stopAt to every gate; customer_api sends its own clock and says the hold', () => {
-  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  // The manual path's loop is _shared/drawing_redact_sheet.manualSheets since 18 Nov 2026 (the CAD worker runs it in process).
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url)) + '\n' + Deno.readTextFileSync(new URL('../_shared/drawing_redact_sheet.ts', import.meta.url));
   assertMatch(src, /const clock = deadlinesFrom\(body, startedAt\);/);
   assertEquals((src.match(/if \(Date\.now\(\) >= clock\.startBy\) \{ skipped\+\+; timePages\.push\(i\);/g) ?? []).length, 2, 'both the manual and the model loop check the clock before each page');
-  assertEquals((src.match(/await gatePage\([^\n]*clock\.stopAt(?:, vocabularyVet\(pp, (?:\[\]|seeds)\)|, undefined, sys)?\);/g) ?? []).length, 6, 'every gate call carries the stop');
+  assertEquals((src.match(/await gatePage(?:With)?\([^\n]*clock\.stopAt(?:, vocabularyVet\(pp, (?:\[\]|seeds)\)|, undefined, sys)?\);/g) ?? []).length, 6, 'every gate call carries the stop');
   assertMatch(src, /time_held: timePages\.length, time_held_pages: timePages, redaction_complete: recorded && paths\.length === imgs\.length \}\);/);
   const api = Deno.readTextFileSync(new URL('../customer_api/actions/documents.ts', import.meta.url));
   assertMatch(api, /deadline_at: redStartBy, stop_at: redStopAt/);
@@ -92,12 +93,16 @@ Deno.test('SLOW stub: a model call started at 124 s is cut by 135 s and the page
   const g2 = await c2.run(pixelGate('page', async (shown) => JSON.stringify({ mark: shown, clean: false, addressed: false, regions: [{ x: 0.1, y: 0.1, w: 0.1, h: 0.1 }] }),
     async () => { await c2.sleep(callTimeoutMs(125_000, 90_000, c2.now)); throw new Error('repaint_failed'); }, pixelBudget(), { plan: one, crop: async (_b, _t, m) => m, stopAt: 125_000, now: c2.now }));
   assert(!g2.ok && g2.held === TIME_HELD && c2.now() === 135_000);
-  // drawing_redact: the model, crop and repaint calls all take their timeout from the stop.
+  // drawing_redact: the model, crop and repaint calls all take their timeout from the stop. The model call is
+  // _shared/drawing_redact_sheet.askPixelsVia since 18 Nov 2026 (the CAD worker sends the same one, its job budget cutting too).
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
-  assertMatch(src, /const ms = callTimeoutMs\(stopAt, 55_000\);\n\s*const r = await fetch\(GW, \{[^\n]*signal: AbortSignal\.timeout\(ms\),\n[^\n]*client_timeout_ms: ms,/);
+  const sheet = Deno.readTextFileSync(new URL('../_shared/drawing_redact_sheet.ts', import.meta.url));
+  assertMatch(src, /return await askPixelsVia\(GW, key, authors, jpgB64, stopAt, sys\);/);
+  assertMatch(sheet, /const ms = callTimeoutMs\(stopAt, 55_000\);\n\s*const cut = signal \? AbortSignal\.any\(\[signal, AbortSignal\.timeout\(ms\)\]\) : AbortSignal\.timeout\(ms\);\n\s*const r = await fetch\(gw, \{[^\n]*signal: cut,\n[^\n]*client_timeout_ms: ms,/);
   assertMatch(src, /mode: 'repaint', verify: false[^\n]*signal: AbortSignal\.timeout\(callTimeoutMs\(stopAt, 90_000\)\)/);
   assertMatch(src, /mode: 'tile', jpg_b64: jpgB64, tile, mark \}\), signal: AbortSignal\.timeout\(callTimeoutMs\(stopAt, 60_000\)\)/);
-  assertMatch(src, /askPixels\(key, authors, b, stopAt(?:, sys)?\), \(b, regions\) => paintElsewhere\(secret, b, regions, stopAt\)[^\n]*cropElsewhere\(secret, b, t, m, stopAt\)/);
+  assertMatch(sheet, /w\.ask\(key, authors, b, stopAt, sys\), \(b, regions\) => w\.repaint\(b, regions, stopAt\)[^\n]*crop: \(b, t, m\) => w\.crop\(b, t, m, stopAt\), cropMany: \(b, vs\) => w\.cropMany\(b, vs, stopAt\), stopAt, vet/);
+  assertMatch(src, /ask: askPixels,\n\s*repaint: \(b, regions, stopAt\) => paintElsewhere\(secret, b, regions, stopAt\),\n\s*crop: \(b, t, m, stopAt\) => cropElsewhere\(secret, b, t, m, stopAt\),\n\s*cropMany: \(b, vs, stopAt\) => cropsElsewhere\(secret, b, vs, stopAt\),/);
   // customer_api: a batch the clock cut is time (the time message), not a dead redactor; abandoned pages are recorded.
   const api = Deno.readTextFileSync(new URL('../customer_api/actions/documents.ts', import.meta.url));
   assertMatch(api, /const clock = cutByClock\(e, Date\.now\(\), redStopAt\);\s*verdictOf\[b\] = \{ state: 'retry', why: clock \? 'time' : 'lost' \};\s*if \(clock\) \{ timeHeld \+= slice\.length; abandoned\.push\(/);

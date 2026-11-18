@@ -7,10 +7,11 @@
 // customer told to upload it again a few sheets at a time. Now, when every other sheet of a PDF set was verified, the sheets
 // left are queued in public.cad_read_jobs (why 'pages_need_time') with what the edge already proved about each: its raster
 // as the portal drew it (stored privately, like a scan page), the server's own boxes for it (from the plan read, never the
-// customer's) and the set's seeds. The CAD read routine (scripts/cad_read_worker.ts) sends each through the SAME
-// drawing_redact manual path, one sheet a call with the whole edge clock to itself, and publishes the set only when every
-// sheet came back verified: all of the set or none, as on the edge (customer_api/drawing_hold.ts). The portal adopts the
-// pages from cad_read_status the way it adopts a scan's.
+// customer's) and the set's seeds. The CAD read routine (scripts/cad_read_worker.ts) runs each through the SAME
+// drawing_redact manual path, one sheet a call with its own clock, and publishes the set only when every sheet came back
+// verified: all of the set or none, as on the edge (customer_api/drawing_hold.ts). The portal adopts the pages from
+// cad_read_status the way it adopts a scan's. SINCE 18 NOV 2026 IN THE WORKER'S OWN PROCESS (_shared/drawing_redact_sheet.ts,
+// cad_read_worker.sheetRedactorHere): sent back to the edge, a sheet met the same CPU cap that had lost it in the request.
 //
 // EVERY SHEET NOT VERIFIED IN THE REQUEST, NOT ONLY ONE HELD FOR TIME (17 Nov 2026 evening, sales_engineer; paid proof
 // 6244a525, founder ledger 580). MEASURED (Supabase function logs 19:12-19:16 UTC): of 8 sheets, 7 were LOST to HTTP 546

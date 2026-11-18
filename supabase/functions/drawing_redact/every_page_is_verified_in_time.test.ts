@@ -106,13 +106,16 @@ Deno.test('drawing_redact cuts views in its own worker (mode tiles), refuses a v
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   const a = src.indexOf("if (body.mode === 'tiles')"), branch = src.slice(a, src.indexOf('\n    }\n', a));
   assert(a > 0, 'mode tiles exists');
-  assertMatch(branch, /vs\.length > VIEWS_PER_CROP \|\| vs\.some\(\(v\) => !v\?\.tile \|\| !\/\^\\d\{6\}\$\/\.test\(String\(v\?\.mark/);
+  assertMatch(branch, /vs\.length > VIEWS_PER_CROP \|\| vs\.some\(\(v\) => !v\?\.tile \|\| !markOk\(v\?\.mark\)\)\) return J\(/);
   assertMatch(branch, /tilesJpeg\(/);
   assert(!/publish\(|storage\.from\(/.test(branch), 'the crop worker records and uploads nothing');
-  assertMatch(src, /cropMany: \(b, vs\) => cropsElsewhere\(secret, b, vs, stopAt\)/);
+  assertMatch(src, /cropMany: \(b, vs, stopAt\) => cropsElsewhere\(secret, b, vs, stopAt\)/);
   assertMatch(src, /const r = await workerAnswer\(ask, 'tiles', stopAt\);/);
   assertMatch(src, /j\.jpgs\.length !== views\.length[^\n]*throw new Error\('tiles_failed'\)/);
-  assertEquals((src.match(/await budgetInFlight\(body\.source_path, body\.spent_usd\)/g) ?? []).length, 4, "mode gate, read_strings, the manual and the model path");
+  assertEquals((src.match(/await budgetInFlight\(body\.source_path, body\.spent_usd\)/g) ?? []).length, 3, "mode gate, read_strings and the model path");
+  // The manual path (_shared/drawing_redact_sheet.manualSheets since 18 Nov 2026) asks the same, through the edge's deps.
+  assertMatch(src, /budget: \(sourcePath, spentUsd\) => budgetInFlight\(sourcePath, spentUsd\),/);
+  assertMatch(Deno.readTextFileSync(new URL('../_shared/drawing_redact_sheet.ts', import.meta.url)), /const budget = await d\.budget\(body\.source_path, body\.spent_usd\);/);
 });
 
 Deno.test('customer_api keeps ONE sheet in flight and a sheet ONE crop worker (the 2 s CPU is per isolate), and hands the pages back in page order', () => {
