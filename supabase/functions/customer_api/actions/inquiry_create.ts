@@ -19,7 +19,7 @@ import { currentCustomerTermsVersion, needsReacceptance, REACCEPT_MESSAGE } from
 import { applyEdits, validateStored, supplierLine } from '../../_shared/intake_requirements.ts';
 import { type ActionCtx, INQUIRY_LIMIT_PER_HOUR, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
 import { inquiryNotSaved, labelize } from '../lib/inquiry_rules.ts';
-import { drawingIdentityFinding, pagesStillBeingChecked, resolveRedactedPaths, storedDrawingTerms } from '../lib/drawings.ts';
+import { drawingIdentityFinding, drawingPagesRefused, pagesStillBeingChecked, resolveRedactedPaths, storedDrawingTerms } from '../lib/drawings.ts';
 import { PAGES_FOLLOW_MESSAGE } from '../../_shared/drawing_pages_follow.ts';
 import { gateAtSend } from '../drawing_send_gate.ts';
 import { ownDrawingPath } from '../drawing_path.ts';
@@ -28,7 +28,7 @@ import { keylessPlaceKeys, oneOfSeven, splitSite } from '../../_shared/site_loca
 import { attachedLine } from '../../supplier_api/what_a_supplier_receives.ts';
 import { forSpec, recordOf } from '../../_shared/site_photos.ts';
 import { photoStates, photosAtSend, photosLine } from '../../supplier_api/site_photos_door.ts';
-import { isQuotationReading, quotationGate } from '../../drawing_boq/quotation_gate.ts';
+import { isPricedReading, isQuotationReading, quotationGate } from '../../drawing_boq/quotation_gate.ts';
 import { claimIntake, releaseIntake } from '../lib/intake_claim.ts';
 import { keysOfTrade, serviceKeyCols, stateKeysForIntake } from '../lib/state_service_keys.ts';
 import { joinIfNotOpen, notOpenAnswer } from '../../_shared/trade_opening.ts';
@@ -149,7 +149,7 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       // is one (drawing_boq/quotation_gate.ts isQuotationReading: the model's document_kind, or the code reader's note), and
       // that wins over whatever the browser called the upload. Measured: the portal sent every PDF as 'drawing' or 'boq', so
       // suppliers were told "A drawing with a draft bill of quantities is attached" of another supplier's priced offer.
-      const briefSource = drawing ? (isQuotationReading(boqObj) ? 'quotation' : ['drawing','quotation','boq'].includes(String(drawing.brief_source)) ? String(drawing.brief_source) : 'drawing') : null;
+      const briefSource = drawing ? (isQuotationReading(boqObj) ? 'quotation' : isPricedReading(boqObj) ? 'boq' : ['drawing','quotation','boq'].includes(String(drawing.brief_source)) ? String(drawing.brief_source) : 'drawing') : null;
       let intake: any = null;
       if (body.intake_id) { const { data: it } = await admin.from('inquiry_intake').select('*').eq('id', String(body.intake_id)).maybeSingle(); if (it && it.email === email && it.status === 'ready') intake = it;
         // This intake already posted its request (lib/intake_claim.ts): Send again after a timeout is told so, not asked the questions again.
@@ -224,8 +224,11 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       // Never trust drawing.drawing_redacted_paths from the body — see resolveRedactedPaths above.
       const rr = await resolveRedactedPaths(String(cust.id), String(user.id || ''), drawing);
       if ('err' in rr) return J(rr.err, rr.status);
-      // A quotation's pages are never shown to a supplier: analyze_drawing returns none for it. Pages here are a DRAWING's,
-      // attached beside the quotation (review of F2: a quotation and a drawing together kept neither drawing), so they stay.
+      // A quotation's pages are never shown to a supplier: analyze_drawing returns none for it. Since 18 Nov 2026 (re-review of
+      // c1a934280, item 2) the server REFUSES them too, whatever the client names: no page is attached to a request whose
+      // brief is a quotation or a priced document, nor any page redacted from a stored document the server judged priced
+      // (lib/drawings.sourcesJudgedPriced). A drawing sent beside a quotation in one request therefore goes without its pages
+      // (fail closed; the review of F2 had kept them): it can be sent as a request of its own.
       // THE SHEETS STILL BEING CHECKED (17 Nov 2026 evening; _shared/drawing_pages_follow.ts). A drawing with no verified pages
       // here may have its sheets queued for the CAD read routine: a job already finished with every sheet verified gives its
       // pages now (resolved like any other run, by ownership and completeness); one still open makes the request say the
@@ -233,8 +236,11 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       // customer's own stored drawing, never taken from the body.
       // Only a DRAWING's request (review of 578f49003, item 1): a quotation or a priced document never takes pages from a job.
       const follow = drawingPath && !rr.paths.length && briefSource === 'drawing' ? await pagesStillBeingChecked(String(cust.id), String(user.id || ''), drawingPath) : { paths: [] as string[], follows: false };
-      const drawingRedacted = rr.paths.length ? rr.paths.slice(0, 24) : (follow.paths.length ? follow.paths.slice(0, 24) : null);
-      const pagesFollow = !drawingRedacted && follow.follows;
+      const offered = rr.paths.length ? rr.paths.slice(0, 24) : (follow.paths.length ? follow.paths.slice(0, 24) : null);
+      const pagesRefused = await drawingPagesRefused({ custId: String(cust.id), briefSource, offered: !!offered, follows: follow.follows, sources: [drawingPath ?? '', ...(rr.sources ?? []), ...(follow.sources ?? [])] });
+      if (pagesRefused) await drawingIdentityFinding('priced_pages_refused', { source_path: drawingPath, brief_source: briefSource, pages_offered: offered?.length ?? 0 });
+      const drawingRedacted = pagesRefused ? null : offered;
+      const pagesFollow = !pagesRefused && !drawingRedacted && follow.follows;
       // `tradesIn` arrives from the request body, so Set<unknown> is what TypeScript infers and
       // every downstream use of a trade - labelize(tr), KW[tr], category: tr - was an error.
       // Coercing here rather than casting at each use means a non-string trade is normalised once,

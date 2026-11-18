@@ -224,5 +224,10 @@ export const isQuotationReading = (boq: any) => !!boq && typeof boq === 'object'
 // deno-lint-ignore no-explicit-any
 export function pricedDocumentKind(lines: string[], reading: any): 'quotation' | 'priced' | null {
   const pk = lines.length ? pricedKind(lines.join('\n')) : null;
-  return isQuotationReading(reading) || pk === 'quotation' ? 'quotation' : pk === 'priced' ? 'priced' : null;
+  return isQuotationReading(reading) || pk === 'quotation' ? 'quotation' : pk === 'priced' || isPricedReading(reading) ? 'priced' : null;
 }
+/** True when a reading says it is a priced NON-quotation document (the customer's or a consultant's priced BOQ): drawing_boq
+ *  marks it so itself (quotationGate kind 'priced': priced: true and PRICED_NOTE) from the text layer IT read, which
+ *  customer_api may not have when its own plan read was lost (re-review of c1a934280, item 1). */
+// deno-lint-ignore no-explicit-any
+export const isPricedReading = (boq: any) => !!boq && typeof boq === 'object' && (boq.priced === true || (Array.isArray(boq.assumptions) && boq.assumptions.includes(PRICED_NOTE)));

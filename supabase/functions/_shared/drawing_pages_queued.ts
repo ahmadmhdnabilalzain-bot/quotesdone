@@ -55,14 +55,14 @@ export type LeftPage = { page: number; path: string; boxes?: Box[]; why?: string
  *  original (planQueuedPages); `customer_boxes` are the customer's own boxes, added as extra cover only, as the edge adds them. */
 /** `reading`: what the request's model reading said the document is (document_kind, and the quotation note in assumptions),
  *  kept so the worker decides priced or not with the edge's own decision and inputs (quotation_gate.pricedDocumentKind). */
-export type QueuedReading = { document_kind?: string; assumptions?: string[] } | null;
+export type QueuedReading = { document_kind?: string; priced?: true; assumptions?: string[] } | null;
 export type QueuedPages = { pages_in: number; seed_terms: string[]; done: DonePage[]; left: LeftPage[]; plan_in_worker?: true; customer_boxes?: Box[][] | null; reading?: QueuedReading };
 
-/** The part of a model reading the priced decision reads (isQuotationReading): nothing else of it rides on the job. */
+/** The part of a model reading the priced decision reads (isQuotationReading, isPricedReading): nothing else rides on the job. */
 // deno-lint-ignore no-explicit-any
 export function readingForQueue(boq: any): QueuedReading {
   if (!boq || typeof boq !== 'object') return null;
-  return { ...(typeof boq.document_kind === 'string' ? { document_kind: boq.document_kind } : {}), ...(Array.isArray(boq.assumptions) ? { assumptions: boq.assumptions.filter((a: unknown) => typeof a === 'string').slice(0, 50) } : {}) };
+  return { ...(typeof boq.document_kind === 'string' ? { document_kind: boq.document_kind } : {}), ...(boq.priced === true ? { priced: true as const } : {}), ...(Array.isArray(boq.assumptions) ? { assumptions: boq.assumptions.filter((a: unknown) => typeof a === 'string').slice(0, 50) } : {}) };
 }
 
 /** What one sheet's drawing_redact manual-path call carries (the caller adds its credential, owner and source path). */

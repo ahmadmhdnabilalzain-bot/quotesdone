@@ -316,3 +316,23 @@ Deno.test('pages reach a DRAWING\'s requests only: never a quotation\'s or a pri
   const create = Deno.readTextFileSync(new URL('../customer_api/actions/inquiry_create.ts', import.meta.url));
   assertMatch(create, /const follow = drawingPath && !rr\.paths\.length && briefSource === 'drawing' \? await pagesStillBeingChecked\(/, 'create_inquiry takes no job\'s pages for a quotation');
 });
+
+// RE-REVIEW OF c1a934280, ITEM 1: drawing_boq marks a priced NON-quotation document itself ({ document_kind: 'boq', priced: true,
+// assumptions: [PRICED_NOTE] }) from the text layer IT read. With the request's own plan read lost, customer_api has no printed
+// lines, so only the reading can say it: the one rule reads it, inline on the edge and in the worker.
+Deno.test('a priced BOQ reading with a lost plan is priced: held inline (pricedRoute) and in the queue (worker)', async () => {
+  const { PRICED_NOTE } = await import('../drawing_boq/quotation_gate.ts');
+  const reading = { document_kind: 'boq', priced: true, assumptions: [PRICED_NOTE], boq: [{ description: 'Split AC unit', qty: 2, unit: 'nos' }] };
+  assertEquals(pricedDocumentKind([], reading), 'priced');
+  assertEquals(pricedDocumentKind([], { document_kind: 'boq', assumptions: [PRICED_NOTE] }), 'priced', 'the note alone says it');
+  assertEquals(pricedDocumentKind([], { document_kind: 'boq' }), null, 'an unpriced BOQ reading is not priced');
+  // Inline: no printed lines (the plan read was lost), the priced route answers and no page goes with it.
+  const inline = pricedRoute({ isCad: false, pdfLines: [], reading });
+  assert(inline, 'the edge takes the priced route');
+  assertEquals([inline.brief_source, inline.drawing_redacted_paths, inline.share_redacted], ['boq', [], false]);
+  // Queued: the reading rides on the job and the worker holds the set though its own plan reads no money.
+  assertEquals(readingForQueue(reading), { document_kind: 'boq', priced: true, assumptions: [PRICED_NOTE] });
+  const q = queuedPagesOf({ pagesIn: 1, seeds: ['ZZ DEMO'], done: [], left: [0], boxes: null, reading: readingForQueue(reading), storedAt: () => 'drawings/zz/sheet_1.jpg' })!;
+  const r = await planQueuedPages(q, new Uint8Array(), PLAIN_PLAN(STRIPS('GROUND FLOOR AC LAYOUT'), BOXES1));
+  assert('held' in r && r.held.held_reason === 'pages_need_time_priced_document');
+});

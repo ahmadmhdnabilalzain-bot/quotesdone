@@ -16,7 +16,7 @@ import { PIXEL_PAGE_RESERVE_USD } from '../../_shared/drawing_pixel_gate.ts';
 import { isPhotoOrScan, visionCountBody, applyVisionCounts } from '../vision_count_wire.ts';
 import { documentLocale } from '../../_shared/registered_locale.ts';
 import { readPdfPlan } from '../../_shared/drawing_plan.ts';
-import { isQuotationReading, looksPriced } from '../../drawing_boq/quotation_gate.ts';
+import { isQuotationReading, looksPriced, pricedDocumentKind } from '../../drawing_boq/quotation_gate.ts';
 import { pricedRoute } from '../lib/priced_document.ts';
 import { understoodMessage } from '../lib/what_was_understood.ts';
 import { LENGTHS_FAILED_NOTE, LENGTHS_QUEUED_NOTE, lengthsToConfirm } from '../../drawing_boq/length_notes.ts';
@@ -26,7 +26,7 @@ import { DRAWING_FORMAT_ERROR, drawingFormatRefusal, drawingFormatRefused } from
 import { cadJobNeedsRedispatch, claimCadDispatch } from '../cad_dispatch.ts';
 import { PHOTOS_PER_DAY, photosToday, recordSitePhotos } from '../../_shared/site_photos.ts';
 import { type ActionCtx, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
-import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, lengthsCall, pdfPlanCall, queueCadRead, queuePagesOnce, recordHeld, redactCad, scheduleTables, storeOriginal } from '../lib/drawings.ts';
+import { MAX_DRAWING_PAGES, cadQueueReason, cadReadHeld, drawingOcr, lengthsCall, pdfPlanCall, queueCadRead, queuePagesOnce, recordHeld, recordPricedVerdict, redactCad, scheduleTables, storeOriginal } from '../lib/drawings.ts';
 
 /** analyze_drawing answers inside this (ms from its request), 10 s before the 150 s edge wall. See the action below. */
 export const ANALYZE_DRAWING_BUDGET_MS = 140_000;
@@ -159,6 +159,10 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
       // A priced document read by the code reader (quotation_parties QUOTATION_NOTE) is said to be one (13 Nov 2026), so the
       // portal sends it as 'quotation' and the customer sees what was understood.
       if (!cad) { const q = isQuotationReading(jd.boq); const seen = understoodMessage(jd.boq, q ? 'quotation' : null);
+        // The server's priced verdict, recorded on the stored original (lib/drawings.recordPricedVerdict): no drawing page is ever
+        // attached from it (re-review of c1a934280, item 2).
+        const pk = pricedDocumentKind([], jd.boq);
+        if (pk && path) await recordPricedVerdict({ customerId: cust.id, email, sourcePath: path, kind: pk });
         return J({ ok: true, boq: q ? { ...jd.boq, document_kind: 'quotation' } : jd.boq, kind: jd.kind || null, needs: jd.needs || null, ...(q ? { brief_source: 'quotation', document_kind: 'quotation' } : {}), ...(seen ? { understood_message: seen.en, understood_message_ar: seen.ar } : {}), drawing_file_path: path, drawing_file_name: name, drawing_redacted_paths: [], stored: !!path }); }
       const red = path ? await redactCad({ secret, b64, custId: cust.id, email, path, seeds: seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }) }) : null;
       const hand = red ? drawingHandoff(red.meta, path, red.redacted) : { drawing_redacted_paths: [], drawing_held: false };
@@ -486,6 +490,9 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // (quotation_gate: no money, no reference, no party term read from the document's own letterhead and signature),
         // nothing of its pages is shared, and the customer is shown what was understood before he sends it.
         const priced = pricedDoc;
+        // The server's verdict is recorded against the stored original (lib/drawings.recordPricedVerdict): create_inquiry refuses
+        // every page redacted from it, whatever a client names (re-review of c1a934280, item 2).
+        if (priced && path) await recordPricedVerdict({ customerId: cust.id, email, sourcePath: path, kind: priced.document_kind });
         if (priced) return J({ ok: true, ...priced, drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords,
                                redaction_job_id: null, redaction_job_ids: [], redaction_pages_in: 0, redaction_pages_out: 0, redaction_pages_lost: 0, redaction_complete: false, needs_manual_boxes: false });
         const boqOut = isCad && jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(String(body.original_b64 || ''))) : jd.boq;

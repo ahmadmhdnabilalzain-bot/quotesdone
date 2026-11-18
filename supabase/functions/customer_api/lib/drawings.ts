@@ -225,7 +225,41 @@ const FINDING_TITLE = {
   boq_identity_dropped: 'Lines read from a customer drawing still named a party (title block) and were dropped before suppliers saw the request',
   boq_held: 'The take-off read from a customer drawing could not be proved free of identity and was held from suppliers',
   sent_without_drawing: 'A request went to suppliers without its drawing: the drawing was not redacted and verified at Send',
+  priced_pages_refused: 'Drawing pages were offered for a request whose source document the server judged priced (a quotation or a priced BOQ): none were attached',
 } as const;
+
+// THE SERVER'S OWN VERDICT THAT A DOCUMENT IS PRICED (18 Nov 2026, sales_engineer; re-review of c1a934280, item 2). analyze_drawing
+// may already have redacted and recorded pages of a document it then judged priced (a quotation or a priced BOQ only the model
+// recognised), and the runs stay the customer's own: a modified client could name them at create_inquiry. So the verdict is
+// recorded against the stored original, as a 'held' row (no pages, reason PRICED_VERDICT), and create_inquiry refuses every
+// page whose run's source, or whose request's stored drawing, carries it (sourcesJudgedPriced).
+export const PRICED_VERDICT = 'priced_document' as const;
+export async function recordPricedVerdict(o: { customerId: string; email: string; sourcePath: string; kind: string }): Promise<void> {
+  try {
+    const { error } = await admin.from('drawing_redaction_runs').insert({ customer_id: o.customerId, owner_email: o.email, source_path: o.sourcePath, output_paths: [], pages_in: 0, pages_out: 0, skipped: 0, status: 'held', pages_verified: 0, verify_failed: 0, verify_detail: { reason: PRICED_VERDICT, kind: o.kind } });
+    if (error) console.error(`[drawing] the priced verdict on ${o.sourcePath} was not recorded: ${error.message}`);
+  } catch (e) { console.error(`[drawing] the priced verdict on ${o.sourcePath} was not recorded: ${String((e as Error)?.message || e)}`); }
+}
+/** create_inquiry's decision: are the drawing pages offered for this request (resolved from the customer's runs, or a pages
+ *  job's) refused? Yes for a brief that is not a drawing's (a quotation, a priced BOQ) and for any page whose source, or whose
+ *  request's stored document, the server judged priced; whatever the client sent. */
+export async function drawingPagesRefused(o: { custId: string; briefSource: string | null; offered: boolean; follows: boolean; sources: string[] }): Promise<boolean> {
+  if (!o.offered && !o.follows) return false;
+  if (o.briefSource !== 'drawing') return true;
+  return await sourcesJudgedPriced(o.custId, o.sources);
+}
+/** Whether the server judged any of these stored documents of this customer priced. A read that fails is answered true: no
+ *  page is attached on a verdict nobody could read (fail closed). */
+export async function sourcesJudgedPriced(custId: string, sourcePaths: string[]): Promise<boolean> {
+  const paths = [...new Set(sourcePaths.filter((p) => typeof p === 'string' && p))].slice(0, 30);
+  if (!paths.length) return false;
+  try {
+    const { data, error } = await admin.from('drawing_redaction_runs').select('id').eq('customer_id', custId).eq('status', 'held')
+      .eq('verify_detail->>reason', PRICED_VERDICT).in('source_path', paths).limit(1);
+    if (error || !Array.isArray(data)) return true;
+    return data.length > 0;
+  } catch (_e) { return true; }
+}
 export async function drawingIdentityFinding(kind: keyof typeof FINDING_TITLE, evidence: Record<string, unknown>): Promise<void> {
   try {
     const { error } = await admin.rpc('fn_it_engineer_finding_upsert', {
@@ -324,7 +358,8 @@ export async function storeOriginal(custId: string, email: string, name: string,
 // REJECTED with an explicit error rather than silently dropped, so the frontend can surface it
 // instead of quietly shipping a half-anonymous RFQ.
 const REDACT_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-type RedactResolve = { paths: string[] } | { err: Record<string, unknown>; status: number };
+/** `sources`: the stored originals the attached pages were redacted from (their runs' source_path), for sourcesJudgedPriced. */
+type RedactResolve = { paths: string[]; sources?: string[] } | { err: Record<string, unknown>; status: number };
 export async function resolveRedactedPaths(custId: string, authUserId: string, drawing: any): Promise<RedactResolve> {
   const asked = Array.isArray(drawing?.drawing_redacted_paths) ? drawing.drawing_redacted_paths.map((s: any) => String(s)).slice(0, 24) : [];
   const jobIds = [
@@ -340,7 +375,7 @@ export async function resolveRedactedPaths(custId: string, authUserId: string, d
   // attributed by that instead. Both branches are server-side ownership checks — neither trusts a path.
   const photoRef = 'refphoto/' + String(authUserId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 24) + '/';
   const { data: runs, error: rerr } = await admin.from('drawing_redaction_runs')
-    .select('id,customer_id,caller_ref,output_paths,pages_in,pages_out,status')
+    .select('id,customer_id,caller_ref,source_path,output_paths,pages_in,pages_out,status')
     .or(`customer_id.eq.${custId},caller_ref.like.${photoRef}%`)
     // NOT optional. storeOriginal now writes one 'original_stored' row per upload so an abandoned
     // drawing stays erasable. Those rows carry no output_paths and contribute nothing here, but
@@ -381,7 +416,7 @@ export async function resolveRedactedPaths(custId: string, authUserId: string, d
   if (paths.length && missing > 0) {
     return { err: { error: 'redaction_incomplete', pages_missing: missing, message: `${missing} page(s) of your drawing could not be redacted, so no pages were shared. Please re-upload a clearer copy, or send the request without the drawing.` }, status: 409 };
   }
-  return { paths };
+  return { paths, sources: [...new Set(used.map((r: any) => String(r.source_path || '')).filter(Boolean))] };
 }
 
 /**
@@ -390,7 +425,7 @@ export async function resolveRedactedPaths(custId: string, authUserId: string, d
  * pages follow; done with every sheet verified = its pages, resolved through resolveRedactedPaths (the runs must be this
  * customer's and complete). Anything else, or a failed read: nothing follows, nothing is attached (fail closed).
  */
-export async function pagesStillBeingChecked(custId: string, authUserId: string, sourcePath: string): Promise<{ paths: string[]; follows: boolean }> {
+export async function pagesStillBeingChecked(custId: string, authUserId: string, sourcePath: string): Promise<{ paths: string[]; follows: boolean; sources?: string[] }> {
   const none = { paths: [] as string[], follows: false };
   try {
     const { data, error } = await admin.from('cad_read_jobs').select('id,status,result').eq('customer_id', custId).eq('source_path', sourcePath)
@@ -401,7 +436,7 @@ export async function pagesStillBeingChecked(custId: string, authUserId: string,
     const res = job.status === 'done' ? (job.result as any) : null;
     if (res?.redaction_complete !== true || !Array.isArray(res.redaction_job_ids) || !res.redaction_job_ids.length) return none;
     const rr = await resolveRedactedPaths(custId, authUserId, { redaction_job_ids: res.redaction_job_ids.map(String) });
-    return 'err' in rr ? none : { paths: rr.paths, follows: false };
+    return 'err' in rr ? none : { paths: rr.paths, follows: false, sources: rr.sources ?? [] };
   } catch (_e) { return none; }
 }
 

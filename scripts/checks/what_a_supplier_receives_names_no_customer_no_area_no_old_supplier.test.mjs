@@ -60,7 +60,7 @@ test('the e-mails to suppliers are gated as the portal is', () => {
   assert.match(code(F('customer_api/lib/edit_summary.ts')), /supplierField<string>\(next, owner\.buyer, seeds\)/);
 });
 
-test('a priced document is never pictured for a supplier, and a drawing beside it is kept', () => {
+test('a priced document is never pictured for a supplier, and no page of it reaches a request', () => {
   const docs = code(F('customer_api/actions/documents.ts'));
   assert.match(docs, /const pricedByCode = !isCad && pdfLines\.length > 0 && looksPriced\(/);
   // Round 4 (drawing_deadline): the loop counts batches under the request's clock; a priced document still runs none.
@@ -69,10 +69,13 @@ test('a priced document is never pictured for a supplier, and a drawing beside i
   // 18 Nov 2026 (review of 578f49003): the decision is taken once, from the model's answer, BEFORE any pages job is queued.
   assert.match(docs, /const pricedDoc = jd\?\.ok \? pricedRoute\(\{ isCad, pdfLines, reading: jd\.boq \|\| null \}\) : null;/, 'priced or not is decided from the model\'s answer');
   assert.ok(docs.indexOf('const pricedDoc = jd?.ok ? pricedRoute(') < docs.indexOf('pagesJob = await queuePagesOnce('), 'and before a pages job is queued');
-  assert.match(docs, /const priced = pricedDoc;\s*if \(priced\) return J/, 'the priced route answers before the drawing route');
+  assert.match(docs, /const priced = pricedDoc;\s*(?:\/\/[^\n]*\n\s*)*if \(priced && path\) await recordPricedVerdict\([^\n]*\n\s*if \(priced\) return J/, 'the priced route answers before the drawing route, and its verdict is recorded');
   const create = code(F('customer_api/actions/inquiry_create.ts'));
   // 17 Nov 2026 evening: with none resolved from the body, a finished pages job's verified pages (_shared/drawing_pages_follow.ts).
-  assert.match(create, /const drawingRedacted = rr\.paths\.length \? rr\.paths\.slice\(0, 24\) : \(follow\.paths\.length \? follow\.paths\.slice\(0, 24\) : null\)/, 'a drawing attached beside a quotation keeps its pages');
+  assert.match(create, /const offered = rr\.paths\.length \? rr\.paths\.slice\(0, 24\) : \(follow\.paths\.length \? follow\.paths\.slice\(0, 24\) : null\)/);
+  // 18 Nov 2026 (re-review of c1a934280, item 2): a quotation's or a priced document's request takes NO drawing page, and no page
+  // redacted from a document the server judged priced is attached, whatever the client names (lib/drawings.drawingPagesRefused).
+  assert.match(create, /const drawingRedacted = pagesRefused \? null : offered;/, 'the server refuses the pages of a priced source');
   assert.match(create, /isQuotationReading\(boqObj\) \? 'quotation'/, 'the reading decides the source, not the browser');
   assert.match(create, /const emirate = oneOfSeven\(body\.emirate\)/, 'the emirate is one of the seven');
   assert.match(code(F('drawing_boq/index.ts')), /if \(isQuotationReading\(ai\)\) ai = quotationGate\(ai, quotationTerms\(pdfLines\)\)/, 'the model reading of a priced document passes the quotation gate');
