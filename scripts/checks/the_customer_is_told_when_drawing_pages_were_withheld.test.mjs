@@ -58,7 +58,8 @@ test('every screen that shows a create_inquiry answer renders it', () => {
 
 test('the server still answers the fields the portal reads', () => {
   const ic = code(R('supabase/functions/customer_api/actions/inquiry_create.ts'));
-  assert.match(ic, /drawing_pages_withheld: true, drawing_pages_withheld_reason: 'priced_document', drawing_pages_withheld_message: PRICED_PAGES_WITHHELD_MESSAGE/);
+  // Either the single priced reason, or (since the unread-verdict fix) the reason and its message chosen by drawingPagesRefused.
+  assert.match(ic, /drawing_pages_withheld: true, drawing_pages_withheld_reason: (?:'priced_document'|pagesRefused), drawing_pages_withheld_message: (?:PRICED_PAGES_WITHHELD_MESSAGE|PAGES_WITHHELD_MESSAGE\[pagesRefused\])/);
   assert.equal((ic.match(/return J\(\{ \.\.\.followSaid,/g) || []).length, 3, 'every posted answer (split, turnkey, single) carries it');
   const msg = code(R('supabase/functions/customer_api/lib/drawings.ts')).match(/export const PRICED_PAGES_WITHHELD_MESSAGE = \{\n\s*en: '[^']+',\n\s*ar: '[^']+',/);
   assert.ok(msg, 'the message is {en, ar}');
