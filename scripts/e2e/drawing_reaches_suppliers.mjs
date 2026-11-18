@@ -42,7 +42,7 @@ import { supabaseAccessToken } from '../lib/supabase_token.mjs';
 import { rasterise } from './portal_raster.mjs';
 import { FALLBACK } from '../../supabase/functions/_shared/doc_template.ts';
 import zlib from 'node:zlib';
-import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, openTradeForDemo, read, call, waitFor } from './fixtures.mjs';
+import { openRun, closeRun, leftovers, makeDemoCustomer, makeDemoSupplier, openTradeForDemo, read, write, call, waitFor } from './fixtures.mjs';
 import { runIntake, keys, BASE } from '../lib/demo_factory.mjs';
 
 const KEEP = process.argv.includes('--keep');
@@ -274,7 +274,11 @@ try {
   // works", and "a new installation, replacing old units, adding more, or a repair?" was answered "Supply and installation";
   // the intake rightly held after 11 turns on two questions the script never answered. The AC type and new-vs-replacement
   // are matched before the words they contain.
-  const reply = (m) => /warranty/i.test(m) ? '12 months warranty at least.'
+  // Run 565c29cb (18 Nov 09:50 UTC): "Do you have the air temperatures the unit must deliver, from your consultant or
+  // drawings?" fell through to 'Standard commercial specification.' six times and the intake held. A customer who has no
+  // schedule says so plainly; that is the answer a real one gives.
+  const reply = (m) => /temperature|design condition|°c|degrees/i.test(m) ? 'No, we do not have a schedule of air temperatures; please use the standard Dubai design conditions (24 C inside).'
+    : /warranty/i.test(m) ? '12 months warranty at least.'
     : /by when|date|deliver/i.test(m) ? 'Needed by 30 November 2026.'
     // Run 623d9200 (17 Nov 17:23 UTC): "How many AC units do you need, of each kind? For example: 4 wall units and 1 hidden
     // ceiling unit." was answered by the ceiling rule below, so the intake stayed needs_info and create_inquiry answered 428.
@@ -369,9 +373,22 @@ try {
 } catch (e) {
   check('the run completed', false, String(e?.stack || e).slice(0, 600));
 } finally {
+  // The pages a request could not verify in time are queued in public.cad_read_jobs by customer, not by run tag, and the
+  // customer's delete does not cascade to them: two such jobs outlived run 565c29cb (18 Nov) and would have reached the
+  // hourly worker with their owner gone. They go first, by this run's customer ids only.
+  if (!KEEP && run.ids.customers.size) {
+    const cs = [...run.ids.customers].map((x) => `'${String(x).replace(/'/g, "''")}'`).join(',');
+    await write(`delete from public.cad_read_jobs where customer_id::text in (${cs})`, 'e2e drawing cad jobs').catch((e) => console.log('INFO  cad_read_jobs not cleared:', String(e?.message || e).slice(0, 120)));
+  }
   // The management API throttles (429) a teardown that follows a long run; one wait and a second pass.
   try { await closeRun(run, { keep: KEEP }); } catch (e) { console.log(`teardown throttled (${e?.status || e}); retrying in 60 s`); await new Promise((r) => setTimeout(r, 60000)); await closeRun(run, { keep: KEEP }); }
-  if (!KEEP) { const left = await leftovers(run); check('teardown left nothing behind', left.total === 0, JSON.stringify(left)); if (left.total) exitCode = 1; summary.teardown = left; }
+  if (!KEEP) {
+    const left = await leftovers(run);
+    const cs = [...run.ids.customers].map((x) => `'${String(x).replace(/'/g, "''")}'`).join(',');
+    const jobs = cs ? (await read(`select count(*)::int n from public.cad_read_jobs where customer_id::text in (${cs})`).catch(() => [{ n: -1 }]))[0].n : 0;
+    check('teardown left nothing behind', left.total === 0 && jobs === 0, JSON.stringify({ ...left, cad_read_jobs: jobs }));
+    if (left.total || jobs) exitCode = 1; summary.teardown = { ...left, cad_read_jobs: jobs };
+  }
   // The drawing files are named by the customer, not the run tag, so the run's own objects are also counted by name.
   if (!KEEP) {
     const objs = [...(summary.redacted_paths || []).map((n) => ({ bucket: 'drawing-files', name: n })), summary.original_path && { bucket: 'drawing-files', name: summary.original_path }, summary.boq_pdf, summary.boq_pdf_ar].filter((o) => o?.name);
