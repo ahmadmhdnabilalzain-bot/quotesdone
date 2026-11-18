@@ -248,7 +248,7 @@ export const PRICED_PAGES_WITHHELD_MESSAGE = {
 /** Said to the customer when the pages were refused because the server's verdict on their source could not be read. */
 export const PRICED_VERDICT_UNREAD_MESSAGE = {
   en: 'Your request went to the suppliers without drawing pages: we could not confirm just now that the document they come from is unpriced, and drawing pages are only shown to suppliers once that is confirmed. To share the drawing, please send it again in a separate request, or try again shortly.',
-  ar: 'أُرسل طلبكم إلى المورّدين من دون لوحات المخطّط، لأننا لم نتمكّن الآن من التأكّد من أن المستند الذي أُخذت منه غير مُسعَّر، ولا تُعرض لوحات المخطّط على المورّدين إلا بعد التأكّد من ذلك. لمشاركة المخطّط، يُرجى إرساله مجدداً في طلب مستقل، أو المحاولة بعد قليل.',
+  ar: 'أُرسل طلبكم إلى المورّدين من دون لوحات المخطّط، لأننا لم نتمكّن الآن من التأكّد من أن المستند الذي أُخذت منه غير مُسعَّر، ولا تُعرض لوحات المخطّط على المورّدين إلا بعد التأكّد من ذلك. لمشاركة المخطّط، يُرجى إرساله مجددًا في طلب مستقل، أو المحاولة بعد قليل.',
 } as const;
 /** Why create_inquiry refused the pages (drawingPagesRefused): the value of drawing_pages_withheld_reason. */
 export type PagesRefusedReason = 'priced_document' | 'priced_verdict_unread';
