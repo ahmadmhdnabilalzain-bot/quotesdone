@@ -16,7 +16,7 @@ import { MissingSpecs } from '../MissingSpecs';
 import { SpecOffer } from '../SpecOffer';
 import { useConfirm } from '../ConfirmDialog';
 import { useReducedMotion } from 'motion/react';
-import { t, tf, errText, emirateName } from '../portalText';
+import { t, tf, errText, emirateName, pagesWithheldText } from '../portalText';
 import { countPhrase } from '@/lib/countedNoun';
 import { call } from '../api';
 import { stateOf, ratingScoreOf, EMIRATES } from '../format';
@@ -79,7 +79,8 @@ function InquiryCard({ inq, token, onChange, lang, terms, focusQuote, focusInq, 
   const [rDraft, setRDraft] = useState(null);
   const openRepeat = async (e) => { e.stopPropagation(); if (repeating) return; setRepeating(true); setErr(''); setRepeated(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id, preview: true }, token); if (j && j.ok && j.draft) { setRDraft({ summary: j.draft.summary || '', budget: j.draft.budget || '', emirate: j.draft.emirate || '', required_by: j.draft.required_by || '' }); } else { setErr(j && j.error === 'nothing_to_repeat' ? t(lang, 'rc_repeat_nothing') : errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
   // busy-exempt: setRepeating is the busy state; it disables the Post button and shows rc_repeating while it waits.
-  const postRepeat = async () => { if (repeating || !rDraft) return; setRepeating(true); setErr(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id, edits: rDraft }, token); if (j && j.ok) { setRDraft(null); setRepeated(t(lang, 'rc_repeat_done')); onChange(); } else { setErr(j && j.error === 'nothing_to_repeat' ? t(lang, 'rc_repeat_nothing') : errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
+  // A repeat posts through create_inquiry, so it too may go without its drawing pages: its sentence follows "done" (18 Nov 2026).
+  const postRepeat = async () => { if (repeating || !rDraft) return; setRepeating(true); setErr(''); try { const j = await call('customer_api', { action: 'repeat_inquiry', inquiry_id: inq.id, edits: rDraft }, token); if (j && j.ok) { setRDraft(null); setRepeated([t(lang, 'rc_repeat_done'), pagesWithheldText(j, lang)].filter(Boolean).join(' ')); onChange(); } else { setErr(j && j.error === 'nothing_to_repeat' ? t(lang, 'rc_repeat_nothing') : errText(j, lang, 'rc_repeat_fail')); } } catch (_e) { setErr(t(lang, 'rc_repeat_fail')); } setRepeating(false); };
   const saveEdit = async () => { setSaving(true); setErr(''); try { const j = await call('customer_api', { action: 'edit_inquiry', inquiry_id: inq.id, patch: { summary: eSummary, budget: eBudget || null, emirate: eEmirate || null, required_by: eDate && eDate !== String(inq.required_by || '').slice(0, 10) ? eDate : null } }, token); if (j && j.ok) { setEditing(false); onChange(); } else { setErr(errText(j, lang, 'rc_save_fail')); } } catch (_e) { setErr(t(lang, 'rc_save_fail')); } setSaving(false); };
   return (<Card ref={cardRef} id={'inq-' + inq.id} className={cn('scroll-mt-20 p-4 shadow-e1 transition-[border-color,box-shadow] duration-300 hover:border-primary/30 hover:shadow-e2 sm:p-5', open && 'border-primary/25 shadow-e2')}>{dialog}
     {/* A11Y (5 Aug 2026): role+tabIndex+onKeyDown rather than a <button>, because this wraps <div>

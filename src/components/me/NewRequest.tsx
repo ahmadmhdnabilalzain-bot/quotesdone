@@ -36,7 +36,7 @@ import { supaRpcMaybeOne } from '@/lib/supaClient';
 import { specGuideText } from '@/lib/specGuide';
 import { ConciergeSteps } from './ConciergeSteps';
 import { boqNote } from '@/lib/boqNotes';
-import { t, tf, errText, emirateName } from './portalText';
+import { t, tf, errText, emirateName, pagesWithheldText } from './portalText';
 import { countPhrase } from '@/lib/countedNoun';
 import { markupSvg } from './markup';
 import { DEVICE_TYPES } from '../../../supabase/functions/drawing_boq/legend_vocabulary';
@@ -583,7 +583,7 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       // counts the specialists who could quote it per trade; sales_engineer lib/turnkey_miss.ts).
       const separate = reached === 0 && r.scope_type === 'turnkey' && r.routing && r.routing.separate_offer ? Number(r.routing.separate_offer.specialists) || 0 : 0;
       if (reached > 0 && (unreached.length || matching)) setPosted({ none: false, unreached, matching, n: reached, id: r.inquiry_id || null, r });
-      else if (reached > 0) onDone(r); else setPosted({ none: true, matching, id: r.inquiry_id || null, separate: matching ? 0 : separate });
+      else if (reached > 0) onDone(r); else setPosted({ none: true, matching, id: r.inquiry_id || null, separate: matching ? 0 : separate, r });
     }
     // Never a dead end: when the server says something is still open, the next question is fetched at
     // once instead of leaving the customer to guess what "more details" means.
@@ -609,7 +609,11 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       {!posted.none && posted.matching ? <p className="mt-2 text-copy leading-relaxed text-foreground">{t(lang, 'nr_posted_matching')}</p> : null}
       {posted.none && posted.separate > 0 ? <SeparateQuotesAsk inquiryId={posted.id} specialists={posted.separate} lang={lang} token={token} call={call} onPosted={(j) => onDone(j)} /> : null}
       {posted.unreached && posted.unreached.length ? <p className="mt-2 text-copy leading-relaxed text-foreground">{tf(lang, 'nr_posted_partial', { list: posted.unreached.join(ar ? '، ' : ', ') })}</p> : null}
-      <Button size="lg" className="mt-4" onClick={() => (posted.none ? onDone({ none: true, inquiry_id: posted.id }) : onDone(posted.r))}>{t(lang, 'nr_posted_view')}</Button>
+      {/* THE DRAWING PAGES THAT DID NOT GO (18 Nov 2026, sales_engineer): create_inquiry's own sentence, in his language
+          (portalText pagesWithheldText). "Sent" alone let him believe the suppliers had the drawing. */}
+      {pagesWithheldText(posted.r, lang) ? <p role="status" className="mt-2 text-copy leading-relaxed text-muted-foreground">{pagesWithheldText(posted.r, lang)}</p> : null}
+      {/* The withheld answer is handed on with "none", so the request list says it again (Dashboard onDone). */}
+      <Button size="lg" className="mt-4" onClick={() => (posted.none ? onDone({ none: true, inquiry_id: posted.id, drawing_pages_withheld: posted.r && posted.r.drawing_pages_withheld, drawing_pages_withheld_message: posted.r && posted.r.drawing_pages_withheld_message }) : onDone(posted.r))}>{t(lang, 'nr_posted_view')}</Button>
     </section>
   );
   return (
