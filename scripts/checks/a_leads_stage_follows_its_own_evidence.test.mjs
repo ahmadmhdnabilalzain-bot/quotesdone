@@ -52,5 +52,5 @@ test('the backfill is real rows only, proves Shine in the same transaction, and 
   assert.match(BACKFILL, /not coalesce\(l\.is_demo, false\) and not public\.fn_is_demo_email\(l\.email\)/);
   assert.match(BACKFILL, /if \(select lifecycle_stage from public\.leads where id = 2936\) is distinct from 'registered'/);
   assert.match(BACKFILL, /DRY RUN \(18 Nov 2026, production, read-only\): registered 3/);
-  assert.match(BACKFILL, /^begin;[\s\S]*^commit;/m);
+  assert.doesNotMatch(BACKFILL, /^(begin|commit);/m);   // the applier's one transaction, so the proof rolls it all back
 });

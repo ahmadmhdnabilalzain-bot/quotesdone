@@ -10,7 +10,7 @@
 -- contacted flag set on 314. The trigger of the file above recomputes 'registered', 'undeliverable', 'contacted' and the flag on the
 -- same UPDATE, so the statements below only name what the trigger cannot see: the reply.
 
-begin;
+-- the applier runs the file as one transaction (no BEGIN/COMMIT of its own): the proof at the end rolls all of it back on failure
 -- the replies first, so the trigger keeps them (it never moves 'replied' back)
 update public.leads l set lifecycle_stage = 'replied'
  where not coalesce(l.is_demo, false) and not public.fn_is_demo_email(l.email)
@@ -39,4 +39,3 @@ begin
     raise exception 'BACKFILL FAILED: a sent invitation still reads not_contacted';
   end if;
 end $chk$;
-commit;
