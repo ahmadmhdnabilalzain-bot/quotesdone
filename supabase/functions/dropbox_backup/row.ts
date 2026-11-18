@@ -8,7 +8,7 @@ import type { DropboxClient } from './dropbox.ts';
 import { CHUNK, uploadFile, type ReadChunk } from './upload.ts';
 import { isTransientDbError } from './health.ts';
 import { caseSummaryFile } from '../_shared/case_dropbox.ts';
-import { moveFile } from './move.ts';
+import { moveFile, removeEmptiedSource } from './move.ts';
 
 // deno-lint-ignore no-explicit-any
 type Admin = any;
@@ -133,6 +133,9 @@ export async function backupRow(admin: Admin, dbx: DropboxClient, row: Row, o: {
         await o.logRun?.(isTransientDbError(error.message) ? 'warn' : 'error', { stage: 'mark_moved', doc_backup_id: row.id }, 'Document ' + row.id + ' was moved in Dropbox but could not be marked done; when its claim expires the next run finds nothing at the old path and uploads it again (overwrite, same bytes): ' + error.message.slice(0, 160));
         return { uploaded_not_marked: mv.size };
       }
+      // the folder the file left is removed once nothing is left in it (move.ts removeEmptiedSource; never a folder with a file)
+      const pruned = await removeEmptiedSource(dbx, String(row.moved_from), String(row.dropbox_path));
+      if (pruned === 'removed' || pruned === 'error' || pruned === 'unlisted') await o.logRun?.(pruned === 'removed' ? 'ok' : 'warn', { stage: 'prune_source', doc_backup_id: row.id, outcome: pruned }, 'Document ' + row.id + ' moved; the folder it left: ' + pruned);
       return { done: mv.size, chunks: 0, retries: 0 };
     }
   }

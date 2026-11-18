@@ -37,17 +37,21 @@ export function compareListing(expected: Expected[], listed: Listed[]): Compared
 
 // Every file under `root`, recursively. `complete` is false when the deadline stopped the walk: an
 // incomplete listing is never compared (every file not yet listed would read as missing).
-export async function listTree(dbx: DropboxClient, root: string, deadline: number, now: () => number = Date.now): Promise<{ entries: Listed[]; complete: boolean }> {
+export async function listTree(dbx: DropboxClient, root: string, deadline: number, now: () => number = Date.now): Promise<{ entries: Listed[]; complete: boolean; folders: string[] }> {
   const entries: Listed[] = [];
+  const folders: string[] = [];   // every folder too: the shell check (move.ts shellFolders) finds a folder with no file beneath it
   let r = await dbx.call('api', 'files/list_folder', { path: root, recursive: true, include_deleted: false, limit: 2000 });
   for (;;) {
     const t = await r.text();
-    if (r.status === 409 && t.includes('not_found')) return { entries, complete: true };   // the folder is gone: every file in it is missing
+    if (r.status === 409 && t.includes('not_found')) return { entries, complete: true, folders };   // the folder is gone: every file in it is missing
     if (!r.ok) throw new Error('list_folder ' + r.status + ' ' + t.slice(0, 160));
     const j = JSON.parse(t);
-    for (const e of j.entries || []) if (e['.tag'] === 'file') entries.push({ p: String(e.path_display || e.path_lower), h: String(e.content_hash || ''), s: Number(e.size), id: e.id, n: e.name, m: e.server_modified });
-    if (!j.has_more) return { entries, complete: true };
-    if (now() >= deadline) return { entries, complete: false };
+    for (const e of j.entries || []) {
+      if (e['.tag'] === 'file') entries.push({ p: String(e.path_display || e.path_lower), h: String(e.content_hash || ''), s: Number(e.size), id: e.id, n: e.name, m: e.server_modified });
+      else if (e['.tag'] === 'folder') folders.push(String(e.path_display || e.path_lower));
+    }
+    if (!j.has_more) return { entries, complete: true, folders };
+    if (now() >= deadline) return { entries, complete: false, folders };
     r = await dbx.call('api', 'files/list_folder/continue', { cursor: j.cursor });
   }
 }
