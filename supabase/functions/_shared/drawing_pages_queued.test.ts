@@ -7,6 +7,10 @@ import { PAGES_NEED_TIME, REFUSED_FOR_IDENTITY, SHEET_TRIES, planHere, planQueue
 import { readPdfPlan, type PlanCall } from './drawing_plan.ts';
 import { seedTerms } from './anonymise.ts';
 import { supplierBoxes } from './supplier_copy.ts';
+import { pricedDocumentKind } from '../drawing_boq/quotation_gate.ts';
+import { pricedRoute } from '../customer_api/lib/priced_document.ts';
+import { readingForQueue } from './drawing_pages_queued.ts';
+import { pagesReachTheirRequestsSql, STILL_FOLLOWING_SQL } from './drawing_pages_follow.ts';
 
 const box = (x: number) => [{ x, y: 0, w: 0.1, h: 1 }];
 const BOXES = Array.from({ length: 8 }, (_x, i) => box(0.8 + i / 100));
@@ -148,7 +152,7 @@ Deno.test('the queue is wired: customer_api queues every sheet it did not verify
   assertMatch(api, /verdictOf\[b\] = sheetVerdict\(rj\);/);
   assertMatch(api, /verdictOf\[b\] = \{ state: 'retry', why: clock \? 'time' : 'lost' \};/, 'a call that threw is lost (or time), never dropped');
   assertMatch(api, /const sorted = sheetsToCheckOff\(verdictOf, batches\);/);
-  assertMatch(api, /if \(!pricedByCode && !isCad && path && hand\.drawing_held && boxesOrPlanLater && !scanJob && !refusedPages\.length && leftToCheck\.length && /);
+  assertMatch(api, /if \(readNotPriced && !isCad && path && hand\.drawing_held && boxesOrPlanLater && !scanJob && !refusedPages\.length && leftToCheck\.length && /);
   assert(!/!redDied && redOut \+ timeHeld === redIn/.test(api), 'a sheet lost to the edge is no longer a reason not to queue');
   assertMatch(api, /pagesJob = await queuePagesOnce\(/);
   assertMatch(api, /\.\.\.pagesNote \}\);/);
@@ -249,10 +253,66 @@ Deno.test('planQueuedPages: the customer\'s boxes are extra cover only; an unrea
 
 Deno.test('the queue is wired for a lost plan: customer_api queues a PDF without server boxes, the worker plans before it checks', () => {
   const api = Deno.readTextFileSync(new URL('../customer_api/actions/documents.ts', import.meta.url));
-  assertMatch(api, /const boxesOrPlanLater = !!serverBoxes \|\| \(\/pdf\/i\.test\(mime\) && !!body\.original_b64\);/);
+  assertMatch(api, /const boxesOrPlanLater = !!serverBoxes \|\| planLost;/, 'only a LOST read is planned again, never one that answered without confidence');
+  assertMatch(api, /\} else \{ serverBoxes = null; planLost = true; \}/);
+  assertMatch(api, /if \(readNotPriced && !isCad && path && hand\.drawing_held && boxesOrPlanLater && /);
   assertMatch(api, /const customerBoxes = manualBoxes;\n\s+manualBoxes = serverBoxes;/);
   assertMatch(api, /queuedPagesOf\(\{ pagesIn: images\.length, seeds: floorSeeds, done, left: leftToCheck, boxes: serverBoxes, customerBoxes, /);
   const worker = Deno.readTextFileSync(new URL('../../../scripts/cad_read_worker.ts', import.meta.url));
-  assertMatch(worker, /const planned = await planQueuedPages\(queued, bytes\);\n\s+const q = 'q' in planned \? planned\.q : queued;/);
+  assertMatch(worker, /const planned = await Promise\.race\(\[planQueuedPages\(queued, bytes\), budgetCut\(stop\.signal\)\]\);\n\s+const q = 'q' in planned \? planned\.q : queued;/, 'the plan read runs inside the job\'s budget');
+  assert(worker.indexOf('const budgetTimer = setTimeout(() => stop.abort(), PAGES_JOB_MS);') < worker.indexOf('planQueuedPages(queued, bytes)'), 'the budget starts before the plan read');
   assertMatch(worker, /drawing = 'held' in planned \? planned\.held : await redactQueuedPages\(q, /, 'a set held by its plan is never checked');
+});
+
+// ── REVIEW OF 578f49003: A PRICED DOCUMENT'S PAGES ARE NEVER QUEUED, NEVER CHECKED, NEVER ATTACHED ──────────────────────
+const PLAIN_PLAN = (st: unknown, bx: unknown): PlanCall => async (b) => (b.step === 'boxes' ? bx : st);
+const STRIPS = (lines: string) => ({ ok: true, pages: 1, from: 0, words: [40], lines: [lines], strips: [['ZZ DEMO CONSULTING']] });
+const BOXES1 = { ok: true, from: 0, boxes: [[{ x: 0.8, y: 0, w: 0.2, h: 1 }]], low: false, residual: [], setSeeds: ['ZZ DEMO CONSULTING'] };
+
+Deno.test('a quotation only the MODEL recognised is held by the worker, from the reading the request recorded; a boxed queue is checked for price too', async () => {
+  const quote = { document_kind: 'quotation', boq: [{ item: 'x' }], summary: 'not kept' };
+  assertEquals(readingForQueue(quote), { document_kind: 'quotation' }, 'only what the decision reads rides on the job');
+  const lost = queuedPagesOf({ pagesIn: 1, seeds: ['ZZ DEMO'], done: [], left: [0], boxes: null, reading: readingForQueue(quote), storedAt: () => 'drawings/zz/sheet_1.jpg' })!;
+  const r = await planQueuedPages(lost, new Uint8Array(), PLAIN_PLAN(STRIPS('GROUND FLOOR AC LAYOUT'), BOXES1));
+  assert('held' in r, 'the model said quotation: held though no money is on the text layer');
+  assertEquals(r.held.held_reason, 'pages_need_time_priced_document');
+  // A queue the request DID plan (server boxes on every sheet) is decided again in the worker: code sees a priced table.
+  const boxed = queuedPagesOf({ pagesIn: 1, seeds: ['ZZ DEMO'], done: [], left: [0], boxes: [[{ x: 0.8, y: 0, w: 0.2, h: 1 }]], storedAt: () => 'drawings/zz/sheet_1.jpg' })!;
+  const priced = ['ZZ DEMO TRADING LLC', 'To: ZZ Demo Customer', 'Item Description Qty Unit Rate Amount', '1 Split AC unit 2 nos 2,500.00 5,000.00', '2 Copper pipe 10 m 45.00 450.00', 'Grand Total AED 5,450.00'].join('\n');
+  const b = await planQueuedPages(boxed, new Uint8Array(), PLAIN_PLAN(STRIPS(priced), BOXES1));
+  assert('held' in b && b.held.held_reason === 'pages_need_time_priced_document', 'a boxed queue of a priced document is held');
+  const ok = await planQueuedPages(boxed, new Uint8Array(), PLAIN_PLAN(STRIPS('GROUND FLOOR AC LAYOUT'), BOXES1));
+  assertEquals(ok, { q: boxed }, 'a drawing\'s boxed queue goes on unchanged');
+  assertEquals(await planQueuedPages(boxed, new Uint8Array(), async () => null).then((x) => 'held' in x && x.held.held_reason), 'pages_need_time_plan_unread', 'an unread plan decides nothing: held');
+});
+
+Deno.test('the worker and analyze_drawing take ONE priced decision (pricedDocumentKind), on the same inputs', () => {
+  const lines = ['ZZ DEMO TRADING LLC', 'To: ZZ Demo Customer', 'Item Description Qty Unit Rate Amount', '1 Split AC unit 2 nos 2,500.00 5,000.00', '2 Copper pipe 10 m 45.00 450.00', 'Grand Total AED 5,450.00'];
+  for (const [l, reading] of [[lines, null], [['GROUND FLOOR AC LAYOUT'], { document_kind: 'quotation' }], [['GROUND FLOOR AC LAYOUT'], { document_kind: 'drawing' }], [[], null]] as [string[], unknown][]) {
+    const kind = pricedDocumentKind(l, reading), route = pricedRoute({ isCad: false, pdfLines: l, reading: reading as Record<string, unknown> | null });
+    assertEquals(route ? route.document_kind : null, kind === 'quotation' ? 'quotation' : kind === 'priced' ? 'boq' : null);
+  }
+  const src = Deno.readTextFileSync(new URL('../customer_api/lib/priced_document.ts', import.meta.url));
+  assertMatch(src, /const kind = pricedDocumentKind\(o\.pdfLines, o\.reading\);/);
+});
+
+Deno.test('customer_api decides priced BEFORE it queues a set, and queues only a set the model read and nobody calls priced', () => {
+  const api = Deno.readTextFileSync(new URL('../customer_api/actions/documents.ts', import.meta.url));
+  const decided = api.indexOf('const pricedDoc = jd?.ok ? pricedRoute({ isCad, pdfLines, reading: jd.boq || null }) : null;');
+  assert(decided > 0, 'the priced decision is taken from the model\'s answer');
+  assert(decided < api.indexOf('pagesJob = await queuePagesOnce('), 'and before the pages job is queued');
+  assert(decided < api.indexOf('scanJob = await queueCadRead('), 'and before a scan job is queued');
+  assertMatch(api, /const readNotPriced = !pricedByCode && jd\?\.ok === true && !pricedDoc;/);
+  assertMatch(api, /reading: readingForQueue\(jd\?\.boq\)/, 'the model\'s reading rides on the job for the worker\'s decision');
+  assertMatch(api, /const priced = pricedDoc;/, 'the answer uses the same decision');
+  assertEquals((api.match(/boqRes\.value\.json\(\)/g) || []).length, 1, 'the model\'s answer is read once');
+});
+
+Deno.test('pages reach a DRAWING\'s requests only: never a quotation\'s or a priced document\'s, at send or later', () => {
+  const stmt = pagesReachTheirRequestsSql({ id: '11111111-1111-4111-8111-111111111111', customer_id: 'c0000000-0000-4000-8000-000000000001', source_path: 'drawings/c1/1_ZZ DEMO set.pdf' }, ['redacted/a/page_p0.jpg'])!;
+  const att = stmt.slice(stmt.indexOf('with att as ('), stmt.indexOf('returning i.id'));
+  assertMatch(att, /coalesce\(i\.brief_source, 'drawing'\) = 'drawing'/, 'the attach skips brief_source quotation and boq');
+  assertMatch(STILL_FOLLOWING_SQL, /coalesce\(i\.brief_source, 'drawing'\) = 'drawing'/);
+  const create = Deno.readTextFileSync(new URL('../customer_api/actions/inquiry_create.ts', import.meta.url));
+  assertMatch(create, /const follow = drawingPath && !rr\.paths\.length && briefSource === 'drawing' \? await pagesStillBeingChecked\(/, 'create_inquiry takes no job\'s pages for a quotation');
 });

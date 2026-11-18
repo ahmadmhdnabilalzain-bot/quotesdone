@@ -48,6 +48,11 @@ export function pagesAttachedForCustomer(locale: string | null | undefined, page
 /** A dollar-quoted literal whose tag cannot occur in the value (the worker's own `lit`). */
 const lit = (s: string) => { let tag = 'qd'; while (s.includes(`$${tag}$`)) tag += 'x'; return `$${tag}$${s}$${tag}$`; };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** ONLY A DRAWING'S REQUEST GETS DRAWING PAGES (18 Nov 2026; review of 578f49003, item 1). A request built from a quotation
+ *  (brief_source 'quotation') or a priced document (pricedRoute's 'boq') carries the stored original as drawing_file_path for
+ *  its own doors; attaching by path alone would picture another supplier's offer, or the customer's rates, for every matched
+ *  supplier. A request with no brief_source is a drawing's (inquiry_create sets one whenever a drawing is attached). */
+export const DRAWING_BRIEF = (alias: string) => `coalesce(${alias}.brief_source, 'drawing') = 'drawing'`;
 /** Requests that are over: no pages are attached to them and nobody is told (supplier_api lib/fields.ts CONCLUDED). */
 export const CONCLUDED = ['completed', 'closed', 'cancelled'] as const;
 
@@ -68,6 +73,7 @@ export function pagesReachTheirRequestsSql(job: { id: string; customer_id: strin
   return `with att as (
   update public.inquiries i set drawing_redacted_paths = ${arr}
    where i.customer_id = ${lit(job.customer_id)}::uuid and i.drawing_file_path = ${lit(job.source_path)}
+     and ${DRAWING_BRIEF('i')}
      and coalesce(cardinality(i.drawing_redacted_paths), 0) = 0
      and coalesce(i.status, 'open') not in (${CONCLUDED.map((s) => lit(s)).join(', ')})
   returning i.id, i.category, i.emirate
@@ -150,6 +156,7 @@ export const STILL_FOLLOWING_SQL = `select j.id as job_id, j.status, coalesce(j.
  where j.why = 'pages_need_time' and j.status in ('done', 'failed')
    and j.finished_at between now() - interval '${FOLLOW_UP_HOURS} hours' and now() - interval '${STILL_FOLLOWING_HOURS} hours'
    and i.created_at >= j.created_at and i.created_at < j.finished_at + interval '${RACE_GRACE_MINUTES} minutes'
+   and ${DRAWING_BRIEF('i')}
    and coalesce(cardinality(i.drawing_redacted_paths), 0) = 0
    and coalesce(i.status, 'open') not in (${CONCLUDED.map((c) => `'${c}'`).join(', ')})
  group by j.id, j.status, j.result, j.error

@@ -37,11 +37,12 @@
 // worker reads the plan IN PROCESS with the same code drawing_redact's 'plan' mode runs (planQueuedPages below) before any
 // sheet is checked. The trust boundary does not move: the boxes are still the server's (supplier_copy.supplierBoxes over the
 // server's own read, the customer's boxes only as extra cover), a plan that is not confident or left a residual still holds
-// the set (fail closed), a priced document read there is held as it is on the edge, and a sheet with no boxes is never sent.
+// the set (fail closed), a priced document is never queued by the request and is held by the worker (pricedDocumentKind, the
+// edge's own decision), and a sheet with no boxes is never sent.
 import type { Box } from './drawing_redact_page.ts';
 import { planBoxes, planStrips, readPdfPlan, type PlanCall } from './drawing_plan.ts';
 import { supplierBoxes } from './supplier_copy.ts';
-import { looksPriced } from '../drawing_boq/quotation_gate.ts';
+import { pricedDocumentKind } from '../drawing_boq/quotation_gate.ts';
 
 export const PAGES_NEED_TIME = 'pages_need_time' as const;
 
@@ -52,7 +53,17 @@ export type DonePage = { page: number; paths: string[]; job: string };
 export type LeftPage = { page: number; path: string; boxes?: Box[]; why?: string };
 /** `plan_in_worker`: the request lost its plan read, so the sheets carry no boxes and the worker reads the plan from the stored
  *  original (planQueuedPages); `customer_boxes` are the customer's own boxes, added as extra cover only, as the edge adds them. */
-export type QueuedPages = { pages_in: number; seed_terms: string[]; done: DonePage[]; left: LeftPage[]; plan_in_worker?: true; customer_boxes?: Box[][] | null };
+/** `reading`: what the request's model reading said the document is (document_kind, and the quotation note in assumptions),
+ *  kept so the worker decides priced or not with the edge's own decision and inputs (quotation_gate.pricedDocumentKind). */
+export type QueuedReading = { document_kind?: string; assumptions?: string[] } | null;
+export type QueuedPages = { pages_in: number; seed_terms: string[]; done: DonePage[]; left: LeftPage[]; plan_in_worker?: true; customer_boxes?: Box[][] | null; reading?: QueuedReading };
+
+/** The part of a model reading the priced decision reads (isQuotationReading): nothing else of it rides on the job. */
+// deno-lint-ignore no-explicit-any
+export function readingForQueue(boq: any): QueuedReading {
+  if (!boq || typeof boq !== 'object') return null;
+  return { ...(typeof boq.document_kind === 'string' ? { document_kind: boq.document_kind } : {}), ...(Array.isArray(boq.assumptions) ? { assumptions: boq.assumptions.filter((a: unknown) => typeof a === 'string').slice(0, 50) } : {}) };
+}
 
 /** What one sheet's drawing_redact manual-path call carries (the caller adds its credential, owner and source path). */
 export type SheetBody = { images: { mime: string; data: string }[]; page_offset: number; manual_boxes: Box[][]; seed_terms: string[]; original_b64: string; prefix: string };
@@ -109,7 +120,7 @@ export function sheetsToCheckOff(verdicts: (SheetVerdict | undefined)[], pages: 
  *  in a plan that was read, the count does not add up, or nothing is left. A REFUSED sheet is never in `left` (the caller
  *  holds the set). `boxes` null = the request lost its plan read: the set is queued all the same, `plan_in_worker`, and the
  *  worker reads the server's boxes from the stored original (planQueuedPages) before it checks a sheet. */
-export function queuedPagesOf(o: { pagesIn: number; seeds: string[]; done: DonePage[]; left: number[]; boxes: Box[][] | null; customerBoxes?: Box[][] | null; storedAt: (page: number) => string | null; why?: (page: number) => string | undefined }): QueuedPages | null {
+export function queuedPagesOf(o: { pagesIn: number; seeds: string[]; done: DonePage[]; left: number[]; boxes: Box[][] | null; customerBoxes?: Box[][] | null; reading?: QueuedReading; storedAt: (page: number) => string | null; why?: (page: number) => string | undefined }): QueuedPages | null {
   if (!o.left.length) return null;
   if (new Set(o.left).size !== o.left.length) return null;
   if (o.done.length + o.left.length !== o.pagesIn) return null;
@@ -119,7 +130,7 @@ export function queuedPagesOf(o: { pagesIn: number; seeds: string[]; done: DoneP
     if (!path || (o.boxes && !Array.isArray(boxes))) return null;
     left.push({ page, path, ...(boxes ? { boxes } : {}), ...(why ? { why } : {}) });
   }
-  const q: QueuedPages = { pages_in: o.pagesIn, seed_terms: o.seeds, done: [...o.done].sort((a, b) => a.page - b.page), left };
+  const q: QueuedPages = { pages_in: o.pagesIn, seed_terms: o.seeds, done: [...o.done].sort((a, b) => a.page - b.page), left, ...(o.reading ? { reading: o.reading } : {}) };
   return o.boxes ? q : { ...q, plan_in_worker: true, customer_boxes: o.customerBoxes ?? null };
 }
 
@@ -133,21 +144,25 @@ export const planHere = (bytes: Uint8Array): PlanCall => async (b) => {
 };
 
 /**
- * A queue the request could not plan (`plan_in_worker`), given its server boxes read from the stored original here, as
- * analyze_drawing reads them when its read answers: readPdfPlan over drawing_redact's 'plan' steps with the request's seeds
- * (q.seed_terms: with no plan they are exactly the customer's seeds the read is asked with), supplier_copy.supplierBoxes with
- * the customer's boxes as extra cover, and the set's strip seeds added to the floor's seeds. `held` (nothing is checked, the
- * set stays held and the seat is told): the read failed, the document is priced (code sees money on its text layer, as
- * pricedByCode does on the edge), it has no text layer, or the server's boxes are not confident. A queue already planned
- * comes back as it is.
+ * The queue as the worker may check it, or `held` (nothing is checked, the set stays held and the seat is told). EVERY queue:
+ * the plan is read here from the stored original (readPdfPlan over drawing_redact's own 'plan' steps, in process) and the
+ * document is decided PRICED OR NOT with the edge's own decision (quotation_gate.pricedDocumentKind) on the lines read here and
+ * the model reading the request recorded: a priced document's pages are never checked, let alone published (review of
+ * 578f49003, item 1). A queue the request could not plan (`plan_in_worker`) is then given its server boxes as analyze_drawing
+ * gives them when its read answers: supplier_copy.supplierBoxes with the customer's boxes as extra cover only, with the
+ * request's seeds (q.seed_terms: with no plan they are exactly the customer's seeds the read is asked with) and the set's
+ * strip seeds added to the floor's. Held: the read failed, the document is priced, it has no text layer, or the server's boxes
+ * are not confident or left a residual. A sheet the plan boxes nothing on goes with [] (as the edge sends it): the manual path
+ * still paints the text layer's own identity boxes on it and it meets the FULL pixel gate before anything is published
+ * (drawing_redact_sheet.manualSheets; the test proves a [] sheet the checker does not pass is never uploaded).
  */
 export async function planQueuedPages(q: QueuedPages, original: Uint8Array, call: PlanCall = planHere(original)): Promise<{ q: QueuedPages } | { held: Record<string, unknown> }> {
-  if (!q.plan_in_worker) return { q };
   const held = (why: string) => ({ held: { redaction_complete: false, held_reason: 'pages_need_time_' + why, held_page: -1 } });
   let plan: Awaited<ReturnType<typeof readPdfPlan>> = null;
   try { plan = await readPdfPlan(call, q.seed_terms); } catch (_e) { plan = null; }
   if (!plan) return held('plan_unread');
-  if (plan.pdfLines.length && looksPriced(plan.pdfLines.join('\n'))) return held('priced_document');
+  if (pricedDocumentKind(plan.pdfLines, q.reading ?? null)) return held('priced_document');
+  if (!q.plan_in_worker) return { q };
   if (plan.pdfWords === 0) return held('no_text_layer');
   const boxes = supplierBoxes(plan.tb, q.customer_boxes ?? null, q.pages_in);
   if (!boxes) return held('no_server_boxes');

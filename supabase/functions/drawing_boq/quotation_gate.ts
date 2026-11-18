@@ -216,3 +216,13 @@ export function quotationGate<B extends Record<string, any>>(boq: B, t: Quotatio
 /** True when a reading says it is a priced document: the model's own word, or the code reader's quotation note. */
 // deno-lint-ignore no-explicit-any
 export const isQuotationReading = (boq: any) => !!boq && typeof boq === 'object' && (boq.document_kind === 'quotation' || (Array.isArray(boq.assumptions) && boq.assumptions.includes(QUOTATION_NOTE)));
+
+/** WHAT PRICED DOCUMENT THIS IS, ONE DECISION FOR EVERY DOOR (18 Nov 2026, sales_engineer; review of 578f49003, item 1): the
+ *  model's reading says quotation, or code sees one or a priced table on the printed lines (pricedKind). customer_api's
+ *  pricedRoute decides by it before anything of the document is queued, and the CAD worker decides by it again, on the lines it
+ *  reads itself and the reading the request recorded, before any sheet of a queued set is checked. null: not priced. */
+// deno-lint-ignore no-explicit-any
+export function pricedDocumentKind(lines: string[], reading: any): 'quotation' | 'priced' | null {
+  const pk = lines.length ? pricedKind(lines.join('\n')) : null;
+  return isQuotationReading(reading) || pk === 'quotation' ? 'quotation' : pk === 'priced' ? 'priced' : null;
+}

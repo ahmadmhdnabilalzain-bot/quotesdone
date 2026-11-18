@@ -231,7 +231,8 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       // pages now (resolved like any other run, by ownership and completeness); one still open makes the request say the
       // pages follow, and the routine attaches them and tells the suppliers when it publishes. The job is looked up by this
       // customer's own stored drawing, never taken from the body.
-      const follow = drawingPath && !rr.paths.length ? await pagesStillBeingChecked(String(cust.id), String(user.id || ''), drawingPath) : { paths: [] as string[], follows: false };
+      // Only a DRAWING's request (review of 578f49003, item 1): a quotation or a priced document never takes pages from a job.
+      const follow = drawingPath && !rr.paths.length && briefSource === 'drawing' ? await pagesStillBeingChecked(String(cust.id), String(user.id || ''), drawingPath) : { paths: [] as string[], follows: false };
       const drawingRedacted = rr.paths.length ? rr.paths.slice(0, 24) : (follow.paths.length ? follow.paths.slice(0, 24) : null);
       const pagesFollow = !drawingRedacted && follow.follows;
       // `tradesIn` arrives from the request body, so Set<unknown> is what TypeScript infers and

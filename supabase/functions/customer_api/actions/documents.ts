@@ -10,7 +10,7 @@ import { seedTerms } from '../../_shared/anonymise.ts';
 import { supplierBoxes } from '../../_shared/supplier_copy.ts';
 import { cadSupplierBoq, dxfTextOf } from '../../_shared/cad_identity.ts';
 import { PDF_PREVIEWS_ONLY, QUEUED_MESSAGE, budgetNote, cadNote, cutByClock, fileHeldNote, drawingHandoff, heldRun, pagesHeldForTime, refusedNote, timeNote } from '../drawing_hold.ts';
-import { queuedPagesOf, sheetVerdict, sheetsToCheckOff, type DonePage, type SheetVerdict } from '../../_shared/drawing_pages_queued.ts';
+import { queuedPagesOf, readingForQueue, sheetVerdict, sheetsToCheckOff, type DonePage, type SheetVerdict } from '../../_shared/drawing_pages_queued.ts';
 import { DRAWING_DEADLINE, REDACT_PAGES_AT_ONCE, eachPageInTime } from '../../_shared/drawing_deadline.ts';
 import { PIXEL_PAGE_RESERVE_USD } from '../../_shared/drawing_pixel_gate.ts';
 import { isPhotoOrScan, visionCountBody, applyVisionCounts } from '../vision_count_wire.ts';
@@ -280,13 +280,16 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // (546 at 3.1 s CPU, an 8-sheet set and one sheet of it alike), so no drawing was analysed. drawing_redact reads each
         // page in a worker of its own (mode 'plan') and this merges the answers into the same verdict. No answer = the old
         // parse failure: no server boxes.
+        // planLost: the read did not answer (a part lost to the CPU cap or the clock), as opposed to one that answered without
+        // confidence (supplierBoxes null): only a LOST read is planned again by the CAD worker (review of 578f49003, item 2).
+        let planLost = false;
         if (/pdf/i.test(mime) && body.original_b64) {
           const plan = await readPdfPlan(pdfPlanCall(secret, String(body.original_b64), analyzeAt + ANALYZE_DRAWING_BUDGET_MS), seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }));
           if (plan) {
             const tb = plan.tb;
             pdfWords = plan.pdfWords; pdfLines = plan.pdfLines;
             serverBoxes = supplierBoxes(tb, manualBoxes, images.length); floorSeeds = [...new Set([...floorSeeds, ...tb.setSeeds])];
-          } else serverBoxes = null;
+          } else { serverBoxes = null; planLost = true; }
         }
         // The customer's own boxes, kept for a set whose plan read was lost: the CAD worker reads the plan and adds them as extra
         // cover, as supplierBoxes adds them above (_shared/drawing_pages_queued.ts planQueuedPages).
@@ -380,6 +383,14 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         const sorted = sheetsToCheckOff(verdictOf, batches);
         const refusedPages = sorted.refused;
         const boqRes = await Promise.allSettled([boqP]).then((a) => a[0]);
+        // THE MODEL'S ANSWER IS READ BEFORE ANYTHING IS QUEUED (18 Nov 2026; review of 578f49003, item 1). The pages job used to be
+        // queued before pricedRoute read the model's verdict, so a quotation only the model recognised could have its sheets
+        // checked off the request and attached to the request later. Priced or not is decided here, once (pricedRoute, the same
+        // decision the CAD worker applies again: quotation_gate.pricedDocumentKind), and a set is queued only when the model
+        // read it and neither it nor code calls it priced: a document nobody could read is never queued.
+        const jd = boqRes.status === 'fulfilled' ? await boqRes.value.json().catch(() => null) : null;
+        const pricedDoc = jd?.ok ? pricedRoute({ isCad, pdfLines, reading: jd.boq || null }) : null;
+        const readNotPriced = !pricedByCode && jd?.ok === true && !pricedDoc;
         // redaction_complete compared redOut >= redIn, and both are 0 when the redactor dies before
         // it can report anything - so total failure read as "complete". It now requires that pages
         // were sent AND that every one of them came back.
@@ -405,7 +416,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // stored like any original, and the CAD worker OCRs, boxes, re-reads and publishes them only when clean
         // (_shared/scan_redact.ts). If the store or the queue fails, the drawing simply stays held.
         let scanJob: string | null = null;
-        if (!pricedByCode && hand.drawing_held && path && !isCad && images.length && (/^image\//i.test(mime) || pdfWords === 0)) {
+        if (!pricedByCode && !pricedDoc && hand.drawing_held && path && !isCad && images.length && (/^image\//i.test(mime) || pdfWords === 0)) {
           const pagePaths: string[] = [];
           for (let i = 0; i < images.length; i++) {
             const im = images[i];
@@ -428,10 +439,12 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // A PDF WHOSE PLAN READ WAS LOST IS QUEUED TOO (18 Nov 2026; ZZ DEMO run 728bc26c: the 'plan' calls died of the edge CPU
         // cap, no server boxes, all 8 sheets held and nothing queued). Its sheets go with no boxes and the worker reads the plan
         // from the stored original, with the same code (_shared/drawing_pages_queued.ts planQueuedPages): fail closed there.
+        // A read that ANSWERED without confidence is not queued: the worker would hold it too, and the customer would be told
+        // pages follow that never will (review of 578f49003, item 2).
         let pagesJob: string | null = null;
         const leftToCheck = sorted.left.map((l) => l.page);
-        const boxesOrPlanLater = !!serverBoxes || (/pdf/i.test(mime) && !!body.original_b64);
-        if (!pricedByCode && !isCad && path && hand.drawing_held && boxesOrPlanLater && !scanJob && !refusedPages.length && leftToCheck.length && analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now() > 8_000) {
+        const boxesOrPlanLater = !!serverBoxes || planLost;
+        if (readNotPriced && !isCad && path && hand.drawing_held && boxesOrPlanLater && !scanJob && !refusedPages.length && leftToCheck.length && analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now() > 8_000) {
           const done: DonePage[] = [];
           for (const b of sorted.verified) if (pathsOf[b]?.length && jobsOf[b]?.length) done.push({ page: b * REDACT_BATCH, paths: pathsOf[b], job: jobsOf[b][0] });
           const stored = new Map<number, string>();
@@ -444,7 +457,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             if (pth && Date.now() < storeBy) stored.set(pg, pth);
           })), new Promise((ok) => setTimeout(ok, Math.max(0, storeBy - Date.now())))]);
           if (Date.now() >= storeBy) stored.clear();
-          const q = REDACT_BATCH === 1 ? queuedPagesOf({ pagesIn: images.length, seeds: floorSeeds, done, left: leftToCheck, boxes: serverBoxes, customerBoxes, storedAt: (pg) => stored.get(pg) ?? null, why: (pg) => sorted.left.find((l) => l.page === pg)?.why }) : null;
+          const q = REDACT_BATCH === 1 ? queuedPagesOf({ pagesIn: images.length, seeds: floorSeeds, done, left: leftToCheck, boxes: serverBoxes, customerBoxes, reading: readingForQueue(jd?.boq), storedAt: (pg) => stored.get(pg) ?? null, why: (pg) => sorted.left.find((l) => l.page === pg)?.why }) : null;
           if (q) pagesJob = await queuePagesOnce({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64 || '').length, queued: q });
         }
         // Said apart from `note` (a lengths or scan job may use it): the portal waits on pages_job_id and adopts the whole set,
@@ -454,7 +467,6 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // pdf_words (10 Nov 2026): the composer reads a PDF in the browser by OCR ONLY when this says it has no text layer (0).
         // It used to OCR any PDF that came back without lines - including one whose read it had itself cut off at 30 s.
         if (boqRes.status !== 'fulfilled') return J({ ok: false, error: 'analysis_exception', detail: 'boq_fetch_failed', drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords, ...redMeta, ...hand }, 200);
-        const jd = await boqRes.value.json().catch(() => null);
         // A CAD original the edge could not read (past its ceiling, or its worker died) is read off the
         // request path; the pictured sheets above still went through redaction for suppliers.
         const cadWhy = isCad && body.original_b64 ? cadQueueReason(boqRes.value.status, jd) : null;
@@ -473,7 +485,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // or code seeing money on the text layer) goes no further down the drawing route: it is rebuilt as our inquiry
         // (quotation_gate: no money, no reference, no party term read from the document's own letterhead and signature),
         // nothing of its pages is shared, and the customer is shown what was understood before he sends it.
-        const priced = pricedRoute({ isCad, pdfLines, reading: jd.boq || null });
+        const priced = pricedDoc;
         if (priced) return J({ ok: true, ...priced, drawing_file_path: path, drawing_file_name: name, pdf_words: pdfWords,
                                redaction_job_id: null, redaction_job_ids: [], redaction_pages_in: 0, redaction_pages_out: 0, redaction_pages_lost: 0, redaction_complete: false, needs_manual_boxes: false });
         const boqOut = isCad && jd.boq ? cadSupplierBoq(jd.boq, dxfTextOf(String(body.original_b64 || ''))) : jd.boq;

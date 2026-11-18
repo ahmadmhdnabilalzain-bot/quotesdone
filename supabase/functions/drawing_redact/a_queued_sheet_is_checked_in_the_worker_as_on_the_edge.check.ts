@@ -319,3 +319,24 @@ Deno.test('the model\'s holds in the worker: an unanswered view is asked again; 
   assertEquals(h.seen.gateway.length, 0, 'under the founder\'s hold no model is asked');
   assertEquals((h.answers[0].verify_detail as { reason?: string }[])[0].reason, 'model_hold');
 });
+
+// REVIEW OF 578f49003, ITEM 3: a sheet the server's plan boxes nothing on is sent with [] (as the edge sends it). It is not
+// trusted for that: the text layer's own identity boxes are still painted and the FULL pixel gate still decides. Here the
+// checker never answers, so the sheet is held and nothing of it is uploaded or published.
+Deno.test('a sheet with no server boxes ([]) still meets the full pixel gate: unanswered, it is never uploaded', async () => {
+  const sheet = await import('../_shared/drawing_redact_sheet.ts');
+  const asked: number[] = [], uploaded: string[] = [];
+  const deps: import('../_shared/drawing_redact_sheet.ts').SheetDeps = {
+    ...sheet.inProcessWorkers,
+    ask: async () => { asked.push(1); return null; },
+    modelHeld: async () => false, aiKey: async () => 'k',
+    budget: async () => { let left = 100; return { left: () => left, spend: (u: number) => { left -= u; } }; },
+    upload: async (p) => { uploaded.push(p); return true; },
+    publish: async () => true,
+  };
+  const out = await sheet.manualSheets({ ...SHEET_BODY, ...owner, manual_boxes: [[]] }, { jobId: 'zz-run', clock: { startBy: Date.now() + 120_000, stopAt: Date.now() + 150_000 } }, deps);
+  assert(asked.length > 0, 'the pixel checker was asked about the [] sheet');
+  assertEquals(uploaded, [], 'nothing is uploaded unless the gate passes');
+  assertEquals(out.pages_out, 0);
+  assertEquals(sheetVerdict(out).state, 'retry', 'held as unverified (asked again), never verified');
+});
