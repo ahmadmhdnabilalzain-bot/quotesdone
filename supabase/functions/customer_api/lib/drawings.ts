@@ -237,8 +237,8 @@ const FINDING_TITLE = {
 export const PRICED_VERDICT = 'priced_document' as const;
 /** Said to the customer when create_inquiry refused drawing pages (drawingPagesRefused): what went, and why the pages did not. */
 export const PRICED_PAGES_WITHHELD_MESSAGE = {
-  en: 'Your request went to the suppliers without drawing pages: the document they come from was read as priced (a quotation or a priced bill of quantities), and no page of a priced document is shown to suppliers. To share a drawing, send it on its own.',
-  ar: 'أُرسل طلبكم إلى المورّدين دون لوحات المخطّط: فقد قُرئ المستند الذي جاءت منه على أنه مُسعَّر (عرض سعر أو جدول كميات مُسعَّر)، ولا تُعرض أي صفحة من مستند مُسعَّر على المورّدين. لمشاركة مخطّط، أرسلوه وحده.',
+  en: 'Your request went to the suppliers without drawing pages: the document they come from was found to be priced (a quotation or a priced bill of quantities), and pages of a priced document are never shown to suppliers. To share the drawing, please send it in a separate request.',
+  ar: 'أُرسل طلبكم إلى المورّدين من دون لوحات المخطّط، لأن المستند الذي أُخذت منه تبيّن أنه مُسعَّر (عرض سعر أو جدول كميات مُسعَّر)، ولا تُعرض صفحات المستندات المُسعَّرة على المورّدين. لمشاركة المخطّط، يُرجى إرساله في طلب مستقل.',
 } as const;
 /**
  * Records the verdict; true when it holds. FAIL CLOSED (re-review of 464673eff, item 2): a verdict that cannot be written (asked
