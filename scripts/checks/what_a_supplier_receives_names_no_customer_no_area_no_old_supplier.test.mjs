@@ -66,7 +66,10 @@ test('a priced document is never pictured for a supplier, and a drawing beside i
   // Round 4 (drawing_deadline): the loop counts batches under the request's clock; a priced document still runs none.
   // 17 Nov 2026: the batches' paths are kept in page order between the two lines (pages run side by side); nothing else.
   assert.match(docs, /const batches = pricedByCode \? 0 : Math\.ceil\(images\.length \/ REDACT_BATCH\);\s*(?:\/\/[^\n]*\n\s*)*const pathsOf: string\[\]\[\] = \[\], jobsOf: string\[\]\[\] = \[\];\s*const ran = await eachPageInTime\(batches,/, 'no page of a priced document is redacted for suppliers');
-  assert.match(docs, /const priced = pricedRoute\(\{ isCad, pdfLines, reading: jd\.boq \|\| null \}\);\s*if \(priced\) return J/, 'the priced route answers before the drawing route');
+  // 18 Nov 2026 (review of 578f49003): the decision is taken once, from the model's answer, BEFORE any pages job is queued.
+  assert.match(docs, /const pricedDoc = jd\?\.ok \? pricedRoute\(\{ isCad, pdfLines, reading: jd\.boq \|\| null \}\) : null;/, 'priced or not is decided from the model\'s answer');
+  assert.ok(docs.indexOf('const pricedDoc = jd?.ok ? pricedRoute(') < docs.indexOf('pagesJob = await queuePagesOnce('), 'and before a pages job is queued');
+  assert.match(docs, /const priced = pricedDoc;\s*if \(priced\) return J/, 'the priced route answers before the drawing route');
   const create = code(F('customer_api/actions/inquiry_create.ts'));
   // 17 Nov 2026 evening: with none resolved from the body, a finished pages job's verified pages (_shared/drawing_pages_follow.ts).
   assert.match(create, /const drawingRedacted = rr\.paths\.length \? rr\.paths\.slice\(0, 24\) : \(follow\.paths\.length \? follow\.paths\.slice\(0, 24\) : null\)/, 'a drawing attached beside a quotation keeps its pages');
