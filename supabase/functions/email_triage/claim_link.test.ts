@@ -73,9 +73,28 @@ Deno.test('a registered supplier gets his portal link instead of a registration 
   assertEquals(withClaimLink('Open ' + PORTAL_URL + ' and choose Services.', facts), 'Open ' + PORTAL_URL + ' and choose Services.');
 });
 Deno.test('the prospect asking for plans is answered from the live terms (pricing_config as measured 18 Nov 2026)', () => {
-  const t = supplierTermsFact({ supplier_free_count: 1000, supplier_reg_fee: 1000, supplier_reg_currency: 'AED', supplier_reg_period: 'yearly', standard_reveal_rate: 0.03 });
+  const t = supplierTermsFact({ supplier_free_count: 1000, supplier_reg_fee: 1000, supplier_reg_currency: 'AED', supplier_reg_period: 'yearly', standard_reveal_rate: 0.03,
+    refund_window_working_days: 5, supplier_nonresponse_admin_fee_aed: 500 });
   assert(t.includes('first 1,000 suppliers') && t.includes('AED 1,000 a year') && t.includes('no commission') && t.includes('3% fee'), t);
+  assert(t.includes('within 5 working days') && t.includes('AED 500'), t);
+  // every figure is the row's: other values change the words, and nothing is said that the row does not hold
+  const u = supplierTermsFact({ supplier_free_count: 250, supplier_reg_fee: 750, supplier_reg_currency: 'AED', supplier_reg_period: 'yearly', standard_reveal_rate: 0.05, refund_window_working_days: 7 });
+  assert(u.includes('first 250') && u.includes('AED 750') && u.includes('5% fee') && u.includes('within 7 working days') && !u.includes('administration fee'), u);
+  for (const w of ['permanently', 'no other plans', 'tiers']) assert(!t.toLowerCase().includes(w), w);
+  assert(!supplierTermsFact({ supplier_free_count: 1000, supplier_reg_fee: 1000 }).includes('working days'));
   assertEquals(supplierTermsFact(null), '');
   assert(unregisteredSupplierFacts('ZZ', LINK, t).includes(t));
   assert(!unregisteredSupplierFacts('ZZ', LINK).includes('WHAT A SUPPLIER PAYS'));
+});
+
+Deno.test('review of #2051: only a reply to an unregistered prospect is cleaned, and only of "write to supplier@"', () => {
+  const customer = 'Thank you. We\'ll send the quote to this address. You can also e-mail us at supplier@quotesdone.com.';
+  // a customer's reply and a registered supplier's reply are never edited by the cleaner
+  assertEquals(withClaimLink(customer, customerFacts([])), customer);
+  assert(withClaimLink(customer, registeredSupplierFacts('ZZ DEMO Co', null)).startsWith(customer));
+  // a prospect's reply keeps "this address" sentences; only the one sending him to supplier@ goes
+  const out = withClaimLink(customer, FACTS);
+  assert(out.includes("We'll send the quote to this address."), out);
+  assert(!/e-mail us at supplier@quotesdone\.com/.test(out), out);
+  assert(out.includes('Please add supplier@quotesdone.com to your contacts.') || !customer.includes('contacts'));
 });

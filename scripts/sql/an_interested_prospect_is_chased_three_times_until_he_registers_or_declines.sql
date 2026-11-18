@@ -37,6 +37,8 @@
 -- Pending: scripts/sql/pending/an_interested_prospect_is_chased_three_times_until_he_registers_or_declines.txt
 -- Prevented by: scripts/checks/an_interested_prospect_is_chased_three_times_until_he_registers_or_declines.test.mjs
 
+set local lock_timeout = '1500ms';   -- apply discipline: a DDL that waits behind live traffic gives up, never queues it
+
 -- ── 1. the touch ────────────────────────────────────────────────────────────────────────────────
 alter table public.supplier_reply_followup add column if not exists touch smallint not null default 1;
 do $ddl$
@@ -113,7 +115,7 @@ begin
       insert into public.supplier_reply_followup (inbound_message_id, lead_id, to_email, intent, due_at, touch)
       values (m.id, l.id, v_from, case when v_intent in ('subsidiary', 'later') then v_intent else 'interested' end, v_followup, 1)
       on conflict (inbound_message_id, touch) do nothing;
-      if l.id is not null then
+      if l.id is not null and lower(btrim(coalesce(l.email, ''))) = v_from then   -- his own lead only, never a domain match
         update public.leads set lifecycle_stage = 'replied' where id = l.id and coalesce(lifecycle_stage, 'not_contacted') in ('not_contacted', 'contacted', 'no_response');
       end if;
     else
@@ -151,10 +153,9 @@ begin
   if v_from is null or public.fn_is_demo_email(v_from) or public.fn_is_founder_own_inbox(v_from) then
     return jsonb_build_object('booked', false, 'reason', 'a fixture or the founder''s own address');
   end if;
-  select * into l from public.leads x
-   where (m.lead_id is not null and x.id = m.lead_id) or (m.lead_id is null and lower(btrim(x.email)) = v_from)
-   order by x.id limit 1;
-  if l.id is null or (l.invited_at is null and l.invite_status is null) then return jsonb_build_object('booked', false, 'reason', 'not an invited lead'); end if;
+  -- the company is the one whose OWN address wrote (review of #2051: inbound_messages.lead_id can be a domain match)
+  select * into l from public.leads x where lower(btrim(x.email)) = v_from order by (x.id = m.lead_id) desc, x.id limit 1;
+  if l.id is null or (l.invited_at is null and l.invite_status is null) then return jsonb_build_object('booked', false, 'reason', 'not an invited lead at this exact address'); end if;
   if coalesce(l.claimed, false) or l.registration_submitted_at is not null then return jsonb_build_object('booked', false, 'reason', 'he registered'); end if;
   if not public.fn_mailbox_followup_allowed(m.id) then return jsonb_build_object('booked', false, 'reason', 'the reading did not allow an answer'); end if;
   v_intent := public.fn_supplier_reply_intent(m.body);
@@ -204,7 +205,8 @@ begin
     v := public.fn_marketing_files_invite_reply(new.id);
     if coalesce((v->>'due')::boolean, false) and (v->>'lead_id') is not null then
       update public.leads set lifecycle_stage = 'replied'
-       where id = (v->>'lead_id')::bigint and coalesce(lifecycle_stage, 'not_contacted') in ('not_contacted', 'contacted', 'no_response');
+       where id = (v->>'lead_id')::bigint and coalesce(lifecycle_stage, 'not_contacted') in ('not_contacted', 'contacted', 'no_response')
+         and lower(btrim(coalesce(email, ''))) = lower(substring(coalesce(new.from_email, '') from '([^<>[:space:]"]+@[^<>[:space:]"]+)'));
     end if;
   exception when others then
     begin
@@ -248,16 +250,26 @@ begin
      and b.target_id = i.id::text and i.needs_review;
 
   -- 3. the follow-ups, on a Dubai weekday inside the sending window, inside the campaign's own stops and daily cap
+  -- review of #2051: the nudge's own calendar rule too: no follow-up on a UAE public holiday (company_calendar)
   if extract(isodow from now() at time zone 'Asia/Dubai') not in (6, 7)
-     and extract(hour from now() at time zone 'Asia/Dubai') between 9 and 16 then
+     and extract(hour from now() at time zone 'Asia/Dubai') between 9 and 16
+     and not exists (select 1 from public.company_calendar c where c.kind = 'public_holiday'
+                      and (now() at time zone 'Asia/Dubai')::date between c.starts_on and coalesce(c.ends_on, c.starts_on)) then
+    -- THE ONE DAILY CAP (ruling #1007): invite_daily_cap is spent by invitations and nudges queued this UTC day (exactly as
+    -- enqueue_supplier_invites and fn_sales_engineer_nudges_invited_suppliers count it) and by the follow-ups sent this UTC day;
+    -- send_outbox counts the follow-ups into the same number at send time. The advisory lock makes the read-and-spend one step,
+    -- so two runs at once cannot both spend the last slot (the second waits, then reads the first one's sends).
+    perform pg_advisory_xact_lock(hashtext('qd_invite_daily_cap'));
     v_stop := case when not coalesce((select lower(btrim(value)) = 'true' from public.app_secrets where key = 'invite_enabled'), false)
                      then 'the supplier campaign is paused (invite_enabled is false)'
                    when not public.fn_supplier_outreach_golive() then 'supplier_outreach_golive is false'
                    when exists (select 1 from public.invite_brake b where b.resumed_at is null) then 'a bounce brake is open'
                    when coalesce((public.fn_invite_bounce_judgement(now())->>'company_brake')::boolean, false) then 'the bounce judgement stops the company' end;
     v_cap := coalesce((select nullif(btrim(value), '')::int from public.app_secrets where key = 'invite_daily_cap'), 10);
-    v_today := (select count(*) from public.supplier_reply_followup x where x.state = 'sent'
-                 and (x.done_at at time zone 'Asia/Dubai')::date = (now() at time zone 'Asia/Dubai')::date);
+    v_today := (select count(*) from public.notifications n where n.type in ('supplier_invite', 'supplier_invite_nudge')
+                 and (n.created_at at time zone 'UTC')::date = (now() at time zone 'UTC')::date and not public.fn_is_demo_email(n.to_email))
+             + (select count(*) from public.supplier_reply_followup x where x.state = 'sent'
+                 and (x.done_at at time zone 'UTC')::date = (now() at time zone 'UTC')::date);
     select coalesce(nullif(btrim(value), ''), 'https://quotesdone.com') into v_site from public.app_secrets where key = 'public_site_url';
     v_site := coalesce(v_site, 'https://quotesdone.com');
     v_free := coalesce((select p.supplier_free_count from public.pricing_config p where p.id = 1), 1000);
@@ -277,13 +289,26 @@ begin
         update public.supplier_reply_followup set state = 'dropped', outcome = 'suppressed or a fixture', done_at = now() where id = f.id;
         v_dropped := v_dropped + 1; continue;
       end if;
+      -- review of #2051: the founder's own addresses, and every rule the campaign itself obeys (fn_supplier_outreach_reachable: a demo,
+      -- banned or closed company, a bounced invitation, a sanctions hit, an address fn_email_sendable refuses, the company already
+      -- registered under another account), plus an invitation that drew a complaint or an unsubscribe
+      if public.fn_is_founder_own_inbox(f.to_email)
+         or (l.id is not null and (not public.fn_supplier_outreach_reachable(l, f.to_email)
+                                   or coalesce(l.invite_status, '') in ('complained', 'unsubscribed')))
+         or (l.id is null and not coalesce((public.fn_email_sendable(f.to_email)->>'ok')::boolean, false)) then
+        update public.supplier_reply_followup set state = 'dropped', outcome = 'not reachable by the campaign''s own rules (founder''s address, bounced, complained, unsubscribed, demo, banned, screened or registered under another account)', done_at = now() where id = f.id;
+        v_dropped := v_dropped + 1; continue;
+      end if;
       if exists (select 1 from public.inbound_messages n where lower(btrim(coalesce(substring(n.from_email from '<([^>]+)>'), n.from_email))) = lower(btrim(f.to_email)) and n.id > f.inbound_message_id and n.owner_role is distinct from 'it_engineer') then
         update public.supplier_reply_followup set state = 'dropped', outcome = 'the supplier wrote again: that mail is answered on its own', done_at = now() where id = f.id;
         v_dropped := v_dropped + 1; continue;
       end if;
       -- the campaign's stops and cap hold the touch (it stays due, nothing is lost)
       if v_stop is not null or v_today >= v_cap then continue; end if;
-      v_link := case when f.intent <> 'subsidiary' and l.claim_token is not null then v_site || '/portal?t=' || l.claim_token else v_site || '/portal' end;
+      -- his company's own claim link ONLY when the follow-up goes to that company's own address (review of #2051: inbound_email links a
+      -- lead by mail DOMAIN, so another person on a shared domain must never receive this company's token); else the plain portal
+      v_link := case when f.intent <> 'subsidiary' and l.claim_token is not null and lower(btrim(coalesce(l.email, ''))) = lower(btrim(f.to_email))
+                     then v_site || '/portal?t=' || l.claim_token else v_site || '/portal' end;
       v_body := case
         when f.intent = 'subsidiary' then E'Hello,\n\nA week ago you asked about registering a separate company. It registers with its own trade licence and a different e-mail address: ' || v_site || E'/portal\n\nIf we can help, reply to this e-mail. This is the only reminder we will send about it.'
         else 'Hello,' || E'\n\n'
@@ -378,23 +403,21 @@ select f.inbound_message_id, f.lead_id, f.to_email, f.intent, greatest(f.done_at
  where f.state = 'sent' and f.touch = 1 and f.intent <> 'subsidiary'
    and not coalesce(l.claimed, false) and l.registration_submitted_at is null
    and not coalesce(l.is_demo, false) and not public.fn_is_demo_email(f.to_email)
+   and not public.fn_is_founder_own_inbox(f.to_email)
+   and public.fn_supplier_outreach_reachable(l, f.to_email)
    and not exists (select 1 from public.email_suppressions s where lower(s.email) = lower(f.to_email))
 on conflict (inbound_message_id, touch) do nothing;
 
--- ── PROBE: no real row is touched; reads only ─────────────────────────────────────────────────────
-do $probe$
-begin
-  if not exists (select 1 from pg_constraint where conname = 'supplier_reply_followup_message_touch_key') then
-    raise exception 'PROBE FAILED: the (inbound_message_id, touch) key is missing';
-  end if;
-  if exists (select 1 from pg_constraint where conname = 'supplier_reply_followup_inbound_message_id_key') then
-    raise exception 'PROBE FAILED: the one-follow-up key is still there';
-  end if;
-  if not exists (select 1 from pg_trigger where tgname = 'z54_answered_prospect_gets_its_chase' and tgrelid = 'public.inbound_messages'::regclass) then
-    raise exception 'PROBE FAILED: z54 trigger missing';
-  end if;
-  if position('fn_it_engineer_finding_upsert' in (select prosrc from pg_proc where proname = 'trg_invite_reply_reaches_sales_engineer')) = 0 then
-    raise exception 'PROBE FAILED: the hand-over trigger still swallows its error';
-  end if;
-  raise notice 'PROBE OK';
-end $probe$;
+-- ── PROBE: reads only, touches no row; a VERDICT ROW, never a raise (this file creates DDL: apply discipline section 4) ──────
+select case
+  when not exists (select 1 from pg_constraint where conname = 'supplier_reply_followup_message_touch_key')
+    then 'PROBE FAILED: the (inbound_message_id, touch) key is missing'
+  when exists (select 1 from pg_constraint where conname = 'supplier_reply_followup_inbound_message_id_key')
+    then 'PROBE FAILED: the one-follow-up key is still there'
+  when not exists (select 1 from pg_trigger where tgname = 'z54_answered_prospect_gets_its_chase' and tgrelid = 'public.inbound_messages'::regclass)
+    then 'PROBE FAILED: z54 trigger missing'
+  when position('fn_it_engineer_finding_upsert' in (select prosrc from pg_proc where proname = 'trg_invite_reply_reaches_sales_engineer')) = 0
+    then 'PROBE FAILED: the hand-over trigger still swallows its error'
+  when position('lower(btrim(coalesce(l.email, ''''))) = lower(btrim(f.to_email))' in (select prosrc from pg_proc where proname = 'fn_sales_engineer_follows_up_supplier_replies')) = 0
+    then 'PROBE FAILED: the claim token is not tied to the company''s own address'
+  else 'PROBE OK' end as verdict;

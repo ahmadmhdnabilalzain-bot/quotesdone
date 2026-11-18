@@ -91,23 +91,29 @@ export const ADD_CONTACT_FACT = `END THE REPLY WITH ONE PLAIN SENTENCE IN ENGLIS
 // without them). Read from pricing_config (supplier_free_count, supplier_reg_fee, supplier_reg_currency, supplier_reg_period,
 // standard_reveal_rate; measured 18 Nov 2026: 1000, 1000, AED, yearly, 0.03), never typed into the prompt. No row: '' (the reply
 // then states no figure). The non-response charge is the Supplier Agreement's (pricing_config.supplier_nonresponse_admin_fee_aed).
-export type SupplierTerms = { supplier_free_count?: unknown; supplier_reg_fee?: unknown; supplier_reg_currency?: unknown; supplier_reg_period?: unknown; standard_reveal_rate?: unknown };
+export type SupplierTerms = { supplier_free_count?: unknown; supplier_reg_fee?: unknown; supplier_reg_currency?: unknown; supplier_reg_period?: unknown;
+  standard_reveal_rate?: unknown; refund_window_working_days?: unknown; supplier_nonresponse_admin_fee_aed?: unknown };
+// Every figure and every condition below is read from the row (review of #2051: no "permanently", no "no other plans", no "5 days"
+// typed here); a figure the row does not hold is not stated.
 export function supplierTermsFact(t: SupplierTerms | null | undefined): string {
   const free = Number(t?.supplier_free_count), fee = Number(t?.supplier_reg_fee), rate = Number(t?.standard_reveal_rate);
+  const days = Number(t?.refund_window_working_days), admin = Number(t?.supplier_nonresponse_admin_fee_aed);
   if (!t || !Number.isFinite(free) || !Number.isFinite(fee) || free <= 0) return '';
-  const cur = String(t.supplier_reg_currency || 'AED'), per = String(t.supplier_reg_period || 'yearly') === 'yearly' ? 'a year' : String(t.supplier_reg_period);
-  return 'WHAT A SUPPLIER PAYS (the live terms; if they ask about plans, prices, fees or how it works, answer it plainly from this and nothing else): '
-    + `registration is free, permanently, for the first ${free.toLocaleString('en-US')} suppliers to register; after that it is ${cur} ${fee.toLocaleString('en-US')} ${per}. `
+  const cur = String(t.supplier_reg_currency || 'AED'), per = String(t.supplier_reg_period || '') === 'yearly' ? 'a year' : String(t.supplier_reg_period || '').trim();
+  return 'WHAT A SUPPLIER PAYS (the live terms; if they ask about plans, prices, fees or how it works, answer it plainly from this and state no other figure): '
+    + `registration is free for the first ${free.toLocaleString('en-US')} suppliers to register; after that it is ${cur} ${fee.toLocaleString('en-US')}${per ? ' ' + per : ''}. `
     + 'There is no commission on work they win'
-    + (Number.isFinite(rate) && rate > 0 ? `: the customer pays QuotesDone a ${+(rate * 100).toFixed(2)}% fee to reveal the supplier he chooses` : '')
-    + '. The Supplier Agreement has one charge on a supplier: when a customer has paid to reveal him and he does not respond within 5 working days. '
-    + 'There are no other plans or tiers.';
+    + (Number.isFinite(rate) && rate > 0 ? `: the customer pays QuotesDone a ${+(rate * 100).toFixed(2)}% fee to reveal the supplier he chooses` : '') + '.'
+    + (Number.isFinite(days) && days > 0
+      ? ` The Supplier Agreement charges a supplier when a customer has paid to reveal him and he does not respond within ${days} working days`
+        + (Number.isFinite(admin) && admin > 0 ? ` (an administration fee of AED ${admin.toLocaleString('en-US')} with the charge)` : '') + '.'
+      : '');
 }
 /** The live terms row, or null (a failed read states no figure). Never throws. */
 export async function readSupplierTerms(admin: Db): Promise<SupplierTerms | null> {
   try {
     const { data, error } = await admin.from('pricing_config')
-      .select('supplier_free_count,supplier_reg_fee,supplier_reg_currency,supplier_reg_period,standard_reveal_rate').eq('id', 1).maybeSingle();
+      .select('supplier_free_count,supplier_reg_fee,supplier_reg_currency,supplier_reg_period,standard_reveal_rate,refund_window_working_days,supplier_nonresponse_admin_fee_aed').eq('id', 1).maybeSingle();
     return error ? null : (data as SupplierTerms | null) ?? null;
   } catch (_e) { return null; }
 }
@@ -141,27 +147,30 @@ export const NEXT_STEP_REGISTER = 'Next step: register your company. It is free 
   + 'choose "Create account" with your work e-mail and type the 6-digit code we e-mail you.';
 export const NEXT_STEP_PORTAL = 'Your supplier portal:';
 const OUR_MAILBOX_RE = OUR_MAILBOX.replace(/[.@]/g, (c) => '\\' + c);
-/** The model's sentences that send them to the address they wrote to are removed; "add it to your contacts" is kept. */
+/** In a reply to an unregistered prospect: the model's sentences that tell him to write to, e-mail, contact or reach us AT
+ *  supplier@quotesdone.com (the address he wrote from), and the clause "or write to that address first", are removed. Nothing else:
+ *  "add supplier@... to your contacts" and any other sentence (e.g. "We'll send the quote to this address") stay (review of #2051). */
 export function withoutWriteToUs(body: string): string {
-  const toUs = new RegExp('\\b(write|e-?mail|contact|reach|message|send)\\b[^.!?\\n]{0,40}\\b(' + OUR_MAILBOX_RE + '|that address|this address|the same address)', 'i');
+  const toUs = new RegExp('\\b(write|e-?mail|contact|reach|message)\\b[^.!?\\n]{0,40}\\b(to|at|on|via)\\s+' + OUR_MAILBOX_RE + '\\b', 'i');
   const out = body
-    .replace(new RegExp(',?\\s+or\\s+(to\\s+)?(write|e-?mail|send a message)\\s+to\\s+(that|this|the same)\\s+address(\\s+first)?', 'gi'), '')
+    .replace(/,?\s+or\s+(to\s+)?write\s+to\s+that\s+address(\s+first)?/gi, '')
     .split('\n').map((line) => (toUs.test(line) ? line.split(/(?<=[.!?])\s+/).filter((sen) => !toUs.test(sen)).join(' ') : line)).join('\n');
   return out === body ? body : out.replace(/\n{3,}/g, '\n\n').trim();
 }
 export function withClaimLink(body: string, facts: string): string {
-  const cleaned = withoutWriteToUs(body);
   const bare = (l: string) => l.trim().replace(/^[\s<("'*_\-:]+|[\s>)"'*_.,;:]+$/g, '');
   const link = claimLinkOf(facts);
   if (link) {
+    // only a reply to an unregistered prospect is cleaned (a customer's or a registered supplier's reply is never edited here)
+    const cleaned = withoutWriteToUs(body);
     if (cleaned.split(/\r?\n/).some((l) => bare(l) === link)) return cleaned;
     return cleaned.trimEnd() + '\n\n' + NEXT_STEP_REGISTER + '\n' + link;
   }
   if (facts.includes(PORTAL_LEAD)) {
-    if (cleaned.includes(PORTAL_URL)) return cleaned;
-    return cleaned.trimEnd() + '\n\n' + NEXT_STEP_PORTAL + '\n' + PORTAL_URL;
+    if (body.includes(PORTAL_URL)) return body;
+    return body.trimEnd() + '\n\n' + NEXT_STEP_PORTAL + '\n' + PORTAL_URL;
   }
-  return cleaned;
+  return body;
 }
 // An UNVERIFIED sender who is a lead: no account is read (the spoof rule below), and the sign-in line alone would send
 // a supplier with no account to a sign-in box. Both routes are named, without a personal link.

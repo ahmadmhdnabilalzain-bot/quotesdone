@@ -17,8 +17,11 @@
 --   fn_leads_stage_follows_its_evidence, a BEFORE INSERT OR UPDATE trigger on leads (a20_, before the mandatory-six gate e0 and the
 --   z-triggers; it reads only the row, so a bulk update of 20k rows stays cheap). The stage only moves forward, from the row's own
 --   fields, never from a guess:
---     registered     claimed, terms accepted or signed, registration submitted, or approved (the readers' word: sanction screens,
---                    the bd_manager KPI and fn_ws_* read 'registered');
+--     registered     terms accepted or signed, registration submitted, or approved. The readers (sanction screens:
+--                    lifecycle_stage = 'registered' OR approval_status approved; the bd_manager KPI: 'registered' AND a dated
+--                    registration_submitted_at / accepted_terms_at; fn_ws_*) mean a company that took the terms, so a page
+--                    that is only claimed is NOT 'registered' (review of #2051);
+--     claimed        the portal page is claimed but the terms are not taken yet;
 --     replied        set by the reply path (trg_invite_reply_reaches_sales_engineer, the chase booking in the file above), kept here
 --                    until he registers;
 --     undeliverable  the invitation bounced and nothing better is known;
@@ -31,14 +34,22 @@
 -- Pending: scripts/sql/pending/a_leads_stage_follows_its_own_evidence.txt
 -- Prevented by: scripts/checks/a_leads_stage_follows_its_own_evidence.test.mjs
 
+set local lock_timeout = '1500ms';   -- apply discipline: the trigger DDL on leads gives up rather than queue behind live traffic
+
 create or replace function public.fn_leads_stage_follows_its_evidence()
 returns trigger language plpgsql set search_path to 'public', 'pg_temp' as $fn$
-declare v_reg boolean := coalesce(new.claimed, false) or new.accepted_terms_at is not null or new.signed_terms_at is not null
+-- 'registered' means he accepted or signed the terms, submitted, or was approved (review of #2051): a page merely claimed is 'claimed'
+declare v_reg boolean := new.accepted_terms_at is not null or new.signed_terms_at is not null
                          or new.registration_submitted_at is not null or coalesce(new.approval_status, '') = 'approved';
         v_stage text := coalesce(nullif(btrim(new.lifecycle_stage), ''), 'not_contacted');
 begin
   if v_reg then
     new.lifecycle_stage := 'registered';
+    if coalesce(new.invite_status, '') in ('sent', 'bounced', 'complained') then new.contacted := true; end if;
+    return new;
+  end if;
+  if coalesce(new.claimed, false) then
+    new.lifecycle_stage := 'claimed';
     if coalesce(new.invite_status, '') in ('sent', 'bounced', 'complained') then new.contacted := true; end if;
     return new;
   end if;

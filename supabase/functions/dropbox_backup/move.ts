@@ -73,7 +73,7 @@ async function listAll(dbx: Pick<DropboxClient, 'call'>, folder: string): Promis
   }
   return null;
 }
-export type PruneOutcome = 'removed' | 'kept_has_files' | 'same_folder' | 'not_a_party_folder' | 'gone' | 'unlisted' | 'error';
+export type PruneOutcome = 'removed' | 'kept_has_files' | 'changed_before_delete' | 'same_folder' | 'not_a_party_folder' | 'gone' | 'unlisted' | 'error';
 /** After a move from `from` to `to`: removes the party folder `from` was in only if no file is anywhere beneath it. Never throws. */
 export async function removeEmptiedSource(dbx: Pick<DropboxClient, 'call'>, from: string, to: string): Promise<PruneOutcome> {
   try {
@@ -84,6 +84,11 @@ export async function removeEmptiedSource(dbx: Pick<DropboxClient, 'call'>, from
     if (all === 'gone') return 'gone';
     if (all === null) return 'unlisted';
     if (all.some((e) => e['.tag'] === 'file')) return 'kept_has_files';
+    // listed again immediately before the delete (review of #2051): a file that landed in between keeps the folder
+    const again = await listAll(dbx, src);
+    if (again === 'gone') return 'gone';
+    if (again === null) return 'unlisted';
+    if (again.some((e) => e['.tag'] === 'file') || again.length !== all.length) return 'changed_before_delete';
     const d = await dbx.call('api', 'files/delete_v2', { path: src });
     await d.text().catch(() => '');
     return d.ok ? 'removed' : 'error';

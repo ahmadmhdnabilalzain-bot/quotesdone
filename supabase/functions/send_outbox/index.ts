@@ -231,6 +231,14 @@ Deno.serve(observe('send_outbox', async (req) => {
     // The refusal finding closes on the first 2xx sendMail of the run (graphSend), never on a token alone.
     let m365Closed = false;
     const closeFinding = async (k: string, note: string) => { if (m365Closed) return; const { error } = await admin.rpc('fn_it_engineer_finding_close', { p_issue_key: k, p_note: note }); if (error) throw error; m365Closed = true; };
+    // THE ONE DAILY CAP COUNTS THE REPLY FOLLOW-UPS TOO (sales_engineer, 18 Nov 2026; review of #2051, ruling #1007). A follow-up to a
+    // prospect who replied (supplier_reply_followup, sent by fn_sales_engineer_follows_up_supplier_replies inside invite_daily_cap)
+    // leaves as a supplier_registration_reminder from supplier@, not on the lane; the lane's count of invitations and nudges adds them,
+    // so the day's invitations, nudges and follow-ups share ONE number. A count that cannot be read is the ceiling reached.
+    const replyFollowupsSince = async (from: Date): Promise<number> => {
+      const r = await admin.from('supplier_reply_followup').select('id', { count: 'exact', head: true }).eq('state', 'sent').gte('done_at', from.toISOString());
+      return r.error ? Number.MAX_SAFE_INTEGER / 2 : (r.count || 0);
+    };
     let cappedSentToday = 0, m365SentToday = 0, m365SentRun = 0, m365ProofAt: string | null = null;
     if (m365.active) {
       // Reply-To is dropped only while the reply reader is proven (m365ReplyTo); an unreadable row keeps the old one.
@@ -239,7 +247,7 @@ Deno.serve(observe('send_outbox', async (req) => {
       const a = await admin.from('notifications').select('id', { count: 'exact', head: true }).in('type', [...LANE_CAPPED_TYPES]).eq('status', 'sent').gte('sent_at', since.toISOString());
       const b = await admin.from('notifications').select('id', { count: 'exact', head: true }).like('provider_message_id', M365_ID_PREFIX + '%').eq('status', 'sent').gte('sent_at', since.toISOString());
       // A count that cannot be read is treated as the ceiling reached: the lane holds rather than guesses.
-      cappedSentToday = a.error ? Number.MAX_SAFE_INTEGER : (a.count || 0);
+      cappedSentToday = a.error ? Number.MAX_SAFE_INTEGER : (a.count || 0) + await replyFollowupsSince(since);
       m365SentToday = b.error ? M365_HARD_CEILING : (b.count || 0);
     }
     const lane = await resolveLane({ enabled: await setting('invite_lane_enabled'), from: await setting('invite_lane_from'), apiKey: key,
@@ -253,7 +261,7 @@ Deno.serve(observe('send_outbox', async (req) => {
     if (lane.active) {
       const { count } = await admin.from('notifications').select('id', { count: 'exact', head: true })
         .in('type', [...LANE_CAPPED_TYPES]).eq('status', 'sent').gte('sent_at', since.toISOString());
-      laneSentToday = count || 0;
+      laneSentToday = (count || 0) + await replyFollowupsSince(since);
     }
     let laneHeld = 0;
     // THE LIVE CAMPAIGN SWITCHES, ASKED ONCE PER RUN for the campaign rows in it (invite_lane.ts campaignStep; review item 4).

@@ -87,8 +87,44 @@ Deno.test('wiring: a confirmed move prunes its source, and the nightly listing r
   const row = Deno.readTextFileSync(new URL('./row.ts', import.meta.url));
   assert(/if \(mv\.moved\) \{[\s\S]{0,2000}removeEmptiedSource\(dbx, String\(row\.moved_from\), String\(row\.dropbox_path\)\)/.test(row));
   const idx = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
-  assert(/\(Suppliers\|Customers\)\$\/\.test\(root\)[\s\S]{0,200}shellFolders\(/.test(idx));
-  assert(/shell_folders: shells\.empty\.length/.test(idx));
+  assert(/if \(PARTY_ROOT\.test\(root\)\) \{\s+partyListed\.add\(root\);[\s\S]{0,200}shellFolders\(/.test(idx));
+  assert(/const PARTY_ROOT = \/\^\\\/QuotesDone Backup\\\/\(Suppliers\|Customers\)\$\//.test(idx));
+  // review of #2051: 'shells' is reported only when every party tree was listed to its end; else the finding is left as it is
+  assert(/const complete = partyRoots\.length > 0 && partyRoots\.every\(\(r\) => partyListed\.has\(r\)\);\s+return \{ summary: complete \? \{[^}]*shell_folders: shells\.empty\.length/.test(idx));
+  // a root the deadline cut short is skipped before it can be counted as listed
+  assert(idx.indexOf('if (!t.complete) { summary.unlisted_roots++; continue; }') < idx.indexOf('partyListed.add(root)'));
   // the worker never deletes from the shell check: delete_v2 appears only in purge.ts paths and removeEmptiedSource
   assert(!/delete_v2/.test(idx.slice(idx.indexOf('async function listingCheck'), idx.indexOf('// ── THE TAGGED SANDBOX RUN'))));
+});
+
+// review of #2051: a folder listed over several pages, and a file that lands between the listing and the delete
+function paged(pages: Record<string, unknown>[][], after?: Record<string, unknown>[][]) {
+  const calls: string[] = []; let i = 0, round = 0;
+  const dbx = { call(_h: 'api' | 'content', endpoint: string): Promise<Response> {
+    calls.push(endpoint);
+    if (endpoint === 'files/list_folder') { i = 0; round++; }
+    if (endpoint === 'files/list_folder' || endpoint === 'files/list_folder/continue') {
+      const src = round > 1 && after ? after : pages; const p = src[i] ?? []; i++;
+      return Promise.resolve(Response.json({ entries: p, has_more: i < src.length, cursor: 'c' + i }));
+    }
+    if (endpoint === 'files/delete_v2') return Promise.resolve(new Response('{}'));
+    return Promise.resolve(new Response('unexpected', { status: 500 }));
+  } };
+  return { dbx, calls };
+}
+Deno.test('a file on the third page of the listing keeps the folder (every page is read)', async () => {
+  const { dbx, calls } = paged([[{ '.tag': 'folder', path_display: OLD + '/a' }], [{ '.tag': 'folder', path_display: OLD + '/b' }], [{ '.tag': 'file', path_display: OLD + '/b/x.pdf' }]]);
+  assertEquals(await removeEmptiedSource(dbx, OLD + '/y.pdf', NEW + '/y.pdf'), 'kept_has_files');
+  assertEquals(calls.filter((c) => c === 'files/list_folder/continue').length, 2);
+  assert(!calls.includes('files/delete_v2'));
+});
+Deno.test('a file that lands between the listing and the delete keeps the folder (it is listed again first)', async () => {
+  const empty = [[{ '.tag': 'folder', path_display: OLD + '/Earlier versions' }]];
+  const landed = [[{ '.tag': 'folder', path_display: OLD + '/Earlier versions' }, { '.tag': 'file', path_display: OLD + '/Trade licence.pdf' }]];
+  const { dbx, calls } = paged(empty, landed);
+  assertEquals(await removeEmptiedSource(dbx, OLD + '/y.pdf', NEW + '/y.pdf'), 'changed_before_delete');
+  assert(!calls.includes('files/delete_v2'));
+  const ok = paged(empty);
+  assertEquals(await removeEmptiedSource(ok.dbx, OLD + '/y.pdf', NEW + '/y.pdf'), 'removed');
+  assertEquals(ok.calls.filter((c) => c === 'files/list_folder').length, 2, 'listed twice before the delete');
 });

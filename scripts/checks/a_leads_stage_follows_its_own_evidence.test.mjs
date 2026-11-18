@@ -16,6 +16,16 @@ test('registration evidence is null-safe: an unset approval_status never makes t
   assert.doesNotMatch(fn, /or new\.approval_status = 'approved'/);
 });
 
+test('review of #2051: registered means the terms were taken; a page only claimed is claimed; the DDL carries a lock timeout', () => {
+  assert.match(fn, /declare v_reg boolean := new\.accepted_terms_at is not null or new\.signed_terms_at is not null/);
+  assert.doesNotMatch(fn.slice(fn.indexOf('declare v_reg'), fn.indexOf('v_stage text')), /claimed/);
+  assert.equal(stage({ claimed: true, invite_status: 'sent', lifecycle_stage: 'not_contacted' }).lifecycle_stage, 'claimed');
+  assert.match(SQL, /^set local lock_timeout = '1500ms';/m);
+  assert.match(BACKFILL, /^set local lock_timeout = '1500ms';/m);
+  // a reply counts only from the lead's own address (inbound_messages.lead_id may be a domain match)
+  assert.match(BACKFILL, /lower\(btrim\(l\.email\)\)/);
+});
+
 test('the trigger fires on the fields its rules read, before the gates, and is revoked', () => {
   assert.match(SQL, /create trigger a20_leads_stage_follows_its_evidence\s+before insert or update of claimed, accepted_terms_at, signed_terms_at, registration_submitted_at, approval_status, invite_status, lifecycle_stage/);
   assert.match(SQL, /revoke execute on function public\.fn_leads_stage_follows_its_evidence\(\) from public, anon, authenticated/);
@@ -24,10 +34,11 @@ test('the trigger fires on the fields its rules read, before the gates, and is r
 
 // the rules, as the function states them, replayed
 function stage(r) {
-  const reg = !!r.claimed || !!r.accepted_terms_at || !!r.signed_terms_at || !!r.registration_submitted_at || r.approval_status === 'approved';
+  const reg = !!r.accepted_terms_at || !!r.signed_terms_at || !!r.registration_submitted_at || r.approval_status === 'approved';
   const s = r.lifecycle_stage || 'not_contacted', inv = r.invite_status || '';
   const sentish = ['sent', 'bounced', 'complained'].includes(inv);
   if (reg) return { lifecycle_stage: 'registered', contacted: sentish ? true : !!r.contacted };
+  if (r.claimed) return { lifecycle_stage: 'claimed', contacted: sentish ? true : !!r.contacted };
   if (s === 'replied') return { lifecycle_stage: s, contacted: true };
   let n = s;
   if (['bounced', 'complained'].includes(inv) && ['not_contacted', 'contacted'].includes(s)) n = 'undeliverable';
@@ -51,6 +62,6 @@ test('replay: sent -> contacted, bounced -> undeliverable, replied and no_respon
 test('the backfill is real rows only, proves Shine in the same transaction, and states its dry-run counts', () => {
   assert.match(BACKFILL, /not coalesce\(l\.is_demo, false\) and not public\.fn_is_demo_email\(l\.email\)/);
   assert.match(BACKFILL, /if \(select lifecycle_stage from public\.leads where id = 2936\) is distinct from 'registered'/);
-  assert.match(BACKFILL, /DRY RUN \(18 Nov 2026, production, read-only\): registered 3/);
+  assert.match(BACKFILL, /DRY RUN \(18 Nov 2026, production, read-only, re-measured after review of #2051\): registered 3/);
   assert.doesNotMatch(BACKFILL, /^(begin|commit);/m);   // the applier's one transaction, so the proof rolls it all back
 });

@@ -151,6 +151,8 @@ async function reconcile(dbx: DropboxClient, n: number, ids?: number[]) {
 
 // resilience_ping waits 55 s for the reconcile call; the listing stops in time to report.
 const LISTING_BUDGET_MS = 40_000;
+/** The two trees whose party folders the shell check reads (move.ts shellFolders). */
+const PARTY_ROOT = /^\/QuotesDone Backup\/(Suppliers|Customers)$/;
 const CONFIRM_MAX = 25;
 
 // List each root, compare with doc_backups, and confirm every "missing" one by one with get_metadata
@@ -162,6 +164,10 @@ async function listingCheck(dbx: DropboxClient, roots: string[], deadline: numbe
   // one no doc_backups row files into (a demo, test or vanished party), is listed in the summary and raised as a finding by
   // fn_it_backup_listing_record. Never deleted here.
   const shells = { empty: [] as string[], no_party: [] as string[] };
+  // the shell verdict is reported only when EVERY party tree was listed to its end (review of #2051): a listing the deadline cut
+  // short reports no 'shells' key, so fn_it_backup_listing_record neither raises nor closes the finding on half a picture
+  const partyRoots = roots.filter((r) => PARTY_ROOT.test(r));
+  const partyListed = new Set<string>();
   const stamp = new Date().toISOString();
   const findings: Record<string, unknown>[] = [];
   for (const root of roots) {
@@ -179,7 +185,8 @@ async function listingCheck(dbx: DropboxClient, roots: string[], deadline: numbe
     const c = compareListing((exp || []) as Expected[], t.entries);
     summary.expected += c.expected; summary.listed += c.listed; summary.stray += c.stray;
     summary.missing += c.missing.length; summary.changed += c.changed.length;
-    if (/^\/QuotesDone Backup\/(Suppliers|Customers)$/.test(root)) {
+    if (PARTY_ROOT.test(root)) {
+      partyListed.add(root);
       const s = shellFolders([...t.entries.map((e) => ({ '.tag': 'file', path_display: e.p })), ...t.folders.map((f) => ({ '.tag': 'folder', path_display: f }))],
         ((exp || []) as Expected[]).map((e) => String(e[1])));
       shells.empty.push(...s.empty); shells.no_party.push(...s.no_party);
@@ -192,8 +199,9 @@ async function listingCheck(dbx: DropboxClient, roots: string[], deadline: numbe
       if (m.missing) { summary.confirmed_missing++; findings.push({ id, outcome: 'missing', why: 'listing' }); }
     }
   }
-  return { summary: { ...summary, shell_folders: shells.empty.length, no_party_folders: shells.no_party.length,
-    shells: { empty: shells.empty.slice(0, 50), no_party: shells.no_party.slice(0, 50) } }, findings };
+  const complete = partyRoots.length > 0 && partyRoots.every((r) => partyListed.has(r));
+  return { summary: complete ? { ...summary, shell_folders: shells.empty.length, no_party_folders: shells.no_party.length,
+    shells: { empty: shells.empty.slice(0, 50), no_party: shells.no_party.slice(0, 50) } } : { ...summary, shells_unlisted: true }, findings };
 }
 
 // ── THE TAGGED SANDBOX RUN (sales_engineer files, it_engineer verifies; ZZ DEMO data only) ──

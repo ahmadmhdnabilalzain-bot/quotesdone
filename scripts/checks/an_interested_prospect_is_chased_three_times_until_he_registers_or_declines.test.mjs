@@ -23,9 +23,14 @@ test('up to three touches, seven days apart, and never "the only reminder" on an
 
 test('every touch carries his company\'s own registration link and one next step, and the campaign\'s stops and cap hold it', () => {
   const f = fnOf('fn_sales_engineer_follows_up_supplier_replies');
-  assert.match(f, /v_site \|\| '\/portal\?t=' \|\| l\.claim_token/);
+  assert.match(f, /l\.claim_token is not null and lower\(btrim\(coalesce\(l\.email, ''\)\)\) = lower\(btrim\(f\.to_email\)\)\s+then v_site \|\| '\/portal\?t=' \|\| l\.claim_token else v_site \|\| '\/portal' end/);
   assert.match(f, /Next step: open your company''s own registration link/);
-  for (const s of ["key = 'invite_enabled'", 'fn_supplier_outreach_golive()', 'invite_brake b where b.resumed_at is null', "'company_brake'", "key = 'invite_daily_cap'"]) assert.ok(f.includes(s), s);
+  for (const s of ["key = 'invite_enabled'", 'fn_supplier_outreach_golive()', 'invite_brake b where b.resumed_at is null', "'company_brake'", "key = 'invite_daily_cap'",
+    "pg_advisory_xact_lock(hashtext('qd_invite_daily_cap'))", "c.kind = 'public_holiday'", 'fn_supplier_outreach_reachable(l, f.to_email)', 'fn_is_founder_own_inbox(f.to_email)',
+    "n.type in ('supplier_invite', 'supplier_invite_nudge')"]) assert.ok(f.includes(s), s);
+  // the ONE cap: no second budget of its own (review of #2051) — the day is the UTC day the invitation routines count
+  assert.doesNotMatch(f, /at time zone 'Asia\/Dubai'\)::date = \(now\(\) at time zone 'Asia\/Dubai'\)::date\);/);
+  assert.ok(f.indexOf("pg_advisory_xact_lock") < f.indexOf('v_today :='), 'the lock is taken before the cap is read');
   assert.match(f, /if v_stop is not null or v_today >= v_cap then continue; end if;/);
   // the stops that existed stay, before any send
   for (const s of ['fn_mailbox_followup_allowed', 'registration_submitted_at is not null', 'email_suppressions', 'n.id > f.inbound_message_id']) assert.ok(f.indexOf(s) < f.indexOf('fn_customer_support_takes_delivery'), s);
@@ -52,6 +57,21 @@ test('a prospect who has not registered is asked no rating; every new routine is
     assert.ok(SQL.includes('revoke execute on function public.' + sig + ' from public, anon, authenticated'), sig);
   for (const n of ['fn_sales_engineer_books_prospect_chase', 'trg_answered_prospect_gets_its_chase', 'fn_sales_engineer_follows_up_supplier_replies'])
     assert.match(fnOf(n), /set search_path to 'public', 'pg_temp'/i, n);
+});
+
+test('review of #2051: send_outbox counts the follow-ups into the one cap; the probe is a verdict row; the one-off obeys the same rules', () => {
+  const so = readFileSync(new URL('../../supabase/functions/send_outbox/index.ts', import.meta.url), 'utf8');
+  assert.match(so, /from\('supplier_reply_followup'\)\.select\('id', \{ count: 'exact', head: true \}\)\.eq\('state', 'sent'\)\.gte\('done_at'/);
+  assert.match(so, /cappedSentToday = a\.error \? Number\.MAX_SAFE_INTEGER : \(a\.count \|\| 0\) \+ await replyFollowupsSince\(since\)/);
+  assert.match(so, /laneSentToday = \(count \|\| 0\) \+ await replyFollowupsSince\(since\)/);
+  const probe = SQL.slice(SQL.indexOf('-- ── PROBE'));
+  assert.doesNotMatch(probe, /raise (exception|notice)/);
+  assert.match(probe, /else 'PROBE OK' end as verdict;/);
+  assert.match(SQL, /^set local lock_timeout = '1500ms';/m);
+  const once = SQL.slice(SQL.indexOf('-- ── 7. ONE-OFF'), SQL.indexOf('-- ── PROBE'));
+  assert.ok(once.includes('fn_is_founder_own_inbox(f.to_email)') && once.includes('fn_supplier_outreach_reachable(l, f.to_email)'));
+  // the booking reads the company of the exact address that wrote, never a domain match
+  assert.match(fnOf('fn_sales_engineer_books_prospect_chase'), /where lower\(btrim\(x\.email\)\) = v_from/);
 });
 
 test('the handler and the booking use the same (message, touch) key', () => {
