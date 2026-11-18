@@ -444,6 +444,10 @@ export const REGISTER = {
   // six seats without error, and a ZZ DEMO lesson inserted into seat_case_memory fired the trigger and raised 0
   // findings; with fn_seat_playbook_build replaced by one that raises, the same insert raised 1. It reads no clock,
   // so the HEALTHY instants change nothing for it.
+  // 18 Nov 2026 (sales_engineer): two relays of an error, and one relay of what the nightly Dropbox listing measured
+  trg_invite_reply_reaches_sales_engineer: { relay: 'records that fn_marketing_files_invite_reply raised while filing an invited supplier\'s reply; the error is the finding, and a healthy day files every reply without one' },
+  trg_answered_prospect_gets_its_chase: { relay: 'records that fn_sales_engineer_books_prospect_chase raised while booking an answered prospect\'s follow-up; the error is the finding, and a healthy day books without one' },
+  fn_it_backup_listing_record: { relay: 'records the empty or ownerless party folders the dropbox_backup listing measured in Dropbox (summary.shells); it reads no table, and a healthy day lists none, which closes the finding' },
   trg_seat_playbook_learns: { relay: 'records that fn_seat_playbook_build raised while learning from a lesson; the error is the finding, and a healthy day rebuilds every seat without one' },
   // 29 Sep 2026 (it_engineer, #1062, instruction 1009). The monthly game day. Each game_day:<scenario> finding is the
   // verdict of a scenario routine (fn_it_game_day_<scenario>) that injected a fault in a rolled-back savepoint and saw
