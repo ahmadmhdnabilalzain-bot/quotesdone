@@ -64,9 +64,13 @@ Deno.test('the prompt asks for the mark, the parser keeps only its digits, and t
   assertEquals(parsePixelVerdict('{"clean":true,"addressed":false,"regions":[]}')?.mark, '');
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   const a = src.indexOf("if (body.mode === 'tile')"), tile = src.slice(a, src.indexOf('\n    }\n', a));
-  assertMatch(tile, /!\/\^\\d\{6\}\$\/\.test\(String\(body\.mark/);
+  assertMatch(tile, /!markOk\(body\.mark\)\) return J\(\{ ok: false, error: 'jpg_b64_tile_and_mark_required' \}, 400\)/);
   assertMatch(tile, /tileJpeg\([^\n]*, 85, String\(body\.mark\)\)/);
-  assertMatch(src, /crop: \(b, t, m\) => cropElsewhere\(secret, b, t, m, stopAt\)/);
+  // markOk and the in-process crop (the CAD worker's) are _shared/drawing_redact_sheet.ts's since 18 Nov 2026.
+  const sheet = Deno.readTextFileSync(new URL('../_shared/drawing_redact_sheet.ts', import.meta.url));
+  assertMatch(sheet, /export const markOk = \(m: unknown\) => \/\^\\d\{6\}\$\/\.test\(String\(m \?\? ''\)\);/);
+  assertMatch(sheet, /async crop\(jpgB64, tile, mark\) \{\n\s*if \(!jpgB64 \|\| !tile \|\| !markOk\(mark\)\) throw new Error\('tile_failed'\);/);
+  assertMatch(src, /crop: \(b, t, m, stopAt\) => cropElsewhere\(secret, b, t, m, stopAt\)/);
 });
 
 // LAZY (reads every view, copies its mark, reports nothing): the code floor holds what it covers; what code cannot read
@@ -96,8 +100,9 @@ Deno.test('LAZY and TITLE-ONLY: text code cannot read (outlines v01, a Type3 fon
   for (const f of ['review_f3/v00_control.pdf', 'review_f3/v02_outlined_title_block.pdf', 'zz_pool_b1_embedded_font.pdf', 'zz_pool_b1_ascii85_flate.pdf']) {
     for (const p of await fixture(f)) { assertEquals(unreadAreas(p, []).length, 0, f); assertEquals(unreadTextHold(p, [], []), null, f); }
   }
-  // Both drawing_redact routes ask it after the gate and before any upload, with every box that was painted.
-  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  // Both drawing_redact routes ask it after the gate and before any upload, with every box that was painted (the manual
+  // route's loop is _shared/drawing_redact_sheet.manualSheets since 18 Nov 2026).
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url)) + '\n' + Deno.readTextFileSync(new URL('../_shared/drawing_redact_sheet.ts', import.meta.url));
   assertMatch(src, /const painted = \[\.\.\.\[\.\.\.regions, \.\.\.textBoxes\(i\)\.boxes, \.\.\.instructingRuns\([^\n]*\.\.\.floor\.map\([^\n]*gate\.boxes\.map[^\n]*\n\s*const unreadHeld = gate\.ok \? unreadTextHold\(pp, seeds, painted\) : null;\n\s*if \(unreadHeld\) \{ skipped\+\+;[^\n]*continue; \}[\s\S]{0,400}storage\.from\('drawing-files'\)\.upload\(path, b64ToBytes\(jpgB64\)/);
   assertMatch(src, /const unreadHeld = unreadTextHold\(pp, \[\], \[\.\.\.\(r\.painted \?\? \[\]\), \.\.\.g\.boxes\.map\([^\n]*\);\n\s*if \(unreadHeld\) \{ skipped\+\+;[^\n]*continue; \}\n\s*const path = /);
 });
@@ -159,7 +164,7 @@ Deno.test('OVER-EAGER: a checker box over drawing words only is not painted and 
   const g3 = await pixelGate('page', async (shown) => JSON.stringify({ mark: shown, clean: count.painted > 0, addressed: false, regions: count.painted > 0 ? [] : [around('VILLA 15')] }), async (b) => { count.painted++; return b; }, pixelBudget(), { plan: { tiles: [{ x: 0, y: 0, w: 1, h: 1, outW: 100, outH: 70 }], whole: null, cols: 1, rows: 1, textPx: 12, calls: 1, usd: 0, page: { wMm: 420, hMm: 297, from: 'mediabox' } }, crop: async (_b, _t, m) => m, vet });
   assert(g3.ok && Number(count.painted) === 1 && g3.boxes.length === 1);
   // drawing_redact gives both text-layer routes the vet and records what was ignored.
-  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
+  const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url)) + '\n' + Deno.readTextFileSync(new URL('../_shared/drawing_redact_sheet.ts', import.meta.url));
   assertMatch(src, /clock\.stopAt, vocabularyVet\(pp, \[\]\)\);/);
   assertMatch(src, /clock\.stopAt, vocabularyVet\(pp, seeds\)\);/);
   assertMatch(src, /if \(gate\.ok && gate\.detail\.ignored\) verifyDetail\.push\(\{ page: i, \.\.\.ignoredSaid\(gate\) \}\);/);

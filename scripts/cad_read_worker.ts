@@ -39,9 +39,9 @@ const MAX_JOBS = 6;
 const JOB_MS = 5 * 60_000;
 // A site photo's check is cut sooner (_shared/site_photo_gate.ts PHOTO_JOB_MS, 4 minutes), inside JOB_MS.
 const PHOTO_JOB_MS = 4 * 60_000;
-// Sheets the request did not verify: each is one drawing_redact call of at most its own 125 s clock (drawing_deadline.ts),
-// about 20-30 s measured, asked at most SHEET_TRIES times. A run cut by this budget keeps the sheets it verified (progress)
-// and the next run carries on, so the budget bounds one run, not the set.
+// Sheets the request did not verify: each is one call of drawing_redact's manual path IN THIS PROCESS (sheetRedactorHere
+// below) with its own 125 s clock (drawing_deadline.ts), asked at most SHEET_TRIES times. A run cut by this budget keeps the
+// sheets it verified (progress) and the next run carries on, so the budget bounds one run, not the set.
 const PAGES_JOB_MS = 30 * 60_000;
 
 let token = '';   // set in main; importing this file (dwg_samples.check.ts) reads no environment
@@ -127,6 +127,7 @@ async function internalSecret(_key: string): Promise<string> {
   return credCache;
 }
 async function edge(key: string, body: Record<string, unknown>, stop?: AbortSignal): Promise<any> {
+  // The queued sheets of a set (why 'pages_need_time') never come here: each is checked in process (sheetRedactorHere).
   try {
     const signal = stop ? AbortSignal.any([stop, AbortSignal.timeout(180_000)]) : AbortSignal.timeout(180_000);
     const r = await fetch(`${BASE}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key }, body: JSON.stringify(body), signal });
@@ -153,6 +154,122 @@ async function readStrings(job: Job, key: string, dxf: string): Promise<Set<stri
   const j = await edge(key, { __secret: await internalSecret(key), mode: 'read_strings', dxf_text: dxf, source_path: job.source_path, spent_usd: spent.get(job.id) ?? 0 });
   addSpent(job, j?.strings_usd);
   return j?.ok && Array.isArray(j.identity) ? new Set(j.identity.map(String)) : null;
+}
+
+// ── A QUEUED SHEET IS CHECKED HERE, NOT SENT BACK TO THE EDGE (18 Nov 2026, sales_engineer; founder ledger 580) ──────────
+// MEASURED, production 18 Nov 10:10 UTC: the sheets a request could not verify (the edge's ~2 s CPU an isolate: 546s and dead
+// tiles) were queued here, and this worker sent each one BACK to drawing_redact, where it died the same way ("sheet 1 not
+// checked yet (pages_need_time_pixels_unverified)", "(pages_need_time_lost)"): no page reached a supplier. Each sheet now runs
+// drawing_redact's manual path IN THIS PROCESS (_shared/drawing_redact_sheet.manualSheetsCall: the same plan, paint, pixel gate,
+// model, thresholds, upload path, run row and answer), with no CPU cap:
+//   the pixels   drawing_redact_sheet.inProcessWorkers, the functions drawing_redact's modes 'paint', 'repaint', 'tile' and
+//                'tiles' run, on the inputs those modes receive;
+//   the model    the same ai_gateway call (askPixelsVia: fn 'drawing_redact_verify', counterpart 'deterministic') with the
+//                credential drawing_redact presents (app_secrets.cred_fn_ai, read once, never printed), so ai_cost_log, the
+//                founder's hold (llm_hold.modelHeld, asked of the same gate) and the rehearsal cap see the same call; the job's
+//                budget signal cuts a call under way, and its stop_at is the clock's stop, so no view is asked after it;
+//   the record   the same drawing_redaction_runs row (redactionRunRow) and the same upload under redacted/<uuid>/, with the
+//                service key over REST (what supabase-js sends); a run not recorded removes its upload (no orphan page);
+//   the budget   the set's 24 h spend read from the same rows (runSpentUsd), as drawing_redact budgetInFlight reads it.
+// Proved offline: supabase/functions/drawing_redact/a_queued_sheet_is_checked_in_the_worker_as_on_the_edge.check.ts.
+let aiCredCache: string | null = null;
+async function aiCredential(): Promise<string> {
+  if (aiCredCache === null) { const r = await sql<{ value: string }>(`select value from public.app_secrets where key = 'cred_fn_ai'`); aiCredCache = String(r[0]?.value || ''); }
+  return aiCredCache;
+}
+/** app_secrets.cred_db_internal: the proof a sandbox run tag travels with to another function (_shared/e2e_run.ts). */
+let runProofCache: string | null = null;
+async function runProof(): Promise<string> {
+  if (runProofCache === null) { const r = await sql<{ value: string }>(`select value from public.app_secrets where key = 'cred_db_internal'`); runProofCache = String(r[0]?.value || ''); }
+  return runProofCache;
+}
+/** The holds a cut of the job's budget can cause (an answer it aborted, a paint or an upload it stopped): when the budget was
+ *  cut and the checker had found NOTHING on the sheet, a sheet held for one of them is asked again on the next run (review of
+ *  a3fe7161, item 3). A hold the checker reached (pixels_not_clean, unread text, no regions), or one after the checker had
+ *  named or painted anything (boxes_added, dirty: drawing_pages_queued.sheetVerdict's checker_found_then_*), stays a finding:
+ *  asked again from the unpainted raster, one miss would publish it (re-review of e30b701c, item 1). */
+export const BUDGET_CUT_HOLDS: readonly string[] = ['time', 'pixels_unverified', 'paint_failed', 'decode_failed', 'upload_failed', 'exception'];
+// THE RUN'S TAG GOES WITH EVERY CALL (review of a3fe7161, item 1). On the edge, observe() carries a sandbox run's tag
+// (x-qd-e2e-run, with its proof) on every call back to the project, so ai_gateway charges the run's window cap and its
+// no-spend rules apply; the worker has no request to carry it from. AN ADDRESS ANYONE CAN TYPE IS NOT PROOF (re-review of
+// e30b701c, item 2; _shared/e2e_run.ts, review of #1361): the job is a run's only when its owner's address names the run
+// (runTagOfEmail: qd-<tag>-...@example.invalid) AND that auth user's app_metadata.e2e_run (writable by the service role only;
+// the harness sets it) is the same tag AND the run's window is open (fn_e2e_run_tag_open), as resolveE2eRunByIdentity proves
+// it on the edge. Then its calls send the tag with x-qd-e2e-secret (cred_db_internal, the gateway's proof) to the functions,
+// and with the service bearer to PostgREST (the hold probe, the budget read, the run row) and storage. Any other job sends
+// no tag. A tag the gateway cannot prove is refused there, never spent untagged (spend_guards.unprovenRunTag).
+export async function provenRunTag(email: string | null, runTagOf: (e: unknown) => string | null): Promise<string | null> {
+  const tag = runTagOf(email);
+  if (!tag || !email) return null;
+  try {
+    const r = await sql<{ run: string | null; open: boolean | null }>(`select (select u.raw_app_meta_data->>'e2e_run' from auth.users u where lower(u.email) = lower(${lit(email)}) limit 1) as run, public.fn_e2e_run_tag_open(${lit(tag)}) as open`);
+    return r[0]?.run === tag && r[0]?.open === true ? tag : null;
+  } catch (_e) { return null; }
+}
+export async function sheetRedactorHere(job: Job, key: string, stop: AbortSignal, stopAt: number): Promise<(b: SheetBody) => Promise<Record<string, unknown>>> {
+  // Imported here, not at the top: drawing_redact_page encodes with imagescript (see supplierDrawing).
+  const sheet = await import('../supabase/functions/_shared/drawing_redact_sheet.ts');
+  const { modelHeld } = await import('../supabase/functions/_shared/llm_hold.ts');
+  const { E2E_RUN, runTagOfEmail } = await import('../supabase/functions/_shared/e2e_run.ts');
+  const { PIXEL_SET_BUDGET_USD } = await import('../supabase/functions/_shared/drawing_pixel_gate.ts');
+  const ai = await aiCredential();
+  const tag = await provenRunTag(job.owner_email, runTagOfEmail);
+  const run = tag ? { tag, secret: (await runProof()) || null } : null;
+  const tagged: Record<string, string> = run ? { 'x-qd-e2e-run': run.tag, ...(run.secret ? { 'x-qd-e2e-secret': run.secret } : {}) } : {};
+  const auth = { apikey: key, Authorization: 'Bearer ' + key, ...tagged };
+  const rest = (path: string, init: RequestInit = {}) => fetch(`${BASE}/rest/v1/${path}`, { ...init, headers: { ...auth, 'Content-Type': 'application/json', ...(init.headers ?? {}) }, signal: AbortSignal.timeout(30_000) });
+  // What supabase-js's admin.rpc answers (llm_hold.modelHeld reads { data, error }): a failure is an error, never a throw.
+  const admin = { rpc: async (fn: string, args: Record<string, unknown>) => {
+    try { const r = await rest(`rpc/${fn}`, { method: 'POST', body: JSON.stringify(args) }); const data = await r.json().catch(() => null); return r.ok ? { data, error: null } : { data: null, error: { message: `HTTP ${r.status}` } }; }
+    catch (e) { return { data: null, error: { message: String((e as Error)?.message || e) } }; }
+  } };
+  const deps: import('../supabase/functions/_shared/drawing_redact_sheet.ts').SheetDeps = {
+    ...sheet.inProcessWorkers,
+    ask: (k, authors, jpg, s, sys) => sheet.askPixelsVia(`${BASE}/functions/v1/ai_gateway`, k, authors, jpg, s, sys, stop, tagged),
+    modelHeld: () => modelHeld(admin),
+    aiKey: () => Promise.resolve(ai || undefined),
+    // drawing_redact pixelBudgetFor + budgetInFlight, read from the same rows. A read that FAILS (a throw, an HTTP error, no
+    // rows array) is neither "nothing spent" nor "all spent" (review of a3fe7161, item 2): the sheet's call throws, its answer
+    // is the edge's {ok:false} (sheetVerdict: lost), and it is asked again, on this run or the next.
+    budget: async (sourcePath, spentUsd) => {
+      let used = 0;
+      if (typeof sourcePath === 'string' && sourcePath) {
+        const r = await rest(`drawing_redaction_runs?select=verify_detail&source_path=eq.${encodeURIComponent(sourcePath)}&created_at=gte.${encodeURIComponent(new Date(Date.now() - 86_400_000).toISOString())}`).catch(() => null);
+        const rows = r?.ok ? await r.json().catch(() => null) : null;
+        if (!Array.isArray(rows)) throw new Error('budget_unreadable');
+        for (const row of rows) used += sheet.runSpentUsd(row);
+      }
+      let left = PIXEL_SET_BUDGET_USD - used - Math.max(0, Number(spentUsd) || 0);
+      return { left: () => left, spend: (u: number) => { left -= u; } };
+    },
+    upload: async (path, jpg) => {
+      try {
+        const up = await fetch(`${BASE}/storage/v1/object/drawing-files/${path}`, { method: 'POST', headers: { ...auth, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }, body: new Blob([jpg as Uint8Array<ArrayBuffer>], { type: 'image/jpeg' }), signal: AbortSignal.timeout(60_000) });
+        return up.ok;
+      } catch (_e) { return false; }
+    },
+    publish: async (id, body, o) => {
+      let recorded = false;
+      try { const r = await rest('drawing_redaction_runs', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(sheet.redactionRunRow(id, body, o)) }); recorded = r.ok; } catch (_e) { recorded = false; }
+      if (!recorded && o.paths.length) { const rm = await removeObjects(key, o.paths); if (!rm || !rm.ok) console.log(`job ${job.id}: a sheet's run was not recorded and its page could not be removed`); }
+      return recorded;
+    },
+  };
+  // THE JOB'S BUDGET CUT IS NOT A FINDING, A FINDING IS NOT UNDONE BY A CUT (review of a3fe7161, item 3; re-review of e30b701c,
+  // item 1). The cut aborts the answer under way. A sheet it reached that was not published, on which the checker had found
+  // nothing, is handed back as lost: asked again. One on which the checker had named or painted anything keeps its answer,
+  // which sheetVerdict holds as checker_found_then_* (the 17 Nov rule): a retry starts from the unpainted raster.
+  const cut = () => stop.aborted || Date.now() >= stopAt;
+  return async (b: SheetBody) => {
+    const call = () => sheet.manualSheetsCall({ ...b, owner_customer_id: job.customer_id, owner_email: job.owner_email, source_path: job.source_path, stop_at: stopAt }, deps);
+    // Inside the run (llm_hold.modelHeld asks a tagged run fresh, never from the cache an untagged job left).
+    const out = run ? await E2E_RUN.run(run, call) : await call();
+    if (!cut() || (out.ok === true && out.recorded === true && Number(out.pages_out) === 1)) return out;
+    const d = Array.isArray(out.verify_detail) ? out.verify_detail[0] as Record<string, unknown> | undefined : undefined;
+    const why = String(d?.skipped ?? '');
+    const found = !!d && (Number(d.boxes_added) > 0 || Number(d.dirty) > 0);
+    return !found && (!d || BUDGET_CUT_HOLDS.includes(why)) ? { ok: false, error: 'job_budget_cut', cut_hold: why || String(out.error ?? '') } : out;
+  };
 }
 
 async function supplierDrawing(job: Job, bytes: Uint8Array, key: string): Promise<Record<string, unknown>> {
@@ -310,7 +427,8 @@ export async function readStored(bytes: Uint8Array, name: string): Promise<ReadR
   return readDocument(bytes, name);
 }
 
-async function runJob(job: Job, key: string): Promise<void> {
+/** One claimed job, start to finish (exported for the offline check of the queued-sheets path; main is the only caller). */
+export async function runJob(job: Job, key: string): Promise<void> {
   const t0 = performance.now();
   const r = await fetch(`${BASE}/storage/v1/object/drawing-files/${job.source_path.split('/').map(encodeURIComponent).join('/')}`,
     { headers: { Authorization: 'Bearer ' + key, apikey: key } });
@@ -328,8 +446,9 @@ async function runJob(job: Job, key: string): Promise<void> {
   }
   if (job.why === PAGES_NEED_TIME) {
     // THE SHEETS analyze_drawing COULD NOT VERIFY (17 Nov 2026; _shared/drawing_pages_queued.ts): held for time, lost to a 546 or
-    // a timeout, or held for a transient reason. Each through the edge's own manual path, one sheet a call with the whole edge
-    // clock to itself, asked again up to SHEET_TRIES times; the set is published only when every sheet is verified.
+    // a timeout, or held for a transient reason. Each through drawing_redact's own manual path IN THIS PROCESS (18 Nov 2026,
+    // sheetRedactorHere above: the edge's CPU cap is what lost them), one sheet a call with its own clock, asked again up to
+    // SHEET_TRIES times; the set is published only when every sheet is verified.
     const q = job.boq_in?.queued_pages as QueuedPages | undefined;
     // No sheet left is a run cut after its last sheet was kept (progress) and before the job was closed: it completes at once.
     if (!q || !Array.isArray(q.left) || !Array.isArray(q.done) || q.done.length + q.left.length !== q.pages_in) throw new Error('a pages job whose sheets do not add up');
@@ -342,7 +461,8 @@ async function runJob(job: Job, key: string): Promise<void> {
     // so nothing is paid for after the budget; the job goes back to the queue with every sheet it kept.
     const stop = new AbortController();
     const budgetTimer = setTimeout(() => stop.abort(), PAGES_JOB_MS);
-    const redact = async (b: SheetBody) => await edge(key, { __secret: await internalSecret(key), ...b, owner_customer_id: job.customer_id, owner_email: job.owner_email, source_path: job.source_path }, stop.signal);
+    // No view is asked past the budget either: its end is the clock's stop (drawing_deadline: a caller may bring it earlier).
+    const redact = await sheetRedactorHere(job, key, stop.signal, Date.now() + PAGES_JOB_MS);
     // Each verified sheet is kept on the job at once, so a run that is cut, or a later run, never asks (or pays for) it again.
     const progress = async (now: QueuedPages) => { await sql(`update public.cad_read_jobs set boq_in = jsonb_set(boq_in, '{queued_pages}', ${lit(JSON.stringify(now))}::jsonb) where id = ${lit(job.id)}::uuid`); };
     const drawing = await redactQueuedPages(q, { originalB64: b64u(bytes), raster, redact, progress, signal: stop.signal }).finally(() => clearTimeout(budgetTimer));

@@ -40,17 +40,23 @@ Deno.test('LAZY: a clean answer publishes the page AS THE CODE FLOOR LEFT IT - t
   // strip, key plans, pictures, every party / place / seed run), the CAD path's renderer, the model path's find + floor.
   const src = Deno.readTextFileSync(new URL('./index.ts', import.meta.url));
   // 17 Nov 2026: the boxes are planned in the worker (serverBoxPlan) and painted in a worker of their own (paintedElsewhere);
-  // the gate is given what came back painted, the code floor included.
-  assertMatch(src, /const r = serverBoxPlan\([\s\S]{0,300}boxed = await paintedElsewhere\([^\n]*\[\{ boxes: r\.boxes, pad: SERVER_MARGIN \}\][\s\S]{0,500}const g = await gatePage\(keyM, heldM, String\(body\.__secret \|\| ''\), 'deterministic', boxed, budget, /);
+  // the gate is given what came back painted, the code floor included. 18 Nov 2026: the manual path's loop is
+  // _shared/drawing_redact_sheet.manualSheets (d.paint is paintedElsewhere on the edge, the same paint in process in the worker).
+  const sheet = Deno.readTextFileSync(new URL('../_shared/drawing_redact_sheet.ts', import.meta.url));
+  assertMatch(sheet, /const r = serverBoxPlan\([\s\S]{0,300}boxed = await d\.paint\([^\n]*\[\{ boxes: r\.boxes, pad: SERVER_MARGIN \}\][\s\S]{0,500}const g = await gatePageWith\(d, keyM, heldM, 'deterministic', boxed, budget, /);
+  assertMatch(src, /paint: \(raster, groups, stopAt\) => paintedElsewhere\(secret, raster, groups, stopAt\),/);
   assertMatch(src, /let jpgB64 = await paintedElsewhere\([^\n]*\{ boxes: floor, pad: SERVER_MARGIN \}\][^\n]*\n[\s\S]{0,100}const gate = await gatePage\(key, false, String\(body\.__secret \|\| ''\), findModel, jpgB64, budget, /);
   assertMatch(src, /out = await cadPage\(b64ToBytes\(body\.original_b64\), seeds, \{ identity \}\)[\s\S]{0,300}const g = await gatePage\(keyM, heldM/);
   // Every upload of a page or a file is downstream of a gate.
   const uploads = [...src.matchAll(/storage\.from\('drawing-files'\)\.upload\(/g)].length;
   assertEquals(uploads, 4, 'an upload was added or removed: check it is behind the pixel gate');
   // The model hold or a missing key HOLDS (never "published unverified").
-  assertMatch(src, /if \(held \|\| !key\) return \{ ok: false, held: 'pixels_unverified'/);
+  assertMatch(sheet, /if \(held \|\| !key\) return \{ ok: false, held: 'pixels_unverified'/);
   // Every gate on the edge is TILED (second review): gatePage hands pixelGate a plan and a crop, never the bare page.
-  assertMatch(src, /return await pixelGate\(jpgB64, [^\n]*\{ plan, crop: /);
+  assertMatch(sheet, /return await pixelGate\(jpgB64, [^\n]*\{ plan, crop: /);
+  assertMatch(src, /return await gatePageWith\(edgeWorkers\(secret\), /);
+  // The sheet's one upload is downstream of its gate too (in the worker as on the edge).
+  assertMatch(sheet, /const g = await gatePageWith\([\s\S]{0,1200}if \(!\(await d\.upload\(path, b64ToBytes\(g\.jpgB64\)\)\)\)/);
   const lazy = await pixelGate('floor-painted-page', async () => CLEAN, painter().paint);
   assert(lazy.ok && lazy.jpgB64 === 'floor-painted-page');
 });
