@@ -12,7 +12,7 @@ import { observe } from '../_shared/observe.ts';
 import { LICENCE_INTRO, SYS_LICENSE, SYS_PROFILE, parseJson, normDate, normEmirate, documentContent, normaliseLicence, imagesTooSmallToRead, UNREADABLE_LICENCE, lowReadProven, licencePages, hasReadablePage, checkLicenceRead, licenceSecondReadRequest } from '../_shared/licence_extract.ts';
 // A file longer than any licence is read by its first pages only (ruling 1728, 18 Nov 2026; it was answered unread under ruling 1681); a
 // file the reader is unsure of is read once more by the other model family before a person is asked (licence_second_read.ts).
-import { licencePageCount, tooManyPagesForALicence, firstPagesOfALongFile, longFileNote, withLongFileWindow, type LongFileWindow } from '../_shared/licence_pages.ts';
+import { b64Bytes, licencePageCount, tooManyPagesForALicence, firstPagesOfALongFile, longFileNote, withLongFileWindow, type LongFileWindow } from '../_shared/licence_pages.ts';
 import { decideWithSecondRead, licenceFileSha } from '../_shared/licence_second_read.ts';
 import { pagesBlank } from '../_shared/licence_page_ink.ts';
 import { pdfText } from '../_shared/document_expiry.ts';
@@ -74,9 +74,12 @@ Deno.serve(observe('license_extract', async (req) => {
     // counted is read as before. The file's SHA is the whole file's, so the same file refused twice still opens one task.
     const original = { images, file_b64: body.file_b64 };
     let pagesWindow: LongFileWindow | null = null;
+    // the original PDF beside its page pictures, for a licence, only when switched on (_shared/licence_extract.ts documentContent); read
+    // before the page rule, because a long PDF is cut only when it will be sent (review of #2054)
+    const withFile = mode === 'license' && (await sec('licence_read_sends_the_pdf')) === 'on';
     if (mode === 'license') {
       const pages = await licencePageCount({ images, file_b64: body.file_b64, mime: body.mime });
-      const first = await firstPagesOfALongFile({ images, file_b64: body.file_b64, mime: body.mime, filename: body.filename }, pages);
+      const first = await firstPagesOfALongFile({ images, file_b64: body.file_b64, mime: body.mime, filename: body.filename }, pages, { sendsPdf: withFile });
       if (first) { pagesWindow = first.window; images = first.payload.images ?? []; body.file_b64 = first.payload.file_b64; body.mime = first.payload.mime ?? body.mime; }
       const long = first ? null : tooManyPagesForALicence(pages);
       if (long) return J({ ok: true, mode, doc: { ...UNREADABLE_LICENCE(), wrong_document: { ...long, file_sha: (await licenceFileSha(original)) ?? undefined } }, guard: 'too_many_pages', pages });
@@ -93,8 +96,6 @@ Deno.serve(observe('license_extract', async (req) => {
       if (blank === true) return J({ ok: true, mode, doc: UNREADABLE_LICENCE(), guard: 'image_blank' });
       inkProven = blank === false;
     }
-    // the original PDF beside its page pictures, for a licence, only when switched on (_shared/licence_extract.ts documentContent)
-    const withFile = mode === 'license' && (await sec('licence_read_sends_the_pdf')) === 'on';
     const content = buildContent(mode, images, body, withFile, note);
     const sys = mode === 'license' ? SYS_LICENSE : mode === 'cert' ? SYS_CERT : SYS_PROFILE;
     // One read: the model's parsed answer, or the Response this function answers when the read failed.
@@ -141,7 +142,8 @@ Deno.serve(observe('license_extract', async (req) => {
       let text: string | null = null;
       const textOf = async () => {
         if (text !== null || !body.file_b64 || /^image\//.test(String(body.mime || ''))) return text;
-        try { text = await pdfText(Uint8Array.from(atob(String(body.file_b64).replace(/^data:[^;]+;base64,/, '')), (c) => c.charCodeAt(0))); } catch { text = null; }
+        // a plain-loop decode (licence_pages.ts b64Bytes), not Uint8Array.from with a callback: 1,281 ms for 12 MB (review of #2054)
+        try { text = await pdfText(b64Bytes(String(body.file_b64)).slice()); } catch { text = null; }
         return text;
       };
       // deno-lint-ignore no-explicit-any

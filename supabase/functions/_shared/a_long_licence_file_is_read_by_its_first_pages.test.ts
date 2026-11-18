@@ -54,6 +54,11 @@ Deno.test('a 28-page PDF is cut to its first 3 pages for the reader; up to 8 pag
   const texts = await pageTexts(bytes(first.payload.file_b64!));
   assertStringIncludes(texts[0], 'ZZ-DMCC-777001');
   assert(!texts.join(' ').includes('page 28 of 28'), 'a page after the first three reached the reader');
+  // the removed pages' objects are dropped, not carried in the cut (review of #2054: a 12 MB scan cut to 3 pages stayed 12 MB)
+  const big = demoPdfPages(Array.from({ length: 28 }, (_, i) => [[`ZZ DEMO page ${i + 1} of 28`, 11], FOOT]), { content: `% ${'x'.repeat(40_000)}\n` }) as Uint8Array;
+  const bigCut = await firstPagesOfALongFile({ file_b64: b64(big), mime: 'application/pdf' }, 28);
+  const cutBytes = bytes(bigCut!.payload.file_b64!).length;
+  assert(cutBytes < big.length * 0.2, `the cut of 3 of 28 pages kept ${cutBytes} of ${big.length} bytes: the removed pages' objects are still in it`);
   for (const n of [null, 1, 4, 8]) assertEquals(await firstPagesOfALongFile(payload, n), null, String(n));
 });
 
@@ -65,9 +70,15 @@ Deno.test('page pictures are kept by count; a long PDF that cannot be cut goes a
   assertEquals(withPics.payload.images!.length, 3);
   assertEquals(withPics.payload.file_b64, undefined, 'an uncut PDF went beside the first pictures');
   assertEquals(withPics.window, { read: 3, of: 20 });
-  // portal shape: pictures and the PDF itself; both cut
-  const both = await firstPagesOfALongFile({ images: pics.slice(0, 12), file_b64: b64(LONG_PROFILE), mime: 'application/pdf' }, 12);
-  assertEquals([both!.payload.images!.length, await licencePageCount({ file_b64: both!.payload.file_b64, mime: 'application/pdf' })], [3, 3]);
+  // portal shape (review of #2054): 20 pictures (pdfRaster stops at 20) beside the 28-page PDF. The count is the file's own, and the PDF
+  // is cut only when it will be sent: with licence_read_sends_the_pdf off it is dropped unread (no pdf-lib load and save); on, it is cut.
+  const portal = { images: pics, file_b64: b64(LONG_PROFILE), mime: 'application/pdf' };
+  assertEquals(await licencePageCount(portal), 28, 'a 28-page file sent as 20 pictures is counted as 20');
+  assertEquals(await licencePageCount({ images: pics.slice(0, 6), file_b64: b64(LONG_PROFILE), mime: 'application/pdf' }), 6, 'up to 8 pictures are every page');
+  const off = await firstPagesOfALongFile(portal, 28);
+  assertEquals([off!.payload.images!.length, off!.payload.file_b64, off!.window], [3, undefined, { read: 3, of: 28 }]);
+  const on = await firstPagesOfALongFile(portal, 28, { sendsPdf: true });
+  assertEquals([on!.payload.images!.length, await licencePageCount({ file_b64: on!.payload.file_b64, mime: 'application/pdf' })], [3, 3]);
   // no pictures and no cut: never sent whole; the count answers it, as under ruling 1681
   assertEquals(await firstPagesOfALongFile({ file_b64: damaged, mime: 'application/pdf' }, 28), null);
   assertEquals(tooManyPagesForALicence(28)!.kind, 'long_file');
@@ -118,6 +129,8 @@ Deno.test('license_extract cuts before any model is asked, refuses only an uncut
   const src = await Deno.readTextFile(new URL('../license_extract/index.ts', import.meta.url));
   const cut = src.indexOf('firstPagesOfALongFile('), model = src.indexOf('await fetch(GW');
   assert(cut > 0 && cut < model, 'the cut comes after the model call');
+  const sw = src.indexOf("const withFile = mode === 'license' && (await sec('licence_read_sends_the_pdf')) === 'on';");
+  assert(sw > 0 && sw < cut && /firstPagesOfALongFile\([^;]+\{ sendsPdf: withFile \}\)/.test(src), 'a PDF nobody is sent is cut anyway');
   assert(/const long = first \? null : tooManyPagesForALicence\(pages\);/.test(src), 'a cuttable long file is refused by its count');
   assert(/buildContent\(mode, images, body, withFile, note\)/.test(src), 'the first read is not told which pages it holds');
   assert(/licenceSecondReadRequest\([^;]+firstModel, note\)/.test(src), 'the second read is not told which pages it holds');
