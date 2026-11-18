@@ -71,8 +71,9 @@ const FILED_STRIPE_PDF = /invoices\/stripe\//;
 // with one: those two rules apply to it like to every other file (the .test.mjs proves both still fire there).
 // The second (review of #1796, 3 Nov 2026): supplier_docs_later.ts cuts a supplier's own scanned company profile to its first pages before
 // the reading model sees it (the model bills per page). That copy is the supplier's document, read by a model and handed to nobody, so it is
-// held to the same rule: it may load and save the file, and the EDITOR_AUTHORS shapes below still fail it.
-const EDITS_CUSTOMER_PDF = new Set(['supabase/functions/_shared/pdf_vector_redact.ts', 'supabase/functions/_shared/supplier_docs_later.ts']);
+// held to the same rule: it may load and save the file, and the EDITOR_AUTHORS shapes below still fail it. Since 18 Nov 2026 that cut lives in
+// pdf_first_pages.ts, shared with the licence slot, which reads only the first pages of a file longer than any licence (founder ruling 1728).
+const EDITS_CUSTOMER_PDF = new Set(['supabase/functions/_shared/pdf_vector_redact.ts', 'supabase/functions/_shared/pdf_first_pages.ts']);
 // Review of #1056: in that file the library is in reach, so "creates a PDF" is read wider than PDF_MAKE: the bracket
 // form (PDFDocument['create']), any alias of PDFDocument (import ... as, const X = PDFDocument, a destructured
 // create), and the calls that author content rather than edit it (addPage, drawText, embedFont and their kin).

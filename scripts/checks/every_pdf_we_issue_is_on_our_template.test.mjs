@@ -47,7 +47,9 @@ test('the check catches each shape, and a comment describing it does not trip it
   assert.equal(findingsFor(fn, "const { PDFDocument } = await import('https://esm.sh/pdf-lib@1.17.1');").length, 1);
   assert.equal(findingsFor(fn, 'const m = await import(`npm:jspdf`);').length, 1);
   // The profile cutter may load, remove pages and save the supplier's own PDF, and nothing more.
-  const cut = 'supabase/functions/_shared/supplier_docs_later.ts';
+  const cut = 'supabase/functions/_shared/pdf_first_pages.ts';
+  // the profile reader that used to hold the cut may no longer import the library itself
+  assert.equal(findingsFor('supabase/functions/_shared/supplier_docs_later.ts', "const { PDFDocument } = await import('https://esm.sh/pdf-lib@1.17.1');").length, 1);
   assert.equal(findingsFor(cut, "const { PDFDocument } = await import('https://esm.sh/pdf-lib@1.17.1'); const doc = await PDFDocument.load(b); doc.removePage(11); await doc.save();").length, 0);
   assert.equal(findingsFor(cut, "const out = await PDFDocument.create();").length, 1);
   assert.equal(findingsFor(cut, 'const [p] = await out.copyPages(src, [0]);').length, 1);
