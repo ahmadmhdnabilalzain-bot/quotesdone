@@ -38,6 +38,7 @@ function stage(r) {
   const s = r.lifecycle_stage || 'not_contacted', inv = r.invite_status || '';
   const sentish = ['sent', 'bounced', 'complained'].includes(inv);
   if (reg) return { lifecycle_stage: 'registered', contacted: sentish ? true : !!r.contacted };
+  if (s === 'registered') return { lifecycle_stage: s, contacted: sentish ? true : !!r.contacted };
   if (r.claimed) return { lifecycle_stage: 'claimed', contacted: sentish ? true : !!r.contacted };
   if (s === 'replied') return { lifecycle_stage: s, contacted: true };
   let n = s;
@@ -64,4 +65,14 @@ test('the backfill is real rows only, proves Shine in the same transaction, and 
   assert.match(BACKFILL, /if \(select lifecycle_stage from public\.leads where id = 2936\) is distinct from 'registered'/);
   assert.match(BACKFILL, /DRY RUN \(18 Nov 2026, production, read-only, re-measured after review of #2051\): registered 3/);
   assert.doesNotMatch(BACKFILL, /^(begin|commit);/m);   // the applier's one transaction, so the proof rolls it all back
+});
+
+test('re-review of #2051: a stage is never lowered; the sanctions probe\'s row (claimed, no terms, registered) stays registered', () => {
+  // probe_a_sanctioned_party_is_unreachable.sql inserts: claimed true, lifecycle_stage 'registered', no terms, no approval
+  assert.equal(stage({ claimed: true, lifecycle_stage: 'registered', invite_status: null }).lifecycle_stage, 'registered');
+  assert.equal(stage({ claimed: false, lifecycle_stage: 'registered', invite_status: 'bounced' }).lifecycle_stage, 'registered');
+  const keep = fn.indexOf("if v_stage = 'registered' then"), claimed = fn.indexOf("new.lifecycle_stage := 'claimed'");
+  assert.ok(keep > 0 && keep < claimed, 'the keep comes before any rule that could lower it');
+  const probe = readFileSync(new URL('../sql/probe_a_sanctioned_party_is_unreachable.sql', import.meta.url), 'utf8');
+  assert.match(probe, /values \(v_name, v_mail, v_mail, true, v_lic, 'registered'/, 'the probe shape this test replays is still the probe\'s');
 });

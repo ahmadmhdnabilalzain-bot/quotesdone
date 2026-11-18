@@ -27,6 +27,7 @@
 --     undeliverable  the invitation bounced and nothing better is known;
 --     contacted      the invitation was sent (a new value: 'not_contacted' now means what it says; nothing selects on 'contacted');
 --     no_response    kept as fn_sales_engineer_final_touch_parked_suppliers reads it, until he replies or registers.
+--   No rule lowers a stage: a row that reads 'registered' keeps it whatever its other fields say.
 --   contacted (boolean) becomes true when an invitation was sent or bounced, he replied, or he registered after one; it is never
 --   set back to false.
 -- Backfill of the existing rows: a_leads_stage_follows_its_own_evidence_backfill.sql (one-off, its own pending note, dry-run counts).
@@ -45,6 +46,13 @@ declare v_reg boolean := new.accepted_terms_at is not null or new.signed_terms_a
 begin
   if v_reg then
     new.lifecycle_stage := 'registered';
+    if coalesce(new.invite_status, '') in ('sent', 'bounced', 'complained') then new.contacted := true; end if;
+    return new;
+  end if;
+  -- a stage is never lowered (re-review of #2051): a row already 'registered' (a person or a probe set it, e.g.
+  -- probe_a_sanctioned_party_is_unreachable.sql inserts a claimed row at 'registered' with no terms) stays 'registered', so the sanction
+  -- screens that read lifecycle_stage = 'registered' keep it
+  if v_stage = 'registered' then
     if coalesce(new.invite_status, '') in ('sent', 'bounced', 'complained') then new.contacted := true; end if;
     return new;
   end if;

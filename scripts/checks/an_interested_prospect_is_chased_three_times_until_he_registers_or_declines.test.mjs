@@ -85,3 +85,11 @@ test('an empty or ownerless backup folder is raised, never deleted, and closed w
   assert.match(BACKUP, /if p_summary \? 'shells' then/);
   assert.doesNotMatch(BACKUP.slice(BACKUP.indexOf('create or replace')), /delete_v2|delete from/i);
 });
+
+test('re-review of #2051: the invitations count the day\'s follow-ups (sent and still due) against the one cap, under the same lock', () => {
+  const e = fnOf('enqueue_supplier_invites');
+  const lock = e.indexOf("perform pg_advisory_xact_lock(hashtext('qd_invite_daily_cap'));"), used = e.indexOf('v_used := v_used + (select count(*) from public.supplier_reply_followup x');
+  assert.ok(lock > 0 && used > lock && e.indexOf('v_remaining := greatest(0, v_planned - v_used);') > used);
+  assert.match(e, /x\.state = 'sent' and \(x\.done_at at time zone 'UTC'\)::date = v_today\)\s+or \(x\.state = 'due' and \(x\.due_at at time zone 'UTC'\)::date <= v_today\)/);
+  assert.ok(SQL.includes('revoke execute on function public.enqueue_supplier_invites(integer) from public, anon, authenticated'));
+});
