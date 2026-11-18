@@ -26,7 +26,15 @@
 --   their logins    auth.users 713af87b-3d51-4da9-be51-b20ba46b085a (created 9 Jun 2026) and b22ee3f5-9b27-46e5-a90f-
 --                   8c29138daa55 (3 Oct): the login id is NOT the customer id, so fn_demo_purge_run's rule `u.id in (demo
 --                   customers)` would miss them. Pinned here by id; the file checks that each one's e-mail equals its
---                   customer's, never matches by it. With them: auth.identities 2, auth.sessions 1, auth.refresh_tokens 1.
+--                   customer's, never matches by it. With them (measured per login): 713af87b auth.identities 1; b22ee3f5
+--                   auth.identities 1, auth.sessions 1 and, through that session, auth.refresh_tokens 1 and auth.mfa_amr_claims 1;
+--                   0 mfa_factors, one_time_tokens or flow_state rows.
+--   THE ADMIN LOGIN IS NEVER DELETED (review of 357c399aa): admin power is the auth user whose e-mail is in
+--                   app_secrets.admin_emails (supabase/functions/_shared/admin_session.ts adminList: comma-split, trimmed,
+--                   lower-cased), and docs/runbooks/admin-two-step-sign-in.md says "Do not delete the auth user itself".
+--                   Measured 18 Nov: NEITHER login's e-mail is in admin_emails or equals founder_email. The file still reads
+--                   both secrets at apply time: a pinned login whose address is in either is KEPT (its identities, sessions and
+--                   factors with it) and only the customer profile and its rows go; with either secret missing it refuses.
 --   requests, quotes, payments: 0 inquiries, 0 quotes, 0 transactions on the whole estate (so no supplier's quote, no payment).
 --   their rows      support_customer_profile 2 (53, 223); support_case 2 (981 open, 1207 closed; 0 child rows);
 --                   customer_support_duty_message 2; inquiry_intake 3; assistant_logs 9 (their portal chats, audience
@@ -51,7 +59,8 @@
 --                   founder's, so it goes with this purge, by those exact names.
 --
 -- LINKS TO A REAL THIRD PARTY (the brief: refuse if any exists). Measured 18 Nov:
---   * fraud_flags (customer_matches_supplier, high, OPEN since 13 Nov): customer 0dc8c94f shares its mobile number with
+--   * fraud_flags (customer_matches_supplier, high, OPEN since 13 Nov; "open" is the estate's rule: any status other than
+--     dismissed, resolved or closed, as the admin and accountant views count it): customer 0dc8c94f shares its mobile number with
 --     lead 158318, a real supplier the founder keeps. With it: reasoning_held_question 43950, seat_judgement 18826 and 18829
 --     (accountant.fraud_flag), support_ceo_report 27404 (overdue report, completed). These are the accountant's case about
 --     a real supplier, not rows the account owns: this file never deletes them and REFUSES while that flag is open; the
@@ -64,7 +73,8 @@
 --   * four backup copies filed under 0dc8c94f whose SOURCE is not the account's (doc_backups 52497 and 52501: WhatsApp #29/#30
 --     of 28 Jul from the founder's own number; 53162: inbound_messages 143, a GoDaddy receipt forwarded to the company;
 --     710220: notifications 112172 above). Their sources stay, so their copies stay (records, storage objects and the four
---     files in "Customers/ahmad alzain (0dc8c94f)/Correspondence/"): re-filing them is a separate decision.
+--     files in "Customers/ahmad alzain (0dc8c94f)/Correspondence/"): re-filing them is a separate decision. Pinned by id: they
+--     must be exactly the four the rules leave, and survive unchanged, unqueued, their storage objects unqueued.
 --   * the sales engineer's knowledge-gap tasks raised from their chats (579854, 580660-580666) carry no id of theirs: kept.
 --
 -- WHAT THIS FILE DOES, in ONE transaction at REPEATABLE READ (one snapshot, so before and after are exact):
@@ -94,8 +104,15 @@
 --   on each known-bad control: the open fraud flag (production's state today); a supplier's quote on a request of theirs; a
 --   census that moved (one more notification); a picked row naming lead 158318; a login whose address is not its customer's;
 --   a kept row holding a SET NULL link to them (questions.customer_id); a child row the census never saw (customer_preference).
+-- RE-REHEARSED 18 Nov 2026 ~17:15Z after the review of 357c399aa (same cluster, session, refresh token and amr claim on b22ee3f5
+--   as on production): PROBE OK clean (both logins and their auth rows gone, the four pinned copies 'done' and untouched) and
+--   on a repeat; an admin-address login (713af87b's address in admin_emails, mixed case, padded) KEPT with its identity while
+--   its customer and rows went, PROBE OK, and PROBE OK again on the repeat; a founder_email login (b22ee3f5) KEPT with its
+--   session and claims; REFUSED, the state unchanged: admin_emails missing; an unresolved flag whose status is 'pending_review';
+--   a fifth backup copy left under the account; an auth.flow_state row still naming a deleted login; and every control above.
 -- WHEN: after the accountant has closed fraud flag (customer_matches_supplier, 0dc8c94f), with a fresh census if anything
---   moved; outside campaign hours; scripts/apply_sql.mjs, no --ddl (no DDL here).
+--   moved; outside campaign hours; scripts/apply_sql.mjs WITH --ddl (the file defines no routine, and apply_sql.mjs runs any
+--   other file only with --ddl).
 -- AFTER: dropbox_backup drains both queues (~1 hour, 25 Dropbox paths and 50 objects a run); then the founder deletes the one
 --   _archive file by hand, and the empty folders "Customers/Umarah Nabi (ba61fa16)" and "Customers/ahmad alzain" go with the
 --   empty-folder rule of ruling 1726. "Customers/ahmad alzain (0dc8c94f)" keeps the four copies above until they are re-filed.
@@ -112,21 +129,37 @@ select array['0dc8c94f-903b-440a-b263-9b659513d7d1', 'ba61fa16-74f6-48ce-8cba-90
        array[19398, 158318, 143027]::bigint[] as kept_leads,
        array['customers/1783930331743_ahmad_alzain_TnC-Acceptance.pdf', 'customers/1783930349503_ahmad_alzain_TnC-Acceptance.pdf']::text[] as july_terms,
        '/QuotesDone Backup/Customers/ahmad alzain/'::text as july_folder,
+       array[52497, 52501, 53162, 710220]::bigint[] as kept_copies,
        '{"customers": 2, "auth.users": 2, "support_customer_profile": 2, "support_case": 2, "customer_support_duty_message": 2,
          "inquiry_intake": 3, "notifications": 12, "agent_actions": 8, "company_event": 18, "email_verifications": 16,
          "phone_verifications": 6, "rl_hits": 8, "ai_rate_limit": 1, "assistant_logs": 9, "ai_qa_log": 2,
          "doc_backups_queued": 22, "doc_backups_now": 1, "storage_objects": 22, "inquiries": 0, "quotes": 0, "transactions": 0}'::jsonb as census,
-       -- the walk's own report, table by table, of the reviewed census: the picked rows and the auth rows that cascade with the logins
-       '{"customers": 2, "auth.users": 2, "auth.identities": 2, "auth.sessions": 1, "auth.refresh_tokens": 1, "support_customer_profile": 2,
+       -- the walk's own report, table by table, of the reviewed census: the picked rows; the auth rows of each login, below
+       '{"customers": 2, "support_customer_profile": 2,
          "support_case": 2, "customer_support_duty_message": 2, "inquiry_intake": 3, "notifications": 12, "agent_actions": 8,
          "company_event": 18, "email_verifications": 16, "phone_verifications": 6, "rl_hits": 8, "ai_rate_limit": 1,
-         "assistant_logs": 9, "ai_qa_log": 2, "doc_backups": 1}'::jsonb as touched;
+         "assistant_logs": 9, "ai_qa_log": 2, "doc_backups": 1}'::jsonb as touched,
+       -- what the walk deletes with each login (auth.mfa_amr_claims and auth.refresh_tokens hang off the session)
+       '{"713af87b-3d51-4da9-be51-b20ba46b085a": {"auth.users": 1, "auth.identities": 1},
+         "b22ee3f5-9b27-46e5-a90f-8c29138daa55": {"auth.users": 1, "auth.identities": 1, "auth.sessions": 1, "auth.refresh_tokens": 1,
+                                                  "auth.mfa_amr_claims": 1}}'::jsonb as touched_login;
 
 -- THE TWO ACCOUNTS, by id. Both present (the census below) or both gone (a repeat); a login must carry its customer's address.
 create temp table _f_c on commit drop as
 select c.id, c.id::text as k, lower(btrim(c.email)) as e, c.signed_terms_path from public.customers c, _f_pin p where c.id = any(p.customers);
+create temp table _f_u0 on commit drop as
+select u.id, lower(btrim(u.email)) as e from auth.users u, _f_pin p where u.id = any(p.logins);
+-- an admin or founder login is never deleted (header): read both secrets the way adminList reads admin_emails
+create temp table _f_adm on commit drop as
+select (select value from public.app_secrets where key = 'admin_emails') as admin_raw,
+       (select value from public.app_secrets where key = 'founder_email') as founder_raw;
+create temp table _f_admin on commit drop as
+select u.id from _f_u0 u, _f_adm a
+ where u.e = any(array(select lower(btrim(x)) from unnest(string_to_array(coalesce(a.admin_raw, ''), ',')) x where btrim(x) <> ''))
+    or u.e = lower(btrim(coalesce(a.founder_raw, '')));
+-- the logins that go
 create temp table _f_u on commit drop as
-select u.id from auth.users u, _f_pin p where u.id = any(p.logins);
+select id from _f_u0 where id not in (select id from _f_admin);
 -- the two mobile numbers (digits), and whether a real supplier holds the same one (0dc8c94f's: lead 158318)
 create temp table _f_ph on commit drop as
 select distinct x as p from public.customers cu, _f_pin pn, unnest(array[regexp_replace(coalesce(cu.phone, ''), '[^0-9]', '', 'g'),
@@ -136,10 +169,14 @@ select distinct x as p from public.customers cu, _f_pin pn, unnest(array[regexp_
 do $who$
 declare v_bad text;
 begin
-  if (select count(*) from _f_c) not in (0, 2) or (select count(*) from _f_u) not in (0, 2)
-     or (select count(*) from _f_c) <> (select count(*) from _f_u) then
-    raise exception 'FOUNDER ACCOUNTS PURGE REFUSED before it started: % of the 2 customers and % of the 2 logins exist: review',
-      (select count(*) from _f_c), (select count(*) from _f_u);
+  if nullif(btrim((select admin_raw from _f_adm)), '') is null or nullif(btrim((select founder_raw from _f_adm)), '') is null then
+    raise exception 'FOUNDER ACCOUNTS PURGE REFUSED before it started: app_secrets admin_emails or founder_email is missing, so an admin login cannot be told apart: review';
+  end if;
+  -- both customers and both logins, or (a repeat) no customer and no login but a kept admin one
+  if not (((select count(*) from _f_c) = 2 and (select count(*) from _f_u0) = 2)
+          or ((select count(*) from _f_c) = 0 and not exists (select 1 from _f_u))) then
+    raise exception 'FOUNDER ACCOUNTS PURGE REFUSED before it started: % of the 2 customers and % of the 2 logins (% admin) exist: review',
+      (select count(*) from _f_c), (select count(*) from _f_u0), (select count(*) from _f_admin);
   end if;
   select string_agg(left(x.c::text, 8) || '/' || left(x.u::text, 8), ', ') into v_bad
     from unnest((select customers from _f_pin), (select logins from _f_pin)) x(c, u)
@@ -251,6 +288,8 @@ begin
          'transactions', (select count(*) from public.transactions t where t.customer_id in (select id from _f_c)
                             or t.inquiry_id in (select id from public.inquiries where customer_id in (select id from _f_c))));
   select jsonb_object_agg(key, 0) into v_zero from jsonb_each(v_pin);
+  -- a kept admin login is not deleted, so it is not in the census of logins that go
+  v_pin := v_pin || jsonb_build_object('auth.users', (v_pin->>'auth.users')::int - (select count(*) from _f_admin));
   if v is distinct from v_pin and v is distinct from v_zero then
     raise exception 'FOUNDER ACCOUNTS PURGE REFUSED before it started: the census is % and the reviewed one (18 Nov ~17:20Z) is %: re-census and review', v, v_pin;
   end if;
@@ -263,9 +302,19 @@ begin
   -- 1. the accountant's open case linking 0dc8c94f to real supplier 158318 (header): his decision first
   select string_agg(f.kind || ' ' || left(f.subject_id, 8) || ' (' || f.severity || ', opened ' || f.created_at::date || ')', '; ') into v_bad
     from public.fraud_flags f, _f_pin p
-   where f.subject_type = 'customer' and f.subject_id = any(p.customers::text[]) and f.status = 'open';
+   where f.subject_type = 'customer' and f.subject_id = any(p.customers::text[])
+     and coalesce(f.status, 'open') not in ('dismissed', 'resolved', 'closed');
   if v_bad is not null then
     raise exception 'FOUNDER ACCOUNTS PURGE REFUSED: an open fraud flag links the account to a real supplier: %; the accountant closes it first', v_bad;
+  end if;
+  -- 1b. the four copies whose source stays are exactly the pinned ones, and none of them is picked
+  if exists (select 1 from _f_c) and (select coalesce(array_agg(id order by id), '{}') from _f_misfiled) <> (select array(select unnest(kept_copies) order by 1) from _f_pin) then
+    raise exception 'FOUNDER ACCOUNTS PURGE REFUSED: the backup copies left under the account are % and the reviewed four are %: review',
+      (select array_agg(id order by id) from _f_misfiled), (select kept_copies from _f_pin);
+  end if;
+  if exists (select 1 from _f_db, _f_pin p where _f_db.id = any(p.kept_copies))
+     or exists (select 1 from public.doc_backups d, _f_pin p where d.id = any(p.kept_copies) and (d.bucket, d.path) in (select bucket_id, name from _f_obj)) then
+    raise exception 'FOUNDER ACCOUNTS PURGE REFUSED: a kept backup copy (or its storage object) would be queued for deletion';
   end if;
   -- 2. a request, a quote or a payment of theirs is a supplier's or the books' record too
   if exists (select 1 from public.inquiries where customer_id in (select id from _f_c))
@@ -346,8 +395,15 @@ end $setnull$;
 create temp view _f_kept as
 select 'leads' as k, (select coalesce(md5(string_agg(l::text, '|' order by l.id)), '') from public.leads l where l.id in (select unnest(kept_leads) from _f_pin)) as m,
        (select count(*) from public.leads l where l.id in (select unnest(kept_leads) from _f_pin) and not coalesce(l.is_demo, false)) as n
-union all select 'doc_backups kept', (select coalesce(md5(string_agg(d::text, '|' order by d.id)), '') from public.doc_backups d where d.id in (select id from _f_misfiled)),
-       (select count(*) from public.doc_backups d where d.id in (select id from _f_misfiled))
+union all select 'doc_backups kept', (select coalesce(md5(string_agg(d::text, '|' order by d.id)), '') from public.doc_backups d where d.id in (select unnest(kept_copies) from _f_pin)),
+       (select count(*) from public.doc_backups d where d.id in (select unnest(kept_copies) from _f_pin))
+union all select 'storage of the kept copies', (select coalesce(md5(string_agg(o.bucket_id || '/' || o.name, '|' order by o.name)), '') from storage.objects o
+         where (o.bucket_id, o.name) in (select d.bucket, d.path from public.doc_backups d where d.id in (select unnest(kept_copies) from _f_pin))),
+       (select count(*) from storage.objects o where (o.bucket_id, o.name) in (select d.bucket, d.path from public.doc_backups d where d.id in (select unnest(kept_copies) from _f_pin)))
+union all select 'admin logins kept', (select coalesce(md5(string_agg(u::text, '|' order by u.id)), '') from auth.users u where u.id in (select id from _f_admin))
+         || (select coalesce(md5(string_agg(i::text, '|' order by i.id)), '') from auth.identities i where i.user_id in (select id from _f_admin))
+         || (select coalesce(md5(string_agg(s::text, '|' order by s.id)), '') from auth.sessions s where s.user_id in (select id from _f_admin)),
+       (select count(*) from auth.users u where u.id in (select id from _f_admin))
 union all select 'fraud case', (select coalesce(md5(string_agg(f::text, '|' order by f::text)), '') from public.fraud_flags f, _f_pin p
          where f.subject_type = 'customer' and f.subject_id = any(p.customers::text[])),
        (select count(*) from public.fraud_flags f, _f_pin p where f.subject_type = 'customer' and f.subject_id = any(p.customers::text[]))
@@ -416,6 +472,9 @@ begin
   select coalesce(jsonb_object_agg(t.key, t.value::bigint), '{}'::jsonb) into v_got from jsonb_each_text(v_touched) t
    where t.key !~ ' \(unlinked ' and t.value::bigint > 0;
   v_want := case when v_nc = 0 then '{}'::jsonb else (select touched from _f_pin) end;
+  -- with each login that goes, its own auth rows; a kept admin login adds nothing
+  select v_want || coalesce(jsonb_object_agg(t.key, t.n), '{}'::jsonb) into v_want
+    from (select l.key, sum(l.value::bigint) as n from _f_u u, _f_pin p, jsonb_each_text(p.touched_login -> u.id::text) l group by l.key) t;
   if v_got is distinct from v_want then
     raise exception 'FOUNDER ACCOUNTS PURGE REFUSED: the walk deleted % and the reviewed census is %', v_got, v_want;
   end if;
@@ -437,6 +496,25 @@ begin
     if v_n > 0 then v_bad := concat_ws('; ', v_bad, format('%s: %s picked row(s) left', r.k, v_n)); end if;
   end loop;
   if v_bad is not null then raise exception 'FOUNDER ACCOUNTS PURGE INCOMPLETE: %', v_bad; end if;
+  -- d2. no auth row still names a deleted login (refresh_tokens.user_id is varchar; flow_state and the others carry no foreign key),
+  --     and every kept admin login is still there
+  for r in select c.oid::regclass as rel, a.attname::text as col from pg_class c join pg_attribute a on a.attrelid = c.oid
+            where c.relnamespace = 'auth'::regnamespace and c.relkind = 'r' and a.attname = 'user_id' and not a.attisdropped loop
+    v_n := (xpath('/row/n/text()', query_to_xml(format('select count(*) as n from %s x where x.%I::text in (select id::text from pg_temp._f_u)',
+             r.rel, r.col), false, true, '')))[1]::text::bigint;
+    if v_n > 0 then v_bad := concat_ws('; ', v_bad, format('%s.%s: %s row(s)', r.rel, r.col, v_n)); end if;
+  end loop;
+  if exists (select 1 from auth.users where id in (select id from _f_u)) then v_bad := concat_ws('; ', v_bad, 'auth.users'); end if;
+  if v_bad is not null then raise exception 'FOUNDER ACCOUNTS PURGE INCOMPLETE: auth rows still name a deleted login: %', v_bad; end if;
+  if (select count(*) from auth.users where id in (select id from _f_admin)) <> (select count(*) from _f_admin) then
+    raise exception 'FOUNDER ACCOUNTS PURGE REFUSED: an admin login would be deleted';
+  end if;
+  -- e0. none of the four kept copies, nor its storage object, is on any open queue
+  if exists (select 1 from public.signup_purge_dropbox s, _f_pin p where s.doc_backup_id = any(p.kept_copies) and s.done_at is null)
+     or exists (select 1 from public.signup_purge_object q join public.doc_backups d on d.bucket = q.bucket and d.path = q.path, _f_pin p
+                 where d.id = any(p.kept_copies) and q.done_at is null) then
+    raise exception 'FOUNDER ACCOUNTS PURGE REFUSED: a kept backup copy or its storage object is queued for deletion';
+  end if;
   -- e. the queues hold exactly the reviewed files, each queued Dropbox copy a file of the entity tree, under these accounts' folders
   if (select n from _f_listed) <> (select count(*) from _f_obj) or (select count(*) from _f_dbx) <> (select count(*) from _f_db where queueable) then
     raise exception 'FOUNDER ACCOUNTS PURGE REFUSED: % of % storage objects and % of % Dropbox copies queued (another purge holds one?): review',
@@ -465,7 +543,7 @@ end $check$;
 drop view if exists pg_temp._f_kept;
 
 select 'PROBE OK: the founder''s demo customer accounts ' || coalesce((select string_agg(left(k, 8), ', ' order by k) from _f_c), 'none left (a repeat)')
-       || ' and their logins removed: ' || coalesce((select string_agg(t.key || ' ' || t.value, ', ' order by t.key) from jsonb_each_text((select c->'touched' from _f_out)) t
+       || ' removed with ' || (select count(*) from _f_u)::text || ' login(s) (kept as admin: ' || (select count(*) from _f_admin)::text || '): ' || coalesce((select string_agg(t.key || ' ' || t.value, ', ' order by t.key) from jsonb_each_text((select c->'touched' from _f_out)) t
                                                    where t.key !~ ' \(unlinked ' and t.value::bigint > 0), 'nothing to delete')
        || '; every table in scope (' || (select count(*) from _f_scope)::text || ') exactly as the walk reported; unlinked none'
        || '; queued for dropbox_backup: ' || (select n from _f_listed)::text || ' storage objects, ' || (select count(*) from _f_dbx)::text || ' Dropbox copies'
