@@ -1348,6 +1348,11 @@
   "f07872a12ef2",
   "fc50ccfee153"
  ],
+ "scripts/sql/an_interested_prospect_is_chased_three_times_until_he_registers_or_declines.sql": [
+  "a47b0b66fc61",
+  "c37adae994f4",
+  "c6fef363af26"
+ ],
  "scripts/sql/an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql": [
   "8625d60560f4"
  ],
@@ -9454,7 +9459,8 @@
   "f8b350a9fd4c"
  ],
  "supabase/functions/customer_api/lib/drawings.ts": [
-  "399c7ff92250"
+  "399c7ff92250",
+  "48c406b6b600"
  ],
  "supabase/functions/customer_api/lib/edit_summary.ts": [
   "0fc094ee0d02",
