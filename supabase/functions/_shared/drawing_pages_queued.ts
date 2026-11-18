@@ -24,15 +24,35 @@
 // most SHEET_TRIES times a run, keeps each verified sheet on the job as it goes (never paid for twice), and hands a sheet
 // still not checked back to the queue for the next run (three runs at most, then the sales_engineer's finding).
 // What happens when the set is published (the requests already sent, their suppliers, the customer): ./drawing_pages_follow.ts.
+//
+// QUEUED EVEN WHEN THE REQUEST LOST ITS PLAN READ (18 Nov 2026, sales_engineer; ZZ DEMO run 728bc26c). MEASURED (function logs
+// 12:20:46-12:20:48 UTC, drawing_redact v374): three 'plan' calls of the 8-sheet set landed on one isolate and died together
+// ("CPU Time exceeded"), and two of their retries died the same way, so readPdfPlan answered null (_shared/drawing_plan.ts:
+// any part missing = no server boxes). analyze_drawing then had no server boxes, ran sheet 0 down the model path (95 s,
+// abandoned at the stop, drawing_redaction_runs 297518e8 method 'model') and never began sheets 1-7; and because the queue
+// demanded the request's own server boxes (queuedPagesOf answered null, the caller's guard required them), all 8 sheets were
+// held (run 48d113e2, reason 'time') and NO job was queued: the drawing could never reach a supplier. The boxes are not lost
+// with the read: they are a pure function of the stored original (titleBlockBoxes on its text layer), and the CAD worker has
+// no CPU cap. So a set whose read was lost is queued all the same, its sheets with NO boxes and `plan_in_worker` set, and the
+// worker reads the plan IN PROCESS with the same code drawing_redact's 'plan' mode runs (planQueuedPages below) before any
+// sheet is checked. The trust boundary does not move: the boxes are still the server's (supplier_copy.supplierBoxes over the
+// server's own read, the customer's boxes only as extra cover), a plan that is not confident or left a residual still holds
+// the set (fail closed), a priced document read there is held as it is on the edge, and a sheet with no boxes is never sent.
 import type { Box } from './drawing_redact_page.ts';
+import { planBoxes, planStrips, readPdfPlan, type PlanCall } from './drawing_plan.ts';
+import { supplierBoxes } from './supplier_copy.ts';
+import { looksPriced } from '../drawing_boq/quotation_gate.ts';
 
 export const PAGES_NEED_TIME = 'pages_need_time' as const;
 
 /** One sheet already verified on the edge: its page number, the paths it was published at and the run that recorded them. */
 export type DonePage = { page: number; paths: string[]; job: string };
-/** One sheet left: its page number, its stored raster, the server's boxes for it, and why the request left it (sheetVerdict). */
-export type LeftPage = { page: number; path: string; boxes: Box[]; why?: string };
-export type QueuedPages = { pages_in: number; seed_terms: string[]; done: DonePage[]; left: LeftPage[] };
+/** One sheet left: its page number, its stored raster, the server's boxes for it (absent while the plan is still to be read
+ *  in the worker: planQueuedPages), and why the request left it (sheetVerdict). */
+export type LeftPage = { page: number; path: string; boxes?: Box[]; why?: string };
+/** `plan_in_worker`: the request lost its plan read, so the sheets carry no boxes and the worker reads the plan from the stored
+ *  original (planQueuedPages); `customer_boxes` are the customer's own boxes, added as extra cover only, as the edge adds them. */
+export type QueuedPages = { pages_in: number; seed_terms: string[]; done: DonePage[]; left: LeftPage[]; plan_in_worker?: true; customer_boxes?: Box[][] | null };
 
 /** What one sheet's drawing_redact manual-path call carries (the caller adds its credential, owner and source path). */
 export type SheetBody = { images: { mime: string; data: string }[]; page_offset: number; manual_boxes: Box[][]; seed_terms: string[]; original_b64: string; prefix: string };
@@ -85,19 +105,55 @@ export function sheetsToCheckOff(verdicts: (SheetVerdict | undefined)[], pages: 
   return { verified, left: refused.length ? [] : left, refused };
 }
 
-/** The queue's input, or null when the set may not be finished off the request: a sheet left has no server boxes or was
- *  not stored, the count does not add up, or nothing is left. A REFUSED sheet is never in `left` (the caller holds the set). */
-export function queuedPagesOf(o: { pagesIn: number; seeds: string[]; done: DonePage[]; left: number[]; boxes: Box[][] | null; storedAt: (page: number) => string | null; why?: (page: number) => string | undefined }): QueuedPages | null {
-  if (!o.left.length || !o.boxes) return null;
+/** The queue's input, or null when the set may not be finished off the request: a sheet left was not stored or has no boxes
+ *  in a plan that was read, the count does not add up, or nothing is left. A REFUSED sheet is never in `left` (the caller
+ *  holds the set). `boxes` null = the request lost its plan read: the set is queued all the same, `plan_in_worker`, and the
+ *  worker reads the server's boxes from the stored original (planQueuedPages) before it checks a sheet. */
+export function queuedPagesOf(o: { pagesIn: number; seeds: string[]; done: DonePage[]; left: number[]; boxes: Box[][] | null; customerBoxes?: Box[][] | null; storedAt: (page: number) => string | null; why?: (page: number) => string | undefined }): QueuedPages | null {
+  if (!o.left.length) return null;
   if (new Set(o.left).size !== o.left.length) return null;
   if (o.done.length + o.left.length !== o.pagesIn) return null;
   const left: LeftPage[] = [];
   for (const page of [...o.left].sort((a, b) => a - b)) {
-    const path = o.storedAt(page), boxes = o.boxes[page], why = o.why?.(page);
-    if (!path || !Array.isArray(boxes)) return null;
-    left.push({ page, path, boxes, ...(why ? { why } : {}) });
+    const path = o.storedAt(page), boxes = o.boxes ? o.boxes[page] : undefined, why = o.why?.(page);
+    if (!path || (o.boxes && !Array.isArray(boxes))) return null;
+    left.push({ page, path, ...(boxes ? { boxes } : {}), ...(why ? { why } : {}) });
   }
-  return { pages_in: o.pagesIn, seed_terms: o.seeds, done: [...o.done].sort((a, b) => a.page - b.page), left };
+  const q: QueuedPages = { pages_in: o.pagesIn, seed_terms: o.seeds, done: [...o.done].sort((a, b) => a.page - b.page), left };
+  return o.boxes ? q : { ...q, plan_in_worker: true, customer_boxes: o.customerBoxes ?? null };
+}
+
+/** drawing_redact's 'plan' mode in this process (the CAD worker has no CPU cap): the very planStrips / planBoxes the mode runs,
+ *  answered as the mode answers them over the wire, so readPdfPlan merges them exactly as analyze_drawing would have. */
+export const planHere = (bytes: Uint8Array): PlanCall => async (b) => {
+  const from = Number(b.from), to = Number(b.to);
+  const list = (v: unknown) => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+  const part = b.step === 'boxes' ? await planBoxes(bytes, from, to, list(b.seed_terms), list(b.set_seeds)) : await planStrips(bytes, from, to);
+  return JSON.parse(JSON.stringify({ ok: true, ...part }));
+};
+
+/**
+ * A queue the request could not plan (`plan_in_worker`), given its server boxes read from the stored original here, as
+ * analyze_drawing reads them when its read answers: readPdfPlan over drawing_redact's 'plan' steps with the request's seeds
+ * (q.seed_terms: with no plan they are exactly the customer's seeds the read is asked with), supplier_copy.supplierBoxes with
+ * the customer's boxes as extra cover, and the set's strip seeds added to the floor's seeds. `held` (nothing is checked, the
+ * set stays held and the seat is told): the read failed, the document is priced (code sees money on its text layer, as
+ * pricedByCode does on the edge), it has no text layer, or the server's boxes are not confident. A queue already planned
+ * comes back as it is.
+ */
+export async function planQueuedPages(q: QueuedPages, original: Uint8Array, call: PlanCall = planHere(original)): Promise<{ q: QueuedPages } | { held: Record<string, unknown> }> {
+  if (!q.plan_in_worker) return { q };
+  const held = (why: string) => ({ held: { redaction_complete: false, held_reason: 'pages_need_time_' + why, held_page: -1 } });
+  let plan: Awaited<ReturnType<typeof readPdfPlan>> = null;
+  try { plan = await readPdfPlan(call, q.seed_terms); } catch (_e) { plan = null; }
+  if (!plan) return held('plan_unread');
+  if (plan.pdfLines.length && looksPriced(plan.pdfLines.join('\n'))) return held('priced_document');
+  if (plan.pdfWords === 0) return held('no_text_layer');
+  const boxes = supplierBoxes(plan.tb, q.customer_boxes ?? null, q.pages_in);
+  if (!boxes) return held('no_server_boxes');
+  const left = q.left.map((s) => ({ ...s, boxes: boxes[s.page] ?? [] }));
+  const { plan_in_worker: _p, customer_boxes: _c, ...rest } = q;
+  return { q: { ...rest, seed_terms: [...new Set([...q.seed_terms, ...plan.tb.setSeeds])], left } };
 }
 
 /** How often one sheet is asked in one worker run before it goes back to the queue, and the wait between askings (a fresh
@@ -121,7 +177,11 @@ export async function redactQueuedPages(q: QueuedPages, deps: { originalB64: str
   const wait = deps.wait ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const done: DonePage[] = [...q.done];
   let left: LeftPage[] = [...q.left];
+  // A sheet with no server boxes is never sent (a queue the request could not plan is planned first: planQueuedPages).
+  const unboxed = q.left.find((s) => !Array.isArray(s.boxes));
+  if (q.plan_in_worker || unboxed) return held(unboxed?.page ?? -1, 'no_server_boxes');
   for (const s of q.left) {
+    const boxes: Box[] = s.boxes ?? [];
     let v: SheetVerdict = { state: 'retry', why: 'sheet_not_sent' };
     for (let k = 0; k < tries; k++) {
       if (spent()) return { ...held(s.page, 'job_budget'), retry_later: true };
@@ -129,7 +189,7 @@ export async function redactQueuedPages(q: QueuedPages, deps: { originalB64: str
       if (spent()) return { ...held(s.page, 'job_budget'), retry_later: true };
       try {
         const data = await deps.raster(s.path);
-        v = sheetVerdict(await deps.redact({ images: [{ mime: 'image/jpeg', data }], page_offset: s.page, manual_boxes: [s.boxes], seed_terms: q.seed_terms, original_b64: deps.originalB64, prefix: 'redacted' }).catch(() => null));
+        v = sheetVerdict(await deps.redact({ images: [{ mime: 'image/jpeg', data }], page_offset: s.page, manual_boxes: [boxes], seed_terms: q.seed_terms, original_b64: deps.originalB64, prefix: 'redacted' }).catch(() => null));
       } catch (_e) { v = { state: 'retry', why: 'sheet_not_sent' }; }
       if (v.state !== 'retry') break;
     }

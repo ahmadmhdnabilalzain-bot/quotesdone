@@ -29,7 +29,7 @@ import { cadSupplierBoq } from '../supabase/functions/_shared/cad_identity.ts';
 import { lengthsForSet, mergeLengths } from '../supabase/functions/drawing_boq/drawing_set.ts';
 import { pdfPages } from '../supabase/functions/_shared/pdf_text_positions.ts';
 import { seedTerms } from '../supabase/functions/_shared/anonymise.ts';
-import { PAGES_NEED_TIME, redactQueuedPages, type QueuedPages, type SheetBody } from '../supabase/functions/_shared/drawing_pages_queued.ts';
+import { PAGES_NEED_TIME, planQueuedPages, redactQueuedPages, type QueuedPages, type SheetBody } from '../supabase/functions/_shared/drawing_pages_queued.ts';
 import { followUpFinishedPages, pagesReachTheirRequestsSql } from '../supabase/functions/_shared/drawing_pages_follow.ts';
 import { pickApiKey } from './lib/supabase_keys.mjs';   // new keys first; legacy only as a temporary fallback (27 Oct 2026)
 
@@ -449,9 +449,14 @@ export async function runJob(job: Job, key: string): Promise<void> {
     // a timeout, or held for a transient reason. Each through drawing_redact's own manual path IN THIS PROCESS (18 Nov 2026,
     // sheetRedactorHere above: the edge's CPU cap is what lost them), one sheet a call with its own clock, asked again up to
     // SHEET_TRIES times; the set is published only when every sheet is verified.
-    const q = job.boq_in?.queued_pages as QueuedPages | undefined;
+    const queued = job.boq_in?.queued_pages as QueuedPages | undefined;
     // No sheet left is a run cut after its last sheet was kept (progress) and before the job was closed: it completes at once.
-    if (!q || !Array.isArray(q.left) || !Array.isArray(q.done) || q.done.length + q.left.length !== q.pages_in) throw new Error('a pages job whose sheets do not add up');
+    if (!queued || !Array.isArray(queued.left) || !Array.isArray(queued.done) || queued.done.length + queued.left.length !== queued.pages_in) throw new Error('a pages job whose sheets do not add up');
+    // A SET WHOSE PLAN READ THE REQUEST LOST (18 Nov 2026; plan_in_worker): the server's boxes are read here from the stored
+    // original, with drawing_redact's own 'plan' steps in process (no CPU cap), before any sheet is checked; a plan that is not
+    // confident, a priced document or no text layer holds the set (fail closed) and the seat is told below.
+    const planned = await planQueuedPages(queued, bytes);
+    const q = 'q' in planned ? planned.q : queued;
     const raster = async (p: string) => {
       const rr = await fetch(`${BASE}/storage/v1/object/drawing-files/${p.split('/').map(encodeURIComponent).join('/')}`, { headers: { Authorization: 'Bearer ' + key, apikey: key }, signal: AbortSignal.timeout(60_000) });
       if (!rr.ok) throw new Error(`a stored sheet could not be downloaded (HTTP ${rr.status})`);
@@ -465,7 +470,9 @@ export async function runJob(job: Job, key: string): Promise<void> {
     const redact = await sheetRedactorHere(job, key, stop.signal, Date.now() + PAGES_JOB_MS);
     // Each verified sheet is kept on the job at once, so a run that is cut, or a later run, never asks (or pays for) it again.
     const progress = async (now: QueuedPages) => { await sql(`update public.cad_read_jobs set boq_in = jsonb_set(boq_in, '{queued_pages}', ${lit(JSON.stringify(now))}::jsonb) where id = ${lit(job.id)}::uuid`); };
-    const drawing = await redactQueuedPages(q, { originalB64: b64u(bytes), raster, redact, progress, signal: stop.signal }).finally(() => clearTimeout(budgetTimer));
+    let drawing: Record<string, unknown>;
+    try { drawing = 'held' in planned ? planned.held : await redactQueuedPages(q, { originalB64: b64u(bytes), raster, redact, progress, signal: stop.signal }); }
+    finally { clearTimeout(budgetTimer); }
     // A sheet still lost or held for a transient reason: back to the queue for the next run (three runs, then the finding).
     if (drawing.retry_later === true) throw new Error(`sheet ${Number(drawing.held_page) + 1} not checked yet (${drawing.held_reason}); asked again at the next run`);
     // THE PAGES REACH THE REQUESTS ALREADY SENT (_shared/drawing_pages_follow.ts): attached to each open request of this customer

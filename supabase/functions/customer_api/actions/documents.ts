@@ -288,6 +288,9 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             serverBoxes = supplierBoxes(tb, manualBoxes, images.length); floorSeeds = [...new Set([...floorSeeds, ...tb.setSeeds])];
           } else serverBoxes = null;
         }
+        // The customer's own boxes, kept for a set whose plan read was lost: the CAD worker reads the plan and adds them as extra
+        // cover, as supplierBoxes adds them above (_shared/drawing_pages_queued.ts planQueuedPages).
+        const customerBoxes = manualBoxes;
         manualBoxes = serverBoxes;
         // A PRICED DOCUMENT IS NEVER PICTURED FOR A SUPPLIER (13 Nov 2026, sales_engineer; anonymity audit A, L2; founder ruling
         // 1683). MEASURED: a customer's existing quotation sent through this route had its pages redacted with the drawing
@@ -422,9 +425,13 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // twice: one job per stored drawing (a scan job takes the scan route instead; the database refuses a second open job,
         // scripts/sql/a_drawing_sheet_is_queued_once.sql). If the store or the queue fails, or too little of the answer budget is
         // left, the drawing simply stays held, as before.
+        // A PDF WHOSE PLAN READ WAS LOST IS QUEUED TOO (18 Nov 2026; ZZ DEMO run 728bc26c: the 'plan' calls died of the edge CPU
+        // cap, no server boxes, all 8 sheets held and nothing queued). Its sheets go with no boxes and the worker reads the plan
+        // from the stored original, with the same code (_shared/drawing_pages_queued.ts planQueuedPages): fail closed there.
         let pagesJob: string | null = null;
         const leftToCheck = sorted.left.map((l) => l.page);
-        if (!pricedByCode && !isCad && path && hand.drawing_held && serverBoxes && !scanJob && !refusedPages.length && leftToCheck.length && analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now() > 8_000) {
+        const boxesOrPlanLater = !!serverBoxes || (/pdf/i.test(mime) && !!body.original_b64);
+        if (!pricedByCode && !isCad && path && hand.drawing_held && boxesOrPlanLater && !scanJob && !refusedPages.length && leftToCheck.length && analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now() > 8_000) {
           const done: DonePage[] = [];
           for (const b of sorted.verified) if (pathsOf[b]?.length && jobsOf[b]?.length) done.push({ page: b * REDACT_BATCH, paths: pathsOf[b], job: jobsOf[b][0] });
           const stored = new Map<number, string>();
@@ -437,7 +444,7 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
             if (pth && Date.now() < storeBy) stored.set(pg, pth);
           })), new Promise((ok) => setTimeout(ok, Math.max(0, storeBy - Date.now())))]);
           if (Date.now() >= storeBy) stored.clear();
-          const q = REDACT_BATCH === 1 ? queuedPagesOf({ pagesIn: images.length, seeds: floorSeeds, done, left: leftToCheck, boxes: serverBoxes, storedAt: (pg) => stored.get(pg) ?? null, why: (pg) => sorted.left.find((l) => l.page === pg)?.why }) : null;
+          const q = REDACT_BATCH === 1 ? queuedPagesOf({ pagesIn: images.length, seeds: floorSeeds, done, left: leftToCheck, boxes: serverBoxes, customerBoxes, storedAt: (pg) => stored.get(pg) ?? null, why: (pg) => sorted.left.find((l) => l.page === pg)?.why }) : null;
           if (q) pagesJob = await queuePagesOnce({ customerId: cust.id, email, path, name, mime, b64Len: String(body.original_b64 || '').length, queued: q });
         }
         // Said apart from `note` (a lengths or scan job may use it): the portal waits on pages_job_id and adopts the whole set,
