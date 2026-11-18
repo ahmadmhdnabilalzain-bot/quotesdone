@@ -184,16 +184,28 @@ async function runProof(): Promise<string> {
   return runProofCache;
 }
 /** The holds a cut of the job's budget can cause (an answer it aborted, a paint or an upload it stopped): when the budget was
- *  cut, a sheet held for one of them is asked again on the next run, never refused (review of a3fe7161, item 3). A hold the
- *  checker REACHED before the cut (pixels_not_clean, unread text, no regions) is a finding and stays one. */
+ *  cut and the checker had found NOTHING on the sheet, a sheet held for one of them is asked again on the next run (review of
+ *  a3fe7161, item 3). A hold the checker reached (pixels_not_clean, unread text, no regions), or one after the checker had
+ *  named or painted anything (boxes_added, dirty: drawing_pages_queued.sheetVerdict's checker_found_then_*), stays a finding:
+ *  asked again from the unpainted raster, one miss would publish it (re-review of e30b701c, item 1). */
 export const BUDGET_CUT_HOLDS: readonly string[] = ['time', 'pixels_unverified', 'paint_failed', 'decode_failed', 'upload_failed', 'exception'];
 // THE RUN'S TAG GOES WITH EVERY CALL (review of a3fe7161, item 1). On the edge, observe() carries a sandbox run's tag
 // (x-qd-e2e-run, with its proof) on every call back to the project, so ai_gateway charges the run's window cap and its
-// no-spend rules apply; the worker has no request to carry it from. A job's run is its owner's address
-// (_shared/e2e_run.runTagOfEmail: qd-<tag>-...@example.invalid, the harness's own customers): such a job's calls send the tag
-// with x-qd-e2e-secret (cred_db_internal, which the gateway accepts as proof) to the functions, and with the service bearer to
-// PostgREST (the hold probe, the budget read, the run row) and storage. A real customer's job sends no tag. A tag the gateway
-// cannot prove is refused there, never spent untagged (spend_guards.unprovenRunTag).
+// no-spend rules apply; the worker has no request to carry it from. AN ADDRESS ANYONE CAN TYPE IS NOT PROOF (re-review of
+// e30b701c, item 2; _shared/e2e_run.ts, review of #1361): the job is a run's only when its owner's address names the run
+// (runTagOfEmail: qd-<tag>-...@example.invalid) AND that auth user's app_metadata.e2e_run (writable by the service role only;
+// the harness sets it) is the same tag AND the run's window is open (fn_e2e_run_tag_open), as resolveE2eRunByIdentity proves
+// it on the edge. Then its calls send the tag with x-qd-e2e-secret (cred_db_internal, the gateway's proof) to the functions,
+// and with the service bearer to PostgREST (the hold probe, the budget read, the run row) and storage. Any other job sends
+// no tag. A tag the gateway cannot prove is refused there, never spent untagged (spend_guards.unprovenRunTag).
+export async function provenRunTag(email: string | null, runTagOf: (e: unknown) => string | null): Promise<string | null> {
+  const tag = runTagOf(email);
+  if (!tag || !email) return null;
+  try {
+    const r = await sql<{ run: string | null; open: boolean | null }>(`select (select u.raw_app_meta_data->>'e2e_run' from auth.users u where lower(u.email) = lower(${lit(email)}) limit 1) as run, public.fn_e2e_run_tag_open(${lit(tag)}) as open`);
+    return r[0]?.run === tag && r[0]?.open === true ? tag : null;
+  } catch (_e) { return null; }
+}
 export async function sheetRedactorHere(job: Job, key: string, stop: AbortSignal, stopAt: number): Promise<(b: SheetBody) => Promise<Record<string, unknown>>> {
   // Imported here, not at the top: drawing_redact_page encodes with imagescript (see supplierDrawing).
   const sheet = await import('../supabase/functions/_shared/drawing_redact_sheet.ts');
@@ -201,7 +213,7 @@ export async function sheetRedactorHere(job: Job, key: string, stop: AbortSignal
   const { E2E_RUN, runTagOfEmail } = await import('../supabase/functions/_shared/e2e_run.ts');
   const { PIXEL_SET_BUDGET_USD } = await import('../supabase/functions/_shared/drawing_pixel_gate.ts');
   const ai = await aiCredential();
-  const tag = runTagOfEmail(job.owner_email);
+  const tag = await provenRunTag(job.owner_email, runTagOfEmail);
   const run = tag ? { tag, secret: (await runProof()) || null } : null;
   const tagged: Record<string, string> = run ? { 'x-qd-e2e-run': run.tag, ...(run.secret ? { 'x-qd-e2e-secret': run.secret } : {}) } : {};
   const auth = { apikey: key, Authorization: 'Bearer ' + key, ...tagged };
@@ -243,9 +255,10 @@ export async function sheetRedactorHere(job: Job, key: string, stop: AbortSignal
       return recorded;
     },
   };
-  // THE JOB'S BUDGET CUT IS NOT A FINDING (review of a3fe7161, item 3). The cut aborts the answer under way; after the checker
-  // had painted a box, the gate's 'pixels_unverified' or 'time' then read as checker_found_then_* (drawing_pages_queued
-  // sheetVerdict), a permanent hold. A sheet the cut reached that was not published is handed back as lost: asked again.
+  // THE JOB'S BUDGET CUT IS NOT A FINDING, A FINDING IS NOT UNDONE BY A CUT (review of a3fe7161, item 3; re-review of e30b701c,
+  // item 1). The cut aborts the answer under way. A sheet it reached that was not published, on which the checker had found
+  // nothing, is handed back as lost: asked again. One on which the checker had named or painted anything keeps its answer,
+  // which sheetVerdict holds as checker_found_then_* (the 17 Nov rule): a retry starts from the unpainted raster.
   const cut = () => stop.aborted || Date.now() >= stopAt;
   return async (b: SheetBody) => {
     const call = () => sheet.manualSheetsCall({ ...b, owner_customer_id: job.customer_id, owner_email: job.owner_email, source_path: job.source_path, stop_at: stopAt }, deps);
@@ -254,7 +267,8 @@ export async function sheetRedactorHere(job: Job, key: string, stop: AbortSignal
     if (!cut() || (out.ok === true && out.recorded === true && Number(out.pages_out) === 1)) return out;
     const d = Array.isArray(out.verify_detail) ? out.verify_detail[0] as Record<string, unknown> | undefined : undefined;
     const why = String(d?.skipped ?? '');
-    return !d || BUDGET_CUT_HOLDS.includes(why) ? { ok: false, error: 'job_budget_cut', cut_hold: why || String(out.error ?? '') } : out;
+    const found = !!d && (Number(d.boxes_added) > 0 || Number(d.dirty) > 0);
+    return !found && (!d || BUDGET_CUT_HOLDS.includes(why)) ? { ok: false, error: 'job_budget_cut', cut_hold: why || String(out.error ?? '') } : out;
   };
 }
 

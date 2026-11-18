@@ -65,7 +65,9 @@ const fresh = (): Seen => ({ redactCalls: 0, shown: [], gateway: [], uploads: []
 let seen = fresh(), stampOnFirstWholeLook = false, stamps = 0, wholeLooks = 0;
 /** Faults the stub estate can show the worker (review of a3fe7161, item 4). `secondWholeLook`: what the model does when it is
  *  asked the whole page again (after the stamp it reported was painted): no answer (502), or the job's budget cut lands. */
-type Faults = { failView?: number; secondWholeLook?: 'no_answer' | { abort: AbortController }; budgetRead?: 'fails'; held?: boolean };
+type Faults = { failView?: number; abortAtView?: { n: number; abort: AbortController }; secondWholeLook?: 'no_answer' | { abort: AbortController }; budgetRead?: 'fails'; held?: boolean; windowClosed?: boolean };
+/** auth.users app_metadata.e2e_run by address (only the service role writes it; the harness sets it on its own customers). */
+const APP_RUN: Record<string, string> = { 'qd-zz12ab34-cust@example.invalid': 'zz12ab34' };
 let faults: Faults = {}, gatewayN = 0;
 const RUN_PROOF = 'zz-db-internal-proof';
 const RASTER_PATH = 'drawings/zz/pages/zz-sheet-0.jpg', SOURCE = 'drawings/zz/ZZ DEMO mechanical set.pdf';
@@ -99,6 +101,7 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
       seen.gateway.push({ __secret: b.__secret, fn: b.fn, counterpart_model: b.counterpart_model, temperature: b.temperature, response_format: b.response_format, sys: b.sys, text: b.input?.[0]?.content?.[0]?.text, has_timeout: Number(b.client_timeout_ms) > 0 });
       const v = await readView(shown);
       if (++gatewayN === faults.failView) return json({ ok: false, error: 'provider_error' }, 502);
+      if (faults.abortAtView && gatewayN === faults.abortAtView.n) { faults.abortAtView.abort.abort(); throw new DOMException('aborted', 'AbortError'); }
       if (v.whole && ++wholeLooks === 2 && faults.secondWholeLook) {
         if (faults.secondWholeLook === 'no_answer') return json({ ok: false, error: 'provider_error' }, 502);
         faults.secondWholeLook.abort.abort();   // the job's 30-minute budget lands while this view is under way
@@ -113,6 +116,7 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
       seen.sql.push(q);
       if (q.includes("key = 'cred_fn_ai'")) return json([{ value: 'zz-demo-key' }]);
       if (q.includes("key = 'cred_db_internal'")) return json([{ value: RUN_PROOF }]);
+      if (q.includes('fn_e2e_run_tag_open(')) { const em = /lower\(u\.email\) = lower\(\$qd\$(.*?)\$qd\$\)/.exec(q)?.[1] ?? ''; return json([{ run: APP_RUN[em.toLowerCase()] ?? null, open: !faults.windowClosed }]); }
       if (q.startsWith('with att as')) return json([{ attached: [], delivered: [] }]);
       return json([]);
     }
@@ -255,6 +259,18 @@ Deno.test('a test run\'s job sends its run tag with its proof on every call (the
   assert(r.seen.calls.every((c) => c.run === null && c.secret === null), 'a real customer\'s job is never tagged');
 });
 
+Deno.test('an address anyone can type is not a run: a real customer whose e-mail looks like a run address, or a run whose window is closed, sends no tag', async () => {
+  for (const [email, f] of [['qd-zz99cd56-buyer@example.invalid', {}], [TEST_EMAIL, { windowClosed: true }]] as const) {
+    faults = f;
+    assertEquals(await worker.provenRunTag(email, (e) => /^qd-([a-z0-9]{4,16})-/.exec(String(e))?.[1] ?? null), null, email);
+    const t = await queued(email, f);
+    assertEquals(t.out.redaction_complete, true, JSON.stringify(t.out));
+    assert(t.seen.calls.every((c) => c.run === null && c.secret === null), `${email}: no tag, no proof`);
+  }
+  faults = {};
+  assertEquals(await worker.provenRunTag(TEST_EMAIL, (e) => /^qd-([a-z0-9]{4,16})-/.exec(String(e))?.[1] ?? null), 'zz12ab34', 'the harness\'s own customer, its window open');
+});
+
 Deno.test('a budget that cannot be read is no answer: the sheet is asked again later, never refused, and no model is paid', async () => {
   const b = await queued(TEST_EMAIL, { budgetRead: 'fails' });
   assertEquals(b.out.retry_later, true, JSON.stringify(b.out));
@@ -265,16 +281,26 @@ Deno.test('a budget that cannot be read is no answer: the sheet is asked again l
   assertEquals(b.seen.uploads.length + b.seen.rows.length, 0);
 });
 
-Deno.test('the job\'s budget cut lands after the checker painted a stamp: the sheet goes back to the queue, not held for identity', async () => {
+Deno.test('the job\'s budget cut lands before the checker found anything: the sheet goes back to the queue', async () => {
   const ctl = new AbortController();
-  const c = await queued(TEST_EMAIL, { stamp: true, secondWholeLook: { abort: ctl } }, { ctl });
+  const c = await queued(TEST_EMAIL, { abortAtView: { n: 3, abort: ctl } }, { ctl });
   assertEquals(c.out.retry_later, true, JSON.stringify(c.out));
   assertEquals(c.out.held_identity, undefined);
   assertEquals(c.out.held_reason, 'pages_need_time_job_budget', 'no sheet is sent again once the budget is spent');
   assertEquals(c.answers.length, 1);
   assertEquals(c.answers[0].error, 'job_budget_cut');
-  assertEquals(c.answers[0].cut_hold, 'pixels_unverified', 'without the rule this was checker_found_then_pixels_unverified, a permanent hold');
+  assertEquals(c.answers[0].cut_hold, 'pixels_unverified');
   assertEquals(c.seen.uploads.length, 0, 'nothing published on a cut');
+});
+
+Deno.test('the job\'s budget cut lands AFTER the checker painted a stamp: the finding stands, the set is held for identity, never retried', async () => {
+  const ctl = new AbortController();
+  const c = await queued(TEST_EMAIL, { stamp: true, secondWholeLook: { abort: ctl } }, { ctl });
+  assertEquals(c.out.held_identity, true, JSON.stringify(c.out));
+  assertEquals(c.out.retry_later, undefined, 'a retry would start from the unpainted raster: one miss would publish the stamp');
+  assertEquals(c.out.held_reason, 'pages_need_time_checker_found_then_pixels_unverified');
+  assertEquals(c.answers.length, 1);
+  assertEquals(c.seen.uploads.length, 0);
 });
 
 Deno.test('the model\'s holds in the worker: an unanswered view is asked again; a view unanswered after the checker found a stamp is never retried; the founder\'s hold is asked again', async () => {
