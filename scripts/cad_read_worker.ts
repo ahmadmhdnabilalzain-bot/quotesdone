@@ -177,13 +177,34 @@ async function aiCredential(): Promise<string> {
   if (aiCredCache === null) { const r = await sql<{ value: string }>(`select value from public.app_secrets where key = 'cred_fn_ai'`); aiCredCache = String(r[0]?.value || ''); }
   return aiCredCache;
 }
+/** app_secrets.cred_db_internal: the proof a sandbox run tag travels with to another function (_shared/e2e_run.ts). */
+let runProofCache: string | null = null;
+async function runProof(): Promise<string> {
+  if (runProofCache === null) { const r = await sql<{ value: string }>(`select value from public.app_secrets where key = 'cred_db_internal'`); runProofCache = String(r[0]?.value || ''); }
+  return runProofCache;
+}
+/** The holds a cut of the job's budget can cause (an answer it aborted, a paint or an upload it stopped): when the budget was
+ *  cut, a sheet held for one of them is asked again on the next run, never refused (review of a3fe7161, item 3). A hold the
+ *  checker REACHED before the cut (pixels_not_clean, unread text, no regions) is a finding and stays one. */
+export const BUDGET_CUT_HOLDS: readonly string[] = ['time', 'pixels_unverified', 'paint_failed', 'decode_failed', 'upload_failed', 'exception'];
+// THE RUN'S TAG GOES WITH EVERY CALL (review of a3fe7161, item 1). On the edge, observe() carries a sandbox run's tag
+// (x-qd-e2e-run, with its proof) on every call back to the project, so ai_gateway charges the run's window cap and its
+// no-spend rules apply; the worker has no request to carry it from. A job's run is its owner's address
+// (_shared/e2e_run.runTagOfEmail: qd-<tag>-...@example.invalid, the harness's own customers): such a job's calls send the tag
+// with x-qd-e2e-secret (cred_db_internal, which the gateway accepts as proof) to the functions, and with the service bearer to
+// PostgREST (the hold probe, the budget read, the run row) and storage. A real customer's job sends no tag. A tag the gateway
+// cannot prove is refused there, never spent untagged (spend_guards.unprovenRunTag).
 export async function sheetRedactorHere(job: Job, key: string, stop: AbortSignal, stopAt: number): Promise<(b: SheetBody) => Promise<Record<string, unknown>>> {
   // Imported here, not at the top: drawing_redact_page encodes with imagescript (see supplierDrawing).
   const sheet = await import('../supabase/functions/_shared/drawing_redact_sheet.ts');
   const { modelHeld } = await import('../supabase/functions/_shared/llm_hold.ts');
+  const { E2E_RUN, runTagOfEmail } = await import('../supabase/functions/_shared/e2e_run.ts');
   const { PIXEL_SET_BUDGET_USD } = await import('../supabase/functions/_shared/drawing_pixel_gate.ts');
   const ai = await aiCredential();
-  const auth = { apikey: key, Authorization: 'Bearer ' + key };
+  const tag = runTagOfEmail(job.owner_email);
+  const run = tag ? { tag, secret: (await runProof()) || null } : null;
+  const tagged: Record<string, string> = run ? { 'x-qd-e2e-run': run.tag, ...(run.secret ? { 'x-qd-e2e-secret': run.secret } : {}) } : {};
+  const auth = { apikey: key, Authorization: 'Bearer ' + key, ...tagged };
   const rest = (path: string, init: RequestInit = {}) => fetch(`${BASE}/rest/v1/${path}`, { ...init, headers: { ...auth, 'Content-Type': 'application/json', ...(init.headers ?? {}) }, signal: AbortSignal.timeout(30_000) });
   // What supabase-js's admin.rpc answers (llm_hold.modelHeld reads { data, error }): a failure is an error, never a throw.
   const admin = { rpc: async (fn: string, args: Record<string, unknown>) => {
@@ -192,19 +213,19 @@ export async function sheetRedactorHere(job: Job, key: string, stop: AbortSignal
   } };
   const deps: import('../supabase/functions/_shared/drawing_redact_sheet.ts').SheetDeps = {
     ...sheet.inProcessWorkers,
-    ask: (k, authors, jpg, s, sys) => sheet.askPixelsVia(`${BASE}/functions/v1/ai_gateway`, k, authors, jpg, s, sys, stop),
+    ask: (k, authors, jpg, s, sys) => sheet.askPixelsVia(`${BASE}/functions/v1/ai_gateway`, k, authors, jpg, s, sys, stop, tagged),
     modelHeld: () => modelHeld(admin),
     aiKey: () => Promise.resolve(ai || undefined),
-    // drawing_redact pixelBudgetFor + budgetInFlight: a read that answers no rows (or an error) counts nothing; one that throws
-    // counts the set spent.
+    // drawing_redact pixelBudgetFor + budgetInFlight, read from the same rows. A read that FAILS (a throw, an HTTP error, no
+    // rows array) is neither "nothing spent" nor "all spent" (review of a3fe7161, item 2): the sheet's call throws, its answer
+    // is the edge's {ok:false} (sheetVerdict: lost), and it is asked again, on this run or the next.
     budget: async (sourcePath, spentUsd) => {
       let used = 0;
       if (typeof sourcePath === 'string' && sourcePath) {
-        try {
-          const r = await rest(`drawing_redaction_runs?select=verify_detail&source_path=eq.${encodeURIComponent(sourcePath)}&created_at=gte.${encodeURIComponent(new Date(Date.now() - 86_400_000).toISOString())}`);
-          const rows = r.ok ? await r.json().catch(() => null) : null;
-          for (const row of Array.isArray(rows) ? rows : []) used += sheet.runSpentUsd(row);
-        } catch (_e) { used = Infinity; }
+        const r = await rest(`drawing_redaction_runs?select=verify_detail&source_path=eq.${encodeURIComponent(sourcePath)}&created_at=gte.${encodeURIComponent(new Date(Date.now() - 86_400_000).toISOString())}`).catch(() => null);
+        const rows = r?.ok ? await r.json().catch(() => null) : null;
+        if (!Array.isArray(rows)) throw new Error('budget_unreadable');
+        for (const row of rows) used += sheet.runSpentUsd(row);
       }
       let left = PIXEL_SET_BUDGET_USD - used - Math.max(0, Number(spentUsd) || 0);
       return { left: () => left, spend: (u: number) => { left -= u; } };
@@ -222,7 +243,19 @@ export async function sheetRedactorHere(job: Job, key: string, stop: AbortSignal
       return recorded;
     },
   };
-  return (b: SheetBody) => sheet.manualSheetsCall({ ...b, owner_customer_id: job.customer_id, owner_email: job.owner_email, source_path: job.source_path, stop_at: stopAt }, deps);
+  // THE JOB'S BUDGET CUT IS NOT A FINDING (review of a3fe7161, item 3). The cut aborts the answer under way; after the checker
+  // had painted a box, the gate's 'pixels_unverified' or 'time' then read as checker_found_then_* (drawing_pages_queued
+  // sheetVerdict), a permanent hold. A sheet the cut reached that was not published is handed back as lost: asked again.
+  const cut = () => stop.aborted || Date.now() >= stopAt;
+  return async (b: SheetBody) => {
+    const call = () => sheet.manualSheetsCall({ ...b, owner_customer_id: job.customer_id, owner_email: job.owner_email, source_path: job.source_path, stop_at: stopAt }, deps);
+    // Inside the run (llm_hold.modelHeld asks a tagged run fresh, never from the cache an untagged job left).
+    const out = run ? await E2E_RUN.run(run, call) : await call();
+    if (!cut() || (out.ok === true && out.recorded === true && Number(out.pages_out) === 1)) return out;
+    const d = Array.isArray(out.verify_detail) ? out.verify_detail[0] as Record<string, unknown> | undefined : undefined;
+    const why = String(d?.skipped ?? '');
+    return !d || BUDGET_CUT_HOLDS.includes(why) ? { ok: false, error: 'job_budget_cut', cut_hold: why || String(out.error ?? '') } : out;
+  };
 }
 
 async function supplierDrawing(job: Job, bytes: Uint8Array, key: string): Promise<Record<string, unknown>> {

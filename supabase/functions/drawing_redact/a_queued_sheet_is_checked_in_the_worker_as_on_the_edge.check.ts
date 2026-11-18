@@ -19,7 +19,7 @@ import { seedTerms } from '../_shared/anonymise.ts';
 import { supplierBoxes } from '../_shared/supplier_copy.ts';
 import { b64ToBytes, bytesToB64 } from '../_shared/drawing_redact_page.ts';
 import { MARK_DIGITS, MARK_FONT, MARK_SCALE, TILING, pageSizeFromMediaBox, planTiles } from '../_shared/drawing_pixel_gate.ts';
-import { PAGES_NEED_TIME, type QueuedPages } from '../_shared/drawing_pages_queued.ts';
+import { PAGES_NEED_TIME, redactQueuedPages, sheetVerdict, type QueuedPages } from '../_shared/drawing_pages_queued.ts';
 
 const SET = Deno.readFileSync(new URL('../_shared/testdata/zz_demo_mechanical_set_8_sheets.pdf', import.meta.url));
 const SHEET1 = Deno.readFileSync(new URL('../_shared/testdata/zz_demo_mechanical_set_sheet1_portal_2600.jpg', import.meta.url));
@@ -58,9 +58,16 @@ type Handler = (req: Request) => Promise<Response>;
 let handler: Handler | null = null;
 // deno-lint-ignore no-explicit-any
 (Deno as any).serve = (h: Handler) => { handler = h; return { finished: Promise.resolve(), shutdown: async () => {}, ref() {}, unref() {}, addr: { hostname: '127.0.0.1', port: 9 } }; };
-type Seen = { redactCalls: number; shown: string[]; gateway: Record<string, unknown>[]; uploads: { path: string; bytes: Uint8Array }[]; rows: Record<string, unknown>[]; sql: string[]; stubMs: number };
-const fresh = (): Seen => ({ redactCalls: 0, shown: [], gateway: [], uploads: [], rows: [], sql: [], stubMs: 0 });
-let seen = fresh(), stampOnFirstWholeLook = false, stamps = 0;
+type Seen = { redactCalls: number; shown: string[]; gateway: Record<string, unknown>[]; uploads: { path: string; bytes: Uint8Array }[]; rows: Record<string, unknown>[]; sql: string[]; stubMs: number;
+  /** Every request to the project or a function: what it is, and the run tag and proof it carried. */
+  calls: { kind: string; run: string | null; secret: string | null; bearer: boolean }[] };
+const fresh = (): Seen => ({ redactCalls: 0, shown: [], gateway: [], uploads: [], rows: [], sql: [], stubMs: 0, calls: [] });
+let seen = fresh(), stampOnFirstWholeLook = false, stamps = 0, wholeLooks = 0;
+/** Faults the stub estate can show the worker (review of a3fe7161, item 4). `secondWholeLook`: what the model does when it is
+ *  asked the whole page again (after the stamp it reported was painted): no answer (502), or the job's budget cut lands. */
+type Faults = { failView?: number; secondWholeLook?: 'no_answer' | { abort: AbortController }; budgetRead?: 'fails'; held?: boolean };
+let faults: Faults = {}, gatewayN = 0;
+const RUN_PROOF = 'zz-db-internal-proof';
 const RASTER_PATH = 'drawings/zz/pages/zz-sheet-0.jpg', SOURCE = 'drawings/zz/ZZ DEMO mechanical set.pdf';
 const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json' } });
 const realFetch = globalThis.fetch;
@@ -71,6 +78,11 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
   const method = init?.method ?? 'GET';
   const isBlob = init?.body instanceof Blob;
   const text = typeof init?.body === 'string' ? init.body : '';
+  if (!mgmt) {
+    const h = new Headers(init?.headers);
+    const kind = url.includes('/functions/v1/') ? 'fn:' + url.split('/functions/v1/')[1].split(/[/?]/)[0] : url.includes('/rpc/') ? 'rpc:' + url.split('/rpc/')[1].split(/[/?]/)[0] : url.includes('/storage/') ? 'storage' : 'rest:' + (url.split('/rest/v1/')[1] ?? '').split(/[/?]/)[0];
+    seen.calls.push({ kind, run: h.get('x-qd-e2e-run'), secret: h.get('x-qd-e2e-secret'), bearer: /^Bearer zz-demo-service$/.test(h.get('authorization') ?? '') });
+  }
   if (url.includes('/functions/v1/drawing_redact')) {
     seen.redactCalls++;
     if (!local) return json({ code: 'WORKER_RESOURCE_LIMIT' }, 546);   // the worker must never come here
@@ -83,8 +95,15 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
       const b = JSON.parse(text);
       const shown = String(b.input?.[0]?.content?.[1]?.image_url?.url ?? '').replace(/^data:image\/jpeg;base64,/, '');
       seen.shown.push(shown);
+      if (init?.signal?.aborted) throw new DOMException('aborted', 'AbortError');
       seen.gateway.push({ __secret: b.__secret, fn: b.fn, counterpart_model: b.counterpart_model, temperature: b.temperature, response_format: b.response_format, sys: b.sys, text: b.input?.[0]?.content?.[0]?.text, has_timeout: Number(b.client_timeout_ms) > 0 });
       const v = await readView(shown);
+      if (++gatewayN === faults.failView) return json({ ok: false, error: 'provider_error' }, 502);
+      if (v.whole && ++wholeLooks === 2 && faults.secondWholeLook) {
+        if (faults.secondWholeLook === 'no_answer') return json({ ok: false, error: 'provider_error' }, 502);
+        faults.secondWholeLook.abort.abort();   // the job's 30-minute budget lands while this view is under way
+        throw new DOMException('aborted', 'AbortError');
+      }
       const stamp = stampOnFirstWholeLook && v.whole && stamps === 0;
       if (stamp) stamps++;
       return json({ content: JSON.stringify({ mark: v.mark, clean: !stamp, addressed: false, regions: stamp ? [{ ...STAMP, what: 'company stamp' }] : [] }), model: 'zz/stub' });
@@ -93,16 +112,17 @@ globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) =>
       const q = JSON.parse(text).query as string;
       seen.sql.push(q);
       if (q.includes("key = 'cred_fn_ai'")) return json([{ value: 'zz-demo-key' }]);
+      if (q.includes("key = 'cred_db_internal'")) return json([{ value: RUN_PROOF }]);
       if (q.startsWith('with att as')) return json([{ attached: [], delivered: [] }]);
       return json([]);
     }
     if (url.includes('/rpc/fn_internal_auth')) return json({ ok: true, context: 'drawing_redact' });
     // The founder's hold is off: the gate refuses only the probe model (llm_hold.heldFromGate).
-    if (url.includes('/rpc/fn_kernel_paid_provider_gate')) return json({ allowed: false, rule: 'route_not_registered' });
+    if (url.includes('/rpc/fn_kernel_paid_provider_gate')) return json(faults.held ? { allowed: false, rule: 'founder_hold' } : { allowed: false, rule: 'route_not_registered' });
     if (url.includes('/rpc/')) return json({ message: 'no such rpc here' }, 404);
     if (url.includes('/rest/v1/app_secrets')) return json({ value: 'zz-demo-key' });
     if (url.includes('/rest/v1/drawing_redaction_runs')) {
-      if (method === 'GET') return json([]);
+      if (method === 'GET') return project && faults.budgetRead === 'fails' ? json({ message: 'canceling statement due to statement timeout' }, 500) : json([]);
       const row = JSON.parse(text); seen.rows.push(Array.isArray(row) ? row[0] : row);
       return new Response(null, { status: 201 });
     }
@@ -138,12 +158,12 @@ const owner = { owner_customer_id: CUSTOMER, owner_email: JOB.owner_email, sourc
 const same = (o: unknown) => JSON.parse(JSON.stringify(o).replace(UUID, 'UUID'));
 
 async function onTheEdge(stamp: boolean) {
-  seen = fresh(); stampOnFirstWholeLook = stamp; stamps = 0;
+  seen = fresh(); stampOnFirstWholeLook = stamp; stamps = 0; wholeLooks = 0; faults = {}; gatewayN = 0;
   const r = await handler!(new Request('http://127.0.0.1:9/functions/v1/drawing_redact', { method: 'POST', body: JSON.stringify({ __secret: 'zz-cred-customer-api', ...SHEET_BODY, ...owner }) }));
   return { answer: await r.json(), seen };
 }
 async function inTheWorker(stamp: boolean) {
-  seen = fresh(); stampOnFirstWholeLook = stamp; stamps = 0;
+  seen = fresh(); stampOnFirstWholeLook = stamp; stamps = 0; wholeLooks = 0; faults = {}; gatewayN = 0;
   const redact = await worker.sheetRedactorHere(JOB, 'zz-demo-service', new AbortController().signal, Date.now() + 30 * 60_000);
   const t0 = cpu();
   const answer = await redact(SHEET_BODY);
@@ -169,6 +189,7 @@ for (const stamp of [false, true]) {
     assertEquals(w.seen.gateway[0].fn, 'drawing_redact_verify');
     assertEquals(w.seen.gateway[0].__secret, 'zz-demo-key', 'the credential drawing_redact presents (app_secrets.cred_fn_ai)');
     assertEquals(w.seen.redactCalls, 0, 'the worker never calls drawing_redact');
+    assert(w.seen.calls.length > VIEWS && w.seen.calls.every((c) => c.run === null && c.secret === null), 'a real customer\'s job carries no run tag and no run proof');
     if (stamp) {
       const img = await Image.decode(w.seen.uploads[0].bytes);
       const [r, g, b] = img.getRGBAAt(Math.floor((STAMP.x + STAMP.w / 2) * img.width) + 1, Math.floor((STAMP.y + STAMP.h / 2) * img.height) + 1);
@@ -204,4 +225,71 @@ Deno.test('(a) the worker source: the pages branch builds its redactor in proces
   const here = src.slice(src.indexOf('export async function sheetRedactorHere('), src.indexOf('async function supplierDrawing('));
   assert(!/\bedge\(|functions\/v1\/drawing_redact/.test(here), 'the in-process redactor reaches drawing_redact');
   assert(here.includes('sheet.manualSheetsCall(') && here.includes('...sheet.inProcessWorkers'));
+});
+
+// ── review of a3fe7161, item 4: the run tag, a budget that cannot be read, the job's budget cut, and the model's holds ──────
+const TEST_EMAIL = 'qd-zz12ab34-cust@example.invalid';
+/** The queued sheet through redactQueuedPages and the worker's in-process redactor, as runJob runs it. */
+async function queued(email: string, f: Faults & { stamp?: boolean }, o: { tries?: number; ctl?: AbortController } = {}) {
+  seen = fresh(); faults = f; stampOnFirstWholeLook = !!f.stamp; stamps = 0; wholeLooks = 0; gatewayN = 0;
+  const ctl = o.ctl ?? new AbortController();
+  const redact = await worker.sheetRedactorHere({ ...JOB, owner_email: email }, 'zz-demo-service', ctl.signal, Date.now() + 30 * 60_000);
+  const answers: Record<string, unknown>[] = [];
+  const out = await redactQueuedPages(JOB.boq_in.queued_pages, { originalB64: bytesToB64(SET), raster: () => Promise.resolve(bytesToB64(SHEET1)), redact: async (b) => { const a = await redact(b); answers.push(a); return a; }, wait: () => Promise.resolve(), tries: o.tries, signal: ctl.signal });
+  return { out, answers, seen };
+}
+
+Deno.test('a test run\'s job sends its run tag with its proof on every call (the gateway, the hold probe, the run row); a real customer\'s sends none', async () => {
+  const t = await queued(TEST_EMAIL, {});
+  assertEquals(t.out.redaction_complete, true, JSON.stringify(t.out));
+  const gw = t.seen.calls.filter((c) => c.kind === 'fn:ai_gateway');
+  assertEquals(gw.length, VIEWS);
+  assert(gw.every((c) => c.run === 'zz12ab34' && c.secret === RUN_PROOF), 'every model call names the run and proves it (cred_db_internal)');
+  const probe = t.seen.calls.filter((c) => c.kind === 'rpc:fn_kernel_paid_provider_gate');
+  assert(probe.length >= 1 && probe.every((c) => c.run === 'zz12ab34' && c.bearer), 'the hold probe is asked as the run, with the service bearer');
+  assert(t.seen.calls.filter((c) => c.kind.startsWith('rest:') || c.kind === 'storage').every((c) => c.run === 'zz12ab34' && c.bearer), 'the budget read, the run row and the upload carry the tag');
+  assertEquals(t.seen.redactCalls, 0);
+  // the same sheet for a real customer: no tag anywhere
+  const r = await queued('buyer@realfirm.ae', {});
+  assertEquals(r.out.redaction_complete, true);
+  assert(r.seen.calls.every((c) => c.run === null && c.secret === null), 'a real customer\'s job is never tagged');
+});
+
+Deno.test('a budget that cannot be read is no answer: the sheet is asked again later, never refused, and no model is paid', async () => {
+  const b = await queued(TEST_EMAIL, { budgetRead: 'fails' });
+  assertEquals(b.out.retry_later, true, JSON.stringify(b.out));
+  assertEquals(b.out.held_identity, undefined);
+  assertEquals(b.answers.length, 3, 'asked SHEET_TRIES times in the run, then back to the queue');
+  assert(b.answers.every((a) => a.ok === false && a.error === 'budget_unreadable' && sheetVerdict(a).state === 'retry'));
+  assertEquals(b.seen.gateway.length, 0, 'nothing spent without a budget');
+  assertEquals(b.seen.uploads.length + b.seen.rows.length, 0);
+});
+
+Deno.test('the job\'s budget cut lands after the checker painted a stamp: the sheet goes back to the queue, not held for identity', async () => {
+  const ctl = new AbortController();
+  const c = await queued(TEST_EMAIL, { stamp: true, secondWholeLook: { abort: ctl } }, { ctl });
+  assertEquals(c.out.retry_later, true, JSON.stringify(c.out));
+  assertEquals(c.out.held_identity, undefined);
+  assertEquals(c.out.held_reason, 'pages_need_time_job_budget', 'no sheet is sent again once the budget is spent');
+  assertEquals(c.answers.length, 1);
+  assertEquals(c.answers[0].error, 'job_budget_cut');
+  assertEquals(c.answers[0].cut_hold, 'pixels_unverified', 'without the rule this was checker_found_then_pixels_unverified, a permanent hold');
+  assertEquals(c.seen.uploads.length, 0, 'nothing published on a cut');
+});
+
+Deno.test('the model\'s holds in the worker: an unanswered view is asked again; a view unanswered after the checker found a stamp is never retried; the founder\'s hold is asked again', async () => {
+  const u = await queued(TEST_EMAIL, { failView: 3 }, { tries: 1 });
+  assertEquals(u.out.retry_later, true, JSON.stringify(u.out));
+  assertEquals(u.out.held_reason, 'pages_need_time_pixels_unverified');
+  assertEquals(sheetVerdict(u.answers[0]), { state: 'retry', why: 'pixels_unverified' });
+  const f = await queued(TEST_EMAIL, { stamp: true, secondWholeLook: 'no_answer' });
+  assertEquals(f.out.held_identity, true, JSON.stringify(f.out));
+  assertEquals(f.out.retry_later, undefined);
+  assertEquals(f.out.held_reason, 'pages_need_time_checker_found_then_pixels_unverified');
+  assertEquals(f.answers.length, 1, 'a checker finding is asked once, never retried blindly');
+  assertEquals(f.seen.uploads.length, 0);
+  const h = await queued(TEST_EMAIL, { held: true }, { tries: 1 });
+  assertEquals(h.out.retry_later, true, JSON.stringify(h.out));
+  assertEquals(h.seen.gateway.length, 0, 'under the founder\'s hold no model is asked');
+  assertEquals((h.answers[0].verify_detail as { reason?: string }[])[0].reason, 'model_hold');
 });

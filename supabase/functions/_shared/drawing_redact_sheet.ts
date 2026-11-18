@@ -58,12 +58,14 @@ export const markOk = (m: unknown) => /^\d{6}$/.test(String(m ?? ''));
 // ── THE MODEL, THROUGH THE GATEWAY ───────────────────────────────────────────────────────────────────────────────────────
 /** One view to the pixel checker through ai_gateway (drawing_pixel_gate's PixelAsk). Cut at the stop plus a grace (round 5;
  *  drawing_deadline.callTimeoutMs), and the gateway is told how long we wait. `signal` (the CAD worker's job budget) cuts it
- *  sooner. null: no usable answer (refused, truncated, not JSON, cut), and the gate holds the page. */
-export async function askPixelsVia(gw: string, key: string, authors: string, jpgB64: string, stopAt?: number, sys: string = PIXEL_VERIFY_SYS, signal?: AbortSignal): Promise<string | null> {
+ *  sooner, and `headers` carries its sandbox run tag and the proof (cad_read_worker.sheetRedactorHere; on the edge observe()
+ *  adds them to every call back to the project). null: no usable answer (refused, truncated, not JSON, cut), and the gate
+ *  holds the page. */
+export async function askPixelsVia(gw: string, key: string, authors: string, jpgB64: string, stopAt?: number, sys: string = PIXEL_VERIFY_SYS, signal?: AbortSignal, headers: Record<string, string> = {}): Promise<string | null> {
   try {
     const ms = callTimeoutMs(stopAt, 55_000);
     const cut = signal ? AbortSignal.any([signal, AbortSignal.timeout(ms)]) : AbortSignal.timeout(ms);
-    const r = await fetch(gw, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: cut,
+    const r = await fetch(gw, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, signal: cut,
       body: JSON.stringify({ __secret: key, fn: 'drawing_redact_verify', counterpart_model: authors, client_timeout_ms: ms, response_format: { type: 'json_object' }, temperature: 0, sys,
         input: [{ role: 'user', content: [{ type: 'text', text: 'Check this page as the supplier will see it. Return the JSON.' }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + jpgB64 } }] }] }) });
     const jd = await r.json().catch(() => null);
