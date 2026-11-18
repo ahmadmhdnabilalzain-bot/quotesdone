@@ -46,6 +46,7 @@ import { uploadFile, type ReadChunk, type UploadState } from './upload.ts';
 import { backupRow, dbxMeta, verifyUploaded } from './row.ts';
 import { demoPurgeDeleteAllowed, signupPurgeDeleteAllowed } from './purge.ts';
 import { compareListing, dailyRoots, fileSlices, listTree, type Expected } from './listing.ts';
+import { shellFolders } from './move.ts';
 import { dropboxExportAllowed } from '../_shared/backup_prune_allow.ts';
 import { classifyDropboxFailure, isTransientDbError } from './health.ts';
 import { J } from '../_shared/json_response.ts';
@@ -157,6 +158,10 @@ const CONFIRM_MAX = 25;
 // short is not compared at all. Returns the confirmed findings in fn_it_backup_check's shape.
 async function listingCheck(dbx: DropboxClient, roots: string[], deadline: number, refreshFiles = false) {
   const summary = { roots: roots.length, unlisted_roots: 0, expected: 0, listed: 0, missing: 0, confirmed_missing: 0, changed: 0, stray: 0, files_refreshed: 0, files_removed: 0 };
+  // ruling 1726 (18 Nov 2026): every party folder under Suppliers and Customers holds his documents; one with no file beneath it, or
+  // one no doc_backups row files into (a demo, test or vanished party), is listed in the summary and raised as a finding by
+  // fn_it_backup_listing_record. Never deleted here.
+  const shells = { empty: [] as string[], no_party: [] as string[] };
   const stamp = new Date().toISOString();
   const findings: Record<string, unknown>[] = [];
   for (const root of roots) {
@@ -174,6 +179,11 @@ async function listingCheck(dbx: DropboxClient, roots: string[], deadline: numbe
     const c = compareListing((exp || []) as Expected[], t.entries);
     summary.expected += c.expected; summary.listed += c.listed; summary.stray += c.stray;
     summary.missing += c.missing.length; summary.changed += c.changed.length;
+    if (/^\/QuotesDone Backup\/(Suppliers|Customers)$/.test(root)) {
+      const s = shellFolders([...t.entries.map((e) => ({ '.tag': 'file', path_display: e.p })), ...t.folders.map((f) => ({ '.tag': 'folder', path_display: f }))],
+        ((exp || []) as Expected[]).map((e) => String(e[1])));
+      shells.empty.push(...s.empty); shells.no_party.push(...s.no_party);
+    }
     for (const ch of c.changed) findings.push({ id: ch.id, outcome: 'changed', hash: ch.hash, size: ch.size, why: 'listing' });
     const byId = new Map(((exp || []) as Expected[]).map((e) => [e[0], e[1]]));
     for (const id of c.missing) {
@@ -182,7 +192,8 @@ async function listingCheck(dbx: DropboxClient, roots: string[], deadline: numbe
       if (m.missing) { summary.confirmed_missing++; findings.push({ id, outcome: 'missing', why: 'listing' }); }
     }
   }
-  return { summary, findings };
+  return { summary: { ...summary, shell_folders: shells.empty.length, no_party_folders: shells.no_party.length,
+    shells: { empty: shells.empty.slice(0, 50), no_party: shells.no_party.slice(0, 50) } }, findings };
 }
 
 // ── THE TAGGED SANDBOX RUN (sales_engineer files, it_engineer verifies; ZZ DEMO data only) ──

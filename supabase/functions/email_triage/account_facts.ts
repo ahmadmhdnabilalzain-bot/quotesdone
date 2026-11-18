@@ -79,14 +79,46 @@ export const SEPARATE_COMPANY_FACT = 'IF THEY ASK TO REGISTER ANOTHER COMPANY (a
   + `It needs all six of: ${SIX_ITEMS}. Any registration link given above is for the company named above only, never for the other company. ` + NO_SETUP_FOR_THEM;
 // 2 Nov 2026 (it_engineer, ledger 1445): Microsoft and Yahoo file our first mail to a company in Junk, and a message the
 // company wrote first or a sender it added as a contact is what its mailbox trusts. So the first reply asks, once and in English.
-export const ADD_CONTACT_FACT = 'END THE REPLY WITH ONE PLAIN SENTENCE IN ENGLISH ASKING THEM TO ADD supplier@quotesdone.com TO THEIR CONTACTS, or to write to that address first, so that our messages reach their inbox rather than their junk folder. Say it once, as a request, with no explanation of mail filters.';
-export function unregisteredSupplierFacts(company: string, link: string): string {
+// 17 Nov 2026 (sales_engineer; Shine Carpets, inbound_messages 2214, notification 149799): the sentence said "or write to that
+// address first" to a company that had just written to it, and the founder read it as "you can reach Ahmad at supplier@": the
+// address they wrote to, offered as the way forward. Every reply here answers a mail they sent us, so they never are told to write to
+// it; code also strips such a sentence (withoutWriteToUs) in case the model writes one anyway.
+export const OUR_MAILBOX = 'supplier@quotesdone.com';
+export const ADD_CONTACT_FACT = `END THE REPLY WITH ONE PLAIN SENTENCE IN ENGLISH ASKING THEM TO ADD ${OUR_MAILBOX} TO THEIR CONTACTS, `
+  + 'so that our messages reach their inbox rather than their junk folder. Say it once, as a request, with no explanation of mail filters. '
+  + `They have already written to us: never ask them to write to, e-mail or contact ${OUR_MAILBOX} (or "that address"), and never give it as the way to reach us.`;
+// WHAT A SUPPLIER PAYS, FROM THE LIVE TERMS (17 Nov 2026, sales_engineer; Powder Coating asked for "the plans" and was answered
+// without them). Read from pricing_config (supplier_free_count, supplier_reg_fee, supplier_reg_currency, supplier_reg_period,
+// standard_reveal_rate; measured 18 Nov 2026: 1000, 1000, AED, yearly, 0.03), never typed into the prompt. No row: '' (the reply
+// then states no figure). The non-response charge is the Supplier Agreement's (pricing_config.supplier_nonresponse_admin_fee_aed).
+export type SupplierTerms = { supplier_free_count?: unknown; supplier_reg_fee?: unknown; supplier_reg_currency?: unknown; supplier_reg_period?: unknown; standard_reveal_rate?: unknown };
+export function supplierTermsFact(t: SupplierTerms | null | undefined): string {
+  const free = Number(t?.supplier_free_count), fee = Number(t?.supplier_reg_fee), rate = Number(t?.standard_reveal_rate);
+  if (!t || !Number.isFinite(free) || !Number.isFinite(fee) || free <= 0) return '';
+  const cur = String(t.supplier_reg_currency || 'AED'), per = String(t.supplier_reg_period || 'yearly') === 'yearly' ? 'a year' : String(t.supplier_reg_period);
+  return 'WHAT A SUPPLIER PAYS (the live terms; if they ask about plans, prices, fees or how it works, answer it plainly from this and nothing else): '
+    + `registration is free, permanently, for the first ${free.toLocaleString('en-US')} suppliers to register; after that it is ${cur} ${fee.toLocaleString('en-US')} ${per}. `
+    + 'There is no commission on work they win'
+    + (Number.isFinite(rate) && rate > 0 ? `: the customer pays QuotesDone a ${+(rate * 100).toFixed(2)}% fee to reveal the supplier he chooses` : '')
+    + '. The Supplier Agreement has one charge on a supplier: when a customer has paid to reveal him and he does not respond within 5 working days. '
+    + 'There are no other plans or tiers.';
+}
+/** The live terms row, or null (a failed read states no figure). Never throws. */
+export async function readSupplierTerms(admin: Db): Promise<SupplierTerms | null> {
+  try {
+    const { data, error } = await admin.from('pricing_config')
+      .select('supplier_free_count,supplier_reg_fee,supplier_reg_currency,supplier_reg_period,standard_reveal_rate').eq('id', 1).maybeSingle();
+    return error ? null : (data as SupplierTerms | null) ?? null;
+  } catch (_e) { return null; }
+}
+export function unregisteredSupplierFacts(company: string, link: string, terms = ''): string {
   return `THE SENDER IS A SUPPLIER COMPANY WE INVITED${company ? ' (' + company + ')' : ''}, matched on their exact e-mail address. `
     + 'THEY HAVE NOT REGISTERED YET: never call them registered and never mention jobs or quotes sent to them. '
-    + 'If they say yes, want to join or ask how, tell them registration is free for our first 1,000 suppliers and takes a few minutes: '
+    + 'If they say yes, want to join, ask how, or ask for details or an overview, tell them registration is free for our first 1,000 suppliers and takes a few minutes: '
     + `${LINK_LEAD}${link} , choose "Create account" with their work e-mail and type the 6-digit code we e-mail them. `
     + `To be verified they need all six of: ${SIX_ITEMS}. The trades they cover are confirmed in the Services tab of their portal. `
-    + 'Give the link exactly as written, on its own line. ' + NO_SETUP_FOR_THEM + ' ' + SEPARATE_COMPANY_FACT + ' ' + ADD_CONTACT_FACT;
+    + 'Give the link exactly as written, on its own line. END WITH ONE CLEAR NEXT STEP: registering with that link. '
+    + (terms ? terms + ' ' : '') + NO_SETUP_FOR_THEM + ' ' + SEPARATE_COMPANY_FACT + ' ' + ADD_CONTACT_FACT;
 }
 // THE LINK IS NOT LEFT TO THE MODEL (supplier journey audit, 28 Oct 2026, docs/reports/supplier_journey_audit_28_oct/
 // sales_agent): the facts above ask for the link on its own line, and the model still dropped it in 3 of 8 replies to
@@ -99,12 +131,37 @@ export function claimLinkOf(facts: string): string | null {
   const m = /^(https:\/\/quotesdone\.com\/portal\S*)/.exec(facts.slice(i + LINK_LEAD.length));
   return m ? m[1] : null;
 }
+// THE NEXT STEP IS CODE'S TOO (17 Nov 2026, sales_engineer; Shine Carpets, notification 149799): the link was appended under a bare
+// "Your company's registration link:" with no word of what to do with it, after a sentence telling them to write to the address
+// they wrote to. Now: a sentence telling them to write to, contact or reach us at supplier@ is removed (withoutWriteToUs), and the
+// appended block says the one next step. A registered supplier gets his portal link the same way (PORTAL_LEAD in his facts).
+export const PORTAL_LEAD = 'Their supplier portal, where they see and answer requests, is ';
+export const PORTAL_URL = SITE + '/portal';
+export const NEXT_STEP_REGISTER = 'Next step: register your company. It is free and takes a few minutes: open your company\'s own registration link below, '
+  + 'choose "Create account" with your work e-mail and type the 6-digit code we e-mail you.';
+export const NEXT_STEP_PORTAL = 'Your supplier portal:';
+const OUR_MAILBOX_RE = OUR_MAILBOX.replace(/[.@]/g, (c) => '\\' + c);
+/** The model's sentences that send them to the address they wrote to are removed; "add it to your contacts" is kept. */
+export function withoutWriteToUs(body: string): string {
+  const toUs = new RegExp('\\b(write|e-?mail|contact|reach|message|send)\\b[^.!?\\n]{0,40}\\b(' + OUR_MAILBOX_RE + '|that address|this address|the same address)', 'i');
+  const out = body
+    .replace(new RegExp(',?\\s+or\\s+(to\\s+)?(write|e-?mail|send a message)\\s+to\\s+(that|this|the same)\\s+address(\\s+first)?', 'gi'), '')
+    .split('\n').map((line) => (toUs.test(line) ? line.split(/(?<=[.!?])\s+/).filter((sen) => !toUs.test(sen)).join(' ') : line)).join('\n');
+  return out === body ? body : out.replace(/\n{3,}/g, '\n\n').trim();
+}
 export function withClaimLink(body: string, facts: string): string {
-  const link = claimLinkOf(facts);
-  if (!link) return body;
+  const cleaned = withoutWriteToUs(body);
   const bare = (l: string) => l.trim().replace(/^[\s<("'*_\-:]+|[\s>)"'*_.,;:]+$/g, '');
-  if (body.split(/\r?\n/).some((l) => bare(l) === link)) return body;
-  return body.trimEnd() + '\n\nYour company\'s registration link:\n' + link;
+  const link = claimLinkOf(facts);
+  if (link) {
+    if (cleaned.split(/\r?\n/).some((l) => bare(l) === link)) return cleaned;
+    return cleaned.trimEnd() + '\n\n' + NEXT_STEP_REGISTER + '\n' + link;
+  }
+  if (facts.includes(PORTAL_LEAD)) {
+    if (cleaned.includes(PORTAL_URL)) return cleaned;
+    return cleaned.trimEnd() + '\n\n' + NEXT_STEP_PORTAL + '\n' + PORTAL_URL;
+  }
+  return cleaned;
 }
 // An UNVERIFIED sender who is a lead: no account is read (the spoof rule below), and the sign-in line alone would send
 // a supplier with no account to a sign-in box. Both routes are named, without a personal link.
@@ -135,7 +192,8 @@ export async function accountFacts(admin: Db, email: string, relation: unknown):
       if (leads && !leads.length) ({ data: leads } = await admin.from('leads').select('id,company_name,claimed,claim_token').eq('claimed_by', e).limit(2));
       if (!leads || leads.length !== 1) return '';
       const sup = leads[0];
-      if (!sup.claimed) return unregisteredSupplierFacts(String(sup.company_name || ''), sup.claim_token ? `${SITE}/portal?t=${sup.claim_token}` : `${SITE}/portal`);
+      if (!sup.claimed) return unregisteredSupplierFacts(String(sup.company_name || ''), sup.claim_token ? `${SITE}/portal?t=${sup.claim_token}` : `${SITE}/portal`,
+        supplierTermsFact(await readSupplierTerms(admin)));
       return registeredSupplierFacts(String(sup.company_name || ''), await readSupplier(admin, e));
     }
   } catch (_e) { /* an unread account leaves the reply ungrounded, never the mail unanswered */ }
@@ -149,11 +207,11 @@ export async function accountFacts(admin: Db, email: string, relation: unknown):
 // job number with HIS OWN quote (recent_jobs), then his standing and why not more. A read that fails states nothing about him.
 export function registeredSupplierFacts(company: string, r: SupplierReading | null): string {
   const head = `THE SENDER IS A REGISTERED SUPPLIER${company ? ' (' + company + ')' : ''}, matched on their exact e-mail address.`;
-  if (!r) return head + ' Their account could not be read just now: state nothing about their jobs, licence or status, and point them to their supplier portal for it. ' + SEPARATE_COMPANY_FACT;
+  if (!r) return head + ' Their account could not be read just now: state nothing about their jobs, licence or status, and point them to their supplier portal for it. ' + SEPARATE_COMPANY_FACT + '\n' + PORTAL_LEAD + PORTAL_URL + '.';
   const jobs = recentJobs(r);
   const listed = jobs ? supplierFacts(company, jobs.map((j) => ({ inquiry_id: j.job, category: j.trade, emirate: j.emirate,
     status: j.job_status, my_quote_status: j.my_quote ?? null, sent_at: j.sent_at }))) : head + ' ' + SEPARATE_COMPANY_FACT;
-  return listed + '\n' + supplierStanding(r);
+  return listed + '\n' + supplierStanding(r) + '\n' + PORTAL_LEAD + PORTAL_URL + ' (give it on its own line when you point them anywhere).';
 }
 
 // SPOOF-PROOF (review of #1498): a From header is free text. The account is read only when resend_inbound recorded

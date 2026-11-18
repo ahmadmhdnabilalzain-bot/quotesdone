@@ -50,7 +50,8 @@ Deno.test('the walk follows every page; a folder that is gone lists empty and co
   assertEquals(t.entries.map((e) => e.s), [1, 2, 3]);
   assertEquals(calls, ['files/list_folder', 'files/list_folder/continue', 'files/list_folder/continue']);
   const gone = await listTree(fakeDbx([], 409).dbx, '/QuotesDone Backup/Y', Date.now() + 60_000);
-  assertEquals(gone, { entries: [], complete: true });
+  assertEquals(gone, { entries: [], complete: true, folders: [] });
+  assertEquals(t.folders, ['/QuotesDone Backup/X/f']);   // folders are kept for the shell check (move.ts shellFolders)
 });
 
 Deno.test('a walk the deadline stops is reported incomplete, never compared', async () => {

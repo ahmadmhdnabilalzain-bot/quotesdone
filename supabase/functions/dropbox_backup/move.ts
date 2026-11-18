@@ -40,3 +40,70 @@ export async function moveFile(
   }
   throw new Error('files/move_v2 ' + r.status + ' ' + t.slice(0, 160));
 }
+
+// A MOVE TO ANOTHER TRADE LEAVES NO EMPTY FOLDER BEHIND (sales_engineer, 17 Nov 2026; founder ruling ledger 1726, 18 Nov 2026: "no empty or
+// useless folder ever ... a move to another trade removes the emptied source"). Measured: Shine Carpets (supplier 2936) was filed at
+// /QuotesDone Backup/Suppliers/Cleaning & facility services/SHINE CARPETS WASHING L.L.C at 08:38 and re-filed under Upholstery & soft
+// furnishing at 08:45 when his trade was set. Every file moved, and the old folder stayed with an empty "Earlier versions" folder, which
+// the founder opened. After a move, the party folder the file left (Suppliers/<trade>/<name> or Customers/<name>, never anything
+// higher) is listed; when NOT ONE file is anywhere beneath it, it is deleted (files/delete_v2: Dropbox keeps it in "Deleted files").
+// A folder holding any file is never touched. A failure never fails the move: the nightly listing finds what is left (shellFolders).
+export const BACKUP_ROOT = '/QuotesDone Backup';
+/** The party folder a backup path sits in: /QuotesDone Backup/Suppliers/<trade>/<name> or /QuotesDone Backup/Customers/<name>, else null. */
+export function partyFolder(path: string): string | null {
+  const parts = String(path || '').split('/');
+  if (parts[0] !== '' || '/' + parts[1] !== BACKUP_ROOT) return null;
+  if (parts[2] === 'Suppliers' && parts.length >= 6 && parts[3] && parts[4]) return parts.slice(0, 5).join('/');
+  if (parts[2] === 'Customers' && parts.length >= 5 && parts[3]) return parts.slice(0, 4).join('/');
+  return null;
+}
+type Entry = { '.tag'?: string; path_display?: string; path_lower?: string };
+/** Every entry beneath a folder (recursive), or null when it cannot be listed completely. 'gone' when the folder is not there. */
+async function listAll(dbx: Pick<DropboxClient, 'call'>, folder: string): Promise<Entry[] | 'gone' | null> {
+  let r = await dbx.call('api', 'files/list_folder', { path: folder, recursive: true, include_deleted: false, limit: 2000 });
+  const out: Entry[] = [];
+  for (let page = 0; page < 50; page++) {
+    const t = await r.text();
+    if (r.status === 409 && t.includes('not_found')) return 'gone';
+    if (!r.ok) return null;
+    const j = JSON.parse(t);
+    out.push(...(j.entries || []));
+    if (!j.has_more) return out;
+    r = await dbx.call('api', 'files/list_folder/continue', { cursor: j.cursor });
+  }
+  return null;
+}
+export type PruneOutcome = 'removed' | 'kept_has_files' | 'same_folder' | 'not_a_party_folder' | 'gone' | 'unlisted' | 'error';
+/** After a move from `from` to `to`: removes the party folder `from` was in only if no file is anywhere beneath it. Never throws. */
+export async function removeEmptiedSource(dbx: Pick<DropboxClient, 'call'>, from: string, to: string): Promise<PruneOutcome> {
+  try {
+    const src = partyFolder(from);
+    if (!src) return 'not_a_party_folder';
+    if (src.toLowerCase() === (partyFolder(to) ?? '').toLowerCase()) return 'same_folder';
+    const all = await listAll(dbx, src);
+    if (all === 'gone') return 'gone';
+    if (all === null) return 'unlisted';
+    if (all.some((e) => e['.tag'] === 'file')) return 'kept_has_files';
+    const d = await dbx.call('api', 'files/delete_v2', { path: src });
+    await d.text().catch(() => '');
+    return d.ok ? 'removed' : 'error';
+  } catch (_e) { return 'error'; }
+}
+
+/** THE NIGHTLY SHELL CHECK (ruling 1726): from a recursive listing of /QuotesDone Backup/Suppliers and /Customers (folders and files),
+ *  every party folder with no file anywhere beneath it ('empty'), and every one no doc_backups row files anything into ('no_party':
+ *  a demo or test party, or one that no longer exists). Listed and raised as a finding, never deleted here. */
+export function shellFolders(entries: Entry[], expectedPaths: string[]): { empty: string[]; no_party: string[] } {
+  const folders = new Map<string, string>(), withFile = new Set<string>(), owned = new Set<string>();
+  for (const e of entries) {
+    const p = String(e.path_display || e.path_lower || '');
+    const pf = partyFolder(p + (e['.tag'] === 'folder' ? '/x' : ''));
+    if (!pf) continue;
+    if (!folders.has(pf.toLowerCase())) folders.set(pf.toLowerCase(), pf);
+    if (e['.tag'] === 'file') withFile.add(pf.toLowerCase());
+  }
+  for (const p of expectedPaths) { const pf = partyFolder(p); if (pf) owned.add(pf.toLowerCase()); }
+  const empty = [...folders.keys()].filter((k) => !withFile.has(k)).map((k) => folders.get(k)!).sort();
+  const no_party = [...folders.keys()].filter((k) => withFile.has(k) && !owned.has(k)).map((k) => folders.get(k)!).sort();
+  return { empty, no_party };
+}

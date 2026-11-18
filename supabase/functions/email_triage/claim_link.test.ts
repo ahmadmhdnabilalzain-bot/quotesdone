@@ -2,7 +2,7 @@
 // three model replies to an invited, unregistered supplier went out with no registration link. The bodies below are those
 // replies verbatim (greeting and sign-off removed, as composeMailReply adds them), from cases c2, c5 and c8.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { claimLinkOf, customerFacts, SUPPLIER_SIGN_IN_FACT, supplierFacts, unregisteredSupplierFacts, withClaimLink } from './account_facts.ts';
+import { ADD_CONTACT_FACT, claimLinkOf, customerFacts, NEXT_STEP_PORTAL, NEXT_STEP_REGISTER, PORTAL_LEAD, PORTAL_URL, registeredSupplierFacts, SUPPLIER_SIGN_IN_FACT, supplierFacts, supplierTermsFact, unregisteredSupplierFacts, withClaimLink, withoutWriteToUs } from './account_facts.ts';
 
 const LINK = 'https://quotesdone.com/portal?t=0f6c1e1e-aaaa-4bbb-8ccc-123456789abc';
 const FACTS = unregisteredSupplierFacts('ZZ DEMO Audit Co', LINK);
@@ -43,4 +43,39 @@ Deno.test('every reply path in email_triage passes the model text through withCl
   assert(calls.length >= 2, 'both the person path and the reasoned/direct path compose a reply');
   for (const c of calls) assert(/answer:\s*withWhatsappTail\(withClaimLink\(body,\s*facts\),\s*waTail\)/.test(c), 'unwrapped reply path: ' + c);
   // 16 Nov 2026 (marketing, ledger 1184/1373): every path also carries the WhatsApp line (the offer, or his confirmation code)
+});
+
+// ── 17 Nov 2026 (sales_engineer): Shine Carpets Washing L.L.C. (inbound_messages 2214, "interested, send contact details and an
+// overview"). The reply that went (notification 149799), greeting and sign-off removed, before code added the link block:
+const SHINE = 'QuotesDone is a UAE B2B quotation marketplace. Buyers describe what they need, and the platform matches requests with suppliers who can do that trade. Suppliers can submit anonymised quotations; buyers compare them and pay a 3% reveal fee to unlock the supplier they choose. The service is designed to provide relevant requests, and QuotesDone charges suppliers no commission on work won.\n\nYou can contact us at management@quotesdone.com or call +971 56 791 8605. WhatsApp is +1 218 316 6814 for messages only. Our hours are Monday to Friday, 9am to 6pm UAE time, excluding UAE public holidays.\n\nPlease add supplier@quotesdone.com to your contacts, or write to that address first.';
+Deno.test('Shine Carpets: the reply to an interested prospect ends with one next step and his own link, never "write to that address"', () => {
+  const out = withClaimLink(SHINE, FACTS);
+  assert(onOwnLine(out), 'his own registration link on its own line');
+  assert(out.includes(NEXT_STEP_REGISTER), 'one clear next step before the link');
+  assert(out.indexOf(NEXT_STEP_REGISTER) < out.indexOf(LINK));
+  assert(!/write to that address/i.test(out), out);
+  assert(out.includes('Please add supplier@quotesdone.com to your contacts.'), 'the contacts request is kept');
+  assert(!/write to that address/i.test(ADD_CONTACT_FACT) && /never ask them to write to/i.test(ADD_CONTACT_FACT));
+});
+Deno.test('a sentence sending them to the address they wrote to is removed; other contact lines stay', () => {
+  const body = 'Thank you for your interest.\nYou can reach Ahmad at supplier@quotesdone.com. You can also call us.\nE-mail us at supplier@quotesdone.com for anything else.';
+  const out = withoutWriteToUs(body);
+  assert(!/supplier@quotesdone\.com/.test(out), out);
+  assert(out.includes('You can also call us.') && out.startsWith('Thank you for your interest.'));
+  assertEquals(withoutWriteToUs(C2), C2);
+});
+Deno.test('a registered supplier gets his portal link instead of a registration link', () => {
+  const facts = registeredSupplierFacts('ZZ DEMO Co', null);
+  assert(facts.includes(PORTAL_LEAD + PORTAL_URL));
+  assertEquals(claimLinkOf(facts), null);
+  const out = withClaimLink('Your documents are complete.', facts);
+  assert(out.endsWith(NEXT_STEP_PORTAL + '\n' + PORTAL_URL) && !out.includes('?t='), out);
+  assertEquals(withClaimLink('Open ' + PORTAL_URL + ' and choose Services.', facts), 'Open ' + PORTAL_URL + ' and choose Services.');
+});
+Deno.test('the prospect asking for plans is answered from the live terms (pricing_config as measured 18 Nov 2026)', () => {
+  const t = supplierTermsFact({ supplier_free_count: 1000, supplier_reg_fee: 1000, supplier_reg_currency: 'AED', supplier_reg_period: 'yearly', standard_reveal_rate: 0.03 });
+  assert(t.includes('first 1,000 suppliers') && t.includes('AED 1,000 a year') && t.includes('no commission') && t.includes('3% fee'), t);
+  assertEquals(supplierTermsFact(null), '');
+  assert(unregisteredSupplierFacts('ZZ', LINK, t).includes(t));
+  assert(!unregisteredSupplierFacts('ZZ', LINK).includes('WHAT A SUPPLIER PAYS'));
 });
