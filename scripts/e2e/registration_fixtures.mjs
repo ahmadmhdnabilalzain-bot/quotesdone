@@ -79,9 +79,10 @@ export const LICENCES = [
 export const NOT_LICENCES = [
   { id: 'L11', file: 'P1_mep_contractor.pdf', key: 'dubai_det', format: 'pdf', code_readable: true, not_a_licence: 'company_profile',
     licence_no: null, legal_name: null, trade_name: null, issue: null, expiry: null, activities: [] },
-  // L12 (13 Nov 2026, founder ruling 1681): a 12-page ZZ DEMO company profile in the licence slot. More pages than any licence
-  // (supabase/functions/_shared/licence_pages.ts LICENCE_MAX_PAGES = 8): answered by its page count, no model asked, so a FREE run judges it.
-  { id: 'L12', file: 'N1_long_profile_12_pages.pdf', key: 'dubai_det', format: 'long_pdf', pages: 12, code_readable: true, not_a_licence: 'long_file',
+  // L12 (13 Nov 2026, founder ruling 1681; 18 Nov 2026, ruling 1728): a 12-page ZZ DEMO company profile in the licence slot. More pages
+  // than any licence (supabase/functions/_shared/licence_pages.ts LICENCE_MAX_PAGES = 8): its first 3 pages are read and the model must
+  // name it a company profile, so only a paid run judges it (it was answered by its count, free, until ruling 1728).
+  { id: 'L12', file: 'N1_long_profile_12_pages.pdf', key: 'dubai_det', format: 'long_pdf', pages: 12, code_readable: true, not_a_licence: 'company_profile',
     licence_no: null, legal_name: null, trade_name: null, issue: null, expiry: null, activities: [] },
 ];
 /** The 12-page profile (L12): plain text pages, no Chromium needed. */
