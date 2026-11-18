@@ -330,7 +330,10 @@ begin
     if v_n > 0 then v_bad := concat_ws('; ', v_bad, format('%s.%s: %s row(s)', r.k, r.col, v_n)); end if;
   end loop;
   select concat_ws('; ', v_bad, (select 'agent_actions naming a supplier: ' || string_agg(a.id::text, ', ') from public.agent_actions a
-     where a.id in (select id from _f_aa) and (a.detail ? 'supplier_id' or a.detail ? 'lead_id'))) into v_bad;
+     where a.id in (select id from _f_aa)
+       -- a KEY that holds JSON null names no one (18 Nov 18:30:41Z: the apply refused on 8 delivery hand-offs to the founder's own
+       -- demo account whose detail carried supplier_id/lead_id = null); only a value names a third party
+       and (nullif(btrim(coalesce(a.detail->>'supplier_id', '')), '') is not null or nullif(btrim(coalesce(a.detail->>'lead_id', '')), '') is not null))) into v_bad;
   if nullif(v_bad, '') is not null then
     raise exception 'FOUNDER ACCOUNTS PURGE REFUSED: a row it would delete names a real third party: %', v_bad;
   end if;
