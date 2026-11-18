@@ -187,7 +187,10 @@ test('3. one mechanism, and the busy-table locks last', () => {
   assert.match(sqlText, /create or replace function public\.trg_company_event_dispatch\(\)[\s\S]{0,300}RETIRED[\s\S]{0,300}return null;/);
   const drop = read('scripts/sql/the_department_dispatcher_trigger_goes_once_its_body_is_a_no_op.sql');
   assert.match(drop, /set local lock_timeout = '1500ms';[\s\S]*drop trigger if exists trg_company_event_dispatch on public\.company_event;/);
-  assert.ok(existsSync(join(REPO, 'scripts/sql/pending/the_department_dispatcher_trigger_goes_once_its_body_is_a_no_op.txt')), 'the drop file has its pending note');
+  // Pending until applied, then in the MANIFEST (applied 17 Nov 2026 14:54 UTC, #2047 moved its note to the MANIFEST).
+  assert.ok(existsSync(join(REPO, 'scripts/sql/pending/the_department_dispatcher_trigger_goes_once_its_body_is_a_no_op.txt'))
+    || read('scripts/sql/MANIFEST.txt').split('\n').includes('scripts/sql/the_department_dispatcher_trigger_goes_once_its_body_is_a_no_op.sql'),
+    'the drop file has its pending note, or its MANIFEST line once applied');
   assert.doesNotMatch(sqlText, /create index (?!if not exists (subject_link_key_idx|pool_event_class_at_idx|event_subscription_one_owner))/, 'no index on a busy table');
 });
 

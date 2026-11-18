@@ -56,7 +56,7 @@ export type {
 export type { Figure } from './think/figures.ts';
 export type { Draft } from './think/validator.ts';
 export type { GtePlacement } from './think/deps.ts';
-export type { StoredThinkRequest, HeldRow } from './think/replay.ts';
+export type { StoredThinkRequest, HeldRow, ReplayShape } from './think/replay.ts';
 export { SEATS } from './think/types.ts';
 export {
   CORROBORATION_FLOOR, CORROBORATION_FLOOR_ML, MAX_STEPS, MAX_SYNTH_PASSES, MAX_RESEARCH_PAGES, TRANSIENT_MODEL_ERROR, SLOW_MODEL_ERROR,
@@ -75,4 +75,5 @@ export { think } from './think/engine.ts';
 export { MIN_STEP_MS, withDeadline, defaultDeps, heartbeatDeps } from './think/deps.ts';
 export {
   REPLAY_MAX_ROWS, REPLAY_BUDGET_MS, REPLAY_ROW_MS, REPLAY_CLAIM, REPLAY_RESERVE_MS, REPLAY_STALE_MS, REPLAY_ANSWER_RESERVE_MS, replayHeld,
+  REPLAY_TIMEOUTS_BEFORE_LIGHT, GATEWAY_TIMEOUT, MODEL_STEP_KINDS, timedOutAtGateway, replayShape,
 } from './think/replay.ts';
