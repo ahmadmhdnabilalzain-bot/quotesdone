@@ -19,7 +19,7 @@ import { currentCustomerTermsVersion, needsReacceptance, REACCEPT_MESSAGE } from
 import { applyEdits, validateStored, supplierLine } from '../../_shared/intake_requirements.ts';
 import { type ActionCtx, INQUIRY_LIMIT_PER_HOUR, J, SERVICE, SUPABASE_URL, admin, getSecret } from '../context.ts';
 import { inquiryNotSaved, labelize } from '../lib/inquiry_rules.ts';
-import { PRICED_PAGES_WITHHELD_MESSAGE, drawingIdentityFinding, drawingPagesRefused, pagesStillBeingChecked, resolveRedactedPaths, storedDrawingTerms } from '../lib/drawings.ts';
+import { PAGES_WITHHELD_MESSAGE, drawingIdentityFinding, drawingPagesRefused, pagesStillBeingChecked, resolveRedactedPaths, storedDrawingTerms } from '../lib/drawings.ts';
 import { PAGES_FOLLOW_MESSAGE } from '../../_shared/drawing_pages_follow.ts';
 import { gateAtSend } from '../drawing_send_gate.ts';
 import { ownDrawingPath } from '../drawing_path.ts';
@@ -238,7 +238,9 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
       const follow = drawingPath && !rr.paths.length ? await pagesStillBeingChecked(String(cust.id), String(user.id || ''), drawingPath) : { paths: [] as string[], follows: false };
       const offered = rr.paths.length ? rr.paths.slice(0, 24) : (follow.paths.length ? follow.paths.slice(0, 24) : null);
       const pagesRefused = await drawingPagesRefused({ custId: String(cust.id), briefSource, pricedReading: isQuotationReading(boqObj) || isPricedReading(boqObj), offered: !!offered, follows: follow.follows, sources: [drawingPath ?? '', ...(rr.sources ?? []), ...(follow.sources ?? [])] });
-      if (pagesRefused) await drawingIdentityFinding('priced_pages_refused', { source_path: drawingPath, brief_source: briefSource, pages_offered: offered?.length ?? 0 });
+      // pagesRefused is the reason (18 Nov 2026): 'priced_verdict_unread' when the server's verdict on the pages' source could
+      // not be read. Refused all the same (fail closed), but the seat is told the read failed, not that the document is priced.
+      if (pagesRefused) await drawingIdentityFinding(pagesRefused === 'priced_verdict_unread' ? 'priced_verdict_unread' : 'priced_pages_refused', { source_path: drawingPath, brief_source: briefSource, pages_offered: offered?.length ?? 0 });
       const drawingRedacted = pagesRefused ? null : offered;
       const pagesFollow = !pagesRefused && !drawingRedacted && follow.follows;
       // `tradesIn` arrives from the request body, so Set<unknown> is what TypeScript infers and
@@ -314,9 +316,10 @@ export async function inquiryCreateActions(c: ActionCtx): Promise<Response | und
         } else boqObj = gate.boq;
       }
       // Said to the customer on every posted answer: the pages follow, and each supplier is told when they arrive.
-      // Or, when its pages were refused (a priced source), that it went without them and why.
+      // Or, when its pages were refused, that it went without them and why: a priced source ('priced_document'), or a verdict
+      // on the source that could not be read ('priced_verdict_unread', 18 Nov 2026), which is never told as "found to be priced".
       const followSaid = pagesFollow ? { drawing_pages_follow: true, drawing_pages_follow_message: PAGES_FOLLOW_MESSAGE }
-        : pagesRefused ? { drawing_pages_withheld: true, drawing_pages_withheld_reason: 'priced_document', drawing_pages_withheld_message: PRICED_PAGES_WITHHELD_MESSAGE } : {};
+        : pagesRefused ? { drawing_pages_withheld: true, drawing_pages_withheld_reason: pagesRefused, drawing_pages_withheld_message: PAGES_WITHHELD_MESSAGE[pagesRefused] } : {};
       const drawCols = { drawing_file_path: drawingPath, drawing_file_name: drawingName, drawing_redacted_paths: drawingRedacted, boq: boqObj, boq_confidence: boqObj?.confidence || null };
 
       // ── §7: THREE THINGS THE ASSISTANT EXTRACTED AND THIS ROUTINE THREW AWAY ────────────────────

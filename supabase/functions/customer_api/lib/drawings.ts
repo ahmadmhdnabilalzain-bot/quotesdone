@@ -227,6 +227,7 @@ const FINDING_TITLE = {
   sent_without_drawing: 'A request went to suppliers without its drawing: the drawing was not redacted and verified at Send',
   priced_pages_refused: 'Drawing pages were offered for a request whose source document the server judged priced (a quotation or a priced BOQ): none were attached',
   priced_verdict_unrecorded: 'A document judged priced could not have its verdict recorded: its redacted pages were retired instead, so no request can attach them',
+  priced_verdict_unread: 'Drawing pages were offered for a request but the server\'s priced verdict on their source could not be read: none were attached (fail closed), and the customer was told the verdict was unread, not that the document is priced',
 } as const;
 
 // THE SERVER'S OWN VERDICT THAT A DOCUMENT IS PRICED (18 Nov 2026, sales_engineer; re-review of c1a934280, item 2). analyze_drawing
@@ -240,6 +241,22 @@ export const PRICED_PAGES_WITHHELD_MESSAGE = {
   en: 'Your request went to the suppliers without drawing pages: the document they come from was found to be priced (a quotation or a priced bill of quantities), and pages of a priced document are never shown to suppliers. To share the drawing, please send it in a separate request.',
   ar: 'أُرسل طلبكم إلى المورّدين من دون لوحات المخطّط، لأن المستند الذي أُخذت منه تبيّن أنه مُسعَّر (عرض سعر أو جدول كميات مُسعَّر)، ولا تُعرض صفحات المستندات المُسعَّرة على المورّدين. لمشاركة المخطّط، يُرجى إرساله في طلب مستقل.',
 } as const;
+// A VERDICT THAT COULD NOT BE READ IS NOT A VERDICT THAT THE DOCUMENT IS PRICED (18 Nov 2026, sales_engineer). pricedVerdictOf
+// answers 'unread' when its read of drawing_redaction_runs fails; the pages are refused all the same (fail closed), but
+// PRICED_PAGES_WITHHELD_MESSAGE told that customer "the document ... was found to be priced", which nobody had found. This is
+// what is true instead: the pages went nowhere because the server could not confirm, at Send, that their source is unpriced.
+/** Said to the customer when the pages were refused because the server's verdict on their source could not be read. */
+export const PRICED_VERDICT_UNREAD_MESSAGE = {
+  en: 'Your request went to the suppliers without drawing pages: we could not confirm just now that the document they come from is unpriced, and drawing pages are only shown to suppliers once that is confirmed. To share the drawing, please send it again in a separate request, or try again shortly.',
+  ar: 'أُرسل طلبكم إلى المورّدين من دون لوحات المخطّط، لأننا لم نتمكّن الآن من التأكّد من أن المستند الذي أُخذت منه غير مُسعَّر، ولا تُعرض لوحات المخطّط على المورّدين إلا بعد التأكّد من ذلك. لمشاركة المخطّط، يُرجى إرساله مجدداً في طلب مستقل، أو المحاولة بعد قليل.',
+} as const;
+/** Why create_inquiry refused the pages (drawingPagesRefused): the value of drawing_pages_withheld_reason. */
+export type PagesRefusedReason = 'priced_document' | 'priced_verdict_unread';
+/** What the customer is told for each reason. */
+export const PAGES_WITHHELD_MESSAGE: Record<PagesRefusedReason, { en: string; ar: string }> = {
+  priced_document: PRICED_PAGES_WITHHELD_MESSAGE,
+  priced_verdict_unread: PRICED_VERDICT_UNREAD_MESSAGE,
+};
 /**
  * Records the verdict; true when it holds. FAIL CLOSED (re-review of 464673eff, item 2): a verdict that cannot be written (asked
  * twice) would leave the runs already redacted from the document attachable, so those runs are RETIRED in its place: each is
@@ -270,26 +287,35 @@ export async function recordPricedVerdict(o: { customerId: string; email: string
   return retired && removed && runIds.length > 0;
 }
 /** create_inquiry's decision: are the drawing pages offered for this request (resolved from the customer's runs, or a pages
- *  job's) refused? Yes for a quotation brief, a reading that is priced (isQuotationReading / isPricedReading), and any page
- *  whose source, or whose request's stored document, the server judged priced; whatever the client sent. */
-export async function drawingPagesRefused(o: { custId: string; briefSource: string | null; pricedReading: boolean; offered: boolean; follows: boolean; sources: string[] }): Promise<boolean> {
+ *  job's) refused, and why? 'priced_document' for a quotation brief, a reading that is priced (isQuotationReading /
+ *  isPricedReading), and any page whose source, or whose request's stored document, the server judged priced; whatever the
+ *  client sent. 'priced_verdict_unread' when that verdict could not be read: refused all the same (fail closed), but the
+ *  customer is not told the document is priced (18 Nov 2026). false: the pages go. */
+export async function drawingPagesRefused(o: { custId: string; briefSource: string | null; pricedReading: boolean; offered: boolean; follows: boolean; sources: string[] }): Promise<false | PagesRefusedReason> {
   if (!o.offered && !o.follows) return false;
   // 'boq' is the button the customer pressed, not a verdict (re-review of 464673eff, item 1): a drawing PDF sent that way, or
   // merged with an unpriced BOQ sheet, keeps its pages. Only a quotation brief, a priced reading or the server's verdict refuse.
-  if (o.briefSource === 'quotation' || o.pricedReading) return true;
-  return await sourcesJudgedPriced(o.custId, o.sources);
+  if (o.briefSource === 'quotation' || o.pricedReading) return 'priced_document';
+  const v = await pricedVerdictOf(o.custId, o.sources);
+  return v === 'priced' ? 'priced_document' : v === 'unread' ? 'priced_verdict_unread' : false;
 }
-/** Whether the server judged any of these stored documents of this customer priced. A read that fails is answered true: no
- *  page is attached on a verdict nobody could read (fail closed). */
-export async function sourcesJudgedPriced(custId: string, sourcePaths: string[]): Promise<boolean> {
+/** The server's verdict on these stored documents of this customer: 'priced' when it judged any of them priced, 'not_priced'
+ *  when it judged none (or none was named), 'unread' when the read failed. A caller that attaches pages treats 'unread' as
+ *  priced (fail closed); only what it tells the customer differs (18 Nov 2026). */
+export async function pricedVerdictOf(custId: string, sourcePaths: string[]): Promise<'priced' | 'not_priced' | 'unread'> {
   const paths = [...new Set(sourcePaths.filter((p) => typeof p === 'string' && p))].slice(0, 30);
-  if (!paths.length) return false;
+  if (!paths.length) return 'not_priced';
   try {
     const { data, error } = await admin.from('drawing_redaction_runs').select('id').eq('customer_id', custId).eq('status', 'held')
       .eq('verify_detail->>reason', PRICED_VERDICT).in('source_path', paths).limit(1);
-    if (error || !Array.isArray(data)) return true;
-    return data.length > 0;
-  } catch (_e) { return true; }
+    if (error || !Array.isArray(data)) return 'unread';
+    return data.length > 0 ? 'priced' : 'not_priced';
+  } catch (_e) { return 'unread'; }
+}
+/** Whether the server judged any of these stored documents of this customer priced. A read that fails is answered true: no
+ *  page is attached on a verdict nobody could read (fail closed). pricedVerdictOf says which of the two it was. */
+export async function sourcesJudgedPriced(custId: string, sourcePaths: string[]): Promise<boolean> {
+  return (await pricedVerdictOf(custId, sourcePaths)) !== 'not_priced';
 }
 export async function drawingIdentityFinding(kind: keyof typeof FINDING_TITLE, evidence: Record<string, unknown>): Promise<void> {
   try {

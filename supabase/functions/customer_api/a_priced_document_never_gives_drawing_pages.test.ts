@@ -8,7 +8,7 @@ import { assert, assertEquals, assertMatch } from 'jsr:@std/assert@1';
 Deno.env.set('SUPABASE_URL', Deno.env.get('SUPABASE_URL') || 'http://127.0.0.1:1');
 Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || 'test');
 const { admin } = await import('./context.ts');
-const { PRICED_VERDICT, drawingPagesRefused, recordPricedVerdict, resolveRedactedPaths, sourcesJudgedPriced } = await import('./lib/drawings.ts');
+const { PAGES_WITHHELD_MESSAGE, PRICED_PAGES_WITHHELD_MESSAGE, PRICED_VERDICT, PRICED_VERDICT_UNREAD_MESSAGE, drawingPagesRefused, pricedVerdictOf, recordPricedVerdict, resolveRedactedPaths, sourcesJudgedPriced } = await import('./lib/drawings.ts');
 
 const CUST = 'c0000000-0000-4000-8000-00000000000c';
 const QUOTE = `drawings/${CUST}/1_ZZ DEMO quotation.pdf`, DRAWING = `drawings/${CUST}/2_ZZ DEMO drawing.pdf`;
@@ -45,9 +45,9 @@ const run = (id: string, source: string, paths: string[]): Row => ({ id, custome
 
 Deno.test('a quotation brief or a priced reading takes no pages; the BOQ button alone ("boq") is not a verdict', async () => {
   const asked = stubRuns([]);
-  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'quotation', pricedReading: false, offered: true, follows: false, sources: [DRAWING] }), true);
-  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'drawing', pricedReading: true, offered: true, follows: false, sources: [DRAWING] }), true, 'a priced reading (quotation or priced BOQ marks)');
-  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'quotation', pricedReading: false, offered: false, follows: true, sources: [] }), true, 'nor pages that follow');
+  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'quotation', pricedReading: false, offered: true, follows: false, sources: [DRAWING] }), 'priced_document');
+  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'drawing', pricedReading: true, offered: true, follows: false, sources: [DRAWING] }), 'priced_document', 'a priced reading (quotation or priced BOQ marks)');
+  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'quotation', pricedReading: false, offered: false, follows: true, sources: [] }), 'priced_document', 'nor pages that follow');
   assertEquals([...asked], [], 'decided without the database');
   // A drawing PDF sent with the BOQ button, or merged with an unpriced BOQ sheet: 'boq' is the client's label, not a verdict.
   assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'boq', pricedReading: false, offered: true, follows: false, sources: [DRAWING] }), false);
@@ -61,13 +61,47 @@ Deno.test('a client that names a priced document\'s runs on a "drawing" request 
   assert(!('err' in rr));
   assertEquals(rr.paths, ['redacted/q/page_p0.jpg'], 'the run is the customer\'s own, so it resolves');
   assertEquals(rr.sources, [QUOTE], 'and names the document it was redacted from');
-  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'drawing', pricedReading: false, offered: true, follows: false, sources: [DRAWING, ...(rr.sources ?? [])] }), true);
+  assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'drawing', pricedReading: false, offered: true, follows: false, sources: [DRAWING, ...(rr.sources ?? [])] }), 'priced_document', 'a verdict that was read and found priced says so');
   // The request's own stored drawing judged priced refuses too, even when the runs name another source.
   assertEquals(await sourcesJudgedPriced(CUST, [QUOTE]), true);
   stubRuns([run('22222222-2222-4222-8222-222222222222', DRAWING, ['redacted/d/page_p0.jpg'])]);
   assertEquals(await drawingPagesRefused({ custId: CUST, briefSource: 'drawing', pricedReading: false, offered: true, follows: false, sources: [DRAWING] }), false, 'a drawing nobody judged priced keeps its pages');
   stubRuns([], true);
   assertEquals(await sourcesJudgedPriced(CUST, [DRAWING]), true, 'a verdict nobody could read attaches nothing (fail closed)');
+});
+
+// A VERDICT THAT COULD NOT BE READ (18 Nov 2026): the pages are refused exactly as before, but the reason, the customer's
+// message and the seat's finding say the verdict was unread, never that the document was found to be priced.
+Deno.test('an unreadable verdict refuses the pages with reason "priced_verdict_unread"; a readable priced verdict still says "priced_document"', async () => {
+  const offer = { custId: CUST, briefSource: 'drawing', pricedReading: false, offered: true, follows: false, sources: [DRAWING] };
+  stubRuns([], true);
+  assertEquals(await pricedVerdictOf(CUST, [DRAWING]), 'unread');
+  assertEquals(await drawingPagesRefused(offer), 'priced_verdict_unread', 'refused (fail closed), for the true reason');
+  assertEquals(await drawingPagesRefused({ ...offer, offered: false, follows: true }), 'priced_verdict_unread', 'pages that follow too');
+  assertEquals(await sourcesJudgedPriced(CUST, [DRAWING]), true, 'the boolean stays fail closed');
+  // A quotation brief or a priced reading is decided without the read, so it is still 'priced_document' while the read fails.
+  assertEquals(await drawingPagesRefused({ ...offer, briefSource: 'quotation' }), 'priced_document');
+  assertEquals(await drawingPagesRefused({ ...offer, pricedReading: true }), 'priced_document');
+  // A thrown read is unread too.
+  // deno-lint-ignore no-explicit-any
+  (admin as any).from = () => { throw new Error('socket closed'); };
+  assertEquals(await drawingPagesRefused(offer), 'priced_verdict_unread');
+  // Readable: priced says so, unpriced keeps its pages.
+  stubRuns([verdict(DRAWING)]);
+  assertEquals(await pricedVerdictOf(CUST, [DRAWING]), 'priced');
+  assertEquals(await drawingPagesRefused(offer), 'priced_document');
+  stubRuns([]);
+  assertEquals(await pricedVerdictOf(CUST, [DRAWING]), 'not_priced');
+  assertEquals(await pricedVerdictOf(CUST, ['']), 'not_priced', 'nothing named: nothing to read');
+  assertEquals(await drawingPagesRefused(offer), false);
+  // What each reason tells the customer: the unread one never says the document was found to be priced.
+  assertEquals(PAGES_WITHHELD_MESSAGE.priced_document, PRICED_PAGES_WITHHELD_MESSAGE);
+  assertEquals(PAGES_WITHHELD_MESSAGE.priced_verdict_unread, PRICED_VERDICT_UNREAD_MESSAGE);
+  assert(!/found to be priced|was priced|is priced/i.test(PRICED_VERDICT_UNREAD_MESSAGE.en), 'no claim that the document is priced');
+  assertMatch(PRICED_VERDICT_UNREAD_MESSAGE.en, /could not confirm .* unpriced/);
+  assertMatch(PRICED_VERDICT_UNREAD_MESSAGE.en, /separate request, or try again shortly/);
+  assert(!PRICED_VERDICT_UNREAD_MESSAGE.ar.includes('تبيّن أنه مُسعَّر'), 'nor in Arabic');
+  assertMatch(PRICED_VERDICT_UNREAD_MESSAGE.ar, /لم نتمكّن/);
 });
 
 Deno.test('wired: analyze_drawing and analyze_document record the verdict; create_inquiry decides before any page is attached', () => {
@@ -77,7 +111,10 @@ Deno.test('wired: analyze_drawing and analyze_document record the verdict; creat
   const create = Deno.readTextFileSync(new URL('./actions/inquiry_create.ts', import.meta.url));
   assertMatch(create, /const pagesRefused = await drawingPagesRefused\(\{ custId: String\(cust\.id\), briefSource, pricedReading: isQuotationReading\(boqObj\) \|\| isPricedReading\(boqObj\), offered: !!offered, follows: follow\.follows, sources: \[drawingPath \?\? '', \.\.\.\(rr\.sources \?\? \[\]\), \.\.\.\(follow\.sources \?\? \[\]\)\] \}\);/);
   // The customer is told when pages were refused, and the seat too, a BOQ-button PDF included.
-  assertMatch(create, /: pagesRefused \? \{ drawing_pages_withheld: true, drawing_pages_withheld_reason: 'priced_document', drawing_pages_withheld_message: PRICED_PAGES_WITHHELD_MESSAGE \} : \{\};/);
+  // The reason is the decision's own (18 Nov 2026): 'priced_document' or 'priced_verdict_unread', each with its own message.
+  assertMatch(create, /: pagesRefused \? \{ drawing_pages_withheld: true, drawing_pages_withheld_reason: pagesRefused, drawing_pages_withheld_message: PAGES_WITHHELD_MESSAGE\[pagesRefused\] \} : \{\};/);
+  assert(!/drawing_pages_withheld_reason: 'priced_document'/.test(create), 'no hard-coded "priced" reason');
+  assertMatch(create, /if \(pagesRefused\) await drawingIdentityFinding\(pagesRefused === 'priced_verdict_unread' \? 'priced_verdict_unread' : 'priced_pages_refused', /, 'the seat is told a failed read as a failed read');
   assertMatch(create, /\(briefSource === 'drawing' \|\| \(briefSource === 'boq' && \/\\\.pdf\$\/i\.test\(drawingPath\)\) \|\| drawing\?\.held === true \|\| pagesRefused\)\) await drawingIdentityFinding\('sent_without_drawing'/);
   assertEquals((create.match(/return J\(\{ \.\.\.followSaid, /g) ?? []).length, 3, 'single, turnkey and every split answer carry it');
   assertMatch(create, /const drawingRedacted = pagesRefused \? null : offered;\s*const pagesFollow = !pagesRefused && !drawingRedacted && follow\.follows;/);
