@@ -278,6 +278,8 @@ Object.assign(T.en, {
   nr_separate_ask: 'No single contractor is available for the whole request yet. Would you like separate quotes per trade instead? {n} specialists in its trades can quote their part.',
   nr_separate_yes: 'Yes, get separate quotes per trade', nr_separate_done: 'Done: your request has gone out as separate quotes per trade.',
   nr_separate_fail: 'We could not send it as separate quotes just now. Please try again in a moment.',
+  // Only when customer_api create_inquiry withheld the drawing pages and sent no message of its own (pagesWithheldText below).
+  nr_pages_withheld: 'Your request went to the suppliers without its drawing pages.',
   nr_posted_partial: 'The {list} part has not reached a supplier yet: we are still registering suppliers in that trade, and we will tell you as soon as it reaches one.',
   // The matcher did not answer at posting (customer_api lib/rematch.ts): the request is matched again, so it is not "no supplier".
   nr_posted_matching: 'Thank you. We are matching your request with the suppliers who cover it, and you will hear from us shortly. There is nothing to pay.',
@@ -466,6 +468,7 @@ Object.assign(T.ar, {
   nr_separate_ask: 'لا يتوفر بعدُ مقاولٌ واحد لكامل الطلب. هل تودّون الحصول على عروض أسعار منفصلة لكل تخصص بدلًا من ذلك؟ يمكن لـ {n} من المتخصصين في تخصصاته تقديم عروض للأجزاء التي ينفّذونها.',
   nr_separate_yes: 'نعم، أرغب في عروض أسعار منفصلة لكل تخصص', nr_separate_done: 'أُرسِل طلبكم لتلقّي عروض أسعار منفصلة لكل تخصص.',
   nr_separate_fail: 'تعذّر إرسال الطلب بعروض منفصلة الآن. يُرجى المحاولة مرة أخرى بعد قليل.',
+  nr_pages_withheld: 'أُرسل طلبكم إلى المورّدين من دون لوحات المخطّط.',
   nr_posted_partial: 'لم يصل جزء {list} إلى أي مورّد بعد، إذ ما زلنا نسجّل الموردين في هذا التخصص، وسنُعلمكم فور وصوله إلى أحدهم.',
   nr_posted_matching: 'شكرًا لك. نعمل على مطابقة طلبك مع الموردين المختصين فيه، وسنتواصل معك قريبًا. لا يلزمك أي مبلغ.',
   nr_urgency_emergency: 'طارئ', nr_urgency_urgent: 'عاجل', nr_urgency_normal: 'أولوية عادية',
@@ -655,6 +658,19 @@ export function errText(j, lang, fallbackKey = 'err_generic') {
   const text = [j.error, j.message].filter(Boolean).join(' ');
   for (const [re, k] of MSG_KEY) if (re.test(text)) return t(lang, k);
   return t(lang, fallbackKey);
+}
+
+// THE CUSTOMER IS TOLD WHEN HIS DRAWING PAGES DID NOT GO (18 Nov 2026, sales_engineer). customer_api create_inquiry answers
+// drawing_pages_withheld with drawing_pages_withheld_message {en, ar} when it refused the pages of a document the server judged
+// priced (lib/drawings.ts drawingPagesRefused), and no screen read it: the composer said "sent" and the customer believed the
+// suppliers had his drawing. The server's sentence is the one shown, in the customer's language; the reason is never written
+// here, and the short line above is said only when the answer carried no message. '' when nothing was withheld.
+// Check: scripts/checks/the_customer_is_told_when_drawing_pages_were_withheld.test.mjs
+export function pagesWithheldText(r, lang) {
+  if (!r || r.drawing_pages_withheld !== true) return '';
+  const m = r.drawing_pages_withheld_message;
+  const said = m && typeof m === 'object' ? (lang === 'ar' ? m.ar : m.en) : '';
+  return typeof said === 'string' && said.trim() ? said.trim() : t(lang, 'nr_pages_withheld');
 }
 
 // ── ADDED 29 SEP 2026 (founder ledger 1018, item 2): the quote quality check in the comparison. quote_compare serves

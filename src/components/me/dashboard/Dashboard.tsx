@@ -29,7 +29,7 @@ import { waNeedsPrompt } from '@/components/portal/whatsappChoiceText';
 import * as M from 'motion/react-m';
 import { useReducedMotion } from 'motion/react';
 import { take } from '../prefetch';
-import { t, tf, errText, emirateName } from '../portalText';
+import { t, tf, errText, emirateName, pagesWithheldText } from '../portalText';
 import { call } from '../api';
 import { aed, greetingOf, stateOf } from '../format';
 import { S } from '../styles';
@@ -42,6 +42,9 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
   // once, without blocking anything; answering or "Ask me later" closes it for good.
   const [waAsk, setWaAsk] = useState(() => waNeedsPrompt(kyc));
   const [ov, setOv] = useState(null); const [data, setData] = useState(null); const [err, setErr] = useState(''); const [note, setNote] = useState(''); const [showNew, setShowNew] = useState(false); const [postedGuide, setPostedGuide] = useState(null);
+  // The create_inquiry answer, kept for its sentence when the request went without its drawing pages (portalText
+  // pagesWithheldText, 18 Nov 2026); read at render, so a language switch changes the sentence too.
+  const [withheld, setWithheld] = useState(null);
   // WHY THIS IS NO LONGER A `view`. Messages and Projects were whole-surface early returns: opening
   // either REPLACED the dashboard, which is the full-page navigation §21 asks the portal not to
   // have — and it also stranded the intake chat, because a branch that returns before the
@@ -316,7 +319,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
               : ((ov && ov.headline) || t(lang, 'welcome_sub'))}
           </p>
         </div>
-        <Button size="sm" className="shrink-0 gap-1.5" onClick={() => { setShowNew((v) => !v); setPostedGuide(null); }}>
+        <Button size="sm" className="shrink-0 gap-1.5" onClick={() => { setShowNew((v) => !v); setPostedGuide(null); setWithheld(null); }}>
           {/* The label flips to "Close" but the icon did not, so the open intake carried a button
               reading "+ Close" - a plus sign on the control that dismisses the thing. */}
           {showNew ? <X className="h-4 w-4" aria-hidden /> : <Plus className="h-4 w-4" aria-hidden />}
@@ -326,6 +329,8 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
     </section>
 
     {note && <div className={S.note}>{note}</div>}
+    {/* Said under "sent" (18 Nov 2026, sales_engineer): the suppliers did not get his drawing pages, and why, in his language. */}
+    {pagesWithheldText(withheld, lang) ? <div className={cn(S.note, 'font-normal')} role="status">{pagesWithheldText(withheld, lang)}</div> : null}
     {postedGuide && <div className="mb-3.5">
       <ConciergeSteps guide={postedGuide} held={postedGuide.held} lang={lang} title={t(lang, postedGuide.first_inquiry ? 'cg_posted' : postedGuide.held && postedGuide.held.finding_suppliers ? 'cg_finding_title' : 'cg_held')} />
       <Button variant="link" className="h-auto px-0" onClick={() => setPostedGuide(null)}>{t(lang, 'close')}</Button>
@@ -354,6 +359,7 @@ function Dashboard({ token, lang, theme, onSwapTheme, onSetLang, onSignOut, onSe
         // lists one card per trade; the note says how many trades were sent separately.
         const n = r && Array.isArray(r.child_ids) ? r.child_ids.length : 0;
         setNote(r && r.none ? '' : n > 1 ? tf(lang, 'request_sent_split', { n }) : t(lang, 'request_sent'));
+        setWithheld(r || null);
         // The first-request concierge (founder ledger 1018): a first request, or one held for its specs, gets the
         // steps and what is missing on screen as well as by e-mail.
         const g = r && r.concierge;
