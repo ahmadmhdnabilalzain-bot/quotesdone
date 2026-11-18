@@ -2487,3 +2487,15 @@ scripts/sql/a_drawing_sheet_not_checked_in_time_is_queued_for_the_cad_reader.sql
 scripts/sql/a_drawing_sheet_is_queued_once.sql
 # 17 Nov 2026 23:47 UTC (it_engineer): applied after #2043-#2046 (four earlier applies refused by its own guards and rolled back, nothing deleted); in-file PROBE OK: 40,253 demo rows in 50 tables each exactly as reported, 2,498 post-cutoff rows kept, the founder's accounts and the three kept leads untouched. Its _probe.sql calls routines, so it was not run on production; dropbox_backup drains 68 storage objects and 635 Dropbox items, then `node scripts/it/purge_demo_data.mjs --verify-zero`.
 scripts/sql/the_last_demo_rows_are_purged_and_no_real_row_moves.sql
+# 18 Nov 2026 11:17 UTC (it_engineer): applied after #2050 (resilience_ping deployed first); read back identical to the file.
+scripts/sql/a_prompt_that_timed_out_twice_is_not_resent.sql
+# 18 Nov 2026 13:29 UTC (sales_engineer): applied after #2051; read back identical to the file.
+scripts/sql/a_leads_stage_follows_its_own_evidence.sql
+# 18 Nov 2026 13:29 UTC (sales_engineer): applied after the trigger above; stages read 123 contacted, 161 no_response, 44 not_contacted, 3 registered, 2 replied, 26 undeliverable.
+scripts/sql/a_leads_stage_follows_its_own_evidence_backfill.sql
+# 18 Nov 2026 13:30 UTC (sales_engineer): applied after #2051; PROBE OK.
+scripts/sql/an_interested_prospect_is_chased_three_times_until_he_registers_or_declines.sql
+# 18 Nov 2026 13:30 UTC (sales_engineer): applied after #2051 (before the 1 Dec scorecard run); read back identical to the file.
+scripts/sql/a_supplier_is_sent_no_scorecard_for_a_month_before_he_was_approved_or_without_a_request.sql
+# 18 Nov 2026 13:31 UTC (sales_engineer): applied after #2051 (dropbox_backup deployed); read back identical to the file.
+scripts/sql/a_backup_folder_with_no_file_or_no_party_is_a_finding.sql

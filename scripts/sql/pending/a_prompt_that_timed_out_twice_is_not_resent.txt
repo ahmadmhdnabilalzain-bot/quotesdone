@@ -1,9 +1,0 @@
-Committed, not applied. Seat: it_engineer. 18 Nov 2026.
-
-Why it waits: the seat that wrote it may not apply SQL to production; the release operator applies it after the merge
-(docs/runbooks/release-without-ci.md). It replaces fn_reason_held_due's RETURNING list only (adds attempts and
-gateway_timeouts); CREATE OR REPLACE keeps the ACL. Apply order against the resilience_ping redeploy is free: the edge
-reads an absent gateway_timeouts as 0 and today's edge ignores the new fields. Until it is applied, the redeployed replay
-still counts each timeout onto the row's result, so the first claim after the apply already sees the count.
-  node scripts/apply_sql.mjs scripts/sql/a_prompt_that_timed_out_twice_is_not_resent.sql --apply --ddl
-then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.
