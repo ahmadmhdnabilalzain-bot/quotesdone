@@ -40,6 +40,7 @@
 --      never by the unverified mobile (an unverified number may be someone else's).
 --   2. fn_signup_customer_held(uuid), same signature, same grants: reads the row and asks (1). A row that does not exist is
 --      null, as before.
+--   3. doc_backups_entity_entity_id_idx on doc_backups (entity, entity_id), so the check in (1) is an index read (see below).
 --   A held customer is not deleted; customer_support's activation duty (fn_customer_support_activation_tick, every 6 hours,
 --   customer_support_activates_wins_back_and_settles_disputes.sql) writes to him once 3 days after sign-up, through
 --   fn_customer_support_duty_send (suppression and demo rules). Someone with only an e-mail and nothing else is still removed.
@@ -64,7 +65,16 @@
 --   so a guard that does not hold is never left live; on success it leaves nothing and returns a verdict row.
 -- Prevented by: the probe below, and (in the same PR) the updated an_unfinished_sign_up_is_never_a_customer.test.mjs.
 
-set local lock_timeout = '5s';
+set local lock_timeout = '1500ms';
+
+-- THE INDEX the held check reads doc_backups by (review, 19 Nov 2026). Production: 61,152 rows, 36 MB heap (62 MB with its
+-- 8 indexes), none on (entity, entity_id), so each lookup was a seq scan costing 5,720, and the purge asks for every
+-- non-demo customer every 5 minutes. Built on a 61,152-row, 40 MB local stand-in in 63-70 ms. The stand-in plans an index scan
+-- costing 8.44. A plain CREATE INDEX holds a SHARE lock: reads go on, writes to doc_backups wait while it builds and until
+-- this file commits. Measured 58 doc_backups writes in the last hour, about 1 a minute, so a writer may wait well under
+-- a second. CONCURRENTLY would not block writers, but it cannot run inside apply_sql.mjs's one transaction.
+-- lock_timeout bounds only the wait to TAKE the lock, not the build.
+create index if not exists doc_backups_entity_entity_id_idx on public.doc_backups (entity, entity_id);
 
 create or replace function public.fn_signup_customer_shows_intent(p_cu public.customers)
 returns boolean
@@ -81,17 +91,16 @@ as $fn$
     or cu.signed_terms_path is not null
     or cu.signed_terms_at is not null
     or cu.signed_terms_url is not null
+    -- one read of doc_backups for both: a filed certificate (a) and a filed drawing-files upload (b)
     or exists (select 1 from public.doc_backups d
                 where d.entity = 'customer' and d.entity_id = cu.id::text
-                  and (d.bucket = 'signed-terms' or d.doc_type = 'Signed Terms & Conditions'))
+                  and (d.bucket = 'signed-terms' or d.doc_type = 'Signed Terms & Conditions' or d.bucket = 'drawing-files'))
     or exists (select 1 from public.agent_actions a
                 where a.agent = 'customer_support' and a.kind = 'customer_terms_resign' and a.target_id = cu.id::text)
     -- b) sent a file: drawings, BOQs and site photos are stored under the customer's id in drawing-files
     or exists (select 1 from storage.objects o
                 where o.bucket_id = 'drawing-files'
                   and (o.name like 'drawings/' || cu.id::text || '/%' or o.name like 'redacted/' || cu.id::text || '/%'))
-    or exists (select 1 from public.doc_backups d
-                where d.entity = 'customer' and d.entity_id = cu.id::text and d.bucket = 'drawing-files')
     or exists (select 1 from public.cad_read_jobs j where j.customer_id = cu.id or lower(j.owner_email) = lower(cu.email))
     or exists (select 1 from public.drawing_redaction_runs r where r.customer_id = cu.id or lower(r.owner_email) = lower(cu.email))
     or exists (select 1 from public.doc_reviews dr where lower(dr.from_email) = lower(cu.email))
