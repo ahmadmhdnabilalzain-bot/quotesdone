@@ -36,6 +36,21 @@ export async function openPdf(bytes: Uint8Array): Promise<any> {
   return pdfjs.getDocument({ data: bytes.slice() }).promise;
 }
 
+/** Each sheet's own text and the page count, for the glance said at once (./drawingGlance.ts, 19 Nov 2026). Text only: no
+ *  page is rendered, so it answers before rasterisePdf. Shown to the customer only; never sent. */
+export async function pdfPageTexts(bytes: Uint8Array): Promise<{ pages: number; texts: string[] }> {
+  const pdf = await openPdf(bytes);
+  const n = Math.min(pdf.numPages, PDF_MAX_PAGES);
+  const texts: string[] = [];
+  for (let p = 1; p <= n; p++) {
+    const page = await pdf.getPage(p);
+    const tc = await page.getTextContent();
+    texts.push((tc.items || []).map((it: any) => String(it?.str || '')).join(' '));
+    page.cleanup();
+  }
+  return { pages: n, texts };
+}
+
 export async function rasterisePdf(bytes: Uint8Array): Promise<{ mime: string; data: string }[]> {
   const pdf = await openPdf(bytes);
   const out: { mime: string; data: string }[] = [];
