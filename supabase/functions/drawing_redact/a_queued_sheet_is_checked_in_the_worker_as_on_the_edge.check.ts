@@ -75,7 +75,9 @@ const json = (o: unknown, status = 200) => new Response(JSON.stringify(o), { sta
 const realFetch = globalThis.fetch;
 globalThis.fetch = (async (input: Request | URL | string, init?: RequestInit) => {
   const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
-  const local = url.startsWith('http://127.0.0.1:9'), project = url.startsWith('https://htdblwldjkcgjvmqkbeh.supabase.co'), mgmt = url.startsWith('https://api.supabase.com/');
+  // The worker's project is any <20-letter ref>.supabase.co (scripts/cad_read_worker.ts holds the ref); naming it here was the
+  // 8th production ref under supabase/functions, over no_new_hardcoded_project_ref's ceiling of 7 (19 Nov 2026).
+  const local = url.startsWith('http://127.0.0.1:9'), project = /^https:\/\/[a-z]{20}\.supabase\.co\//.test(url), mgmt = url.startsWith('https://api.supabase.com/');
   if (!local && !project && !mgmt) return realFetch(input as RequestInfo, init);
   const method = init?.method ?? 'GET';
   const isBlob = init?.body instanceof Blob;

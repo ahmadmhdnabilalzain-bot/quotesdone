@@ -39,7 +39,7 @@ override list in the areas file), so a routine is found by its subject even thou
   rule. **name / category** are the job's `cron_registry` row.
 - A cron job is filed with the routine it runs.
 
-Counts measured from the mirror at generation. 951 further routine names have a canonical file but are not in
+Counts measured from the mirror at generation. 962 further routine names have a canonical file but are not in
 the mirror (dropped from production on purpose, recorded in `scripts/sql/DROPPED.txt`, or applied after the mirror was
 taken); they are not listed here.
 

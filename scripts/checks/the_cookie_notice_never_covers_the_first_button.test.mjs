@@ -29,7 +29,14 @@ test('source: the notice is in the first paint, in the flow on a phone, and hidd
   const css = R('src/app/globals.css');
   assert.match(layout, /<script dangerouslySetInnerHTML=\{\{ __html: COOKIE_ASK \}\} \/>/, 'the layout no longer marks a first visit before the content');
   assert.ok(layout.indexOf('__html: COOKIE_ASK') < layout.indexOf('<CookieConsent />'), 'the mark must come before the notice');
-  assert.match(layout, /<NextIntlClientProvider messages=\{messages\}><CookieConsent \/>\{children\}/, 'on a phone the notice must come before the page, in its flow');
+  // 19 Nov 2026: #2072 mounted <OfflineBanner> ahead of the notice. It is fixed and renders nothing while online, so the
+  // notice is still the first thing in the flow; it is allowed there only while it stays out of the flow.
+  assert.match(layout, /<NextIntlClientProvider messages=\{messages\}>(?:<OfflineBanner [^>]*\/>)?<CookieConsent \/>\{children\}/, 'on a phone the notice must come before the page, in its flow');
+  if (layout.includes('<OfflineBanner ')) {
+    const offline = R('src/components/OfflineBanner.tsx');
+    assert.match(offline, /if \(online\) return null;/, 'the offline banner ahead of the notice must render nothing while online');
+    assert.match(offline, /className="fixed /, 'the offline banner ahead of the notice must be fixed, out of the page flow');
+  }
   assert.match(ask, /setAttribute\('data-qd-cookie','ask'\)/);
   assert.match(layout, /import \{ COOKIE_ASK \} from '@\/lib\/cookieAsk';/, 'the server layout must take the mark from the plain module, not the client component');
   assert.match(layout, /<html lang=\{locale\} dir=\{[^}]*\} suppressHydrationWarning>/);

@@ -12,7 +12,9 @@ const src = readFileSync(new URL('../../src/components/portal/SupportRatingPromp
 
 test('the card is fixed to the end corner, never the start corner where the sidebar is', () => {
   // Tailwind 4 (#1201) spells the logical insets inset-s-* / inset-e-*; start-*/end-* are the v3 names.
-  assert.match(src, /fixed bottom-4 inset-e-4/);
+  // #2072 (19 Nov 2026, notched phones) keeps the 1rem gap but grows it to the safe-area inset:
+  // `bottom-[max(1rem,env(...))] inset-e-[max(1rem,env(...))]`. Still the end corner; the plain 4 is also accepted.
+  assert.match(src, /fixed bottom-(?:4|\[max\(1rem,env\(safe-area-inset-bottom\)\)\]) inset-e-(?:4|\[max\(1rem,env\(safe-area-inset-[a-z]+\)\)\])[\s"]/);
   assert.doesNotMatch(src, /fixed [^"]*\b(?:inset-s|start)-/);
 });
 
