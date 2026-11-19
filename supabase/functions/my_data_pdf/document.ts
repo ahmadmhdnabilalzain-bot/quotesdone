@@ -51,7 +51,7 @@ const T = {
     none_dsr: 'You have not made any privacy requests before this one.',
     f_your_note: 'What you wrote', f_cert: 'Signed terms certificate dated',
     dsr_line: '{kind}, asked on {d}: {status}.', k_export: 'A copy of your data', k_delete: 'Erasure of your account and data',
-    not_sent: '{n} more e-mail(s) addressed to you were prepared but never sent.',
+    not_sent: '{n} more e-mails addressed to you were prepared but never sent.',
     you: 'You', qd: 'QuotesDone', the_customer: 'The customer', the_supplier: 'The supplier', attached: '(A file was attached.)',
     wa_channel: 'Sent on WhatsApp',
     yes: 'Yes', no: 'No',
@@ -174,6 +174,24 @@ const T = {
 type Key = keyof typeof T.en;
 const tr = (lang: Lang, k: Key, v: Record<string, string | number> = {}) =>
   String(T[lang][k]).replace(/\{(\w+)\}/g, (_, n) => String(v[n] ?? ''));
+// ONE IS NOT MANY (19 Nov 2026, sales_engineer; founder ledger 1669 "Again, horrible."). The sample render of the ZZ DEMO copies
+// printed "2 more e-mail(s) ... were prepared", "The 1 most recent of 640 are shown" and would print "2 of your numbers is also
+// verified": a form letter's "(s)" and a plural verb on one. English says one or many; the Arabic lines already read correctly
+// for every count (they name the number), so they are kept as reviewed.
+const EN_ONE = {
+  not_sent: 'One more e-mail addressed to you was prepared but never sent.',
+  shown_of: 'Only the most recent of {total} is shown. To receive the rest, write to management@quotesdone.com.',
+} as const;
+const EN_MANY = {
+  wa_withheld: '{n} of your numbers are also verified on other accounts, so their messages are not in this copy. To receive them, write to management@quotesdone.com.',
+} as const;
+/** tr for a sentence about a count: English says one or many; Arabic is unchanged. */
+export function trCount(lang: Lang, k: 'not_sent' | 'shown_of' | 'wa_withheld', n: number, v: Record<string, string | number> = {}): string {
+  const vars = { n, ...v };
+  if (lang === 'en' && n === 1 && k in EN_ONE) return EN_ONE[k as keyof typeof EN_ONE].replace(/\{(\w+)\}/g, (_, x) => String((vars as Record<string, unknown>)[x] ?? ''));
+  if (lang === 'en' && n > 1 && k in EN_MANY) return EN_MANY[k as keyof typeof EN_MANY].replace(/\{(\w+)\}/g, (_, x) => String((vars as Record<string, unknown>)[x] ?? ''));
+  return tr(lang, k, vars);
+}
 
 // ── Words for the values the database stores as codes. An unknown code is shown as words, never as a key.
 const STATUS: Record<Lang, Record<string, string>> = {
@@ -198,7 +216,7 @@ const STATUS: Record<Lang, Record<string, string>> = {
 /** What a stored WhatsApp choice ('same' | 'other' | 'none' | null, _shared/whatsapp_choice.ts) means, in words. */
 export function whatsappChoice(lang: Lang, opt: unknown, number: unknown): string {
   if (opt === 'same') return tr(lang, 'wa_same');
-  if (opt === 'other') return number ? tr(lang, 'wa_other', { n: String(number) }) : tr(lang, 'wa_other_nonum');
+  if (opt === 'other') return number ? tr(lang, 'wa_other', { n: phoneText(number, lang) }) : tr(lang, 'wa_other_nonum');
   if (opt === 'none') return tr(lang, 'wa_none');
   return tr(lang, 'wa_unanswered');
 }
@@ -231,6 +249,16 @@ export function dubaiDate(iso: unknown, lang: Lang): string {
   // a bare date (YYYY-MM-DD) is a calendar day, not an instant: never shifted by a time zone
   const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T12:00:00+04:00') : new Date(s); if (isNaN(d.getTime())) return '';
   return d.toLocaleDateString(lang === 'ar' ? 'ar-AE-u-nu-latn' : 'en-GB', { timeZone: 'Asia/Dubai', day: 'numeric', month: 'long', year: 'numeric' });
+}
+// A UAE NUMBER IS WRITTEN AS A PERSON READS IT (19 Nov 2026, sales_engineer; ledger 1669): the copy printed "+971500000000",
+// the stored E.164 string. An English copy groups a UAE mobile or landline the way the UAE writes it ("+971 50 000 0000",
+// "+971 4 000 0000"); any other number is printed as stored. An Arabic copy keeps the stored string: spaced digit groups are
+// separate left-to-right runs in a right-to-left line, and the bidi algorithm can draw them in the wrong order.
+export function phoneText(v: unknown, lang: Lang): string {
+  const s = clean(v, lang); if (!s || lang === 'ar') return s;
+  const d = s.replace(/[\s().-]/g, '');
+  const m = d.match(/^(?:\+|00)971(5\d)(\d{3})(\d{4})$/) ?? d.match(/^(?:\+|00)971([2-9])(\d{3})(\d{4})$/);
+  return m ? `+971 ${m[1]} ${m[2]} ${m[3]}` : s;
 }
 const money = (v: unknown) => { const n = Number(v); return v == null || v === '' || !isFinite(n) ? '' : 'AED ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
 
@@ -266,7 +294,7 @@ const ref = (v: unknown) => (v == null || v === '' ? '' : ' ' + String(v));
 const pick = (r: Rec, ...ks: string[]) => { for (const k of ks) { const v = r?.[k]; if (v !== undefined && v !== null && v !== '') return v; } return undefined; };
 const list = (v: unknown): Rec[] => (Array.isArray(v) ? v.filter((x) => x && typeof x === 'object') : []);
 
-type Kind = 'text' | 'date' | 'when' | 'bool' | 'status' | 'list' | 'money' | 'lang' | 'long' | 'wa' | 'source';
+type Kind = 'text' | 'date' | 'when' | 'bool' | 'status' | 'list' | 'money' | 'lang' | 'long' | 'wa' | 'source' | 'phone';
 type Field = [Key, string[], Kind];
 
 function value(lang: Lang, v: unknown, kind: Kind): string {
@@ -278,6 +306,7 @@ function value(lang: Lang, v: unknown, kind: Kind): string {
     case 'status': return words(lang, v);
     case 'source': return listingSource(lang, v);
     case 'money': return money(v);
+    case 'phone': return phoneText(v, lang);
     case 'lang': return /^ar/i.test(String(v)) ? tr(lang, 'lang_ar') : /^en/i.test(String(v)) ? tr(lang, 'lang_en') : String(v);
     case 'list': return (Array.isArray(v) ? v : String(v).split(/\s*[,;]\s*/)).map((x) => clean(x, lang)).filter(Boolean).join(', ');
     default: return clean(v, lang);
@@ -298,8 +327,8 @@ function fieldsBlocks(lang: Lang, r: Rec, fields: Field[]): Block[] {
 }
 
 const ACCOUNT: Field[] = [
-  ['f_name', ['full_name'], 'text'], ['f_email', ['email'], 'text'], ['f_mobile', ['mobile', 'phone'], 'text'],
-  ['f_mobile_ok', ['mobile_verified', 'phone_verified'], 'bool'], ['f_wa', ['whatsapp_number', 'whatsapp_phone'], 'text'],
+  ['f_name', ['full_name'], 'text'], ['f_email', ['email'], 'text'], ['f_mobile', ['mobile', 'phone'], 'phone'],
+  ['f_mobile_ok', ['mobile_verified', 'phone_verified'], 'bool'], ['f_wa', ['whatsapp_number', 'whatsapp_phone'], 'phone'],
   ['f_email_ok', ['email_verified'], 'bool'], ['f_dob', ['date_of_birth'], 'date'], ['f_industry', ['industry'], 'text'],
   ['f_lang', ['language', 'locale'], 'lang'], ['f_opened', ['opened_at', 'created_at'], 'when'],
   ['f_terms_v', ['terms_version', 'tos_version'], 'text'], ['f_terms_at', ['terms_accepted_at', 'tos_accepted_at'], 'when'],
@@ -309,7 +338,7 @@ const ACCOUNT: Field[] = [
 const COMPANY: Field[] = [
   ['f_company', ['company_name'], 'text'], ['f_contact', ['contact_name'], 'text'], ['f_signatory', ['signatory_name'], 'text'],
   ['f_login', ['login_email', 'claimed_by'], 'text'], ['f_company_email', ['company_email', 'email'], 'text'],
-  ['f_phone', ['phone', 'phone_e164'], 'text'], ['f_wa', ['whatsapp_number', 'whatsapp_phone'], 'text'], ['f_web', ['website'], 'text'],
+  ['f_phone', ['phone', 'phone_e164'], 'phone'], ['f_wa', ['whatsapp_number', 'whatsapp_phone'], 'phone'], ['f_web', ['website'], 'text'],
   ['f_address', ['_address'], 'text'], ['f_serves', ['service_emirates'], 'list'],
   ['f_licence_no', ['trade_licence_number', 'trade_license_no'], 'text'], ['f_authority', ['licence_authority', 'license_authority'], 'text'],
   ['f_licence_exp', ['licence_expiry', 'license_expiry'], 'date'], ['f_licence_name', ['licence_name', 'licence_legal_name'], 'text'],
@@ -416,8 +445,8 @@ export function dataCopyBody({ exp, lang: langIn, role }: CopyInput): CopyBody {
   ]);
   const waTotal = Number(exp.whatsapp_total) || 0, waShown = list(exp.whatsapp).length;
   const waNotes: Block[] = [
-    ...(Number(exp.whatsapp_withheld) > 0 ? [{ t: 'note', text: tr(lang, 'wa_withheld', { n: Number(exp.whatsapp_withheld) }) }] : []),
-    ...(waTotal > waShown ? [{ t: 'note', text: tr(lang, 'shown_of', { shown: waShown, total: waTotal }) }] : []),
+    ...(Number(exp.whatsapp_withheld) > 0 ? [{ t: 'note', text: trCount(lang, 'wa_withheld', Number(exp.whatsapp_withheld)) }] : []),
+    ...(waTotal > waShown ? [{ t: 'note', text: trCount(lang, 'shown_of', waShown, { shown: waShown, total: waTotal }) }] : []),
   ];
   const codesWa: Block = { t: 'note', text: tr(lang, 'codes_wa') };
   blocks.push(...section(lang, 's_wa', wa.length ? [{ t: 'note', text: tr(lang, 'wa_note') }, codesWa, ...waNotes, ...wa]
@@ -447,8 +476,8 @@ export function dataCopyBody({ exp, lang: langIn, role }: CopyInput): CopyBody {
   blocks.push(...section(lang, 's_sent', [
     // Empty: the one sentence already says "other than one-time codes", so the codes line is not repeated under it.
     ...(mails.length ? [{ t: 'note', text: tr(lang, 'sent_note') }, codesMail] : [{ t: 'p', text: tr(lang, 'none_sent'), muted: true }]),
-    ...(mTotal > sent.length ? [{ t: 'note', text: tr(lang, 'shown_of', { shown: sent.length, total: mTotal }) }] : []),
-    ...mails, ...(notSent > 0 ? [{ t: 'note', text: tr(lang, 'not_sent', { n: notSent }) }] : [])], null));
+    ...(mTotal > sent.length ? [{ t: 'note', text: trCount(lang, 'shown_of', sent.length, { shown: sent.length, total: mTotal }) }] : []),
+    ...mails, ...(notSent > 0 ? [{ t: 'note', text: trCount(lang, 'not_sent', notSent) }] : [])], null));
 
   const recv = list(exp.emails_we_received).flatMap((n) => [
     { t: 'p', label: dubaiDateTime(n.at, lang), text: clean(n.subject, lang) || '—', bold: true },
