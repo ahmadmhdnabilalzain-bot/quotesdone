@@ -244,7 +244,7 @@ export async function handle(req: Request): Promise<Response> {
     const keepRunning = (p: Promise<unknown>) => { (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime?.waitUntil?.(p); };
     const photoReadsP: Promise<PhotoRead[]> = photosIn.length
       ? readPhotos(gatewayPhotoDeps({ admin, gatewayUrl: Deno.env.get('SUPABASE_URL')! + '/functions/v1/ai_gateway', secret: () => sec('cred_fn_ai'), held: () => modelHeld(admin) }), photosIn, {
-          lang: ar ? 'ar' : 'en', seeds: seedTerms({ name: String((user.user_metadata as any)?.full_name || ''), email }), subject: { email, customer_id: cust?.id || null },
+          seeds: seedTerms({ name: String((user.user_metadata as any)?.full_name || ''), email }), subject: { email, customer_id: cust?.id || null },
           waitMs: Math.max(1, clock.t0 + PHOTO_WAIT_MS - Date.now()), keep: keepRunning }).catch(() => [])
       : Promise.resolve([]);
 

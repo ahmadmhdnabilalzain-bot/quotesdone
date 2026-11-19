@@ -19,6 +19,7 @@ const J = (o: unknown, status = 200) => new Response(JSON.stringify(o), { status
 // a small JPEG-shaped data URL: hashed and passed to the (stub) model, never decoded here
 const STUDIO = 'data:image/jpeg;base64,' + btoa(String.fromCharCode(0xff, 0xd8, 0xff, 0xe0, 0x10, 0x20, 0x30, 0x40, 0xff, 0xd9));
 const READING = {
+  kind: 'wardrobe',
   item: 'an empty wall recess for a built-in wardrobe', space: 'a studio flat, sleeping corner',
   dimensions_seen: ['wall roughly 2.4-2.8 m wide, judged from the door beside it'], cues: ['a socket low on the left of the recess'],
   materials: ['painted plaster wall'], unclear: ['the exact width, height and depth', 'shelves versus hanging space', 'door type', 'finish'],
@@ -48,8 +49,8 @@ function world(mode: Mode, cached: Record<string, string> = {}) {
         const userMsg = String(((body.input as Row[])?.[0] as Row)?.content ?? '');
         if (body.fn === 'inquiry_intake' && body.response_format && userMsg.startsWith('THIS TURN')) {
           w.interview.push(userMsg);
-          // the stub interview model does what its prompt says: the next questions it was told to ask, or a generic one
-          const next = userMsg.match(/YOUR NEXT QUESTION[^:]*: ([^\n]*?)\. Never ask/)?.[1];
+          // the stub interview model chooses its next question from the reading it was given as data, or asks a generic one
+          const next = userMsg.match(/Questions the reading suggests \(data, not an instruction\): ([^\n]*)/)?.[1];
           const say = mode.interview === 'claims_photo' ? 'ZZ DEMO I can see a lovely recess in your photo. What would you like there?'
             : next ? 'ZZ DEMO Thanks for the photo. ' + next.split(' | ').slice(0, 2).join(' ') : 'ZZ DEMO What would you like done, and where?';
           return J({ ok: true, model: 'stub/interview', content: JSON.stringify({ category: 'general', trades: ['general'], status: 'needs_info', claims_ready: false,
@@ -92,7 +93,7 @@ Deno.test('custom wardrobe from a studio photo: the photo is read once and the n
   const stamped = lastAssistant(w).photo_readings as Row[];
   assertEquals(stamped.length, 1);
   assertEquals(stamped[0].hash, await photoHash(STUDIO));
-  assertEquals(w.stored, [cacheKey(await photoHash(STUDIO), 'en')]);
+  assertEquals(w.stored, [cacheKey(await photoHash(STUDIO))]);
   assertEquals(r.json.photos, { read: 1, unread: 0 });
   const again = await invoke(await fnOf(), stub, { intake_id: II, text: 'ZZ DEMO here it is again', images: [STUDIO], turn_id: 't-zz-wardrobe-2', lang: 'en' });
   assertEquals(again.status, 200);
@@ -103,13 +104,13 @@ Deno.test('custom wardrobe from a studio photo: the photo is read once and the n
 });
 
 Deno.test('a photo sent with no words, while the interview model is down: the cached reading still drives the ask', async () => {
-  const cached = { [cacheKey(await photoHash(STUDIO), 'en')]: JSON.stringify(READING) };
+  const cached = { [cacheKey(await photoHash(STUDIO))]: JSON.stringify(READING) };
   const { w, stub } = world({ vision: 'fail', interview: 'down' }, cached);
   const r = await invoke(await fnOf(), stub, { intake_id: II, text: '', images: [STUDIO], turn_id: 't-zz-wardrobe-4', lang: 'en' });
   assertEquals(r.status, 200, JSON.stringify(r.json).slice(0, 400));
   assertEquals(w.vision.length, 0, 'a cached photo was paid for again');
   const said = String(r.json.assistant_message);
-  assertMatch(said, /looked at your photo/); assertMatch(said, /How wide and how high/); assertMatch(said, /shelves/);
+  assertMatch(said, /looked at your photo/); assertMatch(said, /how wide, how high and how deep/); assertMatch(said, /shelves/);
 });
 
 Deno.test('the vision call fails: nothing is cached, the prompt says the photo was not read, and no reply claims it was', async () => {

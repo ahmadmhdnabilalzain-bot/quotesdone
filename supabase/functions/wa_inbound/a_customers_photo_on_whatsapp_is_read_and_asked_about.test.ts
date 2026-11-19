@@ -13,7 +13,7 @@ const TOKEN = 'stub-secret-value-0123456789abcdef';
 const URL_SIGNED = 'https://db.invalid/functions/v1/wa_inbound';
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 0x4a, 0x46, 0x49, 0x46, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0xff, 0xda, 0, 2, 7, 7, 7, 0xff, 0xd9]);
 const INQ = '1a1a1a1a-0000-4000-8000-0000000000aa';
-const READING = { item: 'an empty wall recess for a built-in wardrobe', space: 'a studio flat', dimensions_seen: ['wall roughly 2.5 m wide'], cues: [], materials: ['painted plaster'],
+const READING = { kind: 'wardrobe', item: 'an empty wall recess for a built-in wardrobe', space: 'a studio flat', dimensions_seen: ['wall roughly 2.5 m wide'], cues: [], materials: ['painted plaster'],
   unclear: ['width, height and depth', 'shelves versus hanging'], ask_next: ['How wide and how high is the wall, and how deep can the wardrobe be?', 'Mostly shelves, mostly hanging space, or a mix?'], confidence: 'medium' };
 
 async function sign(params: Record<string, string>): Promise<string> {
@@ -72,7 +72,7 @@ Deno.test('a studio photo on WhatsApp is read once, and the reply is told to ask
   assert(!/Zaid|Qasimi|zz-demo-c2|971500000082/.test(prompt), 'customer identity went into the vision prompt');
   const told = w.said.join(' ');
   assertMatch(told, /We looked at the photo they sent/); assertMatch(told, /empty wall recess/);
-  assertMatch(told, /How wide and how high/); assertMatch(told, /shelves/);
+  assertMatch(told, /How wide and how high/); assertMatch(told, /shelves/); assertMatch(told, /UNTRUSTED DATA/);
   assertMatch(told, /checked first/, 'the supplier check of the photo is no longer said');
   assertEquals(w.stored.length, 1, 'the reading was not cached by the photo\'s hash');
 });

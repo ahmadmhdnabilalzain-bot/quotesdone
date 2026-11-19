@@ -110,7 +110,7 @@ export async function customerFile(cust: { id: string; email: string; name: stri
   if (kind === 'photo') {
     const job = await queueSitePhoto(cust, target, path, name, mime, bytes.length);
     const photo = job ? await readPhoto(gatewayPhotoDeps({ admin, gatewayUrl: GATEWAY, secret: () => sec('cred_fn_ai'), held: () => modelHeld(admin), fn: 'wa_inbound' }),
-      `data:${mime};base64,${b64(bytes)}`, { lang: 'en', fn: 'wa_inbound', seeds: seedTerms({ name: cust.name, email: cust.email, phone: cust.phone }), subject: { customer_id: cust.id, email: cust.email || null } }).catch(() => undefined) : undefined;
+      `data:${mime};base64,${b64(bytes)}`, { fn: 'wa_inbound', seeds: seedTerms({ name: cust.name, email: cust.email, phone: cust.phone }), subject: { customer_id: cust.id, email: cust.email || null } }).catch(() => undefined) : undefined;
     return { ok: true, kind, target: target.ref, held: true, queued: !!job, photo, note: job
       ? 'a photo, added to ' + target.ref + '; it is checked first, and suppliers see it only with anything that could identify the customer covered (a photo that cannot be cleared is not sent)'
       : 'a photo, added to ' + target.ref + '; photos are kept with the request and are not sent to suppliers - a drawing can be shared as a PDF or a CAD file (DWG/DXF)' };
