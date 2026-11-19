@@ -1,1 +1,0 @@
-Committed, applied by the coordinator after merge (it_engineer, ledgers 1726 and 1729). node scripts/apply_sql.mjs scripts/sql/the_four_kept_copies_are_filed_under_their_real_party.sql --apply --ddl --seat it_engineer ; verdict PROBE OK; dropbox_backup then moves the four copies; then delete this note and append the file to the END of MANIFEST.txt.

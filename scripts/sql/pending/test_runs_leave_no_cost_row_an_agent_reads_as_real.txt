@@ -1,1 +1,0 @@
-Committed, applied by the coordinator after merge (it_engineer, ledger 1199). node scripts/apply_sql.mjs scripts/sql/test_runs_leave_no_cost_row_an_agent_reads_as_real.sql --apply --ddl --seat it_engineer ; verdict PROBE OK; then delete this note and append the file to the END of MANIFEST.txt.
