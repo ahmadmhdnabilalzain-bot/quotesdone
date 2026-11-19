@@ -38,8 +38,9 @@ type Trend = Blocked & {
 };
 type TopCat = Blocked & { value?: string | null; count?: number | null };
 type Price = Blocked & {
+  // value is the rounded median since 19 Nov 2026 (no mean, no low, no high: each can be one rival's quote).
   value?: number | null; median?: number | null; p25?: number | null; p75?: number | null;
-  low?: number | null; high?: number | null; currency?: string;
+  rounded_to?: number | null; currency?: string;
 };
 // `trades` since 21 Sep 2026: peers and demand are counted through supplier_capabilities.trades (the
 // rows fn_customer_decision_support counts), so the supplier's own confirmed trades are the subject.
@@ -58,7 +59,7 @@ const T = {
   en: {
     title: 'Market Intelligence', competitors: 'Competitors', inArea: 'in your service area',
     matchable: 'able to receive an RFQ', composition: 'Where your competition sits',
-    demandTrend: 'Demand trend', mostRequested: 'Most requested', avgPrice: 'Average market price',
+    demandTrend: 'Demand trend', mostRequested: 'Most requested', avgPrice: 'Typical market price',
     notAvailable: 'not available yet', loading: 'Reading the market…',
     sector: 'sector', trades: 'your trades', companies: 'companies', none: 'none',
     enquiries: 'enquiries', quotes: 'quotes',
@@ -76,7 +77,7 @@ const T = {
   ar: {
     title: 'ذكاء السوق', competitors: 'المنافسون', inArea: 'في نطاق خدمتكم',
     matchable: 'قادر على تلقي طلب', composition: 'توزّع منافسيكم',
-    demandTrend: 'اتجاه الطلب', mostRequested: 'الأكثر طلبًا', avgPrice: 'متوسط سعر السوق',
+    demandTrend: 'اتجاه الطلب', mostRequested: 'الأكثر طلبًا', avgPrice: 'السعر المعتاد في السوق',
     notAvailable: 'غير متاح بعد', loading: 'جارٍ قراءة السوق…',
     sector: 'القطاع', trades: 'تخصصاتكم', companies: 'شركة', none: 'لا يوجد',
     enquiries: 'طلب', quotes: 'عرض سعر',
@@ -261,13 +262,12 @@ export default function MarketIntelligence({ token, lang = 'en' }: { token?: str
             <div className="text-2xl font-semibold tabular-nums">
               {aed(lang, m.avg_market_price.value, m.avg_market_price.currency)}
             </div>
-            {/* The mean alone tells a supplier nothing about where they sit. The median and the
-                middle half are what "you are high" is actually measured against, so they are shown
-                beside it rather than left in the payload. */}
+            {/* NO LOWEST, NO HIGHEST, NO MEAN (19 Nov 2026, founder rulings 1683 and 1686): the lowest and the highest
+                quote are each ONE competitor's exact price, and with two quotes in the cell so was everything else.
+                fn_supplier_market now answers only over 5+ quotes from 3+ other suppliers, rounded, and sends the
+                median and the middle half alone (scripts/sql/no_rival_price_can_be_worked_out_and_the_customer_sees_the_quoted_price.sql). */}
             <div className="text-[11px] opacity-55 mt-1 leading-relaxed">
-              <div>{t(lang, 'median')}: <span className="tabular-nums">{aed(lang, m.avg_market_price.median, m.avg_market_price.currency)}</span></div>
               <div>{t(lang, 'quartiles')}: <span className="tabular-nums">{aed(lang, m.avg_market_price.p25, m.avg_market_price.currency)} – {aed(lang, m.avg_market_price.p75, m.avg_market_price.currency)}</span></div>
-              <div className="opacity-70">{t(lang, 'range')}: <span className="tabular-nums">{aed(lang, m.avg_market_price.low, m.avg_market_price.currency)} – {aed(lang, m.avg_market_price.high, m.avg_market_price.currency)}</span></div>
             </div>
             <p className="text-[10px] opacity-40 mt-1.5 leading-snug">
               {lang === 'en' && m.avg_market_price.basis ? m.avg_market_price.basis + ' · ' : ''}

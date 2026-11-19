@@ -26,13 +26,15 @@ type Row = Record<string, any>;
 export type PriceBand = 'below' | 'around' | 'above' | 'no_data';
 export type PricePosition = {
   band: PriceBand;
-  /** Average % your quotes sit above (+) or below (-) the mean quote on the same inquiries. */
+  /** Average % your quotes sit above (+) or below (-) the other suppliers' mean on the same inquiries, in 5-point steps. */
   pct_vs_market_avg: number | null;
-  /** Average % your quotes sit above the lowest quote on the same inquiries. */
+  /** Average % your quotes sit above the other suppliers' lowest on the same inquiries, in 5-point steps. */
   pct_above_lowest: number | null;
-  /** Share of competitive inquiries on which you were the lowest bid, 0-100. */
+  /** Share of competitive inquiries on which you were the lowest bid, 0-100, in 5-point steps. */
   lowest_rate_pct: number | null;
-  /** Inquiries with at least two priced quotes, yours included: the population the band is read from. */
+  /** Inquiries on which at least 3 OTHER suppliers submitted a quote (drafts and withdrawn ones never count). Every
+   *  figure above is null until there are 5 of them (fn_supplier_stats, 19 Nov 2026, founder ruling 1686): with one
+   *  rival, mine/(1 + pct_above_lowest/100) was that rival's exact price. */
   competitive_rfqs: number;
   times_lowest: number;
   /** pct_vs_market_avg mapped onto -1 (20% or more below) .. +1 (20% or more above); null without data. */

@@ -131,6 +131,8 @@ type InsightsSummary = {
            avg_lead_time_days: number | null; rating: number | null; lost_to_others: number };
   price_position: {
     band: 'below' | 'around' | 'above' | 'no_data';
+    // 5-point steps, and null ('no_data') until 5 inquiries each carry submitted quotes from 3+ OTHER suppliers
+    // (fn_supplier_stats, 19 Nov 2026, founder ruling 1686: with one rival the exact % gave away his price)
     pct_vs_market_avg: number | null; pct_above_lowest: number | null; lowest_rate_pct: number | null;
     competitive_rfqs: number; times_lowest: number;
     gauge: number | null;                       // -1 (>= 20% below) .. +1 (>= 20% above)

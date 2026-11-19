@@ -1,0 +1,12 @@
+Committed, not applied. Assigned: sales_engineer. 19 Nov 2026 (founder rulings 1683, 1686, 1687).
+
+Why it waits: it is reviewed first, then applied by the session that merges it (GitHub Actions is off:
+docs/runbooks/release-without-ci.md). Its probe printed PROBE OK on the local database (scripts/db/local_pg16.mjs, 19 Nov 2026)
+and PROBE FAILED against the old bodies (avg_pct_above_lowest 25.0 on one enquiry = the rival's 8,000; market low 8000 high 10000).
+Before applying, re-read fn_company_self_knowledge_sync and fn_pool_say with pg_get_functiondef: this file carries their whole
+bodies as they were on 19 Nov, so a newer definition would be replaced. Apply; it must print PROBE OK (it raises otherwise and
+nothing is changed):
+  node scripts/apply_sql.mjs scripts/sql/no_rival_price_can_be_worked_out_and_the_customer_sees_the_quoted_price.sql --apply --ddl --seat sales_engineer
+Then deploy the customer_api edge function (jobs and match banded) and the web app (DecisionSupport, MarketIntelligence,
+QuoteBadges, SupplierRelationship, workspaceCopy); supplier_portal changed in comments only and needs no deploy. Delete this note and append the file as the
+LAST line of scripts/sql/MANIFEST.txt in the same commit, and regenerate the schema mirror.

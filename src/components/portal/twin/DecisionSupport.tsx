@@ -44,6 +44,14 @@ const aed = (n: unknown) => {
   const v = Number(n);
   return Number.isFinite(v) ? 'AED ' + Math.round(v).toLocaleString('en-US') : null;
 };
+// THE SUPPLIER'S QUOTED PRICE, EXCLUDING VAT (19 Nov 2026, sales_engineer; founder ruling 1687). cheapest_price was
+// quotes.customer_price, a column generated with the retired tiered margin (10% under AED 2,000 down to 3% from 50,000),
+// so the customer read "The cheapest is AED 10,500" for a quotation of AED 10,000 (5% at that size). The routine now sends quote_amount:
+// what the customer pays the supplier, ex VAT. Our 3% reveal fee is shown on the quote card, never folded in here.
+const labelledExVat = (n: unknown, lang: string) => {
+  const v = aed(n);
+  return v == null ? null : v + L(lang, ' excluding VAT', ' غير شامل ضريبة القيمة المضافة');
+};
 const days = (n: unknown, lang: string) => {
   const v = Number(n);
   if (!Number.isFinite(v)) return null;
@@ -192,19 +200,19 @@ export function DecisionSupport({ token, lang = 'en', onOpenRfq }:
             <div className={cn(S.sub, 'mt-1')}>
               {r.same_quote_wins
                 ? L(lang,
-                    `One quote is both the cheapest and the fastest, at ${aed(r.cheapest_price)}. There is no trade-off to weigh here.`,
-                    `أحد العروض هو الأرخص والأسرع معًا بقيمة ${aed(r.cheapest_price)}، فلا حاجة إلى المفاضلة.`)
+                    `One quote is both the cheapest and the fastest, at ${labelledExVat(r.cheapest_price, lang)}. There is no trade-off to weigh here.`,
+                    `أحد العروض هو الأرخص والأسرع معًا بقيمة ${labelledExVat(r.cheapest_price, lang)}، فلا حاجة إلى المفاضلة.`)
                 : (save && sooner)
                   ? L(lang,
-                      `The cheapest is ${aed(r.cheapest_price)} and saves you ${save}. The fastest arrives ${sooner} sooner but costs more. Which matters more on this job is your call — those are the only two things separating them.`,
-                      `الأرخص ${aed(r.cheapest_price)} ويوفّر عليك ${save}، أما الأسرع فيصل قبله بـ ${sooner} لكن بسعر أعلى. هذان هما الفارقان الوحيدان بينهما، والقرار لك في أيّهما أهم لهذا العمل.`)
+                      `The cheapest is ${labelledExVat(r.cheapest_price, lang)} and saves you ${save}. The fastest arrives ${sooner} sooner but costs more. Which matters more on this job is your call — those are the only two things separating them.`,
+                      `الأرخص ${labelledExVat(r.cheapest_price, lang)} ويوفّر عليك ${save}، أما الأسرع فيصل قبله بـ ${sooner} لكن بسعر أعلى. هذان هما الفارقان الوحيدان بينهما، والقرار لك في أيّهما أهم لهذا العمل.`)
                   : save
                     ? L(lang,
-                        `The cheapest is ${aed(r.cheapest_price)}, ${save} below the next one.`,
-                        `الأرخص ${aed(r.cheapest_price)}، أي أقل بـ ${save} من العرض التالي.`)
+                        `The cheapest is ${labelledExVat(r.cheapest_price, lang)}, ${save} below the next one.`,
+                        `الأرخص ${labelledExVat(r.cheapest_price, lang)}، أي أقل بـ ${save} من العرض التالي.`)
                     : L(lang,
-                        `You have ${r.quotes} quotes, the lowest at ${aed(r.cheapest_price)}.`,
-                        `لديك ${arCount(r.quotes, AR_NOUN.quote)}، ${Number(r.quotes) === 2 ? 'أدناهما' : 'أدناها'} ${aed(r.cheapest_price)}.`)}
+                        `You have ${r.quotes} quotes, the lowest at ${labelledExVat(r.cheapest_price, lang)}.`,
+                        `لديك ${arCount(r.quotes, AR_NOUN.quote)}، ${Number(r.quotes) === 2 ? 'أدناهما' : 'أدناها'} ${labelledExVat(r.cheapest_price, lang)}.`)}
             </div>
             {/* Said plainly rather than hidden: we cannot rank on speed what nobody stated a
                 lead time for. */}

@@ -15,3 +15,11 @@ export function ratingBand(v: unknown): string | null { const n = Number(v); if 
 export function reviewCountBand(v: unknown): string | null { const n = Number(v || 0); if (n >= 50) return '50+'; if (n >= 20) return '20-49'; if (n >= 5) return '5-19'; return n > 0 ? 'under 5' : null; }
 export function yearsBand(v: unknown): string | null { if (v == null) return null; const n = Number(v); if (!isFinite(n)) return null; if (n >= 10) return '10+ years'; if (n >= 5) return '5-9 years'; return 'under 5 years'; }
 
+// JOBS AND MATCH, BANDED LIKE THE REST (19 Nov 2026, sales_engineer; founder ruling 1683: anonymity is the most
+// important thing on the platform). customer_api my_inquiries sent every unrevealed quote the supplier's EXACT
+// jobs_won (twice: jobs_won and badges.jobs_completed) and its exact match_pct, beside a comment saying no badge may be
+// an exact fingerprint. "14 jobs, 87% match" beside "4.5+, 20-49 reviews, 10+ years" narrows a trade to a handful of
+// firms. Zero jobs is null, the same answer reviewCountBand gives for zero reviews, so nobody reads "has a few".
+export function jobsBand(v: unknown): string | null { const n = Number(v || 0); if (!isFinite(n) || n <= 0) return null; if (n <= 5) return '1-5'; if (n <= 20) return '6-20'; return '20+'; }
+// match_pct is inquiry_matches.similarity x 100 (0-100). High from 80, medium from 50, low below; absent stays null.
+export function matchBand(v: unknown): 'high' | 'medium' | 'low' | null { if (v == null || v === '') return null; const n = Number(v); if (!isFinite(n)) return null; if (n >= 80) return 'high'; if (n >= 50) return 'medium'; return 'low'; }
