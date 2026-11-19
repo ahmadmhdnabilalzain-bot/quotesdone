@@ -431,12 +431,11 @@ Deno.serve(async (req) => {
       const { think, defaultDeps } = await import('../_shared/think.ts');
       const { makeLlmRich } = await import('../_shared/llm.ts');
       const { embedLine } = await import('../_shared/gte_embed.ts');
+      const { examModelCalls } = await import('./seat_exam_calls.ts');
       const live = defaultDeps(admin as never, 'knowledge_exam');
-      const call = (taskClass: string, temperature: number) => makeLlmRich([], { fn: 'knowledge_exam', agent: 'it_engineer', taskClass,
-        max: 400, timeoutMs: 15_000, json: true, temperature, internalDuty: true });
-      const ask = async (c: ReturnType<typeof call>, system: string, input: string) => {
-        const r = await c(system, input, 400); return { content: r.content, error: r.error };
-      };
+      // the wording and the judge (seat_exam_calls.ts): the judge names the answer's model as counterpart_model, without
+      // which ai_gateway refused every judge call of run 1 (19 Nov 2026; the_judge_names_the_answering_model.test.ts)
+      const calls = examModelCalls(makeLlmRich);
       const result = await runExamBatch({
         next: async (id, n) => {
           const { data, error } = await admin.rpc('fn_seat_exam_next', { p_run_id: id, p_n: n });
@@ -444,8 +443,8 @@ Deno.serve(async (req) => {
           const d = (data || {}) as { items?: unknown[]; stop?: string | null };
           return { items: (d.items ?? []) as never, stop: d.stop ?? null };
         },
-        reword: (system, input) => ask(call('routine_employee_reasoning', 0.9), system, input),
-        judge: (system, input) => ask(call('knowledge_validation', 0), system, input),
+        reword: calls.reword,
+        judge: calls.judge,
         answer: async (seat, wording, itemId) => {
           try {
             // think()'s own run deadline (95 s) leaves the wording and the judge (20 s each at most) inside the edge's 150 s wall

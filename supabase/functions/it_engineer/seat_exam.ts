@@ -13,7 +13,8 @@
 //      repeats the source question or any wording already asked of the item;
 //   2. the seat ANSWERS it through think() end to end, as at work;
 //   3. GRADED BY CODE first (every expected fact present, ignoring case and punctuation); only a code miss on an answered
-//      question is put to the model as judge (other words, Arabic);
+//      question is put to the model as judge (other words, Arabic), naming the answer's model so the gateway routes the
+//      judge to another family (19 Nov 2026: run 1's judge was refused for want of it);
 //   4. RECORDED (fn_seat_exam_record): a miss opens a fix; a pass closes an open fix that was made;
 //   5. THE FIX: a miss whose fix has not been made writes the item's canon into the seat's own knowledge (fn_seat_exam_fix_lesson:
 //      agent_knowledge, read only by that seat for an internal audience) with its vector, and sets the fix's fix_ref. The next
@@ -40,8 +41,9 @@ export type ExamDeps = {
   /** The model's raw reply to the rewording prompt (null content = the call failed). */
   reword: (system: string, input: string) => Promise<{ content: string | null; error: string | null }>;
   answer: (seat: string, wording: string, itemId: string) => Promise<Answer>;
-  /** The model's raw reply to the judging prompt. */
-  judge: (system: string, input: string) => Promise<{ content: string | null; error: string | null }>;
+  /** The model's raw reply to the judging prompt. authorModel is the model that wrote the answer: the judge is a review
+   *  class, so ai_gateway routes it to another family through it (counterpart_model) and refuses it without one. */
+  judge: (system: string, input: string, authorModel: string) => Promise<{ content: string | null; error: string | null }>;
   record: (row: AskRow) => Promise<Recorded>;
   /** Writes the item's canon into the seat's knowledge and sets the fix's fix_ref; returns the knowledge row id. */
   lesson: (fixId: number) => Promise<{ knowledge_id: number | null; error: string | null }>;
@@ -59,21 +61,91 @@ export function isFreshWording(w: string, item: Pick<ExamItem, 'q_en' | 'used_wo
   return ![item.q_en, ...item.used_wordings].map(norm).includes(n);
 }
 
+// THE TERMS OF ART A REWORDING MUST KEEP (it_engineer, 19 Nov 2026). Run 1 (15 Nov): ceo-exam-09 "Which strategic powers can
+// QuotesDone realistically build first?" was reworded "Which strategic capabilities ...", and ceo-exam-10 "What is the buyer
+// really hiring QuotesDone to do?" became "What service is the buyer bringing QuotesDone in to provide?". Each term named the
+// framework its expected fact belongs to (counter-positioning is one of the strategic powers; "hiring a product to do a job"
+// is the jobs-to-be-done question), so the seat answered a different question and both were marked misses. The rewording now
+// gets the question's terms of art to keep verbatim, and code refuses a wording that drops one (recorded no_wording, no fix).
+// Found by code, never by a model: a quoted phrase; a named ruling, ledger or instruction with its number; a snake_case id; a
+// name (a capitalised word that does not open a sentence, or one with an inner capital or digit, joined across "of", "and",
+// "the": "Federal Decree-Law No", "GitHub Actions", "NRM2"); a number; and the frameworks the exam asks about (FRAMEWORKS).
+const FRAMEWORKS: RegExp[] = [
+  /\bstrategic powers?\b/i, /\bcounter-?positioning\b/i, /\bswitching costs?\b/i, /\bnetwork (?:economies|effects?)\b/i,
+  /\bscale economies\b/i, /\bcornered resources?\b/i, /\bprocess power\b/i, /\bjobs? to be done\b/i, /\bhir(?:e|es|ed|ing)\b/i,
+  /\b(?:excess )?share of voice\b/i, /\breveal fee\b/i,
+];
+const CONNECTOR = /^(?:of|and|the)$/;
+/** The question's terms of art, in the order they appear: what a rewording must carry unchanged. */
+export function termsOfArt(q: string): string[] {
+  const found: { t: string; at: number; test: (w: string) => boolean }[] = [];
+  const has = (t: string) => (w: string) => norm(w).includes(norm(t));
+  let rest = String(q ?? '');
+  const take = (re: RegExp, test?: (m: string) => (w: string) => boolean) => {
+    for (const m of [...rest.matchAll(re)]) {
+      const t = (m[1] ?? m[0]).trim();
+      found.push({ t, at: m.index!, test: (test ?? has)(t) });
+      rest = rest.slice(0, m.index!) + ' '.repeat(m[0].length) + rest.slice(m.index! + m[0].length);
+    }
+  };
+  take(/["\u201c]([^"\u201d]{3,})["\u201d]/g);
+  take(/\b(?:ruling|ledger|instruction|founder_instruction|decision)s?\s+(?:no\.?\s*)?\d+/gi);
+  take(/\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/g);
+  for (const re of FRAMEWORKS) {
+    const g = new RegExp(re.source, 'gi');
+    take(g, () => (w: string) => new RegExp(re.source, 'i').test(w));
+  }
+  const toks = [...rest.matchAll(/[\p{L}\p{N}][\p{L}\p{N}.,%'\u2019-]*/gu)];
+  let run: { t: string; at: number }[] = [];
+  const flush = () => {
+    while (run.length && CONNECTOR.test(run[run.length - 1].t)) run.pop();
+    if (run.length) found.push({ t: run.map((x) => x.t).join(' '), at: run[0].at, test: has(run.map((x) => x.t).join(' ')) });
+    run = [];
+  };
+  toks.forEach((m, i) => {
+    const raw = m[0];
+    // "Stripe's" -> Stripe, "No." -> No, "Arabic-speaking" -> Arabic (a lower-case tail is not the name; Decree-Law is)
+    const t = raw.replace(/(?:['\u2019]s)?[.,'\u2019-]*$/u, '').replace(/^(\p{Lu}[\p{L}\p{N}]*)-\p{Ll}[\p{L}-]*$/u, '$1');
+    const before = rest.slice(0, m.index).trimEnd();
+    const opens = i === 0 || /[.?!:]$/.test(before) || /[.?!:]$/.test(toks[i - 1][0]);
+    if (/^\d[\d.,]*%?$/.test(t)) { flush(); found.push({ t, at: m.index!, test: has(t) }); return; }
+    const named = t.length > 1 && /\p{Lu}/u.test(t) && (!opens || /.\p{Lu}|\d/u.test(t));
+    if (named) run.push({ t, at: m.index! });
+    else if (run.length && CONNECTOR.test(t)) run.push({ t, at: m.index! });
+    else flush();
+    if (/[.?!:]$/.test(raw)) flush();
+  });
+  flush();
+  const seen = new Set<string>();
+  return found.sort((a, b) => a.at - b.at).map((f) => f.t).filter((t) => !seen.has(norm(t)) && seen.add(norm(t)));
+}
+/** The terms of art of the question that the wording does not carry. */
+export function droppedTerms(w: string, q: string): string[] {
+  return termsOfArt(q).filter((t) => {
+    const fw = FRAMEWORKS.find((re) => re.test(t));
+    return fw ? !fw.test(w) : !norm(w).includes(norm(t));
+  });
+}
+
 export const REWORD_SYSTEM = 'You write exam questions for the staff of QuotesDone, a UAE B2B procurement marketplace. '
   + 'Rewrite the QUESTION so it asks exactly the same thing with every constraint kept, in different words and a different '
   + 'sentence shape from the question and from every EARLIER WORDING. Do not add facts, hints, options or the answer. '
+  + 'Keep every term of art exactly as the QUESTION writes it, never a synonym: named laws, decrees and standards, product, '
+  + 'company and role terms, framework terms (strategic powers, the job a buyer is hiring a product to do, share of voice), '
+  + 'numbers, identifiers and named rulings; every phrase in KEEP_VERBATIM must appear in your question unchanged. '
   + 'English, one question. Reply with one JSON object: {"wording": "<the new question>"}.';
 
 export function rewordInput(item: Pick<ExamItem, 'q_en' | 'used_wordings'>): string {
-  return JSON.stringify({ question: item.q_en, earlier_wordings: item.used_wordings.slice(-12) });
+  const keep = termsOfArt(item.q_en);
+  return JSON.stringify({ question: item.q_en, ...(keep.length ? { keep_verbatim: keep } : {}), earlier_wordings: item.used_wordings.slice(-12) });
 }
 
-/** The wording out of the model's reply, or null when it is absent, not JSON, or not fresh. */
+/** The wording out of the model's reply, or null when it is absent, not JSON, not fresh, or drops a term of art. */
 export function parseWording(content: string | null, item: Pick<ExamItem, 'q_en' | 'used_wordings'>): string | null {
   const o = parseJson<{ wording?: unknown }>(content);
   if (!o) return null;
   const w = String(o.wording ?? '').trim();
-  return isFreshWording(w, item) ? w : null;
+  return isFreshWording(w, item) && !droppedTerms(w, item.q_en).length ? w : null;
 }
 
 export const JUDGE_SYSTEM = 'You grade one exam answer given by a member of staff. For each REQUIRED FACT say whether the '
@@ -128,8 +200,12 @@ export async function runExamBatch(deps: ExamDeps, runId: number, o: { budgetMs?
       const a = await deps.answer(item.seat, wording, item.item_id);
       let missing = a.status === 'answered' ? missingFacts(a.answer, item.expected_facts) : item.expected_facts;
       let by: 'code' | 'model' = 'code';
-      if (a.status === 'answered' && missing.length) {
-        const j = await deps.judge(JUDGE_SYSTEM, judgeInput(wording, a.answer, item.expected_facts));
+      // THE JUDGE NAMES THE ANSWER'S AUTHOR (19 Nov 2026): without it ai_gateway refused every judge call of run 1 (400
+      // review_needs_counterpart) and 13 right answers in other words were marked misses. An answer whose model is not known
+      // is not judged (the gateway could not prove the judge's independence): it keeps the code verdict, which
+      // fn_seat_exam_record counts as unjudged and opens no fix for (every_seat_knows_the_facts_its_exam_asks.sql).
+      if (a.status === 'answered' && missing.length && a.model) {
+        const j = await deps.judge(JUDGE_SYSTEM, judgeInput(wording, a.answer, item.expected_facts), a.model);
         const still = parseJudge(j.content, item.expected_facts);
         if (still) { missing = still; by = 'model'; }
       }
