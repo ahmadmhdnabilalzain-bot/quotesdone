@@ -7,21 +7,20 @@
 // November KPIs 'behind' (invitations_sent 82/750, suppliers_verified 2/768, trades_open 0/77) and none had a directive.
 // a_seat_kpi_behind_its_target_becomes_a_ceo_decision_and_an_order.sql closes that; this fails if either returns:
 //   1. no ceo_decision_log row in 48 h (the CEO stopped deciding);
-//   2. once the duty ceo.kpi_orders is live and has run, a seat_kpi row reads behind with no live order
+//   2. once the duty ceo.kpi_orders is live and has run, a seat_kpi row of this month, not held by the founder
+//      (fn_held_targets), reads behind with no live order
 //      (ceo_directive target_miss seat_kpi:<kpi>:<month>, not met).
 //
 // READ-ONLY against production: SELECTs under an 8 s statement timeout. Skips with no management token, like its siblings.
 //   node --test scripts/checks/the_ceo_decided_something_in_the_last_48_hours.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { homedir } from 'node:os';
 import { sql } from '../lib/db.mjs';
+import { supabaseTokenOrEmpty } from '../lib/supabase_token.mjs';
 
-const hasToken = !!process.env.SUPABASE_ACCESS_TOKEN
-  || existsSync(join(homedir(), '.supabase', 'access-token'));
-const SKIP = hasToken ? false : 'no Supabase management token in this environment';
+// Offline (`npm run gate -- --offline` sets QD_OFFLINE=1) or no token: skip, never reach production.
+const hasToken = !!supabaseTokenOrEmpty();
+const SKIP = hasToken ? false : 'offline, or no Supabase management token in this environment';
 if (!hasToken) console.log('NOT_VERIFIED_MISSING_MANAGEMENT_CREDENTIAL');
 
 async function rows(q) {
@@ -42,7 +41,9 @@ test('every seat KPI behind its target has a live order once the duty has run', 
   if (!live?.v || !live?.ran) return;   // not applied yet: scripts/sql/pending/ holds its note
   const missing = await rows(`
     select k.kpi, k.owner_seat, k.measured, k.target from public.seat_kpi k
-     where k.behind and not exists (select 1 from public.ceo_directive d
+     where k.behind and k.month = date_trunc('month', (now() at time zone 'Asia/Dubai'))::date
+       and not exists (select 1 from public.fn_held_targets() h where h.target_key = k.metric)
+       and not exists (select 1 from public.ceo_directive d
             where d.seat = k.owner_seat and d.source_kind = 'target_miss' and d.status <> 'met'
               and d.source_ref = 'seat_kpi:' || k.kpi || ':' || to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM'))
        and exists (select 1 from public.org_role r where r.role_id = k.owner_seat and r.status = 'active')

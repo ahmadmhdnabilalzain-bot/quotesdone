@@ -26,34 +26,54 @@
 --     safety-side powers apply without it (the_ceo_applies_its_safety_side_growth_powers_without_waiting_for_a_switch
 --     .sql); 15 growth actions applied since. Nothing here reads or changes that switch.
 --
+--   * public.founder_hold (19 Nov, review of #2085): one hold, supplier_campaign, on target keys invitations_delivered,
+--     registrations_submitted, registrations_verified_cumulative, verified_suppliers_milestone, supply; released while
+--     invite_enabled = 'true' (it is), so fn_held_targets() is empty today. fn_ceo_directive_run pauses an open
+--     target_miss order only when evidence->>'metric' is a held target key, so every order here carries 'metric'.
+--   * public.ceo_decision row seat_directive exists in production (read 19 Nov); it is seeded here idempotently with
+--     production's own values so a fresh database (the local rehearsal) has the rule the log rows point at.
+--
 -- WHAT THIS FILE CHANGES
---   1. public.seat_kpi (view): one row per KPI -- kpi, owner_seat, measured, target, behind, as_of, source, basis --
---      read from the tables that already hold them: every ceo_seat_month_target row of the current Dubai month, and
---      the supplier-registration goal on its straight path (real leads only: not is_demo).
---   2. fn_ceo_kpi_behind_becomes_an_order(): for every seat_kpi row that is behind, once per KPI per Dubai day:
---        - an order to the owning seat through the existing fn_ceo_directive_issue (source_kind 'target_miss',
---          source_ref 'seat_kpi:<kpi>:<YYYY-MM>', 7-day deadline, done when the KPI no longer reads behind). That
---          routine already refuses a second live order for the same signal and an order whose condition holds, and
+--   1. public.seat_kpi (view): one row per KPI per month -- kpi, owner_seat, measured, target, behind, as_of, source,
+--      basis, month, metric -- read from the tables that already hold them: every ceo_seat_month_target row, and the
+--      supplier-registration goal on its straight path (metric registrations_submitted, the year-one plan's key; real
+--      leads only, by fn_seat_clock_lead_is_fixture: is_demo, ZZ DEMO names, demo e-mails).
+--   2. fn_ceo_kpi_behind_becomes_an_order(): for every seat_kpi row of the current Dubai month that is behind, once per
+--      KPI per Dubai day:
+--        - a KPI whose metric the founder holds (fn_held_targets) gets NO order, only a decision-log line saying so;
+--        - otherwise an order to the owning seat through the existing fn_ceo_directive_issue (source_kind 'target_miss',
+--          source_ref 'seat_kpi:<kpi>:<YYYY-MM>', 7-day deadline, evidence carries 'metric'). Its done-condition reads
+--          the KPI's row FOR THAT MONTH, and a missing row reads false: a November order is never met by December's
+--          row or by the row's absence. fn_ceo_directive_issue refuses a second live order for the same signal, and
 --          fn_ceo_directive_review re-issues a missed one: nothing new is invented for escalation;
---        - a ceo_decision_log row under the existing rule seat_directive (dedupe 'seat_directive:kpi:<kpi>:<day>'),
---          naming the reading and the order it gave or the order that already stands.
+--        - a ceo_decision_log row under the existing rule seat_directive (dedupe 'seat_directive:kpi:<kpi>:<day>').
 --      The register's seat_directive trigger is widened to say so. No new rule key, so fn_ceo_decisions_evaluate
 --      (which names seat_directive as decided elsewhere) is untouched.
 --   3. Duty ceo.kpi_orders, hourly.
 --
--- WHAT THIS DOES NOT CHANGE: ceo_growth_act_golive (founder-gated; not read, not written); who measures
+-- WHAT THIS DOES NOT CHANGE: ceo_growth_act_golive (founder-gated; not read, not written); founder_hold; who measures
 -- ceo_seat_month_target (its readings are as fresh as its own checker leaves them, as_of says when); the year-one-plan
 -- directives of fn_ceo_directive_run; employee_kpi.
 --
 -- Prevented by: scripts/checks/the_ceo_decided_something_in_the_last_48_hours.test.mjs (live: a ceo_decision_log row in
---   48 h, and every behind seat_kpi has a live order) and this file's _probe.sql (ZZ DEMO, rolled back).
--- Rehearse locally: node scripts/db/local_pg16.mjs start, then psql this file and its _probe.sql (PROBE OK).
+--   48 h, and every behind, unheld seat_kpi has a live order) and this file's _probe.sql (ZZ DEMO, rolled back: the
+--   order, once a day, a held target gets none and an open order on it is paused, the month boundary).
+-- Rehearse locally: node scripts/db/local_pg16.mjs start; node scripts/ci/rehearse_sql.mjs <this file> <its _probe.sql>
 -- Apply at merge: node scripts/apply_sql.mjs scripts/sql/a_seat_kpi_behind_its_target_becomes_a_ceo_decision_and_an_order.sql --apply --ddl --seat ceo
 -- Rollback: delete from public.seat_duty where duty = 'ceo.kpi_orders';
 --           drop function public.fn_ceo_kpi_behind_becomes_an_order(); drop view public.seat_kpi;
 --           (orders already issued stay, and close on their own condition.)
 
 set local lock_timeout = '5s';
+
+-- 0. THE RULE THE DECISIONS ARE LOGGED UNDER (production's own row, read 19 Nov 2026; a no-op where it exists) ---------
+insert into public.ceo_decision (decision_key, domain, decision, trigger_condition, measure, authority, evidence_required, cadence)
+values ('seat_directive', 'operations',
+        'Give a seat a target on the binding constraint, with a deadline, and close it met or missed on the re-measurement.',
+        'The day''s plan names a binding stage a seat can move and no directive for it is open; or an open directive is met or past its deadline.',
+        'Share of directives met by their deadline.', 'ceo_alone',
+        'The plan row, the measure key, the target, the deadline and the re-measured value.', 'daily')
+on conflict (decision_key) do nothing;
 
 -- 1. THE KPI VIEW -----------------------------------------------------------------------------------------------------
 create or replace view public.seat_kpi with (security_invoker = true) as
@@ -64,28 +84,33 @@ create or replace view public.seat_kpi with (security_invoker = true) as
          (t.status = 'behind') as behind,
          coalesce(t.checked_at, (t.month::timestamp at time zone 'Asia/Dubai')) as as_of,
          'ceo_seat_month_target' as source,
-         format('%s target for %s: %s', t.metric, to_char(t.month, 'FMMonth YYYY'), t.basis) as basis
+         format('%s target for %s: %s', t.metric, to_char(t.month, 'FMMonth YYYY'), t.basis) as basis,
+         t.month,
+         t.metric
     from public.ceo_seat_month_target t
-   where t.month = date_trunc('month', (now() at time zone 'Asia/Dubai'))::date
   union all
   select 'supplier_goal:' || g.goal,
          'marketing',            -- the year-one plan gives registrations_submitted to marketing (directive #2679)
-         (select count(*) from public.leads l where l.registration_submitted_at is not null and not coalesce(l.is_demo, false))::numeric,
-         floor(g.target_low * least(1, greatest(0, ((now() at time zone 'Asia/Dubai')::date - (g.set_at at time zone 'Asia/Dubai')::date)::numeric
-                                      / greatest(1, g.due_on - (g.set_at at time zone 'Asia/Dubai')::date)))),
-         (select count(*) from public.leads l where l.registration_submitted_at is not null and not coalesce(l.is_demo, false))
-           < floor(g.target_low * least(1, greatest(0, ((now() at time zone 'Asia/Dubai')::date - (g.set_at at time zone 'Asia/Dubai')::date)::numeric
-                                      / greatest(1, g.due_on - (g.set_at at time zone 'Asia/Dubai')::date)))),
+         r.n,
+         p.path,
+         r.n < p.path,
          now(),
          'ceo_supplier_goal',
-         format('%s-%s by %s on a straight path from %s (%s); counts %s', g.target_low, g.target_high, g.due_on,
-                (g.set_at at time zone 'Asia/Dubai')::date, g.ruling, g.counts_as)
+         format('%s-%s by %s on a straight path from %s (%s); counts %s, fixtures excluded', g.target_low, g.target_high, g.due_on,
+                (g.set_at at time zone 'Asia/Dubai')::date, g.ruling, g.counts_as),
+         date_trunc('month', (now() at time zone 'Asia/Dubai'))::date,
+         'registrations_submitted'
     from public.ceo_supplier_goal g
+   cross join lateral (select count(*)::numeric as n from public.leads l
+                        where l.registration_submitted_at is not null and not public.fn_seat_clock_lead_is_fixture(l)) r
+   cross join lateral (select floor(g.target_low * least(1, greatest(0,
+                          ((now() at time zone 'Asia/Dubai')::date - (g.set_at at time zone 'Asia/Dubai')::date)::numeric
+                          / greatest(1, g.due_on - (g.set_at at time zone 'Asia/Dubai')::date)))) as path) p
    where g.due_on >= (now() at time zone 'Asia/Dubai')::date;
 
 revoke all on public.seat_kpi from public, anon, authenticated;
 comment on view public.seat_kpi is
-  'One row per seat KPI: measured, target, behind, owner seat, as_of. Fed by ceo_seat_month_target (current Dubai month) and ceo_supplier_goal (straight path, real leads). Read by fn_ceo_kpi_behind_becomes_an_order. 19 Nov 2026, ledger 1705.';
+  'One row per seat KPI per month: measured, target, behind, owner seat, as_of, metric (the target key fn_held_targets uses). Fed by ceo_seat_month_target and ceo_supplier_goal (straight path, real leads by fn_seat_clock_lead_is_fixture). Read by fn_ceo_kpi_behind_becomes_an_order. 19 Nov 2026, ledger 1705.';
 
 -- 2. THE CEO DUTY: A KPI BEHIND BECOMES A DECISION AND AN ORDER -------------------------------------------------------
 create or replace function public.fn_ceo_kpi_behind_becomes_an_order()
@@ -95,60 +120,70 @@ security definer
 set search_path to 'public', 'pg_temp'
 as $fn$
 declare
-  k record; v_day date := (now() at time zone 'Asia/Dubai')::date; v_month text := to_char(now() at time zone 'Asia/Dubai', 'YYYY-MM');
-  v_ref text; v_dedupe text; v_new bigint; v_live record; v_decision text;
-  n_behind int := 0; n_ordered int := 0; n_standing int := 0; n_decided int := 0; n_seen_today int := 0; n_no_seat int := 0;
+  k record; v_day date := (now() at time zone 'Asia/Dubai')::date;
+  v_month date := date_trunc('month', (now() at time zone 'Asia/Dubai'))::date;
+  v_ref text; v_dedupe text; v_new bigint; v_live_id bigint; v_live_status text; v_live_deadline timestamptz; v_decision text; v_hold text;
+  n_behind int := 0; n_ordered int := 0; n_standing int := 0; n_decided int := 0; n_seen_today int := 0; n_no_seat int := 0; n_held int := 0;
 begin
-  for k in select * from public.seat_kpi where behind order by owner_seat, kpi loop
+  for k in select * from public.seat_kpi where behind and month = v_month order by owner_seat, kpi loop
     n_behind := n_behind + 1;
     v_dedupe := 'seat_directive:kpi:' || k.kpi || ':' || v_day;
     if exists (select 1 from public.ceo_decision_log where dedupe_key = v_dedupe) then
       n_seen_today := n_seen_today + 1;
       continue;                                   -- once per KPI per Dubai day
     end if;
-    v_ref := 'seat_kpi:' || k.kpi || ':' || v_month;
-    v_new := public.fn_ceo_directive_issue(k.owner_seat, 'target_miss', v_ref,
-      format('Bring %s back to its target: it reads %s against %s (as of %s). Name the step that is not converting, change that step, and say what you changed.',
-             k.kpi, coalesce(k.measured::text, 'nothing measured'), k.target, to_char(k.as_of at time zone 'Asia/Dubai', 'DD Mon HH24:MI')),
-      format('seat_kpi %s no longer reads behind its target.', k.kpi),
-      format('coalesce((select not s.behind from public.seat_kpi s where s.kpi = %L), true)', k.kpi),
-      now() + interval '7 days',
-      jsonb_build_object('kpi', k.kpi, 'measured', k.measured, 'target', k.target, 'as_of', k.as_of, 'source', k.source, 'basis', k.basis));
-    select d.id, d.status, d.deadline into v_live from public.ceo_directive d
-     where d.seat = k.owner_seat and d.source_kind = 'target_miss' and d.source_ref = v_ref and d.status <> 'met'
-     order by d.id desc limit 1;
-    if v_new is not null then
-      n_ordered := n_ordered + 1;
-      v_decision := format('%s is behind: %s against %s. Ordered %s to move it by %s (directive #%s).', k.kpi,
-                           coalesce(k.measured::text, 'nothing measured'), k.target, k.owner_seat,
-                           to_char((now() + interval '7 days') at time zone 'Asia/Dubai', 'DD Mon'), v_new);
-    elsif v_live.id is not null then
-      n_standing := n_standing + 1;
-      v_decision := format('%s is still behind: %s against %s. The order to %s stands (directive #%s, %s, due %s).', k.kpi,
-                           coalesce(k.measured::text, 'nothing measured'), k.target, k.owner_seat, v_live.id, v_live.status,
-                           to_char(v_live.deadline at time zone 'Asia/Dubai', 'DD Mon'));
+    v_ref := 'seat_kpi:' || k.kpi || ':' || to_char(v_month, 'YYYY-MM');
+    v_new := null; v_live_id := null; v_live_status := null; v_live_deadline := null;
+    select h.hold_key into v_hold from public.fn_held_targets() h where h.target_key = k.metric limit 1;
+    if v_hold is not null then
+      n_held := n_held + 1;                        -- the founder holds this target: no order (fn_ceo_directive_run pauses a live one)
+      v_decision := format('%s reads behind (%s against %s) but the founder holds %s (%s): no order is given.',
+                           k.kpi, coalesce(k.measured::text, 'nothing measured'), k.target, k.metric, v_hold);
     else
-      n_no_seat := n_no_seat + 1;                 -- the seat is not active, or the done-condition already holds
-      v_decision := format('%s reads behind (%s against %s) but no order could be given to %s: the seat is not active or the condition already holds.',
-                           k.kpi, coalesce(k.measured::text, 'nothing measured'), k.target, k.owner_seat);
+      v_new := public.fn_ceo_directive_issue(k.owner_seat, 'target_miss', v_ref,
+        format('Bring %s back to its target: it reads %s against %s (as of %s). Name the step that is not converting, change that step, and say what you changed.',
+               k.kpi, coalesce(k.measured::text, 'nothing measured'), k.target, to_char(k.as_of at time zone 'Asia/Dubai', 'DD Mon HH24:MI')),
+        format('seat_kpi %s for %s no longer reads behind its target (a missing row is not met).', k.kpi, to_char(v_month, 'FMMonth YYYY')),
+        format('coalesce((select not s.behind from public.seat_kpi s where s.kpi = %L and s.month = %L::date), false)', k.kpi, v_month),
+        now() + interval '7 days',
+        jsonb_build_object('metric', k.metric, 'kpi', k.kpi, 'month', v_month, 'measured', k.measured, 'target', k.target,
+                           'as_of', k.as_of, 'source', k.source, 'basis', k.basis));
+      select d.id, d.status, d.deadline into v_live_id, v_live_status, v_live_deadline from public.ceo_directive d
+       where d.seat = k.owner_seat and d.source_kind = 'target_miss' and d.source_ref = v_ref and d.status <> 'met'
+       order by d.id desc limit 1;
+      if v_new is not null then
+        n_ordered := n_ordered + 1;
+        v_decision := format('%s is behind: %s against %s. Ordered %s to move it by %s (directive #%s).', k.kpi,
+                             coalesce(k.measured::text, 'nothing measured'), k.target, k.owner_seat,
+                             to_char((now() + interval '7 days') at time zone 'Asia/Dubai', 'DD Mon'), v_new);
+      elsif v_live_id is not null then
+        n_standing := n_standing + 1;
+        v_decision := format('%s is still behind: %s against %s. The order to %s stands (directive #%s, %s, due %s).', k.kpi,
+                             coalesce(k.measured::text, 'nothing measured'), k.target, k.owner_seat, v_live_id, v_live_status,
+                             to_char(v_live_deadline at time zone 'Asia/Dubai', 'DD Mon'));
+      else
+        n_no_seat := n_no_seat + 1;               -- the seat is not active, or the done-condition already holds
+        v_decision := format('%s reads behind (%s against %s) but no order could be given to %s: the seat is not active or the condition already holds.',
+                             k.kpi, coalesce(k.measured::text, 'nothing measured'), k.target, k.owner_seat);
+      end if;
     end if;
     insert into public.ceo_decision_log (decision_key, the_decision, evidence, reading_before, dedupe_key)
     values ('seat_directive', v_decision,
-            jsonb_build_object('kpi', k.kpi, 'owner_seat', k.owner_seat, 'measured', k.measured, 'target', k.target,
-                               'as_of', k.as_of, 'source', k.source, 'basis', k.basis, 'directive_id', coalesce(v_new, v_live.id),
-                               'new_order', v_new is not null, 'by', 'fn_ceo_kpi_behind_becomes_an_order'),
+            jsonb_build_object('kpi', k.kpi, 'metric', k.metric, 'month', v_month, 'owner_seat', k.owner_seat, 'measured', k.measured,
+                               'target', k.target, 'as_of', k.as_of, 'source', k.source, 'basis', k.basis, 'founder_hold', v_hold,
+                               'directive_id', coalesce(v_new, v_live_id), 'new_order', v_new is not null,
+                               'by', 'fn_ceo_kpi_behind_becomes_an_order'),
             format('%s %s / %s', k.kpi, coalesce(k.measured::text, 'null'), k.target), v_dedupe)
     on conflict (dedupe_key) where dedupe_key is not null do nothing;
     n_decided := n_decided + 1;
-    v_live := null;
+    v_hold := null;
   end loop;
-  return jsonb_build_object('day', v_day, 'kpis', (select count(*) from public.seat_kpi), 'behind', n_behind,
-    'ordered', n_ordered, 'order_standing', n_standing, 'not_orderable', n_no_seat, 'decided', n_decided,
+  return jsonb_build_object('day', v_day, 'kpis', (select count(*) from public.seat_kpi where month = v_month), 'behind', n_behind,
+    'ordered', n_ordered, 'order_standing', n_standing, 'held', n_held, 'not_orderable', n_no_seat, 'decided', n_decided,
     'already_decided_today', n_seen_today);
 end $fn$;
 
 revoke execute on function public.fn_ceo_kpi_behind_becomes_an_order() from public, anon, authenticated;
-
 -- 3. THE REGISTER SAYS WHAT NOW TRIGGERS seat_directive ----------------------------------------------------------------
 update public.ceo_decision
    set trigger_condition = 'The day''s plan names a binding stage a seat can move and no directive for it is open; or an open directive is met or past its deadline; or a seat_kpi row reads behind its target (fn_ceo_kpi_behind_becomes_an_order, once per KPI per Dubai day, 19 Nov 2026).'
