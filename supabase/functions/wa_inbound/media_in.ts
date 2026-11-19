@@ -11,6 +11,7 @@ import { admin, sec, TW } from './shared.ts';
 import { fetchTwilioMedia, handleSupplierDoc } from './media.ts';
 import { waSenderRole } from '../_shared/supplier_company.ts';
 import { customerFile, customerOf, targetOf } from './customer_files.ts';
+import { stampOf, waPhotoSituation, type PhotoRead } from '../_shared/photo_reading.ts';
 import { sendWa, toContact } from './replies.ts';
 import type { WaTurn } from './turn.ts';
 
@@ -38,7 +39,7 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
     const cust = !leadId && audience === 'customer' && !media.every((m) => /^audio\//i.test(m.mime)) ? await customerOf(From) : null;
     const docWork = (async () => {
       const enabled = (await sec('wa_autoreply_enabled')) === 'true';
-      let reply = ''; const results: string[] = []; let readText = '';
+      let reply = ''; const results: string[] = []; let readText = ''; const photoReads: PhotoRead[] = [];
 
       // A VOICE NOTE IS NOT A DOCUMENT (2 Nov 2026). It reached the document intake, which accepts only a PDF or an
       // image, so a supplier who spoke a question was told to "send the trade licence as a PDF or a clear photo".
@@ -73,10 +74,14 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
           const r = await customerFile(cust, target, m, i + 1, internalCaller);
           results.push((r.ok ? 'attached: ' : 'not attached: ') + r.note);
           notes.push((r.ok ? 'received: ' : 'not received: ') + r.note);
+          if (r.photo) photoReads.push(r.photo);
         }
+        // WHAT THE PHOTO SHOWS (19 Nov 2026, ruling 1200; _shared/photo_reading.ts): the reply asks next about what it leaves open, or,
+        // when it could not be read, is told never to say it looked at it.
+        const photoSaid = waPhotoSituation(photoReads);
         const ar = /[؀-ۿ]/.test(Body);
         reply = await sayFor('customer')(target && results.some((r) => r.startsWith('attached'))
-          ? 'They sent ' + (media.length > 1 ? media.length + ' files' : 'a file') + ' on WhatsApp and it is with their request: ' + notes.join('; ') + '. Tell them plainly what was received and where it went, and that they can see it on their request page at https://quotesdone.com/me . Do not promise any quote or time.'
+          ? 'They sent ' + (media.length > 1 ? media.length + ' files' : 'a file') + ' on WhatsApp and it is with their request: ' + notes.join('; ') + '. Tell them plainly what was received and where it went, and that they can see it on their request page at https://quotesdone.com/me . Do not promise any quote or time.' + photoSaid
           : 'They sent a file on WhatsApp and it could not be added to their request (' + (notes.join('; ') || results.join('; ')) + '). Tell them plainly, and that it can be uploaded on their request page at https://quotesdone.com/me .', ar ? 'ar' : undefined);
       } else if (!leadId) {
         // RULING 1177 (12 Oct 2026): a file from a number with no account is READ too (code first, then the vision
@@ -165,6 +170,7 @@ export async function mediaIn(t: WaTurn): Promise<Response | undefined> {
           inbound: (Body || '(no caption)').slice(0, 2000), reply, lang: 'en', escalated: false, sent,
           meta: { enabled, audience, route: 'media_in', media_count: media.length, media_items: mediaItems(media), lead_id: leadId, customer_id: cust?.id ?? null,
                   ...(readText ? { attachment_text_untrusted: readText.slice(0, 4000) } : {}),   // the read was counted by its claim row
+                  ...(photoReads.length ? { photo_readings: stampOf(photoReads), photos_unread: photoReads.filter((r) => r.status === 'failed').length } : {}),   // internal; no identity (photo_reading.ts)
                   results, send_error: sendErr || null, provenance_verified: true,
                   message_sid: MessageSid || null },
         });
