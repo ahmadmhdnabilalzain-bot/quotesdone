@@ -27,7 +27,7 @@
 // Pure apart from the injected fetch and finding writer, so m365_lane.test.ts replays every branch offline.
 import { isLaneType, LANE_CAPPED_TYPES } from './invite_lane.ts';
 import { invitationCopyLint, type CopyRule } from './invitation_copy.ts';
-import { carriesOffer, WHATSAPP_OFFER } from '../_shared/whatsapp_offer.ts';
+import { carriesOffer, FOREIGN_PHONE, WHATSAPP_OFFER } from '../_shared/whatsapp_offer.ts';
 
 export const M365_SECRET_NAMES = ['MS_TENANT_ID', 'MS_CLIENT_ID', 'MS_CLIENT_SECRET'] as const;
 export const M365_REFUSED_ISSUE = 'invite_m365_lane_refused';
@@ -450,8 +450,8 @@ const MARKER_EXEMPT = /date|closes with/;
 // The question-ending rules of invitationCopyLint belong to the stored Resend-lane copy; the founder's approved text
 // (27 Oct 2026) closes with the reply-"stop" line instead, so this lane does not apply them.
 const NOT_THIS_LANE = /question/;
-/** A telephone number with a country code other than the UAE's (+971), in any spacing: "+1 218 316 6814", "+12183166814". */
-export const FOREIGN_PHONE = /\+(?!971)\d{1,3}[\s.-]*\(?\d{2,4}\)?[\s.-]*\d{3}[\s.-]*\d{3,4}/;
+/** A telephone number outside the UAE (+971): one definition, in _shared/whatsapp_offer.ts (19 Nov 2026). */
+export { FOREIGN_PHONE };
 export function m365CopyLint(o: { subject: string; body: string; preheader?: string; seed?: boolean; declinedWhatsapp?: boolean }): CopyRule[] {
   const marker = o.seed ? seedMarker(o.body) : '';
   if (marker) {

@@ -26,8 +26,14 @@ import { parseJson } from './model_json.ts';
 export const WHATSAPP_OFFER = 'Want job requests on WhatsApp too? Reply "WhatsApp" and we will send you a code to confirm your number.';
 
 /** Our WhatsApp number as written to a supplier who asked to confirm his number (src/content/company.json `phone`). Plain text: no
- *  link and no tel: (ruling 1301). Never in campaign mail since 19 Nov 2026 (send_outbox/m365_lane.ts FOREIGN_PHONE). */
+ *  link and no tel: (ruling 1301). Never in campaign mail since 19 Nov 2026 (FOREIGN_PHONE below, read by send_outbox/m365_lane.ts). */
 export const OUR_WHATSAPP = '+1 218 316 6814';
+
+/** A telephone number with a country code other than the UAE's (+971), in any spacing: "+1 218 316 6814", "+12183166814".
+ *  A supplier in the UAE is never given one in campaign mail (send_outbox/m365_lane.ts m365CopyLint) nor in a reply a model
+ *  writes to him (ai_reply.ts, 19 Nov 2026). The one place it is written to him is confirmLine, which names the WhatsApp
+ *  sender itself (ruling 863: the sender is not changed): he must send his code TO that number for the proof to work. */
+export const FOREIGN_PHONE = /\+(?!971)\d{1,3}[\s.-]*\(?\d{2,4}\)?[\s.-]*\d{3}[\s.-]*\d{3,4}/;
 
 /** True when the text already carries the offer (it is never added twice). */
 export const carriesOffer = (text: string): boolean => String(text || '').includes(WHATSAPP_OFFER);
