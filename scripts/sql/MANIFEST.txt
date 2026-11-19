@@ -2507,3 +2507,11 @@ scripts/sql/no_supplier_is_e_mailed_a_scorecard_the_portal_still_shows_it.sql
 scripts/sql/the_founder_is_e_mailed_each_supplier_who_registers_and_is_approved.sql
 # 18 Nov 2026 19:01 UTC (it_engineer): applied after #2055 and #2056 (ruling 1732; the 18:30 attempt refused and rolled back on 8 hand-offs whose supplier key held JSON null); PROBE OK: customers 0dc8c94f and ba61fa16 and 2 logins removed, 22 storage objects and 22 Dropbox copies queued (purge 207).
 scripts/sql/the_founders_two_demo_customer_accounts_go_with_everything_they_own.sql
+# 19 Nov 2026 13:19 UTC (it_engineer): applied after #2065 (ruling 1737 amends 1181); PROBE OK; doc_backups_entity_entity_id_idx built.
+scripts/sql/a_customer_who_accepted_terms_or_sent_a_file_is_never_purged.sql
+# 19 Nov 2026 13:20 UTC (it_engineer): applied after #2063 (ledger 1199); PROBE OK: 0 run-tagged ai_cost_log rows left, every deleted row tallied in ai_test_spend_day, openrouter_day and expense_entries unchanged.
+scripts/sql/test_runs_leave_no_cost_row_an_agent_reads_as_real.sql
+# 19 Nov 2026 13:20 UTC (it_engineer): applied after #2063 (ledgers 1726, 1729); PROBE OK: doc_backups 52497, 52501 to supplier 158318 and 53162, 710220 to company, queued for dropbox_backup to move.
+scripts/sql/the_four_kept_copies_are_filed_under_their_real_party.sql
+# 19 Nov 2026 13:21 UTC (customer_support): applied after #2064 (ruling 1736); PROBE OK: customer ca038493 restored, 1 model-written message owed to that customer only, activation mail superseded.
+scripts/sql/a_real_customer_whose_record_was_lost_is_restored_and_asked_about_her_request.sql
