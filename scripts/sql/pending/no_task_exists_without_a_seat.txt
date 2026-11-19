@@ -1,0 +1,4 @@
+Committed 19 Nov 2026 (ceo, agent ownership-guard, ruling 1743), not yet applied: the session that merges it applies it with
+node scripts/apply_sql.mjs scripts/sql/no_task_exists_without_a_seat.sql --apply --ddl, deletes this note and appends the file
+to the end of MANIFEST.txt in the same commit. Proved on the local database (scripts/db/local_pg16.mjs) on 19 Nov 2026: PROBE OK,
+and PROBE FAILED with the cron arm disabled and with an unowned control job left scheduled.
