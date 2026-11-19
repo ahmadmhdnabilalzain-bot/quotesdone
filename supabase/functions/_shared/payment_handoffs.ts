@@ -259,6 +259,9 @@ export const HANDOFF_TYPES: readonly HandoffType[] = [
   { type: 'mail.routed', from: 'customer_support', to: 'ceo' },
   { type: 'mail.routed', from: 'customer_support', to: 'it_engineer' },
   { type: 'mail.routed', from: 'customer_support', to: 'marketing' },
+  // an e-mail whose answer could not be sent: its owning seat holds it with the mail's facts; past 24 h the CEO orders it answered
+  // or closes it (scripts/sql/an_unanswered_mail_is_handed_to_its_seat_with_its_facts.sql)
+  { type: 'mail.unanswered', from: 'customer_support', to: 'customer_support' },
   // the comparison's open points: the sales engineer asks the supplier to confirm them, in his own queue
   // (scripts/sql/the_comparison_hands_its_open_points_to_the_sales_engineer.sql)
   { type: 'comparison.points', from: 'sales_engineer', to: 'sales_engineer' },

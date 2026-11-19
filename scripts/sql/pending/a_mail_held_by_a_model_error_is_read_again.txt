@@ -1,7 +1,7 @@
 Committed, not applied. Assigned: customer_support. Agent: customer_support held-mail retrier. 19 Nov 2026.
 
 Why it waits: it is applied at merge by the session that merges it (GitHub Actions is off: docs/runbooks/release-without-ci.md).
-Order: deploy email_triage from the same PR FIRST (model_retry.ts: a provider failure is read again with backoff, and a reading
+Order: apply an_unanswered_mail_is_handed_to_its_seat_with_its_facts.sql, then deploy email_triage from the same PR (model_retry.ts: a provider failure is read again with backoff, and a reading
 that finishes after another run took the mail is not recorded), so the re-queued mail is read under the new rule. Then:
   node scripts/apply_sql.mjs scripts/sql/a_mail_held_by_a_model_error_is_read_again.sql --apply --ddl
 Expected result row: {"requeued": 1, "ids": [2169]} (the same predicate as a production SELECT, 19 Nov 2026: [2169]). It sends

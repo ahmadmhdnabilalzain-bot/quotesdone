@@ -41,6 +41,7 @@ import { TRIAGE_LLM } from './triage_llm.ts';
 import { applyBackstop, backstopApplies, holdsUnread, readTriage, UNREAD_CATEGORY, UNREAD_SUMMARY } from './opt_out_backstop.ts';
 import { beat, budgetLeft, closeStaleRuns } from './run_guard.ts';
 import { retryNotDue } from './model_retry.ts';
+import { closeUnansweredHandover, OWNER_SEAT, unansweredMailHandoff } from './unanswered_mail.ts';
 import { J } from '../_shared/json_response.ts';
 import { loadCaseContext, recordCaseExchange } from '../_shared/case_context.ts';
 import { emailConversation } from '../_shared/email_history.ts';
@@ -196,6 +197,8 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
     }
     const { data: sent, error } = await admin.rpc('fn_inbox_send', { p_id: m.id, p_body: text, p_by: 'customer_support' });
     if (error || (sent as { error?: string } | null)?.error) throw new Error('fn_inbox_send: ' + (error?.message ?? (sent as { error?: string }).error));
+    // an earlier failed answer's hand-over is complete now that one went (unanswered_mail.ts)
+    await closeUnansweredHandover(admin, m.id, 'email_triage');
     // the reply that went carried the ticket: that is the acknowledgement on this channel (complaint_register.ts)
     await acknowledgeIfCarried((fn, args) => deps.rpc(fn, args), ticket, text, 'e-mail reply carried the ticket');
     // the case summary after the reply that went (runs past the response; never awaited)
@@ -268,11 +271,14 @@ Deno.serve(observe('email_triage', async (req) => {
       catch (e) {
         counts.answer_failed++; console.error('email_triage answer', m.id, String((e as Error)?.message || e));
         // NEVER JUST WAITS (2 Nov 2026): a triaged row is not selected again, so a failed answer had no owner and no retry.
-        // Nothing comes back to the founder (ledger 1438): the ceo seat holds it as a live handoff, idempotent per message.
-        const { error: hoErr } = await admin.rpc('fn_seat_handoff', { p_from: 'customer_support', p_to: 'ceo', p_type: 'review.requested', p_subject_table: 'inbound_messages', p_subject_id: String(m.id),
-          p_payload: { inbound_message_id: m.id, from_email: m.from_email, to_email: m.to_email, subject: String(m.subject || '').slice(0, 200), ask: 'customer_support could not write an answer, so the sender has heard nothing. Decide the answer and have it sent in the thread.', error: String((e as Error)?.message || e).slice(0, 300) } });
+        // Nothing comes back to the founder (ledger 1438). AS A MAIL, NOT A REVIEW (19 Nov 2026, inbound 2169, handoff 393159): it was
+        // review.requested to the CEO, which the CEO read as "review a decision" and dismissed for want of one. It is now
+        // mail.unanswered to its owning seat with the mail's facts and a 24 h clock; past it the CEO orders the answer or closes it
+        // with the reason (unanswered_mail.ts). Idempotent per message.
+        const { data: dr } = await admin.from('inbound_messages').select('ai_draft_reply').eq('id', m.id).maybeSingle().then((x: unknown) => x, () => ({ data: null })) as { data: { ai_draft_reply?: string | null } | null };
+        const { error: hoErr } = await admin.rpc('fn_seat_handoff', unansweredMailHandoff(m, { error: String((e as Error)?.message || e), draft: dr?.ai_draft_reply ?? null }));
         if (hoErr) console.error('email_triage handoff', m.id, hoErr.message);
-        else await admin.from('inbound_messages').update({ owner_role: 'ceo' }).eq('id', m.id).is('owner_role', null);
+        else await admin.from('inbound_messages').update({ owner_role: OWNER_SEAT }).eq('id', m.id).is('owner_role', null);
       }
     };
     for (const m of ((msgs || []) as Mail[])) {

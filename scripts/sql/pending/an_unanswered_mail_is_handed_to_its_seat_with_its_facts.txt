@@ -1,0 +1,11 @@
+Committed, not applied. Assigned: customer_support. Agent: customer_support held-mail retrier. 19 Nov 2026.
+
+Why it waits: it is applied at merge by the session that merges it (GitHub Actions is off: docs/runbooks/release-without-ci.md).
+Order: apply THIS file FIRST, then deploy email_triage from the same PR (it files mail.unanswered; before this file the kind is
+unregistered and fn_seat_handoff files it 'failed'), then apply a_mail_held_by_a_model_error_is_read_again.sql.
+  node scripts/apply_sql.mjs scripts/sql/an_unanswered_mail_is_handed_to_its_seat_with_its_facts.sql --apply --ddl
+Local Postgres 16 from the schema mirror, 19 Nov 2026: applied twice, PROBE OK twice (the handler names the mail, the sender, the
+reason and the draft; the row stays with customer_support), 0 rows left, EXECUTE revoked. The CEO side is the live
+fn_ceo_files_judgements (read 19 Nov: an owner other than the CEO is offered chase or close), not re-run locally: the schema mirror
+predates fn_handoff_overdue_escalate.
+Then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.

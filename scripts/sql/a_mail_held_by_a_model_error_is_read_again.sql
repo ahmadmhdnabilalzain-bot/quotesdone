@@ -27,7 +27,7 @@
 --   Within 30 days of receipt only. p_fixture true touches ZZ DEMO rows only (@example.invalid and a 'ZZ DEMO' subject); false never does.
 -- prevented by: a_mail_held_by_a_model_error_is_read_again_probe.sql (LOCAL), email_triage/model_retry.test.ts
 -- APPLY: node scripts/apply_sql.mjs scripts/sql/a_mail_held_by_a_model_error_is_read_again.sql --apply --ddl
---   AFTER deploying email_triage from the same PR (so the re-read gets the retry), then delete the pending note and append this
+--   AFTER an_unanswered_mail_is_handed_to_its_seat_with_its_facts.sql and the email_triage deploy from the same PR (so the re-read gets the retry), then delete the pending note and append this
 --   file as the LAST line of scripts/sql/MANIFEST.txt. Expected result row: {"requeued": 1, "ids": [2169]}.
 -- ROLLBACK: drop function public.fn_inbound_mail_held_by_model_error_requeue(boolean); a re-queued mail is read by the normal
 --   pipeline within one tick and needs no undo (the row's raw keeps model_error_requeued_at as the record).
