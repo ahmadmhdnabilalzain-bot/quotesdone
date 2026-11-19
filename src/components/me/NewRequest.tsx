@@ -38,6 +38,7 @@ import { ConciergeSteps } from './ConciergeSteps';
 import { boqNote } from '@/lib/boqNotes';
 import { t, tf, errText, emirateName, pagesWithheldText } from './portalText';
 import { countPhrase } from '@/lib/countedNoun';
+import { glanceOf, glanceText } from './drawingGlance';
 import { markupSvg } from './markup';
 import { DEVICE_TYPES } from '../../../supabase/functions/drawing_boq/legend_vocabulary';
 import { recognitionLangs, getRecognition, speechErrorKey } from './speech';
@@ -292,6 +293,18 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
   // FREE OCR (14 Sep 2026). The vision model is held and an edge function has ~2 s of CPU, so a photo's
   // or a scan's words are read HERE, by tesseract.js in the customer's browser (ocrClient.ts). The text
   // is untrusted input: the server parses it, strips prices, and scrubs identity like any other text.
+  // THE GLANCE, SAID AT ONCE (19 Nov 2026, sales_engineer; founder ruling 1533; ./drawingGlance.ts has the measurement: the
+  // first answer came p50 109.5 s after the server call). A PDF's own text layer is read here, text only, and what the set is
+  // (its sheets, trades and kinds of sheet, from fixed lists) is said before the server's read starts. It never waits on the
+  // read and never delays it: it runs beside it, and is dropped if it has not answered within GLANCE_WAIT_MS.
+  const GLANCE_WAIT_MS = 6000;
+  const glance = async (file) => {
+    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)) return null;
+    try {
+      const work = (async () => { const { pdfPageTexts } = await import('./pdfRaster'); const r = await pdfPageTexts(new Uint8Array(await file.arrayBuffer())); return glanceOf(r.texts, r.pages); })();
+      return await Promise.race([work, new Promise((ok) => setTimeout(() => ok(null), GLANCE_WAIT_MS))]);
+    } catch (_e) { return null; }
+  };
   const ocr = async (images) => { try { const { ocrImages } = await import('./ocrClient'); return (await ocrImages(images)).text || ''; } catch (_e) { return ''; } };
   // source 'boq' when the customer attached a BOQ (sheet or PDF): create_inquiry tells suppliers so.
   // The server's reading says what the file IS (13 Nov 2026): a customer's existing quotation comes back brief_source
@@ -383,6 +396,8 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
     push({ role: 'user', text: '', chip: file.name });
     if (tooBig(file)) return;
     setAnalyzing(true); setEditor(false);
+    // Beside the read, never before it: the glance is pushed when it answers (seconds), the read's answer comes after it.
+    if (source === 'drawing') glance(file).then((g) => { if (g) push({ role: 'assistant', text: glanceText(g, ar ? 'ar' : 'en', countPhrase(lang, g.sheets, 'page')) }); }, () => {});
     try {
       const p = { ...(await fileToImages(file)), name: file.name, source };
       if (p.mime === 'application/pdf' && p.images.length) p.schedule_tables = await readSchedules(p.b64);

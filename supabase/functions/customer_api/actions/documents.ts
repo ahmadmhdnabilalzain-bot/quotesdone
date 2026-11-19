@@ -287,6 +287,27 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
         // planLost: the read did not answer (a part lost to the CPU cap or the clock), as opposed to one that answered without
         // confidence (supplierBoxes null): only a LOST read is planned again by the CAD worker (review of 578f49003, item 2).
         let planLost = false;
+        // THE MODEL'S READ STARTS AT ONCE, BESIDE THE PLAN (19 Nov 2026, sales_engineer; founder ruling 1533: "Drawings should
+        // feel like attaching a drawing to Claude: it understands it, fast"). MEASURED (SELECT, function_edge_logs and drawing_boq's
+        // model_read line, all 16 analyze_drawing requests of 17-18 Nov 2026): the request took p50 109.5 s / p90 129.5 s, and
+        // drawing_boq's read (p50 87.0 s / p90 100.5 s) did not START until the plan read had answered, p50 18.9 s / p90 28.0 s
+        // later. The read needs nothing the plan gives (its body is the customer's own upload, as before), so it now runs while
+        // the plan and the pages are read: the answer waits on the longer of the two, not their sum (replayed on
+        // those 15 timelines: p50 11.1 s / p90 19.0 s sooner; a set whose pages run to the redaction's clock gains nothing). What drawing_boq is sent,
+        // and everything decided from its answer (priced or not, queued or not, the confirm on the redacted page), is unchanged.
+        // original_b64 lets drawing_boq read a PDF's own text layer with no model — the hold-proof path.
+        // A CAD FILE IS READ, NOT PICTURED (22 Sep 2026, sales_engineer; founder instructions 31, 63, 64).
+        // doc_read now opens a DWG (LibreDWG) and runs the DXF take-off, but the portal sends a .dwg here,
+        // to analyze_drawing, and this call gave drawing_boq only the rasterised sheets: the reader had no
+        // way in. The CAD original goes to drawing_boq's 'document' mode for the take-off; cad_convert's
+        // pictures below are still what drawing_redact covers for suppliers.
+        const boqBody = isCad && body.original_b64
+          ? { __secret: secret, mode: 'document', file_b64: body.original_b64, mime, filename: name, hint }
+          : { __secret: secret, hint, images, original_b64: body.original_b64 || null, mime, ocr_text: String(body.ocr_text || '').slice(0, 200_000), ...drawingOcr(body), ...scheduleTables(body) };
+        const boqP = timedFetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify(boqBody) }, Math.max(5_000, analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now()));
+        // Observed at once: a read that fails while the plan or the pages are still running is never an unhandled rejection that
+        // ends this worker; Promise.allSettled below still sees the failure and answers boq_fetch_failed, as before.
+        boqP.catch(() => {});
         if (/pdf/i.test(mime) && body.original_b64) {
           const plan = await readPdfPlan(pdfPlanCall(secret, String(body.original_b64), analyzeAt + ANALYZE_DRAWING_BUDGET_MS), seedTerms({ name: cust.full_name || '', email: cust.email || email, phone: cust.phone || '', extra: [name] }));
           if (plan) {
@@ -322,16 +343,6 @@ export async function documentActions(c: ActionCtx): Promise<Response | undefine
           const r = await fetch(`${SUPABASE_URL}/functions/v1/drawing_redact`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify({ __secret: secret, images: slice, prefix: redPrefix, owner_customer_id: cust.id, owner_email: email, source_path: path, page_offset: from, seed_terms: floorSeeds, original_b64: body.original_b64 || null, deadline_at: redStartBy, stop_at: redStopAt, spent_usd: othersUsd, ...(manualBoxes ? { manual_boxes: manualBoxes.slice(from, from + slice.length) } : {}) }), signal: AbortSignal.timeout(Math.max(5_000, analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now())) });
           return await r.json();
         };
-        // original_b64 lets drawing_boq read a PDF's own text layer with no model — the hold-proof path.
-        // A CAD FILE IS READ, NOT PICTURED (22 Sep 2026, sales_engineer; founder instructions 31, 63, 64).
-        // doc_read now opens a DWG (LibreDWG) and runs the DXF take-off, but the portal sends a .dwg here,
-        // to analyze_drawing, and this call gave drawing_boq only the rasterised sheets: the reader had no
-        // way in. The CAD original goes to drawing_boq's 'document' mode for the take-off; cad_convert's
-        // pictures above are still what drawing_redact covers for suppliers.
-        const boqBody = isCad && body.original_b64
-          ? { __secret: secret, mode: 'document', file_b64: body.original_b64, mime, filename: name, hint }
-          : { __secret: secret, hint, images, original_b64: body.original_b64 || null, mime, ocr_text: String(body.ocr_text || '').slice(0, 200_000), ...drawingOcr(body), ...scheduleTables(body) };
-        const boqP = timedFetch(`${SUPABASE_URL}/functions/v1/drawing_boq`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SERVICE}` }, body: JSON.stringify(boqBody) }, Math.max(5_000, analyzeAt + ANALYZE_DRAWING_BUDGET_MS - Date.now()));
         let redacted: string[] = []; const redJobs: string[] = []; let redIn = 0; let redOut = 0; let redDied = 0;
         // drawing_redact says needs_manual_boxes when its automatic detection could not run (no model
         // under the hold) — the portal opens the customer's box editor on exactly that signal.
