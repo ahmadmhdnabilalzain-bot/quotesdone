@@ -115,7 +115,8 @@ Deno.test('handle.ts: the record starts before the trade reads, is read at the p
   assertMatch(src, /const turnContext = \[[\s\S]{0,600}recordBlock\(record\),/);
   assertEquals(/await\s+(recordExchange|recordIntakeExchange)\(/.test(src), false, 'the case write is never awaited by the turn');
   assert(at('recordExchange(heldMsg);') > 0 && at("recordExchange(String(out.assistant_message || ''));") > at('const { error: saveErr }'), 'recorded after the saved reply');
-  // never-ask-twice and asked_keys are untouched
-  assertMatch(src, /a customer asked twice for the same thing abandons the request/);
-  assertMatch(src, /In "asked_keys" put the key of each spec your assistant_message asks\./);
+  // never-ask-twice and asked_keys are untouched (the rules are in intake_prompt.ts since 19 Nov 2026)
+  const prompt = await Deno.readTextFile(new URL('./intake_prompt.ts', import.meta.url));
+  assertMatch(prompt, /a customer asked twice for the same thing abandons the request/);
+  assertMatch(prompt, /In "asked_keys" put the key of each spec your assistant_message asks\./);
 });
