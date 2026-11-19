@@ -167,6 +167,9 @@ export const REGISTER = {
   fn_customer_support_reply_quality_week: {
     replay: 'pg_temp.qd_replay_fn_customer_support_reply_quality_week()',
     asOf: { support_reply_readability: 'created_at', assistant_logs: 'created_at', wa_messages: 'created_at', inbound_messages: 'created_at' },
+    // 19 Nov 2026 (customer_support, a_load_test_reply_is_never_scored_as_a_real_one.sql): the numbers and the targets moved
+    // into these two, so they read the as-of views at the instant too
+    callees: ['fn_customer_support_reply_quality_metrics', 'fn_customer_support_reply_quality_below'],
   },
   // 19 Oct 2026 (customer_support, #1549, CS-C09). Raises delivery_health:<send_failures|whatsapp_failures|
   // template_watch|unsubscribe_refusals> over the 24 h to the instant: failures over 5% of 20+ sends, a template
@@ -558,7 +561,7 @@ test('no healthy-day replay can take a row lock on a live table, transitive call
     const defs = pending ? [pending.def] : (bodies.get(name) ?? []);
     for (const def of defs) {
       // A registered callee is part of the replayed text (it is rebuilt before the routine), so its calls are walked too.
-      const calleeDefs = Object.fromEntries((entry.callees ?? []).map((c) => [c, (bodies.get(c) ?? [])[0]]));
+      const calleeDefs = Object.fromEntries((entry.callees ?? []).map((c) => [c, pendingSource(c)?.def ?? (bodies.get(c) ?? [])[0]]));
       const sql = replaySqlFor(name, def, entry, '2026-09-14T01:00:00Z', '', '', calleeDefs);
       const body = sql.slice(sql.indexOf('create function pg_temp.qd_replay_'));
       if (ROW_LOCK.test(body.replace(/--[^\n]*/g, ''))) bad.push(`${name}: its replayed body still takes a row lock`);

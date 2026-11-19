@@ -38,6 +38,7 @@ import { siteCors } from '../_shared/site_origins.ts';
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { observe } from '../_shared/observe.ts';
 import { fitHistory } from '../_shared/chat_history.ts';
+import { onboardKey, onboardTurns, recordOnboardTurn } from './history.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -160,10 +161,11 @@ Deno.serve(siteCors(observe('supplier_onboard', async (req) => {
     // 2,000 characters each, so a supplier's ninth message lost what the first said about its company. fitHistory keeps
     // every turn up to its budget and, past it, every turn the supplier wrote (_shared/chat_history.ts); the bill is bounded
     // by that budget, not by forgetting.
-    const history = fitHistory(Array.isArray(body.history)
-      ? body.history.filter((m: { role?: string; content?: string }) => m?.role === 'user' || m?.role === 'assistant')
-        .map((m: { role: string; content: string }) => ({ role: m.role === 'assistant' ? 'assistant' as const : 'user' as const, content: String(m.content || '') }))
-      : [], text);
+    // FROM THE DATABASE, NOT THE BROWSER (19 Nov 2026, ledger 1474; history.ts): body.history was the only copy, so a client
+    // could forge it or drop it. The stored transcript wins; the browser's copy is read only when nothing is stored yet.
+    const key = onboardKey(user.id);
+    const { turns } = await onboardTurns(admin, key, body.history, text);
+    const history = fitHistory(turns, text);
     const input = [...history, { role: 'user', content: text }];
 
     let raw: Record<string, unknown>;
@@ -220,12 +222,15 @@ Deno.serve(siteCors(observe('supplier_onboard', async (req) => {
       });
     } catch { /* telemetry is not the product */ }
 
+    const reply = clean(raw.reply, 600) || 'Thanks — tell me a little more about what your company makes or installs.';
+    // the turn joins the stored conversation the next message reads (history.ts)
+    await recordOnboardTurn(admin, key, text, reply);
     return J({
       ok: true,
       profile,
       filled,
       missing,
-      reply: clean(raw.reply, 600) || 'Thanks — tell me a little more about what your company makes or installs.',
+      reply,
       // The portal writes through create_company + save_profile. Said out loud in the payload so a
       // future reader does not go looking for a write path in here.
       write_path: 'supplier_api:create_company+save_profile',

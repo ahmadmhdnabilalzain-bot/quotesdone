@@ -125,7 +125,10 @@ Deno.serve(siteCors(observe('customer_api', async (req) => {
     // action is refused now. 'me' and 'my_inquiries' stay open on purpose so the person can
     // still see their own account state and existing requests rather than hitting a dead wall.
     const MUTATING = ['create_inquiry', 'repeat_inquiry', 'edit_inquiry', 'reveal', 'request_refund', 'rate_supplier', 'decision_reason', 'add_review_photos', 'complete_inquiry', 'cancel_inquiry', 'rfq_note', 'add_missing_specs'];
-    if (cust?.banned === true && MUTATING.includes(action)) return J({ error: 'Your account is suspended. Please contact support@quotesdone.com if you believe this is a mistake.' }, 403);
+    // AN ADDRESS THAT IS READ (customer_support, 19 Nov 2026): this named a "support" mailbox at our domain that nothing reads
+    // and that had received 0 of the 100 inbound_messages on production. info@ is the public address customer_support answers
+    // (email_triage; supplier_mailbox_reading.ts TENANT_READ_MAILBOXES). prevented by: scripts/checks/no_copy_names_a_mailbox_nobody_reads.test.mjs
+    if (cust?.banned === true && MUTATING.includes(action)) return J({ error: 'Your account is suspended. Please contact info@quotesdone.com if you believe this is a mistake.' }, 403);
 
     // RE-ACCEPTANCE OF A NEW TERMS VERSION (6 Oct 2026, release review of #1240). Recorded the same way as sign-up
     // (_shared/customer_terms.ts: version, time, IP, SHA of the pinned text) and the signed certificate re-issued.

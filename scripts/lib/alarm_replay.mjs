@@ -118,6 +118,14 @@ end $q$;`;
 // not replay it. `pending` = { file, def }: its pending file's SQL, run first inside the same rolled-back transaction
 // (what it calls then exists), and the routine's own definition from that file. The new alarm is replayed before
 // it is applied, not discovered loud after.
+/** The text of `create or replace function public.<name>(` in a SQL file, up to the next routine of that file, or null. */
+export function definitionIn(file, name) {
+  if (!file) return null;
+  const heads = [...String(file).matchAll(/create\s+or\s+replace\s+function\s+public\.(\w+)\s*\(/gi)];
+  const i = heads.findIndex((m) => m[1].toLowerCase() === String(name).toLowerCase());
+  return i < 0 ? null : file.slice(heads[i].index, heads[i + 1]?.index ?? file.length);
+}
+
 export async function replay(sql, name, entry, at, stage = '', pending = null) {
   const live = (await sql(`select pg_get_functiondef(p.oid) d from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                            where n.nspname = 'public' and p.proname = ${lit(name)}`))?.[0]?.d;
@@ -125,6 +133,10 @@ export async function replay(sql, name, entry, at, stage = '', pending = null) {
   assert.ok(def, `${name} is not in production`);
   const calleeDefs = {};
   for (const c of entry.callees ?? []) {
+    // a callee the routine's pending file defines is replayed from that file, as the routine is (19 Nov 2026): before the apply
+    // it is not in production at all, and after it the file is the definition the replay is checking
+    const fromPending = definitionIn(pending?.file, c);
+    if (fromPending) { calleeDefs[c] = fromPending; continue; }
     calleeDefs[c] = (await sql(`select pg_get_functiondef(p.oid) d from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                                 where n.nspname = 'public' and p.proname = ${lit(c)}`))?.[0]?.d;
     assert.ok(calleeDefs[c], `${name}: its callee ${c} is not in production`);
