@@ -134,6 +134,49 @@ export function dmarcAggregate(xml: string): { messages: number; failed: number;
   return { messages, failed, org: xml.match(/<org_name>\s*([^<]*?)\s*<\/org_name>/)?.[1] ?? null };
 }
 
+// WHO SENDS AS US, BY SOURCE IP (19 Nov 2026, it_engineer; ledger 1526). quotesdone.com's SPF carries
+// include:secureserver.net (GoDaddy's shared relays) and include:spf.protection.outlook.com (every Microsoft 365
+// tenant), so any customer of either can pass SPF as us. An include may be removed only when nothing that sends as
+// the domain uses it, and that is a per-IP question: the totals above cannot answer it. Each of our own senders
+// signs DKIM as the domain (Microsoft 365 selector1, d=quotesdone.com; Resend resend._domainkey, d=quotesdone.com),
+// so a source whose DMARC pass rests on SPF alone ('spf_only') is either a sender we have not named or someone using
+// a shared include. A GoDaddy relay that sends for us appears here as spf_only from a GoDaddy IP before the
+// secureserver.net include is removed; none appearing over 14 days of reports is the evidence that removal is safe.
+export type DmarcSource = { ip: string; messages: number; dkim: string; spf: string; header_from: string | null; spf_only: boolean };
+export function dmarcSources(xml: string): DmarcSource[] {
+  const out: DmarcSource[] = [];
+  for (const rec of xml.match(/<record>[\s\S]*?<\/record>/g) ?? []) {
+    const pe = rec.match(/<policy_evaluated>[\s\S]*?<\/policy_evaluated>/)?.[0] ?? '';
+    const dkim = pe.match(/<dkim>\s*([a-z]+)\s*<\/dkim>/i)?.[1]?.toLowerCase() ?? 'none';
+    const spf = pe.match(/<spf>\s*([a-z]+)\s*<\/spf>/i)?.[1]?.toLowerCase() ?? 'none';
+    out.push({
+      ip: rec.match(/<source_ip>\s*([^<\s]+)\s*<\/source_ip>/)?.[1] ?? 'unknown',
+      messages: Number(rec.match(/<count>\s*(\d+)\s*<\/count>/)?.[1] ?? 0),
+      dkim, spf,
+      header_from: rec.match(/<header_from>\s*([^<\s]+)\s*<\/header_from>/)?.[1]?.toLowerCase() ?? null,
+      spf_only: spf === 'pass' && dkim !== 'pass',
+    });
+  }
+  return out;
+}
+
+/** Many reports' rows folded into one list per source IP, largest first; a source counts as spf_only if any row did. */
+export function mergeDmarcSources(rows: DmarcSource[], top = 20): { sources: DmarcSource[]; spf_only_messages: number; spf_only_ips: string[] } {
+  const by = new Map<string, DmarcSource>();
+  for (const r of rows) {
+    const k = r.ip + '|' + (r.header_from ?? '');
+    const p = by.get(k);
+    if (!p) { by.set(k, { ...r }); continue; }
+    p.messages += r.messages;
+    if (r.dkim !== 'pass') p.dkim = r.dkim;
+    if (r.spf !== 'pass') p.spf = r.spf;
+    p.spf_only = p.spf_only || r.spf_only;
+  }
+  const all = [...by.values()].sort((a, b) => b.messages - a.messages || a.ip.localeCompare(b.ip));
+  const spfOnly = all.filter((s) => s.spf_only);
+  return { sources: all.slice(0, top), spf_only_messages: spfOnly.reduce((n, s) => n + s.messages, 0), spf_only_ips: [...new Set(spfOnly.map((s) => s.ip))] };
+}
+
 // Reports arrive through resend_inbound into inbound_messages (subject "Report Domain: ..."). The XML is
 // an attachment, .xml or .xml.gz; gzip is opened with the runtime's DecompressionStream.
 // ponytail: a .zip report is counted as unread, not parsed; add a zip reader if providers send only zip.
@@ -150,6 +193,7 @@ async function dmarcReports(admin: Admin, sec: Sec) {
   const auth = { headers: { Authorization: `Bearer ${rk}` } };
   let messages = 0, failed = 0, unread = 0;
   const orgs: string[] = [];
+  const srcRows: DmarcSource[] = [];
   for (const m of rows) {
     let xml = String(m.body ?? '').includes('<feedback') ? String(m.body) : '';
     if (!xml && rk && m.provider_email_id) {
@@ -168,8 +212,11 @@ async function dmarcReports(admin: Admin, sec: Sec) {
     const v = dmarcAggregate(xml);
     messages += v.messages; failed += v.failed;
     if (v.org) orgs.push(v.org);
+    srcRows.push(...dmarcSources(xml));
   }
-  return { basis: 'measured', reports: rows.length, unread, messages, failed, orgs };
+  // `sources` rides in the finding's evidence (fn_it_duties_scheduled passes dmarc_reports through whole), so the
+  // ledger 1526 removal of include:secureserver.net can be decided from the reports, not from a guess.
+  return { basis: 'measured', reports: rows.length, unread, messages, failed, orgs, ...mergeDmarcSources(srcRows) };
 }
 
 async function sender(admin: Admin, sec: Sec) {
