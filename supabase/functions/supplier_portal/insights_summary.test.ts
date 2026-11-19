@@ -36,10 +36,12 @@ Deno.test('price position: fewer than five comparisons is no_data with no figure
     avg_pct_vs_average: null, avg_pct_above_lowest: null, min_comparisons: 5, min_other_suppliers: 3, step_pct: 5 });
   assertEquals(thin.band, 'no_data');
   assertEquals([thin.pct_vs_market_avg, thin.pct_above_lowest, thin.lowest_rate_pct, thin.gauge], [null, null, null, null]);
-  assertEquals(thin.times_lowest, 0);
+  assertEquals(thin.times_lowest, null);
   const ready = pricePosition({ ready: true, band: 'below market average', competitive_rfqs: 5, times_lowest: 0, lowest_rate: 0,
     avg_pct_vs_average: -5, avg_pct_above_lowest: 10 });
   assertEquals([ready.band, ready.pct_vs_market_avg, ready.pct_above_lowest, ready.gauge], ['below', -5, 10, -0.25]);
+  // times_lowest is never passed on, even from an old payload that still carries it (review of c1d1fd657).
+  assertEquals(pricePosition({ ...STATS.price_positioning, times_lowest: 3 }).times_lowest, null);
 });
 
 Deno.test('funnel: conversion is of the previous stage, null where the previous is zero', () => {

@@ -37,7 +37,7 @@ type Summary = {
   ok: boolean; has_data: boolean;
   totals: { inquiries_received: number; quotations_submitted: number; jobs_won: number; revenue_aed: number };
   rates: { win_pct: number | null; reveal_pct: number | null; response_pct: number | null; avg_lead_time_days: number | null; lost_to_others: number };
-  price_position: { band: 'below' | 'around' | 'above' | 'no_data'; pct_vs_market_avg: number | null; lowest_rate_pct: number | null; competitive_rfqs: number; times_lowest: number; gauge: number | null; band_edges: { below_max: number; above_min: number } };
+  price_position: { band: 'below' | 'around' | 'above' | 'no_data'; pct_vs_market_avg: number | null; lowest_rate_pct: number | null; competitive_rfqs: number; times_lowest: null; gauge: number | null; band_edges: { below_max: number; above_min: number } };
   funnel: { key: string; count: number; conversion_pct: number | null }[];
   series: { month: string; quotes: number; reveals: number }[];
   hints: { code: string; severity: 'high' | 'medium' | 'low'; params: Record<string, string | number>; action: string | null }[];
@@ -157,7 +157,7 @@ export default function SupplierInsightsSummary({ token, lang, goTo }: { token: 
           <div className="mt-3" dir="ltr"><Gauge pp={pp} lang={lang} /></div>
           <p className={cn('mt-1 text-center text-[14px] font-semibold', pp.band === 'below' ? 'text-ok-fg' : pp.band === 'above' ? 'text-warn-fg' : 'text-foreground')}>{ws(lang, 'band_' + pp.band)}</p>
           <p className="mt-2 text-center text-[12.5px] leading-[1.65] text-muted-foreground">{pp.band === 'no_data' ? ws(lang, 'price_no_data')
-            : ws(lang, 'price_detail', { pct: signed(pp.pct_vs_market_avg ?? 0), n: pp.competitive_rfqs, lowest: pp.times_lowest })}</p>
+            : ws(lang, 'price_detail', { pct: signed(pp.pct_vs_market_avg ?? 0), n: pp.competitive_rfqs })}</p>
         </div>
         <div className="qd-panel p-5">
           <h3 className="mb-3 text-[14.5px] font-bold text-foreground">{ws(lang, 'in_funnel_h')}</h3>

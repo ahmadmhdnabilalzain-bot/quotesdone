@@ -132,9 +132,10 @@ type InsightsSummary = {
   price_position: {
     band: 'below' | 'around' | 'above' | 'no_data';
     // 5-point steps, and null ('no_data') until 5 inquiries each carry submitted quotes from 3+ OTHER suppliers
-    // (fn_supplier_stats, 19 Nov 2026, founder ruling 1686: with one rival the exact % gave away his price)
+    // on ENDED requests only (fn_supplier_stats, 19 Nov 2026, founder ruling 1686: with one rival the exact % gave away
+    // his price; on an open request he could move his own price and watch the answer). times_lowest is always null.
     pct_vs_market_avg: number | null; pct_above_lowest: number | null; lowest_rate_pct: number | null;
-    competitive_rfqs: number; times_lowest: number;
+    competitive_rfqs: number; times_lowest: null;
     gauge: number | null;                       // -1 (>= 20% below) .. +1 (>= 20% above)
     band_edges: { below_max: -4; above_min: 5 } // % vs market average
   };

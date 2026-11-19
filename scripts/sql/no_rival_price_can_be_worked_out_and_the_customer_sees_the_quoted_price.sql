@@ -22,14 +22,20 @@
 --
 -- WHAT THIS CHANGES (each routine is its pg_get_functiondef of 19 Nov 2026 with only the named lines changed; signatures,
 -- search_path and ACLs are kept, and the revokes below restate them):
---   1. fn_supplier_stats: only submitted/revealed quotes, mine against each OTHER company's lowest, an inquiry counts only with
---      3+ other companies on it, nothing is sent until 5 inquiries count ("not enough comparisons yet"), 5-point steps.
+--   1. fn_supplier_stats: only submitted/revealed quotes on ENDED requests (completed, closed, cancelled, expired, lost), mine
+--      against each OTHER company's lowest, an inquiry counts only with 3+ other companies on it, nothing is sent until 5
+--      inquiries count ("not enough comparisons yet"), 5-point steps, the band read from the rounded average, times_lowest
+--      null. Review of c1d1fd657: on an OPEN request a supplier can re-send his own price and binary-search it until
+--      times_lowest flips, which gave the lowest rival on that request to 0.01% through any rounding.
 --   2. fn_supplier_market: only other suppliers' submitted/revealed quotes; at least 5 quotes from 3 companies, or no price; low,
 --      high and mean are gone; the median and the middle half, each on a step of half an order of magnitude (AED 100 at least).
 --   3. fn_customer_decision_support: quote_amount (the quotation excluding VAT), drafts and held quotes left out.
 --   4. fn_pool_say: "a quotation of AED <quote_amount> excluding VAT arrived".
 --   5. fn_company_self_knowledge_sync: the quotation-format record says the price is the supplier's quotation ex VAT and that our
 --      only charge is the 3% reveal fee; the one stored ops_knowledge row is corrected here so it is right before the next sync.
+--   6. fn_inquiry_conversation_summary_build: the stored record of an inquiry keeps quote_amount, labelled excluding VAT, and no
+--      longer the marked-up generated column. Summaries already stored are not rewritten (inquiry_conversation_summary: 0 rows
+--      on 19 Nov 2026, as inquiries are 0).
 -- The portal (DecisionSupport.tsx, MarketIntelligence.tsx, workspaceCopy.ts) and customer_api my_inquiries (jobs and match
 -- banded through _shared/pre_reveal_bands.ts) change in the same commit.
 --
@@ -37,13 +43,14 @@
 --   then append this file to the END of scripts/sql/MANIFEST.txt and delete its pending note in the same commit. The probe at the
 --   end builds ZZ DEMO fixtures inside a sub-block that always rolls back, and RAISES if any property fails, which takes every
 --   change in this file back with it: a failed probe deploys nothing. Run on the local database first (scripts/db/local_pg16.mjs).
---   RE-READ fn_company_self_knowledge_sync AND fn_pool_say BEFORE APPLYING: this file carries their whole bodies, so a newer
+--   RE-READ fn_company_self_knowledge_sync, fn_pool_say AND fn_inquiry_conversation_summary_build BEFORE APPLYING: this file carries their whole bodies, so a newer
 --   definition applied after 19 Nov would be replaced by this one.
 -- ROLLBACK: re-apply the previous canonical definitions (scripts/sql/MANIFEST.txt order): fn_supplier_stats from
 --   a_supplier_rating_comes_from_quotesdone_customers_only.sql, fn_supplier_market from
 --   the_supplier_portal_tells_one_truth_in_every_panel.sql, fn_customer_decision_support from fn_customer_decision_support.sql,
 --   fn_pool_say from every_seat_reads_one_pool_and_every_hand_over_comes_back.sql, fn_company_self_knowledge_sync from the last
---   file in MANIFEST that defines it. Rolling back re-opens the leaks above; it needs the founder's word.
+--   file in MANIFEST that defines it, fn_inquiry_conversation_summary_build from
+--   a_closed_inquiry_quiet_for_ninety_days_gets_a_structured_summary_of_its_conversation.sql. Rolling back re-opens the leaks above; it needs the founder's word.
 --
 -- Pending: scripts/sql/pending/no_rival_price_can_be_worked_out_and_the_customer_sees_the_quoted_price.txt
 -- Prevented by: supabase/functions/customer_api/no_badge_is_an_exact_fingerprint_before_the_reveal.test.ts,
@@ -92,13 +99,20 @@ begin
   -- rival's price was mine / (1 + pct_above_lowest/100) to the fils, served raw by supplier_portal (overview.ts
   -- buildDashboard, actions/dashboard.ts 'overview', insights_summary.ts). Now:
   --   * only SUBMITTED or REVEALED quotes count (a draft is not a bid; a withdrawn quote is no longer one);
+  --   * only ENDED requests count (completed, closed, cancelled, expired, lost: _shared/request_closed.ts, the one list).
+  --     On a request still taking quotes the supplier can re-send his own price (supplier_api/actions/quotes.ts) and read
+  --     how the answer moves: review of #c1d1fd657 binary-searched his amount until times_lowest flipped, and recovered the
+  --     lowest rival to 0.01% through the 5-point rounding (two neighbouring flips are 20 x his step / N apart);
   --   * my side is my lowest such quote per inquiry, the other side each OTHER company's lowest, so three options from one
   --     rival are one rival;
   --   * an inquiry counts only with at least 3 other companies on it, and no figure at all is sent until 5 inquiries count;
-  --   * every percentage is rounded to a 5-point step.
-  with myq as (select inquiry_id, min(quote_amount) quote_amount from quotes
-                where supplier_id=p_supplier_id and status in ('submitted','revealed') and quote_amount>0
-                group by inquiry_id),
+  --   * every percentage is rounded to a 5-point step, and the band is read from the ROUNDED average, so it says nothing the
+  --     rounded figure does not; times_lowest is no longer sent (null), lowest_rate is a 5-point share.
+  with myq as (select q.inquiry_id, min(q.quote_amount) quote_amount
+                 from quotes q join inquiries i on i.id = q.inquiry_id
+                where q.supplier_id=p_supplier_id and q.status in ('submitted','revealed') and q.quote_amount>0
+                  and i.status in ('completed','closed','cancelled','expired','lost')
+                group by q.inquiry_id),
   rival as (select q.inquiry_id, q.supplier_id, min(q.quote_amount) amt
               from quotes q join myq m using (inquiry_id)
              where q.supplier_id is distinct from p_supplier_id
@@ -109,19 +123,23 @@ begin
                  (m.quote_amount-p.lo)/p.lo*100 pct_low,
                  (m.quote_amount-p.av)/p.av*100 pct_avg,
                  (m.quote_amount<=p.lo*1.0001) as is_lowest
-            from myq m join peer p using(inquiry_id) where p.n>=3)
-  select case when count(*) < 5 then jsonb_build_object('ready', false, 'competitive_rfqs', count(*),
+            from myq m join peer p using(inquiry_id) where p.n>=3),
+  agg as (select count(*) n,
+                 round(100.0*count(*) filter (where is_lowest)/nullif(count(*),0)/5)*5 lowest_rate,
+                 round(avg(pct_low)/5)*5 pct_low5,
+                 round(avg(pct_avg)/5)*5 pct_avg5
+            from pos)
+  select case when n < 5 then jsonb_build_object('ready', false, 'competitive_rfqs', n,
     'min_comparisons', 5, 'min_other_suppliers', 3, 'step_pct', 5,
     'times_lowest', null, 'lowest_rate', null, 'avg_pct_above_lowest', null, 'avg_pct_vs_average', null,
     'band', 'not enough comparisons yet')
-  else jsonb_build_object('ready', true, 'competitive_rfqs', count(*),
+  else jsonb_build_object('ready', true, 'competitive_rfqs', n,
     'min_comparisons', 5, 'min_other_suppliers', 3, 'step_pct', 5,
-    'times_lowest', count(*) filter (where is_lowest),
-    'lowest_rate', round(100.0*count(*) filter (where is_lowest)/count(*)/5)*5,
-    'avg_pct_above_lowest', round(avg(pct_low)/5)*5,'avg_pct_vs_average', round(avg(pct_avg)/5)*5,
-    'band', case when avg(pct_avg) <= -4 then 'below market average'
-                 when avg(pct_avg) < 5 then 'around market average' else 'above market average' end)
-  end into v_pos from pos;
+    'times_lowest', null, 'lowest_rate', lowest_rate,
+    'avg_pct_above_lowest', pct_low5, 'avg_pct_vs_average', pct_avg5,
+    'band', case when pct_avg5 <= -5 then 'below market average'
+                 when pct_avg5 < 5 then 'around market average' else 'above market average' end)
+  end into v_pos from agg;
   with months as (select date_trunc('month', (now() - (n||' month')::interval)) m from generate_series(0,11) n),
   qb as (select date_trunc('month',created_at) m, count(*) c from quotes where supplier_id=p_supplier_id group by 1),
   rb as (select date_trunc('month',revealed_at) m, count(*) c from transactions where supplier_id=p_supplier_id group by 1)
@@ -981,6 +999,64 @@ begin
     'employees', v_snap->>'employees');
 end $function$;
 
+-- 6. fn_inquiry_conversation_summary_build (live body of 19 Nov 2026; the quotes amounts line)
+CREATE OR REPLACE FUNCTION public.fn_inquiry_conversation_summary_build(p_inquiry uuid)
+ RETURNS jsonb
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+  with i as (select * from public.inquiries where id = p_inquiry),
+  msg as (select v.source_table, v.source_id, v.channel, v.direction, v.occurred_at
+            from public.v_conversation_message v where v.inquiry_id = p_inquiry::text),
+  q as (select qu.*, l.company_name from public.quotes qu left join public.leads l on l.id = qu.supplier_id
+         where qu.inquiry_id = p_inquiry),
+  t as (select * from public.transactions where inquiry_id = p_inquiry),
+  rq as (select * from q where q.id in (select quote_id from t))
+  select jsonb_build_object(
+    'inquiry', (select jsonb_build_object('id', i.id, 'rfq_no', i.rfq_no, 'category', i.category, 'trades', i.trades,
+                  'emirate', i.emirate, 'summary', i.summary, 'budget', i.budget, 'required_by', i.required_by,
+                  'status', i.status) from i),
+    'parties', jsonb_build_object(
+       'customer_id', (select customer_id from i),
+       'suppliers', (select coalesce(jsonb_agg(distinct jsonb_build_object('supplier_id', q.supplier_id, 'company', q.company_name)), '[]') from q)),
+    'spec_decisions', jsonb_build_object(
+       'clarifications', (select coalesce(jsonb_agg(jsonb_build_object('asked_at', r.asked_at, 'kind', r.kind,
+                            'question', r.question, 'answer', r.answer) order by r.asked_at), '[]')
+                            from public.rfq_clarification r where r.inquiry_id = p_inquiry),
+       'accepted_alternatives', (select accepted_alternatives from i)),
+    -- quote_amount, labelled ex VAT (19 Nov 2026, ruling 1687); the marked-up generated column is no longer stored here.
+    'amounts', jsonb_build_object(
+       'quotes', (select coalesce(jsonb_agg(jsonb_build_object('supplier_id', q.supplier_id, 'quote_amount', q.quote_amount,
+                    'quote_amount_basis', 'excluding VAT', 'status', q.status, 'at', q.created_at) order by q.created_at), '[]') from q),
+       'transactions', (select coalesce(jsonb_agg(jsonb_build_object('quote_id', t.quote_id, 'quote_amount', t.quote_amount,
+                    'reveal_fee', t.reveal_fee, 'total_charged', t.total_charged, 'revealed_at', t.revealed_at,
+                    'refund_status', t.refund_status, 'refund_amount_aed', t.refund_amount_aed)), '[]') from t)),
+    'dates', jsonb_build_object(
+       'created', (select created_at from i), 'first_quote', (select min(created_at) from q),
+       'revealed', (select min(revealed_at) from t), 'completed', (select completed_at from i),
+       'first_message', (select min(occurred_at) from msg), 'last_message', (select max(occurred_at) from msg)),
+    'commitments', (select coalesce(jsonb_agg(jsonb_build_object('supplier_id', rq.supplier_id, 'lead_time', rq.lead_time,
+                      'validity', rq.validity, 'payment_terms', rq.payment_terms, 'warranty', rq.warranty,
+                      'scope', rq.scope, 'exclusions', rq.exclusions)), '[]') from rq),
+    'disputes', jsonb_build_object(
+       'post_reveal', (select coalesce(jsonb_agg(jsonb_build_object('raised_by', d.raised_by, 'stage', d.stage,
+                        'outcome', d.outcome, 'decided_at', d.decided_at)), '[]') from public.post_reveal_dispute d where d.inquiry_id = p_inquiry),
+       'refunds', (select coalesce(jsonb_agg(jsonb_build_object('status', r.status, 'reason_code', r.reason_code,
+                    'amount_fils', r.amount_fils, 'settled_at', r.settled_at)), '[]') from public.refunds r where r.inquiry_id = p_inquiry),
+       'complaints', (select coalesce(jsonb_agg(jsonb_build_object('ticket_no', ct.ticket_no, 'status', ct.status,
+                       'at', ct.created_at)), '[]')
+                       from public.complaint_tickets ct join public.customers c on lower(c.email) = lower(ct.email)
+                      where c.id = (select customer_id from i))),
+    'outcome', (select jsonb_build_object('outcome', i.outcome, 'lost_reason', i.lost_reason, 'status', i.status,
+                  'hired_supplier_id', i.hired_supplier_id) from i),
+    'conversation', jsonb_build_object(
+       'messages', (select count(*) from msg),
+       'by_channel', (select coalesce(jsonb_object_agg(channel, n), '{}') from (select channel, count(*) n from msg group by 1) c),
+       'sources', (select coalesce(jsonb_agg(source_table || ':' || source_id order by occurred_at), '[]') from msg)),
+    'originals', 'kept: Cabinet Decision 74/2023 Art. 3(1)(b) requires the records for 5 years from the end of the year of creation; this summary is an index');
+$function$;
+
 -- CREATE OR REPLACE keeps each ACL (service_role and postgres only, read 19 Nov 2026); the revokes restate it, one signature each
 -- (one overload of every routine above: pg_proc, 19 Nov 2026).
 revoke execute on function public.fn_supplier_stats(bigint) from public, anon, authenticated;
@@ -988,6 +1064,7 @@ revoke execute on function public.fn_supplier_market(bigint) from public, anon, 
 revoke execute on function public.fn_customer_decision_support(uuid) from public, anon, authenticated;
 revoke execute on function public.fn_pool_say(text, text, text, jsonb, boolean) from public, anon, authenticated;
 revoke execute on function public.fn_company_self_knowledge_sync() from public, anon, authenticated;
+revoke execute on function public.fn_inquiry_conversation_summary_build(uuid) from public, anon, authenticated;
 
 -- The one stored copy of the quotation-format record (ops_knowledge 'qd-company:quotation-format', 1 row carrying the sentence on
 -- 19 Nov 2026), corrected now rather than at the next sync, which writes the same text. Re-running finds nothing to change.
@@ -1002,23 +1079,27 @@ update public.ops_knowledge
 
 -- ── PROBE ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
 -- Seven ZZ DEMO suppliers (leads.source 'qd_demo_fixture', company 'ZZ DEMO …', no e-mail, no phone, unclaimed), one ZZ DEMO
--- customer (no e-mail, no phone) and six ZZ DEMO enquiries in a trade nobody else has ('zzprobe_trade'), all inside a sub-block
+-- customer (no e-mail, no phone) and seven ZZ DEMO enquiries in a trade nobody else has ('zzprobe_trade'), all inside a sub-block
 -- that always ends in a raise, so every row is rolled back and nothing can be sent to anyone. [1] is the asking supplier.
 --   A. one enquiry: [1] 10,000 submitted, [2] 8,000 submitted, [3] 9,000 DRAFT, [4] 9,500 WITHDRAWN.
 --      The old fn_supplier_stats said avg_pct_above_lowest 25.0 here, and 10,000 / 1.25 = 8,000: [2]'s price exactly.
 --      Expect: no positioning figure, no market price, decision support's cheapest = 8,000 (quote_amount, not the 8,480 the
 --      margin column holds) over 2 quotes (the draft is not one).
---   B. four more enquiries with [1] 10,000 and [2] 9,000, [3] 10,500, [4] 12,000 submitted: 4 comparisons, still nothing.
---   C. a fifth: 5 comparisons. Expect avg_pct_above_lowest 10 (11.1 to a 5-point step), avg_pct_vs_average -5 (-4.8), the band
---      'below market average', and a market price over 16 other quotes from 3 companies: median 10,000, middle half
---      5,000-15,000 on a 5,000 step, with no low, no high, no mean and none of the four amounts anywhere in the payload.
+--   B. five more enquiries with [1] 10,000 and [2] 9,000, [3] 10,500, [4] 12,000 submitted, all five still OPEN: nothing counts
+--      (a request taking quotes lets [1] move his own price and watch the answer). Four of them closed: 4 comparisons, nothing.
+--   C. the fifth closed: 5 comparisons. Expect avg_pct_above_lowest 10 (11.1 to a 5-point step), avg_pct_vs_average -5 (-4.8),
+--      the band 'below market average' read from the rounded -5, times_lowest null, and a market price over 16 other quotes from
+--      3 companies: median 10,000, middle half 5,000-15,000 on a 5,000 step, with no low, no high, no mean and none of the
+--      amounts anywhere in the payload.
+--   D. a seventh enquiry, OPEN, where [1] at 10,000 is the lowest against three rivals at 20,000: positioning must not move.
+--      Counted, it would read times_lowest 1 and a different average.
 create temp table zz_price_probe_verdict (verdict text, detail text) on commit drop;
 do $probe$
 declare
   v_cust uuid := gen_random_uuid();
   sup bigint[]; inq uuid[] := array[]::uuid[]; qs uuid[]; v_i uuid; k int;
-  s_thin jsonb; m_thin jsonb; s_four jsonb; s_ok jsonb; m_ok jsonb; d_ok jsonb; d_one jsonb; v_say text;
-  v_err text; v_amounts int; v_ok boolean; v_detail text;
+  s_thin jsonb; m_thin jsonb; s_open jsonb; s_four jsonb; s_ok jsonb; s_d jsonb; m_ok jsonb; d_ok jsonb; d_one jsonb; v_say text;
+  v_err text; v_amounts int; v_summ jsonb; v_ok boolean; v_detail text;
   b_q bigint; b_l bigint; b_i bigint; b_c bigint; b_h bigint; a_q bigint; a_l bigint; a_i bigint; a_c bigint; a_h bigint;
 begin
   select count(*) into b_q from public.quotes;      select count(*) into b_l from public.leads;
@@ -1037,7 +1118,7 @@ begin
       raise exception 'fixture: the ZZ DEMO suppliers or customer did not land as demo';
     end if;
 
-    for k in 1..6 loop
+    for k in 1..7 loop
       insert into public.inquiries (customer_id, brief_source, category, trades, summary, status)
       values (v_cust, 'qd_demo_fixture', 'zzprobe_trade', array['zzprobe_trade'], 'ZZ DEMO price probe enquiry ' || k, 'open')
       returning id into v_i;
@@ -1075,13 +1156,31 @@ begin
       update public.quotes set status = 'submitted' where id = any(qs);
       update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id = any(qs) and released_at is null;
       update public.quotes set status = 'submitted' where id = any(qs);
-      if k = 5 then s_four := public.fn_supplier_stats(sup[1])->'price_positioning'; end if;
     end loop;
+    s_open := public.fn_supplier_stats(sup[1])->'price_positioning';
+    update public.inquiries set status = 'closed' where id = any(inq[2:5]);
+    s_four := public.fn_supplier_stats(sup[1])->'price_positioning';
+    update public.inquiries set status = 'closed' where id = inq[6];
+    if (select count(*) from public.inquiries where id = any(inq[2:6]) and status = 'closed') <> 5 then
+      raise exception 'fixture: the five enquiries of stage C did not close';
+    end if;
     s_ok := public.fn_supplier_stats(sup[1])->'price_positioning';
     m_ok := public.fn_supplier_market(sup[1])->'avg_market_price';
+
+    qs := array[gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), gen_random_uuid()];
+    insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status) values
+      (qs[1], inq[7], sup[1], 10000, 'qd_demo_fixture', 1, 'draft'),
+      (qs[2], inq[7], sup[5], 20000, 'qd_demo_fixture', 1, 'draft'),
+      (qs[3], inq[7], sup[6], 20000, 'qd_demo_fixture', 1, 'draft'),
+      (qs[4], inq[7], sup[7], 20000, 'qd_demo_fixture', 1, 'draft');
+    update public.quotes set status = 'submitted' where id = any(qs);
+    update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id = any(qs) and released_at is null;
+    update public.quotes set status = 'submitted' where id = any(qs);
+    s_d := public.fn_supplier_stats(sup[1])->'price_positioning';
     d_ok := public.fn_customer_decision_support(v_cust);
     select count(*) into v_amounts from unnest(array['8000', '9000', '9500', '10500', '12000']) x
      where position(x in m_ok::text) > 0 or position(x in m_thin::text) > 0;
+    v_summ := public.fn_inquiry_conversation_summary_build(inq[1]);
     v_say := public.fn_pool_say('quote.received', 'quote', gen_random_uuid()::text,
                                 jsonb_build_object('quote_amount', 10000, 'customer_price', 10500), false);
     raise exception 'ZZPROBE rollback';
@@ -1100,29 +1199,35 @@ begin
     and (m_thin->>'available')::boolean = false and m_thin->'low' is null and m_thin->'high' is null and m_thin->>'value' is null
     and (d_one->>'cheapest_price')::numeric = 8000 and (d_one->>'quotes')::int = 2
     and d_one->>'price_basis' = 'quote_amount_excluding_vat'
-    -- B: four comparisons are still not enough
+    -- B: open requests count for nothing, and four comparisons are still not enough
+    and (s_open->>'ready')::boolean = false and (s_open->>'competitive_rfqs')::int = 0
     and (s_four->>'ready')::boolean = false and (s_four->>'competitive_rfqs')::int = 4 and s_four->>'avg_pct_vs_average' is null
     -- C: five give a band on 5-point steps
     and (s_ok->>'ready')::boolean = true and (s_ok->>'competitive_rfqs')::int = 5
     and (s_ok->>'avg_pct_above_lowest')::numeric = 10 and (s_ok->>'avg_pct_vs_average')::numeric = -5
-    and (s_ok->>'lowest_rate')::numeric = 0 and s_ok->>'band' = 'below market average'
+    and (s_ok->>'lowest_rate')::numeric = 0 and s_ok->>'band' = 'below market average' and s_ok->'times_lowest' = 'null'::jsonb
+    -- D: an open request where [1] is the lowest moves nothing
+    and s_d = s_ok
     and (m_ok->>'available')::boolean = true and (m_ok->>'population')::int = 16 and (m_ok->>'suppliers')::int = 3
     and (m_ok->>'median')::numeric = 10000 and (m_ok->>'value')::numeric = 10000
     and (m_ok->>'p25')::numeric = 5000 and (m_ok->>'p75')::numeric = 15000 and (m_ok->>'rounded_to')::numeric = 5000
     and m_ok->'low' is null and m_ok->'high' is null and m_ok->'mean' is null
     and v_amounts = 0
     and position('customer_price' in coalesce(d_ok::text, '')) = 0
+    and v_summ is not null and position('customer_price' in v_summ::text) = 0
+    and v_summ#>>'{amounts,quotes,0,quote_amount_basis}' = 'excluding VAT'
     and v_say like 'a quotation of AED 10,000 excluding VAT arrived%'
     and position('includes the platform margin' in (select prosrc from pg_proc where oid = 'public.fn_company_self_knowledge_sync()'::regprocedure)) = 0
     and not exists (select 1 from public.ops_knowledge where record_id = 'qd-company:quotation-format' and content like '%includes the platform margin%')
     and a_q = b_q and a_l = b_l and a_i = b_i and a_c = b_c and a_h = b_h;
-  v_detail := format('A: stats=%s market=%s decision=%s; B: stats=%s; C: stats=%s market=%s; amounts_in_payload=%s; pool=%s; '
+  v_detail := format('A: stats=%s market=%s decision=%s; B: open=%s four_closed=%s; C: stats=%s market=%s; D: stats=%s; amounts_in_payload=%s; summary_quotes=%s; pool=%s; '
                      || 'rows before/after quotes %s/%s leads %s/%s inquiries %s/%s customers %s/%s holds %s/%s; block ended with: %s',
-                     s_thin, m_thin, d_one, s_four, s_ok, m_ok, v_amounts, v_say, b_q, a_q, b_l, a_l, b_i, a_i, b_c, a_c, b_h, a_h, v_err);
+                     s_thin, m_thin, d_one, s_open, s_four, s_ok, m_ok, s_d, v_amounts, v_summ#>'{amounts,quotes}', v_say, b_q, a_q, b_l, a_l, b_i, a_i, b_c, a_c, b_h, a_h, v_err);
   if not coalesce(v_ok, false) then
     raise exception 'PROBE FAILED: %', v_detail;
   end if;
-  insert into zz_price_probe_verdict values ('PROBE OK: two quotes give no figure, five comparisons give a 5-point band, '
+  insert into zz_price_probe_verdict values ('PROBE OK: two quotes give no figure, an open request counts for nothing, five closed '
+    || 'comparisons give a 5-point band, '
     || 'the market price has no low or high, and decision support returns quote_amount', v_detail);
 end $probe$;
 select * from zz_price_probe_verdict;
