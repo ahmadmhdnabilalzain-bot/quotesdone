@@ -145,6 +145,17 @@ export function sidOfRow(code: string | null | undefined): string | null {
   const m = /^(?:twilio:\w+|qd:whatsapp):((?:VE|SM|MM)\w+)$/.exec(String(code || ''));
   return m ? m[1] : null;
 }
+// A CODE ALREADY TYPED BACK IS NEVER SENT AGAIN BY SMS (it_engineer, 19 Nov 2026; ledger 1252). The screens keep asking
+// for the failover at 15/30/47/62 s (src/lib/otpFailover.ts) after the code is typed back: the supplier form stays mounted
+// for the rest of registration, and the two real WhatsApp codes on production (12 and 17 Nov) were typed back 14 s and
+// 20 s after the send. kyc phone_failover and login_otp failover never read phone_verifications.used_at, so at 47 s a
+// status read that answered nothing (ownMessageStatus is null on any Twilio error; Verify Attempts can carry no
+// channel_data) was "late" to failoverStep and bought a USD 0.1176 SMS for a person already verified. Both verify paths
+// set used_at on every row for the number, so a used row is the proof the code arrived. The SID to fail over, or null.
+export function failoverSid(row: { code?: string | null; used_at?: string | null } | null | undefined): string | null {
+  if (!row || row.used_at) return null;
+  return channelOfRow(row.code) === 'whatsapp' ? sidOfRow(row.code) : null;
+}
 /** True when the row is a WhatsApp code we sent ourselves (its delivery is read from the Messages API, not Verify). */
 export const isOwnRow = (code: string | null | undefined) => /^qd:whatsapp:(?:SM|MM)\w+$/.test(String(code || ''));
 

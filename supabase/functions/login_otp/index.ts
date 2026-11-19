@@ -8,7 +8,7 @@ import { otpCeiling, prefixBlocked } from '../_shared/otp_guard.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
 import { blocksTransactional } from '../_shared/suppression_policy.ts';
 import { FIXTURE_CAPTURE_NOTE, FIXTURE_REFUSAL, isDemoEmail, isDemoPhone } from '../_shared/demo_identity.ts';
-import { channelOfRow, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, sidOfRow, sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
+import { channelOfRow, failoverSid, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, sendWhatsAppFirst, voiceAfterSms, type VerifySent } from '../_shared/whatsapp_choice.ts';
 import { checkOwnCode, newCode, ownMarker, ownMessageStatus, ownSent, sendOwnWhatsAppCode, type WaCodeDeps } from '../_shared/wa_code.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 const SB_URL = Deno.env.get('SUPABASE_URL')!, SB_SERVICE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -505,10 +505,11 @@ const signIn = observe('login_otp', async (req) => {
       if (!e164 || isDemoPhone(e164)) return J({ ok: true });     // a fixture number never reaches Twilio
       const ipGate = await rl('login_otp_failover_ip:' + ip, 60, 3600);
       if (ipGate !== 'ok') return J({ ok: true });
-      const { data: row } = await admin.from('phone_verifications').select('code,created_at,email').eq('phone', e164)
+      const { data: row } = await admin.from('phone_verifications').select('code,created_at,email,used_at').eq('phone', e164)
         .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
-      const sid = sidOfRow(row?.code);
-      if (!row || channelOfRow(row.code) !== 'whatsapp' || !sid) return J({ ok: true });
+      // a code already typed back is never sent again by SMS (failoverSid, 19 Nov 2026)
+      const sid = failoverSid(row);
+      if (!row || !sid) return J({ ok: true });
       const tw = await twilioAuth(); if (!tw) return J({ ok: true });
       try {
         // our own WhatsApp code is read from the Messages API; a Verify one from Verify's Attempts

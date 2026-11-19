@@ -85,3 +85,25 @@ Deno.test('failover: an undelivered WhatsApp code of ours is read from the Messa
   assert(hosts.some((h) => h === 'verify.twilio.com/v2/Verifications'), hosts.join(' '));
   assertEquals(r.twilio.some((c) => c.url.includes('/Attempts')), false, 'Verify Attempts was read for a message Verify never sent');
 });
+
+// it_engineer, 19 Nov 2026 (ledger 1252; _shared/whatsapp_choice.ts failoverSid). The screen keeps asking for the failover
+// after the code was typed back; a used row is never read from Twilio nor sent again by SMS, even when the status read fails.
+Deno.test('failover: a WhatsApp code already typed back makes zero requests to Twilio, even with a status read that fails', async () => {
+  const row = { code: 'qd:whatsapp:' + SM, created_at: new Date(Date.now() - 50_000).toISOString(), email: EMAIL, used_at: new Date(Date.now() - 30_000).toISOString() };
+  const s = stub({ twilio: (_r, u) => u.pathname.endsWith('/Messages/' + SM + '.json') ? json({ message: 'down' }, 500) : undefined });
+  const inner = s.handle!;
+  s.handle = (req, u) => (req.method === 'GET' && u.pathname.endsWith('/rest/v1/phone_verifications')) ? json(row) : inner(req, u);
+  const r = await invoke(await fn(), s, { action: 'failover', user_kind: 'customer', identifier: REAL_LOOKING });
+  assertEquals(r.json, { ok: true });
+  assertEquals(r.twilio.length, 0, r.twilio.map((c) => c.url).join(' '));
+  assertEquals(r.calls.some((c) => c.method === 'POST' && c.url.includes('/rest/v1/phone_verifications')), false, 'a failover row was written');
+});
+
+Deno.test('failover control: the same unused code, 50 s old with a status read that fails, is sent again by Verify SMS', async () => {
+  const row = { code: 'qd:whatsapp:' + SM, created_at: new Date(Date.now() - 50_000).toISOString(), email: EMAIL, used_at: null };
+  const s = stub({ twilio: (_r, u) => u.pathname.endsWith('/Messages/' + SM + '.json') ? json({ message: 'down' }, 500) : undefined });
+  const inner = s.handle!;
+  s.handle = (req, u) => (req.method === 'GET' && u.pathname.endsWith('/rest/v1/phone_verifications')) ? json(row) : inner(req, u);
+  const r = await invoke(await fn(), s, { action: 'failover', user_kind: 'customer', identifier: REAL_LOOKING });
+  assert(r.twilio.some((c) => isVerify(new URL(c.url), 'Verifications') && new URLSearchParams(c.body).get('Channel') === 'sms'), r.twilio.map((c) => c.url).join(' '));
+});

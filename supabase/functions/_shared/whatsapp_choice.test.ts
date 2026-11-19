@@ -191,3 +191,19 @@ Deno.test('a new mobile proven by SMS re-asks a "same" WhatsApp answer; a WhatsA
   assert(/waAfterMobileVerified\(waNow\?\.whatsapp_opt, phone, waDeliveredCode\(lastCodeRow\?\.code\)/.test(verify), 'verify_sms does not move a "same" WhatsApp number with the new mobile');
   assert(/if \(waPatch\) await writeWa\(waPatch\)/.test(verify));
 });
+
+// it_engineer, 19 Nov 2026 (ledger 1252): a code already typed back is never sent again by SMS.
+import { failoverSid } from './whatsapp_choice.ts';
+Deno.test('failoverSid: only an unused WhatsApp code is failed over (known-bad: used, sms, call, garbage, nothing)', () => {
+  const OWN = 'qd:whatsapp:SM' + 'b'.repeat(32), VER = 'twilio:whatsapp:VE' + 'c'.repeat(32);
+  assertEquals(failoverSid({ code: OWN, used_at: null }), 'SM' + 'b'.repeat(32));
+  assertEquals(failoverSid({ code: VER }), 'VE' + 'c'.repeat(32));
+  assertEquals(failoverSid({ code: OWN, used_at: '2026-11-17T08:38:08Z' }), null);   // typed back 20 s after the send
+  assertEquals(failoverSid({ code: VER, used_at: '2026-11-12T19:53:56Z' }), null);
+  assertEquals(failoverSid({ code: 'twilio:sms:VE' + 'c'.repeat(32) }), null);         // an SMS is not failed over again
+  assertEquals(failoverSid({ code: 'twilio:call' }), null);
+  assertEquals(failoverSid({ code: 'twilio' }), null);
+  assertEquals(failoverSid({ code: 'garbage' }), null);
+  assertEquals(failoverSid(null), null);
+  assertEquals(failoverSid(undefined), null);
+});
