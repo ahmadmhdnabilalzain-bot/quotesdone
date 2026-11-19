@@ -99,7 +99,7 @@ export default function SupportRatingPrompt({ token, lang, api }: { token: strin
   // (stage 2 run f0b2de8f, 2 Nov 2026: "nav item Account could not be pressed", "something lies on top of the box").
   return (
     <aside dir={L === 'ar' ? 'rtl' : 'ltr'} aria-live="polite"
-      className="fixed bottom-4 inset-e-4 z-40 w-[min(22rem,calc(100vw-2rem))] rounded-xl border bg-card p-3 text-card-foreground shadow-lg">
+      className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] inset-e-[max(1rem,env(safe-area-inset-right))] z-40 w-[min(22rem,calc(100vw-2rem))] rounded-xl border bg-card p-3 text-card-foreground shadow-lg">
       {state === 'done' ? <p className="text-sm">{t.thanks}</p> : !open ? (
         <div className="flex items-center gap-2">
           <p className="min-w-0 flex-1 text-sm font-semibold">{t.title(cur.case_ref)}</p>

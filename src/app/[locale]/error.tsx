@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import { reportClientError } from '@/lib/clientErrorReport';
 
 // THE PAGE A CRASH LANDS ON, IN THE VISITOR'S LANGUAGE (launch-readiness audit, 9 Nov 2026).
 // Before this file a render error anywhere under /[locale] showed Next.js's bare English error screen,
@@ -23,6 +24,8 @@ export default function LocaleError({ error, reset }: { error: Error & { digest?
   useEffect(() => {
     // The browser console is the one place a client-only error is visible during support; keep it.
     console.error(error);
+    // 19 Nov 2026: and tell the estate (message, digest, path, user agent only; src/lib/clientErrorReport.ts).
+    reportClientError(error);
   }, [error]);
 
   return (

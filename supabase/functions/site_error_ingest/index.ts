@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     detail: {
       message: s(b?.message, 500), route: s(b?.route, 200), path: s(b?.path, 300),
       digest: s(b?.digest, 80), env: s(b?.env, 40), deployment: s(b?.deployment, 80),
-      render_source: s(b?.render_source, 40), reported_at: new Date().toISOString(),
+      render_source: s(b?.render_source, 40), user_agent: s(b?.user_agent, 200), reported_at: new Date().toISOString(),
     },
   });
   if (error) return J({ ok: false, error: error.message }, 500);

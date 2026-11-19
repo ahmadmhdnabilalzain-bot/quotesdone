@@ -91,6 +91,7 @@ e2e-reports/
 !/.mcp.json
 !/.squawk.toml
 !/ARCHITECTURE.md
+!/CHANGELOG.md
 !/CLAUDE.md
 !/Dockerfile
 !/README.md
