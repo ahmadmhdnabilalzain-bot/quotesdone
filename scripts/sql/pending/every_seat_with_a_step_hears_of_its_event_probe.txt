@@ -1,0 +1,1 @@
+A PROBE, so it is never applied: it always raises CHK<<...>>, rolling back every row it writes. Run it LOCALLY after every_seat_with_a_step_hears_of_its_event.sql; it must print PROBE OK. Not on production: it writes notifications and rebuilds the seats' digests (review of #2074, 19 Nov 2026). This note stays for the life of the file. Seat: ceo.
