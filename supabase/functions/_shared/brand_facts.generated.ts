@@ -3,9 +3,10 @@
 // o = origin (ISO 3166 alpha-2, the country the BRAND comes from) or null; t = tier or null; s = where the fact
 // came from (pack_structured | pack_bracket | pack | table | pack+table); w = 1 when the name is also a plain word the
 // packs write in lowercase (matched in free text only beside "brand"/"make"/a model code); tr = up to six trades.
-// 1758 brands, 1289 with an origin, 1263 with a tier.
+// 1760 brands, 1289 with an origin, 1263 with a tier.
 export type BrandRow = { o: string | null; t: 'premium' | 'mid-range' | 'economy' | null; s: string; w: 0 | 1; tr: string[] };
 export const BRAND_ROWS: Readonly<Record<string, BrandRow>> = {
+  "3A Composites": { o: null, t: null, s: "pack", w: 0, tr: ["aluminium"] },
   "3D Systems": { o: "US", t: "premium", s: "pack_structured", w: 0, tr: ["additive_manufacturing"] },
   "3M": { o: "US", t: "premium", s: "pack_structured", w: 0, tr: ["abrasives_surface_finishing","medical_consumables","packaging_tapes_strapping","road_works","safety_equipment","signage"] },
   "3M Post-it": { o: "US", t: "mid-range", s: "pack_structured", w: 0, tr: ["stationery_office_supplies"] },
@@ -900,7 +901,7 @@ export const BRAND_ROWS: Readonly<Record<string, BrandRow>> = {
   "Klöckner Pentaplast": { o: "DE", t: "premium", s: "pack_structured", w: 0, tr: ["labels_sleeves","pharma_packaging"] },
   "Klüber": { o: "DE", t: "premium", s: "pack_structured", w: 0, tr: ["lubricants_industrial_oils"] },
   "KME": { o: "DE", t: "premium", s: "pack_structured", w: 0, tr: ["non_ferrous_metals"] },
-  "Knauf": { o: "DE", t: "premium", s: "pack_structured", w: 0, tr: ["corrosion_insulation","gypsum"] },
+  "Knauf": { o: "DE", t: "premium", s: "pack_structured", w: 0, tr: ["corrosion_insulation","gypsum","interior_fitout"] },
   "Knauf Insulation": { o: "DE", t: "premium", s: "pack_structured", w: 0, tr: ["thermal_insulation"] },
   "Knight Frank": { o: null, t: null, s: "pack", w: 0, tr: ["real_estate_services"] },
   "Knipex": { o: "DE", t: "premium", s: "pack_structured", w: 0, tr: ["hand_power_tools"] },
@@ -1355,6 +1356,7 @@ export const BRAND_ROWS: Readonly<Record<string, BrandRow>> = {
   "Saft": { o: null, t: null, s: "pack", w: 0, tr: ["batteries_storage"] },
   "Sahara Uniforms": { o: "AE", t: "mid-range", s: "pack_structured", w: 0, tr: ["uniforms_corporate_apparel"] },
   "Saint-Gobain": { o: "FR", t: "premium", s: "pack_structured", w: 0, tr: ["glazing","gypsum"] },
+  "Saint-Gobain Gyproc": { o: null, t: null, s: "pack", w: 0, tr: ["interior_fitout"] },
   "Saint-Gobain PAM": { o: "FR", t: "premium", s: "pack_structured", w: 0, tr: ["castings_forgings","infrastructure_utilities","valves_actuators"] },
   "Saint-Gobain Sheerfill": { o: "FR", t: "premium", s: "pack_structured", w: 0, tr: ["fencing_shades"] },
   "Sakata": { o: null, t: null, s: "pack", w: 0, tr: ["agri_inputs"] },

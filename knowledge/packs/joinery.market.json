@@ -178,6 +178,50 @@
       "confidence": "medium",
       "as_of": "2026-09-28",
       "source_note": "Checked on 2026-09-28 against pages opened then: Egger boards and Blum/Hettich hardware are sold through UAE distributors -> confirmed (Egger lists UAE distribution partners; Hettich Middle East is in Dubai) | named large joinery factories (Depa group joinery, Emirates Wood) -> removed (not confirmed); workshops kept generic. Not checked: Regional MDF producers' current capacity and named large joinery factories' status were not verified."
+    },
+    {
+      "id": "joinery:uae-market-board-and-hardware-channels",
+      "topic": "Joinery: who makes and stocks boards, laminates and hardware in the UAE (local makers, regional offices, distributors)",
+      "topic_ar": "النجارة: مين يصنّع ويوفّر الألواح والفورمايكا والإكسسوارات في الإمارات (مصانع محلية ومكاتب إقليمية وموزعون)",
+      "kind": "uae_market_brands",
+      "body_en": "Who makes and stocks joinery boards, laminates and hardware in the UAE, as each company states it. Emilam Industries has made melamine MDF boards and laminates in Jebel Ali, Dubai since 2001. Kronospan sells in the UAE through Kronospan DMCC, an office in Jumeirah Lakes Towers, and its UAE range includes acrylic gloss and matt boards on a 17 mm MDF core, metal-faced boards, compact boards and MDF acoustic panels. Greenlam has a UAE office in Jumeirah Lakes Towers and sells through authorised dealers; it calls its 2 mm and thicker sheets compact laminates, made as standard compact, interior and exterior cladding, restroom cubicles and lockers. Hettich runs Hettich Middle East DMCC from JBC 3, JLT, opened its local office in 2011, and reported an application centre in Karama and a warehouse in Jebel Ali. Blum supplies through distributors, and Ultimate Hardware Solutions LLC in Dubai lists itself as a Blum distributor for lift systems, hinges and runners. Egger points buyers to its own stockist search for a local supplier. The board market is import-led: UAE wood-panel supply depends on imports because the country has little forestry of its own. When a brand is named, ask whether the board or fitting is bought from the maker's local office or authorised channel, which is what a warranty claim on hinges and runners relies on.",
+      "body_ar": "هذي الجهات اللي تصنّع وتوفّر ألواح النجارة والفورمايكا والإكسسوارات في الإمارات، حسب ما تذكره كل شركة عن نفسها. ‏Emilam Industries تصنّع ألواح MDF الملامين والفورمايكا في جبل علي بدبي من سنة 2001. ‏Kronospan تبيع في الإمارات عن طريق Kronospan DMCC، مكتبها في أبراج بحيرات جميرا، ومجموعتها في الإمارات فيها ألواح أكريليك لامعة ومطفية على قلب MDF سماكة 17 مم، وألواح بوجه معدني، وألواح كومباكت، وألواح MDF صوتية. ‏Greenlam لها مكتب في أبراج بحيرات جميرا وتبيع عن طريق وكلاء معتمدين، وتسمّي ألواحها اللي سماكتها 2 مم وفوق «كومباكت لامينيت»، وتصنعها كومباكت عادي وتكسية داخلية وخارجية وكبائن حمامات ولوكرات. ‏Hettich تدير Hettich Middle East DMCC من برج JBC 3 في أبراج بحيرات جميرا، وفتحت مكتبها المحلي سنة 2011، وعندها حسب المنشور مركز تطبيقات في الكرامة ومستودع في جبل علي. ‏Blum توريدها عن طريق موزعين، وUltimate Hardware Solutions LLC في دبي تذكر نفسها موزعاً لأنظمة الرفع والمفصلات والسكك من Blum. ‏Egger تحيل المشتري لأداة البحث عن الموزعين في موقعها. سوق الألواح يعتمد على الاستيراد، لأن الإمارات ما عندها غابات تكفي لإنتاج ألواح الخشب محلياً. إذا انذكرت ماركة، اسأل هل اللوح أو القطعة مشتراة من مكتب الشركة المحلي أو قناتها المعتمدة، لأن مطالبة الضمان على المفصلات والسكك تعتمد على هالشي.",
+      "sources": [
+        "https://www.lovethatdesign.com/article/emilam-joins-love-that-design-community/",
+        "https://village.ai/company/emilam",
+        "https://kronospan.com/en_AE/products/view/kronodesign/acrylic-and-aluminum-boards/acrylic-matt-boards-682/",
+        "https://kronospan.com/en_AE/products/by_category/kronodesign/compact-boards/",
+        "https://kronospan.com/en_AE/products/view/flooring-and-wall-panels/acoustic-panels/acoustic-panels-mdf-natural-765/",
+        "https://www.greenlamindustries.com/locations/",
+        "https://www.environdec.com/library/epd9221",
+        "https://web.hettich.com/en-ae/contact-us",
+        "https://www.tradearabia.com/news/CONS_337222.html",
+        "https://www.reachuae.com/dubai/ultimate-hardware-solutions-llc-l18613",
+        "https://support.egger.com/hc/en-us/articles/360001072777-Where-is-my-nearest-EGGER-MFMDF-stockist",
+        "https://www.nexdigm.com/market-research/insights/blog/uae-wood-based-panel-industry/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-19",
+      "source_note": "Read on 2026-11-19 in the web-search extracts of the pages listed (WebFetch could not resolve these hosts from this session). Emilam's and Ultimate Hardware's descriptions are their own (a directory and a feature page); the Hettich Karama and Jebel Ali facilities are from a 2018 report. Not checked: a named UAE distributor for Egger or Kronospan, whether Blum appoints one exclusive UAE distributor, and Emilam's certifications."
+    },
+    {
+      "id": "joinery:uae-market-make-and-grade-checklist",
+      "topic": "Joinery: what to state about board make and decor, laminate thickness and hardware series so UAE workshops quote like for like",
+      "topic_ar": "النجارة: وش تحدد عن ماركة اللوح ولونه وسماكة الفورمايكا وسلسلة الإكسسوارات عشان تسعّر الورش على نفس الأساس",
+      "kind": "spec_checklist",
+      "body_en": "What a buyer states about make and grade in joinery so UAE workshops quote the same thing (sizes, carcass and finish scope are in the trade's own spec checklist). (1) The board make and the decor code (each maker publishes its decors by code, for example Kronospan's on its UAE site), or 'equivalent decor from a named tier', because two workshops quoting 'white melamine' can price different boards. (2) The core under the face: MDF, moisture-resistant MDF or particleboard, and its thickness (a maker's acrylic board, for example, sits on a 17 mm MDF core). (3) Laminate as sheet or as compact: sheets of 2 mm and thicker are compact laminates, a different product from a thin laminate pressed onto a board, so state which one and the thickness. (4) The hardware make and series for hinges, runners and lift systems, with the load class of drawer runners (a Blum Movento full-extension runner, for example, is rated 70 kg), because soft-close fittings of different makes and series are not priced alike. (5) Whether the fittings must come through the maker's local office or authorised distributor. Quote-blocking: none of these alone; they decide whether two firm prices are for the same cabinet.",
+      "body_ar": "هذا اللي يحدده المشتري عن الماركة والدرجة في أعمال النجارة عشان كل الورش في الإمارات تسعّر نفس الشي (المقاسات والهيكل والتشطيب موجودة في قائمة مواصفات المهنة نفسها). (1) ماركة اللوح ورقم اللون (كل مصنع ينشر ألوانه بأرقام، مثل Kronospan في موقعها للإمارات)، أو «لون مكافئ من فئة محددة»، لأن ورشتين يسعّرون «ملامين أبيض» ممكن يكون كل واحد قاصد لوح غير. (2) القلب اللي تحت الوجه: MDF عادي أو MDF مقاوم للرطوبة أو خشب حبيبي، وسماكته (لوح الأكريليك مثلاً عند أحد المصانع قلبه MDF سماكة 17 مم). (3) الفورمايكا: شريحة أو كومباكت؟ الألواح اللي سماكتها 2 مم وفوق تُعتبر كومباكت لامينيت، وهي منتج غير الشريحة الرقيقة اللي تنكبس على اللوح، فحدّد أي واحد تبي وكم السماكة. (4) ماركة الإكسسوارات وسلسلتها للمفصلات والسكك وأنظمة الرفع، مع حمولة سكك الأدراج (سكة Blum Movento الكاملة مثلاً حمولتها 70 كجم)، لأن قطع الإغلاق الهادئ تختلف أسعارها حسب الماركة والسلسلة. (5) هل لازم تكون الإكسسوارات من مكتب الشركة المحلي أو موزعها المعتمد. ما فيها بند يوقف التسعير بروحه، لكنها تحدد هل السعرين لنفس الخزانة أو لا.",
+      "sources": [
+        "https://kronospan.com/en_AE/decors/view/kronodesign/max-line/2991/",
+        "https://kronospan.com/en_AE/products/view/kronodesign/acrylic-and-aluminum-boards/acrylic-matt-boards-682/",
+        "https://www.greenlamindustries.com/blog/7-types-of-compact-laminates-available-from-greenlam-industries",
+        "https://www.greenlam.me/blog/demystifying-high-pressure-laminate-sheets-answers-common-questions",
+        "https://e-delivery.ae/products/blum-movento-with-blumotion-s-full-extension-runner-for-wooden-drawer-70kg-size-450mm-left-right-766h4500s",
+        "https://web.hettich.com/en-ae/contact-us"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-19",
+      "source_note": "Read on 2026-11-19 in the web-search extracts of the pages listed (WebFetch could not resolve these hosts from this session). The 70 kg Movento rating is from a UAE retailer's product listing (model 766H4500S); the 2 mm compact threshold is Greenlam's own wording. Not checked: decor-code equivalence between makers."
     }
   ],
   "eval": [
@@ -207,13 +251,28 @@
         "claim": "named large joinery factories (Depa group joinery, Emirates Wood)",
         "url": "https://censohome.com/blog/top-kitchen-cabinet-manufacturers-uae/",
         "result": "removed (not confirmed); workshops kept generic"
+      },
+      {
+        "entry": "joinery:uae-market-board-and-hardware-channels",
+        "claim": "Joinery: who makes and stocks boards, laminates and hardware in the UAE (local makers, regional offices, distributors)",
+        "url": "https://www.lovethatdesign.com/article/emilam-joins-love-that-design-community/",
+        "result": "12 pages read in web-search extracts on 2026-11-19 (WebFetch blocked); see the entry's source_note",
+        "on": "2026-11-19"
+      },
+      {
+        "entry": "joinery:uae-market-make-and-grade-checklist",
+        "claim": "Joinery: what to state about board make and decor, laminate thickness and hardware series so UAE workshops quote like for like",
+        "url": "https://kronospan.com/en_AE/decors/view/kronodesign/max-line/2991/",
+        "result": "6 pages read in web-search extracts on 2026-11-19 (WebFetch blocked); see the entry's source_note",
+        "on": "2026-11-19"
       }
     ],
     "unverified": "Regional MDF producers' current capacity and named large joinery factories' status were not verified.",
     "ledger": [
       899,
       900,
-      903
+      903,
+      1209
     ]
   }
 }

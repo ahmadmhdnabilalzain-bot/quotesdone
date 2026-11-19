@@ -181,6 +181,53 @@
       "confidence": "medium",
       "as_of": "2026-09-28",
       "source_note": "Checked on 2026-09-28 against pages opened then: ACs must carry the UAE.S 5010 energy label with an ECAS/EQM certificate -> confirmed (star rating from measured EER; enforced from 1 January 2021) | Carrier/Toshiba distributor -> confirmed AHI Carrier (Carrier and Toshiba) | SKM Sharjah; Zamil Saudi -> confirmed SKM (Sharjah Industrial Area 13) and Zamil Air Conditioners (Dammam); Eros, Jumbo, Juma Al Majid, Galadari, Petra and Clima-Tech removed (not checked). Not checked: The current minimum efficiency thresholds under UAE.S 5010 and current distributor appointments per brand were not verified."
+    },
+    {
+      "id": "hvac:uae-market-distributors",
+      "topic": "HVAC: who carries each air-conditioning make in the UAE (principal offices, distributors, dealers)",
+      "topic_ar": "التكييف والتهوية: مين يوزّع كل ماركة مكيفات في الإمارات (مكاتب الشركات الأم والموزعون والوكلاء)",
+      "kind": "uae_market_brands",
+      "body_en": "Who carries each air-conditioning make in the UAE, as the company or its principal states it on the page cited. Daikin has its regional company, Daikin Middle East and Africa FZE, in Jebel Ali, a Dubai warehouse in Al Quoz Industrial Area 1 and the toll-free line 800 DAIKIN; Daikin named Galaxy Cooling Technologies as an authorised dealer for residential and commercial products including VRV (the announcement carries no date). LG commercial air conditioning (VRF, fan coil units, air handling units and chillers) is distributed in the UAE by Al-Futtaim Engineering & Technologies under an agreement with LG Electronics Gulf FZE; LG's Dubai air-solutions showroom runs with Al Yousuf Electronics and its Al Ain showroom with Ghantoot Trading. York air conditioners: Al-Futtaim Engineering announced its appointment as exclusive distributor. Gree is sold in the UAE through NIA Limited, which Gree calls its UAE business partner. Midea: the Ultimate Comfort range is retailed exclusively by Taqeef, which also represents the Midea V8 VRF series, and Eros Group announced that it distributes Midea in the UAE. Trane lists its own sales offices in Business Bay, Dubai and in Abu Dhabi, and names Juma Al Majid as its residential and light-commercial distributor. Mitsubishi Electric lists the UAE among the countries its regional company serves, and its Hydronics & IT Cooling Systems subsidiary set up a UAE company in October 2025. Carrier and Toshiba come through AHI Carrier, and SKM makes units in Sharjah (see the brands entry). Appointments change and several announcements are years old: when the make matters for the warranty, ask the supplier for the principal's current authorisation letter.",
+      "body_ar": "هذي خريطة الجهات اللي توزّع ماركات المكيفات في الإمارات، حسب ما تذكره الشركة نفسها أو الشركة الأم في الصفحة المذكورة. ‏Daikin عندها شركتها الإقليمية Daikin Middle East and Africa FZE في جبل علي، ومستودع في القوز الصناعية 1، والرقم المجاني 800 DAIKIN، واعتمدت Galaxy Cooling Technologies وكيلاً معتمداً للمنتجات السكنية والتجارية ومنها أنظمة VRV (الإعلان ما عليه تاريخ). أنظمة LG التجارية من VRF ووحدات الفان كويل ووحدات مناولة الهواء والتشيلرات توزّعها في الإمارات Al-Futtaim Engineering & Technologies باتفاقية مع LG Electronics Gulf FZE، ومعرض LG لحلول الهواء في دبي يشتغل مع Al Yousuf Electronics، ومعرضها في العين مع Ghantoot Trading. مكيفات York أعلنت Al-Futtaim Engineering تعيينها موزعاً حصرياً لها. ‏Gree تُباع في الإمارات عن طريق NIA Limited، وتسمّيها Gree شريكها التجاري في الدولة. ‏Midea: سلسلة Ultimate Comfort تبيعها Taqeef حصرياً، وTaqeef تمثّل كذلك سلسلة V8 VRF، وأعلنت Eros Group إنها توزّع Midea في الإمارات. ‏Trane تذكر مكاتب مبيعاتها الخاصة في الخليج التجاري بدبي وفي أبوظبي، وتسمّي Juma Al Majid موزعها للقطاع السكني والتجاري الخفيف. ‏Mitsubishi Electric تذكر الإمارات ضمن الدول اللي تخدمها شركتها الإقليمية، وأسست شركتها التابعة Hydronics & IT Cooling Systems شركة في الإمارات في أكتوبر 2025. ‏Carrier وToshiba تجي عن طريق AHI Carrier، وSKM تصنّع وحداتها في الشارقة (التفاصيل في مدخل الماركات). التعيينات تتغير، وبعض الإعلانات صار لها سنوات، فإذا كانت الماركة تفرق في الضمان اطلب من المورد خطاب التفويض الساري من الشركة الأم.",
+      "sources": [
+        "https://daikinmea.com/en_us/contact.html",
+        "https://www.yellowpages-uae.com/daikin-middle-east-and-africa-fze-176122",
+        "https://cbnme.com/?p=6905",
+        "https://www.eyeofriyadh.com/news/details/daikin-galaxy-cooling-technologies-showcase-the-new-cooling-range-in-uae",
+        "https://www.zawya.com/en/business/dubai-based-al-futtaim-engineering-amp-technologies-seals-lg-distribution-deal-h7o0w7c4",
+        "https://aetoswire.com/en/news/lg-highlights-air-solutions-portfolio-and-technical-expertise-at-new-showroom-in-dubai",
+        "https://www.lg.com/ae/about-lg/press-media/lg-expands-local-presence-with-a-new-air-conditioning-showroom-in-al-ain",
+        "https://alfuttaim.com/?p=17565",
+        "https://www.tradearabia.com/news/RET_278994.html",
+        "https://www.zawya.com/en/press-release/companies-news/gree-unveils-revolutionary-solar-powered-vrf-system-at-cop28-sxhxw4ha",
+        "https://gulfconstructiononline.com/Article/383695/Midea_unveils_‘ultimate_comfort’_AC_in_UAE",
+        "https://technicalreviewmiddleeast.com/construction/machinery/midea-and-taqeef-unveil-new-smart-cooling-technology-for-region-s-multifaceted-infrastructure",
+        "https://www.imagesretailme.com/eros-group-expands-brand-portfolio-with-midea/",
+        "https://trane.com/commercial/middle-east/ae/en/contact-us/locate-sales-offices/united-arab-emirates.html",
+        "https://emea.mitsubishielectric.com/en/about/local-middle-east-africa/locations/emea_middleeastafrica014/index.html",
+        "https://refindustry.com/news/mitsubishi-electric-expands-data-center-cooling-business-with-new-subsidiary-in-uae/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-19",
+      "source_note": "Read on 2026-11-19 in the web-search extracts of the pages listed (WebFetch could not resolve these hosts from this session, so no page was opened directly). Each statement is the company's or the publisher's own, dated where the page dated it: Al-Futtaim/LG and LG Multi V launch 2017-2021; Mitsubishi Electric UAE subsidiary October 2025; the Daikin-Galaxy, York, Gree-NIA, Midea-Taqeef and Eros announcements were undated or older. Not checked: which of these appointments is current today, exclusivity terms, Mitsubishi Electric's UAE distributor, and the many directory resellers (left out)."
+    },
+    {
+      "id": "hvac:uae-market-make-and-grade-checklist",
+      "topic": "HVAC: what to state about make, efficiency label and climate grade so UAE suppliers quote like for like",
+      "topic_ar": "التكييف والتهوية: وش تحدد عن الماركة وملصق كفاءة الطاقة وفئة المناخ عشان يسعّر الموردون في الإمارات على نفس الأساس",
+      "kind": "spec_checklist",
+      "body_en": "What a buyer states about the make and grade of air-conditioning equipment so that UAE suppliers quote the same thing (the sizing and installation scope are in the trade's own spec checklists). (1) The make, or the acceptable makes, and whether the supplier must be the principal's authorised distributor or dealer, because the manufacturer's warranty and spare parts run through that channel. (2) The energy label: the UAE energy-efficiency rules for small and large air conditioners are now set by Cabinet Resolution No. 157 of 2025, with UAE.S 5010-1:2025 for low-capacity household units and UAE.S 5010-5:2025 for large-capacity commercial and central units; state the minimum star rating and ask for the label of each model offered. Earlier UAE.S 5010 versions rated units by EER at set star bands, so a label issued under a superseded version is a question to ask. (3) The climate class: UAE.S 5010-1:2014 tested household units at climate class T3, outdoor 46 C dry bulb and 24 C wet bulb with indoor 29 C / 19 C (ISO 5151); state T3 for the outdoor unit. (4) The model number of every indoor and outdoor unit, so two quotes for the same tonnage can be compared model against model. (5) For VRF, the system series, because a maker's own published operating limit (LG states its Multi V works up to 48 C ambient) differs between series. Quote-blocking: none of these on its own; they decide whether two firm prices are for the same equipment.",
+      "body_ar": "هذا اللي يحدده المشتري عن ماركة معدات التكييف ودرجتها عشان كل الموردين في الإمارات يسعّرون نفس الشي (الأحجام ونطاق التركيب موجودة في قوائم مواصفات المهنة نفسها). (1) الماركة أو الماركات المقبولة، وهل لازم يكون المورد موزعاً أو وكيلاً معتمداً من الشركة الأم، لأن ضمان المصنع وقطع الغيار يمشون عن طريق هالقناة. (2) ملصق كفاءة الطاقة: قواعد كفاءة الطاقة للمكيفات الصغيرة والكبيرة في الإمارات صار يحددها قرار مجلس الوزراء رقم 157 لسنة 2025، مع المواصفة UAE.S 5010-1:2025 للوحدات المنزلية الصغيرة والمواصفة UAE.S 5010-5:2025 للوحدات التجارية والمركزية الكبيرة. حدّد أقل عدد نجوم تقبله، واطلب ملصق كل موديل معروض. الإصدارات السابقة من UAE.S 5010 كانت تصنّف الوحدات حسب معامل EER بشرائح نجوم محددة، فالملصق الصادر على إصدار ملغى يستاهل سؤال. (3) فئة المناخ: المواصفة UAE.S 5010-1:2014 كانت تختبر الوحدات المنزلية على فئة T3، يعني 46 درجة جافة و24 رطبة في الخارج و29 و19 في الداخل (ISO 5151)، فاشترط T3 للوحدة الخارجية. (4) رقم الموديل لكل وحدة داخلية وخارجية، عشان تقارن عرضين لنفس الطنّية موديل مقابل موديل. (5) في أنظمة VRF حدّد السلسلة، لأن حد التشغيل اللي تعلنه الشركة نفسها يختلف من سلسلة لسلسلة (LG تذكر إن Multi V تشتغل لين 48 درجة). ما فيها بند يوقف التسعير بروحه، لكنها تحدد هل السعرين لنفس المعدات أو لا.",
+      "sources": [
+        "https://www.tuv.com/regulations-and-standards/en/uae-cabinet-resolution-no-157-of-2025-regarding-the-technical-regulations-for-energy-efficiency-requirements-for-small-and-large-capacity-air-conditioners.html",
+        "https://www.iea.org/policies/6901-uaes-5010-12014-household-air-conditioners",
+        "https://www.ul.com/news/united-arab-emirates-enforcement-new-energy-efficiency-standards-air-conditioners",
+        "https://cprc-clasp.ngo/policies/uaes-5010-5-2019-labeling-energy-efficiency-label-electrical-appliances-part-5-commercial",
+        "https://www.albawaba.net/business/pr/lg-expands-launch-its-flagship-multi-v-5-vrf-system-abu-dhabi-1105302"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-19",
+      "source_note": "Read on 2026-11-19 in the web-search extracts of the pages listed (WebFetch could not resolve these hosts from this session). Confirmed: Cabinet Resolution No. 157 of 2025 lists UAE.S 5010-1:2025 and UAE.S 5010-5:2025 (TUV); the 2014 T3 test condition and EER star bands (IEA); UAE.S 5010-5 covers commercial and central units (CLASP); LG's 48 C Multi V statement. Not checked: the 2025 star thresholds and whether the 2025 version keeps the T3 condition."
     }
   ],
   "eval": [
@@ -215,13 +262,28 @@
         "claim": "SKM Sharjah; Zamil Saudi",
         "url": "https://www.skmaircon.com/",
         "result": "confirmed SKM (Sharjah Industrial Area 13) and Zamil Air Conditioners (Dammam); Eros, Jumbo, Juma Al Majid, Galadari, Petra and Clima-Tech removed (not checked)"
+      },
+      {
+        "entry": "hvac:uae-market-distributors",
+        "claim": "HVAC: who carries each air-conditioning make in the UAE (principal offices, distributors, dealers)",
+        "url": "https://daikinmea.com/en_us/contact.html",
+        "result": "16 pages read in web-search extracts on 2026-11-19 (WebFetch blocked); see the entry's source_note",
+        "on": "2026-11-19"
+      },
+      {
+        "entry": "hvac:uae-market-make-and-grade-checklist",
+        "claim": "HVAC: what to state about make, efficiency label and climate grade so UAE suppliers quote like for like",
+        "url": "https://www.tuv.com/regulations-and-standards/en/uae-cabinet-resolution-no-157-of-2025-regarding-the-technical-regulations-for-energy-efficiency-requirements-for-small-and-large-capacity-air-conditioners.html",
+        "result": "5 pages read in web-search extracts on 2026-11-19 (WebFetch blocked); see the entry's source_note",
+        "on": "2026-11-19"
       }
     ],
     "unverified": "The current minimum efficiency thresholds under UAE.S 5010 and current distributor appointments per brand were not verified.",
     "ledger": [
       899,
       900,
-      903
+      903,
+      1209
     ]
   }
 }

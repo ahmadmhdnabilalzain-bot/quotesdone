@@ -185,6 +185,51 @@
       "confidence": "medium",
       "as_of": "2026-09-28",
       "source_note": "Checked on 2026-09-28 against pages opened then: fire doors need BS 476-22 / EN 1634-1 tests and Civil Defence approval -> confirmed | local fire-door makers -> confirmed Vulcan Industries and NAFFCO; unnamed Sharjah/Ajman joinery factories kept generic. Not checked: Which local factories currently hold valid Civil Defence fire-door listings and current brand distributorships were not verified."
+    },
+    {
+      "id": "doors:uae-market-fire-door-makers",
+      "topic": "Doors: fire-rated door makers, door hardware groups and the fire-test laboratory in the UAE",
+      "topic_ar": "الأبواب: مصانع الأبواب المقاومة للحريق ومجموعات إكسسوارات الأبواب ومختبر اختبار الحريق في الإمارات",
+      "kind": "uae_market_brands",
+      "body_en": "Who makes fire-rated doors in the UAE and who tests them, as each company states it. ASSA ABLOY acquired the Prometal Group in 2015 (Prometal Steel Doors, Lockwood Wooden Doors and Boxtech); the Prometal factory is in Jebel Ali Industrial Area 1 and its 2019 product declaration gives fire-rated door sets of 30 to 180 minutes; ASSA ABLOY's UAE page lists fire ratings of 30, 60, 90 and 120 minutes on the BS scale and 20, 45, 60 and 90 minutes on the UL scale; and in 2024 ASSA ABLOY opened a regional headquarters with a door factory at National Industries Park, Dubai. QMI Building Metal Products in Dubai Industrial City carries an Intertek Warnock Hersey listing for fire-resistant doors and door sets to UL 10C, published by Allegion's Middle East site. Vulcan Industries states that its fire-rated doors are tested to UL 10B/10C and EN 1634/BS 476 and approved by UAE Civil Defence. NAFFCO states UL certification for its doors with reference to NFPA 80. Dorma has had its regional head office in Jebel Ali since Dorma Gulf Door Controls opened there in 1997, and has been dormakaba since the 2015 merger with Kaba. Testing: Thomas Bell-Wright in Dubai is described as the first certification body for fire-rated products based in the UAE; a Prometal double-leaf steel doorset reached 90 minutes to ANSI/UL 10C in its laboratory, and its ISO/IEC 17065 accreditation schedule covers fully glazed doors and door hardware. The label on the door and the listing behind it are what a quote should name, not only the maker.",
+      "body_ar": "هذي الجهات اللي تصنّع الأبواب المقاومة للحريق في الإمارات واللي تختبرها، حسب ما تذكره كل شركة عن نفسها. ‏ASSA ABLOY استحوذت على مجموعة Prometal سنة 2015 (Prometal Steel Doors وLockwood Wooden Doors وBoxtech)، ومصنع Prometal في منطقة جبل علي الصناعية 1، وبيان المنتج حقها لسنة 2019 يذكر أطقم أبواب مقاومة للحريق من 30 لين 180 دقيقة، وصفحة ASSA ABLOY للإمارات تذكر تصنيفات 30 و60 و90 و120 دقيقة على المقياس البريطاني و20 و45 و60 و90 دقيقة على مقياس UL، وفي 2024 افتتحت ASSA ABLOY مقرها الإقليمي مع مصنع أبواب في مجمع الصناعات الوطنية بدبي. ‏QMI Building Metal Products في مدينة دبي الصناعية عندها إدراج من Intertek Warnock Hersey للأبواب وأطقم الأبواب المقاومة للحريق حسب UL 10C، منشور في موقع Allegion للشرق الأوسط. ‏Vulcan Industries تذكر إن أبوابها المقاومة للحريق مختبرة حسب UL 10B/10C وEN 1634/BS 476 ومعتمدة من الدفاع المدني في الإمارات. ‏NAFFCO تذكر إن أبوابها حاصلة على شهادة UL مع الإشارة لـNFPA 80. ‏Dorma مقرها الإقليمي في جبل علي من يوم افتتحت Dorma Gulf Door Controls هناك سنة 1997، وصارت dormakaba بعد الاندماج مع Kaba سنة 2015. الاختبار: ‏Thomas Bell-Wright في دبي توصف بإنها أول جهة اعتماد لمنتجات مقاومة الحريق مقرها في الإمارات، وطقم باب حديد بضلفتين من Prometal وصل 90 دقيقة حسب ANSI/UL 10C في مختبرها، وجدول اعتمادها حسب ISO/IEC 17065 يشمل الأبواب الزجاجية بالكامل وإكسسوارات الأبواب. الملصق اللي على الباب والإدراج اللي وراه هم اللي لازم يذكرهم العرض، مو بس اسم المصنع.",
+      "sources": [
+        "https://www.securityworldmarket.com/me/Newsarchive/assa-abloy-acquires-prometal-in-me",
+        "https://constructiondigital.com/company-reports/prometal-metal-industries-factory",
+        "https://www.assaabloy.com/emeia-blueprint/en/documents/solutions/topics/sustainability/epds/ASSA%20ABLOY%20Mineralwool%20Core%20Steel%20Door_EPD_AA%20ME.pdf",
+        "https://www.assaabloy.com/ae/en/solutions/products/doors-and-door-hardware/security-doors",
+        "https://www.intelligentcio.com/me/2024/01/23/assa-abloy-opens-new-state-of-the-art-regional-headquarters-in-dubai-uae/",
+        "https://mea.allegion.com/content/dam/mea/en/CF5587%20QMI%20Building.pdf",
+        "https://intersec.ae.messefrankfurt.com/dubai/en/exhibitor-search/exhibitor-search.detail.html/vulcan-industries-llc.html",
+        "https://www.naffco.com/fire-rated-doors-specifications",
+        "https://dormakaba.com/ae-en/about",
+        "https://www.zawya.com/en/business/dorma-to-set-up-production-plant-in-jebel-ali-free-zone-jwe89p4a",
+        "https://www.securitymiddleeastmag.com/?p=1915",
+        "https://www.ukas.com/download-schedule/6762/Product"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-19",
+      "source_note": "Read on 2026-11-19 in the web-search extracts of the pages listed (WebFetch could not resolve these hosts from this session). Vulcan's and NAFFCO's approvals are their own statements; the Prometal EPD of 2019 has expired (valid to 05.08.2024); the TBW accreditation schedule is dated 12 August 2025. Not checked: each maker's current Civil Defence listing, and whether production moved from Jebel Ali to National Industries Park."
+    },
+    {
+      "id": "doors:uae-market-make-and-grade-checklist",
+      "topic": "Doors: what to state about fire rating, test standard, listing and hardware so UAE door suppliers quote like for like",
+      "topic_ar": "الأبواب: وش تحدد عن تصنيف الحريق ومواصفة الاختبار والإدراج والإكسسوارات عشان يسعّر موردو الأبواب على نفس الأساس",
+      "kind": "spec_checklist",
+      "body_en": "What a buyer states about make and grade for doors so UAE suppliers quote the same thing (sizes, quantities and the door schedule are in the trade's own spec checklists). (1) The fire rating in minutes together with the test standard, because the scales differ: one UAE maker lists 30/60/90/120 minutes to BS and 20/45/60/90 minutes to UL for its doors, so '60 minutes' without the standard is two different doors. (2) The listing mark and its body on the door and frame (a UL or Intertek Warnock Hersey label, or a certificate from a UAE body such as Thomas Bell-Wright), and the UAE Civil Defence approval of the door assembly, not only of the maker. Dubai Civil Defence asks for approved, internationally listed assemblies with registered suppliers and installers for fire barriers and cladding, and a fire-safety engineer who advised on the 2017 code said materials need international and local certification; ask door suppliers for the same evidence. (3) The door as an assembly: frame, leaf, glazing, seals and every piece of hardware tested together, since suppliers state that a field change outside the listing voids it. (4) The hardware make and grade for hinges, locks, closers and panic devices (standards in the products entry), which the listing must cover. (5) The core for timber fire doors and the frame gauge for steel doors as the maker lists them. Quote-blocking: none of these alone; they decide whether two firm prices are for the same certified door.",
+      "body_ar": "هذا اللي يحدده المشتري عن الماركة والدرجة في الأبواب عشان كل الموردين في الإمارات يسعّرون نفس الشي (المقاسات والكميات وجدول الأبواب موجودة في قوائم مواصفات المهنة نفسها). (1) تصنيف الحريق بالدقايق مع مواصفة الاختبار، لأن المقاييس تختلف: أحد المصانع في الإمارات يذكر لأبوابه 30 و60 و90 و120 دقيقة حسب BS، و20 و45 و60 و90 دقيقة حسب UL، يعني «60 دقيقة» بدون المواصفة ممكن تكون بابين مختلفين. (2) علامة الإدراج والجهة المانحة على الباب والإطار (ملصق UL أو Intertek Warnock Hersey، أو شهادة من جهة في الإمارات مثل Thomas Bell-Wright)، واعتماد الدفاع المدني في الإمارات لطقم الباب كامل، مو بس للمصنع. الدفاع المدني في دبي يطلب منظومات معتمدة ومدرجة دولياً، مع موردين ومركّبين مسجلين، لحواجز الحريق والتكسية، ومهندس سلامة شارك في كود 2017 قال إن المواد تحتاج شهادة دولية وشهادة محلية، فاطلب من موردي الأبواب نفس الإثبات. (3) الباب كطقم متكامل: الإطار والضلفة والزجاج والعوازل وكل قطعة إكسسوار مختبرين مع بعض، لأن الموردين يذكرون إن أي تعديل في الموقع خارج الإدراج يلغيه. (4) ماركة ودرجة الإكسسوارات من مفصلات وأقفال وأذرع إغلاق وأجهزة طوارئ (المواصفات في مدخل المنتجات)، ولازم يغطيها الإدراج. (5) قلب الأبواب الخشب المقاومة للحريق، وسماكة إطار الأبواب الحديد، مثل ما يذكرها المصنع. ما فيها بند يوقف التسعير بروحه، لكنها تحدد هل السعرين لنفس الباب المعتمد أو لا.",
+      "sources": [
+        "https://www.assaabloy.com/ae/en/solutions/products/doors-and-door-hardware/security-doors",
+        "https://mea.allegion.com/content/dam/mea/en/CF5587%20QMI%20Building.pdf",
+        "https://www.securitymiddleeastmag.com/?p=1915",
+        "https://www.scribd.com/document/327758947/dcdChecklistRequirements-pdf",
+        "https://wfmmedia.com/?p=33581",
+        "https://www.meydanfz.ae/activity-hub/setup-fire-resistant-doors-business-in-dubai-uae",
+        "https://adigafire.pages.dev/fire-doors"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-19",
+      "source_note": "Read on 2026-11-19 in the web-search extracts of the pages listed (WebFetch could not resolve these hosts from this session). The Dubai Civil Defence sentence is from a requirements checklist copy on Scribd and covers fire barriers and cladding, not doors by name; the dual-certification quote is from a trade article; the 'field change voids the listing' point is a supplier's statement, stated as such. Not checked: the UAE Fire and Life Safety Code clause on doors."
     }
   ],
   "eval": [
@@ -214,13 +259,28 @@
         "claim": "local fire-door makers",
         "url": "https://vallisco.com/fire-door-manufacturers-in-uae/",
         "result": "confirmed Vulcan Industries and NAFFCO; unnamed Sharjah/Ajman joinery factories kept generic"
+      },
+      {
+        "entry": "doors:uae-market-fire-door-makers",
+        "claim": "Doors: fire-rated door makers, door hardware groups and the fire-test laboratory in the UAE",
+        "url": "https://www.securityworldmarket.com/me/Newsarchive/assa-abloy-acquires-prometal-in-me",
+        "result": "12 pages read in web-search extracts on 2026-11-19 (WebFetch blocked); see the entry's source_note",
+        "on": "2026-11-19"
+      },
+      {
+        "entry": "doors:uae-market-make-and-grade-checklist",
+        "claim": "Doors: what to state about fire rating, test standard, listing and hardware so UAE door suppliers quote like for like",
+        "url": "https://www.assaabloy.com/ae/en/solutions/products/doors-and-door-hardware/security-doors",
+        "result": "7 pages read in web-search extracts on 2026-11-19 (WebFetch blocked); see the entry's source_note",
+        "on": "2026-11-19"
       }
     ],
     "unverified": "Which local factories currently hold valid Civil Defence fire-door listings and current brand distributorships were not verified.",
     "ledger": [
       899,
       900,
-      903
+      903,
+      1209
     ]
   }
 }

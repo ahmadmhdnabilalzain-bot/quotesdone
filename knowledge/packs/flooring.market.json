@@ -259,6 +259,49 @@
       "confidence": "medium",
       "as_of": "2026-09-28",
       "source_note": "Checked on 2026-09-28 against pages opened then: RAK Ceramics, Ras Al Khaimah, among the largest ceramics producers -> confirmed. Not checked: Current UAE distributors for each named imported brand and stock availability of specific formats were not verified."
+    },
+    {
+      "id": "flooring:uae-market-makers-and-distributors",
+      "topic": "Flooring: the local tile maker, carpet-tile and vinyl distributors and the adhesive plant in the UAE",
+      "topic_ar": "الأرضيات: مصنع البلاط المحلي وموزعو بلاطات السجاد والفينيل ومصنع لاصق البلاط في الإمارات",
+      "kind": "uae_market_brands",
+      "body_en": "Who makes and distributes flooring in the UAE, as each company states it. RAK Ceramics, founded in 1989 and headquartered in Ras Al Khaimah, makes porcelain and ceramic tiles, sanitaryware and tableware; its April 2026 release gives 24 plants across the UAE, India, Bangladesh and Europe and a tile capacity of 118 million square metres a year, and it was the first in the GCC to run SACMI Continua+ technology for large-format porcelain slabs. Interface carpet tiles have a regional office in Dubai and long-standing UAE distributors in OFIS (Dubai) and Thani Murshid Est. (Abu Dhabi); OFIS supplied and installed the Interface carpet-tile package at DEWA's Al Shera'a headquarters. Tarkett VCT II vinyl composition tiles are offered in the UAE by Dutco Tennant. Mapei makes cementitious tile and stone adhesives at its factory in Dubai Investments Park, which it expanded with a USD 6.5 million investment reported in 2018, and publishes an environmental declaration for a UAE-produced adhesive, Keraflex Maxi S1 Zero. Most other flooring brands in the brands entry are imported through showrooms; ask which company holds the maker's local distribution when the warranty matters.",
+      "body_ar": "هذي الجهات اللي تصنّع وتوزّع الأرضيات في الإمارات، حسب ما تذكره كل شركة عن نفسها. ‏RAK Ceramics، تأسست سنة 1989 ومقرها رأس الخيمة، تصنّع بلاط البورسلان والسيراميك والأدوات الصحية وأواني الضيافة، وبيانها في أبريل 2026 يذكر 24 مصنع في الإمارات والهند وبنغلاديش وأوروبا، وطاقة إنتاج بلاط 118 مليون متر مربع في السنة، وكانت أول شركة في الخليج تشغّل تقنية SACMI Continua+ لألواح البورسلان كبيرة المقاس. بلاطات السجاد من Interface عندها مكتب إقليمي في دبي، وموزعيها في الإمارات من زمان OFIS في دبي وThani Murshid Est. في أبوظبي، وOFIS ورّدت وركّبت بلاطات سجاد Interface في مقر هيئة كهرباء ومياه دبي «الشراع». بلاطات الفينيل VCT II من Tarkett توفرها في الإمارات Dutco Tennant. ‏Mapei تصنّع لواصق البلاط والحجر الأسمنتية في مصنعها بمجمع دبي للاستثمار، ووسّعته باستثمار 6.5 مليون دولار حسب المنشور في 2018، وتنشر بيان أثر بيئي للاصق منتج في الإمارات اسمه Keraflex Maxi S1 Zero. أغلب ماركات الأرضيات الثانية في مدخل الماركات مستوردة وتنباع في المعارض، فاسأل مين صاحب التوزيع المحلي من المصنع إذا كان الضمان يهمك.",
+      "sources": [
+        "https://en.wikipedia.org/wiki/RAK_Ceramics",
+        "https://www.rakceramics.com/en/media/press/corporate/rak-ceramics-reaffirms-continued-service-across-th/",
+        "https://www.thenationalnews.com/2021/06/15/made-in-the-uae-rak-ceramics-tile-innovation-has-paved-way-for-exports-growth",
+        "https://www.floordaily.net/floorfocus/interfaceflor-seeks-leed-gold-for-new-dubai-office",
+        "https://www.tradearabia.com/news/MISC_177237.html",
+        "https://www.khaleejtimes.com/supplements/how-interface-is-redefining-sustainable-flooring-at-dewas-al-sheraa",
+        "https://www.dutcotennant.com/vct-tiles",
+        "https://www.mapei.com/ae/en/home-page/2018/08/09/mapei-invests-over-usd-6.5-million-to-strengthen-its-presence-in-the-middle-east",
+        "https://materials.oneclicklca.com/en/material/cementitious-adhesive-with-no-vertical-slip-uae-production/6507eaa5f494c01dbdebfde4"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-19",
+      "source_note": "Read on 2026-11-19 in the web-search extracts of the pages listed (WebFetch could not resolve these hosts from this session). RAK's 24 plants and 118 million m2 are from its April 2026 release; older sources give other figures. The OFIS and Thani Murshid partnership is from a 2010-era report. Not checked: current distributors of Tarkett beyond the Dutco Tennant page, Gerflor, Forbo and the Italian and Spanish tile brands."
+    },
+    {
+      "id": "flooring:uae-market-make-and-grade-checklist",
+      "topic": "Flooring: what to state about tile group, laminate class, adhesive class and make so UAE suppliers quote like for like",
+      "topic_ar": "الأرضيات: وش تحدد عن مجموعة البلاط وفئة اللامينيت وفئة اللاصق والماركة عشان يسعّر الموردون على نفس الأساس",
+      "kind": "spec_checklist",
+      "body_en": "What a buyer states about make and grade for flooring so UAE suppliers quote the same thing (area, layout, skirting and subfloor are in the trade's own spec checklist). (1) For porcelain, the group under ISO 13006 / EN 14411: group BIa is dry-pressed tile with water absorption of 0.5% or less, measured to ISO 10545-3; a US datasheet measured to ASTM C373 uses another method, so ask which one a figure comes from. (2) For laminate, the abrasion class to EN 13329 (the Taber test) and the use class: AC4 is class 32, normal commercial use, and AC5 is class 33, heavy commercial; AC3 is borderline for commercial floors and sources disagree on it, so state the class, not 'commercial grade'. (3) The tile adhesive class to EN 12004 / ISO 13007-1 and the product, because adhesives on sale in the UAE range from C1 upward (a UAE retailer lists Mapei Keraset as C1), and ask for the datasheet of the exact product. (4) For carpet tiles and vinyl, the make and collection, or 'equivalent' with the same use class, and whether it comes through the maker's local distributor. (5) The tile size, including large-format slabs, which one local maker produces on a dedicated line. Quote-blocking: none of these alone; they decide whether two firm prices are for the same floor.",
+      "body_ar": "هذا اللي يحدده المشتري عن الماركة والدرجة في الأرضيات عشان كل الموردين في الإمارات يسعّرون نفس الشي (المساحة والتوزيع والوزرة وتجهيز الأرضية موجودة في قائمة مواصفات المهنة نفسها). (1) في البورسلان، المجموعة حسب ISO 13006 / EN 14411: مجموعة BIa بلاط مكبوس جاف امتصاصه للماي 0.5% أو أقل، يُقاس حسب ISO 10545-3، والنشرات الأمريكية اللي تقيس حسب ASTM C373 تستخدم طريقة ثانية، فاسأل الرقم من أي طريقة. (2) في اللامينيت، فئة مقاومة التآكل حسب EN 13329 (اختبار Taber) وفئة الاستخدام: ‏AC4 تعادل الفئة 32 للاستخدام التجاري العادي، وAC5 تعادل الفئة 33 للاستخدام التجاري الكثيف، أما AC3 فعلى الحد للأرضيات التجارية والمصادر مختلفة فيها، فحدّد الفئة بالرقم، مو «درجة تجارية» وبس. (3) فئة لاصق البلاط حسب EN 12004 / ISO 13007-1 واسم المنتج، لأن اللواصق اللي تنباع في الإمارات تبدأ من C1 وفوق (أحد المتاجر في الإمارات يذكر Mapei Keraset بفئة C1)، واطلب النشرة الفنية للمنتج نفسه. (4) في بلاطات السجاد والفينيل، الماركة والمجموعة، أو «ما يعادلها» بنفس فئة الاستخدام، وهل التوريد عن طريق الموزع المحلي للمصنع. (5) مقاس البلاط، ومنها الألواح الكبيرة اللي يصنعها مصنع محلي على خط مخصص. ما فيها بند يوقف التسعير بروحه، لكنها تحدد هل السعرين لنفس الأرضية أو لا.",
+      "sources": [
+        "https://camdocs.camden.gov.uk/CMWebDrawer/Record/9700833/file/document",
+        "https://tilexdesign.com/wp-content/uploads/2023/04/hexa-terratinta-technical.pdf",
+        "https://viva-interiors.com/en/catalogs/lea-ceramiche/general-2025/26424/page-142",
+        "https://int.pergo.com/en/frequently-asked-questions-helpcenter/vinyl/miscellaneous/what-is-the-difference-between-a-class-32-and-33-product",
+        "https://www.quick-step.co.uk/en-gb/stories/quality-standards-for-laminate-flooring",
+        "https://www.bricoflor.co.uk/blog/laminate-ac-ratings",
+        "https://nqcart.ae/products/mapei-keraset-tile-adhesives",
+        "https://www.thenationalnews.com/2021/06/15/made-in-the-uae-rak-ceramics-tile-innovation-has-paved-way-for-exports-growth"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-19",
+      "source_note": "Read on 2026-11-19 in the web-search extracts of the pages listed (WebFetch could not resolve these hosts from this session). The BIa threshold is from manufacturers' datasheets citing ISO 13006 / EN 14411, not the standard's own text; the AC-to-class mapping is from Pergo, Quick-Step and Bricoflor, which disagree on AC3. Not checked: the meaning of each EN 12004 class letter beyond C1/C2, left out."
     }
   ],
   "eval": [
@@ -282,13 +325,28 @@
         "claim": "RAK Ceramics, Ras Al Khaimah, among the largest ceramics producers",
         "url": "https://en.wikipedia.org/wiki/RAK_Ceramics",
         "result": "confirmed"
+      },
+      {
+        "entry": "flooring:uae-market-makers-and-distributors",
+        "claim": "Flooring: the local tile maker, carpet-tile and vinyl distributors and the adhesive plant in the UAE",
+        "url": "https://en.wikipedia.org/wiki/RAK_Ceramics",
+        "result": "9 pages read in web-search extracts on 2026-11-19 (WebFetch blocked); see the entry's source_note",
+        "on": "2026-11-19"
+      },
+      {
+        "entry": "flooring:uae-market-make-and-grade-checklist",
+        "claim": "Flooring: what to state about tile group, laminate class, adhesive class and make so UAE suppliers quote like for like",
+        "url": "https://camdocs.camden.gov.uk/CMWebDrawer/Record/9700833/file/document",
+        "result": "8 pages read in web-search extracts on 2026-11-19 (WebFetch blocked); see the entry's source_note",
+        "on": "2026-11-19"
       }
     ],
     "unverified": "Current UAE distributors for each named imported brand and stock availability of specific formats were not verified.",
     "ledger": [
       899,
       900,
-      903
+      903,
+      1209
     ]
   }
 }

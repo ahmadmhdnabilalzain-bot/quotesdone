@@ -180,6 +180,53 @@
       "confidence": "medium",
       "as_of": "2026-09-28",
       "source_note": "Checked on 2026-09-28 against pages opened then: 2018 UAE Fire Code restricts façade ACP to fire-rated FR/A2 systems -> confirmed | Gulf Extrusions is a Jebel Ali extruder -> confirmed | White Aluminium Extrusion is in Dubai -> corrected: Mussafah, Abu Dhabi | Emirates Extrusion Factory is in Abu Dhabi -> corrected: Ajman | Alubond (Mulk Holdings) is Sharjah-based with FR and A2 panels -> confirmed. Not checked: Current distributor and fabricator appointments for each European system house, which Chinese ACP brands currently hold Civil Defence approval, and market shares were not verified."
+    },
+    {
+      "id": "aluminium:uae-market-system-houses-and-panel-makers",
+      "topic": "Aluminium & cladding: system houses, ACP makers and glass processors present in the UAE, and how they sell",
+      "topic_ar": "الألمنيوم والتكسية: شركات الأنظمة ومصانع الألواح المركبة ومعالجو الزجاج الموجودين في الإمارات وطريقة بيعهم",
+      "kind": "uae_market_brands",
+      "body_en": "How the aluminium system houses, composite-panel makers and glass processors are present in the UAE, as each states it. Schüco Middle East is run from Dubai, and Schüco says it works through a network of authorised and licensed fabricators that it trains to fabricate and install its systems. Technal Middle East was inaugurated in 2000 as an exclusive joint venture with its local partner Balexco, has its office in Jebel Ali, and supplies through a network of aluminium fabricators (metal builders); Technal describes its parent as part of Hydro Building Systems France. Reynaers Middle East has had its regional office in Bahrain since 2004, with a UAE branch office reported at Dubai Silicon Oasis. Alumil, the Greek systems group, runs Alumil Middle East from Jumeirah Lakes Towers, Dubai. Panels: 3A Composites, maker of Alucobond, has a Middle East branch in Almas Tower in Jumeirah Lakes Towers and describes Alucobond A2 as a non-combustible composite panel; Alubond U.S.A opened an A2 fire-resistant panel line in the UAE in 2016; Danube Group makes the Alucopanel range under licence at its factory in Dubai Technopark. Glass: Emirates Glass LLC in Dubai processes architectural glass up to insulated glass units, inside Glass LLC, the glass holding of Dubai Investments, which also owns Emirates Float Glass, the float glass plant in Abu Dhabi. Fire-rated aluminium: Gulf Extrusions announced in 2015 an aluminium fire door tested at Thomas Bell-Wright in Dubai. A system house names the fabricator, not the other way round: ask the fabricator which product lines it is licensed for.",
+      "body_ar": "هذي طريقة تواجد شركات أنظمة الألمنيوم ومصانع الألواح المركبة ومعالجي الزجاج في الإمارات، حسب ما تذكره كل شركة عن نفسها. ‏Schüco Middle East تُدار من دبي، وتقول Schüco إنها تشتغل عن طريق شبكة مصنّعين معتمدين ومرخصين تدرّبهم على تصنيع أنظمتها وتركيبها. ‏Technal Middle East افتُتحت سنة 2000 كمشروع مشترك حصري مع شريكها المحلي Balexco، ومكتبها في جبل علي، وتورّد عن طريق شبكة من ورش الألمنيوم، وتذكر Technal إن شركتها الأم تتبع Hydro Building Systems France. ‏Reynaers Middle East مكتبها الإقليمي في البحرين من 2004، ولها فرع في الإمارات في واحة دبي للسيليكون حسب ما نُشر. ‏Alumil، مجموعة الأنظمة اليونانية، تدير Alumil Middle East من أبراج بحيرات جميرا في دبي. الألواح: ‏3A Composites، الشركة المصنّعة لـAlucobond، لها فرع للشرق الأوسط في برج الماس بأبراج بحيرات جميرا، وتصف Alucobond A2 بإنه لوح مركب غير قابل للاحتراق، وAlubond U.S.A افتتحت خط إنتاج لألواح A2 المقاومة للحريق في الإمارات سنة 2016، وDanube Group تصنّع ألواح Alucopanel بترخيص في مصنعها في دبي تكنوبارك. الزجاج: ‏Emirates Glass LLC في دبي تعالج زجاج الواجهات لين وحدات الزجاج العازل، وهي ضمن Glass LLC، الشركة القابضة للزجاج التابعة لدبي للاستثمار، واللي تملك كذلك Emirates Float Glass، مصنع الزجاج المسطح في أبوظبي. الألمنيوم المقاوم للحريق: أعلنت Gulf Extrusions سنة 2015 عن باب ألمنيوم مقاوم للحريق مختبر عند Thomas Bell-Wright في دبي. شركة الأنظمة هي اللي تعتمد الورشة، مو العكس، فاسأل الورشة عن خطوط الإنتاج المرخصة لها بالضبط.",
+      "sources": [
+        "https://schueco.com/ae/company",
+        "https://www.emeoutlookmag.com/company-profiles/390-schuco-middle-east",
+        "https://gulfconstructiononline.com/Article/4930/Technal_boosts_regional_presence",
+        "https://www.technal.com/en/tme/the-brand/tme/",
+        "https://www.gulfconstructiononline.com/Article/1620598/Reynaers_to_showcase_prowess_at_key_event",
+        "https://abc-gcc.net/companies/8/524347",
+        "https://www.alumil.com/uae/support",
+        "https://www.alumil.com/uae/corporate/careers/careers-@-alumil/dubai",
+        "https://alucobond.com.sg/keyfeatures/fire-retardant/alucobond-a2/",
+        "https://alucobond.com.sg/media/2024/05/Alucodual-World-of-Colours-Brochure_SEA.pdf",
+        "https://hsereview.com/fire-safety/alubond-u-s-a-opens-a2-fire-resistant-panels-production-facility-in-uae",
+        "https://www.zawya.com/en/press-release/alubond-invests-50-million-dirhams-in-a2-fire-resistant-panels-production-in-uae-vl2atx2k",
+        "https://www.alcircle.com/news/alucopanel-alubond-usa-upgrade-uae-facilities-to-produce-more-fire-resistant-aluminium-panels-25692",
+        "https://www.dubaiinvestments.com/en/businesses/building-materials-construction-contracting/glass/emirates-float-glass-llc",
+        "https://www.alcircle.com/news/gulf-extrusions-unveils-middle-east-s-first-fully-tested-fire-rated-aluminum-door-21451"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-19",
+      "source_note": "Read on 2026-11-19 in the web-search extracts of the pages listed (WebFetch could not resolve these hosts from this session). Each is the company's or publisher's own statement; the Reynaers Dubai Silicon Oasis branch dates from about 2014, the Technal joint venture from 2000, Alubond's A2 line from 2016. Not checked: a current list of licensed fabricators for any system house, a named UAE distributor for Alucobond, and which panels hold current Civil Defence approval (Alubond's own claim to be the only one was left out as unverified)."
+    },
+    {
+      "id": "aluminium:uae-market-make-and-grade-checklist",
+      "topic": "Aluminium & cladding: what to state about system, fabricator licence, panel class and glass so UAE suppliers quote like for like",
+      "topic_ar": "الألمنيوم والتكسية: وش تحدد عن النظام وترخيص الورشة وفئة اللوح والزجاج عشان يسعّر الموردون على نفس الأساس",
+      "kind": "spec_checklist",
+      "body_en": "What a buyer states about make and grade in aluminium and cladding so UAE fabricators quote the same thing (dimensions and scope are in the trade's own spec checklists). (1) The system house and the system series, or 'equivalent' with the performance to match, and ask the fabricator for its licence or authorisation from that system house for that product line: Schüco works through fabricators it authorises and trains, and not every licensed fabricator makes the whole range. (2) For composite panels, the fire class of the core (A2 non-combustible or FR fire-retardant, never PE on a façade) and the maker's name, because Dubai Civil Defence requires perimeter fire barriers and cladding to be a Civil Defence approved, internationally listed assembly or system, with the materials, suppliers and installers registered with Dubai Civil Defence; ask for the approval of the assembly, not only the panel's test report. (3) The glass make-up and its processor (for example a Dubai processor making insulated units from float glass made in Abu Dhabi), so two quotes carry the same unit. (4) The coating system and its licence (Qualicoat class or PVDF, already in the products entry). Quote-blocking: none of these alone; they decide whether two firm prices are for the same façade.",
+      "body_ar": "هذا اللي يحدده المشتري عن الماركة والدرجة في أعمال الألمنيوم والتكسية عشان كل الورش في الإمارات تسعّر نفس الشي (المقاسات والنطاق موجودة في قوائم مواصفات المهنة نفسها). (1) شركة الأنظمة وسلسلة النظام، أو «ما يعادلها» بنفس الأداء، واطلب من الورشة ترخيصها أو اعتمادها من شركة الأنظمة لخط الإنتاج هذا بالذات: ‏Schüco تشتغل عن طريق ورش تعتمدها وتدرّبها، ومو كل ورشة مرخصة تصنّع المجموعة كاملة. (2) في الألواح المركبة حدّد فئة الحريق للقلب (A2 غير قابل للاحتراق أو FR مقاوم للحريق، وأبداً مو PE على الواجهة) واسم المصنع، لأن الدفاع المدني في دبي يشترط إن حواجز الحريق المحيطية والتكسية تكون منظومة معتمدة من الدفاع المدني ومدرجة دولياً، وإن المواد والموردين والمركّبين يكونون مسجلين عند الدفاع المدني في دبي. اطلب اعتماد المنظومة كاملة، مو بس تقرير اختبار اللوح. (3) تركيبة الزجاج والجهة اللي تعالجه (مثلاً معالج في دبي يصنع وحدات عازلة من زجاج مسطح مصنوع في أبوظبي)، عشان العرضين يكونون لنفس الوحدة. (4) نظام الدهان وترخيصه (فئة Qualicoat أو PVDF، موجودة في مدخل المنتجات). ما فيها بند يوقف التسعير بروحه، لكنها تحدد هل السعرين لنفس الواجهة أو لا.",
+      "sources": [
+        "https://schueco.com/ae/company",
+        "https://www.doorandwindowexperts.co.uk/schuco/",
+        "https://www.scribd.com/document/327758947/dcdChecklistRequirements-pdf",
+        "https://alucobond.com.sg/keyfeatures/fire-retardant/alucobond-a2/",
+        "https://www.dubaiinvestments.com/en/businesses/building-materials-construction-contracting/glass/emirates-float-glass-llc",
+        "https://vortexfec.com/insight/key-changes-to-uae-fire-life-safety-code-of-practice-2018-edition"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-19",
+      "source_note": "Read on 2026-11-19 in the web-search extracts of the pages listed (WebFetch could not resolve these hosts from this session). The Dubai Civil Defence sentence is from a requirements checklist copy hosted on Scribd, not the code text itself; the 2018 FLS amendment on FR/A2 panels was confirmed on 2026-09-28 (vortexfec). Not checked: the current clause numbers of the UAE Fire and Life Safety Code."
     }
   ],
   "eval": [
@@ -223,13 +270,28 @@
         "claim": "Alubond (Mulk Holdings) is Sharjah-based with FR and A2 panels",
         "url": "https://www.mulkinternational.com/brands/alubond",
         "result": "confirmed"
+      },
+      {
+        "entry": "aluminium:uae-market-system-houses-and-panel-makers",
+        "claim": "Aluminium & cladding: system houses, ACP makers and glass processors present in the UAE, and how they sell",
+        "url": "https://schueco.com/ae/company",
+        "result": "15 pages read in web-search extracts on 2026-11-19 (WebFetch blocked); see the entry's source_note",
+        "on": "2026-11-19"
+      },
+      {
+        "entry": "aluminium:uae-market-make-and-grade-checklist",
+        "claim": "Aluminium & cladding: what to state about system, fabricator licence, panel class and glass so UAE suppliers quote like for like",
+        "url": "https://schueco.com/ae/company",
+        "result": "6 pages read in web-search extracts on 2026-11-19 (WebFetch blocked); see the entry's source_note",
+        "on": "2026-11-19"
       }
     ],
     "unverified": "Current distributor and fabricator appointments for each European system house, which Chinese ACP brands currently hold Civil Defence approval, and market shares were not verified.",
     "ledger": [
       899,
       900,
-      903
+      903,
+      1209
     ]
   }
 }
