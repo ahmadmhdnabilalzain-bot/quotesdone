@@ -26,11 +26,13 @@ import { isClosedRequest } from '../_shared/request_closed.ts';
 import { seedTerms } from '../_shared/anonymise.ts';
 import { cadSupplierBoq, dxfTextOf } from '../_shared/cad_identity.ts';
 import { inDbRegion } from '../_shared/db_region.ts';
-import { admin, sec } from './shared.ts';
+import { GATEWAY, admin, sec } from './shared.ts';
 import { fetchTwilioMedia } from './media.ts';
 import { PHOTOS_PER_DAY, photosToday, recordSitePhotos } from '../_shared/site_photos.ts';
+import { gatewayPhotoDeps, readPhoto, type PhotoRead } from '../_shared/photo_reading.ts';
+import { modelHeld } from '../_shared/llm_hold.ts';
 
-export type CustomerFileResult = { ok: boolean; kind?: 'drawing' | 'cad' | 'photo'; target?: string; note: string; boqLines?: number; queued?: boolean; held?: boolean };
+export type CustomerFileResult = { ok: boolean; kind?: 'drawing' | 'cad' | 'photo'; target?: string; note: string; boqLines?: number; queued?: boolean; held?: boolean; photo?: PhotoRead };
 
 const SUPA = () => Deno.env.get('SUPABASE_URL')!;
 const b64 = (u8: Uint8Array) => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, Array.from(u8.subarray(i, i + 0x8000))); return btoa(s); };
@@ -101,9 +103,15 @@ export async function customerFile(cust: { id: string; email: string; name: stri
   // for the worker's photo check (_shared/site_photo_gate.ts) and recorded on the request by its job (_shared/site_photos.ts,
   // via 'whatsapp', no shot), so the sales engineer's one photo ask is answered here too; a supplier sees only the checked copy.
   // A photo whose check cannot be queued stays as before: kept with the request, never offered.
+  // THE PHOTO IS ALSO READ, ONCE (19 Nov 2026, sales_engineer; founder ruling 1200; _shared/photo_reading.ts): the stored, metadata-
+  // stripped bytes go to a vision model through ai_gateway on the sales engineer's reading route, cached by their hash, so the reply
+  // asks about what the photo shows. Only a photo whose check was queued is read: PHOTOS_PER_DAY bounds the paid reads too. The
+  // reading is context for the reply only; the photo reaches a supplier only through its check (site_photo_gate.ts), unchanged.
   if (kind === 'photo') {
     const job = await queueSitePhoto(cust, target, path, name, mime, bytes.length);
-    return { ok: true, kind, target: target.ref, held: true, queued: !!job, note: job
+    const photo = job ? await readPhoto(gatewayPhotoDeps({ admin, gatewayUrl: GATEWAY, secret: () => sec('cred_fn_ai'), held: () => modelHeld(admin), fn: 'wa_inbound' }),
+      `data:${mime};base64,${b64(bytes)}`, { lang: 'en', fn: 'wa_inbound', seeds: seedTerms({ name: cust.name, email: cust.email, phone: cust.phone }), subject: { customer_id: cust.id, email: cust.email || null } }).catch(() => undefined) : undefined;
+    return { ok: true, kind, target: target.ref, held: true, queued: !!job, photo, note: job
       ? 'a photo, added to ' + target.ref + '; it is checked first, and suppliers see it only with anything that could identify the customer covered (a photo that cannot be cleared is not sent)'
       : 'a photo, added to ' + target.ref + '; photos are kept with the request and are not sent to suppliers - a drawing can be shared as a PDF or a CAD file (DWG/DXF)' };
   }

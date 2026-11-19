@@ -8266,6 +8266,13 @@
   "0a8d930d2506",
   "954d61a65b2c"
  ],
+ "supabase/functions/_shared/photo_reading.ts": [
+  "006e3c7b152f",
+  "15a5fd57e11b",
+  "27ec0b0c7585",
+  "c2d5791b5303",
+  "d3f70c4bbffe"
+ ],
  "supabase/functions/_shared/quotation_date.ts": [
   "616540420d23",
   "b3329aad17fa",
@@ -9543,7 +9550,6 @@
   "21457f021dbc"
  ],
  "supabase/functions/inquiry_intake/handle.ts": [
-  "3a572c138209",
   "48816d2dbf49",
   "55c9470094df",
   "5db117bcc1fa",
@@ -9556,11 +9562,11 @@
   "869b5bbae5d0",
   "9621cf0393b6",
   "a30bf6242239",
-  "c73b02e4b5e8",
   "caa9d0149589",
   "d098b2f4595a",
   "d5939dab8860",
   "de4ebf6714d1",
+  "e774a96b45e3",
   "ea589fff023e",
   "ef2b8ed514b6"
  ],

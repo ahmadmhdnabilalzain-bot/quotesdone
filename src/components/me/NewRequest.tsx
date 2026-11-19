@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { categoryLabel } from '@/lib/categoryLabel';
 import { SeparateQuotesAsk } from './requests/SeparateQuotesAsk';
 import { mergeAttachment } from '@/lib/requestAttachments';
+import { photoToDataUrl } from '@/lib/chatPhoto';
 import { DRAWING_READ_TIMEOUT_MS } from './api';
 import { supaRpcMaybeOne } from '@/lib/supaClient';
 import { specGuideText } from '@/lib/specGuide';
@@ -446,6 +447,17 @@ export function NewRequest({ token, lang, call, llmAvailable, initialText, pickF
       // intake_required). A read BOQ goes to inquiry_intake, which asks what is still open and says
       // ready itself; the button appears only then (runIntake is the one place that sets ready).
       if (n >= 1) await runIntake('', adopted);
+      // A PHOTO WITH NO TAKE-OFF IS READ BY THE SALES ENGINEER (19 Nov 2026, founder ruling 1200: "custom wardrobe from a studio
+      // photo: ask dimensions, shelves vs hanging"). A photo of a space or an item has no lines to read, and this used to end the
+      // turn at "it is held". The intake now gets the photo (resized here as the widget and the portal chat do, chat_images.ts) and
+      // its vision reading decides the next question; a photo it cannot read is said so (supabase/functions/_shared/photo_reading.ts).
+      // The JPEG page fileToImages made is the source, so a HEIC photo this browser converted is read too.
+      else if (isPhoto) {
+        const pg = p.images[0];
+        const jpeg = await fetch('data:' + (pg.mime || 'image/jpeg') + ';base64,' + pg.data).then((x) => x.blob()).catch(() => null);
+        const img = jpeg ? await photoToDataUrl(new File([jpeg], 'photo.jpg', { type: 'image/jpeg' })).catch(() => '') : '';
+        if (img) await runIntake('', null, null, { images: [img] });
+      }
       // A big PDF set's lengths are measured by the CAD worker; the take-off above updates when they arrive.
       if (res && res.note === 'lengths_queued' && res.cad_job_id) pollCad(res, file.name, source, true);
       if (res && res.note === 'scan_queued' && res.cad_job_id) pollScan(res, file.name, source);
