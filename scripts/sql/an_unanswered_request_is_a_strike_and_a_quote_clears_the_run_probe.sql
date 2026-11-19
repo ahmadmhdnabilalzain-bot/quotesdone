@@ -58,6 +58,9 @@ begin
   select * into l from public.leads where id = s_quiet;
   if coalesce(l.chat_strikes, 0) <> 3 or public.fn_is_matchable(true, l.banned, l.matching_blocked, 'approved', l.permanently_closed, l.chat_strikes) then
     fails := fails || ' 3:not_paused(' || coalesce(l.chat_strikes, 0) || ')'; end if;
+  -- An ended request takes no quotation (trigger a06, no_rival_price_can_be_worked_out_and_the_customer_sees_the_quoted_price.sql,
+  -- 19 Nov 2026), so the quote that clears the run arrives on ir reopened, as a request still taking quotes.
+  update public.inquiries set status = 'sent' where id = ir;
   insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, status, created_at) values (gen_random_uuid(), ir, s_quiet, 8000, 'draft', now());
   if (select coalesce(chat_strikes, 0) from public.leads where id = s_quiet) <> 0 then fails := fails || ' 3:not_cleared'; end if;
   select count(*) into n from public.supplier_strike_event where lead_id = s_quiet;

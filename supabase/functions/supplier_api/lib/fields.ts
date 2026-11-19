@@ -20,6 +20,12 @@ export const TOO_LARGE = (what: string) => `That ${what} is larger than 25 MB. P
 export const PROFILE_COLS = ['contact_name','signatory_name','emirates_id','phone','products','services','description','certifications','founded_year','company_type','company_size','trn','egr_doc_name','egr_number','trading_name'];
 const YEAR_MS = 365 * 864e5;
 export const CONCLUDED = ['completed','closed','cancelled'];
+// WHAT A SUPPLIER READS WHEN THE REQUEST HAS ENDED (19 Nov 2026, sales_engineer; founder rulings 1683, 1686). CONCLUDED is three of
+// the five ends; submit_quote and withdraw_quote also refuse expired and lost (isClosedRequest, _shared/request_closed.ts), because
+// moving his own price or withdrawing options there moved his comparison against the other suppliers and gave away their price.
+// Plain, and naming no other supplier or price. Trigger a06 on quotes refuses the same writes at the database.
+export const REQUEST_ENDED_SUBMIT = { error: 'This request has ended, so it takes no new or revised quotation. Thank you for your interest, and best of luck on the next one.', code: 'request_ended' } as const;
+export const REQUEST_ENDED_WITHDRAW = { error: 'This request has ended, so its quotations stay as they were sent and can no longer be withdrawn.', code: 'request_ended' } as const;
 // EVIDENCE FIX 19 Jul 2026 -----------------------------------------------------------------
 // Terms acceptance here recorded WHEN (accepted_terms_at) and WHICH VERSION
 // (accepted_terms_version) but not FROM WHERE. The leads.accepted_terms_ip column already

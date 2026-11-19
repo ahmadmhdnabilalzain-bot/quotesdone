@@ -36,6 +36,11 @@
 --   6. fn_inquiry_conversation_summary_build: the stored record of an inquiry keeps quote_amount, labelled excluding VAT, and no
 --      longer the marked-up generated column. Summaries already stored are not rewritten (inquiry_conversation_summary: 0 rows
 --      on 19 Nov 2026, as inquiries are 0).
+--   7. trigger a06_an_ended_request_takes_no_quotation_change on public.quotes: on a completed, closed, cancelled, expired or
+--      lost request no quotation is added and none has its price, option or status moved, except the reveal (status to
+--      'revealed' once the sale exists); a held draft released there stays a draft. Without it a supplier could still re-send or
+--      withdraw on an expired or lost request and read the answer of 1 (second review, 19 Nov 2026). supplier_api submit_quote
+--      and withdraw_quote refuse the same requests first, in words (isClosedRequest, _shared/request_closed.ts).
 -- The portal (DecisionSupport.tsx, MarketIntelligence.tsx, workspaceCopy.ts) and customer_api my_inquiries (jobs and match
 -- banded through _shared/pre_reveal_bands.ts) change in the same commit.
 --
@@ -50,7 +55,9 @@
 --   the_supplier_portal_tells_one_truth_in_every_panel.sql, fn_customer_decision_support from fn_customer_decision_support.sql,
 --   fn_pool_say from every_seat_reads_one_pool_and_every_hand_over_comes_back.sql, fn_company_self_knowledge_sync from the last
 --   file in MANIFEST that defines it, fn_inquiry_conversation_summary_build from
---   a_closed_inquiry_quiet_for_ninety_days_gets_a_structured_summary_of_its_conversation.sql. Rolling back re-opens the leaks above; it needs the founder's word.
+--   a_closed_inquiry_quiet_for_ninety_days_gets_a_structured_summary_of_its_conversation.sql; and
+--   drop trigger a06_an_ended_request_takes_no_quotation_change on public.quotes;
+--   drop function public.trg_an_ended_request_takes_no_quotation_change(). Rolling back re-opens the leaks above; it needs the founder's word.
 --
 -- Pending: scripts/sql/pending/no_rival_price_can_be_worked_out_and_the_customer_sees_the_quoted_price.txt
 -- Prevented by: supabase/functions/customer_api/no_badge_is_an_exact_fingerprint_before_the_reveal.test.ts,
@@ -1057,6 +1064,72 @@ AS $function$
     'originals', 'kept: Cabinet Decision 74/2023 Art. 3(1)(b) requires the records for 5 years from the end of the year of creation; this summary is an index');
 $function$;
 
+-- 7. AN ENDED REQUEST TAKES NO QUOTATION CHANGE (19 Nov 2026, second review of c1d1fd657 / 9c0939657). fn_supplier_stats now
+-- compares only on ended requests, and that is only safe if the supplier cannot move his side there: supplier_api submit_quote
+-- refused only completed / closed / cancelled (lib/fields.ts CONCLUDED), so on an expired or lost request he could re-send his
+-- price, and withdraw_quote checked no request status at all, so withdrawing pre-placed options one by one was the same probe.
+-- No trigger on quotes stopped either. This one does, for every door: on a request whose status is one of
+-- _shared/request_closed.ts CLOSED_REQUEST_STATUSES (completed, closed, cancelled, expired, lost), a quotation's price, option
+-- and status are frozen. The columns guarded are the ones a supplier moves: quote_amount, price_ex_vat, amount_as_stated,
+-- gross_amount, discount_amount, vat_amount, option_no and status. supplier_id is a30's (fn_quote_supplier_is_immutable), and
+-- inquiry_id is left to fn_contact_merge / fn_demo_purge_walk, which re-point or null keys and move no price.
+-- Every UPDATE of quotes on 19 Nov 2026, and what this trigger does with it on an ENDED request (pg_proc.prosrc, and a grep of
+-- supabase/functions for from('quotes').update):
+--   _shared/reveal_sale.ts markRevealed         status -> 'revealed' with the sale written first     ALLOWED (the reveal)
+--   trg_quote_items_rescore                      status = status (no change)                          ALLOWED (nothing guarded moves)
+--   fn_quote_aspect_reading_record               quality = quality                                    ALLOWED (not guarded)
+--   supplier_api quote_acceptance.ts             submittable, review_notes(_at)                       ALLOWED (not guarded)
+--   line_specs/workflow.ts                       terms_spec                                           ALLOWED (not guarded)
+--   fn_sales_engineer_quote_quality_tick         status draft -> submitted on a hold's release        KEPT A DRAFT, no error
+--     (the tick reads no request status, and a raise would stop its whole loop; a draft is in front of nobody and counts nowhere)
+--   fn_supplier_close_account, not_for_me.ts leave_quotes   status -> withdrawn                      never reach one: both take
+--     their ids from fn_supplier_live_quotes, which excludes these five statuses
+--   fn_edit_inquiry                              stale, status -> draft                               never reaches one (no edit after the end)
+--   supplier_api submit_quote / withdraw_quote / quote_acceptance (status, amounts), workflow.ts (status, priced patch),
+--   fn_quote_reprice via fn_supplier_apply_change (amounts)                                           REFUSED: REQUEST_ENDED
+-- Rating, award and completion write inquiries, transactions and reviews, never these quote columns. An INSERT is refused.
+create or replace function public.trg_an_ended_request_takes_no_quotation_change()
+ returns trigger
+ language plpgsql
+ security definer
+ set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_status text; v_price_same boolean;
+begin
+  -- the request the row is on, and on an UPDATE the one it was on: either one ended is enough
+  select i.status into v_status from public.inquiries i
+   where i.id = NEW.inquiry_id and i.status in ('completed', 'closed', 'cancelled', 'expired', 'lost');
+  if v_status is null and tg_op = 'UPDATE' then
+    select i.status into v_status from public.inquiries i
+     where i.id = OLD.inquiry_id and i.status in ('completed', 'closed', 'cancelled', 'expired', 'lost');
+  end if;
+  if v_status is null then return NEW; end if;
+  if tg_op = 'INSERT' then
+    raise exception 'REQUEST_ENDED: this request has ended (%), so it takes no new quotation', v_status using errcode = 'P0001';
+  end if;
+  v_price_same := (NEW.quote_amount, NEW.price_ex_vat, NEW.amount_as_stated, NEW.gross_amount, NEW.discount_amount, NEW.vat_amount, NEW.option_no)
+                  is not distinct from
+                  (OLD.quote_amount, OLD.price_ex_vat, OLD.amount_as_stated, OLD.gross_amount, OLD.discount_amount, OLD.vat_amount, OLD.option_no);
+  if v_price_same and NEW.status is not distinct from OLD.status then return NEW; end if;
+  -- the reveal: the sale for this quotation exists, and only the status moves, to revealed
+  if v_price_same and NEW.status = 'revealed' and exists (select 1 from public.transactions t where t.quote_id = NEW.id) then
+    return NEW;
+  end if;
+  -- a held draft released after its request ended stays a draft
+  if v_price_same and OLD.status = 'draft' and NEW.status = 'submitted' then
+    NEW.status := OLD.status;
+    return NEW;
+  end if;
+  raise exception 'REQUEST_ENDED: this request has ended (%), so its quotations can no longer be changed or withdrawn', v_status
+    using errcode = 'P0001';
+end $fn$;
+
+revoke execute on function public.trg_an_ended_request_takes_no_quotation_change() from public, anon, authenticated;
+
+create or replace trigger a06_an_ended_request_takes_no_quotation_change
+  before insert or update on public.quotes
+  for each row execute function public.trg_an_ended_request_takes_no_quotation_change();
+
 -- CREATE OR REPLACE keeps each ACL (service_role and postgres only, read 19 Nov 2026); the revokes restate it, one signature each
 -- (one overload of every routine above: pg_proc, 19 Nov 2026).
 revoke execute on function public.fn_supplier_stats(bigint) from public, anon, authenticated;
@@ -1093,11 +1166,16 @@ update public.ops_knowledge
 --      amounts anywhere in the payload.
 --   D. a seventh enquiry, OPEN, where [1] at 10,000 is the lowest against three rivals at 20,000: positioning must not move.
 --      Counted, it would read times_lowest 1 and a different average.
+--   E. an eighth enquiry, EXPIRED, holding [1]'s submitted 10,000, his submitted second option and a held draft of [3]: a
+--      withdraw, a re-price, an option change and a new quotation are each refused (REQUEST_ENDED); a no-change write and a
+--      review-notes write pass; the held draft's release leaves it a draft with no error; the reveal (the sale first, then
+--      status 'revealed') passes.
 create temp table zz_price_probe_verdict (verdict text, detail text) on commit drop;
 do $probe$
 declare
   v_cust uuid := gen_random_uuid();
   sup bigint[]; inq uuid[] := array[]::uuid[]; qs uuid[]; v_i uuid; k int;
+  e_withdraw text; e_price text; e_option text; e_insert text; e_nochange text; e_notes text; e_reveal text; e_release text; v_held_status text;
   s_thin jsonb; m_thin jsonb; s_open jsonb; s_four jsonb; s_ok jsonb; s_d jsonb; m_ok jsonb; d_ok jsonb; d_one jsonb; v_say text;
   v_err text; v_amounts int; v_summ jsonb; v_ok boolean; v_detail text;
   b_q bigint; b_l bigint; b_i bigint; b_c bigint; b_h bigint; a_q bigint; a_l bigint; a_i bigint; a_c bigint; a_h bigint;
@@ -1118,7 +1196,7 @@ begin
       raise exception 'fixture: the ZZ DEMO suppliers or customer did not land as demo';
     end if;
 
-    for k in 1..7 loop
+    for k in 1..8 loop
       insert into public.inquiries (customer_id, brief_source, category, trades, summary, status)
       values (v_cust, 'qd_demo_fixture', 'zzprobe_trade', array['zzprobe_trade'], 'ZZ DEMO price probe enquiry ' || k, 'open')
       returning id into v_i;
@@ -1177,6 +1255,37 @@ begin
     update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id = any(qs) and released_at is null;
     update public.quotes set status = 'submitted' where id = any(qs);
     s_d := public.fn_supplier_stats(sup[1])->'price_positioning';
+
+    qs := array[gen_random_uuid(), gen_random_uuid(), gen_random_uuid()];
+    insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, source, option_no, status) values
+      (qs[1], inq[8], sup[1], 10000, 'qd_demo_fixture', 1, 'draft'),
+      (qs[2], inq[8], sup[1], 11000, 'qd_demo_fixture', 2, 'draft'),
+      (qs[3], inq[8], sup[3],  9000, 'qd_demo_fixture', 1, 'draft');
+    update public.quotes set status = 'submitted' where id = any(qs[1:2]);
+    update public.quote_quality_hold set released_at = now(), release_reason = 'waited_24h' where quote_id = any(qs[1:2]) and released_at is null;
+    update public.quotes set status = 'submitted' where id = any(qs[1:2]);
+    update public.inquiries set status = 'expired' where id = inq[8];
+    begin update public.quotes set status = 'withdrawn' where id = qs[2]; e_withdraw := 'passed';
+    exception when others then e_withdraw := sqlerrm; end;
+    begin update public.quotes set quote_amount = 9500 where id = qs[1]; e_price := 'passed';
+    exception when others then e_price := sqlerrm; end;
+    begin update public.quotes set option_no = 3 where id = qs[2]; e_option := 'passed';
+    exception when others then e_option := sqlerrm; end;
+    begin insert into public.quotes (inquiry_id, supplier_id, quote_amount, source, option_no, status)
+          values (inq[8], sup[1], 9000, 'qd_demo_fixture', 4, 'draft'); e_insert := 'passed';
+    exception when others then e_insert := sqlerrm; end;
+    begin update public.quotes set status = status where id = qs[1]; e_nochange := 'passed';
+    exception when others then e_nochange := sqlerrm; end;
+    begin update public.quotes set review_notes = review_notes, review_notes_at = now() where id = qs[1]; e_notes := 'passed';
+    exception when others then e_notes := sqlerrm; end;
+    begin update public.quotes set status = 'submitted' where id = qs[3]; e_release := 'passed';
+    exception when others then e_release := sqlerrm; end;
+    select status into v_held_status from public.quotes where id = qs[3];
+    begin
+      insert into public.transactions (quote_id, inquiry_id, supplier_id, customer_id, quote_amount, fee_status)
+      values (qs[1], inq[8], sup[1], v_cust, 10000, 'pending');
+      update public.quotes set status = 'revealed' where id = qs[1]; e_reveal := 'passed';
+    exception when others then e_reveal := sqlerrm; end;
     d_ok := public.fn_customer_decision_support(v_cust);
     select count(*) into v_amounts from unnest(array['8000', '9000', '9500', '10500', '12000']) x
      where position(x in m_ok::text) > 0 or position(x in m_thin::text) > 0;
@@ -1208,6 +1317,10 @@ begin
     and (s_ok->>'lowest_rate')::numeric = 0 and s_ok->>'band' = 'below market average' and s_ok->'times_lowest' = 'null'::jsonb
     -- D: an open request where [1] is the lowest moves nothing
     and s_d = s_ok
+    -- E: on an ended request the supplier's side is frozen, and the system's own writes still pass
+    and e_withdraw like 'REQUEST_ENDED:%' and e_price like 'REQUEST_ENDED:%' and e_option like 'REQUEST_ENDED:%'
+    and e_insert like 'REQUEST_ENDED:%' and e_nochange = 'passed' and e_notes = 'passed'
+    and e_release = 'passed' and v_held_status = 'draft' and e_reveal = 'passed'
     and (m_ok->>'available')::boolean = true and (m_ok->>'population')::int = 16 and (m_ok->>'suppliers')::int = 3
     and (m_ok->>'median')::numeric = 10000 and (m_ok->>'value')::numeric = 10000
     and (m_ok->>'p25')::numeric = 5000 and (m_ok->>'p75')::numeric = 15000 and (m_ok->>'rounded_to')::numeric = 5000
@@ -1220,14 +1333,14 @@ begin
     and position('includes the platform margin' in (select prosrc from pg_proc where oid = 'public.fn_company_self_knowledge_sync()'::regprocedure)) = 0
     and not exists (select 1 from public.ops_knowledge where record_id = 'qd-company:quotation-format' and content like '%includes the platform margin%')
     and a_q = b_q and a_l = b_l and a_i = b_i and a_c = b_c and a_h = b_h;
-  v_detail := format('A: stats=%s market=%s decision=%s; B: open=%s four_closed=%s; C: stats=%s market=%s; D: stats=%s; amounts_in_payload=%s; summary_quotes=%s; pool=%s; '
+  v_detail := format('A: stats=%s market=%s decision=%s; B: open=%s four_closed=%s; C: stats=%s market=%s; D: stats=%s; E: withdraw=%s price=%s option=%s insert=%s nochange=%s notes=%s release=%s held=%s reveal=%s; amounts_in_payload=%s; summary_quotes=%s; pool=%s; '
                      || 'rows before/after quotes %s/%s leads %s/%s inquiries %s/%s customers %s/%s holds %s/%s; block ended with: %s',
-                     s_thin, m_thin, d_one, s_open, s_four, s_ok, m_ok, s_d, v_amounts, v_summ#>'{amounts,quotes}', v_say, b_q, a_q, b_l, a_l, b_i, a_i, b_c, a_c, b_h, a_h, v_err);
+                     s_thin, m_thin, d_one, s_open, s_four, s_ok, m_ok, s_d, e_withdraw, e_price, e_option, e_insert, e_nochange, e_notes, e_release, v_held_status, e_reveal, v_amounts, v_summ#>'{amounts,quotes}', v_say, b_q, a_q, b_l, a_l, b_i, a_i, b_c, a_c, b_h, a_h, v_err);
   if not coalesce(v_ok, false) then
     raise exception 'PROBE FAILED: %', v_detail;
   end if;
   insert into zz_price_probe_verdict values ('PROBE OK: two quotes give no figure, an open request counts for nothing, five closed '
-    || 'comparisons give a 5-point band, '
+    || 'comparisons give a 5-point band, an ended request refuses every supplier-side change and lets the reveal through, '
     || 'the market price has no low or high, and decision support returns quote_amount', v_detail);
 end $probe$;
 select * from zz_price_probe_verdict;
