@@ -2529,3 +2529,7 @@ scripts/sql/a_paused_customer_is_told_an_address_that_is_read.sql
 scripts/sql/every_seat_with_a_step_hears_of_its_event.sql
 # 19 Nov 2026 16:05 UTC (sales_engineer): applied after #2075 (ruling 1543); PROBE OK: an interested reply chased at 7 days, a later once at 30, then never; auto-replies, vendors and test replies not chased.
 scripts/sql/every_real_supplier_reply_is_chased_and_a_later_is_asked_again_later.sql
+# 19 Nov 2026 16:41 UTC (ceo): applied after #2077 (ledgers 889, 893, 894, 899, 1209), before the 22 Nov 08:00 Dubai exam; PROBE OK: 24 of 24 expected facts in the seats' live stores, an unjudged answer opens no fix and asks no lesson, a judged miss opens one.
+scripts/sql/every_seat_knows_the_facts_its_exam_asks.sql
+# 19 Nov 2026 16:41 UTC (ceo): applied after #2079 (ruling 1743); PROBE OK: 3 owner rows, the detector flagged the ZZ DEMO job, nothing unowned remains.
+scripts/sql/no_task_exists_without_a_seat.sql
