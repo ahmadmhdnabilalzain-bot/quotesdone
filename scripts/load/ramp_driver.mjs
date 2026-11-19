@@ -187,6 +187,8 @@ async function websiteVU(vu, mix, ctx) {
 async function chatVU(vu, mix, ctx) {
   const headers = { 'content-type': 'application/json', apikey: ctx.anon, authorization: 'Bearer ' + ctx.anon,
     'x-forwarded-for': vuAddress(vu), 'x-qd-e2e-run': ctx.env.QD_LOAD_RUN_TAG, 'x-qd-e2e-secret': ctx.env.QD_LOAD_RUN_SECRET,
+    // the driver names itself (19 Nov 2026): the 11 Nov run's turns were stored with the runtime's default agent, "node"
+    'user-agent': 'qd-load-driver/1 (it_engineer)',
     // ONE VISITOR PER VIRTUAL USER PER STAGE (11 Nov 2026, round 4). The limiter keys by the address the platform saw, the
     // session's ~35 egress addresses, not x-forwarded-for above (kept: it names the user in the edge logs), so 100 users
     // shared ~35 addresses and met the real new-conversations cap. Inside a proven load run site_assistant adds this label to

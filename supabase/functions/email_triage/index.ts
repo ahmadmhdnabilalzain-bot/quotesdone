@@ -42,6 +42,7 @@ import { applyBackstop, backstopApplies, holdsUnread, readTriage, UNREAD_CATEGOR
 import { beat, budgetLeft, closeStaleRuns } from './run_guard.ts';
 import { J } from '../_shared/json_response.ts';
 import { loadCaseContext, recordCaseExchange } from '../_shared/case_context.ts';
+import { emailConversation } from '../_shared/email_history.ts';
 import { mailComplaint } from './complaint.ts';
 import { acknowledgeIfCarried, complaintFact } from '../_shared/complaint_register.ts';
 import { holdingRules, isStanding, type Standing } from '../_shared/escalation_clock.ts';
@@ -111,6 +112,10 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
   const forbidden = await mailForbidden(m, audience);
   // A fixture (@example.invalid, the ZZ DEMO convention) is never queued for the replay (think.ts isFixtureRequest).
   const subject = { message_id: m.id, channel: 'email', ...(/@example\.invalid$/i.test(String(m.from_email || '')) ? { fixture: true } : {}) };
+  // THE WHOLE THREAD (19 Nov 2026, ledger 1474; _shared/email_history.ts): this address's earlier mail and what we sent it, oldest
+  // first, to both reply roads and to the fault handover. Until today each reply read only the new mail (and a case summary).
+  const conversation = await emailConversation(admin, { email: m.from_email, beforeId: Number(m.id), party: audience, fixture: subject.fixture === true },
+    (e) => console.error('email_triage history unavailable', m.id, e));
   // A fault the sender reports is handed to the it_engineer (ruling 1705, support_fault_handover.ts): the sender's address is what
   // this channel already holds, so they are told by e-mail when the fix is verified. The case key is a hash of the thread.
   // A COMPLAINT ENTERS THE REGISTER (16 Nov 2026, COO hole H2): the same reading says whether it is one, and the triage model's own
@@ -119,7 +124,7 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
   const person = await needsAPerson(deps, { seat: 'customer_support', surface: 'email_triage.needs_a_person', message: q,
     audience, dedupeKey: 'email_person:' + m.id, subject, complaint: complaintOf.report,
     fault: { channel: 'email', caseKey: await caseKeyOf('email', String(m.from_email || '') + ':' + String(m.subject || '').replace(/^(re|fwd?):\s*/gi, '').slice(0, 120)),
-             email: String(m.from_email || '') || null, lang, audience, conversation: [],
+             email: String(m.from_email || '') || null, lang, audience, conversation,
              // the sender's fault goes onto their case too, so WhatsApp and the widget see it (ledgers 1711-1713)
              person: { email: String(m.from_email || '') || null } },
     // AN ATTEMPT TO INSTRUCT THE ASSISTANT IS KEPT ON THE SENDER (injection_attempt.ts, 16 Nov 2026): read in the same call. A From
@@ -150,7 +155,7 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
   // THE CASE (ruling 1635, _shared/case_context.ts): the sender's open cases on every channel and the same-matter decision;
   // both reply roads read the case summary (aiReply in its cached prefix, the reasoned answer as its context's case).
   const kase = await loadCaseContext(deps, { channel: 'email', seat: 'customer_support', audience, message: q, lang, dedupeKey: 'case_match:email:' + m.id,
-    email: m.from_email, partyId: audience === 'supplier' && m.lead_id ? String(m.lead_id) : null });
+    email: m.from_email, partyId: audience === 'supplier' && m.lead_id ? String(m.lead_id) : null, past: conversation });
   const keptBack: Record<string, unknown>[] = [];
   const replyDeps: ThinkDeps = { ...deps, rpc: async (f, args) => {
     if (f === 'fn_reason_hold' && args?.p_surface === 'email_triage.reply') { keptBack.push(args); return { data: null, error: null }; }
@@ -160,7 +165,7 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
   const replyFacts = [facts, kase.standing].filter(Boolean).join('\n\n');
   const standing: Standing | null = isStanding(person.standing) ? person.standing : null;
   try {
-    const direct = async (note: string) => (await aiReply(deps, { ...kase.reply, seat: 'customer_support', channel: 'e-mail', audience, lang, message: q,
+    const direct = async (note: string) => (await aiReply(deps, { ...kase.reply, seat: 'customer_support', channel: 'e-mail', audience, lang, message: q, conversation: kase.past,
       subject, forbidden, ...(replyFacts ? { facts: replyFacts } : {}), rules: 'An e-mail body without a greeting or a sign-off (they are added). Never promise a date.' + note })).reply;
     if (standing) {
       // A JOURNALIST, A LAWYER OR A REGULATOR (16 Nov 2026, hole hunt item 4): the model's reading of who writes (needsAPerson's
@@ -180,7 +185,7 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
       const r = await think(replyDeps, { seat: 'customer_support', surface: 'email_triage.reply', stakes: 'high', dedupeKey: 'email_reply:' + m.id, subject,
         question: `Answer this e-mail to QuotesDone as its customer support, in ${lang === 'ar' ? 'formal Gulf Arabic' : 'UAE English'}, plain text, `
           + 'without a greeting or a sign-off (they are added). Never name another customer or supplier, never quote an unpublished price, never promise a date.\n\n' + q,
-        context: { audience, language: lang, ...(facts || kase.standing ? { profile: { ...(facts ? { own_account: facts } : {}), ...(kase.standing ? { escalations_and_availability: kase.standing } : {}) } } : {}), ...kase.context } });
+        context: { audience, language: lang, ...(kase.past.length ? { conversation: kase.past } : {}), ...(facts || kase.standing ? { profile: { ...(facts ? { own_account: facts } : {}), ...(kase.standing ? { escalations_and_availability: kase.standing } : {}) } } : {}), ...kase.context } });
       // a reasoned answer naming a counterpart is not sent: the direct reply below is held to the same list by aiReply
       const verified = r.status === 'answered' && r.verified?.status === 'agreed' && r.answer.trim() && !namesForbidden(r.answer, forbidden) ? r.answer.trim() : null;
       const body = verified ?? await direct('');

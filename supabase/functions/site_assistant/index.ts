@@ -375,7 +375,7 @@ async function handle(req: Request, T: Timer): Promise<Response> {
       const capped = await capReplyByModel(defaultDeps(admin, 'site_assistant'), { audience, lang: visitorLang, message,
         subject: /^ZZ ?DEMO/i.test(message) ? { fixture: true, conv } : undefined });
       const reply = modelOrOutage(capped, capReply(audience, visitorLang));
-      await logWithAttempts(admin, 'assistant_logs', { message, reply: reply || null, matched_ids: [], seat: 'customer_support', answered: !!reply, gap_task_id: null, ...(hasConv ? { conv_id: visitorKey(conv) } : {}), audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) },
+      await logWithAttempts(admin, 'assistant_logs', { message, reply: reply || null, matched_ids: [], seat: 'customer_support', answered: !!reply, gap_task_id: null, ...(hasConv ? { conv_id: visitorKey(conv) } : {}), audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300), ...(loadTag ? { e2e_run_tag: loadTag } : {}) },
         { attempts: ['visitor_cap', ...capped.attempts, ...(capped.outage ? ['outage: code-written cap reply'] : [])], rewrites: 0, images: photos.images.length });
       return J({ reply, scope: 'public', routed: 'visitor_cap', visitor_cap: true, signup });
     }
@@ -527,6 +527,10 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
     // the case summary after the reply that was given (runs past the response; never awaited)
     if (reply) recordCaseExchange(tradeDeps, kase, { theirMessage: message, ourReply: reply,
       subject: who ? { email: who.email, ...(/^ZZ ?DEMO/i.test(message) ? { fixture: true } : {}) } : { conv } });
+    // A LOAD-TEST TURN CARRIES ITS RUN TAG (19 Nov 2026, customer_support): the 11 Nov load run's 1,957 stubbed replies were
+    // stored and scored untagged, and customer_support_reply_quality_week for 18 Nov scored them as real (readability 100,
+    // tone 100, 1,957 widget replies). Its assistant_logs row now names the tag itself; the score row is stamped from the
+    // request's tag, which the stamp now keeps for a load window too (scripts/sql/a_load_test_reply_is_never_scored_as_a_real_one.sql).
     // EVERY SENT REPLY IS SCORED (19 Oct 2026, customer_support, CS-C06). This road (answerFromBrief) is the widget's and the
     // portal's main road and never passed supportReply, so the monthly tone review read 89 scored replies against 331 sent
     // in the week of 12 Oct (and 0 for August). The score is logged here; a failed write never blocks the reply.
@@ -542,7 +546,7 @@ ${who ? '- Answer what they asked, directly and exactly; then, where it helps, a
     const fx = await fileEffects({ grounded: !!reply, answered: !!reply, refusal: a.error || '', rateLimited });
     // reply_attempts: every model attempt and what was refused, for sales_engineer's daily knowledge-gap check. Until the
     // column is live (applied at merge) the row is written without it rather than lost.
-    await logWithAttempts(admin, 'assistant_logs', { message, reply: reply || null, ...(convKey ? { conv_id: convKey } : {}), matched_ids: [], seat: seatForSurface, answered: !!reply, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300) },
+    await logWithAttempts(admin, 'assistant_logs', { message, reply: reply || null, ...(convKey ? { conv_id: convKey } : {}), matched_ids: [], seat: seatForSurface, answered: !!reply, gap_task_id: fx.gapTaskId, audience: logParty(who, audience, source, true), path, user_agent: String(req.headers.get('user-agent')||'').slice(0,300), ...(loadTag ? { e2e_run_tag: loadTag } : {}) },
       { attempts: a.attempts, rewrites: a.rewrites, images: photos.images.length });
     T.rewrites = a.rewrites; T.attempts = a.attempts.length;
     // THE CONVERSATION'S STATE (_shared/inquiry_state.ts): the widget keeps its count, language and dialect there, so the

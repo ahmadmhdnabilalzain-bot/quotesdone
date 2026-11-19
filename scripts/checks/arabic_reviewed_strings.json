@@ -776,6 +776,10 @@
  "scripts/sql/a_listing_whose_company_registered_itself_is_not_invited.sql": [
   "8625d60560f4"
  ],
+ "scripts/sql/a_load_test_reply_is_never_scored_as_a_real_one.sql": [
+  "4883eeff5288",
+  "dbcc0c6294aa"
+ ],
  "scripts/sql/a_month_of_posts_is_approved_once_and_goes_out_exactly_as_approved.sql": [
   "415d60f32c58",
   "5b783224f4d2",

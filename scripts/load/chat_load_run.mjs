@@ -24,7 +24,10 @@ import { mgmtFixture } from '../lib/qd_guard.mjs';
 import { mgmtQuery, run as runMix } from './ramp_driver.mjs';
 
 const REF = 'htdblwldjkcgjvmqkbeh';
-const uuidList = (ids) => ids.filter((x) => /^[0-9a-f-]{36}$/.test(x)).map((x) => `'${x}'`).join(',') || `''`;
+// A WIDGET TURN IS STORED UNDER v-<conversation id> (_shared/chat_history.ts visitorKey), not the bare id the driver holds
+// (customer_support, 19 Nov 2026): the teardown matched conv_id against bare ids, deleted nothing, and the 11 Nov run's
+// 1,957 stubbed turns stayed in assistant_logs, where the weekly reply-quality row of 18 Nov counted them as real chat.
+export const convKeyList = (ids) => ids.filter((x) => /^[0-9a-f-]{36}$/.test(x)).flatMap((x) => [`'${x}'`, `'v-${x}'`]).join(',') || `''`;
 export const openWindowSql = (tag, minutes = 45) => {
   if (!/^zzload[a-z0-9]{2,10}$/.test(tag)) throw new Error('prevented by: a load window tag starts zzload: ' + tag);
   return `insert into public.rehearsal_window (run_tag, opened_by, models_allowed, cap_usd, expires_at, note)
@@ -35,7 +38,7 @@ export const openWindowSql = (tag, minutes = 45) => {
 // the run", not "the status counts are equal".
 const census = async (env, tag, convs, since = new Date().toISOString()) => (await mgmtQuery(env, `select
   (select count(*) from public.notifications n where n.created_at >= '${since}'::timestamptz and (to_jsonb(n)::text ilike '%${tag}%' or to_jsonb(n)::text ilike '%sandbox load-test reply%')) notifications,
-  (select count(*) from public.assistant_logs where conv_id in (${uuidList(convs)}) or e2e_run_tag = 'qd_run:${tag}' or e2e_run_tag = '${tag}') assistant_logs,
+  (select count(*) from public.assistant_logs where conv_id in (${convKeyList(convs)}) or e2e_run_tag = 'qd_run:${tag}' or e2e_run_tag = '${tag}') assistant_logs,
   (select count(*) from public.rl_hits where k like '${loadLimiterKeys(tag)}') rl_hits`))[0];
 
 async function main(argv, env) {
@@ -50,7 +53,7 @@ async function main(argv, env) {
   console.log(`chat load run ${tag}; before: ${JSON.stringify(before)}`);
   const close = async () => {
     try { await teardown(r); } catch (e) { console.error('teardown: ' + e.message); }
-    if (convs.length) await mgmtFixture(REF, `delete from public.assistant_logs where conv_id in (${uuidList(convs)})`, 'load chat turns');
+    if (convs.length) await mgmtFixture(REF, `delete from public.assistant_logs where conv_id in (${convKeyList(convs)})`, 'load chat turns');
     // the bucket name comes first in a key ('site_assistant_ipconv:load:<tag>:...'): 'load:<tag>:%' left every run's rows behind
     await mgmtFixture(REF, `delete from public.rl_hits where k like '${loadLimiterKeys(tag)}'`, 'load limiter rows');
     await closeRehearsalWindow(tag);
