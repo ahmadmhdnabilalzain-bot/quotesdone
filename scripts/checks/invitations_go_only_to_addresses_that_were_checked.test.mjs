@@ -14,13 +14,15 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const R = (p) => readFileSync(join(ROOT, p), 'utf8');
 const SQL = R('scripts/sql/invitations_go_only_to_addresses_that_were_checked.sql');
+// the short first file (review of 19 Nov 2026): the index, enqueue's ON CONFLICT and trigger z82, so their locks are brief
+const SLOT = R('scripts/sql/a_cancelled_invitation_frees_its_lead_and_its_index_slot.sql');
 const code = (s) => s.replace(/--[^\n]*/g, '');
 const norm = (s) => s.replace(/\s+/g, ' ').trim().toLowerCase();
-/** The body of a routine as this file defines it, comments removed. */
-function body(fn) {
-  const m = new RegExp(`create or replace function public\\.${fn}\\(`, 'i').exec(SQL);
-  assert.ok(m, `${fn} is not defined in the file`);
-  const rest = SQL.slice(m.index);
+/** The body of a routine as one of the two files defines it, comments removed. */
+function body(fn, src = SQL.match(new RegExp(`create or replace function public\\.${fn}\\(`, 'i')) ? SQL : SLOT) {
+  const m = new RegExp(`create or replace function public\\.${fn}\\(`, 'i').exec(src);
+  assert.ok(m, `${fn} is not defined in either file`);
+  const rest = src.slice(m.index);
   const tag = /\bas\s+(\$[a-z0-9_]*\$)/i.exec(rest);
   const from = tag.index + tag[0].length;
   return code(rest.slice(from, rest.indexOf(tag[1], from)));
@@ -49,21 +51,45 @@ test('both eligibility rules require the evidence, and their never-twice test ig
 
 const PRED = "type = 'supplier_invite' and (status is distinct from 'cancelled' or sent_at is not null)";
 test('the once-only index and the batch\'s ON CONFLICT name the same predicate (a mismatch fails every batch)', () => {
-  const idx = /create unique index notifications_supplier_invite_once_uidx on public\.notifications \(lower\(btrim\(to_email\)\)\)\s+where ([^;]*);/.exec(code(SQL));
+  const idx = /create unique index notifications_supplier_invite_once_uidx on public\.notifications \(lower\(btrim\(to_email\)\)\)\s+where ([^;]*);/.exec(code(SLOT));
+  assert.doesNotMatch(code(SQL), /create unique index|drop index|create or replace trigger|enqueue_supplier_invites\(p_cap/,
+    'the second file takes a strong lock on notifications again');
   assert.ok(idx, 'the index is not rebuilt');
   assert.equal(norm(idx[1]), PRED);
-  const conflicts = [...code(SQL).matchAll(/on conflict \(lower\(btrim\(to_email\)\)\) where ([^\n]*?) do nothing/g)].map((m) => norm(m[1]));
+  const conflicts = [...code(SLOT).matchAll(/on conflict \(lower\(btrim\(to_email\)\)\) where ([^\n]*?) do nothing/g)].map((m) => norm(m[1]));
   assert.ok(conflicts.length >= 2, 'the batch and the zero-row proof both name the conflict target');
   for (const c of conflicts) assert.equal(c, PRED, 'an ON CONFLICT names another predicate than the index');
   assert.notEqual(norm("type = 'supplier_invite'"), PRED, 'control: the old predicate passed');
   assert.match(body('enqueue_supplier_invites'), /on conflict \(lower\(btrim\(to_email\)\)\) where type = 'supplier_invite' and \(status is distinct from 'cancelled' or sent_at is not null\) do nothing/);
 });
 
-test('every insert into the outbox in this file inserts nothing (WHERE false): the file queues no message', () => {
-  const inserts = [...code(SQL).matchAll(/insert into public\.notifications\b[\s\S]*?;/g)].map((m) => m[0]);
+test('every insert into the outbox in either file inserts nothing (WHERE false): neither file queues a message', () => {
+  const inserts = [...code(SQL + SLOT).matchAll(/insert into public\.notifications\b[\s\S]*?;/g)].map((m) => m[0]);
   assert.ok(inserts.length >= 1);
   for (const s of inserts) assert.match(s, /\swhere false\s/, 'an insert into notifications that can write a row');
-  assert.match(SQL, /'@?zz-demo-never-sent@example\.invalid'|zz-demo-never-sent@example\.invalid/, 'the proof row is not a fixture address');
+  assert.match(SLOT, /zz-demo-never-sent@example\.invalid/, 'the proof row is not a fixture address');
+});
+
+// The WHEN clause of z82, evaluated as Postgres would on last_error (LIKE on null is null: the trigger does not fire)
+const whenPrefixes = (src) => [...(/when \(new\.type = 'supplier_invite'[\s\S]*?execute function/.exec(code(src))?.[0] ?? '')
+  .matchAll(/new\.last_error like '((?:[^']|'')*)%'/g)].map((m) => m[1].replace(/''/g, "'"));
+const frees = (prefixes, lastError) => lastError != null && prefixes.some((p) => lastError.startsWith(p));
+test('z82 frees a lead only when the campaign itself stopped the invitation: never a cancel with no last_error', () => {
+  const pre = whenPrefixes(SLOT);
+  assert.deepEqual(pre.sort(), ["cancelled at send time:", "cancelled: the restart's probation failed", 'cancelled: the supplier campaign was paused'].sort());
+  // the writers' own words (read from the live routines and send_outbox on 19 Nov 2026)
+  for (const w of ['cancelled: the supplier campaign was paused by invite_bounce_judge: 2 hard bounce(s)',
+                   "cancelled: the restart's probation failed: 2 hard bounce(s)", 'cancelled at send time: the company is stopped']) {
+    assert.ok(frees(pre, w), `a campaign stop does not free its lead: ${w}`);
+  }
+  assert.ok(!frees(pre, null), 'a cancel with no last_error (fn_sales_engineer_records_email_checks) frees the lead');
+  assert.ok(!frees(pre, ''), 'an empty last_error frees the lead');
+  assert.ok(!frees(pre, 'cancelled by hand'), 'a cancel by hand frees the lead');
+  assert.ok(!frees(pre, 'duplicate: the same message to the same person'), 'a duplicate frees the lead');
+  // the writers still write those words, so the trigger is not silently dead
+  const lane = R('supabase/functions/send_outbox/invite_lane.ts');
+  assert.match(lane, /'cancelled at send time: ' \+ v\.why/, 'send_outbox no longer writes the send-time prefix');
+  assert.ok(frees(['x'], 'xy') && !frees([], 'x'), 'control');
 });
 
 test('a queued invitation cancelled before it left frees its lead, unless another invitation to it is live', () => {
@@ -71,7 +97,7 @@ test('a queued invitation cancelled before it left frees its lead, unless anothe
   assert.match(t, /set invite_status = null, invited_at = null/);
   assert.match(t, /l\.invite_status = 'queued'/, 'it would reset a bounced, unsubscribed or registered lead');
   assert.match(t, /n\.id <> new\.id/); assert.match(t, /n\.status is distinct from 'cancelled' or n\.sent_at is not null/);
-  assert.match(code(SQL), /after update of status on public\.notifications\s+for each row when \(new\.type = 'supplier_invite' and new\.status = 'cancelled' and old\.status is distinct from 'cancelled'\s+and new\.sent_at is null/);
+  assert.match(code(SLOT), /after update of status on public\.notifications\s+for each row when \(new\.type = 'supplier_invite' and new\.status = 'cancelled' and old\.status is distinct from 'cancelled'\s+and new\.sent_at is null/);
 });
 
 test('the brake judges a hard-bounce rate only on a sample of 20, and a burst of 3 in a day still stops it', () => {
@@ -103,6 +129,21 @@ test('the CEO restarts only on a projection under 3% on 20 sends, through his ow
                       /insert into public\.invite_brake_decision/]) assert.match(r, kept, `the CEO restart lost ${kept}`);
   const block = code(SQL.slice(SQL.indexOf('do $ceo$'), SQL.indexOf('end $ceo$;')));
   assert.match(block, /public\.fn_ceo_restarts_invites\(v_reason\)/, 'the file restarts around the CEO routine');
+  // every safety fact raises BEFORE the restart, so a failure rolls the file back with the lane off (review of 19 Nov 2026)
+  const restartAt = block.indexOf('public.fn_ceo_restarts_invites(v_reason)');
+  for (const fact of ['an eligible lead has no evidence', 'the google ready pool (fn_supplier_invite_candidates) is empty',
+                      'address(es) in the ready pool have no evidence', 'the once-only index still counts a cancelled invitation',
+                      'trigger z82_notifications_a_cancelled_invitation_frees_its_lead is missing']) {
+    const at = SQL.indexOf(fact, SQL.indexOf('do $ceo$'));
+    assert.ok(at > 0, `no raise for: ${fact}`);
+    assert.match(SQL.slice(at - 40, at), /raise exception '/, `${fact} is not raised`);
+    assert.ok(at < SQL.indexOf('public.fn_ceo_restarts_invites(v_reason)'), `${fact} is checked after the restart`);
+  }
+  assert.ok(restartAt > 0);
+  // ... and the file refuses to run at all without the first one
+  const needs = code(SQL.slice(SQL.indexOf('do $needs$'), SQL.indexOf('end $needs$;')));
+  assert.match(needs, /raise exception 'apply a_cancelled_invitation_frees_its_lead_and_its_index_slot\.sql first/);
+  assert.ok(SQL.indexOf('do $needs$') < SQL.indexOf('create or replace function'), 'the prerequisite is checked after the file has changed things');
   assert.doesNotMatch(block, /key = 'invite_enabled'/, 'the file writes invite_enabled itself instead of through the CEO routine');
   const capWrite = block.indexOf("update public.app_secrets set value = v_cap::text where key = 'invite_daily_cap'");
   assert.ok(capWrite > 0 && block.indexOf('if v_ok then') < capWrite && capWrite < block.indexOf("v_choice := 'hold'"), 'the cap moves without a restart');
@@ -126,7 +167,9 @@ test('the file ends with one verdict row; the stranded leads are released and th
   assert.ok(last.endsWith(';') && !/\ninsert |\nupdate |\ndelete |\ndo \$/i.test(last), 'a statement follows the probe'); assert.match(last, /'PROBE OK: '/); assert.match(last, /'PROBE FAILED: '/);
   for (const w of ['cell 2/6', 'brake 51 replayed', 'released', 'funnel', 'notifications queued by this file']) assert.ok(last.includes(w) || SQL.includes(w), w);
   assert.match(SQL, /'invite_stranded_release'/); assert.match(SQL, /'was_invited_at'/);
-  assert.match(SQL, /set local lock_timeout = '1500ms';/);
+  for (const src of [SQL, SLOT]) assert.match(src, /set local lock_timeout = '1500ms';/);
+  const slotLast = code(SLOT).trimEnd();
+  assert.match(slotLast.slice(slotLast.lastIndexOf('\nwith t as')), /'PROBE OK: '[\s\S]*'PROBE FAILED: '|'PROBE FAILED: '[\s\S]*'PROBE OK: '|PROBE OK[\s\S]*PROBE FAILED/, 'the first file has no verdict row');
 });
 
 test('the last note to a parked lead carries no telephone number; the copy rules refuse a foreign one', () => {

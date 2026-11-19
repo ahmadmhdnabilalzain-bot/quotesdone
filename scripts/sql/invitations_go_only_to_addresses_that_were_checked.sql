@@ -43,31 +43,42 @@
 --      row in invite_brake_decision, agent_runs 'ceo') and sets invite_daily_cap to the ramp's start (invite_warmup.base_cap,
 --      20, under the founder cap of 50), first batch at most 10 (fn_invite_restart_cap). If refused, it stays off and the refusal
 --      is the record. Either way one row in ceo_own_decision says what the CEO decided and why.
---   4. The 37 stranded leads are released (invite_status and invited_at back to null; their ids and old stamps in agent_runs), the
---      once-only index and enqueue's ON CONFLICT leave out a row cancelled before it left, and a trigger frees a lead whenever its
---      queued invitation is cancelled before it left (every pause and send-time cancel), so this does not recur.
+--   4. The 37 stranded leads are released (invite_status and invited_at back to null; their ids and old stamps in agent_runs). The
+--      once-only index, enqueue's ON CONFLICT and trigger z82 (a lead whose queued invitation the campaign stopped is freed, so this
+--      does not recur) are the FIRST file, a_cancelled_invitation_frees_its_lead_and_its_index_slot.sql, split out on review so the
+--      strong locks on notifications are not held across this file; this file refuses to run without it.
 --   5. ceo_supplier_funnel_daily counts only first invitations as sent and delivered; nudges get their own column, nudges_sent.
---   6. The probe at the end returns the verdict row (PROBE OK / PROBE FAILED).
+--   6. Before the restart, the safety facts are asserted and any failure RAISES, so the whole file rolls back with the lane off (a
+--      failed verdict row comes after a committed restart, review of 19 Nov 2026). The probe at the end returns the verdict row.
 -- WHAT THIS DOES NOT CHANGE: the placement gate (fn_invite_placement_open_providers; Microsoft and Yahoo stay closed, ruling 1486),
 -- the founder's supplier_outreach_golive, the ceiling of 50 (ruling 1231), the ramp, the nudges, the sales engineer's restart, the
 -- WhatsApp sender.
 --
 -- prevented by: scripts/checks/invitations_go_only_to_addresses_that_were_checked.test.mjs (text, with known-bad controls) and
 -- supabase/functions/send_outbox/invite_variants.test.ts (the last note carries no foreign number; m365CopyLint refuses one).
--- APPLY (after 19 Nov 10:01Z, 24 hours after brake 51; outside a sending minute):
+-- APPLY (after 19 Nov 10:01Z, 24 hours after brake 51; outside a sending minute), the first file first:
+--   node scripts/apply_sql.mjs scripts/sql/a_cancelled_invitation_frees_its_lead_and_its_index_slot.sql --apply --ddl --seat ceo
 --   node scripts/apply_sql.mjs scripts/sql/invitations_go_only_to_addresses_that_were_checked.sql --apply --ddl --seat ceo
 --   then delete scripts/sql/pending/invitations_go_only_to_addresses_that_were_checked.txt, append this file as the LAST line of
 --   scripts/sql/MANIFEST.txt and regenerate the schema mirror (export_from_either_source_is_identical.mjs --write) in one commit.
--- LOCKS: notifications (about 1,700 rows) gets its once-only index rebuilt and one trigger (ACCESS EXCLUSIVE for milliseconds);
--- ceo_supplier_funnel_daily (17 rows) gets a column with a constant default; every routine is replaced in place; 37 leads rows.
+-- LOCKS: nothing on notifications beyond row reads (the index and the trigger are the first file); ceo_supplier_funnel_daily
+-- (17 rows) gets a column with a constant default; every routine is replaced in place; 37 leads rows.
 -- ROLLBACK: re-apply the previous bodies from their canonical files (fn_supplier_invite_eligible and _ids:
--- an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql; enqueue_supplier_invites:
--- an_interested_prospect_is_chased_three_times_until_he_registers_or_declines.sql; fn_invite_judge_cell, fn_invite_bounce_judgement,
+-- an_invitation_goes_only_to_a_checked_mailbox_and_a_bounce_brake_restarts_itself.sql; fn_invite_judge_cell, fn_invite_bounce_judgement,
 -- fn_ceo_restarts_invites: the_bounce_brake_judges_each_bounce_by_kind_provider_and_sample_and_the_ceo_restarts_within_a_limit.sql;
--- fn_ceo_supplier_funnel_refresh: the_ceo_holds_the_supplier_target_and_acts_within_bounded_powers.sql), recreate
--- notifications_supplier_invite_once_uidx with "where type = 'supplier_invite'" in the same transaction as enqueue, drop trigger
--- z82_notifications_a_cancelled_invitation_frees_its_lead, and set invite_enabled false if the restart is to be undone.
+-- fn_ceo_supplier_funnel_refresh: the_ceo_holds_the_supplier_target_and_acts_within_bounded_powers.sql), set invite_enabled false
+-- if the restart is to be undone; the first file has its own rollback.
 set local lock_timeout = '1500ms';
+
+-- THE FIRST FILE MUST BE LIVE: without its index the released leads' new invitations would be dropped by enqueue's ON CONFLICT
+do $needs$
+begin
+  if coalesce(pg_get_indexdef(to_regclass('public.notifications_supplier_invite_once_uidx')), '') !~ 'cancelled'
+     or not exists (select 1 from pg_trigger where tgname = 'z82_notifications_a_cancelled_invitation_frees_its_lead'
+                     and tgrelid = 'public.notifications'::regclass) then
+    raise exception 'apply a_cancelled_invitation_frees_its_lead_and_its_index_slot.sql first: the once-only index still counts a cancelled invitation, or trigger z82 is missing';
+  end if;
+end $needs$;
 
 -- the outbox's highest id before this file, so the probe can prove the file queued no message (read back at the end)
 select set_config('qd.invite_checked_n0', (select coalesce(max(id), 0)::text from public.notifications), true);
@@ -184,234 +195,7 @@ AS $function$
                                        '^[A-Za-z]+://', ''), '^www\.|[/:?#].*$', '', 'gi')))
 $function$;
 
--- ── 3. NEVER TWICE, BUT A CANCELLED, NEVER-SENT ROW IS NOT A SEND ───────────────────────────────────────────────────
--- The once-only index (one supplier_invite per address, ever) leaves out a row cancelled before it left, and enqueue's ON CONFLICT
--- names the same predicate, in the same transaction, so the batch never runs against an index it cannot infer.
-drop index if exists public.notifications_supplier_invite_once_uidx;
-create unique index notifications_supplier_invite_once_uidx on public.notifications (lower(btrim(to_email)))
-  where type = 'supplier_invite' and (status is distinct from 'cancelled' or sent_at is not null);
-comment on index public.notifications_supplier_invite_once_uidx is 'One supplier invitation per address, ever; a row cancelled before it left (sent_at null) does not count (19 Nov 2026: 37 leads were stranded behind such rows). enqueue_supplier_invites names this predicate in its ON CONFLICT. invitations_go_only_to_addresses_that_were_checked.sql';
-
--- the batch: the live body (MANIFEST: an_interested_prospect_is_chased_three_times_until_he_registers_or_declines.sql) with its ON CONFLICT
--- naming the new predicate, and nothing else changed
-create or replace function public.enqueue_supplier_invites(p_cap integer DEFAULT NULL::integer)
- RETURNS integer
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO 'public', 'pg_temp'
-AS $function$
-declare
-  v_today date := (now() at time zone 'UTC')::date;
-  v_planned int; v_used int; v_remaining int; v_count int;
-  v_inv_recent int; v_bounced_recent int; v_rate numeric; v_max_rate numeric; v_cap int;
-  v_pause boolean := false; v_why text; v_go boolean; v_pool int;
-  v_hol_name text; v_hol_action text; v_hol_end date;
-  v_cfg jsonb := coalesce((select nullif(value,'')::jsonb from app_secrets where key = 'invite_warmup'), '{}'::jsonb);
-  v_win_start timestamptz; v_win_end timestamptz;
-  v_gate text; v_open text[];
-  v_judge jsonb; v_held text[]; v_warm text[]; v_cold text[]; v_cold_cap int; v_rest int; v_pick jsonb;
-begin
-  select c.event_name, c.action, c.ends_on into v_hol_name, v_hol_action, v_hol_end
-    from public.company_calendar c
-   where c.kind = 'public_holiday'
-     and v_today between c.starts_on and coalesce(c.ends_on, c.starts_on)
-   order by c.starts_on limit 1;
-  if v_hol_name is not null then
-    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
-    values ('supplier_invites', 'ok',
-            jsonb_build_object('queued', 0, 'calendar_paused', true, 'resumes_on', coalesce(v_hol_end, v_today) + 1),
-            'Invites held: company_calendar has "' || v_hol_name || '" covering today. Its recorded action: '
-            || coalesce(v_hol_action, '(none recorded)'), now(), now());
-    return 0;
-  end if;
-
-  -- THE UAE WEEKEND IS SATURDAY AND SUNDAY. A cold invitation queued then waits under Monday's pile.
-  -- Self-clearing like the holiday hold: nothing is switched off, Monday simply runs.
-  if extract(isodow from (now() at time zone 'Asia/Dubai')) in (6, 7) then
-    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
-    values ('supplier_invites', 'ok', jsonb_build_object('queued', 0, 'weekend_hold', true),
-            'Invites held: it is the UAE weekend in Dubai; the next weekday batch runs as normal.', now(), now());
-    return 0;
-  end if;
-
-  v_go  := (coalesce((select value from app_secrets where key = 'invite_enabled'), 'false') = 'true')
-           and public.fn_supplier_outreach_golive();
-  v_cap := coalesce((select nullif(value,'')::int from app_secrets where key='invite_daily_cap'), 10);
-  -- founder ruling 1231: never more than the dated founder cap, whatever invite_daily_cap holds.
-  v_cap := least(v_cap, public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
-  v_cap := public.fn_invite_restart_cap(v_cap);   -- a small first batch after a restart
-  select count(*) into v_pool from public.fn_supplier_invite_eligible_ids();
-  v_planned := least(coalesce(p_cap, v_cap), v_cap, v_pool);
-  insert into invite_schedule(day, planned, status, note)
-  values (v_today, greatest(v_planned, 0),
-          case when v_go then 'approved' else 'pending' end,
-          'batch of ' || greatest(v_planned, 0) || ' from a pool of ' || v_pool || ' eligible never-invited lead(s), cap ' || v_cap
-          || case when v_go then '; sending open'
-                  when not public.fn_supplier_outreach_golive() then '; HELD — real invitations wait for the founder''s go (app_secrets.supplier_outreach_golive is false)'
-                  else '; HELD — real invitations wait for the founder''s go (app_secrets.invite_enabled)' end)
-    on conflict (day) do update
-      set planned = excluded.planned, status = excluded.status, note = excluded.note;
-
-  if not v_go then
-    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
-    values ('supplier_invites', 'ok',
-            jsonb_build_object('queued', 0, 'planned', greatest(v_planned, 0), 'pool', v_pool, 'cap', v_cap, 'held', true),
-            'Invites planned and HELD: ' || greatest(v_planned, 0) || ' of a pool of ' || v_pool
-            || ' would be queued at cap ' || v_cap || '; '
-            || case when not public.fn_supplier_outreach_golive() then 'supplier_outreach_golive' else 'invite_enabled' end
-            || ' is false, so nothing was written to the outbox.', now(), now());
-    return 0;
-  end if;
-  if v_planned <= 0 then return 0; end if;
-
-  -- PLACEMENT GATE, PER MAILBOX CLASS (27 Oct 2026, it_engineer; was the morning seed, retired by #1696). Recipients
-  -- go only in a class whose latest GlockApps verdict meets public.invite_placement_bar (fn_invite_placement_open_providers);
-  -- the others are skipped, not failed. No class open, no verdict, or a stale one: the whole batch is held.
-  v_open := public.fn_invite_placement_open_providers((now() at time zone 'Asia/Dubai')::date);
-  v_gate := public.fn_invite_placement_class_verdicts(now()) ->> 'strict';
-  if cardinality(v_open) = 0 then
-    update invite_schedule set status = 'pending', note = coalesce(note,'') || '; held: inbox placement ' || v_gate where day = v_today;
-    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
-    values ('supplier_invites', 'ok', jsonb_build_object('queued', 0, 'planned', v_planned, 'placement_gate', v_gate, 'held', true),
-            'Invites held: the GlockApps inbox placement verdict answered ' || v_gate || ' for every mailbox class, so nothing was written to the outbox.', now(), now());
-    return 0;
-  end if;
-  if v_gate <> 'pass' then
-    update invite_schedule set note = coalesce(note,'') || '; placement ' || v_gate || ': invited only ' || array_to_string(v_open, ', ') where day = v_today;
-  end if;
-
-  -- THE SENDING WINDOW (22 Sep 2026). Invitations leave between the later of now and the window's start
-  -- and the end of the Dubai working day, evenly spaced. Past the window nothing is queued: a cold
-  -- invitation at night lands under the morning's pile, and tomorrow's batch runs as normal.
-  v_win_start := greatest(now(), ((now() at time zone 'Asia/Dubai')::date
-                   + make_interval(hours => coalesce((v_cfg->>'window_start_hour')::int, 9))) at time zone 'Asia/Dubai');
-  v_win_end := ((now() at time zone 'Asia/Dubai')::date + make_interval(hours => coalesce((v_cfg->>'window_end_hour')::int, 17)))
-               at time zone 'Asia/Dubai';
-  if v_win_end < v_win_start + interval '30 minutes' then
-    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
-    values ('supplier_invites', 'ok', jsonb_build_object('queued', 0, 'planned', v_planned, 'outside_window', true),
-            'Invites held: the Dubai sending window closes at ' || to_char(v_win_end at time zone 'Asia/Dubai', 'HH24:MI')
-            || '; the next weekday batch runs as normal.', now(), now());
-    return 0;
-  end if;
-
-  -- THE BOUNCE JUDGEMENT (15 Nov 2026, sales_engineer; the_bounce_brake_judges_each_bounce_by_kind_provider_and_sample_and_
-  -- the_ceo_restarts_within_a_limit.sql). Was: one 3-day rate over every population, which stopped the company on 2 bounces
-  -- of 32. Now: each bounce by its kind, per mailbox provider class and list segment, the Wilson 95% lower bound over 14 days
-  -- and over today. A complaint or a hard-bounce breach in the segment being sent stops the company (fn_invite_judge_and_brake
-  -- writes the brake and its reason); a breach confined to one provider class holds that class only.
-  v_judge := public.fn_invite_judge_and_brake('enqueue_supplier_invites');
-  if coalesce((v_judge->>'braked')::boolean, false) then
-    update invite_schedule set status = 'pending', note = coalesce(note,'') || '; auto-paused: ' || (v_judge->>'why') where day = v_today;
-    return 0;
-  end if;
-  v_held := coalesce((select array_agg(x) from jsonb_array_elements_text(v_judge->'held_classes') x), '{}'::text[]);
-  v_open := array(select p from unnest(v_open) p where not (p = any (v_held)));
-  if cardinality(v_open) = 0 then
-    update invite_schedule set status = 'pending', note = coalesce(note,'') || '; held: every open mailbox class breaches a bounce limit (' || array_to_string(v_held, ', ') || ')' where day = v_today;
-    insert into agent_runs(agent, status, counts, note, started_at, finished_at)
-    values ('supplier_invites', 'ok', jsonb_build_object('queued', 0, 'planned', v_planned, 'held_classes', to_jsonb(v_held), 'held', true),
-            'Invites held: every open mailbox class breaches a bounce limit on the judgement (' || array_to_string(v_held, ', ') || ').', now(), now());
-    return 0;
-  end if;
-  -- A CLASS THE COMPANY HAS NOT YET SENT TO IN THE WINDOW starts at the ramp's base (invite_warmup.new_class_cap, 3): a newly
-  -- opened provider never takes the warm class's whole day. "Warm" = 20 sends or more in the judgement window.
-  v_cold_cap := coalesce((v_cfg->>'new_class_cap')::int, 3);
-  v_warm := array(select p from unnest(v_open) p
-                   where coalesce((select sum((c.value->>'sent')::int) from jsonb_each(v_judge->'judgement'->'cells') c where c.value->>'class' = p), 0) >= 20);
-  v_cold := array(select p from unnest(v_open) p where not (p = any (v_warm)));
-
-  -- test-path rows (fixture addresses) are not invitations and must not spend the day's cap:
-  -- measured in the rolled-back rehearsal, two test sends plus one real row cut a batch of 5 to 2.
-  -- ONE daily cap for invitations and their nudges (review of #1007, 29 Sep 2026): a nudge queued today spends it too,
-  -- as fn_sales_engineer_nudges_invited_suppliers already counts the invitations queued today against the same cap.
-  -- 18 Nov 2026 (sales_engineer, review of #2051): the reply follow-ups spend the SAME cap (fn_sales_engineer_follows_up_supplier_replies):
-  -- those sent this UTC day and those still due today, so invitations queued after the day's follow-ups cannot exceed it on any route.
-  -- The same advisory lock as the follow-ups' read-and-spend, so the two cannot both take the last slot.
-  perform pg_advisory_xact_lock(hashtext('qd_invite_daily_cap'));
-  select count(*) into v_used from notifications where type in ('supplier_invite', 'supplier_invite_nudge') and (created_at at time zone 'UTC')::date = v_today
-     and not public.fn_is_demo_email(to_email);
-  v_used := v_used + (select count(*) from public.supplier_reply_followup x
-                       where not public.fn_is_demo_email(x.to_email)
-                         and ((x.state = 'sent' and (x.done_at at time zone 'UTC')::date = v_today)
-                           or (x.state = 'due' and (x.due_at at time zone 'UTC')::date <= v_today)));
-  v_remaining := greatest(0, v_planned - v_used);
-  if v_remaining <= 0 then return 0; end if;
-
-  -- the warm classes first, then at most new_class_cap from the classes not yet warmed up (both through the verdict gate);
-  -- each candidate call is made only for a non-empty class list (a null list would mean every class)
-  v_pick := '[]'::jsonb;
-  if cardinality(v_cold) = 0 then
-    -- every open class is warm (the usual day): one pick over all of them, exactly as before
-    select coalesce(jsonb_agg(to_jsonb(c)), '[]'::jsonb) into v_pick from public.fn_supplier_invite_candidates(v_remaining, v_open) c;
-  elsif cardinality(v_warm) > 0 then
-    select coalesce(jsonb_agg(to_jsonb(c)), '[]'::jsonb) into v_pick from public.fn_supplier_invite_candidates(v_remaining, v_warm) c;
-  end if;
-  v_rest := v_remaining - jsonb_array_length(v_pick);
-  if v_rest > 0 and cardinality(v_cold) > 0 then
-    v_pick := v_pick || (select coalesce(jsonb_agg(to_jsonb(c)), '[]'::jsonb) from public.fn_supplier_invite_candidates(least(v_rest, v_cold_cap), v_cold) c);
-  end if;
-  -- THE COPY TEST (15 Nov 2026, marketing): each lead's variant is fixed once (fn_invite_variant_for_lead, deterministic) and
-  -- carried on the row's kind ('invite_variant:<key>'); send_outbox's campaignMail writes that variant's text.
-  with c as (
-    select c.*, public.fn_invite_variant_for_lead(c.lead_id) as variant, row_number() over () as rn, count(*) over () as n
-      from (select distinct on (x.lead_id) x.* from jsonb_to_recordset(v_pick)
-              as x(lead_id bigint, to_email text, company_name text, lang text, subject text, body text) order by x.lead_id) c
-  ), ins as (
-    insert into notifications(type, to_email, to_role, lead_id, subject, body, lang, status, created_at, not_before, kind)
-    select 'supplier_invite', c.to_email, 'supplier', c.lead_id, c.subject, c.body, c.lang, 'queued', now(),
-           v_win_start + (c.rn - 1) * ((v_win_end - v_win_start) / greatest(c.n, 1)), 'invite_variant:' || c.variant
-      from c
-    -- 19 Nov 2026 (ceo): the once-only index leaves out an invitation cancelled before it left, so this names its predicate
-    on conflict (lower(btrim(to_email))) where type = 'supplier_invite' and (status is distinct from 'cancelled' or sent_at is not null) do nothing
-    returning id, lead_id, kind
-  ), asg as (
-    insert into public.invite_variant_assignment (lead_id, variant_key, notification_id)
-    select ins.lead_id, substr(ins.kind, length('invite_variant:') + 1), ins.id from ins
-    on conflict (lead_id) do nothing
-  )
-  update leads set invite_status='queued', invited_at=now()
-  where invite_status is null and id in (select lead_id from ins);
-  get diagnostics v_count = row_count;
-  -- invite_schedule.sent is written when the outbox sends (trg_invite_schedule_counts_a_real_send), never here at queue time
-  insert into agent_runs(agent, status, counts, note, started_at, finished_at)
-  values ('supplier_invites', 'ok',
-          jsonb_build_object('queued', v_count, 'planned', v_planned, 'pool', v_pool, 'cap', v_cap, 'held', false,
-                             'window_ends', v_win_end, 'placement_gate', v_gate, 'open_providers', to_jsonb(v_open),
-                             'held_classes', to_jsonb(v_held), 'cold_classes', to_jsonb(v_cold)),
-          'Invites: ' || v_count || ' queued of ' || v_planned || ' planned (pool ' || v_pool || ', cap ' || v_cap
-          || '), spread until ' || to_char(v_win_end at time zone 'Asia/Dubai', 'HH24:MI') || ' Dubai.', now(), now());
-  return v_count;
-end;
-$function$;
-
--- the conflict target above is inferred from the new index: a zero-row insert plans it now (an error here rolls the whole file
--- back, rather than leaving a batch that fails at 10:00). WHERE false: no row, no row trigger, no message, no person.
-insert into public.notifications (type, to_email, to_role, status)
-select 'supplier_invite', 'zz-demo-never-sent@example.invalid', 'supplier', 'queued' where false
-on conflict (lower(btrim(to_email))) where type = 'supplier_invite' and (status is distinct from 'cancelled' or sent_at is not null) do nothing;
-
--- A QUEUED INVITATION CANCELLED BEFORE IT LEFT FREES ITS LEAD (every pause and every send-time cancel; measured: brake 51 cancelled
--- 18 Nov's batch, the lane cap and earlier pauses the rest of the 37). The lead goes back to never invited, so the next batch may
--- take it under every rule of the day; a lead with any other live invitation is left as it is.
-create or replace function public.trg_notifications_a_cancelled_invitation_frees_its_lead()
-returns trigger language plpgsql security definer set search_path to 'public', 'pg_temp' as $fn$
-begin
-  update public.leads l set invite_status = null, invited_at = null
-   where l.id = new.lead_id and l.invite_status = 'queued'
-     and not exists (select 1 from public.notifications n
-                      where n.type = 'supplier_invite' and n.id <> new.id
-                        and (n.lead_id = l.id or lower(btrim(n.to_email)) = lower(btrim(l.email)))
-                        and (n.status is distinct from 'cancelled' or n.sent_at is not null));
-  return null;
-end $fn$;
-revoke execute on function public.trg_notifications_a_cancelled_invitation_frees_its_lead() from public, anon, authenticated;
-create or replace trigger z82_notifications_a_cancelled_invitation_frees_its_lead after update of status on public.notifications
-  for each row when (new.type = 'supplier_invite' and new.status = 'cancelled' and old.status is distinct from 'cancelled'
-                     and new.sent_at is null and new.lead_id is not null)
-  execute function public.trg_notifications_a_cancelled_invitation_frees_its_lead();
-
--- ── 4. THE BRAKE JUDGES A SAMPLE THAT MEANS SOMETHING ───────────────────────────────────────────────────────────────
+-- ── 3. THE BRAKE JUDGES A SAMPLE THAT MEANS SOMETHING ───────────────────────────────────────────────────────────────
 update public.app_secrets
    set value = jsonb_set(value::jsonb || jsonb_build_object('hard_min_sent', 20, 'hard_burst', 3, 'restart_days', 30,
                                                             'restart_max_rate', 0.03, 'restart_min_sent', 20),
@@ -553,7 +337,7 @@ begin
     'held_classes', to_jsonb(v_held));
 end $function$;
 
--- ── 5. THE CEO RESTARTS ON THE ADDRESSES THE COMPANY NOW SENDS TO ───────────────────────────────────────────────────
+-- ── 4. THE CEO RESTARTS ON THE ADDRESSES THE COMPANY NOW SENDS TO ───────────────────────────────────────────────────
 -- The bounce rate of the last p_days of invitations (first invitations only; real leads) to addresses with evidence: the rate the
 -- new eligibility would have had. Any bounce kind counts (hard, policy, soft); a complaint is the judgement's, never a rate here.
 create or replace function public.fn_invite_restart_projection(p_now timestamp with time zone default now(), p_days integer default null)
@@ -652,7 +436,7 @@ begin
   return jsonb_build_object('ok', true, 'brake', b.id, 'first_batch', v_batch, 'suppressed', v_suppressed, 'used', v_used + 1, 'limit', v_limit);
 end $function$;
 
--- ── 6. THE FUNNEL COUNTS FIRST INVITATIONS AS SENDS; NUDGES HAVE THEIR OWN COLUMN ───────────────────────────────────
+-- ── 5. THE FUNNEL COUNTS FIRST INVITATIONS AS SENDS; NUDGES HAVE THEIR OWN COLUMN ───────────────────────────────────
 alter table public.ceo_supplier_funnel_daily add column if not exists nudges_sent integer not null default 0;
 comment on column public.ceo_supplier_funnel_daily.nudges_sent is 'Follow-ups to an invitation that were sent that day (supplier_invite_nudge: day 3/7/14 and the last note). Not in sent or delivered, which count first invitations only (19 Nov 2026). invitations_go_only_to_addresses_that_were_checked.sql';
 
@@ -713,7 +497,7 @@ end $function$;
 -- the whole history again, as the CEO's daily number does (a late bounce changes an old day)
 select public.fn_ceo_supplier_funnel_refresh(date '2026-01-01');
 
--- ── 7. THE 37 STRANDED LEADS GO BACK TO NEVER INVITED ───────────────────────────────────────────────────────────────
+-- ── 6. THE 37 STRANDED LEADS GO BACK TO NEVER INVITED ───────────────────────────────────────────────────────────────
 -- queued, with only a cancelled never-sent invitation behind them; their ids and old stamps are kept in the agent_runs row
 with s as (
   select l.id, l.invited_at as was_invited_at
@@ -740,14 +524,14 @@ select 'ceo', 'ok',
   from u;
 
 
--- ── 8. THE CEO'S DECISION: RESTART ON THE CHECKED ADDRESSES, OR STAY OFF AND SAY WHY ────────────────────────────────
+-- ── 7. THE CEO'S DECISION: RESTART ON THE CHECKED ADDRESSES, OR STAY OFF AND SAY WHY ────────────────────────────────
 -- Rulings 1455 and 1696: the cap and the restart are the CEO's, on measured sender health. The restart goes through
 -- fn_ceo_restarts_invites (its limit of 2 in 30 days, no complaint, 24 hours after the brake, bounced addresses suppressed, the
 -- projection above); this block only asks it, sets the cap to the ramp's start when it restarted, and records the decision.
 do $ceo$
 declare
   v_brake public.invite_brake; v_proj jsonb := public.fn_invite_restart_projection(now());
-  v_then jsonb; v_res jsonb; v_reason text; v_choice text; v_ok boolean := false;
+  v_then jsonb; v_res jsonb; v_reason text; v_choice text; v_ok boolean := false; v_ready int; v_ready_bad int;
   v_cap_before text := (select value from public.app_secrets where key = 'invite_daily_cap');
   v_cap int := least(coalesce((select (nullif(value, '')::jsonb->>'base_cap')::int from public.app_secrets where key = 'invite_warmup'), 20),
                      public.fn_invite_founder_cap((now() at time zone 'Asia/Dubai')::date));
@@ -755,6 +539,23 @@ begin
   select * into v_brake from public.invite_brake where resumed_at is null order by id desc limit 1;
   if not found then
     return;   -- nothing is stopped (the CEO's review restarted it first): there is no decision to take here
+  end if;
+  -- THE SAFETY FACTS, BEFORE ANYTHING CAN SEND (review of 19 Nov 2026): a failure raises, and the whole file rolls back with the
+  -- lane off. The verdict row at the end comes after COMMIT would have kept a restart it reports as failed.
+  if exists (select 1 from public.leads l where l.id in (select e.id from public.fn_supplier_invite_eligible_ids() e(id))
+                and not public.fn_invite_address_has_evidence(l.email_verified)) then
+    raise exception 'NOT RESTARTED: an eligible lead has no evidence for its address (fn_supplier_invite_eligible_ids)';
+  end if;
+  select count(*), count(*) filter (where not public.fn_invite_address_has_evidence(l.email_verified)) into v_ready, v_ready_bad
+    from public.fn_supplier_invite_candidates(5000, array['google']::text[]) c join public.leads l on l.id = c.lead_id;
+  if v_ready = 0 then raise exception 'NOT RESTARTED: the google ready pool (fn_supplier_invite_candidates) is empty'; end if;
+  if v_ready_bad > 0 then raise exception 'NOT RESTARTED: % address(es) in the ready pool have no evidence', v_ready_bad; end if;
+  if coalesce(pg_get_indexdef(to_regclass('public.notifications_supplier_invite_once_uidx')), '') !~ 'cancelled' then
+    raise exception 'NOT RESTARTED: the once-only index still counts a cancelled invitation';
+  end if;
+  if not exists (select 1 from pg_trigger where tgname = 'z82_notifications_a_cancelled_invitation_frees_its_lead'
+                  and tgrelid = 'public.notifications'::regclass) then
+    raise exception 'NOT RESTARTED: trigger z82_notifications_a_cancelled_invitation_frees_its_lead is missing';
   end if;
   v_then := public.fn_invite_bounce_judgement(v_brake.fired_at);
   v_reason := format('Restart on checked addresses only (rulings 1455, 1486, 1696). In the last %s days the invitations to addresses with '
@@ -786,7 +587,7 @@ begin
 end $ceo$;
 
 
--- ── 9. THE PROBE: light SELECTs over what this file left, the last statement, one verdict row ─────────────────────────
+-- ── 8. THE PROBE: light SELECTs over what this file left, the last statement, one verdict row ─────────────────────────
 -- It runs the routines (eligibility, the candidates, the judgement replayed at brake 51, the cell rule) rather than reading their
 -- text. It writes nothing; the file above wrote no notification, and this proves it from the id read at the start.
 with cfg as (select coalesce((select nullif(value, '')::jsonb from public.app_secrets where key = 'invite_bounce_judge'), '{}'::jsonb) as c),
@@ -803,7 +604,7 @@ ready as materialized (select c.lead_id from public.fn_supplier_invite_candidate
 ready_src as (select coalesce(jsonb_object_agg(k, n), '{}'::jsonb) as j, coalesce(sum(n), 0)::int as n
                 from (select coalesce(l.email_verified, '(none)') as k, count(*) as n from ready r join public.leads l on l.id = r.lead_id group by 1) x),
 cell as (select public.fn_invite_judge_cell(6, 2, 0, 0, 0, c) as six, public.fn_invite_judge_cell(20, 3, 0, 0, 0, c) as twenty from cfg),
-replay as (select public.fn_invite_bounce_judgement(b.fired_at) as j from public.invite_brake b where b.id = 51),
+replay as (select (select public.fn_invite_bounce_judgement(b.fired_at) from public.invite_brake b where b.id = 51) as j),   -- one row even without brake 51
 rel as (select a.counts from public.agent_runs a
          where a.agent = 'ceo' and a.counts->>'action' = 'invite_stranded_release'
            and a.counts->>'file' = 'invitations_go_only_to_addresses_that_were_checked.sql'
@@ -859,7 +660,8 @@ f as (
     case when rs.j ? 'true' or rs.j ? '(none)' then 'the ready pool holds an unchecked address: ' || rs.j::text end,
     case when (c.six->>'breach') is not null then 'a 2-of-6 cell still breaches: ' || c.six::text end,
     case when coalesce(c.twenty->>'breach', '') <> 'hard' then 'control: 3 hard of 20 (the 4 Nov burst) no longer breaches: ' || c.twenty::text end,
-    case when coalesce((rp.j->>'company_brake')::boolean, true) then 'brake 51 replayed still brakes: ' || coalesce(rp.j->>'why', '-') end,
+    case when rp.j is null then 'brake 51 is not on record, so the 18 Nov trip cannot be replayed'
+         when coalesce((rp.j->>'company_brake')::boolean, true) then 'brake 51 replayed still brakes: ' || coalesce(rp.j->>'why', '-') end,
     case when coalesce((rr.n), 0) <> 37 and sl.n > 0 then 'released ' || coalesce(rr.n, 0) || ' and ' || sl.n || ' still stranded' end,
     case when sl.n > 0 then sl.n || ' lead(s) still queued behind a cancelled invitation' end,
     case when coalesce(rr.not_reset, 0) > 0 then rr.not_reset || ' released lead(s) still carry invite_status or invited_at' end,
