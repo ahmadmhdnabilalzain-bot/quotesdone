@@ -51,7 +51,8 @@ export type PortalQuote = {
   rating_source?: string | null;
   /** number once revealed; a band string before. */
   years_active?: number | string | null;
-  jobs_won?: number | null;
+  /** number once revealed; a band string ('1-5', '6-20', '20+') before. */
+  jobs_won?: number | string | null;
   /** percent, omitted by the API before reveal. */
   win_rate?: number | null;
   /** omitted by the API before reveal. */
@@ -207,7 +208,7 @@ export function SupplierRelationshipCard({
       : `${quote.rating_count} ${ar(lang, 'تقييم', Number(quote.rating_count) === 1 ? 'review' : 'reviews')}${quote.rating_source ? ` · ${quote.rating_source}` : ''}`;
 
   const yearsText = quote.years_active == null || quote.years_active === '' ? null : String(quote.years_active);
-  const jobsWon = typeof quote.jobs_won === 'number' ? quote.jobs_won : null;
+  const jobsWon = typeof quote.jobs_won === 'number' || (typeof quote.jobs_won === 'string' && quote.jobs_won !== '') ? quote.jobs_won : null;
 
   return (
     <Card className="p-3.5">

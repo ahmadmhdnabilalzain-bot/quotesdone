@@ -23,7 +23,7 @@ export function revealFee(amount: number, cfg: Cfg | null): number | null { if (
 export function ratingOf(l: Record<string, any>) { const appN = Number(l.app_reviews || 0); const v = (appN > 0 && l.app_rating != null) ? Number(l.app_rating) : null; return { value: v, count: appN, source: v != null ? 'QuotesDone' : null }; }
 export function band(n: number) { n = Number(n || 0); if (n < 1000) return '< AED 1k'; if (n < 5000) return 'AED 1–5k'; if (n < 20000) return 'AED 5–20k'; if (n < 50000) return 'AED 20–50k'; return 'AED 50k+'; }
 // The pre-reveal bands live in _shared/pre_reveal_bands.ts since 10 Nov 2026 (quote_compare needs them too).
-export { ratingBand, reviewCountBand, yearsBand } from '../../_shared/pre_reveal_bands.ts';
+export { jobsBand, matchBand, ratingBand, reviewCountBand, yearsBand } from '../../_shared/pre_reveal_bands.ts';
 
 // The refund case reference the Terms (§5) and Refund Policy (§3, §6) promise to quote.
 export const refundRef = (id: number | string) => 'QD-RF-' + String(id);

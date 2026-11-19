@@ -110,8 +110,8 @@ const EN: Dict = {
   in_empty_note: 'No activity yet. These fill in from your first inquiry — nothing here is a sample.',
   in_price_h: 'Your price against the market', band_below: 'Below market average', band_around: 'Around market average', band_above: 'Above market average', band_no_data: 'No comparison yet',
   gauge_below: 'Lower', gauge_above: 'Higher', gauge_market: 'Market average',
-  price_detail: 'On average your quotes are {pct} against the market average, across {n}.{lowest}',
-  price_no_data: 'Once you have quoted on inquiries where other suppliers also quoted, you will see where your prices sit. We never show anyone else’s price.',
+  price_detail: 'On average your quotes are {pct} against the market average, across {n}, in 5-point steps.',
+  price_no_data: 'Not enough comparisons yet. Your position shows once 5 closed inquiries you quoted on each had quotes from at least 3 other suppliers, in 5-point steps. We never show anyone else’s price.',
   in_funnel_h: 'From inquiry to won job', st_received: 'Received', st_quoted: 'Quoted', st_revealed: 'Revealed by the customer', st_won: 'Won',
   conv_of_prev: '{pct} of previous', in_trend_h: 'Last 12 months', trend_quotes: 'Quotations', trend_reveals: 'Reveals', trend_empty: 'No quotations or reveals in the last 12 months yet.',
   in_rates_h: 'Rates', r_win: 'Win rate', r_reveal: 'Reveal rate', r_response: 'Response rate', r_lead: 'Average lead time', r_lost: 'Lost to others', days: '{n}',
@@ -170,8 +170,8 @@ const AR: Dict = {
   in_empty_note: 'لا يوجد نشاط بعد. تبدأ هذه الأرقام بالظهور مع أول استفسار يصلكم — ولا شيء هنا بيانات تجريبية.',
   in_price_h: 'أسعاركم مقارنةً بالسوق', band_below: 'أقل من متوسط السوق', band_around: 'قريب من متوسط السوق', band_above: 'أعلى من متوسط السوق', band_no_data: 'لا توجد مقارنة بعد',
   gauge_below: 'أقل', gauge_above: 'أعلى', gauge_market: 'متوسط السوق',
-  price_detail: 'تأتي عروضكم في المتوسط بفارق {pct} عن متوسط السوق، في {n} من الاستفسارات التنافسية، وكان عرضكم الأدنى في {lowest} منها.',
-  price_no_data: 'بعد أن تقدّموا عروضًا على استفسارات قدّم عليها موردون آخرون أيضًا، ستتمكنون من معرفة موقع أسعاركم. لا نعرض سعر أي طرف آخر أبدًا.',
+  price_detail: 'تأتي عروضكم في المتوسط بفارق {pct} عن متوسط السوق، في {n} من الاستفسارات التنافسية، بخطوات من 5 نقاط.',
+  price_no_data: 'لا توجد مقارنات كافية بعد. يظهر موقع أسعاركم عند إغلاق 5 استفسارات قدّمتم عروضًا عليها وقدّم على كلٍّ منها 3 موردين آخرين على الأقل، بخطوات من 5 نقاط. لا نعرض سعر أي طرف آخر أبدًا.',
   in_funnel_h: 'من الاستفسار إلى الفوز بالمشروع', st_received: 'وردت إليكم', st_quoted: 'قدّمتم عرضًا', st_revealed: 'كشف عنها العميل', st_won: 'فزتم بها',
   conv_of_prev: '{pct} من المرحلة السابقة', in_trend_h: 'آخر 12 شهرًا', trend_quotes: 'عروض الأسعار', trend_reveals: 'مرات الكشف', trend_empty: 'لا توجد عروض أو مرات كشف في آخر 12 شهرًا بعد.',
   in_rates_h: 'المعدلات', r_win: 'معدل الفوز', r_reveal: 'معدل الكشف', r_response: 'معدل الاستجابة', r_lead: 'متوسط مدة التنفيذ', r_lost: 'خسرتموها لصالح منافسين', days: 'نحو {n}',
@@ -200,8 +200,9 @@ const EN_COUNTED: Record<string, Record<string, (v: string | number) => string>>
   hint_doc_expiring_t: { days: enNoun('day', 'days') },
   hint_lead_time_t: { days: enNoun('day', 'days') },
   days: { n: enNoun('day', 'days') },
-  price_detail: { n: enNoun('competitive inquiry', 'competitive inquiries'),
-    lowest: (v) => { const k = Number(v); return k > 0 ? ` Yours was the lowest price on ${k === 1 ? 'one' : k} of them.` : ''; } },
+  // No "lowest on k of them" since 19 Nov 2026: times_lowest is no longer sent (a supplier moving his own price on an open
+  // request could watch it flip and find the lowest rival's price).
+  price_detail: { n: enNoun('competitive inquiry', 'competitive inquiries') },
 };
 
 export function ws(lang: string, key: string, params: Record<string, string | number> = {}): string {

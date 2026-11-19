@@ -32,7 +32,8 @@ import { newOptionRefusal } from '../new_option.ts';
 import { type ActionCtx, J, SUPA_URL, admin, failed, logged, secretVal, tellItSeat } from '../context.ts';
 import { maskContact } from '../../_shared/observe.ts';
 import type { Recorded } from '../../_shared/recorded_write.ts';
-import { CONCLUDED, UUID_RE, clip, numOrNull } from '../lib/fields.ts';
+import { CONCLUDED, REQUEST_ENDED_SUBMIT, REQUEST_ENDED_WITHDRAW, UUID_RE, clip, numOrNull } from '../lib/fields.ts';
+import { isClosedRequest } from '../../_shared/request_closed.ts';
 import { isRequestRevealed, REQUEST_REVEALED } from '../lib/request_revealed.ts';
 import { NOT_MY_FILE, matchedInquiry, ownQuoteFile, sameVerdict, specChecklist } from '../lib/quote_gate.ts';
 import { QUOTE_NOT_SAVED, QUOTE_NOT_SENT, QUOTE_NOT_SENT_APPROVE, type QuoteSnapshot, acceptForRelease, acceptLive, acceptRule, kickDelivery, notifyNewQuote, restoreQuote, snapshotQuote, storeReviewNotes, supersedeQualityHold, supplierOf, writeQuoteLines, writeQuoteRow } from '../lib/quote_acceptance.ts';
@@ -212,6 +213,14 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
       const { count: revealed } = await admin.from('transactions').select('id', { count: 'exact', head: true }).eq('quote_id', qt.id);
       if (revealed) return J({ error: 'This quotation was already revealed to the customer, so it can no longer be withdrawn.', code: 'already_revealed' }, 409);
       if (!['draft', 'submitted'].includes(String(qt.status))) return J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
+      // AN ENDED REQUEST KEEPS ITS QUOTATIONS AS THEY STOOD (19 Nov 2026, second review of the price-positioning fix): withdrawing
+      // options one by one on a completed, closed, cancelled, expired or lost request moved his comparison against the other
+      // suppliers and gave away their price. Trigger a06 on quotes refuses it too
+      // (scripts/sql/no_rival_price_can_be_worked_out_and_the_customer_sees_the_quoted_price.sql).
+      {
+        const { data: wInq } = await admin.from('inquiries').select('status').eq('id', qt.inquiry_id).maybeSingle();
+        if (wInq && isClosedRequest(wInq.status)) return J(REQUEST_ENDED_WITHDRAW, 409);
+      }
       const { data: done, error: wErr } = await admin.from('quotes').update({ status: 'withdrawn' }).eq('id', qt.id).in('status', ['draft', 'submitted']).select('id');
       if (wErr) return J({ error: 'could_not_withdraw', code: 'could_not_withdraw' }, 500);
       return done?.length ? J({ ok: true, status: 'withdrawn' }) : J({ error: 'This quotation cannot be withdrawn now.', code: 'not_withdrawable' }, 409);
@@ -264,6 +273,9 @@ export async function quoteActions(c: ActionCtx): Promise<Response | undefined> 
         }
       }
       if (inqStat && CONCLUDED.includes(String(inqStat.status))) return J({ error: 'This request has been concluded — the customer has already selected a supplier. Thank you for your interest, and best of luck on the next one.', code: 'inquiry_concluded' }, 409);
+      // Expired and lost requests too (19 Nov 2026): CONCLUDED above is three of the five ends, and on the other two a re-sent price
+      // moved his comparison against the other suppliers. One list, _shared/request_closed.ts; trigger a06 on quotes holds it too.
+      if (inqStat && isClosedRequest(inqStat.status)) return J(REQUEST_ENDED_SUBMIT, 409);
       const amt = Number(body.amount); if (!(amt > 0)) return J({ error: 'invalid amount', code: 'invalid_amount' }, 400);
       const isUpload = body.source === 'upload';
       const items = Array.isArray(body.items) ? body.items : [];

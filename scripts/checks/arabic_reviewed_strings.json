@@ -5271,7 +5271,6 @@
  ],
  "src/components/portal/supplier/MarketIntelligence.tsx": [
   "01f5044c7069",
-  "035dcc4f6cea",
   "140408021938",
   "1ab421518a28",
   "303411fd8d76",
@@ -5279,6 +5278,7 @@
   "7c76d2ef17d4",
   "89eb47d3a3b0",
   "a9a9d861ff7a",
+  "ad737fbf6791",
   "b39dfd16f4af",
   "d4797b0e3301",
   "ea011bdb68d1",
@@ -6024,6 +6024,7 @@
   "451cc250b77c",
   "46b55b84b162",
   "483eb6a5f514",
+  "4885343723e4",
   "48878ac838d9",
   "4934148c2232",
   "4c629a1555ec",
@@ -6032,12 +6033,10 @@
   "5447127dbcfd",
   "55b366de9611",
   "5d3ebc64fb6e",
-  "60edcff23f03",
   "6ba4c4706e86",
   "6f2b645d4abf",
   "7b2be9e400d5",
   "7c3d11bef973",
-  "806dab261181",
   "819248dfca76",
   "82fedf73fea2",
   "83d1b2db2d02",
@@ -6057,6 +6056,7 @@
   "d9e5416f30fa",
   "e0489d4ba8ff",
   "e17a40fa454a",
+  "e28c0bcd0601",
   "e4af0d4e60fb",
   "e559a2568240",
   "ff5dc2bb103f",
@@ -6156,24 +6156,25 @@
  "src/components/portal/twin/DecisionSupport.tsx": [
   "005df6f04a6f",
   "14ba9b1f5414",
+  "1f3724473bdb",
   "2a36c40f879e",
   "36df45e81903",
-  "46479cb66a93",
   "4849bc71ef2d",
   "4934e1c856fc",
+  "51459587be1c",
+  "5a59c61c5a19",
   "7a281c033c54",
   "7cb19e671a9b",
   "7d0422175b9d",
-  "91ca334eb6fe",
   "99dd739d5478",
   "9bc2516ef98e",
   "a5b41e4cca7e",
-  "a8a7b46f7e78",
   "b68605711ccb",
   "c444059d3758",
   "db6814747f68",
+  "ecc63c693d67",
+  "fb664d7d57da",
   "fb98b0a38a85",
-  "fe81d37dde22",
   "ff532b46f402"
  ],
  "src/components/portal/twin/SupplierDiscovery.tsx": [
@@ -6259,7 +6260,7 @@
   "0f70841ffbde"
  ],
  "src/components/QuoteBadges.tsx": [
-  "aa7ef1d629ad"
+  "80298900d85c"
  ],
  "src/components/ServiceDoc.tsx": [
   "00970d07e4bb",

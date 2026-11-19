@@ -126,6 +126,9 @@ begin
      or ((public.fn_supplier_trade_correction_decide(v_corr, s_a, 'declined', 'whatsapp', '{}'))->>'ok')::boolean then fails := fails || ' 4:decide_once'; end if;
 
   -- 5: contact details removed: counted, told once; a brand alone is not one
+  -- i3 and i4 ended above; an ended request takes no quotation (trigger a06, 19 Nov 2026,
+  -- no_rival_price_can_be_worked_out_and_the_customer_sees_the_quoted_price.sql), so they are reopened for these drafts.
+  update public.inquiries set status = 'sent' where id in (i3, i4);
   insert into public.quotes (id, inquiry_id, supplier_id, quote_amount, status, masked_terms, created_at)
   values (gen_random_uuid(), i5, s_b, 7000, 'draft', '["Grohe", "Acme Tiles LLC"]'::jsonb, now());
   if exists (select 1 from public.supplier_contact_removal_notice where lead_id = s_b) then fails := fails || ' 5:brand_told'; end if;

@@ -26,15 +26,19 @@ type Row = Record<string, any>;
 export type PriceBand = 'below' | 'around' | 'above' | 'no_data';
 export type PricePosition = {
   band: PriceBand;
-  /** Average % your quotes sit above (+) or below (-) the mean quote on the same inquiries. */
+  /** Average % your quotes sit above (+) or below (-) the other suppliers' mean on the same inquiries, in 5-point steps. */
   pct_vs_market_avg: number | null;
-  /** Average % your quotes sit above the lowest quote on the same inquiries. */
+  /** Average % your quotes sit above the other suppliers' lowest on the same inquiries, in 5-point steps. */
   pct_above_lowest: number | null;
-  /** Share of competitive inquiries on which you were the lowest bid, 0-100. */
+  /** Share of competitive inquiries on which you were the lowest bid, 0-100, in 5-point steps. */
   lowest_rate_pct: number | null;
-  /** Inquiries with at least two priced quotes, yours included: the population the band is read from. */
+  /** Inquiries on which at least 3 OTHER suppliers submitted a quote (drafts and withdrawn ones never count). Every
+   *  figure above is null until there are 5 of them, and only ENDED requests count (fn_supplier_stats, 19 Nov 2026, founder ruling 1686): with one
+   *  rival, mine/(1 + pct_above_lowest/100) was that rival's exact price. */
   competitive_rfqs: number;
-  times_lowest: number;
+  /** Always null since 19 Nov 2026: on a request still open, a supplier re-sending his own price could watch this count flip and
+   *  find the lowest rival to 0.01% (review of c1d1fd657). fn_supplier_stats sends null; lowest_rate_pct (5-point) remains. */
+  times_lowest: null;
   /** pct_vs_market_avg mapped onto -1 (20% or more below) .. +1 (20% or more above); null without data. */
   gauge: number | null;
   /** The band edges fn_supplier_stats uses, in % vs the market average, so a client draws the same bands. */
@@ -78,7 +82,7 @@ export function pricePosition(pp: Row | null | undefined): PricePosition {
     : /below/.test(String(p.band)) ? 'below' : /above/.test(String(p.band)) ? 'above' : 'around';
   return {
     band, pct_vs_market_avg: n ? vsAvg : null, pct_above_lowest: n ? num(p.avg_pct_above_lowest) : null,
-    lowest_rate_pct: n ? num(p.lowest_rate) : null, competitive_rfqs: n, times_lowest: int(p.times_lowest),
+    lowest_rate_pct: n ? num(p.lowest_rate) : null, competitive_rfqs: n, times_lowest: null,
     gauge: n && vsAvg != null ? Math.max(-1, Math.min(1, vsAvg / 20)) : null, band_edges: BAND_EDGES,
   };
 }
