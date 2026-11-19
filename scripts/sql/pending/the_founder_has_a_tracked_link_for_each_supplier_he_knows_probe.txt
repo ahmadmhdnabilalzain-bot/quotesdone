@@ -1,0 +1,5 @@
+A PROBE, so it is never applied and never enters MANIFEST.txt. It mints links for two ZZ DEMO contacts, records three ZZ DEMO
+registrations through fn_marketing_first_touch_record (a founder link, an unminted founder tag, a social visit) and reads
+v_founder_network_signups, inside a block that always raises, so every row rolls back. Every party is ZZ DEMO on @example.invalid and
+nothing it calls sends, so it cannot reach a person. Local Postgres 16, 19 Nov 2026: PROBE OK twice. Seat: marketing.
+This note stays for the life of the file.
