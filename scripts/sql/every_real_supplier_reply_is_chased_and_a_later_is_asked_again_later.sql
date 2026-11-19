@@ -41,6 +41,8 @@
 --      rule refuses it (bounce, machine sender, auto-submitted, list mail, the founder's inbox, our own domain). test_reply, spam and
 --      opt_out are never followed up. A reading row still decides alone. Its callers are the chase routines and the follow-up branch
 --      of fn_mailbox_reply_may_leave only, so no other reply changes.
+--   1b. fn_prospect_chase_next_touch: a "later" is re-asked ONCE, at 30 days, and never again (was: touches 2 and 3 at 37 and 44 days,
+--      review of #2075); an interested prospect keeps touches 1-3, a subsidiary question its single note.
 --   2. fn_sales_engineer_books_prospect_chase: the same supplier evidence opens the booking; a "later" is booked 30 days on (was 14);
 --      a fixture run (qd.duty_fixtures = on) books only a ZZ DEMO lead at a reserved address, a real run never a fixture.
 --   3. fn_sales_engineer_acts_on_supplier_reply: a "later" 30 days on (was 14). Nothing else.
@@ -58,8 +60,8 @@
 --   and 5) and fn_mailbox_followup_allowed from a_reply_from_the_supplier_mailbox_leaves_only_when_the_reading_said_answer.sql. The
 --   counter backfill needs no rollback (it counts rows that exist).
 -- Pending: scripts/sql/pending/every_real_supplier_reply_is_chased_and_a_later_is_asked_again_later.txt
--- Prevented by: the probe below (a ZZ DEMO interested reply and a later reply each book a chase row; an auto-reply, a vendor and a
---   test reply book none; the follow-up names no invitation switch). A scripts/checks test over the schema mirror is still owed.
+-- Prevented by: scripts/checks/every_real_supplier_reply_is_chased_and_a_later_is_asked_again_later.test.mjs and the probe below (a ZZ DEMO interested reply and a later reply each book a chase row; an auto-reply, a vendor and a
+--   test reply book none; a sent later books no further touch; the follow-up names no invitation switch).
 
 set local lock_timeout = '1500ms';   -- apply discipline: a DDL that waits behind live traffic gives up, never queues it
 
@@ -86,6 +88,16 @@ AS $fn$
 $fn$;
 revoke execute on function public.fn_mailbox_followup_allowed(bigint) from public, anon, authenticated;
 grant execute on function public.fn_mailbox_followup_allowed(bigint) to service_role;
+
+-- ── 1b. which touch follows a sent one (19 Nov 2026, review of #2075): an interested prospect 1 -> 2 -> 3, then none; a "later" and a
+--     subsidiary question get their single touch and none after it ──
+create or replace function public.fn_prospect_chase_next_touch(p_intent text, p_touch integer)
+returns smallint language sql immutable set search_path to 'public', 'pg_temp' as $fn$
+  select case when coalesce(p_intent, '') in ('subsidiary', 'later') or p_touch is null or p_touch >= 3 then null
+              else (p_touch + 1)::smallint end
+$fn$;
+revoke execute on function public.fn_prospect_chase_next_touch(text, integer) from public, anon, authenticated;
+grant execute on function public.fn_prospect_chase_next_touch(text, integer) to service_role;
 
 -- ── 2. touch 1 from the answered mail itself (live body, 19 Nov 2026; supplier evidence, 30-day later, fixture mode) ──
 create or replace function public.fn_sales_engineer_books_prospect_chase(p_inbound_id bigint)
@@ -317,10 +329,11 @@ begin
       if f.lead_id is not null then
         update public.leads set invite_followups = coalesce(invite_followups, 0) + 1, invite_last_followup_at = now() where id = f.lead_id;
       end if;
-      -- the next touch, 7 days on, three at most; a subsidiary question keeps its single note
-      if f.intent <> 'subsidiary' and f.touch < 3 then
+      -- the next touch, 7 days on, three at most; a subsidiary question keeps its single note, and (19 Nov 2026, review of #2075) a
+      -- "later" its single re-ask at 30 days: fn_prospect_chase_next_touch decides, so the probe can prove it without sending
+      if public.fn_prospect_chase_next_touch(f.intent, f.touch) is not null then
         insert into public.supplier_reply_followup (inbound_message_id, lead_id, to_email, intent, due_at, touch)
-        values (f.inbound_message_id, f.lead_id, f.to_email, f.intent, now() + interval '7 days', f.touch + 1)
+        values (f.inbound_message_id, f.lead_id, f.to_email, f.intent, now() + interval '7 days', public.fn_prospect_chase_next_touch(f.intent, f.touch))
         on conflict (inbound_message_id, touch) do nothing returning id into v_next;
       end if;
       v_sent := v_sent + 1; v_today := v_today + 1;
@@ -389,6 +402,11 @@ begin
     if f.id is null or f.intent <> 'later' or f.state <> 'due'
        or abs(extract(epoch from f.due_at - ((select replied_at from public.inbound_messages where id = mb) + interval '30 days'))) > 1 then
       v_p := v_p || ('B: a later reply got no 30-day chase row: ' || r::text); end if;
+    -- ... and that one re-ask is the last: nothing follows a sent "later"; an interested prospect still gets 2 and 3, then none
+    if public.fn_prospect_chase_next_touch('later', 1) is not null then v_p := v_p || 'B: a sent later books another touch'::text; end if;
+    if public.fn_prospect_chase_next_touch('interested', 1) is distinct from 2 or public.fn_prospect_chase_next_touch('interested', 2) is distinct from 3
+       or public.fn_prospect_chase_next_touch('interested', 3) is not null or public.fn_prospect_chase_next_touch('subsidiary', 1) is not null then
+      v_p := v_p || 'the interested / subsidiary touch sequence changed'::text; end if;
     if not public.fn_mailbox_followup_allowed(mb) then v_p := v_p || 'B: the sender may not follow up a later its seat answered'::text; end if;
     r := public.fn_sales_engineer_books_prospect_chase(mc);
     if exists (select 1 from public.supplier_reply_followup where inbound_message_id = mc) or public.fn_mailbox_followup_allowed(mc) then
@@ -417,12 +435,14 @@ begin
     v_res := v_res || '; a real follow-up row changed'; end if;
   if position('key = ''invite_enabled''' in (select prosrc from pg_proc where proname = 'fn_sales_engineer_follows_up_supplier_replies')) > 0 then
     v_res := v_res || '; the follow-up still waits on the invitation switch'; end if;
+  if position('public.fn_prospect_chase_next_touch(f.intent, f.touch) is not null then' in (select prosrc from pg_proc where proname = 'fn_sales_engineer_follows_up_supplier_replies')) = 0 then
+    v_res := v_res || '; the sender does not ask fn_prospect_chase_next_touch for the next touch'; end if;
   if position('fn_supplier_outreach_golive()' in (select prosrc from pg_proc where proname = 'fn_sales_engineer_follows_up_supplier_replies')) = 0 then
     v_res := v_res || '; the follow-up lost its master switch'; end if;
   if has_function_privilege('anon', 'public.fn_mailbox_followup_allowed(bigint)', 'execute')
      or has_function_privilege('anon', 'public.fn_sales_engineer_books_prospect_chase(bigint)', 'execute') then
     v_res := v_res || '; anon may execute a chase routine'; end if;
-  perform set_config('qd.chase_probe', case when v_res = 'ok' then 'PROBE OK: a ZZ DEMO interested reply is chased at 7 days and a later at 30; an auto-reply, a vendor and a test reply are not; the follow-up no longer waits on invite_enabled'
+  perform set_config('qd.chase_probe', case when v_res = 'ok' then 'PROBE OK: a ZZ DEMO interested reply is chased at 7 days and a later once at 30, then never again; an auto-reply, a vendor and a test reply are not; the follow-up no longer waits on invite_enabled'
                                             else 'PROBE FAILED: ' || v_res end, true);
 end $probe$;
 select current_setting('qd.chase_probe') as verdict;
