@@ -1,7 +1,7 @@
 // EVERY SEAT WITH A STEP HEARS OF ITS EVENT (ceo, 19 Nov 2026; founder ruling 1685). Guards
 // scripts/sql/every_seat_with_a_step_hears_of_its_event.sql. Its behaviour is proved by that file's probe (rehearsed on the local
-// database: PROBE OK, and five mutants each caught: no dedupe, canary counted, soft bounce counted, the CEO not told, a routine
-// open to anon). This fails when the shape that makes it true is taken away.
+// database: PROBE OK, and mutants each caught: no dedupe, canary counted, soft or 4.x.x bounce counted, the CEO not told, a
+// routine open to anon; its _probe.sql runs the ZZ DEMO rows locally). This fails when the shape that makes it true is taken away.
 //   node --test scripts/checks/every_seat_with_a_step_hears_of_its_event.test.mjs
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SQL = readFileSync(join(ROOT, 'scripts/sql/every_seat_with_a_step_hears_of_its_event.sql'), 'utf8');
+const PROBE = readFileSync(join(ROOT, 'scripts/sql/every_seat_with_a_step_hears_of_its_event_probe.sql'), 'utf8');
 const fn = (name) => {
   const at = SQL.search(new RegExp(`create or replace function public\\.${name}\\(`, 'i'));
   assert.ok(at >= 0, `${name} is defined`);
@@ -45,7 +46,7 @@ test('a bounce is a hard bounce of an e-mail to a person: canaries, soft bounces
   const f = fn('fn_notifications_the_seats_hear_a_send_a_bounce_or_a_complaint');
   assert.match(f, /coalesce\(new\.channel, 'email'\) = 'email' and coalesce\(new\.to_role, ''\) <> 'system'/);
   assert.match(f, /coalesce\(new\.type, ''\) <> 'delivery_feedback_canary'/);
-  assert.match(f, /new\.provider_error_code !~\* '\^bounce:\(transient\|soft\)'/);
+  assert.ok(f.includes("new.provider_error_code !~* '^bounce:(transient|soft|undetermined|4\\.)'"), 'soft, transient, undetermined and 4.x.x bounces are skipped');
   assert.match(f, /v_type := 'mail\.bounced'/);
   assert.match(f, /v_type := 'mail\.complained'/);
   assert.match(f, /'invite\.sent:notification:' \|\| new\.id, 'invite\.sent'/);
@@ -71,6 +72,7 @@ test('every seat that has a step hears its event by digest, one owner per event,
 test('a paid reveal gets no third event: the CEO and customer support already hear payment.received, and the probe proves it', () => {
   assert.doesNotMatch(SQL, /fn_emit(_once)?\('reveal\.paid/);
   assert.match(SQL, /where event_type = 'payment\.received' and active and delivery = 'digest' and agent_key in \('ceo', 'customer_support'\)/);
+  assert.match(PROBE, /event_type = 'payment\.received' and entity_id = v_tx::text/);
 });
 
 test('every new routine pins its search_path and is revoked from callers by its exact signature', () => {
@@ -83,8 +85,12 @@ test('every new routine pins its search_path and is revoked from callers by its 
   assert.match(SQL, /^set local lock_timeout = '1500ms';/m);
 });
 
-test('the probe rolls back its own rows and returns one verdict row', () => {
-  assert.match(SQL, /raise exception 'CHK<<%>>', case when v_fail = '' then 'OK' else v_fail end;/);
+test('the apply holds its locks for milliseconds: the production file only reads for its verdict; the ZZ DEMO probe is its own file', () => {
+  const v = SQL.slice(SQL.indexOf('do $verdict$'));
+  assert.ok(v.length > 0 && !/\b(insert|update|delete)\s+(into\s+)?public\./i.test(v), 'the verdict writes nothing');
+  assert.doesNotMatch(SQL, /'ZZ DEMO|perform public\.fn_seat_pool_digest_build/, 'no rehearsal rows and no digest rebuild in the applied file');
   assert.match(SQL, /select current_setting\('qd\.every_seat_hears_verdict', true\) as verdict;\s*$/);
-  assert.match(SQL, /'ZZ DEMO Every Seat Probe Customer', 'every-seat-' \|\| v_tag \|\| '@example\.invalid'/);
+  assert.match(PROBE, /raise exception 'CHK<<%>>', case when v_verdict = 'OK' then 'PROBE OK' else 'PROBE FAILED: ' \|\| v_verdict end;\s*end \$probe\$;\s*$/);
+  assert.match(PROBE, /'ZZ DEMO Every Seat Probe Customer', 'every-seat-' \|\| v_tag \|\| '@example\.invalid'/);
+  assert.match(PROBE, /provider_error_code = 'bounce:4\.4\.7'/, 'a 4.x.x bounce is tried');
 });
