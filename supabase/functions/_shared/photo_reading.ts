@@ -91,16 +91,19 @@ export function photoRequest(image: string, subject: unknown, fn = 'inquiry_inta
 // TEXT THAT IS NOT A DESCRIPTION OF A JOB (review of #2078, prompt injection: words written in a photo can reach a reading). A
 // field that carries a link, a domain, an e-mail, a phone-like number or an instruction is DROPPED: a reading describes a space or
 // an item, it never tells anyone to do anything or go anywhere.
-const URL_LIKE = /\b(?:https?:\/\/|www\.)|\b[a-z0-9][a-z0-9-]*\.(?:com|net|org|ae|io|co|info|biz|me|app|xyz|shop|store|online|site|link|ly|gg|ru|cn|uk)\b/i;
+const URL_LIKE = /\b(?:https?:\/\/|www\.)|\b[a-z0-9][a-z0-9-]*\.(?:com|net|org|ae|io|co|info|biz|me|app|xyz|shop|store|online|site|link|ly|gg|ru|cn|uk|tk|ml|ga|cf|top|click|live)\b/i;
 const EMAIL_LIKE = /[^\s@]+@[^\s@]+/;
+const OBFUSCATED_LIKE = /\[\s*(?:\.|dot)\s*\]|\(\s*(?:\.|dot)\s*\)|\b\w+\s+(?:at|@)\s+(?:gmail|hotmail|yahoo|outlook|icloud|live)\b|\b(?:dot)\s+(?:com|net|org|ae)\b|[\u0660-\u0669\u06F0-\u06F9]{7,}|\b[0O]\d[0O\d\s-]{7,}/i;
 const PHONE_LIKE = /(?:\+|00)?\d(?:[\s().-]?\d){7,}/;
-const INSTRUCTION_LIKE = /\b(?:ignore|disregard|forget|override)\b[^.]{0,40}\b(?:instructions?|prompts?|rules?|above|previous|earlier|system)\b|\b(?:system|assistant|developer)\s*:|\byou are now\b|\bact as\b|\bpretend\b|\b(?:visit|click|go to|call (?:us|me|now)|whatsapp|e-?mail (?:us|me)|dm|subscribe|sign up|log ?in)\b|\b(?:reply|respond|say|tell (?:them|the customer)|write)\b[^.]{0,20}\b(?:with|that|only)\b|تجاهل|تعليمات|اتصل|زوروا|زُر/i;
-export const untrustedText = (s: string) => URL_LIKE.test(s) || EMAIL_LIKE.test(s) || PHONE_LIKE.test(s) || INSTRUCTION_LIKE.test(s);
+const INSTRUCTION_LIKE = /\b(?:ignore|disregard|forget|override)\b[^.]{0,40}\b(?:instructions?|prompts?|rules?|guidance|above|previous|prior|earlier|system)\b|\b(?:system|assistant|developer)\s*:|\byou are now\b|\bact as\b|\bpretend\b|\b(?:visit|click|go to|call (?:us|me|now)|whatsapp|e-?mail (?:us|me)|dm|subscribe|sign up|log ?in)\b|\b(?:reply|respond|say|tell (?:them|the customer)|write)\b[^.]{0,20}\b(?:with|that|only)\b|\b(?:tell|inform)\b[^.]{0,30}\b(?:price|cost|aed|dhs?)\b|تجاهل|تعليمات|اتصل|زوروا|زُر|لا تتبع|أخبر|اخبر|تواصل|راسل/i;
+export const untrustedText = (s: string) => OBFUSCATED_LIKE.test(s) || URL_LIKE.test(s) || EMAIL_LIKE.test(s) || PHONE_LIKE.test(s) || INSTRUCTION_LIKE.test(s);
 
 /** A field is kept only when code finds nothing in it that identifies a person or a place, and nothing that is not a description
  *  (untrustedText). Fail closed: dropped, never masked. */
 function clean(v: unknown, seeds: string[]): string {
-  const s = String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, FIELD_MAX);
+  // NFKC first so full-width and compatibility look-alikes (ｅｘａｍｐｌｅ．ｃｏｍ) meet the same patterns; angle brackets are removed
+  // so no field can close the <<< >>> fence the prompts put the reading in (second review of #2078).
+  const s = String(v ?? '').normalize('NFKC').replace(/[<>]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, FIELD_MAX);
   if (!s) return '';
   if (untrustedText(s) || residualScan(s, seeds).length || locationBelowEmirate(s).length) return '';
   return s;
