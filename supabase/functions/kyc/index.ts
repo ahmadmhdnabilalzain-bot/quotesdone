@@ -10,7 +10,7 @@ import { customerTermsRecord } from '../_shared/customer_terms.ts';
 import { recordAcceptance, TERMS_NOT_RECORDED } from './acceptance_write.ts';
 import { asLocale, registeredLocale } from '../_shared/registered_locale.ts';
 import { codeEmail } from '../_shared/code_email.ts';
-import { askedPatch, channelOfRow, choosePatch, waDeliveredCode, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, sidOfRow, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, voiceAfterSms, waAfterMobileVerified, whatsappState, type Patch, type VerifySent, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
+import { askedPatch, channelOfRow, choosePatch, waDeliveredCode, failoverSid, failoverStep, isOwnRow, nextChannel, RESEND_GAP_S, parseChoiceOpt, sendWhatsAppFirst, verifiedPatch, voiceAfterSms, waAfterMobileVerified, whatsappState, type Patch, type VerifySent, type WhatsAppRow } from '../_shared/whatsapp_choice.ts';
 import { checkOwnCode, newCode, ownMarker, ownMessageStatus, ownSent, sendOwnWhatsAppCode, type WaCodeDeps } from '../_shared/wa_code.ts';
 import { SANCTIONED_REFUSAL, sanctionedEmail } from '../_shared/sanctioned.ts';
 import { resendWithRetry } from '../_shared/resend_send.ts';
@@ -448,10 +448,11 @@ async function handle(req: Request, meta: { action?: string; fixture?: boolean }
     if (action === 'phone_failover') {
       const phone = kind === 'supplier' ? uaeMobile(b.phone) : toE164(String(b.phone || ''));
       if (!phone) return J({ error: 'Enter a valid UAE mobile number, for example 05X XXX XXXX.', code: 'bad_mobile' }, 400);
-      const { data: row } = await admin.from('phone_verifications').select('code,created_at').eq('phone', phone).eq('email', email)
+      const { data: row } = await admin.from('phone_verifications').select('code,created_at,used_at').eq('phone', phone).eq('email', email)
         .gte('created_at', new Date(Date.now() - 10 * 60e3).toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
-      const sid = sidOfRow(row?.code);
-      if (!row || channelOfRow(row.code) !== 'whatsapp' || !sid) return J({ ok: true, state: 'nothing_to_do' });
+      // a code already typed back is never sent again by SMS (failoverSid, 19 Nov 2026)
+      const sid = failoverSid(row);
+      if (!row || !sid) return J({ ok: true, state: 'nothing_to_do' });
       const tw = await twilioAuth(); if (!tw) return J({ ok: true, state: 'nothing_to_do' });
       // our own WhatsApp code is read from the Messages API (ledger 1252), a Verify one from Verify's Attempts
       let status: string | null = null;
