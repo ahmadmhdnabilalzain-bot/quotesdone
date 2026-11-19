@@ -10,11 +10,15 @@
 //      their backup records and its storage objects, through the Dropbox and storage APIs. No other Dropbox delete exists.
 //   4. One customer got two certificates 52 s apart for one acceptance: kyc rewrote tos_accepted_at on a second
 //      accept_terms for the same version. It now writes the acceptance only when that version is not on file.
+//   5. Ledger 1737 (19 Nov 2026, amending 1181): a CUSTOMER sign-up who accepted the terms by any signal, sent a file,
+//      or wrote to us is kept and reminded; one with only an e-mail still goes. Read 19 Nov: the held check ignored
+//      tos_accepted_at without a certificate and every upload, so such a person was deleted with his files.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { canonicalBody } from '../lib/canonical_body.mjs';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const src = (p) => readFileSync(join(ROOT, p), 'utf8');
@@ -89,12 +93,29 @@ test('the supplier folder is his main category as a plain name and his licensed 
 
 test('release review: what holds a sign-up, the phone never selects, and a login shared with a complete or held account stays', () => {
   const held = (name) => SQL.slice(SQL.indexOf('function public.' + name), SQL.indexOf('revoke execute on function public.' + name));
-  const ch = held('fn_signup_customer_held'), sh = held('fn_signup_supplier_held');
+  const sh = held('fn_signup_supplier_held');
+  // the CUSTOMER rule is read from its latest definition (MANIFEST, then pending: scripts/lib/canonical_body.mjs), since
+  // 19 Nov 2026 a_customer_who_accepted_terms_or_sent_a_file_is_never_purged.sql (ledger 1737)
+  const wrap = canonicalBody('fn_signup_customer_held');
+  assert.match(code(wrap.body), /public\.fn_signup_customer_shows_intent\(cu\)/, 'the held check asks the evidence rule (' + wrap.file + ')');
+  const ci = canonicalBody('fn_signup_customer_shows_intent'), ch = code(ci.body);
   for (const c of ['cu.signed_terms_path is not null', 'public.inquiry_intake ii', 'm.customer_id = cu.id', 'lower(im.from_email) = lower(cu.email)', 'public.inquiries i'])
     assert.ok(ch.includes(c), 'a customer is held when ' + c);
   for (const c of ['im.supplier_id = l.id', 'l.signed_terms_path is not null', 'public.quotes q']) assert.ok(sh.includes(c), 'a supplier is held when ' + c);
-  // an upload does NOT hold a sign-up (founder ruling 1181): it is deleted with it
-  for (const h of [ch, sh]) assert.ok(!h.includes('storage.objects') && !h.includes('public.doc_backups'), 'an upload alone never holds a sign-up');
+  // ledger 1737 (19 Nov 2026, amending 1181), CUSTOMERS ONLY: accepted terms by any signal, any file sent, or any message
+  // to us HOLDS a customer sign-up; it is kept and reminded, never deleted with its files
+  for (const c of ['cu.tos_accepted_at is not null', 'cu.tos_ip is not null', 'cu.signed_terms_at is not null'])
+    assert.ok(ch.includes(c), 'an acceptance holds a customer even when its certificate never landed: ' + c);
+  assert.ok(ch.includes('storage.objects o') && ch.includes("o.name like 'drawings/' || cu.id::text || '/%'"), 'a drawing, BOQ or site photo in storage holds a customer');
+  for (const c of ['public.cad_read_jobs j', 'public.drawing_redaction_runs r']) assert.ok(ch.includes(c), 'a file sent holds a customer: ' + c);
+  for (const c of ['public.inbound_mail_queue q', 'public.support_case sc', 'public.contact_messages cm', 'public.complaint_tickets ct'])
+    assert.ok(ch.includes(c), 'a message or a case holds a customer: ' + c);
+  // ...and a sign-up with only an e-mail is still NOT held: no signal every sign-up carries, and its probe proves it
+  for (const c of ['cu.email is not null', 'cu.email_verified', 'cu.created_at', 'cu.phone', 'cu.whatsapp_phone'])
+    assert.ok(!ch.includes(c), 'an e-mail-only sign-up is never held by ' + c);
+  assert.ok(src(ci.file).includes('a sign-up with only an e-mail is held'), 'the file\'s probe fails when an e-mail-only sign-up is held');
+  // the SUPPLIER rule is unchanged (1737 is about customers): an upload does NOT hold a company sign-up (ruling 1181)
+  assert.ok(!sh.includes('storage.objects') && !sh.includes('public.doc_backups'), 'an upload alone never holds a supplier sign-up');
   assert.ok(body.includes('public.fn_signup_customer_held(cu.id) busy') && body.includes('public.fn_signup_supplier_held(l.id) busy'), 'both loops hold through the functions');
   assert.ok(!body.includes('to_phone') && !body.includes('p.phone'), 'nothing is matched on the unverified mobile');
   const kept = held('fn_signup_email_kept_elsewhere');
