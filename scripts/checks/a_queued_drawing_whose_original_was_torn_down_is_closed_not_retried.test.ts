@@ -17,7 +17,7 @@
 // run's start is read within a minute (drainUntil), outside the edge's CPU cap.
 //   deno test --no-lock --node-modules-dir=none scripts/checks/a_queued_drawing_whose_original_was_torn_down_is_closed_not_retried.test.ts
 import { assert, assertEquals, assertRejects } from 'jsr:@std/assert@1';
-import { drainUntil, runJob, watchMinutes, type Job } from '../cad_read_worker.ts';
+import { drainUntil, runJob, sourceGoneIsRaised, WATCH_FRESH_SQL, watchDeps, watchMinutes, watchReleaseSql, type Job } from '../cad_read_worker.ts';
 
 const JOB: Job = {
   id: 'a0b00000-0000-4000-8000-0000000000d1', customer_id: 'c0ffee00-0000-4000-8000-0000000000d1', owner_email: 'qd-zz-cust@example.invalid',
@@ -109,4 +109,53 @@ Deno.test('--watch: one pass by default; the window is bounded to 50 minutes (th
   assertEquals(watchMinutes(['--watch=500']), 50);
   assertEquals(watchMinutes(['--watch=abc']), 0);
   assertEquals(watchMinutes(['--watch=-5']), 0);
+});
+
+// ── review of #2076 (19 Nov 2026) ─────────────────────────────────────────────────────────────────────────────────────
+Deno.test('a job with no customer_id whose original vanished is raised: nothing proves a teardown (unless it is a demo)', async () => {
+  const seen = stub(400, { held: false, customer: false, demo: false });
+  try { await runJob({ ...JOB, customer_id: null }, 'zz-demo-service'); } finally { globalThis.fetch = real; }
+  assert(seen.sql.some((q) => q.includes("status = 'done'") && q.includes('source_gone')), 'closed, not retried');
+  const raised = seen.sql.find((q) => q.includes('fn_it_engineer_finding_upsert'));
+  assert(raised && raised.includes('cad_read_worker:source_gone') && raised.includes('customer not recorded'), `raised: ${raised}`);
+  const look = seen.sql.find((q) => q.includes('storage.objects'))!;
+  assert(/false as customer/.test(look), 'no customer row is looked up for a null id');
+  assert(look.includes("raw_app_meta_data ? 'e2e_run'"), 'an e2e-run login counts as demo');
+  // the rule, every case
+  assertEquals(sourceGoneIsRaised({ customer_id: null }, { customer: false, demo: false }), true);
+  assertEquals(sourceGoneIsRaised({ customer_id: null }, { customer: false, demo: true }), false);
+  assertEquals(sourceGoneIsRaised({ customer_id: JOB.customer_id }, { customer: false, demo: false }), false, 'customer gone with it: a teardown');
+  assertEquals(sourceGoneIsRaised({ customer_id: JOB.customer_id }, { customer: true, demo: false }), true);
+  assertEquals(sourceGoneIsRaised({ customer_id: JOB.customer_id }, { customer: true, demo: true }), false);
+});
+
+Deno.test('a demo job with no customer_id (ZZ DEMO or e2e run): closed, nothing raised', async () => {
+  const seen = stub(400, { held: false, customer: false, demo: true });
+  try { await runJob({ ...JOB, customer_id: null }, 'zz-demo-service'); } finally { globalThis.fetch = real; }
+  assert(seen.sql.some((q) => q.includes('source_gone')));
+  assert(!seen.sql.some((q) => q.includes('fn_it_engineer_finding_upsert')));
+});
+
+Deno.test('watch SQL: a watch pass claims only when a job with attempts = 0 is queued; the first pass always claims', async () => {
+  assertEquals(WATCH_FRESH_SQL, `select exists (select 1 from public.cad_read_jobs where status = 'queued' and attempts = 0) as fresh`);
+  assert(!/\b(update|insert|delete)\b/i.test(WATCH_FRESH_SQL), 'the freshness check writes nothing');
+  for (const [fresh, first, claims] of [[false, false, 0], [true, false, 1], [false, true, 1], [null, false, 0]] as const) {
+    const sent: string[] = [];
+    const d = watchDeps((q) => { sent.push(q); return Promise.resolve(q === WATCH_FRESH_SQL ? [{ fresh }] : [{ ...JOB, attempts: 1 }]); });
+    const jobs = await d.claim(first);
+    assertEquals(sent.filter((q) => q.includes('fn_cad_read_claim(6)')).length, claims, `fresh=${fresh} first=${first}`);
+    assertEquals(sent.includes(WATCH_FRESH_SQL), !first, 'the first pass reads no freshness');
+    assertEquals(jobs.length, claims);
+  }
+});
+
+Deno.test('watch SQL: the release puts a running retry back as queued with its attempt returned, and nothing else', async () => {
+  const want = `update public.cad_read_jobs set status = 'queued', attempts = attempts - 1 where id = $qd$${JOB.id}$qd$::uuid and status = 'running'`;
+  assertEquals(watchReleaseSql(JOB.id), want);
+  const sent: string[] = [];
+  await watchDeps((q) => { sent.push(q); return Promise.resolve([]); }).release({ ...JOB, attempts: 2 });
+  assertEquals(sent, [want]);
+  // a hostile id stays inside its dollar-quoted literal
+  const hostile = "x'; drop table zz; --";
+  assert(watchReleaseSql(hostile).includes(`$qd$${hostile}$qd$::uuid`));
 });

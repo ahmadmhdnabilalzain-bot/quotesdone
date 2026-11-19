@@ -409,7 +409,7 @@ export async function photoWithheld(shot: string | null, why: string): Promise<R
 async function raiseFailed(job: Job, msg: string, key = 'cad_read_worker:job_failed'): Promise<void> {
   try {
     await sql(`select public.fn_it_engineer_finding_upsert(
-      ${lit(key)}, ${lit(key === 'cad_read_worker:job_failed' ? 'A queued CAD drawing could not be read after 3 attempts' : key === 'cad_read_worker:source_gone' ? 'A queued drawing\'s original is not in storage while its customer remains' : 'A drawing\'s queued sheets were held: its sent requests get no pages')},
+      ${lit(key)}, ${lit(key === 'cad_read_worker:job_failed' ? 'A queued CAD drawing could not be read after 3 attempts' : key === 'cad_read_worker:source_gone' ? 'A queued drawing\'s original is not in storage and nothing shows it was torn down' : 'A drawing\'s queued sheets were held: its sent requests get no pages')},
       'scripts/cad_read_worker.ts (.github/workflows/cad-read-worker.yml), table public.cad_read_jobs', 'customer_facing', 1,
       ${lit(JSON.stringify({ subject: 'cad_read_jobs', owner_seat: 'sales_engineer', job_id: job.id, error: msg.slice(0, 300) }))}::jsonb,
       '{}'::text[], '{}'::text[], 'sales_engineer')`);
@@ -442,18 +442,25 @@ export function budgetCut(signal: AbortSignal): Promise<{ held: Record<string, u
 // with "could not be downloaded (HTTP 400)": a proof's teardown had deleted the original (0 rows in storage.objects for the
 // path or the customer's folder; the customer row gone), and storage answers a missing object with 400 (body statusCode
 // "404"). Asking again cannot bring a deleted file back, so on a 400/404 storage.objects is read: absent, the job is closed
-// now as 'source_gone' (done, no BOQ, no pages; customer_api shows no pages for it). Raised only when the customer is still
-// here and the owner is not a demo address: a live request whose original vanished is a defect. An object storage still
-// holds (a 400 for another reason) throws as before and is retried.
+// now as 'source_gone' (done, no BOQ, no pages; customer_api shows no pages for it). Raised unless it is a demo (a demo owner
+// address, a ZZ DEMO file name, or an e2e-run login) or its customer row is gone with it (a teardown): a live request whose
+// original vanished is a defect, and so is a job with NO customer_id (review of #2076: nothing then proves a teardown).
+// An object storage still holds (a 400 for another reason) throws as before and is retried.
 // Prevented by scripts/checks/a_queued_drawing_whose_original_was_torn_down_is_closed_not_retried.test.ts.
-async function sourceGone(job: Job): Promise<{ customer: boolean; demo: boolean } | null> {
+async function sourceGone(job: Job): Promise<{ customer: boolean; demo: boolean; raise: boolean } | null> {
   const [g] = await sql<{ held: boolean; customer: boolean; demo: boolean }>(`select
       exists (select 1 from storage.objects o where o.bucket_id = 'drawing-files' and o.name = ${lit(job.source_path)}) as held,
       ${job.customer_id ? `exists (select 1 from public.customers c where c.id = ${lit(job.customer_id)}::uuid)` : 'false'} as customer,
       coalesce(public.fn_is_demo_email(${lit(job.owner_email ?? '')}), false)
-        or ${lit(job.file_name ?? '')} ~* '(^|[^a-z0-9])zz[ _-]?demo([^a-z]|$)' as demo`);
-  return g && g.held === false ? { customer: g.customer === true, demo: g.demo === true } : null;
+        or ${lit(job.file_name ?? '')} ~* '(^|[^a-z0-9])zz[ _-]?demo([^a-z]|$)'
+        or exists (select 1 from auth.users u where lower(u.email) = lower(${lit(job.owner_email ?? '')}) and u.raw_app_meta_data ? 'e2e_run') as demo`);
+  if (!g || g.held !== false) return null;
+  const customer = g.customer === true, demo = g.demo === true;
+  return { customer, demo, raise: sourceGoneIsRaised(job, { customer, demo }) };
 }
+/** Who hears of a vanished original: nobody for a demo, nobody when its customer went with it, everyone else (no customer_id included). */
+export const sourceGoneIsRaised = (job: Pick<Job, 'customer_id'>, g: { customer: boolean; demo: boolean }): boolean =>
+  !g.demo && (g.customer || !job.customer_id);
 
 export async function runJob(job: Job, key: string): Promise<void> {
   const t0 = performance.now();
@@ -464,8 +471,8 @@ export async function runJob(job: Job, key: string): Promise<void> {
     const gone = r.status === 400 || r.status === 404 ? await sourceGone(job) : null;
     if (!gone) throw new Error(`the stored drawing could not be downloaded (HTTP ${r.status})`);
     await sql(`update public.cad_read_jobs set status = 'done', finished_at = now(), error = null, result = ${lit(JSON.stringify({ boq: null, kind: 'source_gone', redaction_complete: false, held_reason: 'source_gone', storage_http: r.status, customer_present: gone.customer, demo: gone.demo, ms: Math.round(performance.now() - t0) }))}::jsonb where id = ${lit(job.id)}::uuid`);
-    if (gone.customer && !gone.demo) await raiseFailed(job, `the stored drawing is not in storage while its customer remains (HTTP ${r.status})`, 'cad_read_worker:source_gone');
-    console.log(`job ${job.id}: the original is not in storage (HTTP ${r.status}), closed as source_gone${gone.customer && !gone.demo ? ', raised' : ' (torn down: nothing raised)'}`);
+    if (gone.raise) await raiseFailed(job, `the stored drawing is not in storage and nothing shows it was torn down (customer ${job.customer_id ? 'still here' : 'not recorded'}, HTTP ${r.status})`, 'cad_read_worker:source_gone');
+    console.log(`job ${job.id}: the original is not in storage (HTTP ${r.status}), closed as source_gone${gone.raise ? ', raised' : ' (torn down: nothing raised)'}`);
     return;
   }
   const bytes = new Uint8Array(await r.arrayBuffer());
@@ -571,6 +578,23 @@ export function watchMinutes(args: string[]): number {
   const m = /^--watch=(\d+)$/.exec(args.find((a) => a.startsWith('--watch=')) ?? '');
   return m ? Math.min(WATCH_MAX_MIN, Number(m[1])) : 0;
 }
+/** The watch pass's SQL (review of #2076): a claim only when a job never tried is queued, and a retry put back as it was. */
+export const WATCH_FRESH_SQL = `select exists (select 1 from public.cad_read_jobs where status = 'queued' and attempts = 0) as fresh`;
+export const watchReleaseSql = (id: string) => `update public.cad_read_jobs set status = 'queued', attempts = attempts - 1 where id = ${lit(id)}::uuid and status = 'running'`;
+/** The claim and release drainUntil is given, over one `sql` (the management API in main; a stub in the test). */
+export function watchDeps(q: (s: string) => Promise<Record<string, unknown>[]>) {
+  const claimSql = `select id, customer_id, owner_email, source_path, file_name, mime, attempts, boq_in, why from public.fn_cad_read_claim(${MAX_JOBS})`;
+  return {
+    claim: async (first: boolean): Promise<Job[]> => {
+      if (!first && (await q(WATCH_FRESH_SQL))[0]?.fresh !== true) return [];
+      const jobs = await q(claimSql) as unknown as Job[];
+      if (first || jobs.length) console.log(`claimed ${jobs.length} job(s)${first ? '' : ' (watch)'}`);
+      return jobs;
+    },
+    // a retry claimed on a watch pass goes back as it was: its next attempt is the next hourly run's
+    release: async (job: Job): Promise<void> => { await q(watchReleaseSql(job.id)); },
+  };
+}
 /** Claim and run until `until`: the first pass takes what fn_cad_read_claim gives; a later pass runs only first attempts. */
 export async function drainUntil(d: {
   claim: (first: boolean) => Promise<Job[]>; run: (j: Job) => Promise<void>; release?: (j: Job) => Promise<void>;
@@ -593,17 +617,9 @@ if (import.meta.main) {
   if (!token) { console.error('SUPABASE_ACCESS_TOKEN is not set'); Deno.exit(2); }
   const watch = watchMinutes(Deno.args);
   let key = '';
-  const claimSql = `select id, customer_id, owner_email, source_path, file_name, mime, attempts, boq_in, why from public.fn_cad_read_claim(${MAX_JOBS})`;
   const ran = await drainUntil({
     until: Date.now() + watch * 60_000, every: 60_000,
-    claim: async (first) => {
-      if (!first && !(await sql<{ fresh: boolean }>(`select exists (select 1 from public.cad_read_jobs where status = 'queued' and attempts = 0) as fresh`))[0]?.fresh) return [];
-      const jobs = await sql<Job>(claimSql);
-      if (first || jobs.length) console.log(`claimed ${jobs.length} job(s)${first ? '' : ' (watch)'}`);
-      return jobs;
-    },
-    // a retry claimed on a watch pass goes back as it was: its next attempt is the next hourly run's
-    release: async (job) => { await sql(`update public.cad_read_jobs set status = 'queued', attempts = attempts - 1 where id = ${lit(job.id)}::uuid and status = 'running'`); },
+    ...watchDeps((q) => sql(q)),
     run: async (job) => {
       if (!key) key = await serviceKey();
       try { await runJob(job, key); } catch (e) {
