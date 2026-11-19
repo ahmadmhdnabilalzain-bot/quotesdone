@@ -76,11 +76,14 @@ async function build(browser, name, title, plan, meta, outDir) {
   return { out, documents: plan.filter((p) => p.file).length, missing: plan.filter((p) => !p.file).map((p) => p.label) };
 }
 
+// A run tag becomes one path segment and nothing else: no '..', no '/', so an upload never leaves evidence_packs/ (review of #2082).
+export const safeTag = (t) => (String(t ?? '').replace(/[^A-Za-z0-9_-]/g, '_').replace(/^_+$/, '') || 'untagged').slice(0, 80);
+
 async function upload(file, objectPath) {
   const { keys, BASE } = await import('../lib/demo_factory.mjs');
   const { SERVICE } = await keys();
   const r = await fetch(`${BASE}/storage/v1/object/evidence/${objectPath.split('/').map(encodeURIComponent).join('/')}`, {
-    method: 'POST', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/pdf', 'x-upsert': 'true' }, body: readFileSync(file) });
+    method: 'POST', headers: { apikey: SERVICE, Authorization: 'Bearer ' + SERVICE, 'Content-Type': 'application/pdf', 'x-upsert': 'true' }, body: readFileSync(file), signal: AbortSignal.timeout(60_000) });
   if (!r.ok) throw new Error(`upload ${objectPath}: HTTP ${r.status} ${(await r.text()).slice(0, 200)}`);
   return `evidence/${objectPath}`;
 }
@@ -98,7 +101,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
       const dir = join(out, d); const plan = d.startsWith('4_') ? registrationPlan(dir) : packPlan(dir);
       if (!browser) { console.log(d, plan.map((p) => `${p.label}: ${p.file ? 'present' : 'MISSING'}`).join(' | ')); continue; }
       const r = await build(browser, `evidence_pack_${d}`, `Evidence pack - ${d.replace(/^\d_/, '').replace(/_/g, ' ')}`, plan, meta, out);
-      if (argv.includes('--upload')) r.uploaded = await upload(r.out, `evidence_packs/${M.tag || 'untagged'}/${basename(r.out)}`);
+      if (argv.includes('--upload')) r.uploaded = await upload(r.out, `evidence_packs/${safeTag(M.tag)}/${basename(r.out)}`);
       done.push(r); console.log(JSON.stringify(r));
     }
   } finally { if (browser) await browser.close().catch(() => {}); }
