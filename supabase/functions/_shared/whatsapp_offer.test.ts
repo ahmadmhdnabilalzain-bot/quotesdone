@@ -3,7 +3,7 @@
 // and SQL; the yes is the model's reading (stub models below), never a keyword; the code a supplier sends from WhatsApp is 8 digits.
 import { assert, assertEquals, assertFalse } from 'jsr:@std/assert@1';
 import { carriesOffer, confirmLine, CONSENT_SYS, optinCodeIn, OUR_WHATSAPP, readConsentReply, WHATSAPP_OFFER, whatsappFact, whatsappTail, withWhatsappTail } from './whatsapp_offer.ts';
-import { FINAL_TOUCH_PHONE } from '../send_outbox/m365_lane.ts';
+import { m365FinalTouchText } from '../send_outbox/m365_lane.ts';
 
 const SQL = 'scripts/sql/every_supplier_invitation_offers_whatsapp_and_a_model_read_yes_opens_job_requests_there.sql';
 const AR_YES = '\u0646\u0639\u0645\u060c \u0623\u0631\u0633\u0644\u0648\u0647\u0627 \u0639\u0644\u0649 \u0627\u0644\u0648\u0627\u062a\u0633\u0627\u0628';
@@ -18,7 +18,8 @@ Deno.test('the offer is one sentence in code and SQL, English, no link; our numb
   assert(/WhatsApp/.test(WHATSAPP_OFFER) && /job requests/.test(WHATSAPP_OFFER));
   const company = JSON.parse(Deno.readTextFileSync('src/content/company.json'));
   assertEquals(OUR_WHATSAPP, company.phone.number);
-  assertEquals(OUR_WHATSAPP, FINAL_TOUCH_PHONE);
+  // 19 Nov 2026 (ceo): the last note no longer writes the number out; a supplier gets it only in confirmLine, after he asked
+  assertFalse(m365FinalTouchText({ company: 'Sigma Ceramics' }).includes(OUR_WHATSAPP), 'the last note carries the WhatsApp number');
 });
 
 Deno.test('the reply line: the code when one was issued, else the offer, else nothing; added once', () => {

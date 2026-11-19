@@ -25,8 +25,8 @@ import { parseJson } from './model_json.ts';
  *  fn_wa_job_request_offer() returns the same text (whatsapp_offer.test.ts compares them). */
 export const WHATSAPP_OFFER = 'Want job requests on WhatsApp too? Reply "WhatsApp" and we will send you a code to confirm your number.';
 
-/** Our WhatsApp number as written to a supplier (src/content/company.json `phone`; send_outbox/m365_lane.ts FINAL_TOUCH_PHONE is the
- *  same number, compared by the test). Plain text: no link and no tel: (ruling 1301). */
+/** Our WhatsApp number as written to a supplier who asked to confirm his number (src/content/company.json `phone`). Plain text: no
+ *  link and no tel: (ruling 1301). Never in campaign mail since 19 Nov 2026 (send_outbox/m365_lane.ts FOREIGN_PHONE). */
 export const OUR_WHATSAPP = '+1 218 316 6814';
 
 /** True when the text already carries the offer (it is never added twice). */

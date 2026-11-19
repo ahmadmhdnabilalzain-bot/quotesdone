@@ -2,7 +2,7 @@
 // from the row's kind, and a row without one (a seed, an older row) is the approved text A.
 // scripts/sql/the_invitation_ramps_on_measured_health_and_tests_its_copy.sql fixes each lead's variant and writes the kind.
 import { assert, assertEquals, assertNotEquals } from 'jsr:@std/assert@1';
-import { campaignMail, claimsBuyersExist, FINAL_TOUCH_KIND, INVITE_VARIANTS, m365CopyLint, m365FinalTouchSubject, m365FinalTouchText, m365InvitationText, m365Subject, M365_SEED_KIND, PROMISE_WE_DO_NOT_KEEP, SIGNATURE, STOP_LINE, variantOfKind } from './m365_lane.ts';
+import { campaignMail, claimsBuyersExist, FINAL_TOUCH_KIND, FOREIGN_PHONE, INVITE_VARIANTS, m365CopyLint, m365FinalTouchSubject, m365FinalTouchText, m365InvitationText, m365Subject, M365_SEED_KIND, PROMISE_WE_DO_NOT_KEEP, SIGNATURE, STOP_LINE, variantOfKind } from './m365_lane.ts';
 import { invitationHtml } from './open_tracking.ts';
 import { campaignStep, isCampaignRow } from './invite_lane.ts';
 
@@ -46,12 +46,21 @@ Deno.test('the last note to a parked lead is a nudge of kind invite_final_touch:
     for (const l of m365CopyLint({ subject, body })) assert(l.ok, `final touch ${JSON.stringify(who)}: ${l.rule}: ${l.detail}`);
     assert(!/https?:|wa\.me|www\.|\/portal/i.test(body + subject), 'the last note carries a link');
     assert(!/\b(free|join|register|commission|1,000|invitation|exclusive)\b/i.test(body + ' ' + subject), 'the last note carries an offer phrase');
-    // the WhatsApp number is plain text: no link, no tel:, no markup (founder ruling 1301, applied 16 Nov)
-    assert(body.includes('If you would rather talk on WhatsApp, our number is +1 218 316 6814.'), 'the last note lacks the plain number');
-    assert(!/tel:|<a\b|href|\]\(/i.test(body), 'the number is wrapped in a link');
+    // 19 Nov 2026 (ceo): no telephone number at all, so never the WhatsApp sender's United States number (+1 218 316 6814), in
+    // the text or its HTML twin; WhatsApp is offered by the reply-one-word line instead (invitations_go_only_to_addresses_that_were_checked.sql)
     const html = invitationHtml(body, '');
-    assert(html.includes('our number is +1 218 316 6814.') && !/<a\b|href|tel:/i.test(html), 'the HTML twin links the number or lacks it');
-    assert(body.indexOf('our number is') < body.indexOf('Best regards'), 'the number line is not before the signature');
+    for (const t of [body, html]) {
+      assert(!/\+1[\s.-]*218|2183166814|our number is/.test(t), 'the last note carries the US WhatsApp number');
+      assert(!FOREIGN_PHONE.test(t), 'the last note carries a foreign telephone number');
+      assert(!/tel:|<a\b|href|\]\(/i.test(t), 'the last note carries a link');
+    }
+    // known-bad control: the line this change removed fails the copy rules again, in either spelling of the number
+    for (const n of ['+1 218 316 6814', '+12183166814']) {
+      const bad = m365CopyLint({ subject, body: body.replace(SIGNATURE, `If you would rather talk on WhatsApp, our number is ${n}.\n\n${SIGNATURE}`) });
+      assert(bad.some((l) => !l.ok && l.rule.includes('telephone number')), 'control: a US number passed the copy rules: ' + n);
+    }
+    assert(m365CopyLint({ subject, body: body.replace(SIGNATURE, `Call us on +971 4 123 4567.\n\n${SIGNATURE}`) })
+      .every((l) => l.ok || !l.rule.includes('telephone number')), 'a UAE number is refused');
   }
   const f = campaignMail({ type: 'supplier_invite_nudge', kind: FINAL_TOUCH_KIND, body: 'Hi Sigma Ceramics team,' }, { company: 'Sigma Ceramics' });
   assertEquals(f.text, m365FinalTouchText({ company: 'Sigma Ceramics' }));

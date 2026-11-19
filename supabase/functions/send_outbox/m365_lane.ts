@@ -344,8 +344,12 @@ export function m365FinalTouchSubject(who: Who = {}): string {
   const t = tradeLabel(who.trade);
   return t ? `One last note about ${t} requests` : 'One last note from QuotesDone';
 }
-/** The company's number, written out (src/content/company.json `phone.number`; the check the_supplier_funnel_runs_itself compares them). */
-export const FINAL_TOUCH_PHONE = '+1 218 316 6814';
+// NO TELEPHONE NUMBER IN THE LAST NOTE (19 Nov 2026, ceo; scripts/sql/invitations_go_only_to_addresses_that_were_checked.sql).
+// It carried the company's WhatsApp sender, a United States number (+1), to UAE suppliers: a foreign number in a cold note from a
+// Dubai company is a reason to distrust it, and the WhatsApp sender stays as it is (ruling 863: it is not re-registered). The
+// last note asks for a reply, and the WHATSAPP_OFFER line below lets a supplier choose WhatsApp by replying one word; the number
+// reaches only a supplier who asked for it (whatsapp_offer.ts confirmLine). m365CopyLint now holds any campaign text that
+// carries a non-UAE number.
 export function m365FinalTouchText(who: Who = {}): string {
   const c = companyName(who.company); const t = tradeLabel(who.trade);
   return [
@@ -354,8 +358,6 @@ export function m365FinalTouchText(who: Who = {}): string {
       'before buyers start sending requests for quotation; each request will go only to suppliers who work in that exact trade.',
     'This is the last time I will write about it. If your company would like to receive ' + (t ? t + ' requests' : 'the requests that match your trade') +
       ", reply to this email and I will send you your company's own sign-up link.",
-    // The number as plain text, no link and no tel: (founder ruling 1301 of 27 Oct 2026, applied 16 Nov); src/content/company.json `phone`.
-    `If you would rather talk on WhatsApp, our number is ${FINAL_TOUCH_PHONE}.`,
     WHATSAPP_OFFER,   // ledger 1184/1373: job requests on WhatsApp, one reply word, no link (_shared/whatsapp_offer.ts)
     SIGNATURE,
     STOP_LINE,
@@ -448,6 +450,8 @@ const MARKER_EXEMPT = /date|closes with/;
 // The question-ending rules of invitationCopyLint belong to the stored Resend-lane copy; the founder's approved text
 // (27 Oct 2026) closes with the reply-"stop" line instead, so this lane does not apply them.
 const NOT_THIS_LANE = /question/;
+/** A telephone number with a country code other than the UAE's (+971), in any spacing: "+1 218 316 6814", "+12183166814". */
+export const FOREIGN_PHONE = /\+(?!971)\d{1,3}[\s.-]*\(?\d{2,4}\)?[\s.-]*\d{3}[\s.-]*\d{3,4}/;
 export function m365CopyLint(o: { subject: string; body: string; preheader?: string; seed?: boolean; declinedWhatsapp?: boolean }): CopyRule[] {
   const marker = o.seed ? seedMarker(o.body) : '';
   if (marker) {
@@ -463,6 +467,9 @@ export function m365CopyLint(o: { subject: string; body: string; preheader?: str
     { rule: 'the signature names no street address and no permit or licence number (founder, 27 Oct 2026)', ok: !/al[\s-]*furjan|\bNOL-|TDRA|licen[cs]e\s*(no|number)|\b1633275\b/i.test(o.body),
       detail: 'Al Furjan, a TDRA permit or a licence number found' },
     { rule: 'no HTML in a plain-text invitation', ok: !/<\/?[a-z][^>]*>/i.test(o.body), detail: 'markup found' },
+    // 19 Nov 2026 (ceo): a UAE supplier is never given a foreign telephone number in campaign mail (the last note carried +1 218)
+    { rule: 'no telephone number outside the UAE (+971) in a supplier campaign e-mail', ok: !FOREIGN_PHONE.test(o.body) && !FOREIGN_PHONE.test(o.subject),
+      detail: String((o.body + ' ' + o.subject).match(FOREIGN_PHONE)?.[0] || '') },
     // THE OFFER OF WHATSAPP (16 Nov 2026, marketing, ledger 1184/1373): every invitation and its last note carry it word for word
     { rule: 'the invitation offers job requests on WhatsApp (whatsapp_offer.ts WHATSAPP_OFFER, word for word)', ok: o.declinedWhatsapp ? !carriesOffer(o.body) : carriesOffer(o.body),
       detail: o.declinedWhatsapp ? 'he said no to WhatsApp: the offer must not be shown again' : 'the offer sentence is missing' },
