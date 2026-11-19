@@ -37,6 +37,7 @@ import { INVITATION_MAILBOX } from '../_shared/unsubscribe_mailbox.ts';
 import { untrustedBlock, untrustedMail } from '../_shared/untrusted.ts';
 import type { ThinkDeps } from '../_shared/think.ts';
 import { parseWhatsappNo, parseWhatsappYes, WHATSAPP_READING_RULE } from '../_shared/whatsapp_offer.ts';
+import { afterFailure, exhaustedWhy, isTransientModelError, type ModelRetry } from './model_retry.ts';
 
 export const READINGS = ['supplier_registration', 'supplier_account_question', 'customer', 'vendor_our_account', 'automated_notice',
   'bounce', 'founder_correspondence', 'spam_or_irrelevant', 'unclear', 'legal_or_press'] as const;
@@ -58,6 +59,11 @@ export interface MailboxDecision {
   /** The same reading said he agrees to job requests on WhatsApp (16 Nov 2026, ledger 1184): what code recorded about it, and the
    *  confirmation code the reply must carry (fn_supplier_whatsapp_optin_from_mail; null when nothing was recorded). */
   whatsapp?: { result: string; code: string | null; why?: string };
+  /** A provider failure (model_retry.ts): with `defer`, nothing was decided and the mail is read again at retry.next_at; without
+   *  it the attempts are spent and this hold carries them. */
+  retry?: ModelRetry; defer?: boolean;
+  /** Another run marked this mail triaged while this one was reading it: nothing was recorded, the mail is that run's. */
+  taken?: boolean;
 }
 /** The two tenant mailboxes this reading also reads; supplier@ is INVITATION_MAILBOX. The SQL predicate names the same two. */
 export const TENANT_READ_MAILBOXES = ['info@quotesdone.com', 'management@quotesdone.com'] as const;
@@ -217,9 +223,11 @@ export async function readSupplierMailbox(admin: Db, deps: ThinkDeps, m: Mail): 
   let reading: Reading = 'unclear', why = '', quote = '', method: MailboxDecision['method'] = 'no_model', model: string | null = null, waYes = false, waNo = false;
   let thread: ThreadItem[] = [];
   let seat: RouteSeat | null = null;
+  let retry: ModelRetry | undefined;
   if (r.reading) {
     reading = r.reading; method = 'code'; why = 'code rule ' + String(r.hard_rule) + ': not read by the model and never answered';
   } else {
+    const readStart = new Date().toISOString();
     const loaded = await loadCorrespondence(admin, m);
     if (!loaded) {
       why = 'the earlier correspondence with this address could not be read, so the mail was not read without it (ruling 1631)';
@@ -234,8 +242,26 @@ export async function readSupplierMailbox(admin: Db, deps: ThinkDeps, m: Mail): 
       const p = parseReading(res.content);
       model = res.model ?? null;
       if (p) { reading = p.reading; why = p.why; quote = p.quote; method = 'model'; seat = box ? p.seat : null; waYes = p.whatsapp_yes; waNo = p.whatsapp_no; }
-      else why = 'no model answer could be read (' + String(res.error || 'not one of the nine readings').slice(0, 120) + '), so it is held';
+      else if (isTransientModelError(res.error)) {
+        // A PROVIDER FAILURE IS NOT A READING (19 Nov 2026, inbound 2169: a 502 gateway_deadline became a final 'unclear' held for
+        // nobody). Read again later with backoff; only when the attempts are spent is it held, carrying them (model_retry.ts).
+        const f = afterFailure(m.raw, String(res.error), { receivedAt: m.created_at });
+        if (f.defer) return { reading: 'unclear', hard_rule: null, may_reply: false, method: 'no_model', thread, model, box, seat: null, retry: f.retry, defer: true,
+          why: 'no model answer (' + String(res.error).slice(0, 120) + '): read again at ' + f.retry.next_at + ' (attempt ' + f.retry.attempts + ' of the limit)' };
+        retry = f.retry; why = exhaustedWhy(f.retry);
+      } else why = 'no model answer could be read (' + String(res.error || 'not one of the nine readings').slice(0, 120) + '), so it is held';
     }
+    // TAKEN WHILE IT WAS READ (19 Nov 2026, inbound 2169 on 12 Nov). Two runs read the same mail (runs 4990816 and 4990827,
+    // started 20 s apart); fn_mailbox_reply_decide UPSERTS, so the slower run's reading (ai_cost_log 104000, 06:31:20Z) replaced
+    // the faster run's answerable one after that run had claimed the mail, and the faster run's fn_inbox_send was then refused
+    // ("read as unclear", handoff 393159): the supplier heard nothing. A reading that finishes after another run took the mail
+    // is not recorded, and neither is one when another run recorded its own reading after this one began (the window while the
+    // faster run is still classifying, before its claim). A failed check changes nothing (as before).
+    const { data: now } = await admin.from('inbound_messages').select('triaged_at').eq('id', m.id).maybeSingle()
+      .then((x: unknown) => x, () => ({ data: null })) as { data: { triaged_at?: string | null } | null };
+    const { data: prior } = await admin.from('mailbox_reply_decision').select('decided_at').eq('inbound_message_id', m.id).maybeSingle()
+      .then((x: unknown) => x, () => ({ data: null })) as { data: { decided_at?: string | null } | null };
+    if (now?.triaged_at || (prior?.decided_at && Date.parse(prior.decided_at) > Date.parse(readStart))) return { reading, hard_rule: r.hard_rule ?? null, may_reply: false, method, thread, model, box, seat, why, taken: true };
   }
   const { data: dec, error: decErr } = await admin.rpc('fn_mailbox_reply_decide', { p_inbound_id: m.id, p_reading: method === 'code' ? null : reading,
     p_why: why, p_quote: quote || null, p_method: method, p_model: model, p_effort: method === 'model' ? READING_EFFORT : null });
@@ -244,7 +270,7 @@ export async function readSupplierMailbox(admin: Db, deps: ThinkDeps, m: Mail): 
       why: why + '; the decision could not be recorded (' + String(decErr?.message ?? 'no row').slice(0, 120) + '), so nothing is sent' };
   }
   const d = dec as { reading: Reading; hard_rule: string | null; may_reply: boolean };
-  const out: MailboxDecision = { reading: d.reading, hard_rule: d.hard_rule ?? null, may_reply: d.may_reply === true, why, method, thread, model, box, seat };
+  const out: MailboxDecision = { reading: d.reading, hard_rule: d.hard_rule ?? null, may_reply: d.may_reply === true, why, method, thread, model, box, seat, ...(retry ? { retry } : {}) };
   // HIS YES TO JOB REQUESTS ON WHATSAPP (16 Nov 2026, marketing, ledger 1184/1373; _shared/whatsapp_offer.ts). The model read it in
   // this same call; code records it only for a mail it will answer (the answer carries his confirmation code), and checks the facts:
   // the sender is the lead by his exact address, our mail to him offered WhatsApp, he has not said no. A failure records nothing.

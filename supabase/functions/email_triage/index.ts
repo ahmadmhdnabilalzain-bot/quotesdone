@@ -40,6 +40,7 @@ import { timedFetch } from '../_shared/timed_fetch.ts';
 import { TRIAGE_LLM } from './triage_llm.ts';
 import { applyBackstop, backstopApplies, holdsUnread, readTriage, UNREAD_CATEGORY, UNREAD_SUMMARY } from './opt_out_backstop.ts';
 import { beat, budgetLeft, closeStaleRuns } from './run_guard.ts';
+import { retryNotDue } from './model_retry.ts';
 import { J } from '../_shared/json_response.ts';
 import { loadCaseContext, recordCaseExchange } from '../_shared/case_context.ts';
 import { emailConversation } from '../_shared/email_history.ts';
@@ -250,7 +251,13 @@ Deno.serve(observe('email_triage', async (req) => {
     // timeout here closed the run 'ok' with every count 0: the same row as a quiet inbox, while mail waited. The mail is
     // safe (nothing was taken, the next tick reads it again); the run now says the read failed, at error, so the watch
     // that reads agent_runs sees it. prevented by: email_triage/drill_triage_faults.test.ts
-    const { data: msgs, error: readErr } = await sel.order('created_at', { ascending: true }).limit(20);
+    // A mail whose reading failed at the provider waits for its next attempt (model_retry.ts): read 40, keep the 20 that are due,
+    // so a backlog of deferred mail never crowds out new mail. PostgREST cannot say "null or before now" on a jsonb path in this
+    // select's one `or`, so the wait is applied here.
+    const { data: read40, error: readErr } = await sel.order('created_at', { ascending: true }).limit(40);
+    const due = ((read40 || []) as Mail[]).filter((r) => !retryNotDue(r.raw));
+    const msgs = due.slice(0, 20);
+    if ((read40 || []).length > due.length) counts.model_retry_waiting = (read40 || []).length - due.length;
     if (readErr) {
       if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: 'error', counts: { ...counts, closed_stale_runs: closedStale },
         note: ('email_triage could not read the inbox (inbound_messages: ' + String(readErr.message) + '); no mail was taken, the next tick reads it again.').slice(0, 500) }).eq('id', run.id);
@@ -277,9 +284,17 @@ Deno.serve(observe('email_triage', async (req) => {
       // template on 9-10 Nov. Code rules first, then the model reads it at HIGH effort with the correspondence, and only a
       // supplier or a customer may be answered (supplier_mailbox_reading.ts). Not the supplier mailbox's mail: null, as before.
       const reading: MailboxDecision | null = await readSupplierMailbox(admin, deps, m);
+      // another run took the mail while it was read: nothing was recorded, it is that run's (supplier_mailbox_reading.ts)
+      if (reading?.taken) { counts.taken_by_another_run = (counts.taken_by_another_run || 0) + 1; continue; }
+      // the provider failed: no reading, no decision; the attempt is counted on the row and the mail is read again at next_at
+      if (reading?.defer && reading.retry) {
+        await admin.from('inbound_messages').update({ raw: { ...(m.raw ?? {}), model_retry: reading.retry } }).eq('id', m.id).is('triaged_at', null);
+        counts.model_retry_deferred = (counts.model_retry_deferred || 0) + 1; continue;
+      }
       if (reading && !reading.may_reply) {
         // the mark is the claim, as below: a run whose mark lands on nothing leaves the mail to the run that took it
-        const { data: tookRead } = await admin.from('inbound_messages').update({ ...declinedFields(reading), triaged_at: new Date().toISOString() })
+        const { data: tookRead } = await admin.from('inbound_messages').update({ ...declinedFields(reading), triaged_at: new Date().toISOString(),
+          ...(reading.retry ? { raw: { ...(m.raw ?? {}), model_retry: reading.retry } } : {}) })
           .eq('id', m.id).is('triaged_at', null).select('id');
         if (!tookRead?.length) { counts.taken_by_another_run = (counts.taken_by_another_run || 0) + 1; continue; }
         counts.not_answered++; counts['read_as_' + reading.reading] = (counts['read_as_' + reading.reading] || 0) + 1;
