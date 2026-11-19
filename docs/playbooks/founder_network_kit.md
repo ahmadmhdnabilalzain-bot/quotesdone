@@ -52,7 +52,9 @@ that person.
 
 **If someone says no, or asks not to be contacted again:** stop, and tell a Claude session "remove
 [name] from my network links". The session finds his code in `v_founder_network_signups` and runs
-`select public.fn_founder_network_forget('<code>');`, which deletes his name and code. Then delete his
+`select public.fn_founder_network_forget('<code>');`, which deletes his name and code from the live
+system at once. Copies already in the daily backups keep it until those copies age out: a daily copy
+after 30 days, a monthly copy after 12 months, so up to 12 months in all. Then delete his
 row from your sheet. Don't keep a note of him anywhere. (A link nobody registered through is also
 deleted automatically 90 days after it was made.)
 

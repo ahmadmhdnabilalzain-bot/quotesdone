@@ -28,6 +28,10 @@
 --      moment the founder says a person said no or asked to be removed. The duty marketing.founder_network_retention (daily,
 --      fn_marketing_founder_network_retention) deletes a link nobody registered through 90 days after it was made, and replaces
 --      the name on a registered link with 'lead <id>' after the same 90 days: by then the company speaks for itself.
+--      BACKUPS: both act on the live table only. founder_network_link is in the daily export, so a copy already taken (the
+--      bucket and Dropbox) keeps the name until fn_backup_prune_decide removes that copy: a daily copy after 30 days, a monthly
+--      copy after 12 months. A forgotten name is gone from the live system at once and from backups as they age out, up to 12
+--      months. The backup system is not changed here.
 --
 -- LIMIT, stated so nobody reads more into the view than it holds: first touch wins (src/lib/firstTouch.ts). A contact who had
 -- already opened another tagged QuotesDone link in the same browser keeps that older touch; a contact in a private window keeps
@@ -37,7 +41,7 @@
 -- Apply: node scripts/apply_sql.mjs scripts/sql/the_founder_has_a_tracked_link_for_each_supplier_he_knows.sql --apply --ddl
 -- Rollback: delete from public.seat_duty where duty = 'marketing.founder_network_retention';
 --           drop view public.v_founder_network_signups; drop function public.fn_founder_network_links(text[]);
---           drop function public.fn_founder_network_forget(text); drop function public.fn_marketing_founder_network_retention();
+--           drop function public.fn_founder_network_forget(text); drop function public.fn_marketing_founder_network_retention(integer);
 --           drop table public.founder_network_link;  (no other object reads them)
 
 set local lock_timeout = '3s';
