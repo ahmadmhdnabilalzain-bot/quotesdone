@@ -190,7 +190,7 @@ export function ChatWidget() {
   });
 
   return (
-    <div dir={rtl ? 'rtl' : 'ltr'} style={{ position: 'fixed', bottom: 18, ...side, zIndex: 50 }}>
+    <div dir={rtl ? 'rtl' : 'ltr'} style={{ position: 'fixed', bottom: 'max(18px, env(safe-area-inset-bottom))', ...side, zIndex: 50 }}>
       {open && (
         <div role="dialog" aria-label={t.title}
           style={{ width: 'min(370px, calc(100vw - 36px))', height: 'min(520px, calc(100vh - 120px))',

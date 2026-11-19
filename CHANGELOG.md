@@ -13,6 +13,9 @@ What changed on `main`, newest first, one line per merged pull request.
 - #2062 it_engineer: a phone code already typed back is never sent again by SMS (ledger 1252).
 - #2061 it_engineer: the DMARC reading names each source IP and flags an SPF-only pass (ledger 1526).
 - #2060 sales_engineer: the data copy writes UAE numbers and counts as a person reads them (ledger 1669).
+
+## 18 November 2026
+
 - #2059 it_engineer: the 18 November evening applies are in the MANIFEST and their pending notes go.
 - #2058 sales_engineer: the customer is told when his request went to suppliers without its drawing pages.
 - #2057 sales_engineer: pages withheld because a priced verdict could not be read say so, not that the document is priced.

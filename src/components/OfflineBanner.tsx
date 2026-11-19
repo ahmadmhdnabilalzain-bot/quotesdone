@@ -10,7 +10,7 @@ import { useSyncExternalStore } from 'react';
 // (as SKIP and the route-progress label), so it works even if the message files failed to load.
 const TEXT = {
   en: "You're offline — we'll retry when you're back",
-  ar: 'لا يوجد اتصال بالإنترنت — سنعيد المحاولة عند عودتك',
+  ar: 'لا يوجد اتصال بالإنترنت — سنعيد المحاولة عند عودة الاتصال',
 };
 
 function subscribe(cb: () => void) {
