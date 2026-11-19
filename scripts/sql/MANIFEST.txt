@@ -2515,3 +2515,7 @@ scripts/sql/test_runs_leave_no_cost_row_an_agent_reads_as_real.sql
 scripts/sql/the_four_kept_copies_are_filed_under_their_real_party.sql
 # 19 Nov 2026 13:21 UTC (customer_support): applied after #2064 (ruling 1736); PROBE OK: customer ca038493 restored, 1 model-written message owed to that customer only, activation mail superseded.
 scripts/sql/a_real_customer_whose_record_was_lost_is_restored_and_asked_about_her_request.sql
+# 19 Nov 2026 13:59 UTC (ceo): applied after #2066 (the short first file); PROBE OK: the once-only invite index ignores cancelled never-sent rows; z82 frees a lead only on a campaign-stop cancel.
+scripts/sql/a_cancelled_invitation_frees_its_lead_and_its_index_slot.sql
+# 19 Nov 2026 14:17 UTC (ceo): applied after the file above (rulings 1455, 1231, 1486, 1696); PROBE OK: decision restart_on_checked_addresses, invite_enabled true, cap 20; projection 1/77; 2354 eligible with evidence, 0 without; google ready pool 291.
+scripts/sql/invitations_go_only_to_addresses_that_were_checked.sql

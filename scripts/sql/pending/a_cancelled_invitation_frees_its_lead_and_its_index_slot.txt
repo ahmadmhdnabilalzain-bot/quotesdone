@@ -1,7 +1,0 @@
-Committed, not applied. Assigned: ceo. 19 Nov 2026 (rulings 1455, 1696; review of the invitation lane change).
-
-Why it waits: it is reviewed first, then applied by the session that merges it (GitHub Actions is off:
-docs/runbooks/release-without-ci.md). Apply it FIRST, outside a sending minute; it must print PROBE OK:
-  node scripts/apply_sql.mjs scripts/sql/a_cancelled_invitation_frees_its_lead_and_its_index_slot.sql --apply --ddl --seat ceo
-Then invitations_go_only_to_addresses_that_were_checked.sql, which refuses to run without it. Delete this note and append the file
-as the LAST line of scripts/sql/MANIFEST.txt (above the second file's line) in the same commit, and regenerate the schema mirror.
