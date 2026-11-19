@@ -29,6 +29,7 @@ test('the stamp keeps a tag for any open window, and the week leaves test traffi
   assert.doesNotMatch(stamp, /models_allowed|fn_e2e_run_tag_open\(/, 'the stamp asks the spend question again');
   assert.match(SQL, /r\.e2e_run_tag is null/);
   assert.match(SQL, /g\.e2e_run_tag is null/);
+  assert.equal((SQL.match(/coalesce\(g\.audience, ''\) <> 'supplier_onboard'/g) ?? []).length, 2, 'onboarding turns count as sent chat replies again');
   assert.match(SQL, /v_m := public\.fn_customer_support_reply_quality_metrics\(v_from, now\(\), v_fx\)/);
   assert.match(SQL, /where q\.week_ending = date '2026-11-18'/, 'the 18 Nov row is recomputed');
   for (const sig of ['fn_customer_support_reply_quality_metrics(timestamptz, timestamptz, boolean)', 'fn_customer_support_reply_quality_below(jsonb)',

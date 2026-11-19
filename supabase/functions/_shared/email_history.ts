@@ -16,7 +16,8 @@
 // WHOSE MAIL (personal data): rows are matched on the ONE address, by equality (whereAddress, never a pattern: address_
 // filter.ts), so no other person's mail or reply is ever read. A forged From cannot read anything out: the reply goes to the
 // From address itself (fn_inbox_send writes notifications.to_email = from_email), so whatever the model was shown is sent
-// only to the person it belongs to. A message carrying a code (a sign-in or verification code) is never shown.
+// only to the person it belongs to. A message carrying a code (a sign-in or verification code) is never shown, and a
+// link carrying a token (?t= or &t=) is shown as [link].
 // Measured 19 Nov 2026: inbound_messages.from_email and notifications.to_email carry no "Name <addr>" form and no capital.
 // A failed read thins the answer and is logged; it never costs the reply (wa_history.ts, drill D10).
 // prevented by: _shared/email_history.test.ts
@@ -33,8 +34,12 @@ const SECRET_TYPE = /otp|code|password|verif|magic_link|login/i;
 type Admin = any;
 type Item = { at: string; ours: boolean; text: string };
 
+// A SIGN-IN LINK NEVER REACHES A PROMPT (review of 36435809d, 19 Nov 2026): invitations and replies carry portal?t=<token>
+// links, and a mail of theirs can quote one. The whole link becomes [link], so the model still knows a link was there.
+export const LINK_WITH_TOKEN = /[^\s"'<>(\[]*[?&]t=[^\s"'<>)\]]*/g;
+export const redactLinks = (s: string) => s.replace(LINK_WITH_TOKEN, '[link]');
 const mailText = (subject: unknown, body: unknown) => {
-  const s = String(subject ?? '').trim(), b = String(body ?? '').trim();
+  const s = redactLinks(String(subject ?? '').trim()), b = redactLinks(String(body ?? '').trim());
   return b ? (s ? 'Subject: ' + s + '\n\n' + b : b) : '';
 };
 

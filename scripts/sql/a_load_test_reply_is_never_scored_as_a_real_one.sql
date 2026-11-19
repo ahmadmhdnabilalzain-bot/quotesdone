@@ -27,6 +27,8 @@
 --      score logged in a minute (or the minute before) that holds a canned reply: the backstop for any score written before
 --      this file, or by a road whose tag is lost again. The cost of the backstop: a real reply scored in the same minute as a
 --      load turn is not scored (it is still counted as sent). How many were left out is in the metrics (excluded_test_traffic).
+--      Supplier onboarding turns (assistant_logs audience 'supplier_onboard', stored since this PR) are not chat replies the
+--      week scores, so they are not counted as sent either (review of 36435809d).
 --      fn_customer_support_reply_quality_below(metrics) is the target rule, unchanged, so the recompute applies the same one.
 --   3. The 18 Nov row is recomputed below over its own stored window.
 -- Bodies: the live definitions of 19 Nov 2026 (pg_get_functiondef), with only the changes above.
@@ -92,6 +94,7 @@ begin
   select jsonb_build_object(
            'chat', (select count(*) from public.assistant_logs g where g.created_at >= p_from and g.created_at < p_to and g.answered
                        and (coalesce(g.message, '') like 'ZZ DEMO%') = p_fx and g.e2e_run_tag is null
+                       and coalesce(g.audience, '') <> 'supplier_onboard'   -- an onboarding turn is never scored (supplier_onboard/history.ts)
                        and not (coalesce(g.reply, '') like 'Thank you, this is a sandbox load-test reply%'
                                 or coalesce(g.reply, '') like 'شكرًا لك، هذا رد تجريبي من اختبار التحميل%')),
            'whatsapp', (select count(*) from public.wa_messages w where w.created_at >= p_from and w.created_at < p_to and w.reply is not null and coalesce(w.sent, false)
@@ -104,7 +107,7 @@ begin
            'scored', (select count(*) from public.support_reply_readability r where r.created_at >= p_from and r.created_at < p_to and r.demo = p_fx)
                        - coalesce((v_scored->>'replies')::int, 0),
            'chat', (select count(*) from public.assistant_logs g where g.created_at >= p_from and g.created_at < p_to and g.answered
-                       and (coalesce(g.message, '') like 'ZZ DEMO%') = p_fx)
+                       and (coalesce(g.message, '') like 'ZZ DEMO%') = p_fx and coalesce(g.audience, '') <> 'supplier_onboard')
                      - (v_sent->>'chat')::int)
     into v_ex;
 

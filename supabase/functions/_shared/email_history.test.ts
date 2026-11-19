@@ -1,7 +1,7 @@
 // An e-mail reply reads the whole thread with that address, and only that address's (customer_support, 19 Nov 2026;
 // ledger 1474). Until today email_triage gave the model the new mail alone. See _shared/email_history.ts.
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { EMAIL_HISTORY_ROWS, emailConversation } from './email_history.ts';
+import { EMAIL_HISTORY_ROWS, emailConversation, redactLinks } from './email_history.ts';
 import { UNANSWERED_NOTE } from './chat_history.ts';
 
 type Row = Record<string, unknown>;
@@ -88,4 +88,15 @@ Deno.test('email_triage hands the thread to both reply roads and to the case', a
   assert(src.includes('message: q, conversation: kase.past,'), 'aiReply reads the thread');
   assert(src.includes('{ conversation: kase.past }'), 'think reads the thread');
   assert(!src.includes('conversation: [],'), 'the fault handover is not handed an empty conversation');
+});
+
+Deno.test('a sign-in link with its token never reaches the model: it reads [link]', async () => {
+  const w = world();
+  w.notifications[0].body = 'Your quotes are ready: https://quotesdone.com/portal?t=zzSECRETtoken123 (valid 7 days).';
+  w.inbound_messages[2].body = 'I clicked <https://quotesdone.com/en/portal?lang=en&t=zzSECRETtoken456> and it expired.';
+  const all = (await emailConversation(fakeAdmin(w), { email: ME, beforeId: 4, party: 'customer' })).map((t) => t.text).join('\n');
+  assert(!all.includes('zzSECRET'), 'a token reached the model');
+  assert(all.includes('Your quotes are ready: [link] (valid 7 days).'));
+  assert(all.includes('I clicked <[link]> and it expired.'));
+  assertEquals(redactLinks('see https://quotesdone.com/how-it-works?ref=mail'), 'see https://quotesdone.com/how-it-works?ref=mail');
 });
