@@ -16,7 +16,8 @@ export const SUPPLIER_EXPORT = {
     trn: null, owner_date_of_birth: null, emirates_id: null, registration: 'exempt', registration_expires: null, approval: 'approved',
     approved_at: '2026-10-02T08:00:00+00:00', rejection_reason: null, terms_version: 'v16', terms_accepted_at: '2026-10-01T19:59:00+00:00',
     terms_accepted_from_ip: '192.0.2.10', documents: ['trade-licence.pdf'], listed_since: '2026-08-01T00:00:00+00:00',
-    where_we_found_the_listing: 'google_maps', whatsapp_updates: 'in', marketing_consent: null, marketing_consent_at: null, suspended: false, suspension_reason: null,
+    // whatsapp_updates is leads.whatsapp_opt: 'same' | 'other' | 'none' | null (19 Nov 2026; it held 'in', which no row stores)
+    where_we_found_the_listing: 'google_maps', whatsapp_updates: 'same', marketing_consent: null, marketing_consent_at: null, suspended: false, suspension_reason: null,
   }],
   requests: [],
   quotations: [],

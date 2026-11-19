@@ -2,7 +2,7 @@
 // A person's data copy is a document he can read (founder ledgers 1669 and 1671, 12 Nov 2026): what the builder turns
 // an export into, and what the template then draws. Every party is ZZ DEMO (./fixtures.ts).
 import { assert, assertEquals } from 'jsr:@std/assert@1';
-import { clean, dataCopyBody, dubaiDate, dubaiDateTime, fileName, knownCode, nameEmoji, words } from './document.ts';
+import { clean, dataCopyBody, phoneText, trCount, dubaiDate, dubaiDateTime, fileName, knownCode, nameEmoji, words } from './document.ts';
 import { ARABIC_CUSTOMER_EXPORT, CUSTOMER_EXPORT, SUPPLIER_EXPORT } from './fixtures.ts';
 import { renderPdf } from '../pdf_native/render.ts';
 import { pdfPages } from '../_shared/pdf_text_positions.ts';
@@ -39,7 +39,7 @@ Deno.test('a supplier copy: his company, WhatsApp with who said what, empty sect
   const t = textOf(b.blocks);
   for (const h of ['Your company', 'Your quotations', 'WhatsApp conversations', 'Messages in the portal', 'Messages we sent to your e-mail', 'Payments and refunds', 'Marketing preferences', 'Correcting or erasing your data']) assert(t.includes(h), h);
   assert(!t.includes('"Your account"'), 'no empty customer section in a supplier copy');
-  for (const line of ['Your company has not sent any quotations.', 'There are no portal messages.', 'There are no payments or refunds.', '2 more e-mail(s)']) assert(t.includes(line), line);
+  for (const line of ['Your company has not sent any quotations.', 'There are no portal messages.', 'There are no payments or refunds.', '2 more e-mails addressed to you were prepared but never sent.']) assert(t.includes(line), line);
   assert(t.includes('You · 29 July 2026 at 12:27 am'), 'who and when');
   assert(t.includes('QuotesDone · 29 July 2026 at 12:27 am'));
   assert(t.includes('Welcome to QuotesDone [waving hand]'), 'the emoji in words');
@@ -103,7 +103,7 @@ Deno.test('what the review of #1986 asked the copy to say: withheld and capped h
   assert(sup.includes('Your company documents') && sup.includes('trade-licence.pdf · Trade licence · 1 October 2026'));
   assert(sup.includes('Your privacy requests') && sup.includes('A copy of your data, asked on 1 November 2026: Completed.'));
   const cus = textOf(dataCopyBody({ exp: CUSTOMER_EXPORT, lang: 'en', role: 'customer' }).blocks);
-  assert(cus.includes('The 1 most recent of 640 are shown. To receive the rest, write to management@quotesdone.com.'));
+  assert(cus.includes('Only the most recent of 640 is shown. To receive the rest, write to management@quotesdone.com.'));
   assert(cus.includes('My number is in the file.\\n(Not delivered.)'), 'his own undelivered message is kept, marked');
   assert(cus.includes('ground-floor-plan.pdf · 5 October 2026 · Request 1042'));
   assert(cus.includes('You have not made any privacy requests before this one.'));
@@ -150,7 +150,7 @@ Deno.test('walk 4: no stored code is printed: WhatsApp updates in words, and eve
   const acct = (o: Record<string, unknown>) => textOf(dataCopyBody({ exp: { ...CUSTOMER_EXPORT,
     customer_accounts: [{ ...CUSTOMER_EXPORT.customer_accounts[0], mobile: '+971500000001', ...o }] }, lang: 'en', role: 'customer' }).blocks);
   assert(acct({ whatsapp_updates: 'same', whatsapp_number: '+971500000001' }).includes('Yes, on the same number as your mobile'));
-  assert(acct({ whatsapp_updates: 'other', whatsapp_number: '+971500000009' }).includes('Yes, on +971500000009'));
+  assert(acct({ whatsapp_updates: 'other', whatsapp_number: '+971500000009' }).includes('Yes, on +971 50 000 0009'));
   assert(acct({ whatsapp_updates: 'none' }).includes('"WhatsApp updates","No"'));
   assert(acct({ whatsapp_updates: null }).includes('"WhatsApp updates","Not answered"'));
   for (const v of ['same', 'other', 'none']) assert(!/"(Same|Other|None)"/.test(acct({ whatsapp_updates: v })), v);
@@ -165,4 +165,24 @@ Deno.test('walk 4: no stored code is printed: WhatsApp updates in words, and eve
     const t = textOf(dataCopyBody({ exp: { ...SUPPLIER_EXPORT, supplier_records: [{ ...SUPPLIER_EXPORT.supplier_records[0], where_we_found_the_listing: src }] }, lang: 'en', role: 'supplier' }).blocks);
     assert(/"Where we found the listing","(A public business directory or website|You registered the company yourself)"/.test(t), src);
   }
+});
+
+// 19 Nov 2026 (sales_engineer; founder ledger 1669 "Again, horrible."): the sample render of the ZZ DEMO supplier copy printed the
+// stored "+971500000000", "2 more e-mail(s)", "The 1 most recent of 640 are shown", and "Not answered" for WhatsApp updates
+// because the fixture held 'in', a value production never stores (leads.whatsapp_opt, 19 Nov 2026: 20,272 null, 2 other, 1 same).
+Deno.test('a person reads his numbers and counts as written: grouped UAE numbers, one or many, Arabic unchanged', () => {
+  assertEquals(phoneText('+971500000000', 'en'), '+971 50 000 0000');
+  assertEquals(phoneText('00971 4 000 0000', 'en'), '+971 4 000 0000');
+  assertEquals(phoneText('+442071234567', 'en'), '+442071234567', 'a number outside the UAE is printed as stored');
+  assertEquals(phoneText('+971500000000', 'ar'), '+971500000000', 'an Arabic line keeps one left-to-right run');
+  assertEquals(phoneText(null, 'en'), '');
+  assertEquals(trCount('en', 'not_sent', 1), 'One more e-mail addressed to you was prepared but never sent.');
+  assertEquals(trCount('en', 'not_sent', 3), '3 more e-mails addressed to you were prepared but never sent.');
+  assert(trCount('en', 'wa_withheld', 2).startsWith('2 of your numbers are also verified on other accounts'));
+  assert(trCount('en', 'wa_withheld', 1).startsWith('1 of your numbers is also verified on another account'));
+  assert(trCount('en', 'shown_of', 2, { shown: 2, total: 9 }).startsWith('The 2 most recent of 9 are shown.'));
+  assertEquals(trCount('ar', 'not_sent', 1), 'أُعدّت 1 رسالة إلكترونية أخرى باسمكم ولم تُرسل.', 'the reviewed Arabic line is unchanged');
+  const t = textOf(dataCopyBody({ exp: SUPPLIER_EXPORT, lang: 'en', role: 'supplier' }).blocks);
+  for (const s of ['+971 50 000 0000', 'Yes, on the same number as your mobile']) assert(t.includes(s), s);
+  assert(!/\+9715\d{8}|\(s\)|Not answered/.test(t), 'a stored number, an "(s)" or a wrong "Not answered" is printed');
 });
