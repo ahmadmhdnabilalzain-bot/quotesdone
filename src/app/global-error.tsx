@@ -1,11 +1,16 @@
 'use client';
 
+import { useEffect } from 'react';
+import { reportClientError } from '@/lib/clientErrorReport';
+
 // THE LAST RESORT (launch-readiness audit, 9 Nov 2026). Next.js renders this only when the root layout
 // itself throws — src/app/[locale]/error.tsx cannot catch that, because it renders inside the layout
 // that failed. It replaces the whole document, so it carries its own <html> and <body>, uses no site
 // CSS and no fonts (either may be what broke), and is bilingual on one page because the locale
 // cannot be trusted at this point. Server errors are reported by src/instrumentation.ts.
 export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  // 19 Nov 2026: a crash of the root layout is reported too (message, digest, path, user agent only).
+  useEffect(() => { reportClientError(error); }, [error]);
   const wrap: React.CSSProperties = { margin: 0, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0A1720', color: '#E8EEF2', fontFamily: 'system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif' };
   const btn: React.CSSProperties = { marginTop: 16, padding: '8px 16px', borderRadius: 8, border: 0, background: '#2BB5A6', color: '#0A1720', fontWeight: 600, cursor: 'pointer' };
   return (

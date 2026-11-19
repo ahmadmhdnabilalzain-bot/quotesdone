@@ -100,16 +100,21 @@ Deno.serve(async (req) => {
   // deno-lint-ignore no-explicit-any
   let b: any = null;
   try { b = await req.json(); } catch (_e) { return J({ error: 'bad_json' }, 400); }
-  const kind = b?.kind === 'site_report_ready' ? 'site_report_ready' : 'runtime_error';
+  // 'client_error' (19 Nov 2026, review of #2072): a crash in a visitor's browser, posted by /api/client-error from a
+  // public route. It is stored apart from 'runtime_error' and at severity 'warning', because (a) resilience_ping's
+  // siteRuntimeErrors counts kind='runtime_error' and fn_it_detect raises website_runtime_errors from that count, and
+  // (b) fn_it_detect's error_events loop (D4) skips severity info/debug/notice/warn/warning (read from the live
+  // function body 19 Nov 2026). Anonymous browser posts therefore never page the IT engineer.
+  const kind = b?.kind === 'site_report_ready' ? 'site_report_ready' : b?.kind === 'client_error' ? 'client_error' : 'runtime_error';
   const s = (v: unknown, n = 300) => (v == null ? null : String(v).slice(0, n));
   const { error } = await admin.from('error_events').insert({
     source: 'website',
     kind,
-    severity: kind === 'runtime_error' ? 'error' : 'info',
+    severity: kind === 'runtime_error' ? 'error' : kind === 'client_error' ? 'warning' : 'info',
     detail: {
       message: s(b?.message, 500), route: s(b?.route, 200), path: s(b?.path, 300),
       digest: s(b?.digest, 80), env: s(b?.env, 40), deployment: s(b?.deployment, 80),
-      render_source: s(b?.render_source, 40), reported_at: new Date().toISOString(),
+      render_source: s(b?.render_source, 40), user_agent: s(b?.user_agent, 200), reported_at: new Date().toISOString(),
     },
   });
   if (error) return J({ ok: false, error: error.message }, 500);

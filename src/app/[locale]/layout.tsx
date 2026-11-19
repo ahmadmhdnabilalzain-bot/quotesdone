@@ -11,6 +11,7 @@ import { WebAnalytics } from '@/components/WebAnalytics';
 import { ChatWidget } from '@/components/ChatWidget';
 import { RouteProgress } from '@/components/ui/route-progress';
 import { NodeField } from '@/components/NodeField';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { ldHtml, siteLd } from '@/lib/seo';
 import '../globals.css';
 
@@ -52,8 +53,11 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
 };
 
+// viewport-fit=cover (launch checklist, 19 Nov 2026): lets the page draw under the notch and the home bar on
+// iPhones; the fixed bottom elements of the portal shell pad themselves with env(safe-area-inset-*).
 export const viewport = {
   themeColor: '#0A1720',
+  viewportFit: 'cover' as const,
 };
 
 export default async function LocaleLayout(props: { children: React.ReactNode; params: Promise<{ locale: string }> }) {
@@ -80,7 +84,7 @@ export default async function LocaleLayout(props: { children: React.ReactNode; p
         <NodeField />
         {/* The top bar for route changes — the one loading system, see src/components/ui/busy.tsx. */}
         <RouteProgress label={lang === 'ar' ? 'جارٍ التحميل' : 'Loading'} />
-        <NextIntlClientProvider messages={messages}><CookieConsent />{children}<FirstTouch /><WebAnalytics /><ChatWidget /></NextIntlClientProvider>
+        <NextIntlClientProvider messages={messages}><OfflineBanner lang={lang} /><CookieConsent />{children}<FirstTouch /><WebAnalytics /><ChatWidget /></NextIntlClientProvider>
       </body>
     </html>
   );

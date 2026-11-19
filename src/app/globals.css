@@ -2450,6 +2450,21 @@
     margin-block-end: 6px;
     font-family: var(--font-head);
   }
+  /* 19 Nov 2026 (launch checklist): the four step titles on /how-we-verify are <h2> so the page has a heading
+     outline. They keep the look of the <b> they replace: the section bar and the large size are switched off. */
+  .mk .step h2 {
+    display: block;
+    margin: 0 0 6px;
+    padding-inline-start: 0;
+    font-family: var(--font-head);
+    font-size: inherit;
+    font-weight: 700;
+    line-height: inherit;
+    letter-spacing: inherit;
+  }
+  .mk .step h2::before {
+    content: none;
+  }
   .mk .step div {
     color: var(--muted);
   }
@@ -3192,4 +3207,19 @@
   .qd-seal-loop::before{animation:none !important;transform:translateX(calc(var(--dir) * 104%))}
   .qd-seal-loop > *{animation:none !important;opacity:1}
 }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   13 · 44px TAP TARGETS ON MOBILE (launch checklist, 19 Nov 2026)
+   One scoped rule each for breadcrumbs, chips and in-text anchors; nothing above 700px changes.
+   Breadcrumbs and in-text anchors keep their line box and grow only the area that takes a tap
+   (a pseudo-element, 12px above and below a ~22px line = 46px), so the text does not move. Chips are
+   boxes, so they get the 44px minimum height itself.
+   ══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 700px) {
+  .mk .crumb a { position: relative; }
+  .mk .crumb a::after { content: ''; position: absolute; inset-inline: -4px; inset-block: -12px; }
+  .mk .chips a { display: inline-flex; align-items: center; min-height: 44px; }
+  .mk :is(p, li) a:not(.btn) { position: relative; }
+  .mk :is(p, li) a:not(.btn)::after { content: ''; position: absolute; inset-inline: -2px; inset-block: -12px; }
 }

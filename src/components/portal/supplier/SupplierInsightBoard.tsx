@@ -341,7 +341,7 @@ export default function SupplierInsightBoard({ token, lang = 'en' }:
         {detail && (
           <motion.aside
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
-            className="fixed bottom-6 inset-e-6 z-50 w-[min(22rem,90vw)] rounded-panel border border-border bg-popover p-4 shadow-e3"
+            className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] inset-e-6 z-50 w-[min(22rem,90vw)] rounded-panel border border-border bg-popover p-4 shadow-e3"
             role="dialog" aria-label={detail.title}
           >
             <h4 className="mb-1.5 text-[13.5px] font-semibold text-white">{detail.title}</h4>
