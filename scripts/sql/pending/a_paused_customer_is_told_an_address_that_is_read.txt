@@ -1,7 +1,0 @@
-Committed, not applied. Assigned: customer_support. 19 Nov 2026.
-
-Why it waits: it is applied at merge by the session that merges it (GitHub Actions is off: docs/runbooks/release-without-ci.md).
-It changes only the address in trg_block_banned_inquiry's message to a paused customer, from an unread mailbox to
-info@quotesdone.com, the address customer_support answers. Local Postgres 16, 19 Nov 2026: PROBE OK.
-  node scripts/apply_sql.mjs scripts/sql/a_paused_customer_is_told_an_address_that_is_read.sql --apply --ddl
-then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.

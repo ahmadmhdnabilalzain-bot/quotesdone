@@ -2519,3 +2519,13 @@ scripts/sql/a_real_customer_whose_record_was_lost_is_restored_and_asked_about_he
 scripts/sql/a_cancelled_invitation_frees_its_lead_and_its_index_slot.sql
 # 19 Nov 2026 14:17 UTC (ceo): applied after the file above (rulings 1455, 1231, 1486, 1696); PROBE OK: decision restart_on_checked_addresses, invite_enabled true, cap 20; projection 1/77; 2354 eligible with evidence, 0 without; google ready pool 291.
 scripts/sql/invitations_go_only_to_addresses_that_were_checked.sql
+# 19 Nov 2026 16:04 UTC (sales_engineer): applied after #2070 (rulings 1683, 1686, 1687); PROBE OK: two quotes give no figure, open requests count for nothing, five closed comparisons give a 5-point band, an ended request refuses every supplier-side change, decision support returns quote_amount.
+scripts/sql/no_rival_price_can_be_worked_out_and_the_customer_sees_the_quoted_price.sql
+# 19 Nov 2026 16:04 UTC (customer_support): applied after #2071 (ruling 1474); PROBE OK.
+scripts/sql/a_load_test_reply_is_never_scored_as_a_real_one.sql
+# 19 Nov 2026 16:04 UTC (customer_support): applied after #2071 (ruling 1446); PROBE OK: a paused customer is told info@quotesdone.com.
+scripts/sql/a_paused_customer_is_told_an_address_that_is_read.sql
+# 19 Nov 2026 16:05 UTC (ceo): applied after #2074 (ruling 1685); PROBE OK. Its _probe.sql stays local-only.
+scripts/sql/every_seat_with_a_step_hears_of_its_event.sql
+# 19 Nov 2026 16:05 UTC (sales_engineer): applied after #2075 (ruling 1543); PROBE OK: an interested reply chased at 7 days, a later once at 30, then never; auto-replies, vendors and test replies not chased.
+scripts/sql/every_real_supplier_reply_is_chased_and_a_later_is_asked_again_later.sql
