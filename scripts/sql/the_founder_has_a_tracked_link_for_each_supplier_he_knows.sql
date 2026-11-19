@@ -23,6 +23,11 @@
 --      links. A session runs it when he sends a list of names; nothing here sends anything to anyone.
 --   3. v_founder_network_signups: each link, and the company that registered through it (licence submitted, approval). A
 --      registration with a founder tag whose code was never minted (he typed his own) is listed too, with no contact.
+--   4. ERASE AND RETENTION (review of PR #2084): the label is a third party's name, and fn_pdpl_export_data / fn_pdpl_carry_out
+--      find a person only by e-mail or phone, so they can never reach it. fn_founder_network_forget(code) deletes one row the
+--      moment the founder says a person said no or asked to be removed. The duty marketing.founder_network_retention (daily,
+--      fn_marketing_founder_network_retention) deletes a link nobody registered through 90 days after it was made, and replaces
+--      the name on a registered link with 'lead <id>' after the same 90 days: by then the company speaks for itself.
 --
 -- LIMIT, stated so nobody reads more into the view than it holds: first touch wins (src/lib/firstTouch.ts). A contact who had
 -- already opened another tagged QuotesDone link in the same browser keeps that older touch; a contact in a private window keeps
@@ -30,7 +35,9 @@
 --
 -- prevented by: the_founder_has_a_tracked_link_for_each_supplier_he_knows_probe.sql (LOCAL Postgres 16, ZZ DEMO only).
 -- Apply: node scripts/apply_sql.mjs scripts/sql/the_founder_has_a_tracked_link_for_each_supplier_he_knows.sql --apply --ddl
--- Rollback: drop view public.v_founder_network_signups; drop function public.fn_founder_network_links(text[]);
+-- Rollback: delete from public.seat_duty where duty = 'marketing.founder_network_retention';
+--           drop view public.v_founder_network_signups; drop function public.fn_founder_network_links(text[]);
+--           drop function public.fn_founder_network_forget(text); drop function public.fn_marketing_founder_network_retention();
 --           drop table public.founder_network_link;  (no other object reads them)
 
 set local lock_timeout = '3s';
@@ -58,10 +65,11 @@ on conflict (table_name) do update set exported = excluded.exported, category = 
   reason = excluded.reason, added_by = excluded.added_by;
 
 -- ── 2. minting them ────────────────────────────────────────────────────────────────────────────────────────────────────
+-- SECURITY INVOKER (review of PR #2084): only service_role calls it, and service_role holds the table already.
 create or replace function public.fn_founder_network_links(p_contacts text[])
  returns jsonb
  language plpgsql
- security definer
+ security invoker
  set search_path to 'public', 'pg_temp'
 as $fn$
 declare
@@ -122,3 +130,54 @@ comment on view public.v_founder_network_signups is
   'Each founder-network link and the company that registered through it; a founder-tagged registration with an unminted code has no contact. Read: select * from v_founder_network_signups where not is_demo order by registered_at desc nulls last, contact. Seat: marketing.';
 revoke all on public.v_founder_network_signups from anon, authenticated;
 grant select on public.v_founder_network_signups to service_role;
+
+-- ── 4. erase and retention ─────────────────────────────────────────────────────────────────────────────────────────────
+-- The person said no, or asked to be removed: his name and code go at once. A registration already made through the code is the
+-- company's own record (marketing_first_touch, leads) and is not touched; the view then lists it with no contact.
+create or replace function public.fn_founder_network_forget(p_code text)
+ returns jsonb
+ language plpgsql
+ security invoker
+ set search_path to 'public', 'pg_temp'
+as $fn$
+declare n int;
+begin
+  delete from public.founder_network_link where code = btrim(coalesce(p_code, ''));
+  get diagnostics n = row_count;
+  return jsonb_build_object('ok', n = 1, 'deleted', n,
+    'code', case when n = 1 then 'forgotten' else 'no_such_code' end);
+end $fn$;
+revoke execute on function public.fn_founder_network_forget(text) from public, anon, authenticated;
+grant execute on function public.fn_founder_network_forget(text) to service_role;
+
+-- 90 days: a link nobody registered through is deleted; a registered one keeps its code and loses the name.
+create or replace function public.fn_marketing_founder_network_retention(p_days integer default 90)
+ returns jsonb
+ language plpgsql
+ security invoker
+ set search_path to 'public', 'pg_temp'
+as $fn$
+declare v_cut timestamptz := now() - make_interval(days => greatest(coalesce(p_days, 90), 1)); v_del int; v_anon int;
+begin
+  delete from public.founder_network_link f
+   where f.created_at < v_cut
+     and not exists (select 1 from public.marketing_first_touch t where t.utm_source = 'founder' and t.utm_content = f.code);
+  get diagnostics v_del = row_count;
+  -- a ZZ DEMO label stays marked demo, so is_demo keeps it out of every real count
+  update public.founder_network_link f set contact = case when f.is_demo then 'ZZ DEMO lead ' else 'lead ' end || t.lead_id
+    from public.marketing_first_touch t
+   where t.utm_source = 'founder' and t.utm_content = f.code
+     and f.created_at < v_cut and f.contact !~ '^(ZZ DEMO )?lead [0-9]+$';
+  get diagnostics v_anon = row_count;
+  return jsonb_build_object('ok', true, 'days', greatest(coalesce(p_days, 90), 1), 'deleted_unregistered', v_del, 'names_removed', v_anon,
+    'left', (select count(*) from public.founder_network_link));
+end $fn$;
+revoke execute on function public.fn_marketing_founder_network_retention(integer) from public, anon, authenticated;
+grant execute on function public.fn_marketing_founder_network_retention(integer) to service_role;
+
+insert into public.seat_duty (duty, owner_seat, every, routine, what, owner_file) values
+  ('marketing.founder_network_retention', 'marketing', interval '1 day', 'fn_marketing_founder_network_retention',
+   'Deletes a founder-network link nobody registered through 90 days after it was made, and removes the name from a registered one after the same 90 days.',
+   'scripts/sql/the_founder_has_a_tracked_link_for_each_supplier_he_knows.sql')
+on conflict (duty) do update set owner_seat = excluded.owner_seat, every = excluded.every, routine = excluded.routine,
+  what = excluded.what, owner_file = excluded.owner_file;

@@ -38,10 +38,23 @@ line in each message.
 A link looks like this:
 `https://quotesdone.com/ar/supplier?utm_source=founder&utm_medium=personal&utm_campaign=founder-network&utm_content=f3a9c1e07b`
 
+**Which link to send.** For a one-to-one message or call, send the person's own link from this step.
+The CEO's weekly reading (`fn_ceo_founder_network_reading`) also prints a general link,
+`quotesdone.com/portal?join=1&utm_source=founder&utm_medium=whatsapp&utm_campaign=2026-11`. That one
+is for a post or a group, where no single person is named. Both links carry `utm_source=founder`, so
+the CEO's count includes registrations from either. Only the personal link shows the person's name in
+the view in section 5.
+
 ## 2. The WhatsApp message
 
 Send it one person at a time, not as a broadcast. Edit the first line so it sounds like you talking to
-that person. If someone says no, or asks you not to send more, stop and make a note on the sheet.
+that person.
+
+**If someone says no, or asks not to be contacted again:** stop, and tell a Claude session "remove
+[name] from my network links". The session finds his code in `v_founder_network_signups` and runs
+`select public.fn_founder_network_forget('<code>');`, which deletes his name and code. Then delete his
+row from your sheet. Don't keep a note of him anywhere. (A link nobody registered through is also
+deleted automatically 90 days after it was made.)
 
 ### English
 
@@ -65,7 +78,7 @@ that person. If someone says no, or asks you not to send more, stop and make a n
 
 ### العربية
 
-> هلا [الاسم]، شلونك؟ إن شاء الله أمورك طيبة.
+> هلا [الاسم]، شحالك؟ إن شاء الله أمورك طيبة.
 >
 > أسّست شركة اسمها QuotesDone، منصة في الإمارات يرفع فيها العميل طلبه، ويوصل الطلب للموردين اللي
 > يشتغلون في نفس المجال بس. تشوف المطلوب والكميات بدون بيانات العميل، وترسل عرض سعرك من البوابة.
@@ -104,8 +117,12 @@ WhatsApp straight after, so he has it in writing.
 
 - *"What does it cost me?"* Nothing to register for the first 1,000 suppliers, and no commission. The
   customer pays a 3% reveal fee when he chooses a supplier. One rule: if a customer pays to reveal you,
-  reply within five working days. If you stay silent, the customer is refunded and you owe that fee
-  back, plus an AED 500 administrative fee. The full rule is on the supplier page.
+  reply within 5 working days (we remind you after 3). If you stay silent, the customer gets back
+  everything he paid, and you owe the amount refunded (the 3% reveal fee), the payment processor fee on
+  it that we couldn't recover, an AED 500 administrative fee, and simple interest at 12% a year on that
+  total from the due date, never compounded. If it stays unpaid, the official fees of recovering it
+  too. New matches pause until it's settled. The full rule is on the supplier page and in the supplier
+  terms.
 - *"How much work will I get?"* "I can't promise a number. There are no requests yet. When they come,
   they go only to suppliers who confirmed that trade."
 - *"Who are the customers?"* Companies and individuals anywhere in the UAE. Every trade except food and
@@ -116,7 +133,7 @@ WhatsApp straight after, so he has it in writing.
 ### العربية
 
 1. **البداية.** "هلا [الاسم]، معاك أحمد. فاضي خمس دقايق؟ أبي أكلمك عن شي بديته، وعندي طلب صغير منك."
-2. **وش هي.** "اسمها QuotesDone. العميل في الإمارات يرفع اللي يحتاجه بالكميات، ويوصل الطلب للموردين اللي
+2. **شو هي.** "اسمها QuotesDone. العميل في الإمارات يرفع اللي يحتاجه بالكميات، ويوصل الطلب للموردين اللي
    يشتغلون في هالمجال بس. المورد يقدّم عرض سعره من البوابة، وما يعرف مين العميل إلا لما العميل يختاره."
 3. **بصراحة.** "المنصة جديدة، وطلبات العملاء ما بدت للحين. أبني جهة الموردين أول، مع ناس أعرف إن شغلهم
    زين، عشان لما تجي الطلبات يكون فيه أحد زين أوصّلها له."
@@ -126,11 +143,14 @@ WhatsApp straight after, so he has it in writing.
 **إذا سأل**
 
 - *"كم يكلّفني؟"* التسجيل مجاني لأول ألف مورد، وما في عمولة. العميل يدفع رسوم كشف بنسبة 3% لما يختار
-  المورد. وفي شرط واحد: إذا دفع العميل عشان يكشف بياناتك، ترد عليه خلال خمسة أيام عمل. وإذا ما رديت،
-  ترجع فلوس العميل له، وتتحمّل أنت هالرسوم ومعها رسوم إدارية 500 درهم، والشرط كامل مكتوب في صفحة الموردين.
+  المورد. وفي شرط واحد: إذا دفع العميل عشان يكشف بياناتك، ترد عليه خلال 5 أيام عمل، ونذكّرك بعد 3 أيام. وإذا ما رديت،
+  يرجع للعميل كل اللي دفعه، ويصير عليك المبلغ اللي رجع له بالضبط (رسوم الكشف 3%)، ورسوم مزوّد الدفع عليه
+  اللي ما قدرنا نستردها، ورسم إداري 500 درهم، وفائدة بسيطة 12% في السنة على هالمجموع من تاريخ الاستحقاق،
+  وما تتراكم. وإذا ظل المبلغ ما انسدّ، تنضاف عليه الرسوم الرسمية لتحصيله. وتوقف الطلبات الجديدة عنك لين
+  تسدّد. والشرط كامل مكتوب في صفحة الموردين وفي شروط الموردين.
 - *"كم شغل بيجيني؟"* "ما أقدر أوعدك برقم. للحين ما في طلبات، ولما تبدأ توصل بس للموردين اللي أكدوا هالمجال."
 - *"مين العملاء؟"* شركات وأفراد في كل الإمارات، وفي كل المجالات إلا الأغذية والمشروبات.
-- *"لازم أدفع عشان أطلع فوق؟"* لا. العروض تترتب على السعر والاكتمال ومدة التوريد، مو على اللي يدفعه المورد.
+- *"لازم أدفع عشان أطلع فوق؟"* لا. العروض تترتب على السعر والاكتمال ومدة التوريد، مب على اللي يدفعه المورد.
 
 ## 4. What he sees when he opens the link
 
