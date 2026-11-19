@@ -60,7 +60,9 @@
 -- ROLLBACK: re-apply fn_seat_exam_record and fn_it_engineer_seat_exam_tick from scripts/sql/the_company_runs_its_own_weekly_seat_exam.sql
 --   (live md5 of fn_seat_exam_record before this file: e3a0b48080a42f003c24ee4d33ff8035, identical to that file), then
 --   update seat_exam_run set missed = missed + unjudged; alter table seat_exam_run drop column unjudged.
--- prevented by: the verdict row at the end of this file (production: a SELECT only; it writes nothing and reaches no person).
+-- prevented by: the verdict row at the end of this file. Since the review of #2077 (19 Nov 2026) it also CALLS fn_seat_exam_record
+--   on ZZ DEMO rows in a sub-block that always rolls back (an unjudged answer opens no fix and asks no lesson; a judged miss
+--   does, as the control), and the tick raises never_worded:<item> for an item not worded in its last two runs.
 set local lock_timeout = '3s';
 
 -- ── 1. The count ────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -223,6 +225,22 @@ begin
                || 'the seat does not use it (retrieval or the prompt, an engineer session)',
       'evidence', jsonb_build_object('fix_id', x.id, 'fix_ref', x.fix_ref, 'lesson_written_at', x.made_at));
   end loop;
+  -- an item that could not be worded in each of its last two runs (review of #2077, 19 Nov 2026): the run-level wording
+  -- alarm fires only above half a run, so one item refused every week (seat_exam.ts refuses a wording that drops a term of
+  -- art, after one retry naming it) would otherwise go unseen. Only items asked in the last 15 days are considered.
+  for x in select a.item_id, min(a.seat) seat, max(a.asked_at) last_at
+             from (select q.item_id, q.seat, q.status, q.asked_at,
+                          row_number() over (partition by q.item_id order by q.asked_at desc) rn
+                     from public.seat_exam_asked q where q.run_tag like 'exam:%') a
+            where a.rn <= 2
+            group by a.item_id
+           having count(*) = 2 and bool_and(a.status = 'no_wording') and max(a.asked_at) > now() - interval '15 days' loop
+    v_items := v_items || jsonb_build_object('item', 'never_worded:' || x.item_id, 'owner_seat', 'it_engineer', 'subject', 'seat_exam',
+      'title', 'Exam item ' || x.item_id || ' (' || x.seat || ') could not be worded in either of its last two runs: the reworder keeps '
+               || 'dropping a term of art of the question, or the wording step fails for it (an engineer session)',
+      'evidence', jsonb_build_object('item_id', x.item_id, 'last_asked_at', x.last_at,
+                                     'look_at', 'seat_exam.ts termsOfArt and ai_cost_log fn knowledge_exam task routine_employee_reasoning'));
+  end loop;
   return jsonb_build_object('action', v_action, 'week', v_week, 'run', (select to_jsonb(s) - 'planned' from public.seat_exam_run s where s.week = v_week),
                             'settle', public.fn_it_duty_settle('seat_exam', v_items));
 end $fn$;
@@ -239,6 +257,35 @@ update public.seat_exam_run r
                count(*) filter (where a.status = 'answered' and not a.pass and a.graded_by = 'code')::int unjudged
           from public.seat_exam_asked a group by a.run_tag) c
  where c.run_tag = r.run_tag and (r.missed, r.unjudged) is distinct from (c.missed, c.unjudged);
+
+-- ── PROBE, EXECUTED (review of #2077): the routine is CALLED on ZZ DEMO rows inside a sub-block that is always rolled
+-- back, and its verdict is carried out of the rollback in the error message. An unjudged answer must open no fix and ask
+-- no lesson; a judged miss in the same demo run must open one (the control, so a pass cannot come from a routine that never
+-- opens a fix). The demo run's week (1999-01-03) and item ids (zz-demo-*) reach no real row; nothing is left behind.
+do $probe$
+declare v_run bigint; u jsonb; m jsonb; v_unj int; v_missed int; v_fixes int;
+begin
+  begin
+    insert into public.seat_exam_run (week, run_tag, planned, cap_aed, status)
+    values (date '1999-01-03', 'exam:zz-demo-probe',
+            '[{"item_id":"zz-demo-unjudged","seat":"accountant"},{"item_id":"zz-demo-judged","seat":"accountant"}]'::jsonb, 0, 'open')
+    returning id into v_run;
+    u := public.fn_seat_exam_record(v_run, 'zz-demo-unjudged', 'accountant', 'ZZ DEMO is the probe unjudged?', 'ZZ DEMO the same in other words',
+                                    'openai/gpt-6-luna-pro', 'answered', false, 'code', array['ZZ DEMO fact']);
+    m := public.fn_seat_exam_record(v_run, 'zz-demo-judged', 'accountant', 'ZZ DEMO is the probe judged?', 'ZZ DEMO a wrong answer',
+                                    'openai/gpt-6-luna-pro', 'answered', false, 'model', array['ZZ DEMO fact']);
+    select unjudged, missed into v_unj, v_missed from public.seat_exam_run where id = v_run;
+    select count(*) into v_fixes from public.seat_exam_fix where item_id = 'zz-demo-unjudged';
+    raise exception 'QDPROBE:%', case
+      when coalesce((u->>'lesson_needed')::boolean, true) then 'an unjudged answer asked for a lesson'
+      when u->>'fix_id' is not null or v_fixes <> 0 then 'an unjudged answer opened a fix'
+      when m->>'fix_id' is null or not coalesce((m->>'lesson_needed')::boolean, false) then 'control: a judged miss opened no fix'
+      when v_unj <> 1 or v_missed <> 1 then format('the demo run counted unjudged %s and missed %s (want 1 and 1)', v_unj, v_missed)
+      else 'OK' end;
+  exception when others then
+    perform set_config('qd.probe_unjudged', case when sqlerrm like 'QDPROBE:%' then substr(sqlerrm, 9) else 'error: ' || sqlerrm end, true);
+  end;
+end $probe$;
 
 -- ── PROBE: a verdict row, never a raise (this file holds DDL) ───────────────────────────────────────────────────────
 with item as (select i.seat, i.item_id, unnest(i.expected_facts) fact, i.expected_entry_ids ids
@@ -262,6 +309,10 @@ chk as (
          (select count(*) from public.seat_exam_asked where run_tag = 'exam:2026-11-15') asks,
          (select unjudged from public.seat_exam_run where run_tag = 'exam:2026-11-15') run1_unjudged,
          (select missed from public.seat_exam_run where run_tag = 'exam:2026-11-15') run1_missed,
+         current_setting('qd.probe_unjudged', true) executed,
+         (select count(*) from public.seat_exam_run where run_tag = 'exam:zz-demo-probe')
+           + (select count(*) from public.seat_exam_asked where item_id like 'zz-demo-%')
+           + (select count(*) from public.seat_exam_fix where item_id like 'zz-demo-%') leftover,
          exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'seat_exam_run' and column_name = 'unjudged') col,
          (select prosrc from pg_proc where oid = 'public.fn_seat_exam_record(bigint,text,text,text,text,text,text,boolean,text,text[])'::regprocedure) rec_src,
          (select prosrc from pg_proc where oid = 'public.fn_it_engineer_seat_exam_tick()'::regprocedure) tick_src,
@@ -270,15 +321,19 @@ chk as (
             from unnest(array['anon', 'authenticated']) r) open_to_clients)
 select case
   when not col then 'PROBE FAILED: seat_exam_run.unjudged is missing'
+  when coalesce(executed, '') <> 'OK' then 'PROBE FAILED: fn_seat_exam_record, called on ZZ DEMO rows: ' || coalesce(executed, 'the executed check did not run')
+  when leftover <> 0 then 'PROBE FAILED: the executed check left ' || leftover || ' ZZ DEMO row(s) behind'
   when asks <> 18 then 'PROBE FAILED: run exam:2026-11-15 holds ' || asks || ' asks, measured 18 (this file must not change them)'
   when n_facts <> 24 then 'PROBE FAILED: the 18 items of run 1 carry ' || n_facts || ' expected facts, measured 24'
   when unknown is not null then 'PROBE FAILED: an expected fact is not in the seat''s live store row it names: ' || unknown
   when position('p_graded_by = ''code''' in rec_src) = 0 or position('unjudged = unjudged +' in rec_src) = 0
     then 'PROBE FAILED: fn_seat_exam_record does not set an unjudged answer apart'
+  when position('''never_worded:'' || x.item_id' in tick_src) = 0 then 'PROBE FAILED: fn_it_engineer_seat_exam_tick does not raise the per-item never_worded finding'
   when position('''judge:'' || x.week' in tick_src) = 0 or position('a.graded_by <> ''code''' in tick_src) = 0
     then 'PROBE FAILED: fn_it_engineer_seat_exam_tick does not raise the judge finding or still counts an unjudged re-ask'
   when run1_unjudged <> 17 or run1_missed <> 0 then 'PROBE FAILED: run 1 recount reads missed ' || run1_missed || ', unjudged ' || run1_unjudged || ' (measured 0 and 17)'
   when open_to_clients then 'PROBE FAILED: anon or authenticated can execute a routine of this file'
-  else 'PROBE OK: 24 of 24 expected facts of run 1 are in the seats'' live stores; run 1 reads 0 judged misses and 17 unjudged'
+  else 'PROBE OK: 24 of 24 expected facts of run 1 are in the seats'' live stores; run 1 reads 0 judged misses and 17 unjudged; '
+       || 'called on ZZ DEMO rows, an unjudged answer opened no fix and asked no lesson while a judged miss opened one'
 end as verdict
 from chk;

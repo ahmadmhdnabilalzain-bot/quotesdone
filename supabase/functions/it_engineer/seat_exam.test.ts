@@ -153,3 +153,45 @@ Deno.test('the terms of art of the other run-1 questions are found, and their ru
   ];
   for (const [q, w] of kept) assertEquals(parseWording(JSON.stringify({ wording: w }), { q_en: q, used_wordings: [] }), w, q);
 });
+
+// ── review of #2077 (19 Nov 2026) ───────────────────────────────────────────────────────────────────────────────────────
+const DROPS = JSON.stringify({ wording: 'Which strategic capabilities is QuotesDone realistically able to develop earliest?' });
+const KEEPS = JSON.stringify({ wording: 'Of the strategic powers, which could QuotesDone realistically establish earliest?' });
+
+Deno.test('a wording that drops a term of art is asked for again once, naming the dropped terms', async () => {
+  const inputs: string[] = [];
+  const replies = [DROPS, KEEPS];
+  const { d, rows } = deps({ queue: [CEO09], reword: async (_s, input) => { inputs.push(input); return { content: replies.shift()!, error: null }; },
+    answer: async () => ({ status: 'answered', answer: 'Counter-positioning first.', model: 'openai/gpt-6-luna-pro', reason: null }) });
+  const r = await runExamBatch(d, 7);
+  assertEquals(inputs.length, 2);
+  assertEquals(JSON.parse(inputs[0]).dropped_last_time, undefined);
+  assertEquals(JSON.parse(inputs[1]).dropped_last_time, ['strategic powers']);
+  assert(REWORD_SYSTEM.includes('DROPPED_LAST_TIME'));
+  assertEquals([r.asked, r.passed, r.no_wording, rows[0].wording], [1, 1, 0, JSON.parse(KEEPS).wording]);
+});
+
+Deno.test('the batch records a twice-refused wording as no_wording: nothing is asked, no fix, no lesson', async () => {
+  let rewords = 0, answered = 0;
+  const { d, rows, lessons } = deps({ queue: [CEO09], reword: async () => { rewords++; return { content: DROPS, error: null }; },
+    answer: async () => { answered++; return { status: 'answered', answer: 'x', model: 'stub', reason: null }; } });
+  const r = await runExamBatch(d, 7);
+  assertEquals([rewords, answered, r.asked, r.no_wording, r.missed, r.unjudged], [2, 0, 1, 1, 0, 0]);
+  assertEquals([rows[0].status, rows[0].wording, rows[0].pass], ['no_wording', '', false]);
+  assertEquals(lessons, []);
+  // an outage (no reply) is not asked again: only a wording that dropped a term is
+  let outage = 0;
+  const o = deps({ reword: async () => { outage++; return { content: null, error: 'gateway 503' }; } });
+  await runExamBatch(o.d, 7);
+  assertEquals(outage, 1);
+});
+
+Deno.test('the batch counts an unjudged answer apart from a judged miss', async () => {
+  const unj = deps({ answer: async () => ({ status: 'answered', answer: 'Paying by card adds nothing.', model: null, reason: null }) });
+  const a = await runExamBatch(unj.d, 7);
+  assertEquals([a.unjudged, a.missed, a.passed], [1, 0, 0]);
+  const judged = deps({ answer: async () => ({ status: 'answered', answer: 'A small card fee is added.', model: 'stub', reason: null }),
+    judge: async () => ({ content: JSON.stringify({ facts: ITEM.expected_facts.map((fact) => ({ fact, present: false })) }), error: null }) });
+  const b = await runExamBatch(judged.d, 7);
+  assertEquals([b.unjudged, b.missed], [0, 1]);
+});

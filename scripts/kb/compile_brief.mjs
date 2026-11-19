@@ -170,17 +170,25 @@ export function seatCard(seat, pack = JSON.parse(readFileSync(join(ROOT, 'knowle
   const own = pack.entries.filter(isOwnEntry);
   const seen = new Set();
   const cands = [];
-  own.forEach((e, ei) => cardSentences(e.body_en).map((t, si) => ({ t, si, d: /\d/.test(t) ? 0 : 1 })).sort((a, b) => a.d - b.d || a.si - b.si).forEach(({ t, si }, rank) => {
-    if (seen.has(t.toLowerCase())) return;
-    seen.add(t.toLowerCase());
-    cands.push({ ei, si, line: `- ${t} [${e.id}]`, pri: rank });
-  }));
+  own.forEach((e, ei) => {
+    const all = cardSentences(e.body_en);
+    // a lead-in (a line ending in a colon) and the list lines that follow it ("- ...", "1. ...")
+    const items = (si) => { const out = []; for (let k = si + 1; k < all.length && /^(?:- |\d+\. )/.test(all[k]); k++) out.push(k); return out; };
+    all.map((t, si) => ({ t, si, d: /\d/.test(t) ? 0 : 1 })).sort((a, b) => a.d - b.d || a.si - b.si).forEach(({ t, si }, rank) => {
+      if (seen.has(t.toLowerCase())) return;
+      seen.add(t.toLowerCase());
+      cands.push({ ei, si, line: `- ${t} [${e.id}]`, pri: rank, items: t.endsWith(':') ? items(si) : null });
+    });
+  });
   const head = `# ${seat}: operating facts from its own verified pack (internal; settled, they override any SOURCE)\n`;
   let n = head.length;
   // Round-robin: every entry's first line before any entry's second, so a long entry cannot crowd out a short one.
   const keep = cands.slice().sort((a, b) => a.pri - b.pri || a.ei - b.ei || a.si - b.si)
     .filter((c) => (n + c.line.length + 1 <= CARD_BUDGET ? ((n += c.line.length + 1), true) : false))
-    .sort((a, b) => a.ei - b.ei || a.si - b.si);
+    .sort((a, b) => a.ei - b.ei || a.si - b.si)
+    // A LEAD-IN NEVER STANDS WITHOUT ITS LIST (it_engineer, 19 Nov 2026, review of #2077): the customer_support card carried
+    // "Cumulative reveal fees to the end of August 2027, per the final summary:" with none of its four scenarios kept.
+    .filter((c, _i, kept) => !c.items || kept.some((k) => k.ei === c.ei && c.items.includes(k.si)));
   const text = keep.length ? head + keep.map((c) => c.line).join('\n') : '';
   return { text, entries: own.length, lines: keep.length, dropped: cands.length - keep.length };
 }

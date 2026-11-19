@@ -133,11 +133,19 @@ export const REWORD_SYSTEM = 'You write exam questions for the staff of QuotesDo
   + 'Keep every term of art exactly as the QUESTION writes it, never a synonym: named laws, decrees and standards, product, '
   + 'company and role terms, framework terms (strategic powers, the job a buyer is hiring a product to do, share of voice), '
   + 'numbers, identifiers and named rulings; every phrase in KEEP_VERBATIM must appear in your question unchanged. '
+  + 'DROPPED_LAST_TIME, when given, lists the terms your last question left out: this time keep them. '
   + 'English, one question. Reply with one JSON object: {"wording": "<the new question>"}.';
 
-export function rewordInput(item: Pick<ExamItem, 'q_en' | 'used_wordings'>): string {
+export function rewordInput(item: Pick<ExamItem, 'q_en' | 'used_wordings'>, droppedLastTime: string[] = []): string {
   const keep = termsOfArt(item.q_en);
-  return JSON.stringify({ question: item.q_en, ...(keep.length ? { keep_verbatim: keep } : {}), earlier_wordings: item.used_wordings.slice(-12) });
+  return JSON.stringify({ question: item.q_en, ...(keep.length ? { keep_verbatim: keep } : {}),
+    ...(droppedLastTime.length ? { dropped_last_time: droppedLastTime } : {}), earlier_wordings: item.used_wordings.slice(-12) });
+}
+
+/** The terms of art a fresh wording in the model's reply left out ([] when there is no fresh wording to judge). */
+export function droppedFromReply(content: string | null, item: Pick<ExamItem, 'q_en' | 'used_wordings'>): string[] {
+  const w = String(parseJson<{ wording?: unknown }>(content)?.wording ?? '').trim();
+  return w && isFreshWording(w, item) ? droppedTerms(w, item.q_en) : [];
 }
 
 /** The wording out of the model's reply, or null when it is absent, not JSON, not fresh, or drops a term of art. */
@@ -168,7 +176,9 @@ export function parseJudge(content: string | null, facts: string[]): string[] | 
 }
 
 export type BatchResult = {
-  asked: number; passed: number; missed: number; no_wording: number; lessons: number; lesson_errors: string[];
+  // missed: judged (or not answered) and failed; unjudged: answered, missed by the exact-phrase check, given no judge verdict
+  // (fn_seat_exam_record counts it apart and opens no fix: every_seat_knows_the_facts_its_exam_asks.sql)
+  asked: number; passed: number; missed: number; unjudged: number; no_wording: number; rewords_retried: number; lessons: number; lesson_errors: string[];
   stop: string | null; items: { item_id: string; seat: string; status: string; pass: boolean; graded_by: string; missing: string[] }[];
 };
 
@@ -177,7 +187,7 @@ export async function runExamBatch(deps: ExamDeps, runId: number, o: { budgetMs?
   const t0 = deps.now();
   const budget = o.budgetMs ?? 100_000;
   const itemMs = o.itemMs ?? 45_000;
-  const out: BatchResult = { asked: 0, passed: 0, missed: 0, no_wording: 0, lessons: 0, lesson_errors: [], stop: null, items: [] };
+  const out: BatchResult = { asked: 0, passed: 0, missed: 0, unjudged: 0, no_wording: 0, rewords_retried: 0, lessons: 0, lesson_errors: [], stop: null, items: [] };
   while (out.asked < (o.max ?? 4)) {
     // An item takes up to itemMs (the wording, think()'s whole run, the judge): none is started that could not finish
     // inside the post's budget (the edge's 150 s wall kills a worker with nothing recorded). The first always starts.
@@ -188,7 +198,15 @@ export async function runExamBatch(deps: ExamDeps, runId: number, o: { budgetMs?
     if (!item) { out.stop = 'all_asked'; break; }
 
     const rw = await deps.reword(REWORD_SYSTEM, rewordInput(item));
-    const wording = parseWording(rw.content, item);
+    let wording = parseWording(rw.content, item);
+    // ONE RETRY FOR A DROPPED TERM (review of #2077, 19 Nov 2026). A wording refused only because it left out a term of art
+    // is asked for once more, naming what it dropped; an outage or a stale wording is not. Twice refused, the item is
+    // recorded no_wording, and fn_it_engineer_seat_exam_tick raises never_worded:<item> when that happens two runs in a row.
+    const dropped = wording ? [] : droppedFromReply(rw.content, item);
+    if (dropped.length) {
+      out.rewords_retried++;
+      wording = parseWording((await deps.reword(REWORD_SYSTEM, rewordInput(item, dropped))).content, item);
+    }
     let row: AskRow;
     if (!wording) {
       // The question was not put: an outage of the wording step is recorded as such and opens no fix (it is not a
@@ -215,7 +233,9 @@ export async function runExamBatch(deps: ExamDeps, runId: number, o: { budgetMs?
     const rec = await deps.record(row);
     if (rec.error) { out.stop = 'record_failed: ' + rec.error; break; }
     out.asked++;
-    if (row.pass) out.passed++; else if (row.status !== 'no_wording') out.missed++;
+    if (row.pass) out.passed++;
+    else if (row.status === 'answered' && row.graded_by === 'code') out.unjudged++;
+    else if (row.status !== 'no_wording') out.missed++;
     if (rec.lesson_needed && rec.fix_id) {
       const l = await deps.lesson(rec.fix_id);
       if (l.knowledge_id) out.lessons++; else out.lesson_errors.push(`${item.item_id}: ${l.error ?? 'no row'}`);

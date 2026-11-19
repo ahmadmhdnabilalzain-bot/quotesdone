@@ -62,6 +62,22 @@ test('a rule and its exception are one card line: the customer_support card keep
     ['Refunds run every 15 minutes. Unless the founder pauses them, the run is automatic.']);
 });
 
+// A LEAD-IN NEVER STANDS WITHOUT ITS LIST (it_engineer, 19 Nov 2026, review of #2077). The customer_support card carried
+// "Cumulative reveal fees to the end of August 2027, per the final summary:" with none of the four scenarios under it.
+test('a lead-in line ending in a colon is on a card only with at least one item of its list', () => {
+  for (const s of SEATS) {
+    const lines = seatCard(s).text.split('\n').slice(1);
+    lines.forEach((l, i) => {
+      const m = l.match(/^- (.+): \[([^\]]+)\]$/);
+      if (!m) return;
+      const next = lines[i + 1] ?? '';
+      assert.ok(next.endsWith(`[${m[2]}]`) && /^- (?:- |\d+\. )/.test(next), `${s}: a lead-in with no item under it: ${l}`);
+    });
+  }
+  const pack = { entries: [{ id: 'x:1', kind: 'company', body_en: 'Fees to August 2027, per the final summary:\n- Conservative: about AED 50,000.\n- Base: about AED 245,000.' }] };
+  assert.deepEqual(seatCard('x', pack).text.split('\n').slice(1), ['- Fees to August 2027, per the final summary: [x:1]', '- - Conservative: about AED 50,000. [x:1]', '- - Base: about AED 245,000. [x:1]']);
+});
+
 test('the external brief carries no card; only SEAT_CARDS does', () => {
   const mod = renderModule(compileBrief());
   const ext = JSON.parse(mod.match(/export const SEAT_FACTS_EXTERNAL: string = (".*");\n/)[1]);

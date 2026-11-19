@@ -426,6 +426,7 @@ Deno.serve(async (req) => {
     // id until every planned item is asked. The database chooses the items and holds the week's AED cap; this asks.
     if (action === 'seat_exam') {
       const runId = Number(body.run_id);
+      const postAt = Date.now();
       if (!Number.isInteger(runId) || runId <= 0) return J({ error: 'run_id_required' }, 400);
       const { runExamBatch } = await import('./seat_exam.ts');
       const { think, defaultDeps } = await import('../_shared/think.ts');
@@ -447,10 +448,12 @@ Deno.serve(async (req) => {
         judge: calls.judge,
         answer: async (seat, wording, itemId) => {
           try {
-            // think()'s own run deadline (95 s) leaves the wording and the judge (20 s each at most) inside the edge's 150 s wall
+            // think()'s own run deadline (95 s) leaves the wording and the judge (20 s each at most) inside the edge's 150 s wall;
+            // a second wording (a dropped term, 19 Nov 2026) takes up to 20 s more, so think() never runs past 123 s into the post
+            // (the judge and the record still fit before 150 s)
             const r = await think(live as never, { seat: seat as never, surface: 'think.answer', question: wording,
               context: { audience: 'internal' } as never, subject: { seat_exam_item: itemId } as never,
-              internalDuty: true, queueWhenHeld: false, deadlineAt: Date.now() + 95_000 } as never) as { status: string; answer?: string; model?: string | null; reason?: string | null };
+              internalDuty: true, queueWhenHeld: false, deadlineAt: Math.min(Date.now() + 95_000, postAt + 123_000) } as never) as { status: string; answer?: string; model?: string | null; reason?: string | null };
             return { status: r.status, answer: r.answer ?? '', model: r.model ?? null, reason: r.reason ?? null };
           } catch (e) { return { status: 'error', answer: '', model: null, reason: (e as Error).message }; }
         },
@@ -477,7 +480,7 @@ Deno.serve(async (req) => {
       // a batch that could not read or record is a failed post (502): the duty counts it and closes the run after three
       const broken = !!(result.stop?.startsWith('record_failed') || result.stop?.startsWith('next_failed'));
       await run('seat_exam', broken ? 'error' : 'ok',
-        { run_id: runId, asked: result.asked, passed: result.passed, missed: result.missed, no_wording: result.no_wording,
+        { run_id: runId, asked: result.asked, passed: result.passed, missed: result.missed, unjudged: result.unjudged, no_wording: result.no_wording, rewords_retried: result.rewords_retried,
           lessons: result.lessons, stop: result.stop });
       return J({ ok: !broken, seat: 'it_engineer', run_id: runId, ...result }, broken ? 502 : 200);
     }

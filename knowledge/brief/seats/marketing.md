@@ -30,7 +30,6 @@
 - The seat explains the fee plainly to every buyer, and directs paid effort to the categories where the fee can repay acquisition (see the category priority entry). [marketing:company-pricing-message]
 - The founder withdrew the AED 1M target; the plan model of 23 Sep 2026 is kept as the evidence base and read as scenarios. [marketing:company-plan-scenarios]
 - Cumulative reveal fees to 31 Aug 2027: conservative about AED 50k, base about AED 245k, stretch about AED 857k; most likely band AED 100-400k. [marketing:company-plan-scenarios]
-- What the plan tells marketing: [marketing:company-plan-scenarios]
 - Reaching the high scenario on paid media alone would take roughly AED 613,000 of media a month. [marketing:company-plan-scenarios]
 - At benchmark costs no platform pays back on a household buyer's first reveal; paid only works through repeat business buyers and high-fee categories. [marketing:company-plan-scenarios]
 - Organic must be search-led. [marketing:company-plan-scenarios]
