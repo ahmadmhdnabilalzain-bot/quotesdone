@@ -91,6 +91,17 @@ test('the agent brief is data only, so its URLs are citations, not calls', () =>
   assert.ok(!isDataOnly('export const BRIEF_TEXT = "x" + await fetch("https://evil.example/");'), 'an expression is not a literal');
 });
 
+// THE SKIP ABOVE HOLDS ONLY WHILE NOTHING SHIPPED IMPORTS A TEST FILE (review of #2088, 23 Nov 2026). A runtime file that imported
+// a *.check.* or *.test.* file would carry its hosts into production unscanned, so no non-test file may import one.
+test('no shipped file imports a *.check.* or *.test.* file (so the scan may skip them)', () => {
+  const IMPORT_TEST = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"][^'"]*\.(?:check|test)\.[a-z]+['"]/;
+  const offenders = [];
+  for (const root of ['supabase/functions', 'src']) for (const p of walk(join(REPO, root))) {
+    if (IMPORT_TEST.test(strip(readFileSync(p, 'utf8')))) offenders.push(p.slice(REPO.length));
+  }
+  assert.deepEqual(offenders, [], 'a shipped file imports a test file; its hosts would reach production unscanned');
+});
+
 test('every external host called by code is in the registry', () => {
   assert.deepEqual(missing(hosts, (k) => knownHosts.has(k)), [], 'add each host to an integration (or to not_integrations with why)');
 });
