@@ -6,10 +6,11 @@
 import { interviewStep, orderFields, questionText, buildBrief } from './interview.ts';
 import { adviseUnknown, packFields, withUniversal, universalAnswers, type TradeContext } from '../_shared/inquiry_trades.ts';
 import type { InquiryState } from '../_shared/inquiry_state.ts';
+import { firstAsk, unreadLead, type PhotoRead } from '../_shared/photo_reading.ts';
 
 export function interviewWithoutModel(c: { ar: boolean; draft: any; tradeCtx: TradeContext | null; topicsNow: string[]; st: InquiryState | null; emirate: string | null;
-  unknownNow: Record<string, string>; category: string | null; checklist: any[]; text: string; allText: string; askOrder: Record<string, number>; turns: any[]; catLabel: string }) {
-  const { ar, draft, tradeCtx, topicsNow, st, emirate, unknownNow, category, checklist, text, allText, askOrder, turns, catLabel } = c;
+  unknownNow: Record<string, string>; category: string | null; checklist: any[]; text: string; allText: string; askOrder: Record<string, number>; turns: any[]; catLabel: string; photoReads: PhotoRead[] }) {
+  const { ar, draft, tradeCtx, topicsNow, st, emirate, unknownNow, category, checklist, text, allText, askOrder, turns, catLabel, photoReads } = c;
   let out: any = null;
   let interview: { details: Record<string, string>; asked_key: string | null } | null = null;
   let nextQuestion: { key: string | null; text: string; options: string[] | null; suggested?: string | null } | null = null;
@@ -47,9 +48,11 @@ export function interviewWithoutModel(c: { ar: boolean; draft: any; tradeCtx: Tr
   readinessFields = step ? step.readiness : null;
   const remaining = step ? orderFields(checklist, askOrder).filter((o) => o.f.required && !(o.key in step.details)).map((o) => questionText(o.f, lang)) : [];
   const missingReq = remaining.slice(0, 3);
-  const plainAsk = ar
-    ? 'صِف لنا العمل بأسلوبك: ما الذي تريد إنجازه، وفي أي نوع من المواقع، وما حجمه تقريبًا. وإن كانت لديك صورة أو مخطط فأرفقه، وسنستخلص منه التفاصيل نيابةً عنك.'
-    : 'Tell me in your own words what you need done — what the job is, what kind of space it is in, and roughly how big. If you have a photo or a drawing, attach it and I will read the details off it for you instead of asking.';
+  // THE FIRST ASK SAYS ONLY WHAT IS TRUE (19 Nov 2026, ruling 1200; _shared/photo_reading.ts firstAsk). It promised every
+  // customer "attach it and I will read the details off it for you instead of asking", and no photo was ever read. Now: a photo
+  // read this turn is asked about (its open questions); one that could not be read is said so; with none, a photo or a drawing
+  // is welcome, and we say if we cannot read it.
+  const plainAsk = firstAsk(photoReads, lang);
   const firstUser = String(turns.find((t: any) => t.role === 'user')?.text || allText);
   const score = step && step.readiness.required ? Math.round(100 * step.readiness.filled / step.readiness.required) : 10;
   const provenanceStated = step ? Object.fromEntries(Object.keys(step.details).map((k) => [k, 'stated'])) : {};
@@ -59,9 +62,9 @@ export function interviewWithoutModel(c: { ar: boolean; draft: any; tradeCtx: Tr
     out = { category, status: 'needs_info', assistant_message: plainAsk, questions: [plainAsk], readiness: 10, missing: [], brief: null };
   } else if (step && !step.complete && step.next) {
     const firstTurn = !prevState.asked_key && turns.filter((t: any) => t.role === 'user').length <= 1;
-    const ack = firstTurn
+    const ack = unreadLead(photoReads, lang) + (firstTurn
       ? (ar ? 'فهمت. ' : `Got it — ${catLabel || category} work. `)
-      : (step.filled_now.length ? (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. ') : '');
+      : (step.filled_now.length ? (ar ? 'شكرًا، دوّنت ذلك. ' : 'Thanks, noted. ') : ''));
     out = { category, status: 'needs_info', assistant_message: ack + step.next.text, questions: [step.next.text], readiness: Math.min(score, 95), missing: remaining, brief: null, provenance: provenanceStated };
   } else if (step && step.complete) {
     out = { category, status: 'ready', assistant_message: ar ? 'شكرًا لك، اكتمل كل ما يحتاجه المورّدون. راجع الملخص أدناه، ثم اضغط «أرسل إلى الموردين».' : 'Thank you — that is everything suppliers need. Check the summary below and press Send to suppliers.', questions: [], readiness: 100, missing: [], provenance: provenanceStated, brief: buildBrief(String(category), step.details, allText, emirate, firstUser) };

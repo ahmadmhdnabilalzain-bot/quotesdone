@@ -154,24 +154,41 @@ export const SEATS = ['ceo', 'customer_support', 'sales_engineer', 'accountant',
 export const CARD_BUDGET = 16000;
 const CARRIES = /\d|\b(daily|weekly|monthly|hourly|quarterly|yearly|annual(ly)?|every|never|always|only|owns?|owner|approves?|approval|must|ceo|founder|accountant|it_engineer|customer_support|sales_engineer|marketing)\b/i;
 const PROVENANCE = /\s*\([^()]*\b(instr|instruction|instructions|ledger|PR|duty)\b[^()]*\)/gi;
+// A RULE TRAVELS WITH ITS EXCEPTION (it_engineer, 19 Nov 2026). Seat exam run 1 (15 Nov): customer_support-exam-10 was
+// answered "the person is not transferred" citing [brief], because the card held "there is no escalation to a human" and the
+// round-robin had dropped, two sentences later, "The only exception is a person who explicitly asks for a human on WhatsApp
+// or social media; the founder is then emailed" (rulings 17, 721, 763). A card that overrides any SOURCE then states the
+// opposite of the rule. So a sentence that opens with an exception (EXCEPTION below) is joined, as ONE line, to the sentences
+// before it in its own line of the body: the rule and its exception are kept or dropped together, never one without the other.
+const EXCEPTION = /^(?:the\s+)?(?:only\s+|one\s+)?(?:exceptions?|except|unless|however|but)\b/i;
 export const cardSentences = (body) => String(body ?? '').replace(/\r\n/g, '\n').replace(PROVENANCE, '')
-  .split(/\n+|(?<=[.;])\s+(?=[A-Z(])/).map((t) => t.replace(/\s+/g, ' ').trim()).filter((t) => t.length >= 25 && CARRIES.test(t));
+  .split(/\n+/).flatMap((para) => para.split(/(?<=[.;])\s+(?=[A-Z(])/).map((t) => t.replace(/\s+/g, ' ').trim()).filter(Boolean)
+    .reduce((units, t) => (EXCEPTION.test(t) && units.length ? [[units.join(' '), t].join(' ')] : [...units, t]), []))
+  .filter((t) => t.length >= 25 && CARRIES.test(t));
 
 export function seatCard(seat, pack = JSON.parse(readFileSync(join(ROOT, 'knowledge/seats', seat + '.json'), 'utf8'))) {
   const own = pack.entries.filter(isOwnEntry);
   const seen = new Set();
   const cands = [];
-  own.forEach((e, ei) => cardSentences(e.body_en).map((t, si) => ({ t, si, d: /\d/.test(t) ? 0 : 1 })).sort((a, b) => a.d - b.d || a.si - b.si).forEach(({ t, si }, rank) => {
-    if (seen.has(t.toLowerCase())) return;
-    seen.add(t.toLowerCase());
-    cands.push({ ei, si, line: `- ${t} [${e.id}]`, pri: rank });
-  }));
+  own.forEach((e, ei) => {
+    const all = cardSentences(e.body_en);
+    // a lead-in (a line ending in a colon) and the list lines that follow it ("- ...", "1. ...")
+    const items = (si) => { const out = []; for (let k = si + 1; k < all.length && /^(?:- |\d+\. )/.test(all[k]); k++) out.push(k); return out; };
+    all.map((t, si) => ({ t, si, d: /\d/.test(t) ? 0 : 1 })).sort((a, b) => a.d - b.d || a.si - b.si).forEach(({ t, si }, rank) => {
+      if (seen.has(t.toLowerCase())) return;
+      seen.add(t.toLowerCase());
+      cands.push({ ei, si, line: `- ${t} [${e.id}]`, pri: rank, items: t.endsWith(':') ? items(si) : null });
+    });
+  });
   const head = `# ${seat}: operating facts from its own verified pack (internal; settled, they override any SOURCE)\n`;
   let n = head.length;
   // Round-robin: every entry's first line before any entry's second, so a long entry cannot crowd out a short one.
   const keep = cands.slice().sort((a, b) => a.pri - b.pri || a.ei - b.ei || a.si - b.si)
     .filter((c) => (n + c.line.length + 1 <= CARD_BUDGET ? ((n += c.line.length + 1), true) : false))
-    .sort((a, b) => a.ei - b.ei || a.si - b.si);
+    .sort((a, b) => a.ei - b.ei || a.si - b.si)
+    // A LEAD-IN NEVER STANDS WITHOUT ITS LIST (it_engineer, 19 Nov 2026, review of #2077): the customer_support card carried
+    // "Cumulative reveal fees to the end of August 2027, per the final summary:" with none of its four scenarios kept.
+    .filter((c, _i, kept) => !c.items || kept.some((k) => k.ei === c.ei && c.items.includes(k.si)));
   const text = keep.length ? head + keep.map((c) => c.line).join('\n') : '';
   return { text, entries: own.length, lines: keep.length, dropped: cands.length - keep.length };
 }
