@@ -372,9 +372,15 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
     const xs = inWindow.map((p) => p.x).sort((u, v) => u - v), mid = xs[Math.floor(xs.length / 2)];
     for (const p of inWindow) if (Math.abs(p.x - mid) <= 0.3 / legendToM) candidates.add(p);
   }
-  let samples = 0, nestedN = 0;
+  // PAPER SPACE IS THE LAYOUT, NOT THE WORK (19 Nov 2026, sales_engineer; founder 31, 580). Measured on main 4c3af02: the
+  // bench plan's paper-space title block came out as the BOQ line "block G-TITLE-A1 | 1", and a detector symbol drawn
+  // in the layout was one more detector. A paper-space insert is set aside whenever model space holds anything; a sheet
+  // drawn only in paper space is counted as before, so it does not read empty.
+  const modelHasWork = placed.some((p) => !p.paper) || nSegs > 0;
+  let samples = 0, nestedN = 0, paperN = 0;
   for (const p of placed) {
     if (candidates.has(p)) { samples++; continue; }
+    if (p.paper && modelHasWork) { paperN += p.n; continue; }
     if (!p.paper) geo.inserts.push({ name: p.name, x: p.x, y: p.y, n: p.n, layer: p.layer, rot: p.rot, width: widthOf(p.name) });
     inserts.set(p.name, (inserts.get(p.name) ?? 0) + p.n);
     for (const [b, k] of nested(p.name)) { inserts.set(b, (inserts.get(b) ?? 0) + p.n * k); nestedN += p.n * k; }
@@ -382,6 +388,7 @@ export async function readDxf(bytes: Uint8Array, ctx: ReadContext, maxEntities =
   if (dyn.size) notes.push(`${dyn.size} dynamic block variant(s) (*U) were counted as the block they are drawn from.`);
   if (nestedN) notes.push(`${nestedN} block insert(s) nested inside other blocks were counted once per placement of their parent.`);
   if (samples) notes.push(`${samples} block insert(s) drawn as legend samples beside their descriptions were not counted.`);
+  if (paperN) notes.push(`${paperN} block insert(s) in paper space (the layout: title block, north arrow, key plan) were not counted.`);
 
   // Units.
   let toM = 1, unitName = 'm', confidence: Qty['confidence'] = 'medium';
