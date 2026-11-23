@@ -64,6 +64,7 @@ the list below that is not, move it into `archive/` and say so in the same commi
 | `LAUNCH_READINESS_PLAN.md`, `LAUNCH_STEP1_ORG_CONNECTIVITY.md` | the road to launch |
 | `release/qualification_matrix.md` | the release go/no-go standard (3 Nov 2026): severities, scenarios per flow, AI eval specs, drills, load, gaps, the dated checklist |
 | `UPGRADE_PLAN.md` | hardening and upgrade plan |
+| `playbooks/founder_network_kit.md` | the founder's kit for the suppliers he knows (19 Nov 2026, ledger 1709): WhatsApp message and call script in English and Arabic, one tracked link per person, who registered |
 | `SUPPORT_AGENT_DELIVERY_v1_2.md` | delivery report of the customer support agent v1.2 |
 | `specs_row1…row8_*.txt` | the founder's original specification rows (architecture, OS, executive UI, both portals, categories, agents, OpenRouter cost) |
 
