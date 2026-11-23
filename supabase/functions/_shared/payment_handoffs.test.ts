@@ -16,7 +16,10 @@ Deno.test('every conversation is between real seats and listed once', () => {
   const selfTalk = (h: { type: string; from: string; to: string }) => h.from === 'customer_support' && h.to === 'customer_support'
     && (h.type === 'delivery.request' || h.type === 'delivery.result' || h.type === 'complaint.due' || h.type === 'support.case_open' || h.type === 'support.human_requested'
         // a contested messaging or account decision is support's own to review on another model family (ledger 1152, #1566)
-        || h.type === 'review.requested')
+        || h.type === 'review.requested'
+        // a person's mail support could not answer is its own to answer within 24 h; past that the overdue escalation puts it
+        // to the CEO as chase or close (customer_support-a-mail-held-by-a-model-error-is-read-again, ledger 1436, #2089)
+        || h.type === 'mail.unanswered')
     // The CEO's morning five numbers (ruling 1209, #1365): its own daily reading, queued and closed like any other.
     || (h.from === 'ceo' && h.to === 'ceo' && h.type === 'report.five_numbers')
     // The sales engineer's own queue (16 Nov 2026): an event he owns that needs his action, and a comparison's open points

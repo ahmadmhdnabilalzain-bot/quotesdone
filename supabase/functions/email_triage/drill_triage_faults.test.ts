@@ -187,7 +187,8 @@ function assertHeldNotDropped(w: World, m: Row, label: string) {
   assert(ho, label + ': the mail is handed to a seat, not left triaged with no outcome');
   assertEquals(ho.p_from, 'customer_support');
   assert(String(ho.p_payload?.error || '').length > 0, label + ': the handoff carries the reason');
-  assertEquals(row.owner_role, 'ceo', label + ': and the row says who owns it now');
+  assertEquals([ho.p_to, ho.p_type], ['customer_support', 'mail.unanswered'], label + ': handed over as a mail to its owning seat, not as a review (inbound 2169, 19 Nov 2026)');
+  assertEquals(row.owner_role, 'customer_support', label + ': and the row says who owns it now');
   assert(w.held.some((h) => h.surface === 'email_triage.reply' && h.dedupe_key === 'email_reply:' + m.id), label + ': the question is filed in customer_support\'s held queue for the replay');
   assert(ownRun(w).some((r) => r.status === 'error' && Number(r.counts?.answer_failed) === 1), label + ': the run is closed at error with answer_failed 1');
 }
@@ -247,7 +248,7 @@ for (const [label, mode] of [['an empty completion', 'empty'], ['prose instead o
     const row = w.inbound.find((x) => x.id === m.id)!;
     const ho = w.handoffs.find((h) => h.p_subject_id === String(m.id));
     assert(ho && String(ho.p_payload?.error || '').length > 0, 'held with a reason');
-    assertEquals(row.owner_role, 'ceo');
+    assertEquals(row.owner_role, 'customer_support');
   });
 }
 

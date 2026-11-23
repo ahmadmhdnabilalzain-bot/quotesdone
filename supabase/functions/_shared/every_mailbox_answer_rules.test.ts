@@ -89,7 +89,11 @@ Deno.test('wiring: email_triage uses these rules, checks the founder\'s own inbo
   // the supplier mailbox reply also carries what his own instruction did (supplier_instruction.ts, not-for-me branch)
   assert(src.includes("m.lead_id ? reply1(m, 'supplier', [SEPARATE_COMPANY_FACT, instructed].filter(Boolean).join('\\n\\n'))"));
   const failed = src.slice(src.indexOf('counts.answer_failed++'), src.indexOf('for (const m of ((msgs'));
-  assert(failed.includes("rpc('fn_seat_handoff'") && failed.includes("p_to: 'ceo'"), 'a failed answer no longer reaches the ceo seat');
+  // #2089 (ledger 1436): a failed answer is handed to its owning seat as mail.unanswered with the mail's facts and a 24 h clock;
+  // past it, fn_handoff_overdue_escalate puts it to the CEO as chase or close. It must still be a live hand-over, never dropped.
+  assert(failed.includes("rpc('fn_seat_handoff'") && failed.includes('unansweredMailHandoff('), 'a failed answer no longer leaves a live hand-over');
+  const helper = src + (await Deno.readTextFile(new URL('../email_triage/unanswered_mail.ts', import.meta.url)));
+  assert(/p_type:\s*'mail\.unanswered'/.test(helper) || helper.includes("'mail.unanswered'"), 'the hand-over is not the mail.unanswered kind the CEO can chase or close');
   assert(!failed.includes('inbound_review'), 'nothing comes back to the founder (ledger 1438)');
   assert(src.includes('overDailyAnswerCap(count)'));
 });

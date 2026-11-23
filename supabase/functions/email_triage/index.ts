@@ -40,6 +40,8 @@ import { timedFetch } from '../_shared/timed_fetch.ts';
 import { TRIAGE_LLM } from './triage_llm.ts';
 import { applyBackstop, backstopApplies, holdsUnread, readTriage, UNREAD_CATEGORY, UNREAD_SUMMARY } from './opt_out_backstop.ts';
 import { beat, budgetLeft, closeStaleRuns } from './run_guard.ts';
+import { retryNotDue } from './model_retry.ts';
+import { closeUnansweredHandover, OWNER_SEAT, unansweredMailHandoff } from './unanswered_mail.ts';
 import { J } from '../_shared/json_response.ts';
 import { loadCaseContext, recordCaseExchange } from '../_shared/case_context.ts';
 import { emailConversation } from '../_shared/email_history.ts';
@@ -195,6 +197,8 @@ async function answer(m: Mail, deps: ThinkDeps, audience: 'customer' | 'supplier
     }
     const { data: sent, error } = await admin.rpc('fn_inbox_send', { p_id: m.id, p_body: text, p_by: 'customer_support' });
     if (error || (sent as { error?: string } | null)?.error) throw new Error('fn_inbox_send: ' + (error?.message ?? (sent as { error?: string }).error));
+    // an earlier failed answer's hand-over is complete now that one went (unanswered_mail.ts)
+    await closeUnansweredHandover(admin, m.id, 'email_triage');
     // the reply that went carried the ticket: that is the acknowledgement on this channel (complaint_register.ts)
     await acknowledgeIfCarried((fn, args) => deps.rpc(fn, args), ticket, text, 'e-mail reply carried the ticket');
     // the case summary after the reply that went (runs past the response; never awaited)
@@ -250,7 +254,13 @@ Deno.serve(observe('email_triage', async (req) => {
     // timeout here closed the run 'ok' with every count 0: the same row as a quiet inbox, while mail waited. The mail is
     // safe (nothing was taken, the next tick reads it again); the run now says the read failed, at error, so the watch
     // that reads agent_runs sees it. prevented by: email_triage/drill_triage_faults.test.ts
-    const { data: msgs, error: readErr } = await sel.order('created_at', { ascending: true }).limit(20);
+    // A mail whose reading failed at the provider waits for its next attempt (model_retry.ts). The wait is in the QUERY (review of
+    // #2089, 23 Nov 2026): a second `or` (PostgREST ANDs its logic params), so mail not yet due never takes one of the 20 slots and a
+    // backlog of deferred mail cannot hold new mail back. next_at is an ISO string written by toISOString, so text order is time
+    // order. The filter after the read stays as a guard.
+    sel = sel.or('raw->model_retry->>next_at.is.null,raw->model_retry->>next_at.lte."' + new Date().toISOString() + '"');
+    const { data: read20, error: readErr } = await sel.order('created_at', { ascending: true }).limit(20);
+    const msgs = ((read20 || []) as Mail[]).filter((r) => !retryNotDue(r.raw));
     if (readErr) {
       if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: 'error', counts: { ...counts, closed_stale_runs: closedStale },
         note: ('email_triage could not read the inbox (inbound_messages: ' + String(readErr.message) + '); no mail was taken, the next tick reads it again.').slice(0, 500) }).eq('id', run.id);
@@ -261,11 +271,14 @@ Deno.serve(observe('email_triage', async (req) => {
       catch (e) {
         counts.answer_failed++; console.error('email_triage answer', m.id, String((e as Error)?.message || e));
         // NEVER JUST WAITS (2 Nov 2026): a triaged row is not selected again, so a failed answer had no owner and no retry.
-        // Nothing comes back to the founder (ledger 1438): the ceo seat holds it as a live handoff, idempotent per message.
-        const { error: hoErr } = await admin.rpc('fn_seat_handoff', { p_from: 'customer_support', p_to: 'ceo', p_type: 'review.requested', p_subject_table: 'inbound_messages', p_subject_id: String(m.id),
-          p_payload: { inbound_message_id: m.id, from_email: m.from_email, to_email: m.to_email, subject: String(m.subject || '').slice(0, 200), ask: 'customer_support could not write an answer, so the sender has heard nothing. Decide the answer and have it sent in the thread.', error: String((e as Error)?.message || e).slice(0, 300) } });
+        // Nothing comes back to the founder (ledger 1438). AS A MAIL, NOT A REVIEW (19 Nov 2026, inbound 2169, handoff 393159): it was
+        // review.requested to the CEO, which the CEO read as "review a decision" and dismissed for want of one. It is now
+        // mail.unanswered to its owning seat with the mail's facts and a 24 h clock; past it the CEO orders the answer or closes it
+        // with the reason (unanswered_mail.ts). Idempotent per message.
+        const { data: dr } = await admin.from('inbound_messages').select('ai_draft_reply').eq('id', m.id).maybeSingle().then((x: unknown) => x, () => ({ data: null })) as { data: { ai_draft_reply?: string | null } | null };
+        const { error: hoErr } = await admin.rpc('fn_seat_handoff', unansweredMailHandoff(m, { error: String((e as Error)?.message || e), draft: dr?.ai_draft_reply ?? null }));
         if (hoErr) console.error('email_triage handoff', m.id, hoErr.message);
-        else await admin.from('inbound_messages').update({ owner_role: 'ceo' }).eq('id', m.id).is('owner_role', null);
+        else await admin.from('inbound_messages').update({ owner_role: OWNER_SEAT }).eq('id', m.id).is('owner_role', null);
       }
     };
     for (const m of ((msgs || []) as Mail[])) {
@@ -277,9 +290,33 @@ Deno.serve(observe('email_triage', async (req) => {
       // template on 9-10 Nov. Code rules first, then the model reads it at HIGH effort with the correspondence, and only a
       // supplier or a customer may be answered (supplier_mailbox_reading.ts). Not the supplier mailbox's mail: null, as before.
       const reading: MailboxDecision | null = await readSupplierMailbox(admin, deps, m);
+      // another run took the mail while it was read: nothing was recorded, it is that run's (supplier_mailbox_reading.ts)
+      if (reading?.taken) { counts.taken_by_another_run = (counts.taken_by_another_run || 0) + 1; continue; }
+      // the provider failed: no reading, no decision; the attempt is counted on the row and the mail is read again at next_at
+      if (reading?.defer && reading.retry) {
+        const { error: rtErr } = await admin.from('inbound_messages').update({ raw: { ...(m.raw ?? {}), model_retry: reading.retry } }).eq('id', m.id).is('triaged_at', null);
+        if (!rtErr) { counts.model_retry_deferred = (counts.model_retry_deferred || 0) + 1; continue; }
+        // A COUNT THAT CANNOT BE KEPT IS NOT RETRIED FOR EVER (review of #2089, 23 Nov 2026): without the count every tick would pay
+        // for the reading again with no bound. The mail is held now, as when the attempts are spent, saying why; the drive's SLA hands
+        // it on (mail.unanswered). If even that cannot be written the batch stops, as for a mark that cannot be recorded.
+        console.error('email_triage model_retry not recorded', m.id, rtErr.message);
+        counts.model_retry_unrecorded = (counts.model_retry_unrecorded || 0) + 1;
+        const why = ('no model answer (' + reading.retry.last_error + ') and the attempt count could not be recorded (' + String(rtErr.message).slice(0, 120)
+          + '), so it is held rather than read again on every tick').slice(0, 900);
+        const { error: decErr } = await admin.rpc('fn_mailbox_reply_decide', { p_inbound_id: m.id, p_reading: 'unclear', p_why: why, p_quote: null, p_method: 'no_model', p_model: null, p_effort: null });
+        const { error: holdErr } = decErr ? { error: decErr } : await admin.from('inbound_messages')
+          .update({ ...declinedFields({ ...reading, defer: false, why }), triaged_at: new Date().toISOString() }).eq('id', m.id).is('triaged_at', null);
+        if (holdErr) {
+          if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: 'error', counts,
+            note: ('email_triage stopped: inbound message ' + m.id + ' got no model answer and neither its attempt count nor its hold could be recorded (' + String(holdErr.message).slice(0, 160) + ').').slice(0, 500) }).eq('id', run.id);
+          return J({ ok: false, error: 'model_retry_unrecorded', counts }, 500);
+        }
+        counts.not_answered++; continue;
+      }
       if (reading && !reading.may_reply) {
         // the mark is the claim, as below: a run whose mark lands on nothing leaves the mail to the run that took it
-        const { data: tookRead } = await admin.from('inbound_messages').update({ ...declinedFields(reading), triaged_at: new Date().toISOString() })
+        const { data: tookRead } = await admin.from('inbound_messages').update({ ...declinedFields(reading), triaged_at: new Date().toISOString(),
+          ...(reading.retry ? { raw: { ...(m.raw ?? {}), model_retry: reading.retry } } : {}) })
           .eq('id', m.id).is('triaged_at', null).select('id');
         if (!tookRead?.length) { counts.taken_by_another_run = (counts.taken_by_another_run || 0) + 1; continue; }
         counts.not_answered++; counts['read_as_' + reading.reading] = (counts['read_as_' + reading.reading] || 0) + 1;
