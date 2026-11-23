@@ -11,7 +11,7 @@
 //     probe _shared/integration_watch.ts does not have, or an auth/url placeholder naming a secret no entry holds;
 //   * with a Supabase management token: production app_secrets holds a key no entry names.
 // Comments are stripped before the scan, so a URL in prose is not an integration. Test files and fixtures in
-// *.test.* are skipped; fixtures that are not tests are covered by not_integrations with their reason.
+// *.test.* and offline *.check.* are skipped; fixtures that are not tests are covered by not_integrations with their reason.
 //
 //   node --test scripts/checks/every_external_host_and_secret_is_registered.test.mjs
 import { test } from 'node:test';
@@ -38,7 +38,10 @@ function* walk(d) {
     if (e === 'node_modules' || e.startsWith('.') || e === 'vendor') continue;
     const p = join(d, e);
     if (statSync(p).isDirectory()) yield* walk(p);
-    else if (/\.(ts|tsx|js|mjs)$/.test(e) && !/\.test\.[a-z]+$/.test(e)) yield p;
+    // *.check.ts is an offline `deno test` file, never imported by a function and so never deployed
+    // (scripts/lib/function_sources.mjs NOT_RUNTIME). 19 Nov 2026: drawing_redact/a_queued_sheet_is_checked_in_the_worker_as_on_the_edge.check.ts
+    // names https://api.supabase.com/ only to intercept it in its fetch stub, and read as an unregistered host.
+    else if (/\.(ts|tsx|js|mjs)$/.test(e) && !/\.(test|check)\.[a-z]+$/.test(e)) yield p;
   }
 }
 // THE AGENT BRIEF CITES ~80 GOVERNMENT AND PRESS URLs IT NEVER FETCHES (#1333). _shared/brief.generated.ts is
@@ -86,6 +89,17 @@ test('the agent brief is data only, so its URLs are citations, not calls', () =>
   assert.ok(isDataOnly(readFileSync(join(REPO, BRIEF_GEN), 'utf8')), BRIEF_GEN + ' holds code: regenerate it with scripts/kb/compile_brief.mjs');
   assert.ok(!isDataOnly('export const BRIEF_TEXT = "x";\nfetch("https://evil.example/")'), 'a line of code must break data-only');
   assert.ok(!isDataOnly('export const BRIEF_TEXT = "x" + await fetch("https://evil.example/");'), 'an expression is not a literal');
+});
+
+// THE SKIP ABOVE HOLDS ONLY WHILE NOTHING SHIPPED IMPORTS A TEST FILE (review of #2088, 23 Nov 2026). A runtime file that imported
+// a *.check.* or *.test.* file would carry its hosts into production unscanned, so no non-test file may import one.
+test('no shipped file imports a *.check.* or *.test.* file (so the scan may skip them)', () => {
+  const IMPORT_TEST = /(?:\bfrom\s*|\bimport\s*\(?\s*)['"][^'"]*\.(?:check|test)\.[a-z]+['"]/;
+  const offenders = [];
+  for (const root of ['supabase/functions', 'src']) for (const p of walk(join(REPO, root))) {
+    if (IMPORT_TEST.test(strip(readFileSync(p, 'utf8')))) offenders.push(p.slice(REPO.length));
+  }
+  assert.deepEqual(offenders, [], 'a shipped file imports a test file; its hosts would reach production unscanned');
 });
 
 test('every external host called by code is in the registry', () => {

@@ -26,10 +26,14 @@ test('customer_api serves the guidance and confirms every posted request', () =>
   assert.match(src, /\.rpc\('fn_customer_support_concierge_confirm'/, 'create_inquiry no longer confirms the request');
   const start = src.indexOf("if (action === 'create_inquiry')");
   const body = src.slice(start, src.indexOf("if (action === 'rfq_note')", start));
-  const posted = [...body.matchAll(/return J\((\{ \.\.\.)?posted(Single|Split)\(/g)];
+  // 19 Nov 2026: 3c5f55d29 put `...followSaid` ahead of `...postedSingle(` in all three answers, and the old
+  // pattern (`J({ ...posted`) found 0 of 3 although every answer still carried its guidance. The property is
+  // "every posted answer carries concierge", so each `return J(` line that posts is read whole, whatever it
+  // spreads before the posted shape.
+  const posted = body.split('\n').filter((l) => /return J\(.*\bposted(Single|Split)\(/.test(l));
   assert.ok(posted.length >= 3, `expected the single, turnkey and split answers, found ${posted.length}`);
-  const bare = [...body.matchAll(/return J\(posted(Single|Split)\(/g)];
-  assert.deepEqual(bare.map((m) => m[0]), [], 'a create_inquiry answer is returned without its concierge guidance');
+  const bare = posted.filter((l) => !/\bconcierge: await confirmRequest\(/.test(l));
+  assert.deepEqual(bare.map((l) => l.trim().slice(0, 120)), [], 'a create_inquiry answer is returned without its concierge guidance');
 });
 
 test('the portal shows the guidance on a first request and after posting', () => {
