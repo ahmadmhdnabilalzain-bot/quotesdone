@@ -54,7 +54,7 @@ jobs:
           npm ci --no-audit --no-fund
           mkdir -p ~/.supabase && printf '%s' "$SUPABASE_ACCESS_TOKEN" > ~/.supabase/access-token
       - if: steps.gate.outputs.skip != '1' && env.JOB == 'exam'
-        uses: anthropics/claude-code-action@61a9c274fa7110a66dfafc1bbbced03833eb25fe # v1.0.263 (= v1 on 27 Oct 2026)
+        uses: anthropics/claude-code-action@c84e279f859e2591391e95bd309286eb111c345f # v1.0.263 (= v1 on 27 Oct 2026)
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: '--allowedTools Bash,Read,Edit,Write,Glob,Grep --max-turns 120'
@@ -81,7 +81,7 @@ jobs:
                as an open gap for the weekly audit. Prove 0 ZZ DEMO rows of this run remain (the run's tag).
             End with one line: "exam <pass>/<asked>, open fixes <n>, conversations <met>/<n> (slice <i>/7), PR <url or none>".
       - if: steps.gate.outputs.skip != '1' && env.JOB == 'audit'
-        uses: anthropics/claude-code-action@61a9c274fa7110a66dfafc1bbbced03833eb25fe # v1.0.263 (= v1 on 27 Oct 2026)
+        uses: anthropics/claude-code-action@c84e279f859e2591391e95bd309286eb111c345f # v1.0.263 (= v1 on 27 Oct 2026)
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_args: '--allowedTools Bash,Read,Edit,Write,Glob,Grep --max-turns 150'
