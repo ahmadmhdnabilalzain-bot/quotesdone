@@ -8,4 +8,8 @@ Local Postgres 16 from the schema mirror, 19 Nov 2026: applied twice, PROBE OK t
 reason and the draft; the row stays with customer_support), 0 rows left, EXECUTE revoked. The CEO side is the live
 fn_ceo_files_judgements (read 19 Nov: an owner other than the CEO is offered chase or close), not re-run locally: the schema mirror
 predates fn_handoff_overdue_escalate.
+23 Nov 2026 (review of #2089): the file also replaces fn_customer_support_unanswered_inbound_tick (the drive) from its live body, so an
+e-mail past its 24 h SLA is mail.unanswered with the facts and due_at now, not review.requested to the CEO. Once this file is in
+MANIFEST.txt it is the drive's canonical definition. Local PG16: PROBE OK twice with the drive case; against the old drive the probe
+reads PROBE FAILED ("the drive filed review.requested to ceo").
 Then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.

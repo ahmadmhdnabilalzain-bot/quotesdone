@@ -44,15 +44,19 @@ const BOX = 'supplier@quotesdone.com';
 type Row = Record<string, any>;
 type World = { inbound: Row[]; notifications: Row[]; decisions: Row[]; runs: Row[]; gw: Row[]; reading: 'deadline' | 'down' | 'answer' | 'unclear';
   /** fired as the reading call is answered: another run claiming the mail meanwhile */
-  duringReading?: () => void };
+  duringReading?: () => void;
+  /** the attempt-count write fails (review of #2089) */
+  failRetryWrite?: boolean };
 
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { 'content-type': 'application/json' } });
 const one = (req: Request, rows: Row[]) => (req.headers.get('accept') || '').includes('vnd.pgrst.object') ? J(rows[0] ?? null) : J(rows);
 function cond(r: Row, col: string, expr: string): boolean {
   const neg = expr.startsWith('not.'); const e = neg ? expr.slice(4) : expr;
-  const dot = e.indexOf('.'); const op = e.slice(0, dot), v = e.slice(dot + 1); const x = r[col];
+  const dot = e.indexOf('.'); const op = e.slice(0, dot), v = e.slice(dot + 1).replace(/^"(.*)"$/, '$1');
+  // a jsonb path (raw->model_retry->>next_at) as PostgREST reads it
+  const x = col.includes('->') ? col.split(/->>?/).reduce((o: any, k) => (o == null ? null : o[k]), r) : r[col];
   const ok = op === 'eq' ? String(x) === v : op === 'neq' ? x != null && String(x) !== v : op === 'is' ? (v === 'null' ? x == null : String(x) === v)
-    : op === 'gte' ? x != null && String(x) >= v : op === 'lte' ? x != null && String(x) <= v
+    : op === 'gte' ? x != null && String(x) >= v : op === 'lte' ? x != null && String(x) <= v : op === 'lt' ? x != null && String(x) < v
     : op === 'ilike' ? x != null && new RegExp('^' + v.replace(/\\(.)/g, '$1').split(/[*%]/).map((s) => s.replace(/[.+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$', 'i').test(String(x))
     : (() => { throw new Error('fake: ' + op); })();
   return neg ? !ok : ok;
@@ -119,6 +123,7 @@ function stubFor(w: World): Stub {
       if (u.pathname === '/rest/v1/inbound_messages') {
         if (req.method === 'GET') return one(req, w.inbound.filter((r) => matches(r, u)).map((r) => ({ ...r })));
         if (req.method === 'PATCH') {
+          if (w.failRetryWrite && body?.raw?.model_retry && !body.triaged_at) return J({ message: 'stub: statement timeout' }, 500);
           const hit = w.inbound.filter((r) => matches(r, u)); hit.forEach((r) => Object.assign(r, body));
           return (req.headers.get('prefer') || '').includes('return=representation') ? one(req, hit) : new Response(null, { status: 204 });
         }
@@ -165,7 +170,6 @@ Deno.test('a 502 gateway_deadline is read again with backoff and then the model 
 
   await tick(w);
   assertEquals(readings(w), 1, 'a run before next_at does not pay for the reading again');
-  assertEquals(runCounts(w).model_retry_waiting, 1);
 
   due(m); w.reading = 'answer';
   await tick(w);
@@ -217,4 +221,31 @@ Deno.test('a reading that finishes after another run took the mail is not record
   await tick(w2);
   assertEquals(w2.decisions.find((x) => x.inbound_message_id === m2.id)!.reading, 'customer', 'not overwritten by the slower reading');
   assertEquals(m2.triaged_at, null, 'and this run does not claim it');
+});
+
+Deno.test('an attempt count that cannot be recorded does not mean a reading on every tick: the mail is held, saying why', async () => {
+  const w = world('deadline');
+  w.failRetryWrite = true;
+  const m = mail(w);
+  await tick(w);
+  assertEquals(readings(w), 1);
+  const d = w.decisions.find((x) => x.inbound_message_id === m.id)!;
+  assertEquals([d.reading, d.method], ['unclear', 'no_model']);
+  assert(String(d.why).includes('could not be recorded'), d.why);
+  assert(m.triaged_at); assertEquals([m.owner_role, m.needs_review], ['customer_support', true]);
+  assertEquals(runCounts(w).model_retry_unrecorded, 1);
+  await tick(w);
+  assertEquals(readings(w), 1, 'bounded: not read again');
+});
+
+Deno.test('mail not yet due is excluded in the query: 25 deferred mails never hold a new one back', async () => {
+  const w = world('deadline');
+  const later = new Date(Date.now() + 40 * 60_000).toISOString();
+  const waiting = Array.from({ length: 25 }, () => { const x = mail(w); x.created_at = '2026-11-20T00:00:00.000Z';
+    x.raw = { ...x.raw, model_retry: { attempts: 2, first_at: x.created_at, last_at: x.created_at, last_error: 'gateway_http_502', next_at: later } }; return x; });
+  const fresh = mail(w); w.reading = 'answer';
+  await tick(w);
+  assertEquals(readings(w), 1, 'only the due mail is read');
+  assert(fresh.replied_at, 'the new mail is answered in the same tick');
+  assert(waiting.every((x) => x.triaged_at === null && x.raw.model_retry.attempts === 2), 'the waiting mail is untouched');
 });

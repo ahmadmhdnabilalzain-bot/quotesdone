@@ -4,7 +4,9 @@ Why it waits: it is applied at merge by the session that merges it (GitHub Actio
 Order: apply an_unanswered_mail_is_handed_to_its_seat_with_its_facts.sql, then deploy email_triage from the same PR (model_retry.ts: a provider failure is read again with backoff, and a reading
 that finishes after another run took the mail is not recorded), so the re-queued mail is read under the new rule. Then:
   node scripts/apply_sql.mjs scripts/sql/a_mail_held_by_a_model_error_is_read_again.sql --apply --ddl
-Expected result row: {"requeued": 1, "ids": [2169]} (the same predicate as a production SELECT, 19 Nov 2026: [2169]). It sends
-nothing; email_triage's next tick reads 2169 again (a second reading: a known sender's mail must be answered or closed with its reason).
-Local Postgres 16 from the schema mirror, 19 Nov 2026: applied twice, PROBE OK twice, 0 ZZ DEMO rows left, EXECUTE revoked.
+Expected result row: the verdict 'OK: every re-queued row was held only by a transient gateway error' and the ids it re-queued. The
+ids are not pinned: every unanswered mail whose only reading was a transient gateway failure is re-queued once. A production SELECT
+of the same predicate, 23 Nov 2026: [2169, 2227] (2227: a person at outlook.com writing to info@, "MOA", a Teams invitation after two
+proposals of his own; not a machine). It sends nothing; email_triage's next tick reads each again (a second reading).
+Local Postgres 16 from the schema mirror, 19 and 23 Nov 2026: applied twice, PROBE OK twice, 0 ZZ DEMO rows left, EXECUTE revoked.
 Then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.

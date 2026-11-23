@@ -254,13 +254,13 @@ Deno.serve(observe('email_triage', async (req) => {
     // timeout here closed the run 'ok' with every count 0: the same row as a quiet inbox, while mail waited. The mail is
     // safe (nothing was taken, the next tick reads it again); the run now says the read failed, at error, so the watch
     // that reads agent_runs sees it. prevented by: email_triage/drill_triage_faults.test.ts
-    // A mail whose reading failed at the provider waits for its next attempt (model_retry.ts): read 40, keep the 20 that are due,
-    // so a backlog of deferred mail never crowds out new mail. PostgREST cannot say "null or before now" on a jsonb path in this
-    // select's one `or`, so the wait is applied here.
-    const { data: read40, error: readErr } = await sel.order('created_at', { ascending: true }).limit(40);
-    const due = ((read40 || []) as Mail[]).filter((r) => !retryNotDue(r.raw));
-    const msgs = due.slice(0, 20);
-    if ((read40 || []).length > due.length) counts.model_retry_waiting = (read40 || []).length - due.length;
+    // A mail whose reading failed at the provider waits for its next attempt (model_retry.ts). The wait is in the QUERY (review of
+    // #2089, 23 Nov 2026): a second `or` (PostgREST ANDs its logic params), so mail not yet due never takes one of the 20 slots and a
+    // backlog of deferred mail cannot hold new mail back. next_at is an ISO string written by toISOString, so text order is time
+    // order. The filter after the read stays as a guard.
+    sel = sel.or('raw->model_retry->>next_at.is.null,raw->model_retry->>next_at.lte."' + new Date().toISOString() + '"');
+    const { data: read20, error: readErr } = await sel.order('created_at', { ascending: true }).limit(20);
+    const msgs = ((read20 || []) as Mail[]).filter((r) => !retryNotDue(r.raw));
     if (readErr) {
       if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: 'error', counts: { ...counts, closed_stale_runs: closedStale },
         note: ('email_triage could not read the inbox (inbound_messages: ' + String(readErr.message) + '); no mail was taken, the next tick reads it again.').slice(0, 500) }).eq('id', run.id);
@@ -294,8 +294,24 @@ Deno.serve(observe('email_triage', async (req) => {
       if (reading?.taken) { counts.taken_by_another_run = (counts.taken_by_another_run || 0) + 1; continue; }
       // the provider failed: no reading, no decision; the attempt is counted on the row and the mail is read again at next_at
       if (reading?.defer && reading.retry) {
-        await admin.from('inbound_messages').update({ raw: { ...(m.raw ?? {}), model_retry: reading.retry } }).eq('id', m.id).is('triaged_at', null);
-        counts.model_retry_deferred = (counts.model_retry_deferred || 0) + 1; continue;
+        const { error: rtErr } = await admin.from('inbound_messages').update({ raw: { ...(m.raw ?? {}), model_retry: reading.retry } }).eq('id', m.id).is('triaged_at', null);
+        if (!rtErr) { counts.model_retry_deferred = (counts.model_retry_deferred || 0) + 1; continue; }
+        // A COUNT THAT CANNOT BE KEPT IS NOT RETRIED FOR EVER (review of #2089, 23 Nov 2026): without the count every tick would pay
+        // for the reading again with no bound. The mail is held now, as when the attempts are spent, saying why; the drive's SLA hands
+        // it on (mail.unanswered). If even that cannot be written the batch stops, as for a mark that cannot be recorded.
+        console.error('email_triage model_retry not recorded', m.id, rtErr.message);
+        counts.model_retry_unrecorded = (counts.model_retry_unrecorded || 0) + 1;
+        const why = ('no model answer (' + reading.retry.last_error + ') and the attempt count could not be recorded (' + String(rtErr.message).slice(0, 120)
+          + '), so it is held rather than read again on every tick').slice(0, 900);
+        const { error: decErr } = await admin.rpc('fn_mailbox_reply_decide', { p_inbound_id: m.id, p_reading: 'unclear', p_why: why, p_quote: null, p_method: 'no_model', p_model: null, p_effort: null });
+        const { error: holdErr } = decErr ? { error: decErr } : await admin.from('inbound_messages')
+          .update({ ...declinedFields({ ...reading, defer: false, why }), triaged_at: new Date().toISOString() }).eq('id', m.id).is('triaged_at', null);
+        if (holdErr) {
+          if (run?.id) await admin.from('agent_runs').update({ finished_at: new Date().toISOString(), status: 'error', counts,
+            note: ('email_triage stopped: inbound message ' + m.id + ' got no model answer and neither its attempt count nor its hold could be recorded (' + String(holdErr.message).slice(0, 160) + ').').slice(0, 500) }).eq('id', run.id);
+          return J({ ok: false, error: 'model_retry_unrecorded', counts }, 500);
+        }
+        counts.not_answered++; continue;
       }
       if (reading && !reading.may_reply) {
         // the mark is the claim, as below: a run whose mark lands on nothing leaves the mail to the run that took it

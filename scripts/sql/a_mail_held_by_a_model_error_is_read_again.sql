@@ -13,7 +13,10 @@
 --     as the FINAL reading (mailbox_reply_decision: reading 'unclear', method 'no_model'); the drive asks only once
 --     (reread_requested_at), so nothing read it again. The triaged_at of 16 Nov on 2168-2172 is that re-stamp, not a 95 h lag: the
 --     first triage of each ran on 12 Nov within 0-150 s of receipt (agent_runs 4990759-4990820).
---   * mailbox_reply_decision where method = 'no_model' and reading = 'unclear': 1 row on production (2169).
+--   * mailbox_reply_decision where method = 'no_model' and reading = 'unclear': 1 row on production on 19 Nov (2169); 2 on 23 Nov:
+--     2169 and 2227 (zfarhatmohammed@outlook.com to info@, "MOA", 22 Nov 18:15Z: a person's Teams invitation after two proposals of
+--     his own, 2217 and 2226; no Auto-Submitted, authenticated sender; its second reading got gateway_http_502:all_models_failed).
+--     The ids are NOT pinned: the file re-queues every mail held only by a transient gateway error when it is applied.
 --   From the deploy of email_triage in this PR a provider failure is no longer a reading (email_triage/model_retry.ts: read again
 --   with backoff, held only when the attempts are spent, the drive's 24 h SLA then tells the CEO), and a reading that finishes
 --   after another run took the mail is not recorded. This file puts back, ONCE, what was held before that.
@@ -28,10 +31,11 @@
 -- prevented by: a_mail_held_by_a_model_error_is_read_again_probe.sql (LOCAL), email_triage/model_retry.test.ts
 -- APPLY: node scripts/apply_sql.mjs scripts/sql/a_mail_held_by_a_model_error_is_read_again.sql --apply --ddl
 --   AFTER an_unanswered_mail_is_handed_to_its_seat_with_its_facts.sql and the email_triage deploy from the same PR (so the re-read gets the retry), then delete the pending note and append this
---   file as the LAST line of scripts/sql/MANIFEST.txt. Expected result row: {"requeued": 1, "ids": [2169]}.
+--   file as the LAST line of scripts/sql/MANIFEST.txt. Expected result row: a verdict 'OK: every re-queued row was held only by a
+--   transient gateway error' (re-checked against each row's decision), with the ids it re-queued (23 Nov SELECT: [2169, 2227]).
 -- ROLLBACK: drop function public.fn_inbound_mail_held_by_model_error_requeue(boolean); a re-queued mail is read by the normal
 --   pipeline within one tick and needs no undo (the row's raw keeps model_error_requeued_at as the record).
--- LOCKS: row locks on the matched inbound_messages rows only (1 on production).
+-- LOCKS: row locks on the matched inbound_messages rows and their customer_support_inbound_drive rows only (2 on 23 Nov).
 set local lock_timeout = '1500ms';
 
 create or replace function public.fn_inbound_mail_held_by_model_error_requeue(p_fixture boolean default false)
@@ -62,11 +66,24 @@ begin
     returning x.id
   )
   select coalesce(array_agg(id order by id), '{}') into v_ids from put_back;
+  -- the drive may escalate it again (23 Nov 2026): an escalation that is no longer open (2169's review.requested 393159 was dismissed
+  -- by the CEO for want of a decision to review) is cleared, so if this reading fails too the drive files mail.unanswered at its SLA
+  update public.customer_support_inbound_drive i set escalated_at = null, escalation_handoff_id = null
+   where i.channel = 'email' and i.message_id = any (v_ids) and i.escalated_at is not null and i.closed_at is null and i.answered_at is null
+     and not exists (select 1 from public.agent_actions a where a.id = i.escalation_handoff_id and a.status in ('pending', 'open'));
   return jsonb_build_object('requeued', coalesce(array_length(v_ids, 1), 0), 'ids', to_jsonb(v_ids), 'fixture', p_fixture);
 end $fn$;
 revoke execute on function public.fn_inbound_mail_held_by_model_error_requeue(boolean) from public, anon, authenticated;
 comment on function public.fn_inbound_mail_held_by_model_error_requeue(boolean) is
   'Puts an unanswered mail whose only reading was a model-gateway failure back in front of email_triage, once (raw.model_error_requeued_at). Sends nothing. a_mail_held_by_a_model_error_is_read_again.sql, 19 Nov 2026.';
 
--- the one re-queue, real rows only
-select public.fn_inbound_mail_held_by_model_error_requeue(false) as requeued;
+-- the one re-queue, real rows only; the verdict re-checks every re-queued row against its decision (never a fixed list of ids)
+select r || jsonb_build_object('verdict', case
+         when exists (select 1 from jsonb_array_elements_text(r->'ids') e
+                        left join public.mailbox_reply_decision d on d.inbound_message_id = e::bigint
+                       where d.inbound_message_id is null or d.method <> 'no_model' or d.reading <> 'unclear'
+                          or coalesce(d.why, '') !~* '(gateway_http_5[0-9][0-9]|deadline|timed? ?out|timeout|client_error|fetch_failed|the model gateway failed)'
+                          or coalesce(d.why, '') ~* '(circuit_open|open-circuit|founder_hold|model_hold|no_paid_ai|credential|forbidden|empty_completion)')
+           then 'FAILED: a re-queued row was not held only by a transient gateway error'
+         else 'OK: every re-queued row was held only by a transient gateway error' end) as requeued
+  from (select public.fn_inbound_mail_held_by_model_error_requeue(false) as r) x;

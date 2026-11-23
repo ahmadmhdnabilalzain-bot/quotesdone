@@ -27,6 +27,12 @@ begin
     (m_model, 'unclear', 'the sender''s intent cannot be told from the text', 'model', 'customer_support', now())
   on conflict (inbound_message_id) do update set reading = excluded.reading, why = excluded.why, method = excluded.method;
 
+  -- its drive row: escalated once to a hand-over that is no longer open (as 2169's dismissed review.requested 393159; here none is
+  -- on file at all), and the held-by-a-hold row's drive row escalated likewise, which must stay as it is
+  insert into public.customer_support_inbound_drive (channel, message_id, outcome, fixture, escalated_at, escalation_handoff_id) values
+    ('email', m_gw, 'ZZ DEMO probe', true, now() - interval '1 day', null),
+    ('email', m_hold, 'ZZ DEMO probe', true, now() - interval '1 day', null);
+
   rr := public.fn_inbound_mail_held_by_model_error_requeue(false);
   if exists (select 1 from jsonb_array_elements_text(rr->'ids') e where e::bigint in (m_gw, m_hold, m_done, m_model)) then
     v_p := v_p || ('p_fixture false touched a ZZ DEMO row: ' || rr::text); end if;
@@ -42,6 +48,12 @@ begin
     v_p := v_p || 'a hold, an answered mail or a model reading was put back'::text; end if;
   if exists (select 1 from public.notifications where to_email like 'zz-demo-%' || v_tag || '@example.invalid') then
     v_p := v_p || 'a notification was written'::text; end if;
+
+  -- the drive's spent escalation is cleared for the re-queued mail (23 Nov 2026), so it can hand it on again as mail.unanswered
+  if exists (select 1 from public.customer_support_inbound_drive where channel = 'email' and message_id = m_gw and escalated_at is not null) then
+    v_p := v_p || 'the drive escalation of the re-queued mail was not cleared'::text; end if;
+  if not exists (select 1 from public.customer_support_inbound_drive where channel = 'email' and message_id = m_hold and escalated_at is not null) then
+    v_p := v_p || 'a drive row of a mail that was not re-queued was cleared'::text; end if;
 
   r2 := public.fn_inbound_mail_held_by_model_error_requeue(true);
   if (r2->>'requeued')::int <> 0 then v_p := v_p || ('not idempotent: ' || r2::text); end if;
