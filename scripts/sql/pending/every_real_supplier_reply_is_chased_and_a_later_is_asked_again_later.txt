@@ -1,5 +1,0 @@
-Committed, not applied (19 Nov 2026, sales_engineer, agent chase-fix). Written read-only against production: the session that
-merges it applies it (docs/runbooks/release-without-ci.md), deletes this note and appends the file to the END of MANIFEST.txt.
-What would move it: the merge of its PR. It changes four routine bodies (no table DDL) and backfills leads.invite_followups on
-2 leads; its probe writes only ZZ DEMO rows at example.invalid and rolls them back. Lead 455's touch 2 sends Friday 20 Nov from
-05:00 UTC with or without it; without it, the next pause of invite_enabled would hold every warm follow-up again.
