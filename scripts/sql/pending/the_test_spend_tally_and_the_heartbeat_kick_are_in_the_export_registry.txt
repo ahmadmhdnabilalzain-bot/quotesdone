@@ -1,6 +1,0 @@
-Committed, not applied. Assigned: it_engineer. 19 Nov 2026.
-
-Why it waits: it is applied at merge by the session that merges it (GitHub Actions is off: docs/runbooks/release-without-ci.md).
-It inserts two public.table_export_registry rows that #2063 and #2069 left out. No other change.
-  node scripts/apply_sql.mjs scripts/sql/the_test_spend_tally_and_the_heartbeat_kick_are_in_the_export_registry.sql --apply
-then delete this note and append the file as the LAST line of scripts/sql/MANIFEST.txt in the same commit.
