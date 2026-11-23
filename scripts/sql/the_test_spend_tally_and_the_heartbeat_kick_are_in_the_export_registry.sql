@@ -13,11 +13,8 @@ insert into public.table_export_registry (table_name, exported, category, reason
 on conflict (table_name) do update set exported = excluded.exported, category = excluded.category,
   reason = excluded.reason, added_by = excluded.added_by;
 
-do $probe$
-begin
-  if (select count(*) from public.table_export_registry where table_name in ('ai_test_spend_day','resilience_detached_kick')) <> 2 then
-    raise exception 'PROBE FAILED: both registry rows must exist';
-  end if;
-  raise notice 'PROBE OK: ai_test_spend_day exported (accountant), resilience_detached_kick excluded (log)';
-end
-$probe$;
+-- The verdict is the LAST row-producing statement: scripts/apply_sql.mjs reads it (a raise notice is not returned).
+select case when (select count(*) from public.table_export_registry
+                   where table_name in ('ai_test_spend_day','resilience_detached_kick')) = 2
+            then 'PROBE OK: ai_test_spend_day exported (accountant), resilience_detached_kick excluded (log)'
+            else 'PROBE FAILED: both registry rows must exist' end as verdict;

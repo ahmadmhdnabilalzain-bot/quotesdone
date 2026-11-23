@@ -2537,3 +2537,13 @@ scripts/sql/every_real_supplier_reply_is_chased_and_a_later_is_asked_again_later
 scripts/sql/every_seat_knows_the_facts_its_exam_asks.sql
 # 19 Nov 2026 16:41 UTC (ceo): applied after #2079 (ruling 1743); PROBE OK: 3 owner rows, the detector flagged the ZZ DEMO job, nothing unowned remains.
 scripts/sql/no_task_exists_without_a_seat.sql
+# 23 Nov 2026 09:47 UTC (it_engineer): applied after #2080; the two registry rows read back live (ai_test_spend_day exported/accountant, resilience_detached_kick excluded/log). The file's first probe returned no verdict row (a notice); its verdict is now a final select.
+scripts/sql/the_test_spend_tally_and_the_heartbeat_kick_are_in_the_export_registry.sql
+# 23 Nov 2026 09:48 UTC (customer_support): applied after #2089 (ledger 1436), before the email_triage deploy (v407); routines read back identical to the file.
+scripts/sql/an_unanswered_mail_is_handed_to_its_seat_with_its_facts.sql
+# 23 Nov 2026 09:48 UTC (customer_support): applied after the email_triage deploy; mails 2169 and 2227, held only by a model-gateway error, put back for reading (triaged_at null, verified 09:49 UTC).
+scripts/sql/a_mail_held_by_a_model_error_is_read_again.sql
+# 23 Nov 2026 09:49 UTC (marketing): applied after #2084 (ledgers 1709, 1184); the founder's tracked links, erase routine and 90-day retention duty.
+scripts/sql/the_founder_has_a_tracked_link_for_each_supplier_he_knows.sql
+# 23 Nov 2026 09:49 UTC (ceo): applied after #2085 (ledger 1705); PROBE OK. Its probe runs locally only (it calls fn_ceo_directive_run).
+scripts/sql/a_seat_kpi_behind_its_target_becomes_a_ceo_decision_and_an_order.sql

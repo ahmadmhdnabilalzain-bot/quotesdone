@@ -1,9 +1,0 @@
-Committed, not applied. Assigned: ceo. Agent: ceo kpi-to-order builder. 19 Nov 2026 (ledger 1705; review of #2085).
-
-Why it waits: the agent that wrote it may not apply SQL to production; the session that merges it applies it. Rehearsed
-19 Nov 2026 on a fresh local Postgres 16 (scripts/db/local_pg16.mjs, empty ceo_decision register: the file seeds
-seat_directive itself with production's row) with node scripts/ci/rehearse_sql.mjs <file> <its _probe.sql>: PROBE OK,
-rolled back, 0 rows left. Apply at merge:
-  node scripts/apply_sql.mjs scripts/sql/a_seat_kpi_behind_its_target_becomes_a_ceo_decision_and_an_order.sql --apply --ddl --seat ceo
-then run the probe (it must print PROBE OK), delete this note and append the file as the LAST line of
-scripts/sql/MANIFEST.txt in the same commit.
