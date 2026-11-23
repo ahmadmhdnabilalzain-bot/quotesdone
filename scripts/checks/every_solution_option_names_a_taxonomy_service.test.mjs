@@ -51,7 +51,8 @@ test('every family names trades the conversation playbooks carry, and the catalo
 });
 
 test('the request chat advises: the old ban is gone, the rule, the options, the pack and the taxonomy are in its prompt', () => {
-  const h = read(FN + 'inquiry_intake/handle.ts');
+  // the prompt (identity, rules) is intake_prompt.ts since 19 Nov 2026; the turn's wiring is handle.ts
+  const h = read(FN + 'inquiry_intake/handle.ts') + '\n' + read(FN + 'inquiry_intake/intake_prompt.ts');
   assert.doesNotMatch(h, /Do not pitch, quote prices/, 'the old ban is back in the identity');
   assert.doesNotMatch(h, /your only job is to collect a complete, accurate brief/);
   for (const x of ['${ADVISE_RULE}', 'solutionsBlock(refProblems', 'problemIndex()', 'tradeBlock(tradeCtx', 'taxonomyBlock(taxonomy)', 'solutionStateText(st',

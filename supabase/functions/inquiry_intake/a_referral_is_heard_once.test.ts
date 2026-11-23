@@ -30,7 +30,8 @@ Deno.test('the reading goes to the one routine with his id and the intake as its
 });
 
 Deno.test('the intake asks the model for it in the JSON it already returns, and records it without waiting', async () => {
-  const src = await Deno.readTextFile(new URL('./handle.ts', import.meta.url));
+  // the JSON shape is the prompt's (intake_prompt.ts, split out of handle.ts on 19 Nov 2026); the wiring is handle.ts's
+  const src = await Deno.readTextFile(new URL('./handle.ts', import.meta.url)) + '\n' + await Deno.readTextFile(new URL('./intake_prompt.ts', import.meta.url));
   for (const f of HEARD_ABOUT_US_FIELDS) assert(src.includes(`\\"${f}\\": \\"<`), `the JSON shape names ${f}`);
   assertMatch(src, /referralOf\(out\)/);
   assertMatch(src, /void recordReferral\(/);
