@@ -2519,6 +2519,10 @@ scripts/sql/a_real_customer_whose_record_was_lost_is_restored_and_asked_about_he
 scripts/sql/a_cancelled_invitation_frees_its_lead_and_its_index_slot.sql
 # 19 Nov 2026 14:17 UTC (ceo): applied after the file above (rulings 1455, 1231, 1486, 1696); PROBE OK: decision restart_on_checked_addresses, invite_enabled true, cap 20; projection 1/77; 2354 eligible with evidence, 0 without; google ready pool 291.
 scripts/sql/invitations_go_only_to_addresses_that_were_checked.sql
+# 19 Nov 2026 15:19 UTC (it_engineer): applied after #2069 (Twinkle's mail stuck queued 30 min); PROBE OK: resilience_ping's detached runs are kicked through the database (fn_resilience_detached_kick, pg_net), so every tick drains the outbox. Recorded 23 Nov: its MANIFEST line and note removal were missed on the day.
+scripts/sql/the_heartbeat_kicks_its_detached_runs_through_the_database_so_every_tick_drains_the_outbox.sql
+# 19 Nov 2026 15:19 UTC (customer_support): applied after #2069; PROBE OK: fn_outbox_person_kinds() adds every type customer support's voice wrote in the last 7 days, so its messages drain within the minute. Recorded 23 Nov.
+scripts/sql/a_message_customer_support_writes_is_sent_like_any_person_mail.sql
 # 19 Nov 2026 16:04 UTC (sales_engineer): applied after #2070 (rulings 1683, 1686, 1687); PROBE OK: two quotes give no figure, open requests count for nothing, five closed comparisons give a 5-point band, an ended request refuses every supplier-side change, decision support returns quote_amount.
 scripts/sql/no_rival_price_can_be_worked_out_and_the_customer_sees_the_quoted_price.sql
 # 19 Nov 2026 16:04 UTC (customer_support): applied after #2071 (ruling 1474); PROBE OK.
