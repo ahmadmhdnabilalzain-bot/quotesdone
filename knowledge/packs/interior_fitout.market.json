@@ -54,6 +54,48 @@
       "confidence": "medium",
       "as_of": "2026-09-28",
       "source_note": "Checked on 2026-09-28 against pages opened then: fit-out contractors ISG, Bond Interiors, Summertown, Havelock One, Depa, Al Tayer Stocks -> confirmed; ALEC Fitout added; Havelock One is Bahrain-headquartered; Beyond Interiors removed (not confirmed). Not checked: Named fit-out contractors are market examples; their current status was not verified. Each master developer's current fit-out guide version was not verified."
+    },
+    {
+      "id": "interior_fitout:uae-market-material-makes",
+      "topic": "Interior fit-out: where gypsum board, ceilings and partition materials sold in the UAE are made and who stocks them",
+      "topic_ar": "التشطيبات الداخلية: وين تنصنع ألواح الجبس والأسقف ومواد القواطع اللي تنباع في الإمارات ومين يوفرها",
+      "kind": "uae_market_brands",
+      "body_en": "Where the core fit-out materials sold in the UAE are made and who stocks them, as each company states it. Gypsum board is made in the UAE by two groups: Knauf, which manufactures gypsum board in Ras Al Khaimah (and in Salalah, Oman) with its GCC headquarters in Dubai and a published UAE dealer locator (Gemini Building Materials is one of the dealers listed), and Saint-Gobain Gyproc, whose plasterboard plant in ICAD 1, Mussafah, Abu Dhabi is run by Saint Gobain Gyproc Emirates Industries, a joint venture formed in 2007 and producing since about 2010. Knauf publishes a datasheet for its regular gypsum board to EN and BS. Ceilings: Armstrong mineral fibre ceiling tiles are sold in Dubai by building-material traders, and Armstrong-branded mineral tiles appear on Knauf Ceiling Solutions' product pages. Compact laminate washroom cubicles and lockers are made by Greenlam, which has a UAE office. Fit-out contractors buy these through the makers' dealers; the contractors themselves are in the brands entry. When a quote names a board or tile, ask for the maker's datasheet for that exact product.",
+      "body_ar": "هذي أماكن تصنيع مواد التشطيبات الأساسية اللي تنباع في الإمارات ومين يوفرها، حسب ما تذكره كل شركة عن نفسها. ألواح الجبس تنصنع في الإمارات عند مجموعتين: ‏Knauf، تصنّع ألواح الجبس في رأس الخيمة (وفي صلالة بعُمان)، ومقرها لدول الخليج في دبي، ولها أداة منشورة للبحث عن وكلائها في الإمارات (Gemini Building Materials من الوكلاء المذكورين)، وSaint-Gobain Gyproc، مصنعها في ICAD 1 بمصفح في أبوظبي تديره Saint Gobain Gyproc Emirates Industries، مشروع مشترك تأسس سنة 2007 وينتج من حوالي 2010. ‏Knauf تنشر نشرة فنية للوح الجبس العادي حسب المواصفات الأوروبية والبريطانية. الأسقف: بلاطات Armstrong من الألياف المعدنية يبيعها تجار مواد البناء في دبي، وبلاطات معدنية تحمل اسم Armstrong موجودة في صفحات منتجات Knauf Ceiling Solutions. كبائن الحمامات واللوكرات من الكومباكت لامينيت تصنّعها Greenlam، ولها مكتب في الإمارات. مقاولو التشطيبات يشترون هالمواد عن طريق وكلاء المصانع، والمقاولين نفسهم مذكورين في مدخل الماركات. إذا العرض ذكر لوح أو بلاطة، اطلب النشرة الفنية من المصنع لنفس المنتج بالضبط.",
+      "sources": [
+        "https://knauf.com/en-AE/knauf-gypsum",
+        "https://knauf.com/en-AE/our-tools/dealer-locator/uae/gemini-building-materials",
+        "https://www.tradearabia.com/news/IND_140603.html",
+        "https://www.aeconline.ae/knauf-regular-gypsum-boards-rg-en-bs-datasheet-1059807/file-files/Knauf%20Regular%20Gypsum%20Board%20RG%20(EN-BS).pdf",
+        "https://meconstructionnews.com/39/saint-gobain-gyproc-marks-12-months-manufacturing",
+        "https://www.zawya.com/en/business/saint-gobain-plans-50m-plant-in-abu-dhabi-bto3gmjb",
+        "https://www.yellowpages-uae.com//uae/armstrong-ceilings-and-partition",
+        "https://knaufceilingsolutions.com/en/products/armstrong-scalacoustic",
+        "https://www.environdec.com/library/epd9221",
+        "https://www.greenlamindustries.com/locations/"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-19",
+      "source_note": "Read on 2026-11-19 in the web-search extracts of the pages listed (WebFetch could not resolve these hosts from this session). Knauf's plant start is given as 2009 by one source and 2011 by another, so no year is stated. The Armstrong traders are directory listings and no trader is named here. Not checked: an authorised Armstrong distributor in the UAE, and Gyproc's current UAE dealers."
+    },
+    {
+      "id": "interior_fitout:uae-market-make-and-grade-checklist",
+      "topic": "Interior fit-out: what to state about board, ceiling and finish makes and grades so UAE fit-out contractors quote like for like",
+      "topic_ar": "التشطيبات الداخلية: وش تحدد عن ماركات ودرجات الألواح والأسقف والتشطيبات عشان يسعّر المقاولون على نفس الأساس",
+      "kind": "spec_checklist",
+      "body_en": "What a buyer states about makes and grades in a fit-out so UAE contractors quote the same thing (area, Cat A/Cat B scope and approvals are in the trade's own fit-out spec checklist). (1) The gypsum board type for each wall and ceiling, regular, moisture-resistant or fire-rated, with the board maker or 'locally made equivalent', since both Knauf and Gyproc make board in the UAE and publish datasheets by board type. (2) The ceiling tile maker, series and finish, and the acoustic performance wanted, because mineral fibre tiles of different series differ in finish and acoustic rating. (3) For washrooms and lockers, whether cubicles are compact laminate and which thickness. (4) The finishes by trade (flooring, joinery, doors, glass), each with its make or tier, which the separate trades' checklists cover. (5) That every material on an escape route or in a ceiling void carries the fire classification the authority asks for, with the datasheet or certificate attached to the quote. Quote-blocking: none of these alone; they decide whether two lump sums are for the same fit-out.",
+      "body_ar": "هذا اللي يحدده المشتري عن الماركات والدرجات في مشروع التشطيبات عشان كل المقاولين في الإمارات يسعّرون نفس الشي (المساحة ونطاق Cat A وCat B والموافقات موجودة في قائمة مواصفات المهنة نفسها). (1) نوع لوح الجبس لكل جدار وسقف، عادي أو مقاوم للرطوبة أو مقاوم للحريق، مع ماركة اللوح أو «ما يعادلها من صناعة محلية»، لأن Knauf وGyproc الاثنين يصنعون الألواح في الإمارات وينشرون نشرات فنية لكل نوع. (2) مصنع بلاطات السقف والسلسلة والتشطيب والأداء الصوتي المطلوب، لأن بلاطات الألياف المعدنية تختلف في التشطيب والتصنيف الصوتي من سلسلة لسلسلة. (3) في الحمامات واللوكرات، هل الكبائن من الكومباكت لامينيت وكم سماكتها. (4) التشطيبات حسب كل مهنة (الأرضيات والنجارة والأبواب والزجاج)، كل وحدة بماركتها أو فئتها، وتفاصيلها في قوائم المهن الثانية. (5) إن كل مادة في مسار الهروب أو فوق السقف المستعار عندها تصنيف الحريق اللي تطلبه الجهة المختصة، مع إرفاق النشرة الفنية أو الشهادة بالعرض. ما فيها بند يوقف التسعير بروحه، لكنها تحدد هل المبلغين المقطوعين لنفس الأعمال أو لا.",
+      "sources": [
+        "https://knauf.com/en-AE/knauf-gypsum",
+        "https://www.aeconline.ae/knauf-regular-gypsum-boards-rg-en-bs-datasheet-1059807/file-files/Knauf%20Regular%20Gypsum%20Board%20RG%20(EN-BS).pdf",
+        "https://materials.oneclicklca.com/en/material/gypsum-plaster-board-moisture-resistant/5dbc472b8e202b5fd4ed97f1",
+        "https://meconstructionnews.com/39/saint-gobain-gyproc-marks-12-months-manufacturing",
+        "https://www.armstrongceilings.com/commercial/en/technical-downloads/arch-binder/mineral-fiber-fiberglass-assets.html",
+        "https://www.greenlamindustries.com/blog/7-types-of-compact-laminates-available-from-greenlam-industries"
+      ],
+      "confidence": "medium",
+      "as_of": "2026-11-19",
+      "source_note": "Read on 2026-11-19 in the web-search extracts of the pages listed (WebFetch could not resolve these hosts from this session). Not checked: the fire classes each authority requires per space, which sit in interior_fitout:fire-finish-classes-2018 in the trade pack."
     }
   ],
   "eval": [
@@ -77,13 +119,28 @@
         "claim": "fit-out contractors ISG, Bond Interiors, Summertown, Havelock One, Depa, Al Tayer Stocks",
         "url": "https://www.mordorintelligence.com/industry-reports/united-arab-emirates-interior-design-market/companies",
         "result": "confirmed; ALEC Fitout added; Havelock One is Bahrain-headquartered; Beyond Interiors removed (not confirmed)"
+      },
+      {
+        "entry": "interior_fitout:uae-market-material-makes",
+        "claim": "Interior fit-out: where gypsum board, ceilings and partition materials sold in the UAE are made and who stocks them",
+        "url": "https://knauf.com/en-AE/knauf-gypsum",
+        "result": "10 pages read in web-search extracts on 2026-11-19 (WebFetch blocked); see the entry's source_note",
+        "on": "2026-11-19"
+      },
+      {
+        "entry": "interior_fitout:uae-market-make-and-grade-checklist",
+        "claim": "Interior fit-out: what to state about board, ceiling and finish makes and grades so UAE fit-out contractors quote like for like",
+        "url": "https://knauf.com/en-AE/knauf-gypsum",
+        "result": "6 pages read in web-search extracts on 2026-11-19 (WebFetch blocked); see the entry's source_note",
+        "on": "2026-11-19"
       }
     ],
     "unverified": "Named fit-out contractors are market examples; their current status was not verified. Each master developer's current fit-out guide version was not verified.",
     "ledger": [
       899,
       900,
-      903
+      903,
+      1209
     ]
   }
 }
